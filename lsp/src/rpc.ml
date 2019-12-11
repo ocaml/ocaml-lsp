@@ -1,3 +1,5 @@
+open Import
+
 type t = {
   ic : in_channel;
   oc : out_channel;
@@ -43,13 +45,13 @@ module Headers = struct
 
   let has_content_length s =
     String.length s > content_length_len &&
-    String.compare (String.sub s 0 content_length_len) content_length = 0
+    String.compare (String.sub s ~pos:0 ~len:content_length_len) content_length = 0
 
   let parse_content_length line =
     let v =
       String.sub line
-        content_length_len
-        (String.length line - end_line_len - content_length_len)
+        ~pos:content_length_len
+        ~len:(String.length line - end_line_len - content_length_len)
     in
     int_of_string v
 

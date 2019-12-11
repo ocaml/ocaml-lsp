@@ -1,3 +1,5 @@
+open Import
+
 type t = string
 [@@deriving_inline yojson]
 let _ = fun (_ : t) -> ()
@@ -16,19 +18,19 @@ let proto =
 
 let to_path (uri : t) =
   let path =
-    match Std.String.chop_prefix ~prefix:proto uri with
+    match String.chop_prefix ~prefix:proto uri with
     | Some path -> path
     | None -> uri in
   path
-  |> Std.String.replace_all ~pattern:"\\" ~with_:"/"
-  |> Std.String.replace_all ~pattern:"%3A" ~with_:":"
-  |> Std.String.replace_all ~pattern:"%5C" ~with_:"/"
+  |> String.replace_all ~pattern:"\\" ~with_:"/"
+  |> String.replace_all ~pattern:"%3A" ~with_:":"
+  |> String.replace_all ~pattern:"%5C" ~with_:"/"
 
 let of_path (path : string) =
   let path =
     path
-    |> Std.String.replace_all ~pattern:"\\" ~with_:"/"
-    |> Std.String.replace_all ~pattern:":" ~with_:"%3A"
+    |> String.replace_all ~pattern:"\\" ~with_:"/"
+    |> String.replace_all ~pattern:":" ~with_:"%3A"
   in
   proto ^ path
 

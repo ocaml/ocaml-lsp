@@ -1,3 +1,5 @@
+open Import
+
 (**
  * This encodes LSP protocol specification as document at
  *
@@ -1509,9 +1511,9 @@ module WorkspaceEdit = struct
 
   let yojson_of_changes changes =
     let changes =
-      List.map (fun (uri, edits) ->
+      List.map ~f:(fun (uri, edits) ->
         let uri = Uri.to_string uri in
-        let edits = `List (List.map TextEdit.yojson_of_t edits) in
+        let edits = `List (List.map ~f:TextEdit.yojson_of_t edits) in
         uri, edits
       ) changes
     in
@@ -5965,9 +5967,9 @@ let _ = yojson_of_params
 
   let yojson_of_result = function
     | DocumentSymbol symbols ->
-      `List (Std.List.map symbols ~f:DocumentSymbol.yojson_of_t)
+      `List (List.map symbols ~f:DocumentSymbol.yojson_of_t)
     | SymbolInformation symbols ->
-      `List (Std.List.map symbols ~f:SymbolInformation.yojson_of_t)
+      `List (List.map symbols ~f:SymbolInformation.yojson_of_t)
 
 end
 
