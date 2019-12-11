@@ -19,6 +19,7 @@
     "vscode-languageserver-types": "^3.13.0"
   },
   "dependencies": {
+    "jest-cli": "^24.9.0",
     "outdent": "^0.7.0"
   }
 }
