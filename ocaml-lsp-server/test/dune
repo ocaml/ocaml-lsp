@@ -1,4 +1,4 @@
 (alias
  (name runtest)
- (deps (source_tree e2e))
+ (deps (source_tree e2e) (file e2e/node_modules))
  (action (chdir e2e (run npm run test))))

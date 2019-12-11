@@ -1,5 +1,6 @@
 import * as cp from "child_process";
 import * as os from "os";
+import * as fs from "fs";
 import * as path from "path";
 import * as rpc from "vscode-jsonrpc";
 
@@ -7,17 +8,25 @@ import * as Protocol from "vscode-languageserver-protocol";
 import * as Rpc from "vscode-jsonrpc";
 
 let serverBin =
-  os.platform() === "win32" ? "ocamlmerlin-lsp.exe" : "ocamlmerlin-lsp";
+  os.platform() === "win32" ? "ocaml-lsp-server.exe" : "ocaml-lsp-server";
+
 let serverPath = path.join(
   __dirname,
   "..",
   "..",
-  "_build",
+  "..",
+  "..",
+  "..",
   "install",
   "default",
   "bin",
   serverBin
 );
+
+if (!fs.existsSync(serverPath)) {
+  console.error(`Unable to ocaml-lsp-server executable at: ${serverPath}`);
+  process.exit(1);
+}
 
 export type LanguageServer = Rpc.MessageConnection;
 
