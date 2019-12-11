@@ -7,4 +7,5 @@
 (package
  (name ocaml-lsp-server)
  (depends
-  dune))
+  (ocaml (>= 4.02))
+  (dune (>= 1.11))))
