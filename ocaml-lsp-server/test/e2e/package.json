@@ -1,8 +1,7 @@
 {
-  "name": "test-e2e",
+  "name": "ocaml-lsp",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "test": "jest --forceExit"
   },
