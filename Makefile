@@ -1,12 +1,12 @@
+TEST_E2E_DIR = ocaml-lsp-server/test/e2e
+
 build:
 	dune build
 .PHONY: build
 
-test: build ocaml-lsp-server/test/e2e/node_modules
-	cd ocaml-lsp-server/test/e2e && npm run test
+test: $(TEST_E2E_DIR)/node_modules
+	cd $(TEST_E2E_DIR) && npm run test
 .PHONY: test
 
-ocaml-lsp-server/test/e2e/node_modules:
-	cd $(@D) && npm install
-
-
+$(TEST_E2E_DIR)/node_modules:
+	cd $(TEST_E2E_DIR) && npm install
