@@ -119,10 +119,10 @@ describe("textDocument/completion", () => {
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
       { label: "LargeFile", sortText: "0000" },
-      { label: "Lazy", sortText: "0001" },
-      { label: "Lexing", sortText: "0002" },
-      { label: "List", sortText: "0003" },
-      { label: "ListLabels", sortText: "0004" },
+      { label: "Lexing", sortText: "0001" },
+      { label: "List", sortText: "0002" },
+      { label: "ListLabels", sortText: "0003" },
+      { label: "Lazy", sortText: "0004" },
     ]);
   });
 
@@ -231,58 +231,58 @@ describe("textDocument/completion", () => {
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
       {
-        label: "ListLabels.append",
+        label: "Lazy.Undefined",
         sortText: "0000",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.append"
+          newText: "Lazy.Undefined"
         }
       },
       {
-        label: "ListLabels.assoc",
+        label: "Lazy.t",
         sortText: "0001",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assoc"
+          newText: "Lazy.t"
         }
       },
       {
-        label: "ListLabels.assoc_opt",
+        label: "Lazy.force",
         sortText: "0002",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assoc_opt"
+          newText: "Lazy.force"
         }
       },
       {
-        label: "ListLabels.assq",
+        label: "Lazy.force_val",
         sortText: "0003",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assq"
+          newText: "Lazy.force_val"
         }
       },
       {
-        label: "ListLabels.assq_opt",
+        label: "Lazy.from_fun",
         sortText: "0004",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assq_opt"
+          newText: "Lazy.from_fun"
         }
       },
     ]);
