@@ -16,7 +16,7 @@ let serverPath = path.join(
   "..",
   "..",
   "..",
-  "..",
+  "_build",
   "install",
   "default",
   "bin",

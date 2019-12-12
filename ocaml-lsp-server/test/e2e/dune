@@ -1,6 +1,0 @@
-(dirs __tests__ *)
-
-(rule
-  (target node_modules)
-  (deps (file package-lock.json))
-  (action (run npm install)))
