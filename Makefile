@@ -4,8 +4,12 @@ build:
 	dune build
 .PHONY: build
 
-test: $(TEST_E2E_DIR)/node_modules
-	cd $(TEST_E2E_DIR) && npm run test
+lsp-server:
+	dune build @install
+.PHONY: lsp-server
+
+test: $(TEST_E2E_DIR)/node_modules lsp-server
+	cd $(TEST_E2E_DIR) && dune exec -- npm run test
 .PHONY: test
 
 $(TEST_E2E_DIR)/node_modules:
