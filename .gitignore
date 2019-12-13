@@ -3,3 +3,6 @@
 *.log
 tmp/
 .log/
+.merlin
+*.install
+_build
