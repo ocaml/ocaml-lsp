@@ -1,0 +1,14 @@
+language: c
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-docker.sh
+script: bash -ex .travis-docker.sh
+services:
+- docker
+env:
+  global:
+  - DISTRO="debian-stable"
+  - PINS="lsp.dev:. ocaml-lsp-server.dev:."
+  matrix:
+  - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.06"
+  - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.07"
+  - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.08"
+  - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.09"
