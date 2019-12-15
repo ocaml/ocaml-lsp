@@ -1,12 +1,17 @@
 open Import
 
-type t = string
-[@@deriving_inline yojson]
+type t = string [@@deriving_inline yojson]
+
 let _ = fun (_ : t) -> ()
+
 let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+
 let _ = t_of_yojson
+
 let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
 let _ = yojson_of_t
+
 [@@@end]
 
 let to_string uri = uri
@@ -20,7 +25,8 @@ let to_path (uri : t) =
   let path =
     match String.chop_prefix ~prefix:proto uri with
     | Some path -> path
-    | None -> uri in
+    | None -> uri
+  in
   path
   |> String.replace_all ~pattern:"\\" ~with_:"/"
   |> String.replace_all ~pattern:"%3A" ~with_:":"
