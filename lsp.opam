@@ -6,15 +6,15 @@ description: """
 Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 """
-maintainer: ["me@rgrinberg.com"]
+maintainer: ["Rudi Grinberg <me@rgrinerg.com>"]
 authors: [
-  "Andrey Popp"
-  "Dave Aitken"
-  "Rusty Key"
-  "Louis Roché"
-  "Oleksiy Golovko"
-  "Rudi Grinberg"
+  "Andrey Popp <8mayday@gmail.com>"
+  "Rusty Key <iam@stfoo.ru>"
+  "Louis Roché <louis@louisroche.net>"
+  "Oleksiy Golovko <alexei.golovko@gmail.com>"
+  "Rudi Grinberg <me@rgrinberg.com>"
 ]
+license: "ISC"
 homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
