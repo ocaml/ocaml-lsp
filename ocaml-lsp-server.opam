@@ -2,21 +2,23 @@
 opam-version: "2.0"
 synopsis: "LSP Server for OCaml"
 description: " An LSP server for OCaml."
-maintainer: ["me@rgrinberg.com"]
+maintainer: ["Rudi Grinberg <me@rgrinerg.com>"]
 authors: [
-  "Andrey Popp"
-  "Dave Aitken"
-  "Rusty Key"
-  "Louis Roché"
-  "Oleksiy Golovko"
-  "Rudi Grinberg"
+  "Andrey Popp <8mayday@gmail.com>"
+  "Rusty Key <iam@stfoo.ru>"
+  "Louis Roché <louis@louisroche.net>"
+  "Oleksiy Golovko <alexei.golovko@gmail.com>"
+  "Rudi Grinberg <me@rgrinberg.com>"
 ]
+license: "ISC"
 homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
+  "lsp"
+  "yojson"
+  "ppx_yojson_conv_lib"
   "ocaml" {>= "4.06"}
   "dune" {>= "1.11"}
-  "lsp"
 ]
 build: [
   ["dune" "subst"] {pinned}

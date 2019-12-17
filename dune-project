@@ -3,15 +3,14 @@
 
 (implicit_transitive_deps false)
 
-(maintainers "me@rgrinberg.com")
-
+(license ISC)
+(maintainers "Rudi Grinberg <me@rgrinerg.com>")
 (authors
- "Andrey Popp"
- "Dave Aitken"
- "Rusty Key"
- "Louis Roché"
- "Oleksiy Golovko"
- "Rudi Grinberg")
+ "Andrey Popp <8mayday@gmail.com>"
+ "Rusty Key <iam@stfoo.ru>"
+ "Louis Roché <louis@louisroche.net>"
+ "Oleksiy Golovko <alexei.golovko@gmail.com>"
+ "Rudi Grinberg <me@rgrinberg.com>")
 
 (source (github ocaml/ocaml-lsp))
 
@@ -25,6 +24,8 @@ Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 ")
  (depends
+  yojson
+  ppx_yojson_conv_lib
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
 
@@ -33,6 +34,8 @@ possible and does not make any assumptions about IO.
  (synopsis "LSP Server for OCaml")
  (description " An LSP server for OCaml.")
  (depends
+  lsp
+  yojson
+  ppx_yojson_conv_lib
   (ocaml (>= 4.06))
-  (dune (>= 1.11))
-  lsp))
+  (dune (>= 1.11))))

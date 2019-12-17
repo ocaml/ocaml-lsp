@@ -106,7 +106,7 @@ let on_request :
     -> resp Lsp.Rpc.Request.t
     -> (Document_store.t * resp, string) result =
  fun _rpc store client_capabilities req ->
-  let open Lsp.Utils.Result.Infix in
+  let open Lsp.Import.Result.Infix in
   match req with
   | Lsp.Rpc.Request.Shutdown -> return (store, ())
   | Lsp.Rpc.Request.DebugTextDocumentGet
@@ -532,7 +532,7 @@ let on_request :
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
-  let open Lsp.Utils.Result.Infix in
+  let open Lsp.Import.Result.Infix in
   match notification with
   | TextDocumentDidOpen params ->
     let doc =

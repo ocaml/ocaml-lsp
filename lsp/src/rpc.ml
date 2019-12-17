@@ -202,7 +202,7 @@ module Packet = struct
 end
 
 let read rpc =
-  let open Utils.Result.Infix in
+  let open Result.Infix in
   let read_content rpc =
     Thread.wait_read rpc.fd;
     let headers = Headers.read rpc.ic in
@@ -229,7 +229,7 @@ let read rpc =
         json;
       Ok json
     | exception Yojson.Json_error msg ->
-      Utils.Result.errorf "error parsing json: %s" msg
+      Result.errorf "error parsing json: %s" msg
   in
 
   read_content rpc >>= parse_json >>= fun parsed ->
@@ -709,7 +709,7 @@ module Message = struct
     | Client_notification : Client_notification.t -> t
 
   let parse packet =
-    let open Utils.Result.Infix in
+    let open Result.Infix in
     let parse_yojson f v =
       match f v with
       | exception
@@ -788,7 +788,7 @@ type 'state handler =
   }
 
 let start init_state handler ic oc =
-  let open Utils.Result.Infix in
+  let open Result.Infix in
   let read_message rpc = read rpc >>= fun packet -> Message.parse packet in
 
   let handle_message prev_state f =
