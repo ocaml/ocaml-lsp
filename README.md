@@ -31,6 +31,31 @@ $ cd ocaml-lsp
 $ dune build
 ```
 
+## Features
+
+The server supports the following queries:
+
+- [x] `textDocument/completion`
+- [ ] `completionItem/resolve`
+- [x] `textdocument/hover`
+- [ ] `textDocument/signatureHelp`
+- [x] `textDocument/definition`
+- [x] `textDocument/typeDefinition`
+- [ ] `textDocument/implementation`
+- [x] `textDocument/codeLens`
+- [x] `textDocument/documentHighlight`
+- [x] `textDocument/documentSymbol`
+- [x] `textDocument/references`
+- [ ] `textDocument/documentColor`
+- [ ] `textDocument/colorPresentation`
+- [ ] `textDocument/formatting`
+- [ ] `textDocument/rangeFormatting`
+- [ ] `textDocument/onTypeFormatting`
+- [ ] `textDocument/prepareRename`
+- [ ] `textDocument/foldingRange`
+
+Note that degrees of support for each LSP request are varying.
+
 ## Tests
 
 ## Relationship to Other Tools
