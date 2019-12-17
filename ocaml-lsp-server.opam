@@ -14,6 +14,7 @@ authors: [
 homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
+  "lsp"
   "ocaml" {>= "4.06"}
   "dune" {>= "1.11"}
   "lsp"
