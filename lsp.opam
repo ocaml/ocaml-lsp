@@ -19,6 +19,7 @@ homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "yojson"
+  "ppx_yojson_conv_lib"
   "ocaml" {>= "4.06"}
   "dune" {>= "1.11"}
 ]

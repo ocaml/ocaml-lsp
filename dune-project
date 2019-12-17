@@ -25,6 +25,7 @@ possible and does not make any assumptions about IO.
 ")
  (depends
   yojson
+  ppx_yojson_conv_lib
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
 
@@ -35,5 +36,6 @@ possible and does not make any assumptions about IO.
  (depends
   lsp
   yojson
+  ppx_yojson_conv_lib
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
