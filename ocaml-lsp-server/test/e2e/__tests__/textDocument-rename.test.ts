@@ -32,7 +32,9 @@ describe("textDocument/rename", () => {
   });
 
   it("rename value in a file without documentChanges capability", async () => {
-    languageServer = await LanguageServer.startAndInitialize({workspace: {workspaceEdit: {documentChanges: false}}});
+    languageServer = await LanguageServer.startAndInitialize({
+      workspace: { workspaceEdit: { documentChanges: false } }
+    });
 
     await openDocument(outdent`
       let num = 42
@@ -43,34 +45,34 @@ describe("textDocument/rename", () => {
     let result = await query(Types.Position.create(0, 4));
 
     expect(result).toMatchObject({
-      "documentChanges": null,
-      "changes": {
+      documentChanges: null,
+      changes: {
         "file:///test.ml": [
           {
-            "range": {
-              "start": {
-                "line": 0,
-                "character": 4
+            range: {
+              start: {
+                line: 0,
+                character: 4
               },
-              "end": {
-                "line": 0,
-                "character": 7
+              end: {
+                line: 0,
+                character: 7
               }
             },
-            "newText": "new_num"
+            newText: "new_num"
           },
           {
-            "range": {
-              "start": {
-                "line": 1,
-                "character": 10
+            range: {
+              start: {
+                line: 1,
+                character: 10
               },
-              "end": {
-                "line": 1,
-                "character": 13
+              end: {
+                line: 1,
+                character: 13
               }
             },
-            "newText": "new_num"
+            newText: "new_num"
           }
         ]
       }
@@ -78,7 +80,9 @@ describe("textDocument/rename", () => {
   });
 
   it("rename value in a file with documentChanges capability", async () => {
-    languageServer = await LanguageServer.startAndInitialize({workspace: {workspaceEdit: {documentChanges: true}}});
+    languageServer = await LanguageServer.startAndInitialize({
+      workspace: { workspaceEdit: { documentChanges: true } }
+    });
 
     await openDocument(outdent`
       let num = 42
@@ -89,43 +93,43 @@ describe("textDocument/rename", () => {
     let result = await query(Types.Position.create(0, 4));
 
     expect(result).toMatchObject({
-      "documentChanges": [
+      documentChanges: [
         {
-          "textDocument": {
-            "version": 0,
-            "uri": "file:///test.ml"
+          textDocument: {
+            version: 0,
+            uri: "file:///test.ml"
           },
-          "edits": [
+          edits: [
             {
-              "range": {
-                "start": {
-                  "line": 0,
-                  "character": 4
+              range: {
+                start: {
+                  line: 0,
+                  character: 4
                 },
-                "end": {
-                  "line": 0,
-                  "character": 7
+                end: {
+                  line: 0,
+                  character: 7
                 }
               },
-              "newText": "new_num"
+              newText: "new_num"
             },
             {
-              "range": {
-                "start": {
-                  "line": 1,
-                  "character": 10
+              range: {
+                start: {
+                  line: 1,
+                  character: 10
                 },
-                "end": {
-                  "line": 1,
-                  "character": 13
+                end: {
+                  line: 1,
+                  character: 13
                 }
               },
-              "newText": "new_num"
+              newText: "new_num"
             }
           ]
         }
       ],
-      "changes": null
+      changes: null
     });
   });
 });

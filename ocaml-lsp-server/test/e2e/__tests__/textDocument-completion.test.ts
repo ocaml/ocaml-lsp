@@ -27,7 +27,7 @@ describe("textDocument/completion", () => {
       return {
         label: item.label,
         sortText: item.sortText,
-        textEdit: item.textEdit,
+        textEdit: item.textEdit
       };
     });
   }
@@ -71,9 +71,7 @@ describe("textDocument/completion", () => {
     `);
 
     let items = await queryCompletion(Types.Position.create(0, 7));
-    expect(items).toMatchObject([
-      { label: "StringLabels", sortText: "0000" }
-    ]);
+    expect(items).toMatchObject([{ label: "StringLabels", sortText: "0000" }]);
   });
 
   it("completes identifier at top level", async () => {
@@ -106,7 +104,7 @@ describe("textDocument/completion", () => {
       { label: "mem_assoc", sortText: "0004" },
       { label: "mem_assq", sortText: "0005" },
       { label: "memq", sortText: "0006" },
-      { label: "merge", sortText: "0007" },
+      { label: "merge", sortText: "0007" }
     ]);
   });
 
@@ -122,7 +120,7 @@ describe("textDocument/completion", () => {
       { label: "Lazy", sortText: "0001" },
       { label: "Lexing", sortText: "0002" },
       { label: "List", sortText: "0003" },
-      { label: "ListLabels", sortText: "0004" },
+      { label: "ListLabels", sortText: "0004" }
     ]);
   });
 
@@ -142,7 +140,7 @@ describe("textDocument/completion", () => {
       { label: "x", sortText: "0001", textEdit: null },
       { label: "y", sortText: "0002", textEdit: null },
       { label: "max_int", sortText: "0003", textEdit: null },
-      { label: "min_int", sortText: "0004", textEdit: null },
+      { label: "min_int", sortText: "0004", textEdit: null }
     ]);
   });
 
@@ -158,8 +156,8 @@ describe("textDocument/completion", () => {
         sortText: "0000",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 13 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 }
           },
           newText: "ListLabels.mapi"
         }
@@ -169,8 +167,8 @@ describe("textDocument/completion", () => {
         sortText: "0001",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 13 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 }
           },
           newText: "ListLabels.map2"
         }
@@ -180,8 +178,8 @@ describe("textDocument/completion", () => {
         sortText: "0002",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 13 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 }
           },
           newText: "ListLabels.map"
         }
@@ -191,8 +189,8 @@ describe("textDocument/completion", () => {
         sortText: "0003",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 13 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 }
           },
           newText: "List.mapi"
         }
@@ -202,8 +200,8 @@ describe("textDocument/completion", () => {
         sortText: "0004",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 13 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 }
           },
           newText: "List.map2"
         }
@@ -213,8 +211,8 @@ describe("textDocument/completion", () => {
         sortText: "0005",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 13 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 }
           },
           newText: "List.map"
         }
@@ -235,8 +233,8 @@ describe("textDocument/completion", () => {
         sortText: "0000",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 10 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 10 }
           },
           newText: "ListLabels.to_seq"
         }
@@ -246,8 +244,8 @@ describe("textDocument/completion", () => {
         sortText: "0001",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 10 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 10 }
           },
           newText: "ListLabels.tl"
         }
@@ -257,8 +255,8 @@ describe("textDocument/completion", () => {
         sortText: "0002",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 10 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 10 }
           },
           newText: "ListLabels.t"
         }
@@ -268,8 +266,8 @@ describe("textDocument/completion", () => {
         sortText: "0003",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 10 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 10 }
           },
           newText: "ListLabels.stable_sort"
         }
@@ -279,12 +277,12 @@ describe("textDocument/completion", () => {
         sortText: "0004",
         textEdit: {
           range: {
-            start: { "line": 0, "character": 8 },
-            end: { "line": 0, "character": 10 }
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 10 }
           },
           newText: "ListLabels.split"
         }
-      },
+      }
     ]);
   });
 
@@ -303,14 +301,13 @@ describe("textDocument/completion", () => {
     `);
 
     let items = await queryCompletion(Types.Position.create(0, 23));
-    let items_top5 = items.slice(0, 5)
+    let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
-      {label: "~f", sortText: "0000", textEdit: null},
-      {label: "::", sortText: "0001", textEdit: null},
-      {label: "[]", sortText: "0002", textEdit: null},
-      {label: "!", sortText: "0003", textEdit: null},
-      {label: "exit", sortText: "0004", textEdit: null}
+      { label: "~f", sortText: "0000", textEdit: null },
+      { label: "::", sortText: "0001", textEdit: null },
+      { label: "[]", sortText: "0002", textEdit: null },
+      { label: "!", sortText: "0003", textEdit: null },
+      { label: "exit", sortText: "0004", textEdit: null }
     ]);
   });
-
 });
