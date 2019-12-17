@@ -34,6 +34,6 @@ possible and does not make any assumptions about IO.
  (description " An LSP server for OCaml.")
  (depends
   lsp
+  yojson
   (ocaml (>= 4.06))
-  (dune (>= 1.11))
-  lsp))
+  (dune (>= 1.11))))

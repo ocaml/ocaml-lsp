@@ -15,9 +15,9 @@ homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "lsp"
+  "yojson"
   "ocaml" {>= "4.06"}
   "dune" {>= "1.11"}
-  "lsp"
 ]
 build: [
   ["dune" "subst"] {pinned}
