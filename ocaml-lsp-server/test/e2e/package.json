@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "jest --forceExit"
+    "test": "jest --forceExit",
+    "promote": "jest --updateSnapshot"
   },
   "author": "",
   "license": "MIT",

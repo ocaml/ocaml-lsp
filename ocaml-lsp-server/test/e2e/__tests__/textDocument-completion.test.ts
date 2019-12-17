@@ -87,8 +87,8 @@ describe("textDocument/completion", () => {
 
     let items = await queryCompletion(Types.Position.create(4, 6));
     expect(items).toMatchObject([
-      { label: "somestring", sortText: "0000" },
-      { label: "somenum", sortText: "0001" }
+      { label: "somenum", sortText: "0000" },
+      { label: "somestring", sortText: "0001" }
     ]);
   });
 
@@ -138,9 +138,9 @@ describe("textDocument/completion", () => {
     let items = await queryCompletion(Types.Position.create(4, 12));
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
-      { label: "y", sortText: "0000", textEdit: null },
+      { label: "somenum", sortText: "0000", textEdit: null },
       { label: "x", sortText: "0001", textEdit: null },
-      { label: "somenum", sortText: "0002", textEdit: null },
+      { label: "y", sortText: "0002", textEdit: null },
       { label: "max_int", sortText: "0003", textEdit: null },
       { label: "min_int", sortText: "0004", textEdit: null },
     ]);
@@ -154,14 +154,14 @@ describe("textDocument/completion", () => {
     let items = await queryCompletion(Types.Position.create(0, 13));
     expect(items).toMatchObject([
       {
-        label: "ListLabels.map",
+        label: "ListLabels.mapi",
         sortText: "0000",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 13 }
           },
-          newText: "ListLabels.map"
+          newText: "ListLabels.mapi"
         }
       },
       {
@@ -176,25 +176,25 @@ describe("textDocument/completion", () => {
         }
       },
       {
-        label: "ListLabels.mapi",
+        label: "ListLabels.map",
         sortText: "0002",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 13 }
           },
-          newText: "ListLabels.mapi"
+          newText: "ListLabels.map"
         }
       },
       {
-        label: "List.map",
+        label: "List.mapi",
         sortText: "0003",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 13 }
           },
-          newText: "List.map"
+          newText: "List.mapi"
         }
       },
       {
@@ -209,14 +209,14 @@ describe("textDocument/completion", () => {
         }
       },
       {
-        label: "List.mapi",
+        label: "List.map",
         sortText: "0005",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 13 }
           },
-          newText: "List.mapi"
+          newText: "List.map"
         }
       }
     ]);
@@ -231,58 +231,58 @@ describe("textDocument/completion", () => {
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
       {
-        label: "ListLabels.append",
+        label: "ListLabels.to_seq",
         sortText: "0000",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.append"
+          newText: "ListLabels.to_seq"
         }
       },
       {
-        label: "ListLabels.assoc",
+        label: "ListLabels.tl",
         sortText: "0001",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assoc"
+          newText: "ListLabels.tl"
         }
       },
       {
-        label: "ListLabels.assoc_opt",
+        label: "ListLabels.t",
         sortText: "0002",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assoc_opt"
+          newText: "ListLabels.t"
         }
       },
       {
-        label: "ListLabels.assq",
+        label: "ListLabels.stable_sort",
         sortText: "0003",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assq"
+          newText: "ListLabels.stable_sort"
         }
       },
       {
-        label: "ListLabels.assq_opt",
+        label: "ListLabels.split",
         sortText: "0004",
         textEdit: {
           range: {
             start: { "line": 0, "character": 8 },
             end: { "line": 0, "character": 10 }
           },
-          newText: "ListLabels.assq_opt"
+          newText: "ListLabels.split"
         }
       },
     ]);
