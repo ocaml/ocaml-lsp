@@ -29,7 +29,10 @@ describe("textDocument/hover", () => {
 
     expect(result).toMatchObject({
       contents: { kind: "plaintext", value: "int" },
-      range: {end: {character: 5, line: 0}, start: {character: 4, line: 0}},
+      range: {
+        end: { character: 5, line: 0 },
+        start: { character: 4, line: 0 }
+      }
     });
   });
 
@@ -58,7 +61,10 @@ describe("textDocument/hover", () => {
 
     expect(result).toMatchObject({
       contents: { kind: "markdown", value: "```ocaml\nint\n```" },
-      range: {end: {character: 5, line: 0}, start: {character: 4, line: 0}},
+      range: {
+        end: { character: 5, line: 0 },
+        start: { character: 4, line: 0 }
+      }
     });
   });
 
@@ -88,7 +94,9 @@ describe("textDocument/hover", () => {
     expect(result).toMatchObject({
       contents: {
         kind: "markdown",
-        value: "```ocaml\n'a -> 'a\n(** This function has a nice documentation *)\n```" }
+        value:
+          "```ocaml\n'a -> 'a\n(** This function has a nice documentation *)\n```"
+      }
     });
   });
 
@@ -126,8 +134,8 @@ describe("textDocument/hover", () => {
         value: "```ocaml\nint\n```"
       },
       range: {
-        start: {"character": 12, "line": 3},
-        end: {"character": 13, "line": 3},
+        start: { character: 12, line: 3 },
+        end: { character: 13, line: 3 }
       }
     });
   });
