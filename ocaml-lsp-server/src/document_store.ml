@@ -11,4 +11,4 @@ let get store uri =
   match get_opt store uri with
   | Some doc -> Ok doc
   | None ->
-    Lsp.Utils.Result.errorf "no document found with uri: %a" Lsp.Uri.pp uri
+    Lsp.Import.Result.errorf "no document found with uri: %a" Lsp.Uri.pp uri

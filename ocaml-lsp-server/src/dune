@@ -2,7 +2,6 @@
  (name ocaml_lsp_server)
  (package ocaml-lsp-server)
  (public_name ocaml-lsp-server)
- (flags (:standard "-open" "Result"))
  (libraries
   merlin.specific
   merlin.analysis
