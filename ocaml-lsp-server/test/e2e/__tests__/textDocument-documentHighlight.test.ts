@@ -13,15 +13,15 @@ describe("textDocument/references", () => {
         "file:///test.ml",
         "txt",
         0,
-        source
-      )
+        source,
+      ),
     });
   }
 
   async function query(position) {
     return await languageServer.sendRequest("textDocument/documentHighlight", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position
+      position,
     });
   }
 
@@ -48,41 +48,41 @@ describe("textDocument/references", () => {
         range: {
           end: {
             character: 7,
-            line: 0
+            line: 0,
           },
           start: {
             character: 4,
-            line: 0
-          }
+            line: 0,
+          },
         },
-        kind: 1
+        kind: 1,
       },
       {
         range: {
           end: {
             character: 13,
-            line: 1
+            line: 1,
           },
           start: {
             character: 10,
-            line: 1
-          }
+            line: 1,
+          },
         },
-        kind: 1
+        kind: 1,
       },
       {
         range: {
           end: {
             character: 20,
-            line: 2
+            line: 2,
           },
           start: {
             character: 17,
-            line: 2
-          }
+            line: 2,
+          },
         },
-        kind: 1
-      }
+        kind: 1,
+      },
     ]);
   });
 });

@@ -13,14 +13,14 @@ describe("textDocument/documentSymbol", () => {
         "file:///test.ml",
         "txt",
         0,
-        source
-      )
+        source,
+      ),
     });
   }
 
   async function query() {
     return await languageServer.sendRequest("textDocument/documentSymbol", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml")
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
     });
   }
 
@@ -49,11 +49,11 @@ describe("textDocument/documentSymbol", () => {
         location: {
           range: {
             end: { character: 3, line: 6 },
-            start: { character: 0, line: 3 }
+            start: { character: 0, line: 3 },
           },
-          uri: "file:///test.ml"
+          uri: "file:///test.ml",
         },
-        name: "M"
+        name: "M",
       },
       {
         containerName: "M",
@@ -61,11 +61,11 @@ describe("textDocument/documentSymbol", () => {
         location: {
           range: {
             end: { character: 12, line: 5 },
-            start: { character: 2, line: 5 }
+            start: { character: 2, line: 5 },
           },
-          uri: "file:///test.ml"
+          uri: "file:///test.ml",
         },
-        name: "n"
+        name: "n",
       },
       {
         containerName: "M",
@@ -73,34 +73,34 @@ describe("textDocument/documentSymbol", () => {
         location: {
           range: {
             end: { character: 19, line: 4 },
-            start: { character: 2, line: 4 }
+            start: { character: 2, line: 4 },
           },
-          uri: "file:///test.ml"
+          uri: "file:///test.ml",
         },
-        name: "m"
+        name: "m",
       },
       {
         kind: 12,
         location: {
           range: {
             end: { character: 20, line: 1 },
-            start: { character: 0, line: 1 }
+            start: { character: 0, line: 1 },
           },
-          uri: "file:///test.ml"
+          uri: "file:///test.ml",
         },
-        name: "string"
+        name: "string",
       },
       {
         kind: 12,
         location: {
           range: {
             end: { character: 12, line: 0 },
-            start: { character: 0, line: 0 }
+            start: { character: 0, line: 0 },
           },
-          uri: "file:///test.ml"
+          uri: "file:///test.ml",
         },
-        name: "num"
-      }
+        name: "num",
+      },
     ]);
   });
 
@@ -108,9 +108,9 @@ describe("textDocument/documentSymbol", () => {
     languageServer = await LanguageServer.startAndInitialize({
       textDocument: {
         documentSymbol: {
-          hierarchicalDocumentSymbolSupport: true
-        }
-      }
+          hierarchicalDocumentSymbolSupport: true,
+        },
+      },
     });
     await openDocument(outdent`
       let num = 42
@@ -135,12 +135,12 @@ describe("textDocument/documentSymbol", () => {
             name: "n",
             range: {
               end: { character: 12, line: 5 },
-              start: { character: 2, line: 5 }
+              start: { character: 2, line: 5 },
             },
             selectionRange: {
               end: { character: 12, line: 5 },
-              start: { character: 2, line: 5 }
-            }
+              start: { character: 2, line: 5 },
+            },
           },
           {
             children: [],
@@ -150,13 +150,13 @@ describe("textDocument/documentSymbol", () => {
             name: "m",
             range: {
               end: { character: 19, line: 4 },
-              start: { character: 2, line: 4 }
+              start: { character: 2, line: 4 },
             },
             selectionRange: {
               end: { character: 19, line: 4 },
-              start: { character: 2, line: 4 }
-            }
-          }
+              start: { character: 2, line: 4 },
+            },
+          },
         ],
         deprecated: false,
         detail: null,
@@ -164,12 +164,12 @@ describe("textDocument/documentSymbol", () => {
         name: "M",
         range: {
           end: { character: 3, line: 6 },
-          start: { character: 0, line: 3 }
+          start: { character: 0, line: 3 },
         },
         selectionRange: {
           end: { character: 3, line: 6 },
-          start: { character: 0, line: 3 }
-        }
+          start: { character: 0, line: 3 },
+        },
       },
       {
         children: [],
@@ -179,12 +179,12 @@ describe("textDocument/documentSymbol", () => {
         name: "string",
         range: {
           end: { character: 20, line: 1 },
-          start: { character: 0, line: 1 }
+          start: { character: 0, line: 1 },
         },
         selectionRange: {
           end: { character: 20, line: 1 },
-          start: { character: 0, line: 1 }
-        }
+          start: { character: 0, line: 1 },
+        },
       },
       {
         children: [],
@@ -194,13 +194,13 @@ describe("textDocument/documentSymbol", () => {
         name: "num",
         range: {
           end: { character: 12, line: 0 },
-          start: { character: 0, line: 0 }
+          start: { character: 0, line: 0 },
         },
         selectionRange: {
           end: { character: 12, line: 0 },
-          start: { character: 0, line: 0 }
-        }
-      }
+          start: { character: 0, line: 0 },
+        },
+      },
     ]);
   });
 });

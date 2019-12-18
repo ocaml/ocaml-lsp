@@ -13,8 +13,8 @@ describe("textDocument/rename", () => {
         "file:///test.ml",
         "txt",
         0,
-        source
-      )
+        source,
+      ),
     });
   }
 
@@ -22,7 +22,7 @@ describe("textDocument/rename", () => {
     return await languageServer.sendRequest("textDocument/rename", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
-      newName: "new_num"
+      newName: "new_num",
     });
   }
 
@@ -33,7 +33,7 @@ describe("textDocument/rename", () => {
 
   it("rename value in a file without documentChanges capability", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      workspace: { workspaceEdit: { documentChanges: false } }
+      workspace: { workspaceEdit: { documentChanges: false } },
     });
 
     await openDocument(outdent`
@@ -52,36 +52,36 @@ describe("textDocument/rename", () => {
             range: {
               start: {
                 line: 0,
-                character: 4
+                character: 4,
               },
               end: {
                 line: 0,
-                character: 7
-              }
+                character: 7,
+              },
             },
-            newText: "new_num"
+            newText: "new_num",
           },
           {
             range: {
               start: {
                 line: 1,
-                character: 10
+                character: 10,
               },
               end: {
                 line: 1,
-                character: 13
-              }
+                character: 13,
+              },
             },
-            newText: "new_num"
-          }
-        ]
-      }
+            newText: "new_num",
+          },
+        ],
+      },
     });
   });
 
   it("rename value in a file with documentChanges capability", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      workspace: { workspaceEdit: { documentChanges: true } }
+      workspace: { workspaceEdit: { documentChanges: true } },
     });
 
     await openDocument(outdent`
@@ -97,39 +97,39 @@ describe("textDocument/rename", () => {
         {
           textDocument: {
             version: 0,
-            uri: "file:///test.ml"
+            uri: "file:///test.ml",
           },
           edits: [
             {
               range: {
                 start: {
                   line: 0,
-                  character: 4
+                  character: 4,
                 },
                 end: {
                   line: 0,
-                  character: 7
-                }
+                  character: 7,
+                },
               },
-              newText: "new_num"
+              newText: "new_num",
             },
             {
               range: {
                 start: {
                   line: 1,
-                  character: 10
+                  character: 10,
                 },
                 end: {
                   line: 1,
-                  character: 13
-                }
+                  character: 13,
+                },
               },
-              newText: "new_num"
-            }
-          ]
-        }
+              newText: "new_num",
+            },
+          ],
+        },
       ],
-      changes: null
+      changes: null,
     });
   });
 });

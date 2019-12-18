@@ -20,7 +20,7 @@ let serverPath = path.join(
   "install",
   "default",
   "bin",
-  serverBin
+  serverBin,
 );
 
 if (!fs.existsSync(serverPath)) {
@@ -38,13 +38,13 @@ export const toURI = s => {
 
 export const start = (opts?: cp.SpawnOptions) => {
   opts = opts || {
-    env: { ...process.env, MERLIN_LOG: "-" }
+    env: { ...process.env, MERLIN_LOG: "-" },
   };
   let childProcess = cp.spawn(serverPath, [], opts);
 
   let connection = rpc.createMessageConnection(
     new rpc.StreamMessageReader(childProcess.stdout),
-    new rpc.StreamMessageWriter(childProcess.stdin)
+    new rpc.StreamMessageWriter(childProcess.stdin),
   );
 
   if (process.env.MERLIN_LSP_TEST_DEBUG) {
@@ -59,7 +59,7 @@ export const start = (opts?: cp.SpawnOptions) => {
 };
 
 export const startAndInitialize = async (
-  capabilities?: Partial<Protocol.ClientCapabilities>
+  capabilities?: Partial<Protocol.ClientCapabilities>,
 ) => {
   let languageServer = start();
 
@@ -69,12 +69,12 @@ export const startAndInitialize = async (
     processId: process.pid,
     rootUri: toURI(path.join(__dirname, "..")),
     capabilities: capabilities,
-    workspaceFolders: []
+    workspaceFolders: [],
   };
 
   let result = await languageServer.sendRequest(
     Protocol.InitializeRequest.type,
-    initializeParameters
+    initializeParameters,
   );
   return languageServer;
 };

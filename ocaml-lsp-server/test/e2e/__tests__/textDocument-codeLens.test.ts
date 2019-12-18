@@ -13,14 +13,14 @@ describe("textDocument/references", () => {
         "file:///test.ml",
         "txt",
         0,
-        source
-      )
+        source,
+      ),
     });
   }
 
   async function query() {
     return await languageServer.sendRequest("textDocument/codeLens", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml")
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
     });
   }
 
@@ -50,23 +50,23 @@ describe("textDocument/references", () => {
         command: { command: "", title: "int -> int -> int" },
         range: {
           end: { character: 19, line: 4 },
-          start: { character: 2, line: 4 }
-        }
+          start: { character: 2, line: 4 },
+        },
       },
       {
         command: { command: "", title: "string" },
         range: {
           end: { character: 20, line: 1 },
-          start: { character: 0, line: 1 }
-        }
+          start: { character: 0, line: 1 },
+        },
       },
       {
         command: { command: "", title: "int" },
         range: {
           end: { character: 12, line: 0 },
-          start: { character: 0, line: 0 }
-        }
-      }
+          start: { character: 0, line: 0 },
+        },
+      },
     ]);
   });
 });

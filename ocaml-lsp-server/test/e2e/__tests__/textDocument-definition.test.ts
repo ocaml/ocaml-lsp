@@ -13,15 +13,15 @@ describe("textDocument/definition", () => {
         "file:///test.ml",
         "txt",
         0,
-        source
-      )
+        source,
+      ),
     });
   }
 
   async function queryDefinition(position) {
     return await languageServer.sendRequest("textDocument/definition", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position
+      position,
     });
   }
 
@@ -48,10 +48,10 @@ describe("textDocument/definition", () => {
       {
         range: {
           end: { character: 4, line: 0 },
-          start: { character: 4, line: 0 }
+          start: { character: 4, line: 0 },
         },
-        uri: "file://test.ml"
-      }
+        uri: "file://test.ml",
+      },
     ]);
   });
 });

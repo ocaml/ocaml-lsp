@@ -18,12 +18,12 @@ test("initialize with empty capabilities", async () => {
     processId: process.pid,
     rootUri: LanguageServer.toURI(__dirname),
     capabilities: capabilities,
-    workspaceFolders: []
+    workspaceFolders: [],
   };
 
   let result = await languageServer.sendRequest(
     Protocol.InitializeRequest.type,
-    initializeParameters
+    initializeParameters,
   );
 
   expect(result.capabilities).toBeTruthy();
