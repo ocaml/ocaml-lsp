@@ -9,7 +9,7 @@ lsp-server:
 .PHONY: lsp-server
 
 test: $(TEST_E2E_DIR)/node_modules lsp-server
-	cd $(TEST_E2E_DIR) && dune exec -- npm run test
+	cd $(TEST_E2E_DIR) && dune exec -- yarn test
 .PHONY: test
 
 format:
@@ -17,4 +17,4 @@ format:
 .PHONY: format
 
 $(TEST_E2E_DIR)/node_modules:
-	cd $(TEST_E2E_DIR) && npm install
+	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
