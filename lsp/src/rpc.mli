@@ -41,6 +41,7 @@ module Request : sig
     | TextDocumentHighlight :
         TextDocumentHighlight.params
         -> TextDocumentHighlight.result t
+    | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
     | UnknownRequest : string * Yojson.Safe.t -> unit t
 end
 

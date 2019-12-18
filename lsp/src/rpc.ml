@@ -659,6 +659,7 @@ module Request = struct
     | TextDocumentHighlight :
         TextDocumentHighlight.params
         -> TextDocumentHighlight.result t
+    | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
     | UnknownRequest : string * Yojson.Safe.t -> unit t
 
   let request_result_to_response (type a) id (req : a t) (result : a) =
@@ -696,6 +697,9 @@ module Request = struct
       Some (Response.make id json)
     | TextDocumentHighlight _, result ->
       let json = TextDocumentHighlight.yojson_of_result result in
+      Some (Response.make id json)
+    | TextDocumentFoldingRange _, result ->
+      let json = FoldingRange.yojson_of_result result in
       Some (Response.make id json)
     | UnknownRequest _, _resp -> None
 end
@@ -751,6 +755,9 @@ module Message = struct
       | "textDocument/documentHighlight" ->
         parse_yojson TextDocumentHighlight.params_of_yojson packet.params
         >>| fun params -> Request (id, TextDocumentHighlight params)
+      | "textDocument/foldingRange" ->
+        parse_yojson FoldingRange.params_of_yojson packet.params
+        >>| fun params -> Request (id, TextDocumentFoldingRange params)
       | "debug/echo" ->
         parse_yojson DebugEcho.params_of_yojson packet.params >>| fun params ->
         Request (id, DebugEcho params)

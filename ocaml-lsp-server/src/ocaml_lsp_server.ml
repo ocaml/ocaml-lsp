@@ -529,6 +529,35 @@ let on_request :
       Lsp.Protocol.WorkspaceEdit.make ~documentChanges ~uri ~version ~edits
     in
     return (store, workspace_edits)
+  | Lsp.Rpc.Request.TextDocumentFoldingRange { textDocument = { uri } } ->
+    Document_store.get store uri >>= fun doc ->
+    let command = Query_protocol.Outline in
+    let outline = dispatch_in_doc doc command in
+    let folds : Lsp.Protocol.FoldingRange.result =
+      let range_of_loc loc =
+        let range = range_of_loc loc in
+        { Lsp.Protocol.FoldingRange.
+          startLine = range.start_.line
+        ; endLine = range.end_.line
+        ; startCharacter = None
+        ; endCharacter = None
+        ; kind = Region
+        }
+      in
+      let rec loop acc (items : Query_protocol.item list) =
+        match items with
+        | [] -> acc
+        | item :: items -> (
+          let items = item.children @ items in
+          match item.outline_kind with
+          | `Module
+          | `Modtype ->
+            let range = range_of_loc item.location in
+            loop (range :: acc) items
+          | _ -> loop acc items
+      in loop [] outline )
+    in
+    return (store, folds)
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
