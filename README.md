@@ -41,6 +41,7 @@ The server supports the following queries:
 - [ ] `completionItem/resolve`
 - [x] `textdocument/hover`
 - [ ] `textDocument/signatureHelp`
+- [ ] `textDocument/declaration`
 - [x] `textDocument/definition`
 - [x] `textDocument/typeDefinition`
 - [ ] `textDocument/implementation`
@@ -55,6 +56,7 @@ The server supports the following queries:
 - [ ] `textDocument/onTypeFormatting`
 - [ ] `textDocument/prepareRename`
 - [ ] `textDocument/foldingRange`
+- [ ] `workspace/symbol`
 
 Note that degrees of support for each LSP request are varying.
 
