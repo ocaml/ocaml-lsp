@@ -12,5 +12,9 @@ test: $(TEST_E2E_DIR)/node_modules lsp-server
 	cd $(TEST_E2E_DIR) && dune exec -- npm run test
 .PHONY: test
 
+format:
+	dune build @fmt --auto-promote
+.PHONY: format
+
 $(TEST_E2E_DIR)/node_modules:
 	cd $(TEST_E2E_DIR) && npm install
