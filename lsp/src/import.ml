@@ -221,6 +221,7 @@ external reraise : exn -> 'a = "%reraise"
 
 module Result = struct
   include Result
+
   let bind x ~f =
     match x with
     | Ok v -> f v

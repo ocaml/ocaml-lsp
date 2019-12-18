@@ -93,7 +93,7 @@ module Packet = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/rpc.ml.Packet.t" in
+    ( let _tp_loc = "lsp/src/rpc.ml.Packet.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let id_field = ref None
@@ -248,7 +248,7 @@ module Response = struct
   let _ = fun (_ : response) -> ()
 
   let response_of_yojson =
-    ( let _tp_loc = "src/lsp/rpc.ml.Response.response" in
+    ( let _tp_loc = "lsp/src/rpc.ml.Response.response" in
       function
       | `Assoc field_yojsons as yojson -> (
         let id_field = ref None
@@ -377,7 +377,7 @@ module Response = struct
   let _ = fun (_ : error) -> ()
 
   let rec response_error_of_yojson =
-    ( let _tp_loc = "src/lsp/rpc.ml.Response.response_error" in
+    ( let _tp_loc = "lsp/src/rpc.ml.Response.response_error" in
       function
       | `Assoc field_yojsons as yojson -> (
         let id_field = ref None
@@ -465,7 +465,7 @@ module Response = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> response_error )
 
   and error_of_yojson =
-    ( let _tp_loc = "src/lsp/rpc.ml.Response.error" in
+    ( let _tp_loc = "lsp/src/rpc.ml.Response.error" in
       function
       | `Assoc field_yojsons as yojson -> (
         let code_field = ref None

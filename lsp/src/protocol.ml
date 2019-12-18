@@ -47,7 +47,7 @@ type position =
 let _ = fun (_ : position) -> ()
 
 let position_of_yojson =
-  ( let _tp_loc = "src/lsp/protocol.ml.position" in
+  ( let _tp_loc = "lsp/src/protocol.ml.position" in
     function
     | `Assoc field_yojsons as yojson -> (
       let line_field = ref None
@@ -141,7 +141,7 @@ type range =
 let _ = fun (_ : range) -> ()
 
 let range_of_yojson =
-  ( let _tp_loc = "src/lsp/protocol.ml.range" in
+  ( let _tp_loc = "lsp/src/protocol.ml.range" in
     function
     | `Assoc field_yojsons as yojson -> (
       let start__field = ref None
@@ -236,7 +236,7 @@ module Command = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Command.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Command.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let title_field = ref None
@@ -350,7 +350,7 @@ module MarkupContent = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.MarkupContent.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.MarkupContent.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let value_field = ref None
@@ -448,7 +448,7 @@ module Location = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Location.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Location.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let uri_field = ref None
@@ -547,7 +547,7 @@ module DefinitionLocation = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DefinitionLocation.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DefinitionLocation.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let uri_field = ref None
@@ -663,7 +663,7 @@ module TextDocumentIdentifier = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextDocumentIdentifier.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentIdentifier.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let uri_field = ref None
@@ -742,7 +742,7 @@ module VersionedTextDocumentIdentifier = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.VersionedTextDocumentIdentifier.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.VersionedTextDocumentIdentifier.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let uri_field = ref None
@@ -847,7 +847,7 @@ module TextDocumentItem = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextDocumentItem.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentItem.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let uri_field = ref None
@@ -995,12 +995,12 @@ module DidOpen = struct
   let _ = fun (_ : didOpenTextDocumentParams) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DidOpen.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DidOpen.params" in
       fun t -> didOpenTextDocumentParams_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and didOpenTextDocumentParams_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DidOpen.didOpenTextDocumentParams" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DidOpen.didOpenTextDocumentParams" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -1101,13 +1101,13 @@ module DidChange = struct
   let _ = fun (_ : textDocumentContentChangeEvent) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DidChange.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DidChange.params" in
       fun t -> didChangeTextDocumentParams_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and didChangeTextDocumentParams_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.DidChange.didChangeTextDocumentParams"
+        "lsp/src/protocol.ml.DidChange.didChangeTextDocumentParams"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -1183,7 +1183,7 @@ module DidChange = struct
 
   and textDocumentContentChangeEvent_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.DidChange.textDocumentContentChangeEvent"
+        "lsp/src/protocol.ml.DidChange.textDocumentContentChangeEvent"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -1334,7 +1334,7 @@ module TextDocumentPositionParams = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextDocumentPositionParams.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentPositionParams.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -1452,7 +1452,7 @@ module DocumentHighlight = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DocumentHighlight.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DocumentHighlight.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let range_field = ref None
@@ -1564,7 +1564,7 @@ module TextEdit = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextEdit.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextEdit.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let range_field = ref None
@@ -1670,7 +1670,7 @@ module TextDocumentEdit = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextDocumentEdit.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentEdit.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -1941,13 +1941,13 @@ module PublishDiagnostics = struct
   let _ = fun (_ : relatedLocation) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.PublishDiagnostics.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.PublishDiagnostics.params" in
       fun t -> publishDiagnosticsParams_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and publishDiagnosticsParams_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.PublishDiagnostics.publishDiagnosticsParams"
+        "lsp/src/protocol.ml.PublishDiagnostics.publishDiagnosticsParams"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -2017,7 +2017,7 @@ module PublishDiagnostics = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> publishDiagnosticsParams )
 
   and diagnostic_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.PublishDiagnostics.diagnostic" in
+    ( let _tp_loc = "lsp/src/protocol.ml.PublishDiagnostics.diagnostic" in
       function
       | `Assoc field_yojsons as yojson -> (
         let range_field = ref None
@@ -2172,7 +2172,7 @@ module PublishDiagnostics = struct
 
   and diagnosticRelatedInformation_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.PublishDiagnostics.diagnosticRelatedInformation"
+        "lsp/src/protocol.ml.PublishDiagnostics.diagnosticRelatedInformation"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -2242,7 +2242,7 @@ module PublishDiagnostics = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> diagnosticRelatedInformation )
 
   and relatedLocation_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.PublishDiagnostics.relatedLocation" in
+    ( let _tp_loc = "lsp/src/protocol.ml.PublishDiagnostics.relatedLocation" in
       fun t -> diagnosticRelatedInformation_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> relatedLocation )
 
@@ -2574,12 +2574,12 @@ module Completion = struct
   let _ = fun (_ : completionItem) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Completion.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Completion.params" in
       fun t -> completionParams_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and completionParams_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Completion.completionParams" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionParams" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -2664,7 +2664,7 @@ module Completion = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionParams )
 
   and completionContext_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Completion.completionContext" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionContext" in
       function
       | `Assoc field_yojsons as yojson -> (
         let triggerKind_field = ref None
@@ -2714,12 +2714,12 @@ module Completion = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionContext )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Completion.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Completion.result" in
       fun t -> completionList_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
   and completionList_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Completion.completionList" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionList" in
       function
       | `Assoc field_yojsons as yojson -> (
         let isIncomplete_field = ref None
@@ -2788,7 +2788,7 @@ module Completion = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionList )
 
   and completionItem_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Completion.completionItem" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionItem" in
       function
       | `Assoc field_yojsons as yojson -> (
         let label_field = ref None
@@ -3185,17 +3185,17 @@ module Hover = struct
   let _ = fun (_ : hoverResult) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Hover.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Hover.params" in
       fun t -> TextDocumentPositionParams.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Hover.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Hover.result" in
       fun t -> option_of_yojson hoverResult_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
   and hoverResult_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Hover.hoverResult" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Hover.hoverResult" in
       function
       | `Assoc field_yojsons as yojson -> (
         let contents_field = ref None
@@ -3355,7 +3355,7 @@ module Initialize = struct
   let _ = fun (_ : synchronization) -> ()
 
   let synchronization_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.synchronization" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.synchronization" in
       function
       | `Assoc field_yojsons as yojson -> (
         let willSave_field = ref None
@@ -3470,7 +3470,7 @@ module Initialize = struct
   let _ = fun (_ : completionItem) -> ()
 
   let completionItem_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.completionItem" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.completionItem" in
       function
       | `Assoc field_yojsons as yojson -> (
         let snippetSupport_field = ref None
@@ -3543,7 +3543,7 @@ module Initialize = struct
   let _ = fun (_ : completion) -> ()
 
   let completion_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.completion" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.completion" in
       function
       | `Assoc field_yojsons as yojson -> (
         let completionItem_field = ref None
@@ -3615,7 +3615,7 @@ module Initialize = struct
   let _ = fun (_ : hover) -> ()
 
   let hover_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.hover" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.hover" in
       function
       | `Assoc field_yojsons as yojson -> (
         let contentFormat_field = ref None
@@ -3690,7 +3690,7 @@ module Initialize = struct
   let _ = fun (_ : documentSymbol) -> ()
 
   let documentSymbol_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.documentSymbol" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.documentSymbol" in
       function
       | `Assoc field_yojsons as yojson -> (
         let hierarchicalDocumentSymbolSupport_field = ref None
@@ -3777,7 +3777,7 @@ module Initialize = struct
 
   let textDocumentClientCapabilities_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.Initialize.textDocumentClientCapabilities"
+        "lsp/src/protocol.ml.Initialize.textDocumentClientCapabilities"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -3919,7 +3919,7 @@ module Initialize = struct
   let _ = fun (_ : workspaceEdit) -> ()
 
   let workspaceEdit_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.workspaceEdit" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.workspaceEdit" in
       function
       | `Assoc field_yojsons as yojson -> (
         let documentChanges_field = ref None
@@ -3997,7 +3997,7 @@ module Initialize = struct
 
   let workspaceClientCapabilities_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.Initialize.workspaceClientCapabilities"
+        "lsp/src/protocol.ml.Initialize.workspaceClientCapabilities"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -4096,7 +4096,7 @@ module Initialize = struct
   let _ = fun (_ : windowClientCapabilities) -> ()
 
   let windowClientCapabilities_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.windowClientCapabilities" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.windowClientCapabilities" in
       function
       | `Assoc field_yojsons as yojson -> (
         let status_field = ref None
@@ -4212,7 +4212,7 @@ module Initialize = struct
 
   let telemetryClientCapabilities_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.Initialize.telemetryClientCapabilities"
+        "lsp/src/protocol.ml.Initialize.telemetryClientCapabilities"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -4295,7 +4295,7 @@ module Initialize = struct
   let _ = fun (_ : client_capabilities) -> ()
 
   let client_capabilities_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.client_capabilities" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.client_capabilities" in
       function
       | `Assoc field_yojsons as yojson -> (
         let workspace_field = ref None
@@ -4558,7 +4558,7 @@ module Initialize = struct
   let _ = fun (_ : saveOptions) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.params" in
       function
       | `Assoc field_yojsons as yojson -> (
         let processId_field = ref None
@@ -4668,7 +4668,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.result" in
       function
       | `Assoc field_yojsons as yojson -> (
         let server_capabilities_field = ref None
@@ -4719,7 +4719,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
   and errorData_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.errorData" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.errorData" in
       function
       | `Assoc field_yojsons as yojson -> (
         let retry_field = ref None
@@ -4769,7 +4769,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> errorData )
 
   and server_capabilities_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.server_capabilities" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.server_capabilities" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocumentSync_field = ref None
@@ -5129,7 +5129,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> server_capabilities )
 
   and completionOptions_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.completionOptions" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.completionOptions" in
       function
       | `Assoc field_yojsons as yojson -> (
         let resolveProvider_field = ref None
@@ -5198,7 +5198,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionOptions )
 
   and codeLensOptions_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.codeLensOptions" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.codeLensOptions" in
       function
       | `Assoc field_yojsons as yojson -> (
         let codelens_resolveProvider_field = ref None
@@ -5252,7 +5252,7 @@ module Initialize = struct
 
   and documentOnTypeFormattingOptions_of_yojson =
     ( let _tp_loc =
-        "src/lsp/protocol.ml.Initialize.documentOnTypeFormattingOptions"
+        "lsp/src/protocol.ml.Initialize.documentOnTypeFormattingOptions"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -5323,7 +5323,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> documentOnTypeFormattingOptions )
 
   and documentLinkOptions_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.documentLinkOptions" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.documentLinkOptions" in
       function
       | `Assoc field_yojsons as yojson -> (
         let doclink_resolveProvider_field = ref None
@@ -5374,7 +5374,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> documentLinkOptions )
 
   and executeCommandOptions_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.executeCommandOptions" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.executeCommandOptions" in
       function
       | `Assoc field_yojsons as yojson -> (
         let commands_field = ref None
@@ -5424,7 +5424,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> executeCommandOptions )
 
   and textDocumentSyncOptions_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.textDocumentSyncOptions" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.textDocumentSyncOptions" in
       function
       | `Assoc field_yojsons as yojson -> (
         let openClose_field = ref None
@@ -5543,7 +5543,7 @@ module Initialize = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> textDocumentSyncOptions )
 
   and saveOptions_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Initialize.saveOptions" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.saveOptions" in
       function
       | `Assoc field_yojsons as yojson -> (
         let includeText_field = ref None
@@ -5933,12 +5933,12 @@ module Definition = struct
   let _ = fun (_ : result) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Definition.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Definition.params" in
       fun t -> TextDocumentPositionParams.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Definition.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Definition.result" in
       fun t -> list_of_yojson DefinitionLocation.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
@@ -5975,12 +5975,12 @@ module TypeDefinition = struct
   let _ = fun (_ : result) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TypeDefinition.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TypeDefinition.params" in
       fun t -> TextDocumentPositionParams.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TypeDefinition.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TypeDefinition.result" in
       fun t -> list_of_yojson Location.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
@@ -6027,7 +6027,7 @@ module References = struct
   let _ = fun (_ : result) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.References.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.References.params" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -6112,7 +6112,7 @@ module References = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and referenceContext_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.References.referenceContext" in
+    ( let _tp_loc = "lsp/src/protocol.ml.References.referenceContext" in
       function
       | `Assoc field_yojsons as yojson -> (
         let includeDeclaration_field = ref None
@@ -6163,7 +6163,7 @@ module References = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> referenceContext )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.References.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.References.result" in
       fun t -> list_of_yojson Location.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
@@ -6234,12 +6234,12 @@ module TextDocumentHighlight = struct
   let _ = fun (_ : result) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextDocumentHighlight.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentHighlight.params" in
       fun t -> TextDocumentPositionParams.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextDocumentHighlight.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentHighlight.result" in
       fun t -> list_of_yojson DocumentHighlight.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
@@ -6366,7 +6366,7 @@ module SymbolInformation = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.SymbolInformation.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.SymbolInformation.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let name_field = ref None
@@ -6547,7 +6547,7 @@ module DocumentSymbol = struct
   let _ = fun (_ : t) -> ()
 
   let rec t_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DocumentSymbol.t" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DocumentSymbol.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let name_field = ref None
@@ -6753,7 +6753,7 @@ module TextDocumentDocumentSymbol = struct
   let _ = fun (_ : params) -> ()
 
   let params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.TextDocumentDocumentSymbol.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentDocumentSymbol.params" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -6849,7 +6849,7 @@ module CodeLens = struct
   let _ = fun (_ : item) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.CodeLens.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.CodeLens.params" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -6899,12 +6899,12 @@ module CodeLens = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.CodeLens.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.CodeLens.result" in
       fun t -> list_of_yojson item_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
   and item_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.CodeLens.item" in
+    ( let _tp_loc = "lsp/src/protocol.ml.CodeLens.item" in
       function
       | `Assoc field_yojsons as yojson -> (
         let range_field = ref None
@@ -7032,7 +7032,7 @@ module Rename = struct
   let _ = fun (_ : params) -> ()
 
   let params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.Rename.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.Rename.params" in
       function
       | `Assoc field_yojsons as yojson -> (
         let textDocument_field = ref None
@@ -7166,7 +7166,7 @@ module DebugEcho = struct
   let _ = fun (_ : result) -> ()
 
   let rec params_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DebugEcho.params" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DebugEcho.params" in
       function
       | `Assoc field_yojsons as yojson -> (
         let message_field = ref None
@@ -7216,7 +7216,7 @@ module DebugEcho = struct
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
   and result_of_yojson =
-    ( let _tp_loc = "src/lsp/protocol.ml.DebugEcho.result" in
+    ( let _tp_loc = "lsp/src/protocol.ml.DebugEcho.result" in
       fun t -> params_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 

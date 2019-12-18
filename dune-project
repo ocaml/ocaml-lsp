@@ -1,4 +1,5 @@
 (lang dune 1.11)
+(using fmt 1.2)
 (name lsp)
 
 (implicit_transitive_deps false)
