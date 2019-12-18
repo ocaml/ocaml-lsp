@@ -536,8 +536,7 @@ let on_request :
     let folds : Lsp.Protocol.FoldingRange.result =
       let range_of_loc loc =
         let range = range_of_loc loc in
-        { Lsp.Protocol.FoldingRange.
-          startLine = range.start_.line
+        { Lsp.Protocol.FoldingRange.startLine = range.start_.line
         ; endLine = range.end_.line
         ; startCharacter = Some range.start_.character
         ; endCharacter = Some range.end_.character
@@ -555,8 +554,9 @@ let on_request :
           | `Modtype ->
             let range = range_of_loc item.location in
             loop (range :: acc) items
-          | _ -> loop acc items
-      in loop [] outline )
+          | _ -> loop acc items )
+      in
+      loop [] outline |> List.sort compare
     in
     return (store, folds)
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
