@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "fmt": "prettier --write '**/*.{js,json,md,ts,yml}'",
+    "fmt-check": "prettier --check '**/*.{js,json,md,ts,yml}'",
     "test": "jest --forceExit",
     "promote": "jest --updateSnapshot"
   },
