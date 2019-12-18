@@ -4,6 +4,12 @@ build:
 	dune build
 .PHONY: build
 
+fmt:
+	cd $(TEST_E2E_DIR) && yarn fmt
+
+fmt-check:
+	cd $(TEST_E2E_DIR) && yarn fmt-check
+
 lsp-server:
 	dune build @install
 .PHONY: lsp-server
