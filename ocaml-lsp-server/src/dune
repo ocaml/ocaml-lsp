@@ -2,17 +2,6 @@
  (name ocaml_lsp_server)
  (package ocaml-lsp-server)
  (public_name ocaml-lsp-server)
- (libraries
-  merlin.specific
-  merlin.analysis
-  merlin.kernel
-  merlin.merlin_utils
-  merlin.parsing
-  merlin.query_protocol
-  lsp
-  merlin.typing
-  merlin.utils
-  merlin.query_commands
-  result
-  yojson
-  ppx_yojson_conv_lib))
+ (libraries merlin.specific merlin.analysis merlin.kernel merlin.merlin_utils
+   merlin.parsing merlin.query_protocol lsp merlin.typing merlin.utils
+   merlin.query_commands result yojson ppx_yojson_conv_lib))
