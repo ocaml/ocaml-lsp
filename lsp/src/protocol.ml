@@ -6,6 +6,29 @@ open Import
 
 let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
 
+module Or_bool = struct
+  type 'a t =
+    | Bool of bool
+    | Value of 'a
+
+  let t_of_yojson f (y : Ppx_yojson_conv_lib.Yojson.Safe.t) =
+    match y with
+    | `Bool b -> Bool b
+    | x -> Value (f x)
+
+  let yojson_of_t f = function
+    | Bool b -> `Bool b
+    | Value x -> f x
+end
+
+module Void = struct
+  type t
+
+  let t_of_yojson = yojson_error "Void.t"
+
+  let yojson_of_t (_ : t) = assert false
+end
+
 type documentUri = Uri.t [@@deriving_inline yojson]
 
 let _ = fun (_ : documentUri) -> ()
@@ -4609,6 +4632,7 @@ module Initialize = struct
     ; typeCoverageProvider : bool
     ; (* Nuclide-specific feature *)
       rageProvider : bool (* omitted: experimental *)
+    ; foldingRangeProvider : Void.t Or_bool.t
     }
   [@@yojson.allow_extra_fields]
 
@@ -4918,6 +4942,7 @@ module Initialize = struct
         and executeCommandProvider_field = ref None
         and typeCoverageProvider_field = ref None
         and rageProvider_field = ref None
+        and foldingRangeProvider_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -5094,6 +5119,16 @@ module Initialize = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "foldingRangeProvider" -> (
+              match Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field with
+              | None ->
+                let fvalue =
+                  Or_bool.t_of_yojson Void.t_of_yojson _field_yojson
+                in
+                foldingRangeProvider_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -5130,7 +5165,8 @@ module Initialize = struct
               , Ppx_yojson_conv_lib.( ! ) documentLinkProvider_field
               , Ppx_yojson_conv_lib.( ! ) executeCommandProvider_field
               , Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field
-              , Ppx_yojson_conv_lib.( ! ) rageProvider_field )
+              , Ppx_yojson_conv_lib.( ! ) rageProvider_field
+              , Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field )
             with
             | ( Some textDocumentSync_value
               , Some hoverProvider_value
@@ -5150,7 +5186,8 @@ module Initialize = struct
               , documentLinkProvider_value
               , executeCommandProvider_value
               , Some typeCoverageProvider_value
-              , Some rageProvider_value ) ->
+              , Some rageProvider_value
+              , Some foldingRangeProvider_value ) ->
               { textDocumentSync = textDocumentSync_value
               ; hoverProvider = hoverProvider_value
               ; completionProvider =
@@ -5186,6 +5223,7 @@ module Initialize = struct
                   | Some v -> v )
               ; typeCoverageProvider = typeCoverageProvider_value
               ; rageProvider = rageProvider_value
+              ; foldingRangeProvider = foldingRangeProvider_value
               }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -5249,6 +5287,10 @@ module Initialize = struct
                       (Ppx_yojson_conv_lib.( ! ) rageProvider_field)
                       None
                   , "rageProvider" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field)
+                      None
+                  , "foldingRangeProvider" )
                 ] ) ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
@@ -5816,8 +5858,15 @@ module Initialize = struct
         ; executeCommandProvider = v_executeCommandProvider
         ; typeCoverageProvider = v_typeCoverageProvider
         ; rageProvider = v_rageProvider
+        ; foldingRangeProvider = v_foldingRangeProvider
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg =
+            Or_bool.yojson_of_t Void.yojson_of_t v_foldingRangeProvider
+          in
+          ("foldingRangeProvider", arg) :: bnds
+        in
         let bnds =
           let arg = yojson_of_bool v_rageProvider in
           ("rageProvider", arg) :: bnds

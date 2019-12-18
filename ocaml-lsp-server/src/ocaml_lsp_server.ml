@@ -33,6 +33,7 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; executeCommandProvider = None
       ; typeCoverageProvider = false
       ; rageProvider = false
+      ; foldingRangeProvider = Bool true
       }
   }
 
