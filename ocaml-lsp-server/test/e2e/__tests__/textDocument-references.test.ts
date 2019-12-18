@@ -13,8 +13,8 @@ describe("textDocument/references", () => {
         "file:///test.ml",
         "txt",
         0,
-        source
-      )
+        source,
+      ),
     });
   }
 
@@ -22,7 +22,7 @@ describe("textDocument/references", () => {
     return await languageServer.sendRequest("textDocument/references", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
-      context: { includeDeclaration: false }
+      context: { includeDeclaration: false },
     });
   }
 
@@ -49,41 +49,41 @@ describe("textDocument/references", () => {
         range: {
           end: {
             character: 7,
-            line: 0
+            line: 0,
           },
           start: {
             character: 4,
-            line: 0
-          }
+            line: 0,
+          },
         },
-        uri: "file:///test.ml"
+        uri: "file:///test.ml",
       },
       {
         range: {
           end: {
             character: 13,
-            line: 1
+            line: 1,
           },
           start: {
             character: 10,
-            line: 1
-          }
+            line: 1,
+          },
         },
-        uri: "file:///test.ml"
+        uri: "file:///test.ml",
       },
       {
         range: {
           end: {
             character: 20,
-            line: 2
+            line: 2,
           },
           start: {
             character: 17,
-            line: 2
-          }
+            line: 2,
+          },
         },
-        uri: "file:///test.ml"
-      }
+        uri: "file:///test.ml",
+      },
     ]);
   });
 });

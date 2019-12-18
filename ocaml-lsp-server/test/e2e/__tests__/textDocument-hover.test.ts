@@ -18,21 +18,21 @@ describe("textDocument/hover", () => {
         "file:///test.ml",
         "txt",
         0,
-        "let x = 1\n"
-      )
+        "let x = 1\n",
+      ),
     });
 
     let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(0, 4)
+      position: Types.Position.create(0, 4),
     });
 
     expect(result).toMatchObject({
       contents: { kind: "plaintext", value: "int" },
       range: {
         end: { character: 5, line: 0 },
-        start: { character: 4, line: 0 }
-      }
+        start: { character: 4, line: 0 },
+      },
     });
   });
 
@@ -41,30 +41,30 @@ describe("textDocument/hover", () => {
       textDocument: {
         hover: {
           dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"]
-        }
-      }
+          contentFormat: ["markdown", "plaintext"],
+        },
+      },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
         "txt",
         0,
-        "let x = 1\n"
-      )
+        "let x = 1\n",
+      ),
     });
 
     let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(0, 4)
+      position: Types.Position.create(0, 4),
     });
 
     expect(result).toMatchObject({
       contents: { kind: "markdown", value: "```ocaml\nint\n```" },
       range: {
         end: { character: 5, line: 0 },
-        start: { character: 4, line: 0 }
-      }
+        start: { character: 4, line: 0 },
+      },
     });
   });
 
@@ -73,30 +73,30 @@ describe("textDocument/hover", () => {
       textDocument: {
         hover: {
           dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"]
-        }
-      }
+          contentFormat: ["markdown", "plaintext"],
+        },
+      },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
         "txt",
         0,
-        "(** This function has a nice documentation *)\nlet id x = x\n"
-      )
+        "(** This function has a nice documentation *)\nlet id x = x\n",
+      ),
     });
 
     let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(1, 4)
+      position: Types.Position.create(1, 4),
     });
 
     expect(result).toMatchObject({
       contents: {
         kind: "markdown",
         value:
-          "```ocaml\n'a -> 'a\n(** This function has a nice documentation *)\n```"
-      }
+          "```ocaml\n'a -> 'a\n(** This function has a nice documentation *)\n```",
+      },
     });
   });
 
@@ -105,9 +105,9 @@ describe("textDocument/hover", () => {
       textDocument: {
         hover: {
           dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"]
-        }
-      }
+          contentFormat: ["markdown", "plaintext"],
+        },
+      },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
@@ -119,24 +119,24 @@ describe("textDocument/hover", () => {
           let i = 10
           let f = 10.
           let sum = f i f
-       `
-      )
+       `,
+      ),
     });
 
     let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(3, 13)
+      position: Types.Position.create(3, 13),
     });
 
     expect(result).toMatchObject({
       contents: {
         kind: "markdown",
-        value: "```ocaml\nint\n```"
+        value: "```ocaml\nint\n```",
       },
       range: {
         start: { character: 12, line: 3 },
-        end: { character: 13, line: 3 }
-      }
+        end: { character: 13, line: 3 },
+      },
     });
   });
 });

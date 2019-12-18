@@ -6,7 +6,7 @@ test("debug/echo", async () => {
   let languageServer = await LanguageServer.startAndInitialize();
 
   let params = {
-    message: "testing"
+    message: "testing",
   };
 
   let result: any = await languageServer.sendRequest("debug/echo", params);
