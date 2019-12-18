@@ -550,6 +550,7 @@ let on_request :
         | item :: items -> (
           let items = item.children @ items in
           match item.outline_kind with
+          | `Class
           | `Module
           | `Modtype ->
             let range = range_of_loc item.location in

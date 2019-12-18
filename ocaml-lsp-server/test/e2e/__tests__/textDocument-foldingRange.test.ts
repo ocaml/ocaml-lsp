@@ -45,6 +45,10 @@ describe("textDocument/foldingRange", () => {
             end
             let foo = 3
           end
+
+          class foobar = object
+            method add x y = x + y
+          end
         `);
 
         let result = await foldingRange();
@@ -69,6 +73,13 @@ describe("textDocument/foldingRange", () => {
                 "kind": "region",
                 "startCharacter": 0,
                 "startLine": 4,
+            },
+            {
+                "endCharacter": 3,
+                "endLine": 13,
+                "kind": "region",
+                "startCharacter": 0,
+                "startLine": 11,
             },
         ]);
     });
