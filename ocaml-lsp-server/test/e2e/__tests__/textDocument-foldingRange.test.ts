@@ -50,24 +50,24 @@ describe("textDocument/foldingRange", () => {
         let result = await foldingRange();
         expect(result).toMatchObject([
             {
-                "endCharacter": null,
+                "endCharacter": 3,
                 "endLine": 2,
                 "kind": "region",
-                "startCharacter": null,
+                "startCharacter": 0,
                 "startLine": 0,
             },
             {
-                "endCharacter": null,
+                "endCharacter": 5,
                 "endLine": 7,
                 "kind": "region",
-                "startCharacter": null,
+                "startCharacter": 2,
                 "startLine": 5,
             },
             {
-                "endCharacter": null,
+                "endCharacter": 3,
                 "endLine": 9,
                 "kind": "region",
-                "startCharacter": null,
+                "startCharacter": 0,
                 "startLine": 4,
             },
         ]);

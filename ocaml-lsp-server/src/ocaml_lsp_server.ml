@@ -539,8 +539,8 @@ let on_request :
         { Lsp.Protocol.FoldingRange.
           startLine = range.start_.line
         ; endLine = range.end_.line
-        ; startCharacter = None
-        ; endCharacter = None
+        ; startCharacter = Some range.start_.character
+        ; endCharacter = Some range.end_.character
         ; kind = Region
         }
       in
