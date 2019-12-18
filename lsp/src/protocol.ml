@@ -4279,6 +4279,108 @@ module Initialize = struct
 
   let telemetryClientCapabilities_empty = { connectionStatus = true }
 
+  type foldingRangeClientCapabilities =
+    { rangeLimit : int option
+    ; lineFoldingOnly : bool [@default false]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : foldingRangeClientCapabilities) -> ()
+
+  let foldingRangeClientCapabilities_of_yojson =
+    ( let _tp_loc =
+        "lsp/src/protocol.ml.Initialize.foldingRangeClientCapabilities"
+      in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let rangeLimit_field = ref None
+        and lineFoldingOnly_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "rangeLimit" -> (
+              match Ppx_yojson_conv_lib.( ! ) rangeLimit_field with
+              | None ->
+                let fvalue = option_of_yojson int_of_yojson _field_yojson in
+                rangeLimit_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "lineFoldingOnly" -> (
+              match Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                lineFoldingOnly_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) rangeLimit_field
+              , Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field )
+            with
+            | Some rangeLimit_value, lineFoldingOnly_value ->
+              { rangeLimit = rangeLimit_value
+              ; lineFoldingOnly =
+                  ( match lineFoldingOnly_value with
+                  | None -> false
+                  | Some v -> v )
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) rangeLimit_field)
+                      None
+                  , "rangeLimit" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> foldingRangeClientCapabilities )
+
+  let _ = foldingRangeClientCapabilities_of_yojson
+
+  let yojson_of_foldingRangeClientCapabilities =
+    ( function
+      | { rangeLimit = v_rangeLimit; lineFoldingOnly = v_lineFoldingOnly } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_bool v_lineFoldingOnly in
+          ("lineFoldingOnly", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_option yojson_of_int v_rangeLimit in
+          ("rangeLimit", arg) :: bnds
+        in
+        `Assoc bnds
+      : foldingRangeClientCapabilities -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_foldingRangeClientCapabilities
+
+  [@@@end]
+
+  let foldingRangeClientCapabilities_empty =
+    { rangeLimit = None; lineFoldingOnly = false }
+
   type client_capabilities =
     { workspace : workspaceClientCapabilities
           [@default workspaceClientCapabilities_empty]
@@ -4289,6 +4391,8 @@ module Initialize = struct
     ; telemetry : telemetryClientCapabilities
           [@default telemetryClientCapabilities_empty]
           (* omitted: experimental *)
+    ; foldingRange : foldingRangeClientCapabilities
+          [@default foldingRangeClientCapabilities_empty]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4302,6 +4406,7 @@ module Initialize = struct
         and textDocument_field = ref None
         and window_field = ref None
         and telemetry_field = ref None
+        and foldingRange_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -4345,6 +4450,16 @@ module Initialize = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "foldingRange" -> (
+              match Ppx_yojson_conv_lib.( ! ) foldingRange_field with
+              | None ->
+                let fvalue =
+                  foldingRangeClientCapabilities_of_yojson _field_yojson
+                in
+                foldingRange_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -4365,11 +4480,13 @@ module Initialize = struct
             let ( workspace_value
                 , textDocument_value
                 , window_value
-                , telemetry_value ) =
+                , telemetry_value
+                , foldingRange_value ) =
               ( Ppx_yojson_conv_lib.( ! ) workspace_field
               , Ppx_yojson_conv_lib.( ! ) textDocument_field
               , Ppx_yojson_conv_lib.( ! ) window_field
-              , Ppx_yojson_conv_lib.( ! ) telemetry_field )
+              , Ppx_yojson_conv_lib.( ! ) telemetry_field
+              , Ppx_yojson_conv_lib.( ! ) foldingRange_field )
             in
             { workspace =
                 ( match workspace_value with
@@ -4387,6 +4504,10 @@ module Initialize = struct
                 ( match telemetry_value with
                 | None -> telemetryClientCapabilities_empty
                 | Some v -> v )
+            ; foldingRange =
+                ( match foldingRange_value with
+                | None -> foldingRangeClientCapabilities_empty
+                | Some v -> v )
             } ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
@@ -4401,8 +4522,13 @@ module Initialize = struct
         ; textDocument = v_textDocument
         ; window = v_window
         ; telemetry = v_telemetry
+        ; foldingRange = v_foldingRange
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_foldingRangeClientCapabilities v_foldingRange in
+          ("foldingRange", arg) :: bnds
+        in
         let bnds =
           let arg = yojson_of_telemetryClientCapabilities v_telemetry in
           ("telemetry", arg) :: bnds
@@ -4431,6 +4557,7 @@ module Initialize = struct
     ; textDocument = textDocumentClientCapabilities_empty
     ; window = windowClientCapabilities_empty
     ; telemetry = telemetryClientCapabilities_empty
+    ; foldingRange = foldingRangeClientCapabilities_empty
     }
 
   type params =
