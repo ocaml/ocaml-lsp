@@ -597,4 +597,4 @@ let () =
     | exception Not_found -> None
     | file -> Some file
   in
-  Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
+  Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
