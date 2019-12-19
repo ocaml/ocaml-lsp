@@ -7474,10 +7474,10 @@ module FoldingRange = struct
 
   type t =
     { startLine : zero_based_int
-    ; startCharacter : zero_based_int option
+    ; startCharacter : zero_based_int option [@yojson.option]
     ; endLine : zero_based_int
-    ; endCharacter : zero_based_int option
-    ; kind : Kind.t
+    ; endCharacter : zero_based_int option [@yojson.option]
+    ; kind : Kind.t option [@yojson.option]
     }
   [@@deriving_inline yojson]
 
@@ -7508,9 +7508,7 @@ module FoldingRange = struct
             | "startCharacter" -> (
               match Ppx_yojson_conv_lib.( ! ) startCharacter_field with
               | None ->
-                let fvalue =
-                  option_of_yojson zero_based_int_of_yojson _field_yojson
-                in
+                let fvalue = zero_based_int_of_yojson _field_yojson in
                 startCharacter_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -7526,9 +7524,7 @@ module FoldingRange = struct
             | "endCharacter" -> (
               match Ppx_yojson_conv_lib.( ! ) endCharacter_field with
               | None ->
-                let fvalue =
-                  option_of_yojson zero_based_int_of_yojson _field_yojson
-                in
+                let fvalue = zero_based_int_of_yojson _field_yojson in
                 endCharacter_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -7573,10 +7569,10 @@ module FoldingRange = struct
               , Ppx_yojson_conv_lib.( ! ) kind_field )
             with
             | ( Some startLine_value
-              , Some startCharacter_value
+              , startCharacter_value
               , Some endLine_value
-              , Some endCharacter_value
-              , Some kind_value ) ->
+              , endCharacter_value
+              , kind_value ) ->
               { startLine = startLine_value
               ; startCharacter = startCharacter_value
               ; endLine = endLine_value
@@ -7591,21 +7587,9 @@ module FoldingRange = struct
                       None
                   , "startLine" )
                 ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) startCharacter_field)
-                      None
-                  , "startCharacter" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
                       (Ppx_yojson_conv_lib.( ! ) endLine_field)
                       None
                   , "endLine" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) endCharacter_field)
-                      None
-                  , "endCharacter" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) kind_field)
-                      None
-                  , "kind" )
                 ] ) ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
@@ -7624,22 +7608,32 @@ module FoldingRange = struct
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = Kind.yojson_of_t v_kind in
-          ("kind", arg) :: bnds
+          match v_kind with
+          | None -> bnds
+          | Some v ->
+            let arg = Kind.yojson_of_t v in
+            let bnd = ("kind", arg) in
+            bnd :: bnds
         in
         let bnds =
-          let arg = yojson_of_option yojson_of_zero_based_int v_endCharacter in
-          ("endCharacter", arg) :: bnds
+          match v_endCharacter with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_zero_based_int v in
+            let bnd = ("endCharacter", arg) in
+            bnd :: bnds
         in
         let bnds =
           let arg = yojson_of_zero_based_int v_endLine in
           ("endLine", arg) :: bnds
         in
         let bnds =
-          let arg =
-            yojson_of_option yojson_of_zero_based_int v_startCharacter
-          in
-          ("startCharacter", arg) :: bnds
+          match v_startCharacter with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_zero_based_int v in
+            let bnd = ("startCharacter", arg) in
+            bnd :: bnds
         in
         let bnds =
           let arg = yojson_of_zero_based_int v_startLine in

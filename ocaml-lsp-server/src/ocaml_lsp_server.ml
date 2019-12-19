@@ -541,7 +541,7 @@ let on_request :
         ; endLine = range.end_.line
         ; startCharacter = Some range.start_.character
         ; endCharacter = Some range.end_.character
-        ; kind = Region
+        ; kind = Some Region
         }
       in
       let rec loop acc (items : Query_protocol.item list) =
