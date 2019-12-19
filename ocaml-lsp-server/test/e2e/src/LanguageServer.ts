@@ -47,11 +47,11 @@ export const start = (opts?: cp.SpawnOptions) => {
     new rpc.StreamMessageWriter(childProcess.stdin),
   );
 
-  if (process.env.MERLIN_LSP_TEST_DEBUG) {
-    childProcess.stderr.on("data", d => {
+  childProcess.stderr.on("data", d => {
+    if (process.env.MERLIN_LSP_TEST_DEBUG) {
       console.log("Received data: " + d);
-    });
-  }
+    }
+  });
 
   connection.listen();
 
