@@ -76,3 +76,22 @@ hack](https://github.com/facebook/hhvm/blob/master/hphp/hack/src/utils/lsp/lsp.m
 
 Previously, this lsp server was a part of merlin, until it was realized that the
 lsp protocol covers a wider scope than merlin.
+
+## Comparison to other LSP Servers for OCaml
+
+Note that the comparisons below make no claims of being objective and may be
+entirely out of date:
+
+* [reason-language-server](https://github.com/jaredly/reason-language-server)
+  This server supports
+  [bucklescript](https://github.com/BuckleScript/bucklescript) &
+  [reason](https://github.com/facebook/reason). However, this project does not
+  use merlin which means that it supports less versions of OCaml and offers less
+  "smart" functionality - especially in the face of sources that do not yet
+  compile.
+
+* [ocaml-language-server](https://github.com/ocaml-lsp/ocaml-language-server)
+  This project is extremely similar in the functionality it provides because it
+  also reuses merlin on the backend. The essential difference is that this
+  project is written in typescript, while our server is in OCaml. We feel that
+  it's best to use OCaml to maximize the contributor pool.
