@@ -535,7 +535,7 @@ let on_request :
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let folds : Lsp.Protocol.FoldingRange.result =
-      let range_of_loc loc =
+      let folding_range_of_loc loc =
         let range = range_of_loc loc in
         { Lsp.Protocol.FoldingRange.startLine = range.start_.line
         ; endLine = range.end_.line
@@ -553,7 +553,7 @@ let on_request :
           | `Class
           | `Module
           | `Modtype ->
-            let range = range_of_loc item.location in
+            let range = folding_range_of_loc item.location in
             loop (range :: acc) items
           | _ -> loop acc items )
       in
