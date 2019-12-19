@@ -2,3 +2,4 @@
 	path = vendor/merlin
 	url = https://github.com/rgrinberg/merlin
 	branch = remove-lsp
+	ignore = dirty
