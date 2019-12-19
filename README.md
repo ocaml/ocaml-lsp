@@ -13,6 +13,8 @@ We recommend to install the server via a project such as
 To install the lsp server in a particular opam switch:
 
 ```
+$ opam pin add lsp https://github.com/ocaml/ocaml-lsp.git
+$ opam pin add ocaml-lsp-server https://github.com/ocaml/ocaml-lsp.git
 $ opam install ocaml-lsp-server
 ```
 
