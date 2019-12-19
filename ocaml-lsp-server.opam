@@ -46,3 +46,6 @@ build: [
     "%{name}%.install"
   ]
 ]
+run-test: [
+  [make "travis-test"]
+]
