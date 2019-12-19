@@ -5,36 +5,36 @@ import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/foldingRange", () => {
-    let languageServer = null;
+  let languageServer = null;
 
-    beforeEach(async () => {
-        languageServer = await LanguageServer.startAndInitialize();
+  beforeEach(async () => {
+    languageServer = await LanguageServer.startAndInitialize();
+  });
+
+  afterEach(async () => {
+    await LanguageServer.exit(languageServer);
+    languageServer = null;
+  });
+
+  async function openDocument(source) {
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "txt",
+        0,
+        source,
+      ),
     });
+  }
 
-    afterEach(async () => {
-        await LanguageServer.exit(languageServer);
-        languageServer = null;
+  async function foldingRange() {
+    return await languageServer.sendRequest("textDocument/foldingRange", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
     });
+  }
 
-    async function openDocument(source) {
-        await languageServer.sendNotification("textDocument/didOpen", {
-            textDocument: Types.TextDocumentItem.create(
-                "file:///test.ml",
-                "txt",
-                0,
-                source
-            )
-        });
-    }
-
-    async function foldingRange() {
-        return await languageServer.sendRequest("textDocument/foldingRange", {
-            textDocument: Types.TextDocumentIdentifier.create("file:///test.ml")
-        });
-    }
-
-    it("returns folding ranges for modules", async () => {
-        await openDocument(outdent`
+  it("returns folding ranges for modules", async () => {
+    await openDocument(outdent`
           module type X = sig
             type t
           end
@@ -51,37 +51,36 @@ describe("textDocument/foldingRange", () => {
           end
         `);
 
-        let result = await foldingRange();
-        expect(result).toMatchObject([
-            {
-                "endCharacter": 3,
-                "endLine": 2,
-                "kind": "region",
-                "startCharacter": 0,
-                "startLine": 0,
-            },
-            {
-                "endCharacter": 3,
-                "endLine": 9,
-                "kind": "region",
-                "startCharacter": 0,
-                "startLine": 4,
-            },
-            {
-                "endCharacter": 5,
-                "endLine": 7,
-                "kind": "region",
-                "startCharacter": 2,
-                "startLine": 5,
-            },
-            {
-                "endCharacter": 3,
-                "endLine": 13,
-                "kind": "region",
-                "startCharacter": 0,
-                "startLine": 11,
-            },
-        ]);
-    });
-
-})
+    let result = await foldingRange();
+    expect(result).toMatchObject([
+      {
+        endCharacter: 3,
+        endLine: 2,
+        kind: "region",
+        startCharacter: 0,
+        startLine: 0,
+      },
+      {
+        endCharacter: 3,
+        endLine: 9,
+        kind: "region",
+        startCharacter: 0,
+        startLine: 4,
+      },
+      {
+        endCharacter: 5,
+        endLine: 7,
+        kind: "region",
+        startCharacter: 2,
+        startLine: 5,
+      },
+      {
+        endCharacter: 3,
+        endLine: 13,
+        kind: "region",
+        startCharacter: 0,
+        startLine: 11,
+      },
+    ]);
+  });
+});
