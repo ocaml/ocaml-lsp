@@ -535,8 +535,7 @@ let on_request :
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let folds : Lsp.Protocol.FoldingRange.result =
-      let folding_range_of_loc loc =
-        let range = range_of_loc loc in
+      let folding_range (range : Lsp.Protocol.range) =
         { Lsp.Protocol.FoldingRange.startLine = range.start_.line
         ; endLine = range.end_.line
         ; startCharacter = Some range.start_.character
@@ -547,15 +546,14 @@ let on_request :
       let rec loop acc (items : Query_protocol.item list) =
         match items with
         | [] -> acc
-        | item :: items -> (
-          let items = item.children @ items in
-          match item.outline_kind with
-          | `Class
-          | `Module
-          | `Modtype ->
-            let range = folding_range_of_loc item.location in
+        | item :: items ->
+          let range = range_of_loc item.location in
+          if range.end_.line - range.start_.line < 2 then
+            loop acc items
+          else
+            let items = item.children @ items in
+            let range = folding_range range in
             loop (range :: acc) items
-          | _ -> loop acc items )
       in
       loop [] outline |> List.sort compare
     in
