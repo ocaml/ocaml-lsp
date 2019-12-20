@@ -6,6 +6,29 @@ open Import
 
 let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
 
+module Or_bool = struct
+  type 'a t =
+    | Bool of bool
+    | Value of 'a
+
+  let t_of_yojson f (y : Ppx_yojson_conv_lib.Yojson.Safe.t) =
+    match y with
+    | `Bool b -> Bool b
+    | x -> Value (f x)
+
+  let yojson_of_t f = function
+    | Bool b -> `Bool b
+    | Value x -> f x
+end
+
+module Void = struct
+  type t
+
+  let t_of_yojson = yojson_error "Void.t"
+
+  let yojson_of_t (_ : t) = assert false
+end
+
 type documentUri = Uri.t [@@deriving_inline yojson]
 
 let _ = fun (_ : documentUri) -> ()
@@ -4279,6 +4302,108 @@ module Initialize = struct
 
   let telemetryClientCapabilities_empty = { connectionStatus = true }
 
+  type foldingRangeClientCapabilities =
+    { rangeLimit : int option
+    ; lineFoldingOnly : bool [@default false]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : foldingRangeClientCapabilities) -> ()
+
+  let foldingRangeClientCapabilities_of_yojson =
+    ( let _tp_loc =
+        "lsp/src/protocol.ml.Initialize.foldingRangeClientCapabilities"
+      in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let rangeLimit_field = ref None
+        and lineFoldingOnly_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "rangeLimit" -> (
+              match Ppx_yojson_conv_lib.( ! ) rangeLimit_field with
+              | None ->
+                let fvalue = option_of_yojson int_of_yojson _field_yojson in
+                rangeLimit_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "lineFoldingOnly" -> (
+              match Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                lineFoldingOnly_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) rangeLimit_field
+              , Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field )
+            with
+            | Some rangeLimit_value, lineFoldingOnly_value ->
+              { rangeLimit = rangeLimit_value
+              ; lineFoldingOnly =
+                  ( match lineFoldingOnly_value with
+                  | None -> false
+                  | Some v -> v )
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) rangeLimit_field)
+                      None
+                  , "rangeLimit" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> foldingRangeClientCapabilities )
+
+  let _ = foldingRangeClientCapabilities_of_yojson
+
+  let yojson_of_foldingRangeClientCapabilities =
+    ( function
+      | { rangeLimit = v_rangeLimit; lineFoldingOnly = v_lineFoldingOnly } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_bool v_lineFoldingOnly in
+          ("lineFoldingOnly", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_option yojson_of_int v_rangeLimit in
+          ("rangeLimit", arg) :: bnds
+        in
+        `Assoc bnds
+      : foldingRangeClientCapabilities -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_foldingRangeClientCapabilities
+
+  [@@@end]
+
+  let foldingRangeClientCapabilities_empty =
+    { rangeLimit = None; lineFoldingOnly = false }
+
   type client_capabilities =
     { workspace : workspaceClientCapabilities
           [@default workspaceClientCapabilities_empty]
@@ -4289,6 +4414,8 @@ module Initialize = struct
     ; telemetry : telemetryClientCapabilities
           [@default telemetryClientCapabilities_empty]
           (* omitted: experimental *)
+    ; foldingRange : foldingRangeClientCapabilities
+          [@default foldingRangeClientCapabilities_empty]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4302,6 +4429,7 @@ module Initialize = struct
         and textDocument_field = ref None
         and window_field = ref None
         and telemetry_field = ref None
+        and foldingRange_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -4345,6 +4473,16 @@ module Initialize = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "foldingRange" -> (
+              match Ppx_yojson_conv_lib.( ! ) foldingRange_field with
+              | None ->
+                let fvalue =
+                  foldingRangeClientCapabilities_of_yojson _field_yojson
+                in
+                foldingRange_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -4365,11 +4503,13 @@ module Initialize = struct
             let ( workspace_value
                 , textDocument_value
                 , window_value
-                , telemetry_value ) =
+                , telemetry_value
+                , foldingRange_value ) =
               ( Ppx_yojson_conv_lib.( ! ) workspace_field
               , Ppx_yojson_conv_lib.( ! ) textDocument_field
               , Ppx_yojson_conv_lib.( ! ) window_field
-              , Ppx_yojson_conv_lib.( ! ) telemetry_field )
+              , Ppx_yojson_conv_lib.( ! ) telemetry_field
+              , Ppx_yojson_conv_lib.( ! ) foldingRange_field )
             in
             { workspace =
                 ( match workspace_value with
@@ -4387,6 +4527,10 @@ module Initialize = struct
                 ( match telemetry_value with
                 | None -> telemetryClientCapabilities_empty
                 | Some v -> v )
+            ; foldingRange =
+                ( match foldingRange_value with
+                | None -> foldingRangeClientCapabilities_empty
+                | Some v -> v )
             } ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
@@ -4401,8 +4545,13 @@ module Initialize = struct
         ; textDocument = v_textDocument
         ; window = v_window
         ; telemetry = v_telemetry
+        ; foldingRange = v_foldingRange
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_foldingRangeClientCapabilities v_foldingRange in
+          ("foldingRange", arg) :: bnds
+        in
         let bnds =
           let arg = yojson_of_telemetryClientCapabilities v_telemetry in
           ("telemetry", arg) :: bnds
@@ -4431,6 +4580,7 @@ module Initialize = struct
     ; textDocument = textDocumentClientCapabilities_empty
     ; window = windowClientCapabilities_empty
     ; telemetry = telemetryClientCapabilities_empty
+    ; foldingRange = foldingRangeClientCapabilities_empty
     }
 
   type params =
@@ -4482,6 +4632,7 @@ module Initialize = struct
     ; typeCoverageProvider : bool
     ; (* Nuclide-specific feature *)
       rageProvider : bool (* omitted: experimental *)
+    ; foldingRangeProvider : Void.t Or_bool.t
     }
   [@@yojson.allow_extra_fields]
 
@@ -4791,6 +4942,7 @@ module Initialize = struct
         and executeCommandProvider_field = ref None
         and typeCoverageProvider_field = ref None
         and rageProvider_field = ref None
+        and foldingRangeProvider_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -4967,6 +5119,16 @@ module Initialize = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "foldingRangeProvider" -> (
+              match Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field with
+              | None ->
+                let fvalue =
+                  Or_bool.t_of_yojson Void.t_of_yojson _field_yojson
+                in
+                foldingRangeProvider_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -5003,7 +5165,8 @@ module Initialize = struct
               , Ppx_yojson_conv_lib.( ! ) documentLinkProvider_field
               , Ppx_yojson_conv_lib.( ! ) executeCommandProvider_field
               , Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field
-              , Ppx_yojson_conv_lib.( ! ) rageProvider_field )
+              , Ppx_yojson_conv_lib.( ! ) rageProvider_field
+              , Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field )
             with
             | ( Some textDocumentSync_value
               , Some hoverProvider_value
@@ -5023,7 +5186,8 @@ module Initialize = struct
               , documentLinkProvider_value
               , executeCommandProvider_value
               , Some typeCoverageProvider_value
-              , Some rageProvider_value ) ->
+              , Some rageProvider_value
+              , Some foldingRangeProvider_value ) ->
               { textDocumentSync = textDocumentSync_value
               ; hoverProvider = hoverProvider_value
               ; completionProvider =
@@ -5059,6 +5223,7 @@ module Initialize = struct
                   | Some v -> v )
               ; typeCoverageProvider = typeCoverageProvider_value
               ; rageProvider = rageProvider_value
+              ; foldingRangeProvider = foldingRangeProvider_value
               }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -5122,6 +5287,10 @@ module Initialize = struct
                       (Ppx_yojson_conv_lib.( ! ) rageProvider_field)
                       None
                   , "rageProvider" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field)
+                      None
+                  , "foldingRangeProvider" )
                 ] ) ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
@@ -5689,8 +5858,15 @@ module Initialize = struct
         ; executeCommandProvider = v_executeCommandProvider
         ; typeCoverageProvider = v_typeCoverageProvider
         ; rageProvider = v_rageProvider
+        ; foldingRangeProvider = v_foldingRangeProvider
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg =
+            Or_bool.yojson_of_t Void.yojson_of_t v_foldingRangeProvider
+          in
+          ("foldingRangeProvider", arg) :: bnds
+        in
         let bnds =
           let arg = yojson_of_bool v_rageProvider in
           ("rageProvider", arg) :: bnds
@@ -7269,4 +7445,280 @@ module DebugTextDocumentGet = struct
   let yojson_of_result = function
     | Some s -> `String s
     | None -> `Null
+end
+
+module FoldingRange = struct
+  module Kind = struct
+    type t =
+      | Comment
+      | Imports
+      | Region
+
+    let yojson_of_t t =
+      `String
+        ( match t with
+        | Comment -> "comment"
+        | Imports -> "imports"
+        | Region -> "region" )
+
+    let t_of_yojson node =
+      match node with
+      | `String s -> (
+        match s with
+        | "comment" -> Comment
+        | "imports" -> Imports
+        | "region" -> Region
+        | _ -> yojson_error "invalid t_of_yojson" node )
+      | _ -> yojson_error "invalid t_of_yojson" node
+  end
+
+  type t =
+    { startLine : zero_based_int
+    ; startCharacter : zero_based_int option [@yojson.option]
+    ; endLine : zero_based_int
+    ; endCharacter : zero_based_int option [@yojson.option]
+    ; kind : Kind.t option [@yojson.option]
+    }
+  [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.FoldingRange.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let startLine_field = ref None
+        and startCharacter_field = ref None
+        and endLine_field = ref None
+        and endCharacter_field = ref None
+        and kind_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "startLine" -> (
+              match Ppx_yojson_conv_lib.( ! ) startLine_field with
+              | None ->
+                let fvalue = zero_based_int_of_yojson _field_yojson in
+                startLine_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "startCharacter" -> (
+              match Ppx_yojson_conv_lib.( ! ) startCharacter_field with
+              | None ->
+                let fvalue = zero_based_int_of_yojson _field_yojson in
+                startCharacter_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "endLine" -> (
+              match Ppx_yojson_conv_lib.( ! ) endLine_field with
+              | None ->
+                let fvalue = zero_based_int_of_yojson _field_yojson in
+                endLine_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "endCharacter" -> (
+              match Ppx_yojson_conv_lib.( ! ) endCharacter_field with
+              | None ->
+                let fvalue = zero_based_int_of_yojson _field_yojson in
+                endCharacter_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "kind" -> (
+              match Ppx_yojson_conv_lib.( ! ) kind_field with
+              | None ->
+                let fvalue = Kind.t_of_yojson _field_yojson in
+                kind_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ ->
+              if
+                Ppx_yojson_conv_lib.( ! )
+                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+              then
+                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
+              else
+                () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) startLine_field
+              , Ppx_yojson_conv_lib.( ! ) startCharacter_field
+              , Ppx_yojson_conv_lib.( ! ) endLine_field
+              , Ppx_yojson_conv_lib.( ! ) endCharacter_field
+              , Ppx_yojson_conv_lib.( ! ) kind_field )
+            with
+            | ( Some startLine_value
+              , startCharacter_value
+              , Some endLine_value
+              , endCharacter_value
+              , kind_value ) ->
+              { startLine = startLine_value
+              ; startCharacter = startCharacter_value
+              ; endLine = endLine_value
+              ; endCharacter = endCharacter_value
+              ; kind = kind_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) startLine_field)
+                      None
+                  , "startLine" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) endLine_field)
+                      None
+                  , "endLine" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { startLine = v_startLine
+        ; startCharacter = v_startCharacter
+        ; endLine = v_endLine
+        ; endCharacter = v_endCharacter
+        ; kind = v_kind
+        } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_kind with
+          | None -> bnds
+          | Some v ->
+            let arg = Kind.yojson_of_t v in
+            let bnd = ("kind", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          match v_endCharacter with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_zero_based_int v in
+            let bnd = ("endCharacter", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_zero_based_int v_endLine in
+          ("endLine", arg) :: bnds
+        in
+        let bnds =
+          match v_startCharacter with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_zero_based_int v in
+            let bnd = ("startCharacter", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_zero_based_int v_startLine in
+          ("startLine", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  type params = { textDocument : TextDocumentIdentifier.t }
+  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+  let _ = fun (_ : params) -> ()
+
+  let params_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.FoldingRange.params" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let textDocument_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "textDocument" -> (
+              match Ppx_yojson_conv_lib.( ! ) textDocument_field with
+              | None ->
+                let fvalue = TextDocumentIdentifier.t_of_yojson _field_yojson in
+                textDocument_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) textDocument_field with
+            | Some textDocument_value -> { textDocument = textDocument_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) textDocument_field)
+                      None
+                  , "textDocument" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
+
+  let _ = params_of_yojson
+
+  let yojson_of_params =
+    ( function
+      | { textDocument = v_textDocument } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = TextDocumentIdentifier.yojson_of_t v_textDocument in
+          ("textDocument", arg) :: bnds
+        in
+        `Assoc bnds
+      : params -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_params
+
+  [@@@end]
+
+  type result = t list
+
+  let yojson_of_result r = `List (List.map ~f:yojson_of_t r)
 end
