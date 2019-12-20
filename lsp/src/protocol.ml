@@ -3878,6 +3878,129 @@ module SignatureHelp = struct
   [@@@end]
 end
 
+module CodeActionKind = struct
+  type t =
+    | Empty
+    | QuickFix
+    | Refactor
+    | RefactorExtract
+    | RefactorInline
+    | RefactorRewrite
+    | Source
+    | SourceOrganizeImports
+    | Other of string
+
+  let to_string = function
+    | Empty -> ""
+    | QuickFix -> "quickfix"
+    | Refactor -> "refactor"
+    | RefactorExtract -> "refactor.extract"
+    | RefactorInline -> "refactor.inline"
+    | RefactorRewrite -> "refactor.rewrite"
+    | Source -> "source"
+    | SourceOrganizeImports -> "source.organizeImports"
+    | Other s -> s
+
+  let yojson_of_t t = `String (to_string t)
+
+  let t_of_yojson = function
+    | `String s -> (
+      match s with
+      | "" -> Empty
+      | "quickfix" -> QuickFix
+      | "refactor" -> Refactor
+      | "refactor.extract" -> RefactorExtract
+      | "refactor.inline" -> RefactorInline
+      | "refactor.rewrite" -> RefactorRewrite
+      | "source" -> Source
+      | "source.organizeImports" -> SourceOrganizeImports
+      | s -> Other s )
+    | j -> yojson_error "Invalid code action" j
+end
+
+module CodeActionOptions = struct
+  type t = { codeActionsKinds : CodeActionKind.t list [@default []] }
+  [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.CodeActionOptions.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let codeActionsKinds_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "codeActionsKinds" -> (
+              match Ppx_yojson_conv_lib.( ! ) codeActionsKinds_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson CodeActionKind.t_of_yojson _field_yojson
+                in
+                codeActionsKinds_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ ->
+              if
+                Ppx_yojson_conv_lib.( ! )
+                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+              then
+                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
+              else
+                () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] ->
+            let codeActionsKinds_value =
+              Ppx_yojson_conv_lib.( ! ) codeActionsKinds_field
+            in
+            { codeActionsKinds =
+                ( match codeActionsKinds_value with
+                | None -> []
+                | Some v -> v )
+            } ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { codeActionsKinds = v_codeActionsKinds } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg =
+            yojson_of_list CodeActionKind.yojson_of_t v_codeActionsKinds
+          in
+          ("codeActionsKinds", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
 (* Initialize request, method="initialize" *)
 module Initialize = struct
   type trace =
@@ -5175,7 +5298,7 @@ module Initialize = struct
     ; (* ie. document outline *)
       workspaceSymbolProvider : bool
     ; (* ie. find-symbol-in-project *)
-      codeActionProvider : bool
+      codeActionProvider : CodeActionOptions.t Or_bool.t
     ; codeLensProvider : codeLensOptions option [@default None]
     ; documentFormattingProvider : bool
     ; documentRangeFormattingProvider : bool
@@ -5588,7 +5711,10 @@ module Initialize = struct
             | "codeActionProvider" -> (
               match Ppx_yojson_conv_lib.( ! ) codeActionProvider_field with
               | None ->
-                let fvalue = bool_of_yojson _field_yojson in
+                let fvalue =
+                  Or_bool.t_of_yojson CodeActionOptions.t_of_yojson
+                    _field_yojson
+                in
                 codeActionProvider_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -6480,7 +6606,10 @@ module Initialize = struct
           ("codeLensProvider", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_bool v_codeActionProvider in
+          let arg =
+            Or_bool.yojson_of_t CodeActionOptions.yojson_of_t
+              v_codeActionProvider
+          in
           ("codeActionProvider", arg) :: bnds
         in
         let bnds =
