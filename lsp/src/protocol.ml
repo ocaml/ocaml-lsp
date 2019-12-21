@@ -2543,7 +2543,10 @@ module Completion = struct
     }
   [@@yojson.allow_extra_fields]
 
-  and completionContext = { triggerKind : completionTriggerKind }
+  and completionContext =
+    { triggerKind : completionTriggerKind
+    ; triggerCharacter : string option [@yojson.option]
+    }
   [@@yojson.allow_extra_fields]
 
   and result = completionList
@@ -2577,10 +2580,12 @@ module Completion = struct
     ; (* used for inserting; if absent, uses label *)
       insertTextFormat : insertTextFormat option [@default None]
     ; textEdit : TextEdit.t option [@default None]
-    ; additionalTextEdits : TextEdit.t list [@default []]
+    ; additionalTextEdits : TextEdit.t list
+          [@default []]
           (* command: Command.t option [@default None]; (1* if present, is
              executed after completion *1) *)
           (* data: Hh_json.json option [@default None]; *)
+    ; commitCharacters : string list [@default []]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -2691,6 +2696,7 @@ module Completion = struct
       function
       | `Assoc field_yojsons as yojson -> (
         let triggerKind_field = ref None
+        and triggerCharacter_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -2701,6 +2707,14 @@ module Completion = struct
               | None ->
                 let fvalue = completionTriggerKind_of_yojson _field_yojson in
                 triggerKind_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "triggerCharacter" -> (
+              match Ppx_yojson_conv_lib.( ! ) triggerCharacter_field with
+              | None ->
+                let fvalue = string_of_yojson _field_yojson in
+                triggerCharacter_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -2721,8 +2735,14 @@ module Completion = struct
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
           | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) triggerKind_field with
-            | Some triggerKind_value -> { triggerKind = triggerKind_value }
+            match
+              ( Ppx_yojson_conv_lib.( ! ) triggerKind_field
+              , Ppx_yojson_conv_lib.( ! ) triggerCharacter_field )
+            with
+            | Some triggerKind_value, triggerCharacter_value ->
+              { triggerKind = triggerKind_value
+              ; triggerCharacter = triggerCharacter_value
+              }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
@@ -2826,6 +2846,7 @@ module Completion = struct
         and insertTextFormat_field = ref None
         and textEdit_field = ref None
         and additionalTextEdits_field = ref None
+        and commitCharacters_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -2935,6 +2956,14 @@ module Completion = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "commitCharacters" -> (
+              match Ppx_yojson_conv_lib.( ! ) commitCharacters_field with
+              | None ->
+                let fvalue = list_of_yojson string_of_yojson _field_yojson in
+                commitCharacters_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -2964,7 +2993,8 @@ module Completion = struct
               , Ppx_yojson_conv_lib.( ! ) insertText_field
               , Ppx_yojson_conv_lib.( ! ) insertTextFormat_field
               , Ppx_yojson_conv_lib.( ! ) textEdit_field
-              , Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field )
+              , Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field
+              , Ppx_yojson_conv_lib.( ! ) commitCharacters_field )
             with
             | ( Some label_value
               , kind_value
@@ -2977,7 +3007,8 @@ module Completion = struct
               , insertText_value
               , insertTextFormat_value
               , textEdit_value
-              , additionalTextEdits_value ) ->
+              , additionalTextEdits_value
+              , commitCharacters_value ) ->
               { label = label_value
               ; kind =
                   ( match kind_value with
@@ -3021,6 +3052,10 @@ module Completion = struct
                   | Some v -> v )
               ; additionalTextEdits =
                   ( match additionalTextEdits_value with
+                  | None -> []
+                  | Some v -> v )
+              ; commitCharacters =
+                  ( match commitCharacters_value with
                   | None -> []
                   | Some v -> v )
               }
@@ -3077,8 +3112,17 @@ module Completion = struct
 
   and yojson_of_completionContext =
     ( function
-      | { triggerKind = v_triggerKind } ->
+      | { triggerKind = v_triggerKind; triggerCharacter = v_triggerCharacter }
+        ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_triggerCharacter with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_string v in
+            let bnd = ("triggerCharacter", arg) in
+            bnd :: bnds
+        in
         let bnds =
           let arg = yojson_of_completionTriggerKind v_triggerKind in
           ("triggerKind", arg) :: bnds
@@ -3119,8 +3163,13 @@ module Completion = struct
         ; insertTextFormat = v_insertTextFormat
         ; textEdit = v_textEdit
         ; additionalTextEdits = v_additionalTextEdits
+        ; commitCharacters = v_commitCharacters
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_list yojson_of_string v_commitCharacters in
+          ("commitCharacters", arg) :: bnds
+        in
         let bnds =
           let arg = yojson_of_list TextEdit.yojson_of_t v_additionalTextEdits in
           ("additionalTextEdits", arg) :: bnds
