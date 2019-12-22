@@ -612,12 +612,7 @@ let start () =
 let main () =
   (* Setup env for extensions *)
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  match List.tl (Array.to_list Sys.argv) with
-  | ("-help" | "--help" | "-h") :: _ ->
-    Printf.eprintf
-      "Usage: %s\nStart merlin LSP server (only stdio transport is supported)\n"
-      Sys.argv.(0)
-  | _ -> start ()
+  start ()
 
 let () =
   Printexc.record_backtrace true;
@@ -626,4 +621,9 @@ let () =
     | exception Not_found -> None
     | file -> Some file
   in
-  Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
+  match List.tl (Array.to_list Sys.argv) with
+  | ("-help" | "--help" | "-h") :: _ ->
+    Printf.eprintf
+      "Usage: %s\nStart merlin LSP server (only stdio transport is supported)\n"
+      Sys.argv.(0)
+  | _ -> Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
