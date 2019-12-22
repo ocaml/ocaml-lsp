@@ -616,12 +616,9 @@ let main () =
 
 let () =
   Printexc.record_backtrace true;
-  let log_file =
-    match Sys.getenv "MERLIN_LOG" with
-    | exception Not_found -> None
-    | file -> Some file
-  in
+  let log_file = ref None in
   let args = Arg.align [
+    ("--log-file", String (fun f -> log_file := Some f), "FILE" ^ " " ^ "Enable logging to file");
   ] in
   let anon_fun _ =
     raise (Arg.Bad "arguments are not supported")
@@ -631,4 +628,12 @@ let () =
       Sys.argv.(0)
   in
   Arg.parse args anon_fun usage_msg;
+  let log_file =
+    match !log_file with
+    | None -> (
+      match Sys.getenv "MERLIN_LOG" with
+      | exception Not_found -> None
+      | file -> Some file)
+    | Some f -> Some f
+  in
   Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
