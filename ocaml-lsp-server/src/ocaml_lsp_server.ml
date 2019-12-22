@@ -621,9 +621,14 @@ let () =
     | exception Not_found -> None
     | file -> Some file
   in
-  match List.tl (Array.to_list Sys.argv) with
-  | ("-help" | "--help" | "-h") :: _ ->
-    Printf.eprintf
-      "Usage: %s\nStart merlin LSP server (only stdio transport is supported)\n"
+  let args = Arg.align [
+  ] in
+  let anon_fun _ =
+    raise (Arg.Bad "arguments are not supported")
+  in
+  let usage_msg =
+    Printf.sprintf "Usage: %s\nStart merlin LSP server (only stdio transport is supported)"
       Sys.argv.(0)
-  | _ -> Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
+  in
+  Arg.parse args anon_fun usage_msg;
+  Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
