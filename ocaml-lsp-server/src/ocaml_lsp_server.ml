@@ -631,7 +631,7 @@ let () =
   let log_file =
     match !log_file with
     | None -> (
-      match Sys.getenv "MERLIN_LOG" with
+      match Sys.getenv "OCAML_LSP_SERVER_LOG" with
       | exception Not_found -> None
       | file -> Some file)
     | Some f -> Some f
