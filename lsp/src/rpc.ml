@@ -84,7 +84,7 @@ end
 
 module Packet = struct
   type t =
-    { id : int option [@default None]
+    { id : Protocol.Id.t option [@default None]
     ; method_ : string [@key "method"]
     ; params : yojson
     }
@@ -107,7 +107,9 @@ module Packet = struct
             | "id" -> (
               match Ppx_yojson_conv_lib.( ! ) id_field with
               | None ->
-                let fvalue = option_of_yojson int_of_yojson _field_yojson in
+                let fvalue =
+                  option_of_yojson Protocol.Id.t_of_yojson _field_yojson
+                in
                 id_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -190,7 +192,7 @@ module Packet = struct
           ("method", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_option yojson_of_int v_id in
+          let arg = yojson_of_option Protocol.Id.yojson_of_t v_id in
           ("id", arg) :: bnds
         in
         `Assoc bnds
@@ -239,7 +241,7 @@ let read rpc =
 
 module Response = struct
   type response =
-    { id : int
+    { id : Protocol.Id.t
     ; jsonrpc : string
     ; result : yojson
     }
@@ -262,7 +264,7 @@ module Response = struct
             | "id" -> (
               match Ppx_yojson_conv_lib.( ! ) id_field with
               | None ->
-                let fvalue = int_of_yojson _field_yojson in
+                let fvalue = Protocol.Id.t_of_yojson _field_yojson in
                 id_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -350,7 +352,7 @@ module Response = struct
           ("jsonrpc", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_int v_id in
+          let arg = Protocol.Id.yojson_of_t v_id in
           ("id", arg) :: bnds
         in
         `Assoc bnds
@@ -361,7 +363,7 @@ module Response = struct
   [@@@end]
 
   type response_error =
-    { id : int
+    { id : Protocol.Id.t
     ; jsonrpc : string
     ; error : error
     }
@@ -391,7 +393,7 @@ module Response = struct
             | "id" -> (
               match Ppx_yojson_conv_lib.( ! ) id_field with
               | None ->
-                let fvalue = int_of_yojson _field_yojson in
+                let fvalue = Protocol.Id.t_of_yojson _field_yojson in
                 id_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -555,7 +557,7 @@ module Response = struct
           ("jsonrpc", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_int v_id in
+          let arg = Protocol.Id.yojson_of_t v_id in
           ("id", arg) :: bnds
         in
         `Assoc bnds
@@ -708,8 +710,8 @@ module Message = struct
   open Protocol
 
   type t =
-    | Initialize : int * Protocol.Initialize.params -> t
-    | Request : int * 'result Request.t -> t
+    | Initialize : Protocol.Id.t * Protocol.Initialize.params -> t
+    | Request : Protocol.Id.t * 'result Request.t -> t
     | Client_notification : Client_notification.t -> t
 
   let parse packet =

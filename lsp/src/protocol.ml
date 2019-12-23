@@ -6,6 +6,12 @@ open Import
 
 let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
 
+module Either = struct
+  type ('left, 'right) t =
+    | Left of 'left
+    | Right of 'right
+end
+
 module Or_bool = struct
   type 'a t =
     | Bool of bool
@@ -27,6 +33,19 @@ module Void = struct
   let t_of_yojson = yojson_error "Void.t"
 
   let yojson_of_t (_ : t) = assert false
+end
+
+module Id = struct
+  type t = (string, int) Either.t
+
+  let yojson_of_t = function
+    | Either.Left s -> `String s
+    | Right i -> `Int i
+
+  let t_of_yojson = function
+    | `String s -> Either.Left s
+    | `Int i -> Right i
+    | j -> yojson_error "Id.t" j
 end
 
 type documentUri = Uri.t [@@deriving_inline yojson]
