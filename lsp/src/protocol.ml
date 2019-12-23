@@ -4754,31 +4754,34 @@ module Initialize = struct
     { includeText : bool (* the client should include content on save *) }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
-  let empty_server_capabilities : server_capabilities = {
-    textDocumentSync={
-      openClose=true; change=FullSync; willSave=false;
-      willSaveWaitUntil=false; didSave=None;
-    };
-    hoverProvider=false;
-    completionProvider=None;
-    definitionProvider=false;
-    typeDefinitionProvider=false;
-    referencesProvider=false;
-    documentHighlightProvider = false;
-    documentSymbolProvider =false;
-    workspaceSymbolProvider =false;
-    codeActionProvider =false;
-    codeLensProvider=None;
-    documentFormattingProvider =false;
-    documentRangeFormattingProvider=false;
-    documentOnTypeFormattingProvider =None;
-    renameProvider =false;
-    documentLinkProvider =None;
-    executeCommandProvider =None;
-    typeCoverageProvider =false;
-    rageProvider =false;
-    foldingRangeProvider =Bool false;
-  }
+  let empty_server_capabilities : server_capabilities =
+    { textDocumentSync =
+        { openClose = true
+        ; change = FullSync
+        ; willSave = false
+        ; willSaveWaitUntil = false
+        ; didSave = None
+        }
+    ; hoverProvider = false
+    ; completionProvider = None
+    ; definitionProvider = false
+    ; typeDefinitionProvider = false
+    ; referencesProvider = false
+    ; documentHighlightProvider = false
+    ; documentSymbolProvider = false
+    ; workspaceSymbolProvider = false
+    ; codeActionProvider = false
+    ; codeLensProvider = None
+    ; documentFormattingProvider = false
+    ; documentRangeFormattingProvider = false
+    ; documentOnTypeFormattingProvider = None
+    ; renameProvider = false
+    ; documentLinkProvider = None
+    ; executeCommandProvider = None
+    ; typeCoverageProvider = false
+    ; rageProvider = false
+    ; foldingRangeProvider = Bool false
+    }
 
   let _ = fun (_ : params) -> ()
 
