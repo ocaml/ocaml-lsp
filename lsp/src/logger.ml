@@ -59,7 +59,8 @@ let log ~section ~title fmt =
         if str <> "" then (
           output_string oc str;
           if str.[String.length str - 1] <> '\n' then output_char oc '\n'
-        ))
+        );
+        flush oc)
       fmt
   | None
   | Some _ ->

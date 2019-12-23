@@ -612,18 +612,28 @@ let start () =
 let main () =
   (* Setup env for extensions *)
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  match List.tl (Array.to_list Sys.argv) with
-  | ("-help" | "--help" | "-h") :: _ ->
-    Printf.eprintf
-      "Usage: %s\nStart merlin LSP server (only stdio transport is supported)\n"
-      Sys.argv.(0)
-  | _ -> start ()
+  start ()
 
 let () =
   Printexc.record_backtrace true;
+  let log_file = ref None in
+  let args = Arg.align [
+    ("--log-file", String (fun f -> log_file := Some f), "FILE" ^ " " ^ "Enable logging to file");
+  ] in
+  let anon_fun _ =
+    raise (Arg.Bad "arguments are not supported")
+  in
+  let usage_msg =
+    Printf.sprintf "Usage: %s\nStart merlin LSP server (only stdio transport is supported)"
+      Sys.argv.(0)
+  in
+  Arg.parse args anon_fun usage_msg;
   let log_file =
-    match Sys.getenv "MERLIN_LOG" with
-    | exception Not_found -> None
-    | file -> Some file
+    match !log_file with
+    | None -> (
+      match Sys.getenv "OCAML_LSP_SERVER_LOG" with
+      | exception Not_found -> None
+      | file -> Some file)
+    | Some f -> Some f
   in
   Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
