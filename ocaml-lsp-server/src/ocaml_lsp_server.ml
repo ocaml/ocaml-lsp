@@ -451,6 +451,7 @@ let on_request :
       ; insertTextFormat = None
       ; textEdit
       ; additionalTextEdits = []
+      ; commitCharacters = []
       }
     in
 
