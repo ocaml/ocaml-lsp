@@ -25,7 +25,6 @@ Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 ")
  (depends
-  result
   yojson
   ppx_yojson_conv_lib
   (ocaml (>= 4.06))
@@ -36,7 +35,6 @@ possible and does not make any assumptions about IO.
  (synopsis "LSP Server for OCaml")
  (description " An LSP server for OCaml.")
  (depends
-  result
   lsp
   yojson
   ppx_yojson_conv_lib

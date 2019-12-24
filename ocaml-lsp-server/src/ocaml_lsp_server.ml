@@ -1,5 +1,3 @@
-open Result
-
 let { Logger.log } = Logger.for_section "ocamlmerlin-lsp"
 
 let initializeInfo : Lsp.Protocol.Initialize.result =
