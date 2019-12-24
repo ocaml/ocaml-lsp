@@ -42,6 +42,8 @@ module Request : sig
         TextDocumentHighlight.params
         -> TextDocumentHighlight.result t
     | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
+    | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
+    | CodeAction : CodeActionParams.t -> CodeAction.result t
     | UnknownRequest : string * Yojson.Safe.t -> unit t
 end
 

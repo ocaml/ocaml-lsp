@@ -1,5 +1,7 @@
 let { Logger.log } = Logger.for_section "ocamlmerlin-lsp"
 
+let not_supported () = Error "request not supported yet"
+
 let initializeInfo : Lsp.Protocol.Initialize.result =
   { server_capabilities =
       { textDocumentSync =
@@ -558,6 +560,8 @@ let on_request :
       loop [] outline |> List.sort compare
     in
     return (store, folds)
+  | Lsp.Rpc.Request.SignatureHelp _ -> not_supported ()
+  | Lsp.Rpc.Request.CodeAction _ -> not_supported ()
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =

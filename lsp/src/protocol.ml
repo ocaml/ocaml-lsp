@@ -8999,4 +8999,15 @@ module CodeAction = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  type result = (Command.t, t) Either.t list option
+
+  let yojson_of_result (r : result) : Yojson.Safe.t =
+    match r with
+    | None -> `Null
+    | Some elems ->
+      `List
+        (List.map elems ~f:(function
+          | Either.Right r -> yojson_of_t r
+          | Left l -> Command.yojson_of_t l))
 end
