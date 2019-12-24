@@ -220,7 +220,6 @@ let let_ref r v f =
 external reraise : exn -> 'a = "%reraise"
 
 module Result = struct
-
   let bind x ~f =
     match x with
     | Ok v -> f v
