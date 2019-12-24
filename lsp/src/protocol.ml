@@ -4255,14 +4255,6 @@ module Initialize = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
-            | "codeAction" -> (
-              match Ppx_yojson_conv_lib.( ! ) codeAction_field with
-              | None ->
-                let fvalue = codeAction_of_yojson _field_yojson in
-                codeAction_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
             | _ -> () );
             iter tail
           | [] -> ()
