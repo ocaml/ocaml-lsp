@@ -1,3 +1,5 @@
+type json = Ppx_yojson_conv_lib.Yojson.Safe.t
+
 module List = ListLabels
 
 module String = struct
