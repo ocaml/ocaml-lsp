@@ -256,9 +256,9 @@ module TextDocumentEdit : sig
 end
 
 module WorkspaceEdit : sig
-  type changes = (documentUri * TextEdit.t list) list
+  type changes = (Uri.t * TextEdit.t list) list
 
-  val yojson_of_changes : (Uri.t * TextEdit.t list) list -> json
+  val yojson_of_changes : changes -> json
 
   type documentChanges = TextDocumentEdit.t list
 

@@ -1830,7 +1830,7 @@ module WorkspaceEdit = struct
 
       The json representation is an object with URIs as keys and edits as
       values. *)
-  type changes = (documentUri * TextEdit.t list) list
+  type changes = (Uri.t * TextEdit.t list) list
 
   let yojson_of_changes changes =
     let changes =
