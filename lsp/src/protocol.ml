@@ -4557,7 +4557,9 @@ module Initialize = struct
   let hover_empty = { contentFormat = [ Plaintext ] }
 
   type codeAction =
-    { codeActionLiteralSupport : CodeActionLiteralSupport.t option }
+    { codeActionLiteralSupport : CodeActionLiteralSupport.t option
+          [@yojson.option]
+    }
   [@@deriving_inline yojson]
 
   let _ = fun (_ : codeAction) -> ()
@@ -4578,8 +4580,7 @@ module Initialize = struct
               with
               | None ->
                 let fvalue =
-                  option_of_yojson CodeActionLiteralSupport.t_of_yojson
-                    _field_yojson
+                  CodeActionLiteralSupport.t_of_yojson _field_yojson
                 in
                 codeActionLiteralSupport_field := Some fvalue
               | Some _ ->
@@ -4608,18 +4609,11 @@ module Initialize = struct
             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
-          | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field with
-            | Some codeActionLiteralSupport_value ->
-              { codeActionLiteralSupport = codeActionLiteralSupport_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field)
-                      None
-                  , "codeActionLiteralSupport" )
-                ] ) ) )
+          | [] ->
+            let codeActionLiteralSupport_value =
+              Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field
+            in
+            { codeActionLiteralSupport = codeActionLiteralSupport_value } ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
@@ -4632,11 +4626,12 @@ module Initialize = struct
       | { codeActionLiteralSupport = v_codeActionLiteralSupport } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg =
-            yojson_of_option CodeActionLiteralSupport.yojson_of_t
-              v_codeActionLiteralSupport
-          in
-          ("codeActionLiteralSupport", arg) :: bnds
+          match v_codeActionLiteralSupport with
+          | None -> bnds
+          | Some v ->
+            let arg = CodeActionLiteralSupport.yojson_of_t v in
+            let bnd = ("codeActionLiteralSupport", arg) in
+            bnd :: bnds
         in
         `Assoc bnds
       : codeAction -> Ppx_yojson_conv_lib.Yojson.Safe.t )
@@ -4785,6 +4780,14 @@ module Initialize = struct
               | None ->
                 let fvalue = hover_of_yojson _field_yojson in
                 hover_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "codeAction" -> (
+              match Ppx_yojson_conv_lib.( ! ) codeAction_field with
+              | None ->
+                let fvalue = codeAction_of_yojson _field_yojson in
+                codeAction_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
