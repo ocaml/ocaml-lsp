@@ -14,7 +14,6 @@ license: "ISC"
 homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
-  "result"
   "lsp"
   "yojson"
   "ppx_yojson_conv_lib"
