@@ -3486,8 +3486,23 @@ module SignatureHelpOptions = struct
 end
 
 module ParameterInformation = struct
+  module Label = struct
+    type t =
+      | Substring of string
+      | Range of int * int
+
+    let t_of_yojson = function
+      | `String b -> Substring b
+      | `List [ `Int s; `Int e ] -> Range (s, e)
+      | y -> yojson_error "ParameterInformation.Label.t" y
+
+    let yojson_of_t = function
+      | Substring s -> `String s
+      | Range (s, e) -> `List [ `Int s; `Int e ]
+  end
+
   type t =
-    { label : (int * int) Or_string.t
+    { label : Label.t
     ; documentation : MarkupContent.t Or_string.t
     }
   [@@deriving_inline yojson]
@@ -3508,18 +3523,7 @@ module ParameterInformation = struct
             | "label" -> (
               match Ppx_yojson_conv_lib.( ! ) label_field with
               | None ->
-                let fvalue =
-                  Or_string.t_of_yojson
-                    (function
-                      | `List [ v0; v1 ] ->
-                        let v0 = int_of_yojson v0
-                        and v1 = int_of_yojson v1 in
-                        (v0, v1)
-                      | yojson ->
-                        Ppx_yojson_conv_lib.Yojson_conv_error
-                        .tuple_of_size_n_expected _tp_loc 2 yojson)
-                    _field_yojson
-                in
+                let fvalue = Label.t_of_yojson _field_yojson in
                 label_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -3594,15 +3598,7 @@ module ParameterInformation = struct
           ("documentation", arg) :: bnds
         in
         let bnds =
-          let arg =
-            Or_string.yojson_of_t
-              (function
-                | v0, v1 ->
-                  let v0 = yojson_of_int v0
-                  and v1 = yojson_of_int v1 in
-                  `List [ v0; v1 ])
-              v_label
-          in
+          let arg = Label.yojson_of_t v_label in
           ("label", arg) :: bnds
         in
         `Assoc bnds
@@ -5241,35 +5237,6 @@ module Initialize = struct
   and saveOptions =
     { includeText : bool (* the client should include content on save *) }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
-
-  let empty_server_capabilities : server_capabilities =
-    { textDocumentSync =
-        { openClose = true
-        ; change = FullSync
-        ; willSave = false
-        ; willSaveWaitUntil = false
-        ; didSave = None
-        }
-    ; hoverProvider = false
-    ; completionProvider = None
-    ; definitionProvider = false
-    ; typeDefinitionProvider = false
-    ; referencesProvider = false
-    ; documentHighlightProvider = false
-    ; documentSymbolProvider = false
-    ; workspaceSymbolProvider = false
-    ; codeActionProvider = false
-    ; codeLensProvider = None
-    ; documentFormattingProvider = false
-    ; documentRangeFormattingProvider = false
-    ; documentOnTypeFormattingProvider = None
-    ; renameProvider = false
-    ; documentLinkProvider = None
-    ; executeCommandProvider = None
-    ; typeCoverageProvider = false
-    ; rageProvider = false
-    ; foldingRangeProvider = Bool false
-    }
 
   let _ = fun (_ : params) -> ()
 
