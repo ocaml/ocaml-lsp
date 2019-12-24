@@ -21,7 +21,7 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; documentHighlightProvider = true
       ; documentSymbolProvider = true
       ; workspaceSymbolProvider = false
-      ; codeActionProvider = false
+      ; codeActionProvider = Bool false
       ; codeLensProvider = Some { codelens_resolveProvider = false }
       ; documentFormattingProvider = false
       ; documentRangeFormattingProvider = false
