@@ -71,7 +71,7 @@ The server supports the following queries:
 - [ ] `textDocument/rangeFormatting`
 - [ ] `textDocument/onTypeFormatting`
 - [ ] `textDocument/prepareRename`
-- [ ] `textDocument/foldingRange`
+- [x] `textDocument/foldingRange`
 - [ ] `workspace/symbol`
 
 Note that degrees of support for each LSP request are varying.
