@@ -26,7 +26,6 @@ describe("textDocument/completion", () => {
     return result.items.map(item => {
       return {
         label: item.label,
-        sortText: item.sortText,
         textEdit: item.textEdit,
       };
     });
@@ -48,8 +47,8 @@ describe("textDocument/completion", () => {
 
     let items = await queryCompletion(Types.Position.create(0, 5));
     expect(items).toMatchObject([
-      { label: "String", sortText: "0000" },
-      { label: "StringLabels", sortText: "0001" },
+      { label: "String" },
+      { label: "StringLabels" },
     ]);
   });
 
@@ -60,8 +59,8 @@ describe("textDocument/completion", () => {
 
     let items = await queryCompletion(Types.Position.create(0, 6));
     expect(items).toMatchObject([
-      { label: "String", sortText: "0000" },
-      { label: "StringLabels", sortText: "0001" },
+      { label: "String" },
+      { label: "StringLabels" },
     ]);
   });
 
@@ -71,7 +70,7 @@ describe("textDocument/completion", () => {
     `);
 
     let items = await queryCompletion(Types.Position.create(0, 7));
-    expect(items).toMatchObject([{ label: "StringLabels", sortText: "0000" }]);
+    expect(items).toMatchObject([{ label: "StringLabels" }]);
   });
 
   it("completes identifier at top level", async () => {
@@ -85,8 +84,8 @@ describe("textDocument/completion", () => {
 
     let items = await queryCompletion(Types.Position.create(4, 6));
     expect(items).toMatchObject([
-      { label: "somenum", sortText: "0000" },
-      { label: "somestring", sortText: "0001" },
+      { label: "somenum" },
+      { label: "somestring" },
     ]);
   });
 
@@ -97,14 +96,14 @@ describe("textDocument/completion", () => {
 
     let items = await queryCompletion(Types.Position.create(0, 14));
     expect(items).toMatchObject([
-      { label: "map", sortText: "0000" },
-      { label: "map2", sortText: "0001" },
-      { label: "mapi", sortText: "0002" },
-      { label: "mem", sortText: "0003" },
-      { label: "mem_assoc", sortText: "0004" },
-      { label: "mem_assq", sortText: "0005" },
-      { label: "memq", sortText: "0006" },
-      { label: "merge", sortText: "0007" },
+      { label: "map" },
+      { label: "map2" },
+      { label: "mapi" },
+      { label: "mem" },
+      { label: "mem_assoc" },
+      { label: "mem_assq" },
+      { label: "memq" },
+      { label: "merge" },
     ]);
   });
 
@@ -116,11 +115,11 @@ describe("textDocument/completion", () => {
     let items = await queryCompletion(Types.Position.create(0, 9));
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
-      { label: "LargeFile", sortText: "0000" },
-      { label: "Lazy", sortText: "0001" },
-      { label: "Lexing", sortText: "0002" },
-      { label: "List", sortText: "0003" },
-      { label: "ListLabels", sortText: "0004" },
+      { label: "LargeFile" },
+      { label: "Lazy" },
+      { label: "Lexing" },
+      { label: "List" },
+      { label: "ListLabels" },
     ]);
   });
 
@@ -136,11 +135,11 @@ describe("textDocument/completion", () => {
     let items = await queryCompletion(Types.Position.create(4, 12));
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
-      { label: "somenum", sortText: "0000", textEdit: null },
-      { label: "x", sortText: "0001", textEdit: null },
-      { label: "y", sortText: "0002", textEdit: null },
-      { label: "max_int", sortText: "0003", textEdit: null },
-      { label: "min_int", sortText: "0004", textEdit: null },
+      { label: "somenum", textEdit: null },
+      { label: "x", textEdit: null },
+      { label: "y", textEdit: null },
+      { label: "max_int", textEdit: null },
+      { label: "min_int", textEdit: null },
     ]);
   });
 
@@ -152,30 +151,7 @@ describe("textDocument/completion", () => {
     let items = await queryCompletion(Types.Position.create(0, 13));
     expect(items).toMatchObject([
       {
-        label: "ListLabels.mapi",
-        sortText: "0000",
-        textEdit: {
-          range: {
-            start: { line: 0, character: 8 },
-            end: { line: 0, character: 13 },
-          },
-          newText: "ListLabels.mapi",
-        },
-      },
-      {
-        label: "ListLabels.map2",
-        sortText: "0001",
-        textEdit: {
-          range: {
-            start: { line: 0, character: 8 },
-            end: { line: 0, character: 13 },
-          },
-          newText: "ListLabels.map2",
-        },
-      },
-      {
         label: "ListLabels.map",
-        sortText: "0002",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
@@ -185,19 +161,37 @@ describe("textDocument/completion", () => {
         },
       },
       {
-        label: "List.mapi",
-        sortText: "0003",
+        label: "ListLabels.map2",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
             end: { line: 0, character: 13 },
           },
-          newText: "List.mapi",
+          newText: "ListLabels.map2",
+        },
+      },
+      {
+        label: "ListLabels.mapi",
+        textEdit: {
+          range: {
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 },
+          },
+          newText: "ListLabels.mapi",
+        },
+      },
+      {
+        label: "List.map",
+        textEdit: {
+          range: {
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 13 },
+          },
+          newText: "List.map",
         },
       },
       {
         label: "List.map2",
-        sortText: "0004",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
@@ -207,14 +201,13 @@ describe("textDocument/completion", () => {
         },
       },
       {
-        label: "List.map",
-        sortText: "0005",
+        label: "List.mapi",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
             end: { line: 0, character: 13 },
           },
-          newText: "List.map",
+          newText: "List.mapi",
         },
       },
     ]);
@@ -229,30 +222,27 @@ describe("textDocument/completion", () => {
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
       {
-        label: "ListLabels.to_seq",
-        sortText: "0000",
+        label: "ListLabels.((::))",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
             end: { line: 0, character: 10 },
           },
-          newText: "ListLabels.to_seq",
+          newText: "ListLabels.((::))",
         },
       },
       {
-        label: "ListLabels.tl",
-        sortText: "0001",
+        label: "ListLabels.[]",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
             end: { line: 0, character: 10 },
           },
-          newText: "ListLabels.tl",
+          newText: "ListLabels.[]",
         },
       },
       {
         label: "ListLabels.t",
-        sortText: "0002",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
@@ -262,25 +252,23 @@ describe("textDocument/completion", () => {
         },
       },
       {
-        label: "ListLabels.stable_sort",
-        sortText: "0003",
+        label: "ListLabels.append",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
             end: { line: 0, character: 10 },
           },
-          newText: "ListLabels.stable_sort",
+          newText: "ListLabels.append",
         },
       },
       {
-        label: "ListLabels.split",
-        sortText: "0004",
+        label: "ListLabels.assoc",
         textEdit: {
           range: {
             start: { line: 0, character: 8 },
             end: { line: 0, character: 10 },
           },
-          newText: "ListLabels.split",
+          newText: "ListLabels.assoc",
         },
       },
     ]);
@@ -303,11 +291,11 @@ describe("textDocument/completion", () => {
     let items = await queryCompletion(Types.Position.create(0, 23));
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
-      { label: "~f", sortText: "0000", textEdit: null },
-      { label: "::", sortText: "0001", textEdit: null },
-      { label: "[]", sortText: "0002", textEdit: null },
-      { label: "!", sortText: "0003", textEdit: null },
-      { label: "exit", sortText: "0004", textEdit: null },
+      { label: "~f", textEdit: null },
+      { label: "::", textEdit: null },
+      { label: "[]", textEdit: null },
+      { label: "!", textEdit: null },
+      { label: "exit", textEdit: null },
     ]);
   });
 });

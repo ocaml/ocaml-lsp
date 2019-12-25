@@ -8,7 +8,7 @@ env:
     - DISTRO="debian-stable"
     - PINS="lsp.dev:. ocaml-lsp-server.dev:."
   matrix:
-    - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.06"
-    - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.07"
+    - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.06" TESTS="false"
+    - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.07" TESTS="false"
     - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.08"
     - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.09"
