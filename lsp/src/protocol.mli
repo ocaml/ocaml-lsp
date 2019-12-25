@@ -1126,4 +1126,8 @@ module CodeAction : sig
     }
 
   val yojson_of_t : t -> json
+
+  type result = (Command.t, t) Either.t list option
+
+  val yojson_of_result : result -> json
 end
