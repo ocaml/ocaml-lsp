@@ -13,13 +13,29 @@ We recommend to install the server via a project such as
 To install the lsp server in a particular opam switch:
 
 ```
-$ opam pin add lsp https://github.com/ocaml/ocaml-lsp.git
 $ opam pin add ocaml-lsp-server https://github.com/ocaml/ocaml-lsp.git
 $ opam install ocaml-lsp-server
 ```
 
 Note that you will need to run install the lsp server in every switch where
 you'd like to use it.
+
+### Esy
+
+To add the lsp server to an esy project, add the following lines to your
+project's `package.json`:
+
+```
+  "devDependencies": {
+    "@opam/ocaml-lsp-server": "*"
+  },
+  "resolutions": {
+    "@opam/ocaml-lsp-server": "github:ocaml/ocaml-lsp:ocaml-lsp.server.opam#<git-commit-sha>"
+  }
+```
+
+Note that you need to specify a specific git commit sha from this repository
+instead of `<git-commit-sha>` placeholder above.
 
 ### Source
 
@@ -30,7 +46,7 @@ the same dependencies that ocaml-lsp-server is using.
 ```
 $ git clone --recurse-submodules http://github.com/ocaml/ocaml-lsp.git
 $ cd ocaml-lsp
-$ dune build
+$ make build
 ```
 
 ## Features
