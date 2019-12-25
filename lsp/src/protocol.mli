@@ -638,7 +638,10 @@ module Initialize : sig
   val hover_empty : hover
 
   type codeAction =
-    { codeActionLiteralSupport : CodeActionLiteralSupport.t option }
+    { codeActionLiteralSupport : CodeActionLiteralSupport.t option
+    ; dynamicRegistration : bool option
+    ; isPreferredSupport : bool option
+    }
 
   val codeAction_of_yojson : json -> codeAction
 

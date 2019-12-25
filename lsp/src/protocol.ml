@@ -4551,6 +4551,8 @@ module Initialize = struct
   type codeAction =
     { codeActionLiteralSupport : CodeActionLiteralSupport.t option
           [@yojson.option]
+    ; dynamicRegistration : bool option [@yojson.option]
+    ; isPreferredSupport : bool option [@yojson.option]
     }
   [@@deriving_inline yojson]
 
@@ -4561,6 +4563,8 @@ module Initialize = struct
       function
       | `Assoc field_yojsons as yojson -> (
         let codeActionLiteralSupport_field = ref None
+        and dynamicRegistration_field = ref None
+        and isPreferredSupport_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -4575,6 +4579,22 @@ module Initialize = struct
                   CodeActionLiteralSupport.t_of_yojson _field_yojson
                 in
                 codeActionLiteralSupport_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "dynamicRegistration" -> (
+              match Ppx_yojson_conv_lib.( ! ) dynamicRegistration_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                dynamicRegistration_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "isPreferredSupport" -> (
+              match Ppx_yojson_conv_lib.( ! ) isPreferredSupport_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                isPreferredSupport_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -4602,10 +4622,17 @@ module Initialize = struct
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
           | [] ->
-            let codeActionLiteralSupport_value =
-              Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field
+            let ( codeActionLiteralSupport_value
+                , dynamicRegistration_value
+                , isPreferredSupport_value ) =
+              ( Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field
+              , Ppx_yojson_conv_lib.( ! ) dynamicRegistration_field
+              , Ppx_yojson_conv_lib.( ! ) isPreferredSupport_field )
             in
-            { codeActionLiteralSupport = codeActionLiteralSupport_value } ) )
+            { codeActionLiteralSupport = codeActionLiteralSupport_value
+            ; dynamicRegistration = dynamicRegistration_value
+            ; isPreferredSupport = isPreferredSupport_value
+            } ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
@@ -4615,8 +4642,27 @@ module Initialize = struct
 
   let yojson_of_codeAction =
     ( function
-      | { codeActionLiteralSupport = v_codeActionLiteralSupport } ->
+      | { codeActionLiteralSupport = v_codeActionLiteralSupport
+        ; dynamicRegistration = v_dynamicRegistration
+        ; isPreferredSupport = v_isPreferredSupport
+        } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_isPreferredSupport with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_bool v in
+            let bnd = ("isPreferredSupport", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          match v_dynamicRegistration with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_bool v in
+            let bnd = ("dynamicRegistration", arg) in
+            bnd :: bnds
+        in
         let bnds =
           match v_codeActionLiteralSupport with
           | None -> bnds
@@ -4632,7 +4678,11 @@ module Initialize = struct
 
   [@@@end]
 
-  let codeAction_empty = { codeActionLiteralSupport = None }
+  let codeAction_empty =
+    { codeActionLiteralSupport = None
+    ; dynamicRegistration = None
+    ; isPreferredSupport = None
+    }
 
   type documentSymbol =
     { hierarchicalDocumentSymbolSupport : bool [@default false] }
