@@ -7,26 +7,7 @@ import * as rpc from "vscode-jsonrpc";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Rpc from "vscode-jsonrpc";
 
-let serverBin =
-  os.platform() === "win32" ? "ocaml-lsp-server.exe" : "ocaml-lsp-server";
-
-let serverPath = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "..",
-  "_build",
-  "install",
-  "default",
-  "bin",
-  serverBin,
-);
-
-if (!fs.existsSync(serverPath)) {
-  console.error(`Unable to ocaml-lsp-server executable at: ${serverPath}`);
-  process.exit(1);
-}
+let serverBin = os.platform() === "win32" ? "ocamllsp.exe" : "ocamllsp";
 
 export type LanguageServer = Rpc.MessageConnection;
 
@@ -40,7 +21,7 @@ export const start = (opts?: cp.SpawnOptions) => {
   opts = opts || {
     env: { ...process.env, OCAML_LSP_SERVER_LOG: "-" },
   };
-  let childProcess = cp.spawn(serverPath, [], opts);
+  let childProcess = cp.spawn(serverBin, [], opts);
 
   let connection = rpc.createMessageConnection(
     new rpc.StreamMessageReader(childProcess.stdout),
