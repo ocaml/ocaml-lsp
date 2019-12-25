@@ -30,7 +30,7 @@ project's `package.json`:
     "@opam/ocaml-lsp-server": "*"
   },
   "resolutions": {
-    "@opam/ocaml-lsp-server": "github:ocaml/ocaml-lsp:ocaml-lsp.server.opam#<git-commit-sha>"
+    "@opam/ocaml-lsp-server": "github:ocaml/ocaml-lsp:ocaml-lsp-server.opam#<git-commit-sha>"
   }
 ```
 
@@ -77,6 +77,17 @@ The server supports the following queries:
 Note that degrees of support for each LSP request are varying.
 
 ## Tests
+
+To run tests execute:
+
+```
+$ make test
+```
+
+Note that tests require [Node.js][] and [Yarn][] installed.
+
+[Node.js]: https://nodejs.org/en/
+[Yarn]: https://yarnpkg.com/lang/en/
 
 ## Relationship to Other Tools
 
