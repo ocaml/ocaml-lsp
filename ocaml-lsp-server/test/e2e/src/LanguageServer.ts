@@ -9,6 +9,19 @@ import * as Rpc from "vscode-jsonrpc";
 
 let serverBin = os.platform() === "win32" ? "ocamllsp.exe" : "ocamllsp";
 
+let serverPath = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "_build",
+  "install",
+  "default",
+  "bin",
+  serverBin,
+);
+
 export type LanguageServer = Rpc.MessageConnection;
 
 let prefix = process.platform === "win32" ? "file:///" : "file://";
@@ -21,7 +34,7 @@ export const start = (opts?: cp.SpawnOptions) => {
   opts = opts || {
     env: { ...process.env, OCAML_LSP_SERVER_LOG: "-" },
   };
-  let childProcess = cp.spawn(serverBin, [], opts);
+  let childProcess = cp.spawn(serverPath, [], opts);
 
   let connection = rpc.createMessageConnection(
     new rpc.StreamMessageReader(childProcess.stdout),
