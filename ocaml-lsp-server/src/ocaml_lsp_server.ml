@@ -1,4 +1,8 @@
+open Import
+
 let { Logger.log } = Logger.for_section "ocamlmerlin-lsp"
+
+let not_supported () = Error "request not supported yet"
 
 let initializeInfo : Lsp.Protocol.Initialize.result =
   { server_capabilities =
@@ -63,7 +67,7 @@ let send_diagnostics rpc doc =
   let errors = Query_commands.dispatch pipeline command in
   let diagnostics =
     List.map
-      (fun (error : Location.error) ->
+      ~f:(fun (error : Location.error) ->
         let loc = Location.loc_of_report error in
         let range = range_of_loc loc in
         let severity =
@@ -159,7 +163,7 @@ let on_request :
       let doc = query_doc doc pos in
       let as_markdown =
         List.mem Lsp.Protocol.MarkupKind.Markdown
-          client_capabilities.textDocument.hover.contentFormat
+          ~set:client_capabilities.textDocument.hover.contentFormat
       in
       let contents = format_contents ~as_markdown ~typ ~doc in
       let range = Some (range_of_loc loc) in
@@ -174,7 +178,7 @@ let on_request :
     let locs : Location.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map
-        (fun loc ->
+        ~f:(fun loc ->
           let range = range_of_loc loc in
           (* using original uri because merlin is looking only in local file *)
           { Lsp.Protocol.Location.uri; range })
@@ -214,7 +218,7 @@ let on_request :
     let locs : Location.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map
-        (fun loc ->
+        ~f:(fun loc ->
           let range = range_of_loc loc in
           (* using the default kind as we are lacking info to make a difference
              between assignment and usage. *)
@@ -239,7 +243,7 @@ let on_request :
     let range item = range_of_loc item.Query_protocol.location in
 
     let rec symbol item =
-      let children = Std.List.map item.Query_protocol.children ~f:symbol in
+      let children = List.map item.Query_protocol.children ~f:symbol in
       let range = range item in
       { Lsp.Protocol.DocumentSymbol.name = item.Query_protocol.outline_name
       ; detail = item.Query_protocol.outline_type
@@ -371,7 +375,7 @@ let on_request :
 
     let make_string chars =
       let chars = Array.of_list chars in
-      String.init (Array.length chars) (Array.get chars)
+      String.init (Array.length chars) ~f:(Array.get chars)
     in
 
     let prefix_of_position source position =
@@ -484,7 +488,7 @@ let on_request :
       | { Query_protocol.Compl.entries = _; context = `Application context } ->
         let { Query_protocol.Compl.labels; argument_type = _ } = context in
         List.map
-          (fun (name, typ) ->
+          ~f:(fun (name, typ) ->
             `Keep
               { Query_protocol.Compl.name
               ; kind = `Label
@@ -500,12 +504,12 @@ let on_request :
           Query_commands.dispatch pipeline expand
         in
         let range = range_prefix prefix in
-        List.map (fun entry -> `Replace (range, entry)) entries
+        List.map ~f:(fun entry -> `Replace (range, entry)) entries
       | { entries; context = _ }, _labels ->
-        List.map (fun entry -> `Keep entry) entries
+        List.map ~f:(fun entry -> `Keep entry) entries
     in
     let all = List.concat [ labels; items ] in
-    let items = List.mapi item all in
+    let items = List.mapi ~f:item all in
     let resp = { Lsp.Protocol.Completion.isIncomplete = false; items } in
     return (store, resp)
   | Lsp.Rpc.Request.TextDocumentRename
@@ -518,7 +522,7 @@ let on_request :
     let version = Document.version doc in
     let edits =
       List.map
-        (fun loc ->
+        ~f:(fun loc ->
           let range = range_of_loc loc in
           { Lsp.Protocol.TextEdit.newText = newName; range })
         locs
@@ -555,9 +559,11 @@ let on_request :
             let range = folding_range range in
             loop (range :: acc) items
       in
-      loop [] outline |> List.sort compare
+      loop [] outline |> List.sort ~cmp:compare
     in
     return (store, folds)
+  | Lsp.Rpc.Request.SignatureHelp _ -> not_supported ()
+  | Lsp.Rpc.Request.CodeAction _ -> not_supported ()
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
@@ -575,7 +581,7 @@ let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
     Document_store.get store uri >>= fun prev_doc ->
     let doc =
       let f doc change = Document.update_text ~version change doc in
-      List.fold_left f prev_doc contentChanges
+      List.fold_left ~f ~init:prev_doc contentChanges
     in
     Document_store.put store doc;
     send_diagnostics rpc doc;
