@@ -35,8 +35,8 @@ possible and does not make any assumptions about IO.
  (synopsis "LSP Server for OCaml")
  (description " An LSP server for OCaml.")
  (depends
-  lsp
   yojson
   ppx_yojson_conv_lib
+  (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
