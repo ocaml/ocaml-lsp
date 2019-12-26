@@ -625,20 +625,18 @@ let () =
   Printexc.record_backtrace true;
 
   let lsp_server log_file =
-    Lsp.Logger.with_log_file
-      ~sections:[ "ocaml-lsp-server"; "lsp" ]
-      log_file main
+    Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file main
   in
 
   let log_file =
     let open Arg in
-    let doc = "Enable logging to file" in
+    let doc = "Enable logging to file (pass `-' for logging to stderr)" in
     let env = env_var "OCAML_LSP_SERVER_LOG" in
     value & opt (some string) None & info [ "log-file" ] ~docv:"FILE" ~doc ~env
   in
 
   let cmd =
-    let doc = "Start merlin LSP server (only stdio transport is supported)" in
+    let doc = "Start OCaml LSP server (only stdio transport is supported)" in
     ( Term.(const lsp_server $ log_file)
     , Term.info "ocamllsp" ~doc ~exits:Term.default_exits )
   in
