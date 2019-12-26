@@ -1,4 +1,4 @@
-let { Logger.log } = Logger.for_section "ocamlmerlin-lsp"
+let { Logger.log } = Logger.for_section "ocaml-lsp-server"
 
 type t =
   { tdoc : Lsp.Text_document.t

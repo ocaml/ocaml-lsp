@@ -1,6 +1,6 @@
 open Import
 
-let { Logger.log } = Logger.for_section "ocamlmerlin-lsp"
+let { Logger.log } = Logger.for_section "ocaml-lsp-server"
 
 let not_supported () = Error "request not supported yet"
 
@@ -626,7 +626,7 @@ let () =
 
   let lsp_server log_file =
     Lsp.Logger.with_log_file
-      ~sections:[ "ocamlmerlin-lsp"; "lsp" ]
+      ~sections:[ "ocaml-lsp-server"; "lsp" ]
       log_file main
   in
 
