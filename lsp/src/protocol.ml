@@ -8750,7 +8750,7 @@ end
 module CodeActionContext = struct
   type t =
     { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t list [@default []]
+    ; only : CodeActionKind.t list option [@yojson.option]
     }
   [@@deriving_inline yojson]
 
@@ -8817,12 +8817,7 @@ module CodeActionContext = struct
               , Ppx_yojson_conv_lib.( ! ) only_field )
             with
             | Some diagnostics_value, only_value ->
-              { diagnostics = diagnostics_value
-              ; only =
-                  ( match only_value with
-                  | None -> []
-                  | Some v -> v )
-              }
+              { diagnostics = diagnostics_value; only = only_value }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
@@ -8843,8 +8838,12 @@ module CodeActionContext = struct
       | { diagnostics = v_diagnostics; only = v_only } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_list CodeActionKind.yojson_of_t v_only in
-          ("only", arg) :: bnds
+          match v_only with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_list CodeActionKind.yojson_of_t v in
+            let bnd = ("only", arg) in
+            bnd :: bnds
         in
         let bnds =
           let arg =

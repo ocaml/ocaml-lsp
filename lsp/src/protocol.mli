@@ -1099,7 +1099,7 @@ end
 module CodeActionContext : sig
   type t =
     { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t list
+    ; only : CodeActionKind.t list option
     }
 
   val t_of_yojson : json -> t
