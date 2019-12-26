@@ -621,28 +621,26 @@ let main () =
   start ()
 
 let () =
+  let open Cmdliner in
   Printexc.record_backtrace true;
-  let log_file = ref None in
-  let args =
-    Arg.align
-      [ ( "--log-file"
-        , String (fun f -> log_file := Some f)
-        , "FILE" ^ " " ^ "Enable logging to file" )
-      ]
+
+  let lsp_server log_file =
+    Lsp.Logger.with_log_file
+      ~sections:[ "ocamlmerlin-lsp"; "lsp" ]
+      log_file main
   in
-  let anon_fun _ = raise (Arg.Bad "arguments are not supported") in
-  let usage_msg =
-    Printf.sprintf
-      "Usage: %s\nStart merlin LSP server (only stdio transport is supported)"
-      Sys.argv.(0)
-  in
-  Arg.parse args anon_fun usage_msg;
+
   let log_file =
-    match !log_file with
-    | None -> (
-      match Sys.getenv "OCAML_LSP_SERVER_LOG" with
-      | exception Not_found -> None
-      | file -> Some file )
-    | Some f -> Some f
+    let open Arg in
+    let doc = "Enable logging to file" in
+    let env = env_var "OCAML_LSP_SERVER_LOG" in
+    value & opt (some string) None & info [ "log-file" ] ~docv:"FILE" ~doc ~env
   in
-  Lsp.Logger.with_log_file ~sections:[ "ocamlmerlin-lsp"; "lsp" ] log_file main
+
+  let cmd =
+    let doc = "Start merlin LSP server (only stdio transport is supported)" in
+    ( Term.(const lsp_server $ log_file)
+    , Term.info "ocamllsp" ~doc ~exits:Term.default_exits )
+  in
+
+  Term.(exit @@ eval cmd)
