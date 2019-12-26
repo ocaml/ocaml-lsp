@@ -10,7 +10,7 @@ end
 
 let initializeInfo : Lsp.Protocol.Initialize.result =
   let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
-    { codeActionsKinds = [ Other Action.destruct] }
+    { codeActionsKinds = [ Other Action.destruct ] }
   in
   { server_capabilities =
       { textDocumentSync =
@@ -593,17 +593,17 @@ let on_request :
       Query_protocol.Case_analysis (start, finish)
     in
     let result : Lsp.Protocol.CodeAction.result =
-      match dispatch_in_doc doc command with
-      | (exception Destruct.Not_allowed _)
-      | (exception Destruct.Useless_refine)
-      | (exception Destruct.Nothing_to_do) ->
-        None
-      | res ->
+      try
+        let res = dispatch_in_doc doc command in
         Some
           [ Lsp.Protocol.Either.Right
               (code_action_of_case_analysis codeActionParams.textDocument.uri
                  res)
           ]
+      with
+      | Destruct.Not_allowed _ -> None
+      | Destruct.Useless_refine -> None
+      | Destruct.Nothing_to_do -> None
     in
     return (store, result)
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
