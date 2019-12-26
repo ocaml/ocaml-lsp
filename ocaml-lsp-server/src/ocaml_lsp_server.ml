@@ -124,6 +124,35 @@ let code_action_of_case_analysis uri (loc, newText) =
   ; command = None
   }
 
+let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
+  let open Lsp.Import.Result.Infix in
+  match params.context.only with
+  | Some set
+    when not (List.mem (Lsp.Protocol.CodeActionKind.Other Action.destruct) ~set)
+    ->
+    return (store, None)
+  | None
+  | Some _ ->
+    Document_store.get store params.textDocument.uri >>= fun doc ->
+    let command =
+      let start = logical_of_position params.range.start_ in
+      let finish = logical_of_position params.range.end_ in
+      Query_protocol.Case_analysis (start, finish)
+    in
+    let result : Lsp.Protocol.CodeAction.result =
+      try
+        let res = dispatch_in_doc doc command in
+        Some
+          [ Lsp.Protocol.Either.Right
+              (code_action_of_case_analysis params.textDocument.uri res)
+          ]
+      with
+      | Destruct.Not_allowed _ -> None
+      | Destruct.Useless_refine -> None
+      | Destruct.Nothing_to_do -> None
+    in
+    return (store, result)
+
 let on_request :
     type resp.
        Lsp.Rpc.t
@@ -585,27 +614,7 @@ let on_request :
     in
     return (store, folds)
   | Lsp.Rpc.Request.SignatureHelp _ -> not_supported ()
-  | Lsp.Rpc.Request.CodeAction codeActionParams ->
-    Document_store.get store codeActionParams.textDocument.uri >>= fun doc ->
-    let command =
-      let start = logical_of_position codeActionParams.range.start_ in
-      let finish = logical_of_position codeActionParams.range.end_ in
-      Query_protocol.Case_analysis (start, finish)
-    in
-    let result : Lsp.Protocol.CodeAction.result =
-      try
-        let res = dispatch_in_doc doc command in
-        Some
-          [ Lsp.Protocol.Either.Right
-              (code_action_of_case_analysis codeActionParams.textDocument.uri
-                 res)
-          ]
-      with
-      | Destruct.Not_allowed _ -> None
-      | Destruct.Useless_refine -> None
-      | Destruct.Nothing_to_do -> None
-    in
-    return (store, result)
+  | Lsp.Rpc.Request.CodeAction params -> code_action store params
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
