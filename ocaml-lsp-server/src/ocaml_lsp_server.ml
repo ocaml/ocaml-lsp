@@ -4,9 +4,13 @@ let { Logger.log } = Logger.for_section "ocamlmerlin-lsp"
 
 let not_supported () = Error "request not supported yet"
 
+module Action = struct
+  let destruct = "destruct"
+end
+
 let initializeInfo : Lsp.Protocol.Initialize.result =
   let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
-    { codeActionsKinds = [ Other "destruct" ] }
+    { codeActionsKinds = [ Other Action.destruct] }
   in
   { server_capabilities =
       { textDocumentSync =
@@ -112,7 +116,7 @@ let code_action_of_case_analysis uri (loc, newText) =
     in
     { changes = Some [ (uri, [ textedit ]) ]; documentChanges = None }
   in
-  let title = "destruct" in
+  let title = Action.destruct in
   { Lsp.Protocol.CodeAction.title
   ; kind = Some (Lsp.Protocol.CodeActionKind.Other title)
   ; diagnostics = []
