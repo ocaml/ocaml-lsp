@@ -599,6 +599,12 @@ let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
 let start () =
   let docs = Document_store.make () in
   let prepare_and_run f =
+    let f () =
+      match f () with
+      | Ok s -> Ok s
+      | Error e -> Error e
+      | exception exn -> Error (Printexc.to_string exn)
+    in
     (* TODO: what to do with merlin notifications? *)
     let _notifications = ref [] in
     Logger.with_notifications (ref []) @@ fun () -> File_id.with_cache @@ f
