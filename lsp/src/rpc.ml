@@ -768,6 +768,9 @@ module Message = struct
       | "textDocument/foldingRange" ->
         parse_yojson FoldingRange.params_of_yojson packet.params
         >>| fun params -> Request (id, TextDocumentFoldingRange params)
+      | "textDocument/codeAction" ->
+        parse_yojson CodeActionParams.t_of_yojson packet.params
+        >>| fun params -> Request (id, CodeAction params)
       | "debug/echo" ->
         parse_yojson DebugEcho.params_of_yojson packet.params >>| fun params ->
         Request (id, DebugEcho params)
