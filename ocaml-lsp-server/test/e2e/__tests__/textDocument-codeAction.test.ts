@@ -68,7 +68,7 @@ let f (x : t) = x
           documentChanges: null,
         },
         kind: "destruct",
-        title: "destruct",
+        title: "Destruct",
       },
     ]);
   });

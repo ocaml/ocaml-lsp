@@ -116,9 +116,9 @@ let code_action_of_case_analysis uri (loc, newText) =
     in
     { changes = Some [ (uri, [ textedit ]) ]; documentChanges = None }
   in
-  let title = Action.destruct in
+  let title = String.capitalize_ascii Action.destruct in
   { Lsp.Protocol.CodeAction.title
-  ; kind = Some (Lsp.Protocol.CodeActionKind.Other title)
+  ; kind = Some (Lsp.Protocol.CodeActionKind.Other Action.destruct)
   ; diagnostics = []
   ; edit = Some edit
   ; command = None
