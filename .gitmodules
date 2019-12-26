@@ -3,3 +3,6 @@
 	url = https://github.com/rgrinberg/merlin
 	branch = remove-lsp
 	ignore = dirty
+[submodule "vendor/cmdliner"]
+	path = vendor/cmdliner
+	url = https://github.com/dbuenzli/cmdliner.git
