@@ -4,7 +4,14 @@ let { Logger.log } = Logger.for_section "ocaml-lsp-server"
 
 let not_supported () = Error "request not supported yet"
 
+module Action = struct
+  let destruct = "destruct"
+end
+
 let initializeInfo : Lsp.Protocol.Initialize.result =
+  let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
+    { codeActionsKinds = [ Other Action.destruct ] }
+  in
   { server_capabilities =
       { textDocumentSync =
           { Lsp.Protocol.Initialize.openClose = true
@@ -25,7 +32,7 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; documentHighlightProvider = true
       ; documentSymbolProvider = true
       ; workspaceSymbolProvider = false
-      ; codeActionProvider = Bool false
+      ; codeActionProvider = Value codeActionProvider
       ; codeLensProvider = Some { codelens_resolveProvider = false }
       ; documentFormattingProvider = false
       ; documentRangeFormattingProvider = false
@@ -101,6 +108,50 @@ let send_diagnostics rpc doc =
   Lsp.Rpc.send_notification rpc notif
 
 let on_initialize _rpc state _params = Ok (state, initializeInfo)
+
+let code_action_of_case_analysis uri (loc, newText) =
+  let edit : Lsp.Protocol.WorkspaceEdit.t =
+    let textedit : Lsp.Protocol.TextEdit.t =
+      { range = range_of_loc loc; newText }
+    in
+    { changes = Some [ (uri, [ textedit ]) ]; documentChanges = None }
+  in
+  let title = String.capitalize_ascii Action.destruct in
+  { Lsp.Protocol.CodeAction.title
+  ; kind = Some (Lsp.Protocol.CodeActionKind.Other Action.destruct)
+  ; diagnostics = []
+  ; edit = Some edit
+  ; command = None
+  }
+
+let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
+  let open Lsp.Import.Result.Infix in
+  match params.context.only with
+  | Some set
+    when not (List.mem (Lsp.Protocol.CodeActionKind.Other Action.destruct) ~set)
+    ->
+    return (store, None)
+  | None
+  | Some _ ->
+    Document_store.get store params.textDocument.uri >>= fun doc ->
+    let command =
+      let start = logical_of_position params.range.start_ in
+      let finish = logical_of_position params.range.end_ in
+      Query_protocol.Case_analysis (start, finish)
+    in
+    let result : Lsp.Protocol.CodeAction.result =
+      try
+        let res = dispatch_in_doc doc command in
+        Some
+          [ Lsp.Protocol.Either.Right
+              (code_action_of_case_analysis params.textDocument.uri res)
+          ]
+      with
+      | Destruct.Not_allowed _ -> None
+      | Destruct.Useless_refine -> None
+      | Destruct.Nothing_to_do -> None
+    in
+    return (store, result)
 
 let on_request :
     type resp.
@@ -563,7 +614,7 @@ let on_request :
     in
     return (store, folds)
   | Lsp.Rpc.Request.SignatureHelp _ -> not_supported ()
-  | Lsp.Rpc.Request.CodeAction _ -> not_supported ()
+  | Lsp.Rpc.Request.CodeAction params -> code_action store params
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
