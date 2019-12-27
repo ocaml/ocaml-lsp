@@ -8,6 +8,30 @@ module Action = struct
   let destruct = "destruct"
 end
 
+let completion_kind kind : Lsp.Protocol.Completion.completionItemKind option =
+  match kind with
+  | `Value -> Some Value
+  | `Constructor -> Some Constructor
+  | `Variant -> None
+  | `Label -> Some Property
+  | `Module
+  | `Modtype ->
+    Some Module
+  | `Type -> Some TypeParameter
+  | `MethodCall -> Some Method
+
+let outline_kind kind : Lsp.Protocol.SymbolKind.t =
+  match kind with
+  | `Value -> Function
+  | `Constructor -> Constructor
+  | `Label -> Property
+  | `Module -> Module
+  | `Modtype -> Module
+  | `Type -> String
+  | `Exn -> Constructor
+  | `Class -> Class
+  | `Method -> Method
+
 let initializeInfo : Lsp.Protocol.Initialize.result =
   let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
     { codeActionsKinds = [ Other Action.destruct ] }
@@ -278,19 +302,6 @@ let on_request :
     in
     return (store, lsp_locs)
   | Lsp.Rpc.Request.DocumentSymbol { textDocument = { uri } } ->
-    let kind item : Lsp.Protocol.SymbolKind.t =
-      match item.Query_protocol.outline_kind with
-      | `Value -> Function
-      | `Constructor -> Constructor
-      | `Label -> Property
-      | `Module -> Module
-      | `Modtype -> Module
-      | `Type -> String
-      | `Exn -> Constructor
-      | `Class -> Class
-      | `Method -> Method
-    in
-
     let range item = range_of_loc item.Query_protocol.location in
 
     let rec symbol item =
@@ -298,7 +309,7 @@ let on_request :
       let range = range item in
       { Lsp.Protocol.DocumentSymbol.name = item.Query_protocol.outline_name
       ; detail = item.Query_protocol.outline_type
-      ; kind = kind item
+      ; kind = outline_kind item.outline_kind
       ; deprecated = false
       ; range
       ; selectionRange = range
@@ -310,7 +321,7 @@ let on_request :
       let location = { Lsp.Protocol.Location.uri; range = range item } in
       let info =
         { Lsp.Protocol.SymbolInformation.name = item.Query_protocol.outline_name
-        ; kind = kind item
+        ; kind = outline_kind item.outline_kind
         ; deprecated = false
         ; location
         ; containerName
@@ -472,18 +483,7 @@ let on_request :
         | `Keep entry -> (`Keep, entry)
         | `Replace (range, entry) -> (`Replace range, entry)
       in
-      let kind : Lsp.Protocol.Completion.completionItemKind option =
-        match entry.kind with
-        | `Value -> Some Value
-        | `Constructor -> Some Constructor
-        | `Variant -> None
-        | `Label -> Some Property
-        | `Module
-        | `Modtype ->
-          Some Module
-        | `Type -> Some TypeParameter
-        | `MethodCall -> Some Method
-      in
+      let kind = completion_kind entry.kind in
       let textEdit =
         match prefix with
         | `Keep -> None
