@@ -4,7 +4,11 @@ let yojson_of_json x = x
 
 let json_of_yojson x = x
 
-module List = ListLabels
+module List = struct
+  include ListLabels
+
+  let concat_map xs ~f = map xs ~f |> concat
+end
 
 module String = struct
   include StringLabels

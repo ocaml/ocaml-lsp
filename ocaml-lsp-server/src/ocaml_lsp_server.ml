@@ -243,7 +243,7 @@ let on_request :
     let symbol_infos =
       let rec symbol_info_of_outline_item item =
         let children =
-          Std.List.concat_map item.Query_protocol.children
+          List.concat_map item.Query_protocol.children
             ~f:symbol_info_of_outline_item
         in
         match item.Query_protocol.outline_type with
@@ -257,7 +257,7 @@ let on_request :
           in
           info :: children
       in
-      Std.List.concat_map ~f:symbol_info_of_outline_item outline
+      List.concat_map ~f:symbol_info_of_outline_item outline
     in
     return (store, symbol_infos)
   | Lsp.Rpc.Request.TextDocumentHighlight { textDocument = { uri }; position }
@@ -317,8 +317,7 @@ let on_request :
         }
       in
       let children =
-        Std.List.concat_map item.children
-          ~f:(symbol_info ~containerName:info.name)
+        List.concat_map item.children ~f:(symbol_info ~containerName:info.name)
       in
       info :: children
     in
@@ -330,10 +329,10 @@ let on_request :
       let caps = client_capabilities.textDocument.documentSymbol in
       match caps.hierarchicalDocumentSymbolSupport with
       | true ->
-        let symbols = Std.List.map outline ~f:symbol in
+        let symbols = List.map outline ~f:symbol in
         Lsp.Protocol.TextDocumentDocumentSymbol.DocumentSymbol symbols
       | false ->
-        let symbols = Std.List.concat_map ~f:symbol_info outline in
+        let symbols = List.concat_map ~f:symbol_info outline in
         Lsp.Protocol.TextDocumentDocumentSymbol.SymbolInformation symbols
     in
     return (store, symbols)
@@ -376,7 +375,7 @@ let on_request :
         | Tlink ty -> resolve_tlink env ty
         | _ -> None
       in
-      Std.List.filter_map path ~f:(fun (env, node) ->
+      List.filter_map path ~f:(fun (env, node) ->
           log ~title:"debug" "inspecting node: %s"
             (Browse_raw.string_of_node node);
           match node with
@@ -388,7 +387,7 @@ let on_request :
           | _ -> None)
     in
     let locs =
-      Std.List.filter_map path ~f:(fun (env, path) ->
+      List.filter_map path ~f:(fun (env, path) ->
           log ~title:"debug" "found type: %s" (Path.name path);
           let local_defs = Mtyper.get_typedtree typer in
           match
