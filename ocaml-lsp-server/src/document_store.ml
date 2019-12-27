@@ -1,3 +1,5 @@
+open! Import
+
 type t = (Lsp.Protocol.documentUri, Document.t) Hashtbl.t
 
 let make () = Hashtbl.create 50

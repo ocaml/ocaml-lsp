@@ -1,3 +1,5 @@
+open Import
+
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"
 
 type t =
@@ -8,7 +10,7 @@ type t =
   }
 
 let normalize_line_endings text =
-  let text = Std.String.replace_all ~pattern:"\r\n" ~with_:"\n" text in
+  let text = String.replace_all ~pattern:"\r\n" ~with_:"\n" text in
   text
 
 let uri doc = Lsp.Text_document.documentUri doc.tdoc
