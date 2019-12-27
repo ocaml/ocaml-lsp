@@ -25,7 +25,7 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; typeDefinitionProvider = true
       ; completionProvider =
           Some
-            { Lsp.Protocol.Initialize.resolveProvider = false
+            { Lsp.Protocol.Initialize.resolveProvider = true
             ; triggerCharacters = [ "." ]
             }
       ; referencesProvider = true
@@ -615,6 +615,7 @@ let on_request :
     return (store, folds)
   | Lsp.Rpc.Request.SignatureHelp _ -> not_supported ()
   | Lsp.Rpc.Request.CodeAction params -> code_action store params
+  | Lsp.Rpc.Request.CompletionItemResolve compl -> return (store, compl)
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
