@@ -5,9 +5,18 @@ let yojson_of_json x = x
 let json_of_yojson x = x
 
 module List = struct
-  include ListLabels
+  module List = ListLabels
 
-  let concat_map xs ~f = map xs ~f |> concat
+  let[@ocaml.warning "-32"] filter_map xs ~f =
+    List.fold_left xs ~init:[] ~f:(fun acc a ->
+        match f a with
+        | None -> acc
+        | Some x -> x :: acc)
+    |> List.rev
+
+  let concat_map xs ~f = List.map xs ~f |> List.concat
+
+  include List
 end
 
 module String = struct
