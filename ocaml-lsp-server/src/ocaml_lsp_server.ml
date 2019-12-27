@@ -506,6 +506,7 @@ let on_request :
       ; textEdit
       ; additionalTextEdits = []
       ; commitCharacters = []
+      ; data = None
       }
     in
 

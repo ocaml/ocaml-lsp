@@ -1,5 +1,9 @@
 type json = Ppx_yojson_conv_lib.Yojson.Safe.t
 
+let yojson_of_json x = x
+
+let json_of_yojson x = x
+
 module List = ListLabels
 
 module String = struct

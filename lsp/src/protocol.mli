@@ -438,6 +438,7 @@ module Completion : sig
     ; textEdit : TextEdit.t option
     ; additionalTextEdits : TextEdit.t list
     ; commitCharacters : string list
+    ; data : json option
     }
 
   val params_of_yojson : json -> params
