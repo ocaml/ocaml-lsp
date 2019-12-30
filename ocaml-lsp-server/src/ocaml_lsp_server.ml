@@ -8,6 +8,30 @@ module Action = struct
   let destruct = "destruct"
 end
 
+let completion_kind kind : Lsp.Protocol.Completion.completionItemKind option =
+  match kind with
+  | `Value -> Some Value
+  | `Constructor -> Some Constructor
+  | `Variant -> None
+  | `Label -> Some Property
+  | `Module
+  | `Modtype ->
+    Some Module
+  | `Type -> Some TypeParameter
+  | `MethodCall -> Some Method
+
+let outline_kind kind : Lsp.Protocol.SymbolKind.t =
+  match kind with
+  | `Value -> Function
+  | `Constructor -> Constructor
+  | `Label -> Property
+  | `Module -> Module
+  | `Modtype -> Module
+  | `Type -> String
+  | `Exn -> Constructor
+  | `Class -> Class
+  | `Method -> Method
+
 let initializeInfo : Lsp.Protocol.Initialize.result =
   let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
     { codeActionsKinds = [ Other Action.destruct ] }
@@ -25,7 +49,7 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; typeDefinitionProvider = true
       ; completionProvider =
           Some
-            { Lsp.Protocol.Initialize.resolveProvider = false
+            { Lsp.Protocol.Initialize.resolveProvider = true
             ; triggerCharacters = [ "." ]
             }
       ; referencesProvider = true
@@ -243,7 +267,7 @@ let on_request :
     let symbol_infos =
       let rec symbol_info_of_outline_item item =
         let children =
-          Std.List.concat_map item.Query_protocol.children
+          List.concat_map item.Query_protocol.children
             ~f:symbol_info_of_outline_item
         in
         match item.Query_protocol.outline_type with
@@ -257,7 +281,7 @@ let on_request :
           in
           info :: children
       in
-      Std.List.concat_map ~f:symbol_info_of_outline_item outline
+      List.concat_map ~f:symbol_info_of_outline_item outline
     in
     return (store, symbol_infos)
   | Lsp.Rpc.Request.TextDocumentHighlight { textDocument = { uri }; position }
@@ -278,19 +302,6 @@ let on_request :
     in
     return (store, lsp_locs)
   | Lsp.Rpc.Request.DocumentSymbol { textDocument = { uri } } ->
-    let kind item : Lsp.Protocol.SymbolKind.t =
-      match item.Query_protocol.outline_kind with
-      | `Value -> Function
-      | `Constructor -> Constructor
-      | `Label -> Property
-      | `Module -> Module
-      | `Modtype -> Module
-      | `Type -> String
-      | `Exn -> Constructor
-      | `Class -> Class
-      | `Method -> Method
-    in
-
     let range item = range_of_loc item.Query_protocol.location in
 
     let rec symbol item =
@@ -298,7 +309,7 @@ let on_request :
       let range = range item in
       { Lsp.Protocol.DocumentSymbol.name = item.Query_protocol.outline_name
       ; detail = item.Query_protocol.outline_type
-      ; kind = kind item
+      ; kind = outline_kind item.outline_kind
       ; deprecated = false
       ; range
       ; selectionRange = range
@@ -310,15 +321,14 @@ let on_request :
       let location = { Lsp.Protocol.Location.uri; range = range item } in
       let info =
         { Lsp.Protocol.SymbolInformation.name = item.Query_protocol.outline_name
-        ; kind = kind item
+        ; kind = outline_kind item.outline_kind
         ; deprecated = false
         ; location
         ; containerName
         }
       in
       let children =
-        Std.List.concat_map item.children
-          ~f:(symbol_info ~containerName:info.name)
+        List.concat_map item.children ~f:(symbol_info ~containerName:info.name)
       in
       info :: children
     in
@@ -330,10 +340,10 @@ let on_request :
       let caps = client_capabilities.textDocument.documentSymbol in
       match caps.hierarchicalDocumentSymbolSupport with
       | true ->
-        let symbols = Std.List.map outline ~f:symbol in
+        let symbols = List.map outline ~f:symbol in
         Lsp.Protocol.TextDocumentDocumentSymbol.DocumentSymbol symbols
       | false ->
-        let symbols = Std.List.concat_map ~f:symbol_info outline in
+        let symbols = List.concat_map ~f:symbol_info outline in
         Lsp.Protocol.TextDocumentDocumentSymbol.SymbolInformation symbols
     in
     return (store, symbols)
@@ -376,7 +386,7 @@ let on_request :
         | Tlink ty -> resolve_tlink env ty
         | _ -> None
       in
-      Std.List.filter_map path ~f:(fun (env, node) ->
+      List.filter_map path ~f:(fun (env, node) ->
           log ~title:"debug" "inspecting node: %s"
             (Browse_raw.string_of_node node);
           match node with
@@ -388,7 +398,7 @@ let on_request :
           | _ -> None)
     in
     let locs =
-      Std.List.filter_map path ~f:(fun (env, path) ->
+      List.filter_map path ~f:(fun (env, path) ->
           log ~title:"debug" "found type: %s" (Path.name path);
           let local_defs = Mtyper.get_typedtree typer in
           match
@@ -473,18 +483,7 @@ let on_request :
         | `Keep entry -> (`Keep, entry)
         | `Replace (range, entry) -> (`Replace range, entry)
       in
-      let kind : Lsp.Protocol.Completion.completionItemKind option =
-        match entry.kind with
-        | `Value -> Some Value
-        | `Constructor -> Some Constructor
-        | `Variant -> None
-        | `Label -> Some Property
-        | `Module
-        | `Modtype ->
-          Some Module
-        | `Type -> Some TypeParameter
-        | `MethodCall -> Some Method
-      in
+      let kind = completion_kind entry.kind in
       let textEdit =
         match prefix with
         | `Keep -> None
@@ -506,6 +505,7 @@ let on_request :
       ; textEdit
       ; additionalTextEdits = []
       ; commitCharacters = []
+      ; data = None
       }
     in
 
@@ -615,6 +615,7 @@ let on_request :
     return (store, folds)
   | Lsp.Rpc.Request.SignatureHelp _ -> not_supported ()
   | Lsp.Rpc.Request.CodeAction params -> code_action store params
+  | Lsp.Rpc.Request.CompletionItemResolve compl -> return (store, compl)
   | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =

@@ -664,6 +664,9 @@ module Request = struct
     | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
     | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
     | CodeAction : CodeActionParams.t -> CodeAction.result t
+    | CompletionItemResolve :
+        Completion.completionItem
+        -> Completion.completionItem t
     | UnknownRequest : string * Yojson.Safe.t -> unit t
 
   let request_result_to_response (type a) id (req : a t) (result : a) =
@@ -710,6 +713,9 @@ module Request = struct
       Some (Response.make id json)
     | CodeAction _, result ->
       let json = CodeAction.yojson_of_result result in
+      Some (Response.make id json)
+    | CompletionItemResolve _, result ->
+      let json = Completion.yojson_of_completionItem result in
       Some (Response.make id json)
     | UnknownRequest _, _resp -> None
 end

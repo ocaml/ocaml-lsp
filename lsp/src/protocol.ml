@@ -2620,6 +2620,7 @@ module Completion = struct
              executed after completion *1) *)
           (* data: Hh_json.json option [@default None]; *)
     ; commitCharacters : string list [@default []]
+    ; data : json option [@yojson.option]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -2881,6 +2882,7 @@ module Completion = struct
         and textEdit_field = ref None
         and additionalTextEdits_field = ref None
         and commitCharacters_field = ref None
+        and data_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -2998,6 +3000,14 @@ module Completion = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "data" -> (
+              match Ppx_yojson_conv_lib.( ! ) data_field with
+              | None ->
+                let fvalue = json_of_yojson _field_yojson in
+                data_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -3028,7 +3038,8 @@ module Completion = struct
               , Ppx_yojson_conv_lib.( ! ) insertTextFormat_field
               , Ppx_yojson_conv_lib.( ! ) textEdit_field
               , Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field
-              , Ppx_yojson_conv_lib.( ! ) commitCharacters_field )
+              , Ppx_yojson_conv_lib.( ! ) commitCharacters_field
+              , Ppx_yojson_conv_lib.( ! ) data_field )
             with
             | ( Some label_value
               , kind_value
@@ -3042,7 +3053,8 @@ module Completion = struct
               , insertTextFormat_value
               , textEdit_value
               , additionalTextEdits_value
-              , commitCharacters_value ) ->
+              , commitCharacters_value
+              , data_value ) ->
               { label = label_value
               ; kind =
                   ( match kind_value with
@@ -3092,6 +3104,7 @@ module Completion = struct
                   ( match commitCharacters_value with
                   | None -> []
                   | Some v -> v )
+              ; data = data_value
               }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -3198,8 +3211,17 @@ module Completion = struct
         ; textEdit = v_textEdit
         ; additionalTextEdits = v_additionalTextEdits
         ; commitCharacters = v_commitCharacters
+        ; data = v_data
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_data with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_json v in
+            let bnd = ("data", arg) in
+            bnd :: bnds
+        in
         let bnds =
           let arg = yojson_of_list yojson_of_string v_commitCharacters in
           ("commitCharacters", arg) :: bnds

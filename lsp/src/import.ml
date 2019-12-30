@@ -1,6 +1,23 @@
 type json = Ppx_yojson_conv_lib.Yojson.Safe.t
 
-module List = ListLabels
+let yojson_of_json x = x
+
+let json_of_yojson x = x
+
+module List = struct
+  module List = ListLabels
+
+  let[@ocaml.warning "-32"] filter_map xs ~f =
+    List.fold_left xs ~init:[] ~f:(fun acc a ->
+        match f a with
+        | None -> acc
+        | Some x -> x :: acc)
+    |> List.rev
+
+  let concat_map xs ~f = List.map xs ~f |> List.concat
+
+  include List
+end
 
 module String = struct
   include StringLabels
