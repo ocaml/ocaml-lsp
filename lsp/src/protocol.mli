@@ -115,16 +115,24 @@ module Location : sig
   val yojson_of_t : t -> json
 end
 
-module DefinitionLocation : sig
+module LocationLink : sig
   type t =
-    { uri : Uri.t
-    ; range : range
-    ; title : string option
+    { originSelectionRange : range option
+    ; targetUri : documentUri
+    ; targetRange : range
+    ; targetSelectionRange : range
     }
 
   val t_of_yojson : json -> t
 
   val yojson_of_t : t -> json
+end
+
+module Locations : sig
+  type t =
+    | Location of Location.t
+    | Locations of Location.t list
+    | Location_links of LocationLink.t list
 end
 
 module TextDocumentIdentifier : sig
@@ -856,7 +864,7 @@ end
 module Definition : sig
   type params = TextDocumentPositionParams.t
 
-  and result = DefinitionLocation.t list
+  and result = Locations.t option
 
   val params_of_yojson : json -> params
 
