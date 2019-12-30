@@ -593,125 +593,6 @@ module Location = struct
   [@@@end]
 end
 
-module DefinitionLocation = struct
-  type t =
-    { uri : Uri.t
-    ; range : range
-    ; title : string option [@default None]
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : t) -> ()
-
-  let t_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.DefinitionLocation.t" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let uri_field = ref None
-        and range_field = ref None
-        and title_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "uri" -> (
-              match Ppx_yojson_conv_lib.( ! ) uri_field with
-              | None ->
-                let fvalue = Uri.t_of_yojson _field_yojson in
-                uri_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "range" -> (
-              match Ppx_yojson_conv_lib.( ! ) range_field with
-              | None ->
-                let fvalue = range_of_yojson _field_yojson in
-                range_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "title" -> (
-              match Ppx_yojson_conv_lib.( ! ) title_field with
-              | None ->
-                let fvalue = option_of_yojson string_of_yojson _field_yojson in
-                title_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) uri_field
-              , Ppx_yojson_conv_lib.( ! ) range_field
-              , Ppx_yojson_conv_lib.( ! ) title_field )
-            with
-            | Some uri_value, Some range_value, title_value ->
-              { uri = uri_value
-              ; range = range_value
-              ; title =
-                  ( match title_value with
-                  | None -> None
-                  | Some v -> v )
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) uri_field)
-                      None
-                  , "uri" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) range_field)
-                      None
-                  , "range" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
-
-  let _ = t_of_yojson
-
-  let yojson_of_t =
-    ( function
-      | { uri = v_uri; range = v_range; title = v_title } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_option yojson_of_string v_title in
-          ("title", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_range v_range in
-          ("range", arg) :: bnds
-        in
-        let bnds =
-          let arg = Uri.yojson_of_t v_uri in
-          ("uri", arg) :: bnds
-        in
-        `Assoc bnds
-      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_t
-
-  [@@@end]
-end
-
 (* Text documents are identified using a URI. *)
 module TextDocumentIdentifier = struct
   type t = { uri : documentUri (* the text document's URI *) }
@@ -7146,7 +7027,7 @@ module Definition = struct
 
   type params = TextDocumentPositionParams.t
 
-  and result = DefinitionLocation.t list
+  and result = Location.t list
   (* wire: either a single one or an array *)
   [@@deriving_inline yojson]
 
@@ -7154,27 +7035,26 @@ module Definition = struct
 
   let _ = fun (_ : result) -> ()
 
-  let rec params_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Definition.params" in
-      fun t -> TextDocumentPositionParams.t_of_yojson t
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
-
-  and result_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Definition.result" in
-      fun t -> list_of_yojson DefinitionLocation.t_of_yojson t
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
-
+  
+let rec params_of_yojson =
+  (let _tp_loc = "lsp/src/protocol.ml.Definition.params" in
+   fun t -> TextDocumentPositionParams.t_of_yojson t : Ppx_yojson_conv_lib.Yojson.Safe.t
+                                                         -> params)
+and result_of_yojson =
+  (let _tp_loc = "lsp/src/protocol.ml.Definition.result" in
+   fun t -> list_of_yojson Location.t_of_yojson t : Ppx_yojson_conv_lib.Yojson.Safe.t
+                                                      -> result)
   let _ = params_of_yojson
 
   and _ = result_of_yojson
 
-  let yojson_of_params =
-    ( TextDocumentPositionParams.yojson_of_t
-      : params -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_result =
-    ( fun v -> yojson_of_list DefinitionLocation.yojson_of_t v
-      : result -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+  
+let yojson_of_params =
+  (TextDocumentPositionParams.yojson_of_t : params ->
+                                              Ppx_yojson_conv_lib.Yojson.Safe.t)
+and yojson_of_result =
+  (fun v -> yojson_of_list Location.yojson_of_t v : result ->
+                                                      Ppx_yojson_conv_lib.Yojson.Safe.t)
 
   let _ = yojson_of_params
 

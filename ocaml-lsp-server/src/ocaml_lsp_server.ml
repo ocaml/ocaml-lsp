@@ -361,7 +361,7 @@ let on_request :
         | None -> uri
         | Some path -> Lsp.Uri.of_path path
       in
-      let loc = { Lsp.Protocol.DefinitionLocation.uri; range; title = None } in
+      let loc = { Lsp.Protocol.Location.uri; range } in
       return (store, [ loc ])
     | `At_origin
     | `Builtin _
