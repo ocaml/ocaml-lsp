@@ -436,16 +436,14 @@ module Completion : sig
     { label : string
     ; kind : completionItemKind option
     ; detail : string option
-    ; inlineDetail : string option
-    ; itemType : string option
     ; documentation : string option
     ; sortText : string option
     ; filterText : string option
     ; insertText : string option
     ; insertTextFormat : insertTextFormat option
     ; textEdit : TextEdit.t option
-    ; additionalTextEdits : TextEdit.t list
-    ; commitCharacters : string list
+    ; additionalTextEdits : TextEdit.t list option
+    ; commitCharacters : string list option
     ; data : json option
     }
 
@@ -701,30 +699,6 @@ module Initialize : sig
   val yojson_of_workspaceClientCapabilities :
     workspaceClientCapabilities -> json
 
-  val workspaceClientCapabilities_empty : workspaceClientCapabilities
-
-  type windowClientCapabilities =
-    { status : bool
-    ; progress : bool
-    ; actionRequired : bool
-    }
-
-  val windowClientCapabilities_of_yojson : json -> windowClientCapabilities
-
-  val yojson_of_windowClientCapabilities : windowClientCapabilities -> json
-
-  val windowClientCapabilities_empty : windowClientCapabilities
-
-  type telemetryClientCapabilities = { connectionStatus : bool }
-
-  val telemetryClientCapabilities_of_yojson :
-    json -> telemetryClientCapabilities
-
-  val yojson_of_telemetryClientCapabilities :
-    telemetryClientCapabilities -> json
-
-  val telemetryClientCapabilities_empty : telemetryClientCapabilities
-
   type foldingRangeClientCapabilities =
     { rangeLimit : zero_based_int option
     ; lineFoldingOnly : bool
@@ -741,8 +715,6 @@ module Initialize : sig
   type client_capabilities =
     { workspace : workspaceClientCapabilities
     ; textDocument : textDocumentClientCapabilities
-    ; window : windowClientCapabilities
-    ; telemetry : telemetryClientCapabilities
     ; foldingRange : foldingRangeClientCapabilities
     }
 
@@ -784,7 +756,6 @@ module Initialize : sig
     ; documentLinkProvider : documentLinkOptions option
     ; executeCommandProvider : executeCommandOptions option
     ; typeCoverageProvider : bool
-    ; rageProvider : bool
     ; foldingRangeProvider : Void.t Or_bool.t
     }
 
@@ -965,7 +936,7 @@ module SymbolInformation : sig
   type t =
     { name : string
     ; kind : SymbolKind.t
-    ; deprecated : bool
+    ; deprecated : bool option
     ; location : Location.t
     ; containerName : string option
     }
@@ -1132,7 +1103,7 @@ module CodeAction : sig
   type t =
     { title : string
     ; kind : CodeActionKind.t option
-    ; diagnostics : PublishDiagnostics.diagnostic list
+    ; diagnostics : PublishDiagnostics.diagnostic list option
     ; edit : WorkspaceEdit.t option
     ; command : Command.t option
     }

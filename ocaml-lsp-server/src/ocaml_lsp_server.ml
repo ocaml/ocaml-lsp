@@ -65,7 +65,6 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; documentLinkProvider = None
       ; executeCommandProvider = None
       ; typeCoverageProvider = false
-      ; rageProvider = false
       ; foldingRangeProvider = Bool true
       ; signatureHelpProvider = None
       }
@@ -143,7 +142,7 @@ let code_action_of_case_analysis uri (loc, newText) =
   let title = String.capitalize_ascii Action.destruct in
   { Lsp.Protocol.CodeAction.title
   ; kind = Some (Lsp.Protocol.CodeActionKind.Other Action.destruct)
-  ; diagnostics = []
+  ; diagnostics = None
   ; edit = Some edit
   ; command = None
   }
@@ -322,7 +321,7 @@ let on_request :
       let info =
         { Lsp.Protocol.SymbolInformation.name = item.Query_protocol.outline_name
         ; kind = outline_kind item.outline_kind
-        ; deprecated = false
+        ; deprecated = Some false
         ; location
         ; containerName
         }
@@ -495,8 +494,6 @@ let on_request :
       { Lsp.Protocol.Completion.label = entry.name
       ; kind
       ; detail = Some entry.desc
-      ; inlineDetail = None
-      ; itemType = Some entry.desc
       ; documentation = Some entry.info
       ; (* Without this field the client is not forced to respect the order
            provided by merlin. *)
@@ -505,8 +502,8 @@ let on_request :
       ; insertText = None
       ; insertTextFormat = None
       ; textEdit
-      ; additionalTextEdits = []
-      ; commitCharacters = []
+      ; additionalTextEdits = None
+      ; commitCharacters = None
       ; data = None
       }
     in
