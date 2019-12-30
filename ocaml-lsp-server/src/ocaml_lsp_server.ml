@@ -361,15 +361,17 @@ let on_request :
         | None -> uri
         | Some path -> Lsp.Uri.of_path path
       in
-      let loc = { Lsp.Protocol.Location.uri; range } in
-      return (store, [ loc ])
+      let locs =
+        Lsp.Protocol.Locations.Location { Lsp.Protocol.Location.uri; range }
+      in
+      return (store, Some locs)
     | `At_origin
     | `Builtin _
     | `File_not_found _
     | `Invalid_context
     | `Not_found _
     | `Not_in_env _ ->
-      Ok (store, []) )
+      Ok (store, None) )
   | Lsp.Rpc.Request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } ->
     Document_store.get store uri >>= fun doc ->

@@ -747,6 +747,29 @@ module LocationLink = struct
   [@@@end]
 end
 
+module Locations = struct
+  type t =
+    | Location of Location.t
+    | Locations of Location.t list
+    | Location_links of LocationLink.t list
+
+  let yojson_of_t = function
+    | Location l -> Location.yojson_of_t l
+    | Locations l -> `List (List.map ~f:Location.yojson_of_t l)
+    | Location_links l -> `List (List.map ~f:LocationLink.yojson_of_t l)
+
+  let t_of_yojson (json : json) =
+    match json with
+    | `Assoc _ -> Location (Location.t_of_yojson json)
+    | `List [] -> Locations []
+    | `List (x :: xs) -> (
+      match Location.t_of_yojson x with
+      | loc -> Locations (loc :: List.map ~f:Location.t_of_yojson xs)
+      | exception Of_yojson_error (_, _) ->
+        Location_links (List.map ~f:LocationLink.t_of_yojson (x :: xs)) )
+    | _ -> yojson_error "Locations.t" json
+end
+
 (* Text documents are identified using a URI. *)
 module TextDocumentIdentifier = struct
   type t = { uri : documentUri (* the text document's URI *) }
@@ -7181,7 +7204,7 @@ module Definition = struct
 
   type params = TextDocumentPositionParams.t
 
-  and result = Location.t list
+  and result = Locations.t option
   (* wire: either a single one or an array *)
   [@@deriving_inline yojson]
 
@@ -7196,7 +7219,7 @@ module Definition = struct
 
   and result_of_yojson =
     ( let _tp_loc = "lsp/src/protocol.ml.Definition.result" in
-      fun t -> list_of_yojson Location.t_of_yojson t
+      fun t -> option_of_yojson Locations.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
   let _ = params_of_yojson
@@ -7208,7 +7231,7 @@ module Definition = struct
       : params -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
   and yojson_of_result =
-    ( fun v -> yojson_of_list Location.yojson_of_t v
+    ( fun v -> yojson_of_option Locations.yojson_of_t v
       : result -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
   let _ = yojson_of_params
