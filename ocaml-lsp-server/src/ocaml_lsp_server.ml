@@ -74,7 +74,7 @@ let dispatch_in_doc doc command =
   Document.with_pipeline doc (fun pipeline ->
       Query_commands.dispatch pipeline command)
 
-let logical_of_position (position : Lsp.Protocol.position) =
+let logical_of_position (position : Lsp.Protocol.Position.t) =
   let line = position.line + 1 in
   let col = position.character in
   `Logical (line, col)
@@ -82,7 +82,7 @@ let logical_of_position (position : Lsp.Protocol.position) =
 let position_of_lexical_position (lex_position : Lexing.position) =
   let line = lex_position.pos_lnum - 1 in
   let character = lex_position.pos_cnum - lex_position.pos_bol in
-  Lsp.Protocol.{ line; character }
+  { Lsp.Protocol.Position.line; character }
 
 let range_of_loc (loc : Location.t) : Lsp.Protocol.Range.t =
   { start_ = position_of_lexical_position loc.loc_start

@@ -95,104 +95,108 @@ let _ = yojson_of_zero_based_int
 
 [@@@end]
 
-type position =
-  { line : zero_based_int
-  ; character : zero_based_int
-  }
-[@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+module Position = struct
+  type t =
+    { line : zero_based_int
+    ; character : zero_based_int
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-let _ = fun (_ : position) -> ()
+  let _ = fun (_ : t) -> ()
 
-let position_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.position" in
-    function
-    | `Assoc field_yojsons as yojson -> (
-      let line_field = ref None
-      and character_field = ref None
-      and duplicates = ref []
-      and extra = ref [] in
-      let rec iter = function
-        | (field_name, _field_yojson) :: tail ->
-          ( match field_name with
-          | "line" -> (
-            match Ppx_yojson_conv_lib.( ! ) line_field with
-            | None ->
-              let fvalue = zero_based_int_of_yojson _field_yojson in
-              line_field := Some fvalue
-            | Some _ ->
-              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
-          | "character" -> (
-            match Ppx_yojson_conv_lib.( ! ) character_field with
-            | None ->
-              let fvalue = zero_based_int_of_yojson _field_yojson in
-              character_field := Some fvalue
-            | Some _ ->
-              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
-          | _ -> () );
-          iter tail
-        | [] -> ()
-      in
-      iter field_yojsons;
-      match Ppx_yojson_conv_lib.( ! ) duplicates with
-      | _ :: _ ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-          (Ppx_yojson_conv_lib.( ! ) duplicates)
-          yojson
-      | [] -> (
-        match Ppx_yojson_conv_lib.( ! ) extra with
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.Position.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let line_field = ref None
+        and character_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "line" -> (
+              match Ppx_yojson_conv_lib.( ! ) line_field with
+              | None ->
+                let fvalue = zero_based_int_of_yojson _field_yojson in
+                line_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "character" -> (
+              match Ppx_yojson_conv_lib.( ! ) character_field with
+              | None ->
+                let fvalue = zero_based_int_of_yojson _field_yojson in
+                character_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
         | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) extra)
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
             yojson
         | [] -> (
-          match
-            ( Ppx_yojson_conv_lib.( ! ) line_field
-            , Ppx_yojson_conv_lib.( ! ) character_field )
-          with
-          | Some line_value, Some character_value ->
-            { line = line_value; character = character_value }
-          | _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-              _tp_loc yojson
-              [ ( Ppx_yojson_conv_lib.poly_equal
-                    (Ppx_yojson_conv_lib.( ! ) line_field)
-                    None
-                , "line" )
-              ; ( Ppx_yojson_conv_lib.poly_equal
-                    (Ppx_yojson_conv_lib.( ! ) character_field)
-                    None
-                , "character" )
-              ] ) ) )
-    | _ as yojson ->
-      Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-        yojson
-    : Ppx_yojson_conv_lib.Yojson.Safe.t -> position )
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) line_field
+              , Ppx_yojson_conv_lib.( ! ) character_field )
+            with
+            | Some line_value, Some character_value ->
+              { line = line_value; character = character_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) line_field)
+                      None
+                  , "line" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) character_field)
+                      None
+                  , "character" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-let _ = position_of_yojson
+  let _ = t_of_yojson
 
-let yojson_of_position =
-  ( function
-    | { line = v_line; character = v_character } ->
-      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-      let bnds =
-        let arg = yojson_of_zero_based_int v_character in
-        ("character", arg) :: bnds
-      in
-      let bnds =
-        let arg = yojson_of_zero_based_int v_line in
-        ("line", arg) :: bnds
-      in
-      `Assoc bnds
-    : position -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+  let yojson_of_t =
+    ( function
+      | { line = v_line; character = v_character } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_zero_based_int v_character in
+          ("character", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_zero_based_int v_line in
+          ("line", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-let _ = yojson_of_position
+  let _ = yojson_of_t
 
-[@@@end]
+  [@@@end]
+end
 
 module Range = struct
   type t =
-    { start_ : position [@key "start"]
-    ; end_ : position [@key "end"]
+    { start_ : Position.t [@key "start"]
+    ; end_ : Position.t [@key "end"]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -212,7 +216,7 @@ module Range = struct
             | "start" -> (
               match Ppx_yojson_conv_lib.( ! ) start__field with
               | None ->
-                let fvalue = position_of_yojson _field_yojson in
+                let fvalue = Position.t_of_yojson _field_yojson in
                 start__field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -220,7 +224,7 @@ module Range = struct
             | "end" -> (
               match Ppx_yojson_conv_lib.( ! ) end__field with
               | None ->
-                let fvalue = position_of_yojson _field_yojson in
+                let fvalue = Position.t_of_yojson _field_yojson in
                 end__field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -272,11 +276,11 @@ module Range = struct
       | { start_ = v_start_; end_ = v_end_ } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_position v_end_ in
+          let arg = Position.yojson_of_t v_end_ in
           ("end", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_position v_start_ in
+          let arg = Position.yojson_of_t v_start_ in
           ("start", arg) :: bnds
         in
         `Assoc bnds
@@ -1448,7 +1452,7 @@ module TextDocumentPositionParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; (* the text document *)
-      position : position (* the position inside the text document *)
+      position : Position.t (* the position inside the text document *)
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -1476,7 +1480,7 @@ module TextDocumentPositionParams = struct
             | "position" -> (
               match Ppx_yojson_conv_lib.( ! ) position_field with
               | None ->
-                let fvalue = position_of_yojson _field_yojson in
+                let fvalue = Position.t_of_yojson _field_yojson in
                 position_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -1528,7 +1532,7 @@ module TextDocumentPositionParams = struct
       | { textDocument = v_textDocument; position = v_position } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_position v_position in
+          let arg = Position.yojson_of_t v_position in
           ("position", arg) :: bnds
         in
         let bnds =
@@ -2639,7 +2643,7 @@ module Completion = struct
   and completionParams =
     { textDocument : TextDocumentIdentifier.t
     ; (* the text document *)
-      position : position
+      position : Position.t
     ; (* the position inside the text document *)
       context : completionContext option [@yojson.option]
     }
@@ -2727,7 +2731,7 @@ module Completion = struct
             | "position" -> (
               match Ppx_yojson_conv_lib.( ! ) position_field with
               | None ->
-                let fvalue = position_of_yojson _field_yojson in
+                let fvalue = Position.t_of_yojson _field_yojson in
                 position_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -3143,7 +3147,7 @@ module Completion = struct
             bnd :: bnds
         in
         let bnds =
-          let arg = yojson_of_position v_position in
+          let arg = Position.yojson_of_t v_position in
           ("position", arg) :: bnds
         in
         let bnds =
@@ -6971,7 +6975,7 @@ module References = struct
   type params =
     { textDocument : TextDocumentIdentifier.t
     ; (* the text document *)
-      position : position
+      position : Position.t
     ; (* the position inside the text document *)
       context : referenceContext
     }
@@ -7012,7 +7016,7 @@ module References = struct
             | "position" -> (
               match Ppx_yojson_conv_lib.( ! ) position_field with
               | None ->
-                let fvalue = position_of_yojson _field_yojson in
+                let fvalue = Position.t_of_yojson _field_yojson in
                 position_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -7148,7 +7152,7 @@ module References = struct
           ("context", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_position v_position in
+          let arg = Position.yojson_of_t v_position in
           ("position", arg) :: bnds
         in
         let bnds =
@@ -7986,7 +7990,7 @@ end
 module Rename = struct
   type params =
     { textDocument : TextDocumentIdentifier.t  (** The document to rename. *)
-    ; position : position  (** The position at which this request was sent. *)
+    ; position : Position.t  (** The position at which this request was sent. *)
     ; newName : string
           (** The new name of the symbol. If the given name is not valid the
               request must return a [ResponseError](#ResponseError) with an
@@ -8019,7 +8023,7 @@ module Rename = struct
             | "position" -> (
               match Ppx_yojson_conv_lib.( ! ) position_field with
               | None ->
-                let fvalue = position_of_yojson _field_yojson in
+                let fvalue = Position.t_of_yojson _field_yojson in
                 position_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -8095,7 +8099,7 @@ module Rename = struct
           ("newName", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_position v_position in
+          let arg = Position.yojson_of_t v_position in
           ("position", arg) :: bnds
         in
         let bnds =

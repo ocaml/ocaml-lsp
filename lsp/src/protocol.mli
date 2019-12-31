@@ -54,19 +54,21 @@ val zero_based_int_of_yojson : json -> zero_based_int
 
 val yojson_of_zero_based_int : zero_based_int -> json
 
-type position =
-  { line : zero_based_int
-  ; character : zero_based_int
-  }
+module Position : sig
+  type t =
+    { line : zero_based_int
+    ; character : zero_based_int
+    }
 
-val position_of_yojson : json -> position
+  val t_of_yojson : json -> t
 
-val yojson_of_position : position -> json
+  val yojson_of_t : t -> json
+end
 
 module Range : sig
   type t =
-    { start_ : position
-    ; end_ : position
+    { start_ : Position.t
+    ; end_ : Position.t
     }
 
   val t_of_yojson : json -> t
@@ -215,7 +217,7 @@ end
 module TextDocumentPositionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
-    ; position : position
+    ; position : Position.t
     }
 
   val t_of_yojson : json -> t
@@ -418,7 +420,7 @@ module Completion : sig
 
   and completionParams =
     { textDocument : TextDocumentIdentifier.t
-    ; position : position
+    ; position : Position.t
     ; context : completionContext option
     }
 
@@ -865,7 +867,7 @@ end
 module References : sig
   type params =
     { textDocument : TextDocumentIdentifier.t
-    ; position : position
+    ; position : Position.t
     ; context : referenceContext
     }
 
@@ -1004,7 +1006,7 @@ end
 module Rename : sig
   type params =
     { textDocument : TextDocumentIdentifier.t
-    ; position : position
+    ; position : Position.t
     ; newName : string
     }
 
