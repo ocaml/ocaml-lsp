@@ -12,10 +12,6 @@ and state =
   | Initialized of Protocol.Initialize.client_capabilities
   | Closed
 
-type yojson = Yojson.Safe.t
-
-let yojson_of_yojson d = d
-
 let { Logger.log } = Logger.for_section "lsp"
 
 let send rpc json =
@@ -118,370 +114,8 @@ let read rpc =
   | r -> Ok r
   | exception _exn -> Error "Unexpected packet"
 
-module Response = struct
-  type response =
-    { id : Protocol.Id.t
-    ; jsonrpc : string
-    ; result : yojson
-    }
-  [@@deriving_inline yojson]
-
-  let _ = fun (_ : response) -> ()
-
-  let response_of_yojson =
-    ( let _tp_loc = "lsp/src/rpc.ml.Response.response" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let id_field = ref None
-        and jsonrpc_field = ref None
-        and result_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "id" -> (
-              match Ppx_yojson_conv_lib.( ! ) id_field with
-              | None ->
-                let fvalue = Protocol.Id.t_of_yojson _field_yojson in
-                id_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "jsonrpc" -> (
-              match Ppx_yojson_conv_lib.( ! ) jsonrpc_field with
-              | None ->
-                let fvalue = string_of_yojson _field_yojson in
-                jsonrpc_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "result" -> (
-              match Ppx_yojson_conv_lib.( ! ) result_field with
-              | None ->
-                let fvalue = yojson_of_yojson _field_yojson in
-                result_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ ->
-              if
-                Ppx_yojson_conv_lib.( ! )
-                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
-              then
-                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
-              else
-                () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) id_field
-              , Ppx_yojson_conv_lib.( ! ) jsonrpc_field
-              , Ppx_yojson_conv_lib.( ! ) result_field )
-            with
-            | Some id_value, Some jsonrpc_value, Some result_value ->
-              { id = id_value; jsonrpc = jsonrpc_value; result = result_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) id_field)
-                      None
-                  , "id" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) jsonrpc_field)
-                      None
-                  , "jsonrpc" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) result_field)
-                      None
-                  , "result" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> response )
-
-  let _ = response_of_yojson
-
-  let yojson_of_response =
-    ( function
-      | { id = v_id; jsonrpc = v_jsonrpc; result = v_result } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_yojson v_result in
-          ("result", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_string v_jsonrpc in
-          ("jsonrpc", arg) :: bnds
-        in
-        let bnds =
-          let arg = Protocol.Id.yojson_of_t v_id in
-          ("id", arg) :: bnds
-        in
-        `Assoc bnds
-      : response -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_response
-
-  [@@@end]
-
-  type response_error =
-    { id : Protocol.Id.t
-    ; jsonrpc : string
-    ; error : error
-    }
-
-  and error =
-    { code : int
-    ; message : string
-    }
-  [@@deriving_inline yojson]
-
-  let _ = fun (_ : response_error) -> ()
-
-  let _ = fun (_ : error) -> ()
-
-  let rec response_error_of_yojson =
-    ( let _tp_loc = "lsp/src/rpc.ml.Response.response_error" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let id_field = ref None
-        and jsonrpc_field = ref None
-        and error_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "id" -> (
-              match Ppx_yojson_conv_lib.( ! ) id_field with
-              | None ->
-                let fvalue = Protocol.Id.t_of_yojson _field_yojson in
-                id_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "jsonrpc" -> (
-              match Ppx_yojson_conv_lib.( ! ) jsonrpc_field with
-              | None ->
-                let fvalue = string_of_yojson _field_yojson in
-                jsonrpc_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "error" -> (
-              match Ppx_yojson_conv_lib.( ! ) error_field with
-              | None ->
-                let fvalue = error_of_yojson _field_yojson in
-                error_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ ->
-              if
-                Ppx_yojson_conv_lib.( ! )
-                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
-              then
-                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
-              else
-                () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) id_field
-              , Ppx_yojson_conv_lib.( ! ) jsonrpc_field
-              , Ppx_yojson_conv_lib.( ! ) error_field )
-            with
-            | Some id_value, Some jsonrpc_value, Some error_value ->
-              { id = id_value; jsonrpc = jsonrpc_value; error = error_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) id_field)
-                      None
-                  , "id" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) jsonrpc_field)
-                      None
-                  , "jsonrpc" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) error_field)
-                      None
-                  , "error" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> response_error )
-
-  and error_of_yojson =
-    ( let _tp_loc = "lsp/src/rpc.ml.Response.error" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let code_field = ref None
-        and message_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "code" -> (
-              match Ppx_yojson_conv_lib.( ! ) code_field with
-              | None ->
-                let fvalue = int_of_yojson _field_yojson in
-                code_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "message" -> (
-              match Ppx_yojson_conv_lib.( ! ) message_field with
-              | None ->
-                let fvalue = string_of_yojson _field_yojson in
-                message_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ ->
-              if
-                Ppx_yojson_conv_lib.( ! )
-                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
-              then
-                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
-              else
-                () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) code_field
-              , Ppx_yojson_conv_lib.( ! ) message_field )
-            with
-            | Some code_value, Some message_value ->
-              { code = code_value; message = message_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) code_field)
-                      None
-                  , "code" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) message_field)
-                      None
-                  , "message" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> error )
-
-  let _ = response_error_of_yojson
-
-  and _ = error_of_yojson
-
-  let rec yojson_of_response_error =
-    ( function
-      | { id = v_id; jsonrpc = v_jsonrpc; error = v_error } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_error v_error in
-          ("error", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_string v_jsonrpc in
-          ("jsonrpc", arg) :: bnds
-        in
-        let bnds =
-          let arg = Protocol.Id.yojson_of_t v_id in
-          ("id", arg) :: bnds
-        in
-        `Assoc bnds
-      : response_error -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_error =
-    ( function
-      | { code = v_code; message = v_message } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_string v_message in
-          ("message", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_int v_code in
-          ("code", arg) :: bnds
-        in
-        `Assoc bnds
-      : error -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_response_error
-
-  and _ = yojson_of_error
-
-  [@@@end]
-
-  type t =
-    | Response of response
-    | Response_error of response_error
-
-  let make id result = Response { id; result; jsonrpc = "2.0" }
-
-  let make_error id code message =
-    Response_error { id; error = { code; message }; jsonrpc = "2.0" }
-
-  let to_yojson = function
-    | Response v -> yojson_of_response v
-    | Response_error v -> yojson_of_response_error v
-
-  let of_yojson (type a) id (req : a Request.t) (result : a) =
-    Request.yojson_of_result req result |> Option.map ~f:(make id)
-end
-
-let send_response rpc (response : Response.t) =
-  let json = Response.to_yojson response in
+let send_response rpc (response : Jsonrpc.Response.t) =
+  let json = Jsonrpc.Response.yojson_of_t response in
   send rpc json
 
 module Server_notification = struct
@@ -639,7 +273,7 @@ let start init_state handler ic oc =
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
               let json = Protocol.Initialize.yojson_of_result result in
-              let response = Response.make id json in
+              let response = Jsonrpc.Response.make id json in
               rpc.state <- Initialized params.client_capabilities;
               send_response rpc response;
               Ok next_state
@@ -652,7 +286,7 @@ let start init_state handler ic oc =
             | Message.Request (id, _) ->
               (* we response with -32002 per protocol before we initialized *)
               let response =
-                Response.make_error id (-32002) "not initialized"
+                Jsonrpc.Response.make_error id (-32002) "not initialized"
               in
               send_response rpc response;
               Ok state)
@@ -673,9 +307,10 @@ let start init_state handler ic oc =
             | Message.Request (id, req) -> (
               handler.on_request rpc state client_capabilities req
               >>= fun (next_state, result) ->
-              match Response.of_yojson id req result with
+              match Request.yojson_of_result req result with
               | None -> Ok next_state
               | Some response ->
+                let response = Jsonrpc.Response.make id response in
                 send_response rpc response;
                 Ok next_state ))
       in

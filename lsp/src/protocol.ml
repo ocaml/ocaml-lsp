@@ -4,8 +4,6 @@ open Import
     https://microsoft.github.io/language-server-protocol/specification * * Most
     of this was borrowed from facebook/flow repository. * *)
 
-let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
-
 module Either = struct
   type ('left, 'right) t =
     | Left of 'left

@@ -272,3 +272,5 @@ module Option = struct
 end
 
 module Yojsonable = Ppx_yojson_conv_lib.Yojsonable
+
+let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
