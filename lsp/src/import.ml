@@ -263,3 +263,5 @@ module Result = struct
     let errorf = errorf
   end
 end
+
+module Yojsonable = Ppx_yojson_conv_lib.Yojsonable

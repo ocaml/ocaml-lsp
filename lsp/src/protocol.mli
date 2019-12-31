@@ -11,9 +11,7 @@ module Or_bool : sig
     | Bool of bool
     | Value of 'a
 
-  val t_of_yojson : (json -> 'a) -> json -> 'a t
-
-  val yojson_of_t : ('a -> json) -> 'a t -> json
+  include Yojsonable.S1 with type 'a t := 'a t
 end
 
 module Or_string : sig
@@ -21,25 +19,15 @@ module Or_string : sig
     | String of string
     | Value of 'a
 
-  val t_of_yojson : (json -> 'a) -> json -> 'a t
-
-  val yojson_of_t : ('a -> json) -> 'a t -> json
+  include Yojsonable.S1 with type 'a t := 'a t
 end
 
-module Void : sig
-  type t
-
-  val t_of_yojson : json -> 'a
-
-  val yojson_of_t : t -> 'a
-end
+module Void : Yojsonable.S
 
 module Id : sig
   type t = (string, int) Either.t
 
-  val yojson_of_t : t -> json
-
-  val t_of_yojson : json -> t
+  include Yojsonable.S with type t := t
 end
 
 type documentUri = Uri.t
@@ -60,9 +48,7 @@ module Position : sig
     ; character : zero_based_int
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module Range : sig
@@ -71,9 +57,7 @@ module Range : sig
     ; end_ : Position.t
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module Command : sig
@@ -82,9 +66,7 @@ module Command : sig
     ; command : string
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module MarkupKind : sig
@@ -92,9 +74,7 @@ module MarkupKind : sig
     | Plaintext
     | Markdown
 
-  val yojson_of_t : t -> json
-
-  val t_of_yojson : json -> t
+  include Yojsonable.S with type t := t
 end
 
 module MarkupContent : sig
@@ -103,9 +83,7 @@ module MarkupContent : sig
     ; kind : MarkupKind.t
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module Location : sig
@@ -114,9 +92,7 @@ module Location : sig
     ; range : Range.t
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module LocationLink : sig
@@ -127,9 +103,7 @@ module LocationLink : sig
     ; targetSelectionRange : Range.t
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module Locations : sig
@@ -142,9 +116,7 @@ end
 module TextDocumentIdentifier : sig
   type t = { uri : documentUri }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module VersionedTextDocumentIdentifier : sig
@@ -153,9 +125,7 @@ module VersionedTextDocumentIdentifier : sig
     ; version : zero_based_int
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module TextDocumentItem : sig
@@ -166,9 +136,7 @@ module TextDocumentItem : sig
     ; text : string
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module DidOpen : sig
@@ -220,9 +188,7 @@ module TextDocumentPositionParams : sig
     ; position : Position.t
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module DocumentHighlight : sig
@@ -240,9 +206,7 @@ module DocumentHighlight : sig
     ; kind : kind option
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module TextEdit : sig
@@ -251,9 +215,7 @@ module TextEdit : sig
     ; newText : string
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module TextDocumentEdit : sig
@@ -262,9 +224,7 @@ module TextDocumentEdit : sig
     ; edits : TextEdit.t list
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module WorkspaceEdit : sig
@@ -502,9 +462,7 @@ end
 module SignatureHelpOptions : sig
   type t = { triggerCharacters : string list }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module ParameterInformation : sig
@@ -513,9 +471,7 @@ module ParameterInformation : sig
       | Substring of string
       | Range of zero_based_int * zero_based_int
 
-    val t_of_yojson : json -> t
-
-    val yojson_of_t : t -> json
+    include Yojsonable.S with type t := t
   end
 
   type t =
@@ -523,9 +479,7 @@ module ParameterInformation : sig
     ; documentation : MarkupContent.t Or_string.t
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module SignatureInformation : sig
@@ -535,9 +489,7 @@ module SignatureInformation : sig
     ; parameters : ParameterInformation.t list
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module SignatureHelp : sig
@@ -547,9 +499,7 @@ module SignatureHelp : sig
     ; activeParameter : zero_based_int option
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module CodeActionKind : sig
@@ -564,19 +514,13 @@ module CodeActionKind : sig
     | SourceOrganizeImports
     | Other of string
 
-  val to_string : t -> string
-
-  val yojson_of_t : t -> json
-
-  val t_of_yojson : json -> t
+  include Yojsonable.S with type t := t
 end
 
 module CodeActionOptions : sig
   type t = { codeActionsKinds : CodeActionKind.t list }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module CodeActionLiteralSupport : sig
@@ -588,9 +532,7 @@ module CodeActionLiteralSupport : sig
 
   type t = { codeActionKind : codeActionKind }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module Initialize : sig
@@ -931,9 +873,7 @@ module SymbolKind : sig
     | Operator
     | TypeParameter
 
-  val yojson_of_t : t -> json
-
-  val t_of_yojson : json -> t
+  include Yojsonable.S with type t := t
 end
 
 module SymbolInformation : sig
@@ -945,9 +885,7 @@ module SymbolInformation : sig
     ; containerName : string option
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module DocumentSymbol : sig
@@ -961,9 +899,7 @@ module DocumentSymbol : sig
     ; children : t list
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module TextDocumentDocumentSymbol : sig
@@ -1052,9 +988,7 @@ module FoldingRange : sig
       | Imports
       | Region
 
-    val yojson_of_t : t -> json
-
-    val t_of_yojson : json -> t
+    include Yojsonable.S with type t := t
   end
 
   type t =
@@ -1065,9 +999,7 @@ module FoldingRange : sig
     ; kind : Kind.t option
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 
   type params = { textDocument : TextDocumentIdentifier.t }
 
@@ -1086,9 +1018,7 @@ module CodeActionContext : sig
     ; only : CodeActionKind.t list option
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module CodeActionParams : sig
@@ -1098,9 +1028,7 @@ module CodeActionParams : sig
     ; context : CodeActionContext.t
     }
 
-  val t_of_yojson : json -> t
-
-  val yojson_of_t : t -> json
+  include Yojsonable.S with type t := t
 end
 
 module CodeAction : sig
