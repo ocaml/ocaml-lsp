@@ -46,7 +46,6 @@ let f (x : t) = x
     let actions = await codeAction(start, end);
     expect(actions).toMatchObject([
       {
-        diagnostics: [],
         edit: {
           changes: {
             "file:///test.ml": [

@@ -129,17 +129,17 @@ describe("textDocument/completion", () => {
       let somestring = "hello"
 
       let plus_42 (x:int) (y:int) =
-        somenum + 
+        somenum +
     `);
 
     let items = await queryCompletion(Types.Position.create(4, 12));
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
-      { label: "somenum", textEdit: null },
-      { label: "x", textEdit: null },
-      { label: "y", textEdit: null },
-      { label: "max_int", textEdit: null },
-      { label: "min_int", textEdit: null },
+      { label: "somenum" },
+      { label: "x" },
+      { label: "y" },
+      { label: "max_int" },
+      { label: "min_int" },
     ]);
   });
 
@@ -285,17 +285,17 @@ describe("textDocument/completion", () => {
 
   it("completes labels", async () => {
     openDocument(outdent`
-      let f = ListLabels.map 
+      let f = ListLabels.map
     `);
 
     let items = await queryCompletion(Types.Position.create(0, 23));
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
-      { label: "~f", textEdit: null },
-      { label: "::", textEdit: null },
-      { label: "[]", textEdit: null },
-      { label: "!", textEdit: null },
-      { label: "exit", textEdit: null },
+      { label: "~f" },
+      { label: "::" },
+      { label: "[]" },
+      { label: "!" },
+      { label: "exit" },
     ]);
   });
 });
