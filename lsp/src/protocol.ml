@@ -189,99 +189,103 @@ let _ = yojson_of_position
 
 [@@@end]
 
-type range =
-  { start_ : position [@key "start"]
-  ; end_ : position [@key "end"]
-  }
-[@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+module Range = struct
+  type t =
+    { start_ : position [@key "start"]
+    ; end_ : position [@key "end"]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-let _ = fun (_ : range) -> ()
+  let _ = fun (_ : t) -> ()
 
-let range_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.range" in
-    function
-    | `Assoc field_yojsons as yojson -> (
-      let start__field = ref None
-      and end__field = ref None
-      and duplicates = ref []
-      and extra = ref [] in
-      let rec iter = function
-        | (field_name, _field_yojson) :: tail ->
-          ( match field_name with
-          | "start" -> (
-            match Ppx_yojson_conv_lib.( ! ) start__field with
-            | None ->
-              let fvalue = position_of_yojson _field_yojson in
-              start__field := Some fvalue
-            | Some _ ->
-              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
-          | "end" -> (
-            match Ppx_yojson_conv_lib.( ! ) end__field with
-            | None ->
-              let fvalue = position_of_yojson _field_yojson in
-              end__field := Some fvalue
-            | Some _ ->
-              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
-          | _ -> () );
-          iter tail
-        | [] -> ()
-      in
-      iter field_yojsons;
-      match Ppx_yojson_conv_lib.( ! ) duplicates with
-      | _ :: _ ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-          (Ppx_yojson_conv_lib.( ! ) duplicates)
-          yojson
-      | [] -> (
-        match Ppx_yojson_conv_lib.( ! ) extra with
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.Range.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let start__field = ref None
+        and end__field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "start" -> (
+              match Ppx_yojson_conv_lib.( ! ) start__field with
+              | None ->
+                let fvalue = position_of_yojson _field_yojson in
+                start__field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "end" -> (
+              match Ppx_yojson_conv_lib.( ! ) end__field with
+              | None ->
+                let fvalue = position_of_yojson _field_yojson in
+                end__field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
         | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) extra)
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
             yojson
         | [] -> (
-          match
-            ( Ppx_yojson_conv_lib.( ! ) start__field
-            , Ppx_yojson_conv_lib.( ! ) end__field )
-          with
-          | Some start__value, Some end__value ->
-            { start_ = start__value; end_ = end__value }
-          | _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-              _tp_loc yojson
-              [ ( Ppx_yojson_conv_lib.poly_equal
-                    (Ppx_yojson_conv_lib.( ! ) start__field)
-                    None
-                , "start_" )
-              ; ( Ppx_yojson_conv_lib.poly_equal
-                    (Ppx_yojson_conv_lib.( ! ) end__field)
-                    None
-                , "end_" )
-              ] ) ) )
-    | _ as yojson ->
-      Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-        yojson
-    : Ppx_yojson_conv_lib.Yojson.Safe.t -> range )
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) start__field
+              , Ppx_yojson_conv_lib.( ! ) end__field )
+            with
+            | Some start__value, Some end__value ->
+              { start_ = start__value; end_ = end__value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) start__field)
+                      None
+                  , "start_" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) end__field)
+                      None
+                  , "end_" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-let _ = range_of_yojson
+  let _ = t_of_yojson
 
-let yojson_of_range =
-  ( function
-    | { start_ = v_start_; end_ = v_end_ } ->
-      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-      let bnds =
-        let arg = yojson_of_position v_end_ in
-        ("end", arg) :: bnds
-      in
-      let bnds =
-        let arg = yojson_of_position v_start_ in
-        ("start", arg) :: bnds
-      in
-      `Assoc bnds
-    : range -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+  let yojson_of_t =
+    ( function
+      | { start_ = v_start_; end_ = v_end_ } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_position v_end_ in
+          ("end", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_position v_start_ in
+          ("start", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-let _ = yojson_of_range
+  let _ = yojson_of_t
 
-[@@@end]
+  [@@@end]
+end
 
 module Command = struct
   type t =
@@ -498,7 +502,7 @@ end
 module Location = struct
   type t =
     { uri : Uri.t
-    ; range : range
+    ; range : Range.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -526,7 +530,7 @@ module Location = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -578,7 +582,7 @@ module Location = struct
       | { uri = v_uri; range = v_range } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_range v_range in
+          let arg = Range.yojson_of_t v_range in
           ("range", arg) :: bnds
         in
         let bnds =
@@ -595,10 +599,10 @@ end
 
 module LocationLink = struct
   type t =
-    { originSelectionRange : range option [@yojson.option]
+    { originSelectionRange : Range.t option [@yojson.option]
     ; targetUri : documentUri
-    ; targetRange : range
-    ; targetSelectionRange : range
+    ; targetrange : Range.t
+    ; targetSelectionRange : Range.t
     }
   [@@deriving_inline yojson]
 
@@ -610,7 +614,7 @@ module LocationLink = struct
       | `Assoc field_yojsons as yojson -> (
         let originSelectionRange_field = ref None
         and targetUri_field = ref None
-        and targetRange_field = ref None
+        and targetrange_field = ref None
         and targetSelectionRange_field = ref None
         and duplicates = ref []
         and extra = ref [] in
@@ -620,7 +624,7 @@ module LocationLink = struct
             | "originSelectionRange" -> (
               match Ppx_yojson_conv_lib.( ! ) originSelectionRange_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 originSelectionRange_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -633,18 +637,18 @@ module LocationLink = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
-            | "targetRange" -> (
-              match Ppx_yojson_conv_lib.( ! ) targetRange_field with
+            | "targetrange" -> (
+              match Ppx_yojson_conv_lib.( ! ) targetrange_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
-                targetRange_field := Some fvalue
+                let fvalue = Range.t_of_yojson _field_yojson in
+                targetrange_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
             | "targetSelectionRange" -> (
               match Ppx_yojson_conv_lib.( ! ) targetSelectionRange_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 targetSelectionRange_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -676,16 +680,16 @@ module LocationLink = struct
             match
               ( Ppx_yojson_conv_lib.( ! ) originSelectionRange_field
               , Ppx_yojson_conv_lib.( ! ) targetUri_field
-              , Ppx_yojson_conv_lib.( ! ) targetRange_field
+              , Ppx_yojson_conv_lib.( ! ) targetrange_field
               , Ppx_yojson_conv_lib.( ! ) targetSelectionRange_field )
             with
             | ( originSelectionRange_value
               , Some targetUri_value
-              , Some targetRange_value
+              , Some targetrange_value
               , Some targetSelectionRange_value ) ->
               { originSelectionRange = originSelectionRange_value
               ; targetUri = targetUri_value
-              ; targetRange = targetRange_value
+              ; targetrange = targetrange_value
               ; targetSelectionRange = targetSelectionRange_value
               }
             | _ ->
@@ -696,9 +700,9 @@ module LocationLink = struct
                       None
                   , "targetUri" )
                 ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) targetRange_field)
+                      (Ppx_yojson_conv_lib.( ! ) targetrange_field)
                       None
-                  , "targetRange" )
+                  , "targetrange" )
                 ; ( Ppx_yojson_conv_lib.poly_equal
                       (Ppx_yojson_conv_lib.( ! ) targetSelectionRange_field)
                       None
@@ -715,17 +719,17 @@ module LocationLink = struct
     ( function
       | { originSelectionRange = v_originSelectionRange
         ; targetUri = v_targetUri
-        ; targetRange = v_targetRange
+        ; targetrange = v_targetrange
         ; targetSelectionRange = v_targetSelectionRange
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_range v_targetSelectionRange in
+          let arg = Range.yojson_of_t v_targetSelectionRange in
           ("targetSelectionRange", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_targetRange in
-          ("targetRange", arg) :: bnds
+          let arg = Range.yojson_of_t v_targetrange in
+          ("targetrange", arg) :: bnds
         in
         let bnds =
           let arg = yojson_of_documentUri v_targetUri in
@@ -735,7 +739,7 @@ module LocationLink = struct
           match v_originSelectionRange with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_range v in
+            let arg = Range.yojson_of_t v in
             let bnd = ("originSelectionRange", arg) in
             bnd :: bnds
         in
@@ -1201,7 +1205,7 @@ module DidChange = struct
   [@@yojson.allow_extra_fields]
 
   and textDocumentContentChangeEvent =
-    { range : range option [@yojson.option]
+    { range : Range.t option [@yojson.option]
     ; (* the range of the document that changed *)
       rangeLength : int option [@yojson.option]
     ; (* the length that got replaced *)
@@ -1313,7 +1317,7 @@ module DidChange = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -1424,7 +1428,7 @@ module DidChange = struct
           match v_range with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_range v in
+            let arg = Range.yojson_of_t v in
             let bnd = ("range", arg) in
             bnd :: bnds
         in
@@ -1561,7 +1565,7 @@ module DocumentHighlight = struct
     | node -> yojson_error "kind expected to be an int between 1 and 3" node
 
   type t =
-    { range : range
+    { range : Range.t
     ; kind : kind option
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -1582,7 +1586,7 @@ module DocumentHighlight = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -1646,7 +1650,7 @@ module DocumentHighlight = struct
           ("kind", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_range in
+          let arg = Range.yojson_of_t v_range in
           ("range", arg) :: bnds
         in
         `Assoc bnds
@@ -1669,7 +1673,7 @@ end
     the inserted strings appear in the resulting text. *)
 module TextEdit = struct
   type t =
-    { range : range
+    { range : Range.t
           (** The range of the text document to be manipulated. To insert text
               into a document create a range where start === end. *)
     ; newText : string
@@ -1694,7 +1698,7 @@ module TextEdit = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -1758,7 +1762,7 @@ module TextEdit = struct
           ("newText", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_range in
+          let arg = Range.yojson_of_t v_range in
           ("range", arg) :: bnds
         in
         `Assoc bnds
@@ -2022,7 +2026,7 @@ module PublishDiagnostics = struct
   [@@yojson.allow_extra_fields]
 
   and diagnostic =
-    { range : range
+    { range : Range.t
     ; (* the range at which the message applies *)
       severity : diagnosticSeverity option [@yojson.option]
     ; (* if omitted, client decides *)
@@ -2152,7 +2156,7 @@ module PublishDiagnostics = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -2437,7 +2441,7 @@ module PublishDiagnostics = struct
             bnd :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_range in
+          let arg = Range.yojson_of_t v_range in
           ("range", arg) :: bnds
         in
         `Assoc bnds
@@ -3322,7 +3326,7 @@ module Hover = struct
 
   and hoverResult =
     { contents : MarkupContent.t
-    ; range : range option [@yojson.option]
+    ; range : Range.t option [@yojson.option]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -3364,7 +3368,7 @@ module Hover = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -3427,7 +3431,7 @@ module Hover = struct
           match v_range with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_range v in
+            let arg = Range.yojson_of_t v in
             let bnd = ("range", arg) in
             bnd :: bnds
         in
@@ -7491,12 +7495,12 @@ module DocumentSymbol = struct
           (** * More detail for this symbol, e.g the signature of a function. *)
     ; kind : SymbolKind.t  (** * The kind of this symbol. *)
     ; deprecated : bool  (** * Indicates if this symbol is deprecated. *)
-    ; range : range
+    ; range : Range.t
           (** * The range enclosing this symbol not including leading/trailing
               whitespace * but everything else like comments. This information
               is typically used to * determine if the clients cursor is inside
               the symbol to reveal in the * symbol in the UI. *)
-    ; selectionRange : range
+    ; selectionRange : Range.t
           (** * The range that should be selected and revealed when this symbol
               is being * picked, e.g the name of a function. Must be contained
               by the `range`. *)
@@ -7558,7 +7562,7 @@ module DocumentSymbol = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -7566,7 +7570,7 @@ module DocumentSymbol = struct
             | "selectionRange" -> (
               match Ppx_yojson_conv_lib.( ! ) selectionRange_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 selectionRange_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -7675,11 +7679,11 @@ module DocumentSymbol = struct
           ("children", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_selectionRange in
+          let arg = Range.yojson_of_t v_selectionRange in
           ("selectionRange", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_range in
+          let arg = Range.yojson_of_t v_range in
           ("range", arg) :: bnds
         in
         let bnds =
@@ -7798,7 +7802,7 @@ module CodeLens = struct
   and result = item list
 
   and item =
-    { range : range
+    { range : Range.t
     ; command : Command.t option
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
@@ -7878,7 +7882,7 @@ module CodeLens = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -7963,7 +7967,7 @@ module CodeLens = struct
           ("command", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_range in
+          let arg = Range.yojson_of_t v_range in
           ("range", arg) :: bnds
         in
         `Assoc bnds
@@ -8623,7 +8627,7 @@ end
 module CodeActionParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
-    ; range : range
+    ; range : Range.t
     ; context : CodeActionContext.t
     }
   [@@deriving_inline yojson]
@@ -8653,7 +8657,7 @@ module CodeActionParams = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = range_of_yojson _field_yojson in
+                let fvalue = Range.t_of_yojson _field_yojson in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -8733,7 +8737,7 @@ module CodeActionParams = struct
           ("context", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_range v_range in
+          let arg = Range.yojson_of_t v_range in
           ("range", arg) :: bnds
         in
         let bnds =

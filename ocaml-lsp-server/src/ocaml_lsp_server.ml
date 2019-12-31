@@ -84,7 +84,7 @@ let position_of_lexical_position (lex_position : Lexing.position) =
   let character = lex_position.pos_cnum - lex_position.pos_bol in
   Lsp.Protocol.{ line; character }
 
-let range_of_loc (loc : Location.t) : Lsp.Protocol.range =
+let range_of_loc (loc : Location.t) : Lsp.Protocol.Range.t =
   { start_ = position_of_lexical_position loc.loc_start
   ; end_ = position_of_lexical_position loc.loc_end
   }
@@ -305,7 +305,7 @@ let on_request :
 
     let rec symbol item =
       let children = List.map item.Query_protocol.children ~f:symbol in
-      let range = range item in
+      let range : Lsp.Protocol.Range.t = range item in
       { Lsp.Protocol.DocumentSymbol.name = item.Query_protocol.outline_name
       ; detail = item.Query_protocol.outline_type
       ; kind = outline_kind item.outline_kind
@@ -354,7 +354,7 @@ let on_request :
     match dispatch_in_doc doc command with
     | `Found (path, lex_position) ->
       let position = position_of_lexical_position lex_position in
-      let range = { Lsp.Protocol.start_ = position; end_ = position } in
+      let range = { Lsp.Protocol.Range.start_ = position; end_ = position } in
       let uri =
         match path with
         | None -> uri
@@ -412,7 +412,9 @@ let on_request :
           | exception Env.Error _ -> None
           | `Found (path, lex_position) ->
             let position = position_of_lexical_position lex_position in
-            let range = { Lsp.Protocol.start_ = position; end_ = position } in
+            let range =
+              { Lsp.Protocol.Range.start_ = position; end_ = position }
+            in
             let uri =
               match path with
               | None -> uri
@@ -475,7 +477,7 @@ let on_request :
         let character = lsp_position.character - len in
         { lsp_position with character }
       in
-      { Lsp.Protocol.start_; end_ = lsp_position }
+      { Lsp.Protocol.Range.start_; end_ = lsp_position }
     in
 
     let item index entry =
@@ -589,7 +591,7 @@ let on_request :
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let folds : Lsp.Protocol.FoldingRange.result =
-      let folding_range (range : Lsp.Protocol.range) =
+      let folding_range (range : Lsp.Protocol.Range.t) =
         { Lsp.Protocol.FoldingRange.startLine = range.start_.line
         ; endLine = range.end_.line
         ; startCharacter = Some range.start_.character

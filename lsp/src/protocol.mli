@@ -63,14 +63,16 @@ val position_of_yojson : json -> position
 
 val yojson_of_position : position -> json
 
-type range =
-  { start_ : position
-  ; end_ : position
-  }
+module Range : sig
+  type t =
+    { start_ : position
+    ; end_ : position
+    }
 
-val range_of_yojson : json -> range
+  val t_of_yojson : json -> t
 
-val yojson_of_range : range -> json
+  val yojson_of_t : t -> json
+end
 
 module Command : sig
   type t =
@@ -107,7 +109,7 @@ end
 module Location : sig
   type t =
     { uri : Uri.t
-    ; range : range
+    ; range : Range.t
     }
 
   val t_of_yojson : json -> t
@@ -117,10 +119,10 @@ end
 
 module LocationLink : sig
   type t =
-    { originSelectionRange : range option
+    { originSelectionRange : Range.t option
     ; targetUri : documentUri
-    ; targetRange : range
-    ; targetSelectionRange : range
+    ; targetrange : Range.t
+    ; targetSelectionRange : Range.t
     }
 
   val t_of_yojson : json -> t
@@ -190,7 +192,7 @@ module DidChange : sig
     }
 
   and textDocumentContentChangeEvent =
-    { range : range option
+    { range : Range.t option
     ; rangeLength : zero_based_int option
     ; text : string
     }
@@ -232,7 +234,7 @@ module DocumentHighlight : sig
   val kind_of_yojson : json -> kind
 
   type t =
-    { range : range
+    { range : Range.t
     ; kind : kind option
     }
 
@@ -243,7 +245,7 @@ end
 
 module TextEdit : sig
   type t =
-    { range : range
+    { range : Range.t
     ; newText : string
     }
 
@@ -317,7 +319,7 @@ module PublishDiagnostics : sig
     }
 
   and diagnostic =
-    { range : range
+    { range : Range.t
     ; severity : diagnosticSeverity option
     ; code : diagnosticCode
     ; source : string option
@@ -479,7 +481,7 @@ module Hover : sig
 
   and hoverResult =
     { contents : MarkupContent.t
-    ; range : range option
+    ; range : Range.t option
     }
 
   val params_of_yojson : json -> params
@@ -952,8 +954,8 @@ module DocumentSymbol : sig
     ; detail : string option
     ; kind : SymbolKind.t
     ; deprecated : bool
-    ; range : range
-    ; selectionRange : range
+    ; range : Range.t
+    ; selectionRange : Range.t
     ; children : t list
     }
 
@@ -982,7 +984,7 @@ module CodeLens : sig
   and result = item list
 
   and item =
-    { range : range
+    { range : Range.t
     ; command : Command.t option
     }
 
@@ -1090,7 +1092,7 @@ end
 module CodeActionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
-    ; range : range
+    ; range : Range.t
     ; context : CodeActionContext.t
     }
 

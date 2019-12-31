@@ -4,10 +4,10 @@
     character : int;
   }
 
-  let position_in_range pos (range : Protocol.range) =
+  let position_in_range pos (range : Protocol.Range.t) =
     if pos.line < range.start_.line || pos.line > range.end_.line
     then false
-    else 
+    else
       let rel_start =
         if pos.line = range.start_.line
         then pos.character >= range.start_.character
@@ -21,7 +21,7 @@
       rel_start && rel_end
 
   let maybe_apply_change_with process pos buf range change =
-    if pos.line = range.Protocol.start_.line && pos.character = range.start_.character then
+    if pos.line = range.Protocol.Range.start_.line && pos.character = range.start_.character then
     let c_lexbuf = Lexing.from_string change in
     let c_buf = Buffer.create (String.length change) in
     let () = process c_buf c_lexbuf in
