@@ -21,7 +21,10 @@ module Response : sig
     type t =
       { code : int
       ; message : string
+      ; data : json option
       }
+
+    val make : ?data:json -> code:int -> message:string -> unit -> t
   end
 
   type t =
@@ -30,9 +33,9 @@ module Response : sig
     ; result : (json, Error.t) Result.t
     }
 
-  val make : Id.t -> json -> t
+  val ok : Id.t -> json -> t
 
-  val make_error : Id.t -> int -> string -> t
+  val error : Id.t -> Error.t -> t
 
   include Yojsonable.S with type t := t
 end

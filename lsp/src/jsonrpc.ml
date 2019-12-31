@@ -137,6 +137,7 @@ module Response = struct
     type t =
       { code : int
       ; message : string
+      ; data : json option [@yojson.option]
       }
     [@@deriving_inline yojson]
 
@@ -148,6 +149,7 @@ module Response = struct
         | `Assoc field_yojsons as yojson -> (
           let code_field = ref None
           and message_field = ref None
+          and data_field = ref None
           and duplicates = ref []
           and extra = ref [] in
           let rec iter = function
@@ -166,6 +168,14 @@ module Response = struct
                 | None ->
                   let fvalue = string_of_yojson _field_yojson in
                   message_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "data" -> (
+                match Ppx_yojson_conv_lib.( ! ) data_field with
+                | None ->
+                  let fvalue = json_of_yojson _field_yojson in
+                  data_field := Some fvalue
                 | Some _ ->
                   duplicates :=
                     field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
@@ -196,10 +206,14 @@ module Response = struct
             | [] -> (
               match
                 ( Ppx_yojson_conv_lib.( ! ) code_field
-                , Ppx_yojson_conv_lib.( ! ) message_field )
+                , Ppx_yojson_conv_lib.( ! ) message_field
+                , Ppx_yojson_conv_lib.( ! ) data_field )
               with
-              | Some code_value, Some message_value ->
-                { code = code_value; message = message_value }
+              | Some code_value, Some message_value, data_value ->
+                { code = code_value
+                ; message = message_value
+                ; data = data_value
+                }
               | _ ->
                 Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                   _tp_loc yojson
@@ -221,8 +235,16 @@ module Response = struct
 
     let yojson_of_t =
       ( function
-        | { code = v_code; message = v_message } ->
+        | { code = v_code; message = v_message; data = v_data } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            match v_data with
+            | None -> bnds
+            | Some v ->
+              let arg = yojson_of_json v in
+              let bnd = ("data", arg) in
+              bnd :: bnds
+          in
           let bnds =
             let arg = yojson_of_string v_message in
             ("message", arg) :: bnds
@@ -237,6 +259,8 @@ module Response = struct
     let _ = yojson_of_t
 
     [@@@end]
+
+    let make ?data ~code ~message () = { data; code; message }
   end
 
   type t =
@@ -271,8 +295,9 @@ module Response = struct
         { id; jsonrpc; result } )
     | _ -> yojson_error "Jsonrpc.Result.t" json
 
-  let make id result = { id; result = Ok result; jsonrpc = "2.0" }
+  let make ~id ~result = { id; result; jsonrpc = "2.0" }
 
-  let make_error id code message =
-    { id; result = Error { code; message }; jsonrpc = "2.0" }
+  let ok id result = make ~id ~result:(Ok result)
+
+  let error id error = make ~id ~result:(Error error)
 end

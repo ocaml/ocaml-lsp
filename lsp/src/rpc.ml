@@ -273,7 +273,7 @@ let start init_state handler ic oc =
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
               let json = Protocol.Initialize.yojson_of_result result in
-              let response = Jsonrpc.Response.make id json in
+              let response = Jsonrpc.Response.ok id json in
               rpc.state <- Initialized params.client_capabilities;
               send_response rpc response;
               Ok next_state
@@ -286,7 +286,11 @@ let start init_state handler ic oc =
             | Message.Request (id, _) ->
               (* we response with -32002 per protocol before we initialized *)
               let response =
-                Jsonrpc.Response.make_error id (-32002) "not initialized"
+                let error =
+                  Jsonrpc.Response.Error.make ~code:(-32002)
+                    ~message:"not initialized" ()
+                in
+                Jsonrpc.Response.error id error
               in
               send_response rpc response;
               Ok state)
@@ -310,7 +314,7 @@ let start init_state handler ic oc =
               match Request.yojson_of_result req result with
               | None -> Ok next_state
               | Some response ->
-                let response = Jsonrpc.Response.make id response in
+                let response = Jsonrpc.Response.ok id response in
                 send_response rpc response;
                 Ok next_state ))
       in
