@@ -134,8 +134,60 @@ end
 
 module Response = struct
   module Error = struct
+    module Code = struct
+      type t =
+        | ParseError
+        | InvalidRequest
+        | MethodNotFound
+        | InvalidParams
+        | InternalError
+        | ServerErrorStart
+        | ServerErrorEnd
+        | ServerNotInitialized
+        | UnknownErrorCode
+        | RequestCancelled
+        | ContentModified
+
+      let of_int = function
+        | -32700 -> Some ParseError
+        | -32600 -> Some InvalidRequest
+        | -32601 -> Some MethodNotFound
+        | -32602 -> Some InvalidParams
+        | -32603 -> Some InternalError
+        | -32099 -> Some ServerErrorStart
+        | -32000 -> Some ServerErrorEnd
+        | -32002 -> Some ServerNotInitialized
+        | -32001 -> Some UnknownErrorCode
+        | -32800 -> Some RequestCancelled
+        | -32801 -> Some ContentModified
+        | _ -> None
+
+      let to_int = function
+        | ParseError -> -32700
+        | InvalidRequest -> -32600
+        | MethodNotFound -> -32601
+        | InvalidParams -> -32602
+        | InternalError -> -32603
+        | ServerErrorStart -> -32099
+        | ServerErrorEnd -> -32000
+        | ServerNotInitialized -> -32002
+        | UnknownErrorCode -> -32001
+        | RequestCancelled -> -32800
+        | ContentModified -> -32801
+
+      let t_of_yojson json =
+        match json with
+        | `Int i -> (
+          match of_int i with
+          | None -> yojson_error "unknown code" json
+          | Some i -> i )
+        | _ -> yojson_error "invalid code" json
+
+      let yojson_of_t t = `Int (to_int t)
+    end
+
     type t =
-      { code : int
+      { code : Code.t
       ; message : string
       ; data : json option [@yojson.option]
       }
@@ -158,7 +210,7 @@ module Response = struct
               | "code" -> (
                 match Ppx_yojson_conv_lib.( ! ) code_field with
                 | None ->
-                  let fvalue = int_of_yojson _field_yojson in
+                  let fvalue = Code.t_of_yojson _field_yojson in
                   code_field := Some fvalue
                 | Some _ ->
                   duplicates :=
@@ -250,7 +302,7 @@ module Response = struct
             ("message", arg) :: bnds
           in
           let bnds =
-            let arg = yojson_of_int v_code in
+            let arg = Code.yojson_of_t v_code in
             ("code", arg) :: bnds
           in
           `Assoc bnds

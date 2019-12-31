@@ -287,7 +287,7 @@ let start init_state handler ic oc =
               (* we response with -32002 per protocol before we initialized *)
               let response =
                 let error =
-                  Jsonrpc.Response.Error.make ~code:(-32002)
+                  Jsonrpc.Response.Error.make ~code:ServerNotInitialized
                     ~message:"not initialized" ()
                 in
                 Jsonrpc.Response.error id error

@@ -18,13 +18,28 @@ end
 
 module Response : sig
   module Error : sig
+    module Code : sig
+      type t =
+        | ParseError
+        | InvalidRequest
+        | MethodNotFound
+        | InvalidParams
+        | InternalError
+        | ServerErrorStart
+        | ServerErrorEnd
+        | ServerNotInitialized
+        | UnknownErrorCode
+        | RequestCancelled
+        | ContentModified
+    end
+
     type t =
-      { code : int
+      { code : Code.t
       ; message : string
       ; data : json option
       }
 
-    val make : ?data:json -> code:int -> message:string -> unit -> t
+    val make : ?data:json -> code:Code.t -> message:string -> unit -> t
   end
 
   type t =
