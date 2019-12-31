@@ -596,6 +596,9 @@ module Response = struct
   let to_yojson = function
     | Response v -> yojson_of_response v
     | Response_error v -> yojson_of_response_error v
+
+  let of_yojson (type a) id (req : a Request.t) (result : a) =
+    Request.yojson_of_result req result |> Option.map ~f:(make id)
 end
 
 let send_response rpc (response : Response.t) =
@@ -635,89 +638,6 @@ module Client_notification = struct
     | Initialized
     | Exit
     | UnknownNotification of string * Yojson.Safe.t
-end
-
-module Request = struct
-  open Protocol
-
-  type _ t =
-    | Shutdown : unit t
-    | TextDocumentHover : Hover.params -> Hover.result t
-    | TextDocumentDefinition : Definition.params -> Definition.result t
-    | TextDocumentTypeDefinition :
-        TypeDefinition.params
-        -> TypeDefinition.result t
-    | TextDocumentCompletion : Completion.params -> Completion.result t
-    | TextDocumentCodeLens : CodeLens.params -> CodeLens.result t
-    | TextDocumentRename : Rename.params -> Rename.result t
-    | DocumentSymbol :
-        TextDocumentDocumentSymbol.params
-        -> TextDocumentDocumentSymbol.result t
-    | DebugEcho : DebugEcho.params -> DebugEcho.result t
-    | DebugTextDocumentGet :
-        DebugTextDocumentGet.params
-        -> DebugTextDocumentGet.result t
-    | TextDocumentReferences : References.params -> References.result t
-    | TextDocumentHighlight :
-        TextDocumentHighlight.params
-        -> TextDocumentHighlight.result t
-    | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
-    | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
-    | CodeAction : CodeActionParams.t -> CodeAction.result t
-    | CompletionItemResolve :
-        Completion.completionItem
-        -> Completion.completionItem t
-    | UnknownRequest : string * Yojson.Safe.t -> unit t
-
-  let request_result_to_response (type a) id (req : a t) (result : a) =
-    match (req, result) with
-    | Shutdown, _resp -> None
-    | TextDocumentHover _, result ->
-      let json = Hover.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentDefinition _, result ->
-      let json = Definition.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentTypeDefinition _, result ->
-      let json = TypeDefinition.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentCompletion _, result ->
-      let json = Completion.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentCodeLens _, result ->
-      let json = CodeLens.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentRename _, result ->
-      let json = Rename.yojson_of_result result in
-      Some (Response.make id json)
-    | DocumentSymbol _, result ->
-      let json = TextDocumentDocumentSymbol.yojson_of_result result in
-      Some (Response.make id json)
-    | DebugEcho _, result ->
-      let json = DebugEcho.yojson_of_result result in
-      Some (Response.make id json)
-    | DebugTextDocumentGet _, result ->
-      let json = DebugTextDocumentGet.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentReferences _, result ->
-      let json = References.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentHighlight _, result ->
-      let json = TextDocumentHighlight.yojson_of_result result in
-      Some (Response.make id json)
-    | TextDocumentFoldingRange _, result ->
-      let json = FoldingRange.yojson_of_result result in
-      Some (Response.make id json)
-    | SignatureHelp _, result ->
-      let json = SignatureHelp.yojson_of_t result in
-      Some (Response.make id json)
-    | CodeAction _, result ->
-      let json = CodeAction.yojson_of_result result in
-      Some (Response.make id json)
-    | CompletionItemResolve _, result ->
-      let json = Completion.yojson_of_completionItem result in
-      Some (Response.make id json)
-    | UnknownRequest _, _resp -> None
 end
 
 module Message = struct
@@ -874,7 +794,7 @@ let start init_state handler ic oc =
             | Message.Request (id, req) -> (
               handler.on_request rpc state client_capabilities req
               >>= fun (next_state, result) ->
-              match Request.request_result_to_response id req result with
+              match Response.of_yojson id req result with
               | None -> Ok next_state
               | Some response ->
                 send_response rpc response;

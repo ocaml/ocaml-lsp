@@ -264,4 +264,11 @@ module Result = struct
   end
 end
 
+module Option = struct
+  let map t ~f =
+    match t with
+    | None -> None
+    | Some x -> Some (f x)
+end
+
 module Yojsonable = Ppx_yojson_conv_lib.Yojsonable
