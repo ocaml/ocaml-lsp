@@ -32,7 +32,7 @@ type _ t =
 
 let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with
-  | Shutdown, _resp -> None
+  | Shutdown, () -> None
   | TextDocumentHover _, result -> Some (Hover.yojson_of_result result)
   | TextDocumentDefinition _, result ->
     Some (Definition.yojson_of_result result)
