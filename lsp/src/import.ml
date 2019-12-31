@@ -239,7 +239,7 @@ let let_ref r v f =
 external reraise : exn -> 'a = "%reraise"
 
 module Result = struct
-  type ('ok, 'err) t = ('ok, 'err) Result.result =
+  type ('ok, 'err) t = ('ok, 'err) result =
     | Ok of 'ok
     | Error of 'err
 
