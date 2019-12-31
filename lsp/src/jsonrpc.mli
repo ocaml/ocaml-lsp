@@ -17,26 +17,18 @@ module Request : sig
 end
 
 module Response : sig
-  type response =
-    { id : Id.t
-    ; jsonrpc : string
-    ; result : json
-    }
-
-  type error =
-    { code : int
-    ; message : string
-    }
-
-  type response_error =
-    { id : Id.t
-    ; jsonrpc : string
-    ; error : error
-    }
+  module Error : sig
+    type t =
+      { code : int
+      ; message : string
+      }
+  end
 
   type t =
-    | Response of response
-    | Response_error of response_error
+    { id : Id.t
+    ; jsonrpc : string
+    ; result : (json, Error.t) Result.t
+    }
 
   val make : Id.t -> json -> t
 
