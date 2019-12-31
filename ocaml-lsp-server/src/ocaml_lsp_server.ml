@@ -166,7 +166,7 @@ let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
       try
         let res = dispatch_in_doc doc command in
         Some
-          [ Lsp.Protocol.Either.Right
+          [ Either.Right
               (code_action_of_case_analysis params.textDocument.uri res)
           ]
       with

@@ -1,8 +1,14 @@
 open Import
 
+module Id : sig
+  type t = (string, int) Either.t
+
+  include Yojsonable.S with type t := t
+end
+
 module Request : sig
   type t =
-    { id : Protocol.Id.t option [@default None]
+    { id : Id.t option [@default None]
     ; method_ : string [@key "method"]
     ; params : json
     }
@@ -12,7 +18,7 @@ end
 
 module Response : sig
   type response =
-    { id : Protocol.Id.t
+    { id : Id.t
     ; jsonrpc : string
     ; result : json
     }
@@ -23,7 +29,7 @@ module Response : sig
     }
 
   type response_error =
-    { id : Protocol.Id.t
+    { id : Id.t
     ; jsonrpc : string
     ; error : error
     }
@@ -32,9 +38,9 @@ module Response : sig
     | Response of response
     | Response_error of response_error
 
-  val make : Protocol.Id.t -> json -> t
+  val make : Id.t -> json -> t
 
-  val make_error : Protocol.Id.t -> int -> string -> t
+  val make_error : Id.t -> int -> string -> t
 
   include Yojsonable.S with type t := t
 end

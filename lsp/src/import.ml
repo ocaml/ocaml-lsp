@@ -271,6 +271,12 @@ module Option = struct
     | Some x -> Some (f x)
 end
 
+module Either = struct
+  type ('left, 'right) t =
+    | Left of 'left
+    | Right of 'right
+end
+
 module Yojsonable = Ppx_yojson_conv_lib.Yojsonable
 
 let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error

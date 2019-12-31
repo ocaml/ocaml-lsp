@@ -157,8 +157,8 @@ module Message = struct
   open Protocol
 
   type t =
-    | Initialize : Protocol.Id.t * Protocol.Initialize.params -> t
-    | Request : Protocol.Id.t * 'result Request.t -> t
+    | Initialize : Jsonrpc.Id.t * Protocol.Initialize.params -> t
+    | Request : Jsonrpc.Id.t * 'result Request.t -> t
     | Client_notification : Client_notification.t -> t
 
   let parse packet =

@@ -1,11 +1,5 @@
 open Import
 
-module Either : sig
-  type ('left, 'right) t =
-    | Left of 'left
-    | Right of 'right
-end
-
 module Or_bool : sig
   type 'a t =
     | Bool of bool
@@ -23,12 +17,6 @@ module Or_string : sig
 end
 
 module Void : Yojsonable.S
-
-module Id : sig
-  type t = (string, int) Either.t
-
-  include Yojsonable.S with type t := t
-end
 
 type documentUri = Uri.t
 
