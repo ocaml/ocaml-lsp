@@ -4,6 +4,21 @@ open Import
     https://microsoft.github.io/language-server-protocol/specification * * Most
     of this was borrowed from facebook/flow repository. * *)
 
+module Only = struct
+  type 'a t =
+    | All
+    | Only of 'a list
+
+  let yojson_of_t f = function
+    | All -> `Null
+    | Only xs -> `List (List.map ~f xs)
+
+  let t_of_yojson f = function
+    | `Null -> All
+    | `List xs -> Only (List.map ~f xs)
+    | json -> yojson_error "invalid only" json
+end
+
 module Or_bool = struct
   type 'a t =
     | Bool of bool
@@ -8512,7 +8527,8 @@ end
 module CodeActionContext = struct
   type t =
     { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t list option [@yojson.option]
+    ; only : CodeActionKind.t Only.t
+          [@default Only.All] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson]
 
@@ -8544,7 +8560,7 @@ module CodeActionContext = struct
               match Ppx_yojson_conv_lib.( ! ) only_field with
               | None ->
                 let fvalue =
-                  list_of_yojson CodeActionKind.t_of_yojson _field_yojson
+                  Only.t_of_yojson CodeActionKind.t_of_yojson _field_yojson
                 in
                 only_field := Some fvalue
               | Some _ ->
@@ -8579,7 +8595,12 @@ module CodeActionContext = struct
               , Ppx_yojson_conv_lib.( ! ) only_field )
             with
             | Some diagnostics_value, only_value ->
-              { diagnostics = diagnostics_value; only = only_value }
+              { diagnostics = diagnostics_value
+              ; only =
+                  ( match only_value with
+                  | None -> Only.All
+                  | Some v -> v )
+              }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
@@ -8600,10 +8621,10 @@ module CodeActionContext = struct
       | { diagnostics = v_diagnostics; only = v_only } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          match v_only with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_list CodeActionKind.yojson_of_t v in
+          if Only.All = v_only then
+            bnds
+          else
+            let arg = (Only.yojson_of_t CodeActionKind.yojson_of_t) v_only in
             let bnd = ("only", arg) in
             bnd :: bnds
         in

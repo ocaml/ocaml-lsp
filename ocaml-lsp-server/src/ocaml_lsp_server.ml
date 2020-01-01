@@ -150,12 +150,12 @@ let code_action_of_case_analysis uri (loc, newText) =
 let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
   let open Lsp.Import.Result.Infix in
   match params.context.only with
-  | Some set
+  | Only set
     when not (List.mem (Lsp.Protocol.CodeActionKind.Other Action.destruct) ~set)
     ->
     return (store, [])
-  | None
-  | Some _ ->
+  | Only _
+  | All ->
     Document_store.get store params.textDocument.uri >>= fun doc ->
     let command =
       let start = logical_of_position params.range.start_ in

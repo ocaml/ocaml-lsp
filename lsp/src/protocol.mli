@@ -1,5 +1,11 @@
 open Import
 
+module Only : sig
+  type 'a t =
+    | All
+    | Only of 'a list
+end
+
 module Or_bool : sig
   type 'a t =
     | Bool of bool
@@ -992,7 +998,7 @@ end
 module CodeActionContext : sig
   type t =
     { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t list option
+    ; only : CodeActionKind.t Only.t
     }
 
   include Yojsonable.S with type t := t
