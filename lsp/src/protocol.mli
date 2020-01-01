@@ -333,11 +333,7 @@ module Completion : sig
     | Operator
     | TypeParameter
 
-  val int_of_completionItemKind : completionItemKind -> int
-
   val yojson_of_completionItemKind : completionItemKind -> json
-
-  val completionItemKind_of_int_opt : int -> completionItemKind option
 
   val completionItemKind_of_yojson : json -> completionItemKind
 
@@ -345,11 +341,7 @@ module Completion : sig
     | PlainText
     | SnippetFormat
 
-  val int_of_insertFormat : insertTextFormat -> int
-
   val yojson_of_insertTextFormat : insertTextFormat -> json
-
-  val insertFormat_of_int_opt : int -> insertTextFormat option
 
   val insertTextFormat_of_yojson : json -> insertTextFormat
 
