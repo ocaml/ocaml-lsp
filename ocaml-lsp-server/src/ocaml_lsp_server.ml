@@ -225,7 +225,7 @@ let on_request :
         ; kind = Lsp.Protocol.MarkupKind.Markdown
         }
       else
-        { Lsp.Protocol.MarkupContent.value = Printf.sprintf "%s%s" doc typ
+        { Lsp.Protocol.MarkupContent.value = Printf.sprintf "%s%s" typ doc
         ; kind = Lsp.Protocol.MarkupKind.Plaintext
         }
     in
