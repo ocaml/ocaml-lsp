@@ -128,19 +128,17 @@ module Server_notification = struct
 
   let yojson_of_params = function
     | PublishDiagnostics params -> PublishDiagnostics.yojson_of_params params
+
+  let to_jsonrpc_request t =
+    let method_ = method_ t in
+    let params = Some (yojson_of_params t) in
+    { Jsonrpc.Request.id = None; params; method_ }
 end
 
 let send_notification rpc notif =
-  let method_ = Server_notification.method_ notif in
-  let params = Server_notification.yojson_of_params notif in
-  let response =
-    `Assoc
-      [ ("jsonrpc", `String "2.0")
-      ; ("method", `String method_)
-      ; ("params", params)
-      ]
-  in
-  send rpc response
+  let response = Server_notification.to_jsonrpc_request notif in
+  let json = Jsonrpc.Request.yojson_of_t response in
+  send rpc json
 
 module Client_notification = struct
   open Protocol
