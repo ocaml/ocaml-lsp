@@ -20,121 +20,59 @@ let field_exn fields name conv =
   | None -> yojson_error "Jsonrpc.Result.t: missing field" (`Assoc fields)
   | Some f -> f
 
+module Constant = struct
+  let jsonrpc = "jsonrpc"
+
+  let jsonrpcv = "2.0"
+
+  let id = "id"
+
+  let method_ = "method"
+
+  let params = "params"
+
+  let result = "result"
+
+  let error = "error"
+end
+
 module Request = struct
   type t =
     { id : Id.t option [@yojson.option]
     ; method_ : string [@key "method"]
     ; params : json option [@yojson.option]
     }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  let _ = fun (_ : t) -> ()
+  let yojson_of_t { id; method_; params } =
+    let json = [ (Constant.method_, `String method_) ] in
+    let json =
+      match params with
+      | None -> json
+      | Some params -> (Constant.params, params) :: json
+    in
+    let json =
+      match id with
+      | None -> json
+      | Some id -> (Constant.id, Id.yojson_of_t id) :: json
+    in
+    `Assoc json
 
-  let t_of_yojson =
-    ( let _tp_loc = "lsp/src/jsonrpc.ml.Request.t" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let id_field = ref None
-        and method__field = ref None
-        and params_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "id" -> (
-              match Ppx_yojson_conv_lib.( ! ) id_field with
-              | None ->
-                let fvalue = Id.t_of_yojson _field_yojson in
-                id_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "method" -> (
-              match Ppx_yojson_conv_lib.( ! ) method__field with
-              | None ->
-                let fvalue = string_of_yojson _field_yojson in
-                method__field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "params" -> (
-              match Ppx_yojson_conv_lib.( ! ) params_field with
-              | None ->
-                let fvalue = json_of_yojson _field_yojson in
-                params_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) id_field
-              , Ppx_yojson_conv_lib.( ! ) method__field
-              , Ppx_yojson_conv_lib.( ! ) params_field )
-            with
-            | id_value, Some method__value, params_value ->
-              { id = id_value; method_ = method__value; params = params_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) method__field)
-                      None
-                  , "method_" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
-
-  let _ = t_of_yojson
-
-  let yojson_of_t =
-    ( function
-      | { id = v_id; method_ = v_method_; params = v_params } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          match v_params with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_json v in
-            let bnd = ("params", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_string v_method_ in
-          ("method", arg) :: bnds
-        in
-        let bnds =
-          match v_id with
-          | None -> bnds
-          | Some v ->
-            let arg = Id.yojson_of_t v in
-            let bnd = ("id", arg) in
-            bnd :: bnds
-        in
-        `Assoc bnds
-      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_t
-
-  [@@@end]
+  let t_of_yojson json =
+    match json with
+    | `Assoc fields ->
+      let method_ =
+        field_exn fields Constant.method_ Yojson_conv.string_of_yojson
+      in
+      let params = field fields Constant.params json_of_yojson in
+      let id = field fields Constant.id Id.t_of_yojson in
+      let jsonrpc =
+        field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+      in
+      if jsonrpc = Constant.jsonrpcv then
+        { method_; params; id }
+      else
+        yojson_error "invalid version" json
+    | _ -> yojson_error "invalid request" json
 end
 
 module Response = struct
@@ -322,31 +260,41 @@ module Response = struct
 
   type t =
     { id : Id.t
-    ; jsonrpc : string
     ; result : (json, Error.t) Result.t
     }
 
-  let yojson_of_t { id; jsonrpc; result } =
+  let yojson_of_t { id; result } =
     let result =
       match result with
-      | Ok json -> ("result", json)
-      | Error e -> ("error", Error.yojson_of_t e)
+      | Ok json -> (Constant.result, json)
+      | Error e -> (Constant.error, Error.yojson_of_t e)
     in
-    `Assoc [ ("id", Id.yojson_of_t id); ("jsonrpc", `String jsonrpc); result ]
+    `Assoc
+      [ (Constant.id, Id.yojson_of_t id)
+      ; (Constant.jsonrpc, `String Constant.jsonrpcv)
+      ; result
+      ]
 
   let t_of_yojson json =
     match json with
     | `Assoc fields -> (
-      let id = field_exn fields "id" Id.t_of_yojson in
-      let jsonrpc = field_exn fields "jsonrpc" Yojson_conv.string_of_yojson in
-      match field fields "result" json_of_yojson with
-      | Some res -> { id; jsonrpc; result = Ok res }
-      | None ->
-        let result = Error (field_exn fields "error" Error.t_of_yojson) in
-        { id; jsonrpc; result } )
+      let id = field_exn fields Constant.id Id.t_of_yojson in
+      let jsonrpc =
+        field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+      in
+      if jsonrpc <> Constant.jsonrpcv then
+        yojson_error "Invalid response" json
+      else
+        match field fields Constant.result json_of_yojson with
+        | Some res -> { id; result = Ok res }
+        | None ->
+          let result =
+            Error (field_exn fields Constant.error Error.t_of_yojson)
+          in
+          { id; result } )
     | _ -> yojson_error "Jsonrpc.Result.t" json
 
-  let make ~id ~result = { id; result; jsonrpc = "2.0" }
+  let make ~id ~result = { id; result }
 
   let ok id result = make ~id ~result:(Ok result)
 

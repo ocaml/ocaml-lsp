@@ -44,7 +44,6 @@ module Response : sig
 
   type t =
     { id : Id.t
-    ; jsonrpc : string
     ; result : (json, Error.t) Result.t
     }
 
