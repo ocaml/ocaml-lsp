@@ -1003,7 +1003,7 @@ end
 module CodeActionContext : sig
   type t =
     { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t list
+    ; only : CodeActionKind.t list option
     }
 
   include Yojsonable.S with type t := t

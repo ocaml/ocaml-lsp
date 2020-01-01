@@ -153,7 +153,7 @@ let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
   | Some set
     when not (List.mem (Lsp.Protocol.CodeActionKind.Other Action.destruct) ~set)
     ->
-    return (store, None)
+    return (store, [])
   | None
   | Some _ ->
     Document_store.get store params.textDocument.uri >>= fun doc ->
@@ -165,14 +165,14 @@ let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
     let result : Lsp.Protocol.CodeAction.result =
       try
         let res = dispatch_in_doc doc command in
-        Some
-          [ Either.Right
-              (code_action_of_case_analysis params.textDocument.uri res)
-          ]
+        [ Either.Right
+            (code_action_of_case_analysis params.textDocument.uri res)
+        ]
       with
-      | Destruct.Not_allowed _ -> None
-      | Destruct.Useless_refine -> None
-      | Destruct.Nothing_to_do -> None
+      | Destruct.Not_allowed _
+      | Destruct.Useless_refine
+      | Destruct.Nothing_to_do ->
+        []
     in
     return (store, result)
 
