@@ -4188,21 +4188,23 @@ end
 
 (* Initialize request, method="initialize" *)
 module Initialize = struct
-  type trace =
-    | Off
-    | Messages
-    | Verbose
+  module Trace = struct
+    type t =
+      | Off
+      | Messages
+      | Verbose
 
-  let yojson_of_trace = function
-    | Off -> `String "off"
-    | Messages -> `String "messages"
-    | Verbose -> `String "verbose"
+    let yojson_of_t = function
+      | Off -> `String "off"
+      | Messages -> `String "messages"
+      | Verbose -> `String "verbose"
 
-  let trace_of_yojson = function
-    | `String "off" -> Off
-    | `String "messages" -> Messages
-    | `String "verbose" -> Verbose
-    | node -> yojson_error "invalid trace" node
+    let t_of_yojson = function
+      | `String "off" -> Off
+      | `String "messages" -> Messages
+      | `String "verbose" -> Verbose
+      | node -> yojson_error "invalid trace" node
+  end
 
   type textDocumentSyncKind =
     | NoSync (* 0 *)
@@ -5366,7 +5368,7 @@ module Initialize = struct
     ; (* the root URI of the workspace *)
       client_capabilities : client_capabilities
           [@key "capabilities"] [@default client_capabilities_empty]
-    ; trace : trace [@default Off] [@yojson_drop_default ( = )]
+    ; trace : Trace.t [@default Trace.Off] [@yojson_drop_default ( = )]
           (* the initial trace setting, default="off" *)
     }
   [@@yojson.allow_extra_fields]
@@ -5526,7 +5528,7 @@ module Initialize = struct
             | "trace" -> (
               match Ppx_yojson_conv_lib.( ! ) trace_field with
               | None ->
-                let fvalue = trace_of_yojson _field_yojson in
+                let fvalue = Trace.t_of_yojson _field_yojson in
                 trace_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -5568,7 +5570,7 @@ module Initialize = struct
                 | Some v -> v )
             ; trace =
                 ( match trace_value with
-                | None -> Off
+                | None -> Trace.Off
                 | Some v -> v )
             } ) )
       | _ as yojson ->
@@ -6522,10 +6524,10 @@ module Initialize = struct
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          if Off = v_trace then
+          if Trace.Off = v_trace then
             bnds
           else
-            let arg = yojson_of_trace v_trace in
+            let arg = Trace.yojson_of_t v_trace in
             let bnd = ("trace", arg) in
             bnd :: bnds
         in

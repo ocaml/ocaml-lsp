@@ -517,14 +517,14 @@ module CodeActionLiteralSupport : sig
 end
 
 module Initialize : sig
-  type trace =
-    | Off
-    | Messages
-    | Verbose
+  module Trace : sig
+    type t =
+      | Off
+      | Messages
+      | Verbose
 
-  val yojson_of_trace : trace -> json
-
-  val trace_of_yojson : json -> trace
+    include Yojsonable.S with type t := t
+  end
 
   type textDocumentSyncKind =
     | NoSync
@@ -656,7 +656,7 @@ module Initialize : sig
     ; rootPath : string option
     ; rootUri : documentUri option
     ; client_capabilities : client_capabilities
-    ; trace : trace
+    ; trace : Trace.t
     }
 
   and result = { server_capabilities : server_capabilities }
