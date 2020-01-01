@@ -394,8 +394,8 @@ module Completion : sig
     ; insertText : string option
     ; insertTextFormat : insertTextFormat option
     ; textEdit : TextEdit.t option
-    ; additionalTextEdits : TextEdit.t list option
-    ; commitCharacters : string list option
+    ; additionalTextEdits : TextEdit.t list
+    ; commitCharacters : string list
     ; data : json option
     }
 
@@ -1003,7 +1003,7 @@ end
 module CodeActionContext : sig
   type t =
     { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t list option
+    ; only : CodeActionKind.t list
     }
 
   include Yojsonable.S with type t := t
@@ -1023,14 +1023,14 @@ module CodeAction : sig
   type t =
     { title : string
     ; kind : CodeActionKind.t option
-    ; diagnostics : PublishDiagnostics.diagnostic list option
+    ; diagnostics : PublishDiagnostics.diagnostic list
     ; edit : WorkspaceEdit.t option
     ; command : Command.t option
     }
 
   val yojson_of_t : t -> json
 
-  type result = (Command.t, t) Either.t list option
+  type result = (Command.t, t) Either.t list
 
   val yojson_of_result : result -> json
 end

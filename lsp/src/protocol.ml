@@ -2660,12 +2660,13 @@ module Completion = struct
     ; (* used for inserting; if absent, uses label *)
       insertTextFormat : insertTextFormat option [@yojson.option]
     ; textEdit : TextEdit.t option [@yojson.option]
-    ; additionalTextEdits : TextEdit.t list option
-          [@yojson.option]
+    ; additionalTextEdits : TextEdit.t list
+          [@default []]
+          [@yojson_drop_default ( = )]
           (* command: Command.t option [@default None]; (1* if present, is
              executed after completion *1) *)
           (* data: Hh_json.json option [@default None]; *)
-    ; commitCharacters : string list option [@yojson.option]
+    ; commitCharacters : string list [@default []] [@yojson_drop_default ( = )]
     ; data : json option [@yojson.option]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
@@ -3077,8 +3078,14 @@ module Completion = struct
               ; insertText = insertText_value
               ; insertTextFormat = insertTextFormat_value
               ; textEdit = textEdit_value
-              ; additionalTextEdits = additionalTextEdits_value
-              ; commitCharacters = commitCharacters_value
+              ; additionalTextEdits =
+                  ( match additionalTextEdits_value with
+                  | None -> []
+                  | Some v -> v )
+              ; commitCharacters =
+                  ( match commitCharacters_value with
+                  | None -> []
+                  | Some v -> v )
               ; data = data_value
               }
             | _ ->
@@ -3200,18 +3207,20 @@ module Completion = struct
             bnd :: bnds
         in
         let bnds =
-          match v_commitCharacters with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_list yojson_of_string v in
+          if [] = v_commitCharacters then
+            bnds
+          else
+            let arg = (yojson_of_list yojson_of_string) v_commitCharacters in
             let bnd = ("commitCharacters", arg) in
             bnd :: bnds
         in
         let bnds =
-          match v_additionalTextEdits with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_list TextEdit.yojson_of_t v in
+          if [] = v_additionalTextEdits then
+            bnds
+          else
+            let arg =
+              (yojson_of_list TextEdit.yojson_of_t) v_additionalTextEdits
+            in
             let bnd = ("additionalTextEdits", arg) in
             bnd :: bnds
         in
@@ -8498,7 +8507,7 @@ end
 module CodeActionContext = struct
   type t =
     { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t list option [@yojson.option]
+    ; only : CodeActionKind.t list [@default []] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson]
 
@@ -8565,7 +8574,12 @@ module CodeActionContext = struct
               , Ppx_yojson_conv_lib.( ! ) only_field )
             with
             | Some diagnostics_value, only_value ->
-              { diagnostics = diagnostics_value; only = only_value }
+              { diagnostics = diagnostics_value
+              ; only =
+                  ( match only_value with
+                  | None -> []
+                  | Some v -> v )
+              }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
@@ -8586,10 +8600,10 @@ module CodeActionContext = struct
       | { diagnostics = v_diagnostics; only = v_only } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          match v_only with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_list CodeActionKind.yojson_of_t v in
+          if [] = v_only then
+            bnds
+          else
+            let arg = (yojson_of_list CodeActionKind.yojson_of_t) v_only in
             let bnd = ("only", arg) in
             bnd :: bnds
         in
@@ -8739,7 +8753,8 @@ module CodeAction = struct
   type t =
     { title : string
     ; kind : CodeActionKind.t option [@yojson.option]
-    ; diagnostics : PublishDiagnostics.diagnostic list option [@yojson.option]
+    ; diagnostics : PublishDiagnostics.diagnostic list
+          [@default []] [@yojson_drop_default ( = )]
     ; edit : WorkspaceEdit.t option [@yojson.option]
     ; command : Command.t option [@yojson.option]
     }
@@ -8773,11 +8788,12 @@ module CodeAction = struct
             bnd :: bnds
         in
         let bnds =
-          match v_diagnostics with
-          | None -> bnds
-          | Some v ->
+          if [] = v_diagnostics then
+            bnds
+          else
             let arg =
-              yojson_of_list PublishDiagnostics.yojson_of_diagnostic v
+              (yojson_of_list PublishDiagnostics.yojson_of_diagnostic)
+                v_diagnostics
             in
             let bnd = ("diagnostics", arg) in
             bnd :: bnds
@@ -8801,14 +8817,11 @@ module CodeAction = struct
 
   [@@@end]
 
-  type result = (Command.t, t) Either.t list option
+  type result = (Command.t, t) Either.t list
 
-  let yojson_of_result (r : result) : Yojson.Safe.t =
-    match r with
-    | None -> `Null
-    | Some elems ->
-      `List
-        (List.map elems ~f:(function
-          | Either.Right r -> yojson_of_t r
-          | Left l -> Command.yojson_of_t l))
+  let yojson_of_result (elems : result) : Yojson.Safe.t =
+    `List
+      (List.map elems ~f:(function
+        | Either.Right r -> yojson_of_t r
+        | Left l -> Command.yojson_of_t l))
 end

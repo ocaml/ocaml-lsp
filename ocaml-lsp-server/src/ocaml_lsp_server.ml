@@ -142,7 +142,7 @@ let code_action_of_case_analysis uri (loc, newText) =
   let title = String.capitalize_ascii Action.destruct in
   { Lsp.Protocol.CodeAction.title
   ; kind = Some (Lsp.Protocol.CodeActionKind.Other Action.destruct)
-  ; diagnostics = None
+  ; diagnostics = []
   ; edit = Some edit
   ; command = None
   }
@@ -502,8 +502,8 @@ let on_request :
       ; insertText = None
       ; insertTextFormat = None
       ; textEdit
-      ; additionalTextEdits = None
-      ; commitCharacters = None
+      ; additionalTextEdits = []
+      ; commitCharacters = []
       ; data = None
       }
     in
