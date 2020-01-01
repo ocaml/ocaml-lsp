@@ -26,7 +26,7 @@ module Request = struct
     ; method_ : string [@key "method"]
     ; params : json option [@yojson.option]
     }
-  [@@deriving_inline yojson]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
 
@@ -66,14 +66,7 @@ module Request = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
-            | _ ->
-              if
-                Ppx_yojson_conv_lib.( ! )
-                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
-              then
-                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
-              else
-                () );
+            | _ -> () );
             iter tail
           | [] -> ()
         in
