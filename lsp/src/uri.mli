@@ -1,8 +1,6 @@
-type t
+open Import
 
-val t_of_yojson : Yojson.Safe.t -> t
-
-val yojson_of_t : t -> Yojson.Safe.t
+include Yojsonable.S
 
 val to_path : t -> string
 
