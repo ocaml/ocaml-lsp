@@ -205,18 +205,73 @@ module TextDocumentEdit : sig
   include Yojsonable.S with type t := t
 end
 
+module CreateFileOptions : sig
+  type t =
+    { overwrite : bool option
+    ; ignoreIfExists : bool option
+    }
+end
+
+module CreateFile : sig
+  type t =
+    { uri : documentUri
+    ; options : CreateFileOptions.t option
+    }
+
+  include Yojsonable.S with type t := t
+end
+
+module RenameFileOptions : sig
+  type t =
+    { overwrite : bool option
+    ; ignoreIfExists : bool option
+    }
+
+  include Yojsonable.S with type t := t
+end
+
+module RenameFile : sig
+  type t =
+    { oldUri : documentUri
+    ; newUri : documentUri
+    ; options : RenameFileOptions.t option
+    }
+
+  include Yojsonable.S with type t := t
+end
+
+module DeleteFileOptions : sig
+  type t =
+    { recursive : bool option
+    ; ignoreIfNotExists : bool option
+    }
+
+  include Yojsonable.S with type t := t
+end
+
+module DeleteFile : sig
+  type t =
+    { uri : documentUri
+    ; options : DeleteFileOptions.t option
+    }
+
+  include Yojsonable.S with type t := t
+end
+
 module WorkspaceEdit : sig
-  type changes = (Uri.t * TextEdit.t list) list
+  module DocumentChange : sig
+    type t =
+      | TextDocumentEdit of TextDocumentEdit.t
+      | CreateFile of CreateFile.t
+      | RenameFile of RenameFile.t
+      | DeleteFile of DeleteFile.t
 
-  val yojson_of_changes : changes -> json
-
-  type documentChanges = TextDocumentEdit.t list
-
-  val yojson_of_documentChanges : documentChanges -> json
+    val yojson_of_t : t -> json
+  end
 
   type t =
-    { changes : changes option
-    ; documentChanges : documentChanges option
+    { changes : (Uri.t * TextEdit.t list) list
+    ; documentChanges : DocumentChange.t list
     }
 
   val yojson_of_t : t -> json

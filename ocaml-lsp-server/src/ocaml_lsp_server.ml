@@ -137,7 +137,7 @@ let code_action_of_case_analysis uri (loc, newText) =
     let textedit : Lsp.Protocol.TextEdit.t =
       { range = range_of_loc loc; newText }
     in
-    { changes = Some [ (uri, [ textedit ]) ]; documentChanges = None }
+    { changes = [ (uri, [ textedit ]) ]; documentChanges = [] }
   in
   let title = String.capitalize_ascii Action.destruct in
   { Lsp.Protocol.CodeAction.title

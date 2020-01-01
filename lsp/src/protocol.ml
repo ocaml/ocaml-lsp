@@ -1849,39 +1849,695 @@ module TextDocumentEdit = struct
   [@@@end]
 end
 
+module CreateFileOptions = struct
+  type t =
+    { overwrite : bool option
+    ; ignoreIfExists : bool option
+    }
+  [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.CreateFileOptions.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let overwrite_field = ref None
+        and ignoreIfExists_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "overwrite" -> (
+              match Ppx_yojson_conv_lib.( ! ) overwrite_field with
+              | None ->
+                let fvalue = option_of_yojson bool_of_yojson _field_yojson in
+                overwrite_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "ignoreIfExists" -> (
+              match Ppx_yojson_conv_lib.( ! ) ignoreIfExists_field with
+              | None ->
+                let fvalue = option_of_yojson bool_of_yojson _field_yojson in
+                ignoreIfExists_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ ->
+              if
+                Ppx_yojson_conv_lib.( ! )
+                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+              then
+                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
+              else
+                () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) overwrite_field
+              , Ppx_yojson_conv_lib.( ! ) ignoreIfExists_field )
+            with
+            | Some overwrite_value, Some ignoreIfExists_value ->
+              { overwrite = overwrite_value
+              ; ignoreIfExists = ignoreIfExists_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) overwrite_field)
+                      None
+                  , "overwrite" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) ignoreIfExists_field)
+                      None
+                  , "ignoreIfExists" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { overwrite = v_overwrite; ignoreIfExists = v_ignoreIfExists } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_option yojson_of_bool v_ignoreIfExists in
+          ("ignoreIfExists", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_option yojson_of_bool v_overwrite in
+          ("overwrite", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
+module CreateFile = struct
+  type t =
+    { uri : documentUri
+    ; options : CreateFileOptions.t option [@yojson.option]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.CreateFile.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let uri_field = ref None
+        and options_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "uri" -> (
+              match Ppx_yojson_conv_lib.( ! ) uri_field with
+              | None ->
+                let fvalue = documentUri_of_yojson _field_yojson in
+                uri_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "options" -> (
+              match Ppx_yojson_conv_lib.( ! ) options_field with
+              | None ->
+                let fvalue = CreateFileOptions.t_of_yojson _field_yojson in
+                options_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) uri_field
+              , Ppx_yojson_conv_lib.( ! ) options_field )
+            with
+            | Some uri_value, options_value ->
+              { uri = uri_value; options = options_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) uri_field)
+                      None
+                  , "uri" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { uri = v_uri; options = v_options } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_options with
+          | None -> bnds
+          | Some v ->
+            let arg = CreateFileOptions.yojson_of_t v in
+            let bnd = ("options", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_documentUri v_uri in
+          ("uri", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let yojson_of_t t =
+    match yojson_of_t t with
+    | `Assoc fields -> `Assoc (("kind", `String "create") :: fields)
+    | _ -> assert false
+end
+
+module RenameFileOptions = struct
+  type t =
+    { overwrite : bool option
+    ; ignoreIfExists : bool option
+    }
+  [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.RenameFileOptions.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let overwrite_field = ref None
+        and ignoreIfExists_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "overwrite" -> (
+              match Ppx_yojson_conv_lib.( ! ) overwrite_field with
+              | None ->
+                let fvalue = option_of_yojson bool_of_yojson _field_yojson in
+                overwrite_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "ignoreIfExists" -> (
+              match Ppx_yojson_conv_lib.( ! ) ignoreIfExists_field with
+              | None ->
+                let fvalue = option_of_yojson bool_of_yojson _field_yojson in
+                ignoreIfExists_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ ->
+              if
+                Ppx_yojson_conv_lib.( ! )
+                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+              then
+                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
+              else
+                () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) overwrite_field
+              , Ppx_yojson_conv_lib.( ! ) ignoreIfExists_field )
+            with
+            | Some overwrite_value, Some ignoreIfExists_value ->
+              { overwrite = overwrite_value
+              ; ignoreIfExists = ignoreIfExists_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) overwrite_field)
+                      None
+                  , "overwrite" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) ignoreIfExists_field)
+                      None
+                  , "ignoreIfExists" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { overwrite = v_overwrite; ignoreIfExists = v_ignoreIfExists } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_option yojson_of_bool v_ignoreIfExists in
+          ("ignoreIfExists", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_option yojson_of_bool v_overwrite in
+          ("overwrite", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
+module RenameFile = struct
+  type t =
+    { oldUri : documentUri
+    ; newUri : documentUri
+    ; options : RenameFileOptions.t option
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.RenameFile.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let oldUri_field = ref None
+        and newUri_field = ref None
+        and options_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "oldUri" -> (
+              match Ppx_yojson_conv_lib.( ! ) oldUri_field with
+              | None ->
+                let fvalue = documentUri_of_yojson _field_yojson in
+                oldUri_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "newUri" -> (
+              match Ppx_yojson_conv_lib.( ! ) newUri_field with
+              | None ->
+                let fvalue = documentUri_of_yojson _field_yojson in
+                newUri_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "options" -> (
+              match Ppx_yojson_conv_lib.( ! ) options_field with
+              | None ->
+                let fvalue =
+                  option_of_yojson RenameFileOptions.t_of_yojson _field_yojson
+                in
+                options_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) oldUri_field
+              , Ppx_yojson_conv_lib.( ! ) newUri_field
+              , Ppx_yojson_conv_lib.( ! ) options_field )
+            with
+            | Some oldUri_value, Some newUri_value, Some options_value ->
+              { oldUri = oldUri_value
+              ; newUri = newUri_value
+              ; options = options_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) oldUri_field)
+                      None
+                  , "oldUri" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) newUri_field)
+                      None
+                  , "newUri" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) options_field)
+                      None
+                  , "options" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { oldUri = v_oldUri; newUri = v_newUri; options = v_options } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_option RenameFileOptions.yojson_of_t v_options in
+          ("options", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_documentUri v_newUri in
+          ("newUri", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_documentUri v_oldUri in
+          ("oldUri", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let yojson_of_t t =
+    match yojson_of_t t with
+    | `Assoc fields -> `Assoc (("kind", `String "rename") :: fields)
+    | _ -> assert false
+end
+
+module DeleteFileOptions = struct
+  type t =
+    { recursive : bool option
+    ; ignoreIfNotExists : bool option
+    }
+  [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.DeleteFileOptions.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let recursive_field = ref None
+        and ignoreIfNotExists_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "recursive" -> (
+              match Ppx_yojson_conv_lib.( ! ) recursive_field with
+              | None ->
+                let fvalue = option_of_yojson bool_of_yojson _field_yojson in
+                recursive_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "ignoreIfNotExists" -> (
+              match Ppx_yojson_conv_lib.( ! ) ignoreIfNotExists_field with
+              | None ->
+                let fvalue = option_of_yojson bool_of_yojson _field_yojson in
+                ignoreIfNotExists_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ ->
+              if
+                Ppx_yojson_conv_lib.( ! )
+                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+              then
+                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
+              else
+                () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) recursive_field
+              , Ppx_yojson_conv_lib.( ! ) ignoreIfNotExists_field )
+            with
+            | Some recursive_value, Some ignoreIfNotExists_value ->
+              { recursive = recursive_value
+              ; ignoreIfNotExists = ignoreIfNotExists_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) recursive_field)
+                      None
+                  , "recursive" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) ignoreIfNotExists_field)
+                      None
+                  , "ignoreIfNotExists" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { recursive = v_recursive; ignoreIfNotExists = v_ignoreIfNotExists } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_option yojson_of_bool v_ignoreIfNotExists in
+          ("ignoreIfNotExists", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_option yojson_of_bool v_recursive in
+          ("recursive", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
+module DeleteFile = struct
+  type t =
+    { uri : documentUri
+    ; options : DeleteFileOptions.t option
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.DeleteFile.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let uri_field = ref None
+        and options_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "uri" -> (
+              match Ppx_yojson_conv_lib.( ! ) uri_field with
+              | None ->
+                let fvalue = documentUri_of_yojson _field_yojson in
+                uri_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "options" -> (
+              match Ppx_yojson_conv_lib.( ! ) options_field with
+              | None ->
+                let fvalue =
+                  option_of_yojson DeleteFileOptions.t_of_yojson _field_yojson
+                in
+                options_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) uri_field
+              , Ppx_yojson_conv_lib.( ! ) options_field )
+            with
+            | Some uri_value, Some options_value ->
+              { uri = uri_value; options = options_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) uri_field)
+                      None
+                  , "uri" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) options_field)
+                      None
+                  , "options" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { uri = v_uri; options = v_options } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_option DeleteFileOptions.yojson_of_t v_options in
+          ("options", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_documentUri v_uri in
+          ("uri", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let yojson_of_t t =
+    match yojson_of_t t with
+    | `Assoc fields -> `Assoc (("kind", `String "delete") :: fields)
+    | _ -> assert false
+end
+
 (** A workspace edit represents changes to many resources managed in the
     workspace. The edit should either provide [changes] or [documentChanges]. If
     the client can handle versioned document edits and if [documentChanges] are
     present, the latter are preferred over [changes]. *)
 module WorkspaceEdit = struct
-  (** Holds changes to existing resources.
+  module DocumentChange = struct
+    type t =
+      | TextDocumentEdit of TextDocumentEdit.t
+      | CreateFile of CreateFile.t
+      | RenameFile of RenameFile.t
+      | DeleteFile of DeleteFile.t
 
-      The json representation is an object with URIs as keys and edits as
-      values. *)
-  type changes = (Uri.t * TextEdit.t list) list
+    let yojson_of_t = function
+      | TextDocumentEdit a -> TextDocumentEdit.yojson_of_t a
+      | CreateFile a -> CreateFile.yojson_of_t a
+      | RenameFile a -> RenameFile.yojson_of_t a
+      | DeleteFile a -> DeleteFile.yojson_of_t a
+  end
 
-  let yojson_of_changes changes =
-    let changes =
-      List.map
-        ~f:(fun (uri, edits) ->
-          let uri = Uri.to_string uri in
-          let edits = `List (List.map ~f:TextEdit.yojson_of_t edits) in
-          (uri, edits))
-        changes
-    in
-    `Assoc changes
+  module Changes = struct
+    type t = (Uri.t * TextEdit.t list) list
 
-  type documentChanges = TextDocumentEdit.t list [@@deriving_inline yojson_of]
-
-  let _ = fun (_ : documentChanges) -> ()
-
-  let yojson_of_documentChanges =
-    ( fun v -> yojson_of_list TextDocumentEdit.yojson_of_t v
-      : documentChanges -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_documentChanges
-
-  [@@@end]
+    let yojson_of_t changes =
+      let changes =
+        List.map
+          ~f:(fun (uri, edits) ->
+            let uri = Uri.to_string uri in
+            let edits = `List (List.map ~f:TextEdit.yojson_of_t edits) in
+            (uri, edits))
+          changes
+      in
+      `Assoc changes
+  end
 
   (** Depending on the client capability
       [workspace.workspaceEdit.resourceOperations] document changes are either
@@ -1897,8 +2553,9 @@ module WorkspaceEdit = struct
       [workspace.workspaceEdit.resourceOperations] then only plain [TextEdit]s
       using the [changes] property are supported. *)
   type t =
-    { changes : changes option
-    ; documentChanges : documentChanges option
+    { changes : Changes.t [@default []] [@yojson_drop_default ( = )]
+    ; documentChanges : DocumentChange.t list
+          [@default []] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson_of] [@@yojson.allow_extra_fields]
 
@@ -1909,14 +2566,22 @@ module WorkspaceEdit = struct
       | { changes = v_changes; documentChanges = v_documentChanges } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg =
-            yojson_of_option yojson_of_documentChanges v_documentChanges
-          in
-          ("documentChanges", arg) :: bnds
+          if [] = v_documentChanges then
+            bnds
+          else
+            let arg =
+              (yojson_of_list DocumentChange.yojson_of_t) v_documentChanges
+            in
+            let bnd = ("documentChanges", arg) in
+            bnd :: bnds
         in
         let bnds =
-          let arg = yojson_of_option yojson_of_changes v_changes in
-          ("changes", arg) :: bnds
+          if [] = v_changes then
+            bnds
+          else
+            let arg = Changes.yojson_of_t v_changes in
+            let bnd = ("changes", arg) in
+            bnd :: bnds
         in
         `Assoc bnds
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
@@ -1925,19 +2590,19 @@ module WorkspaceEdit = struct
 
   [@@@end]
 
-  let empty = { changes = None; documentChanges = None }
+  let empty = { changes = []; documentChanges = [] }
 
   (** Create a {!type:t} based on the capabilities of the client. *)
   let make ~documentChanges ~uri ~version ~edits =
     match documentChanges with
     | false ->
-      let changes = Some [ (uri, edits) ] in
+      let changes = [ (uri, edits) ] in
       { empty with changes }
     | true ->
       let documentChanges =
         let textDocument = { VersionedTextDocumentIdentifier.uri; version } in
         let edits = { TextDocumentEdit.edits; textDocument } in
-        Some [ edits ]
+        [ DocumentChange.TextDocumentEdit edits ]
       in
       { empty with documentChanges }
 end
