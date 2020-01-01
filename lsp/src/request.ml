@@ -28,7 +28,7 @@ type _ t =
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
-  | UnknownRequest : string * Yojson.Safe.t -> unit t
+  | UnknownRequest : string * json option -> unit t
 
 let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with

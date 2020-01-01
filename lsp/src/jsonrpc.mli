@@ -8,9 +8,9 @@ end
 
 module Request : sig
   type t =
-    { id : Id.t option [@default None]
-    ; method_ : string [@key "method"]
-    ; params : json
+    { id : Id.t option
+    ; method_ : string
+    ; params : json option
     }
 
   include Yojsonable.S with type t := t

@@ -150,7 +150,7 @@ module Client_notification = struct
     | TextDocumentDidChange of DidChange.params
     | Initialized
     | Exit
-    | UnknownNotification of string * Yojson.Safe.t
+    | UnknownNotification of string * json option
 end
 
 module Message = struct
@@ -160,6 +160,11 @@ module Message = struct
     | Initialize : Jsonrpc.Id.t * Protocol.Initialize.params -> t
     | Request : Jsonrpc.Id.t * 'result Request.t -> t
     | Client_notification : Client_notification.t -> t
+
+  (* TODO there's a proper error code for this *)
+  let require_params = function
+    | None -> Error "parameters are required"
+    | Some p -> Ok p
 
   let parse packet =
     let open Result.Infix in
@@ -174,56 +179,72 @@ module Message = struct
     | Some id -> (
       match packet.method_ with
       | "initialize" ->
-        parse_yojson Protocol.Initialize.params_of_yojson packet.params
+        require_params packet.params >>= fun params ->
+        parse_yojson Protocol.Initialize.params_of_yojson params
         >>| fun params -> Initialize (id, params)
       | "shutdown" -> Ok (Request (id, Shutdown))
       | "textDocument/completion" ->
-        parse_yojson Completion.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson Completion.params_of_yojson params >>| fun params ->
         Request (id, TextDocumentCompletion params)
       | "textDocument/documentSymbol" ->
-        parse_yojson TextDocumentDocumentSymbol.params_of_yojson packet.params
+        require_params packet.params >>= fun params ->
+        parse_yojson TextDocumentDocumentSymbol.params_of_yojson params
         >>| fun params -> Request (id, DocumentSymbol params)
       | "textDocument/hover" ->
-        parse_yojson Hover.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson Hover.params_of_yojson params >>| fun params ->
         Request (id, TextDocumentHover params)
       | "textDocument/definition" ->
-        parse_yojson Definition.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson Definition.params_of_yojson params >>| fun params ->
         Request (id, TextDocumentDefinition params)
       | "textDocument/typeDefinition" ->
-        parse_yojson TypeDefinition.params_of_yojson packet.params
-        >>| fun params -> Request (id, TextDocumentTypeDefinition params)
+        require_params packet.params >>= fun params ->
+        parse_yojson TypeDefinition.params_of_yojson params >>| fun params ->
+        Request (id, TextDocumentTypeDefinition params)
       | "textDocument/references" ->
-        parse_yojson References.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson References.params_of_yojson params >>| fun params ->
         Request (id, TextDocumentReferences params)
       | "textDocument/codeLens" ->
-        parse_yojson CodeLens.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson CodeLens.params_of_yojson params >>| fun params ->
         Request (id, TextDocumentCodeLens params)
       | "textDocument/rename" ->
-        parse_yojson Rename.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson Rename.params_of_yojson params >>| fun params ->
         Request (id, TextDocumentRename params)
       | "textDocument/documentHighlight" ->
-        parse_yojson TextDocumentHighlight.params_of_yojson packet.params
+        require_params packet.params >>= fun params ->
+        parse_yojson TextDocumentHighlight.params_of_yojson params
         >>| fun params -> Request (id, TextDocumentHighlight params)
       | "textDocument/foldingRange" ->
-        parse_yojson FoldingRange.params_of_yojson packet.params
-        >>| fun params -> Request (id, TextDocumentFoldingRange params)
+        require_params packet.params >>= fun params ->
+        parse_yojson FoldingRange.params_of_yojson params >>| fun params ->
+        Request (id, TextDocumentFoldingRange params)
       | "textDocument/codeAction" ->
-        parse_yojson CodeActionParams.t_of_yojson packet.params
-        >>| fun params -> Request (id, CodeAction params)
+        require_params packet.params >>= fun params ->
+        parse_yojson CodeActionParams.t_of_yojson params >>| fun params ->
+        Request (id, CodeAction params)
       | "debug/echo" ->
-        parse_yojson DebugEcho.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson DebugEcho.params_of_yojson params >>| fun params ->
         Request (id, DebugEcho params)
       | "debug/textDocument/get" ->
-        parse_yojson DebugTextDocumentGet.params_of_yojson packet.params
+        require_params packet.params >>= fun params ->
+        parse_yojson DebugTextDocumentGet.params_of_yojson params
         >>| fun params -> Request (id, DebugTextDocumentGet params)
       | name -> Ok (Request (id, UnknownRequest (name, packet.params))) )
     | None -> (
       match packet.method_ with
       | "textDocument/didOpen" ->
-        parse_yojson DidOpen.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson DidOpen.params_of_yojson params >>| fun params ->
         Client_notification (TextDocumentDidOpen params)
       | "textDocument/didChange" ->
-        parse_yojson DidChange.params_of_yojson packet.params >>| fun params ->
+        require_params packet.params >>= fun params ->
+        parse_yojson DidChange.params_of_yojson params >>| fun params ->
         Client_notification (TextDocumentDidChange params)
       | "exit" -> Ok (Client_notification Exit)
       | "initialized" -> Ok (Client_notification Initialized)

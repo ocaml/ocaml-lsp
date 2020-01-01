@@ -1,3 +1,5 @@
+open Import
+
 (** * This encodes LSP RPC state machine. *)
 
 module Server_notification : sig
@@ -14,7 +16,7 @@ module Client_notification : sig
     | TextDocumentDidChange of DidChange.params
     | Initialized
     | Exit
-    | UnknownNotification of string * Yojson.Safe.t
+    | UnknownNotification of string * json option
 end
 
 type t

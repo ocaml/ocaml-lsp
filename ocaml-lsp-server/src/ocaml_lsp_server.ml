@@ -642,9 +642,12 @@ let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
   | UnknownNotification ("$/setTraceNotification", _) -> Ok store
   | UnknownNotification ("$/cancelRequest", _) -> Ok store
   | UnknownNotification (id, json) ->
-    log ~title:"warn" "unknown notification: %s %a" id
-      (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-      json;
+    ( match json with
+    | None -> log ~title:"warn" "unknown notification: %s" id
+    | Some json ->
+      log ~title:"warn" "unknown notification: %s %a" id
+        (fun () -> Yojson.Safe.pretty_to_string ~std:false)
+        json );
     Ok store
 
 let start () =

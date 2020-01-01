@@ -28,6 +28,6 @@ type _ t =
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
-  | UnknownRequest : string * Yojson.Safe.t -> unit t
+  | UnknownRequest : string * json option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> json option
