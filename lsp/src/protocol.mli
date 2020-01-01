@@ -24,16 +24,10 @@ val documentUri_of_yojson : json -> documentUri
 
 val yojson_of_documentUri : documentUri -> json
 
-type zero_based_int = int
-
-val zero_based_int_of_yojson : json -> zero_based_int
-
-val yojson_of_zero_based_int : zero_based_int -> json
-
 module Position : sig
   type t =
-    { line : zero_based_int
-    ; character : zero_based_int
+    { line : int
+    ; character : int
     }
 
   include Yojsonable.S with type t := t
@@ -110,7 +104,7 @@ end
 module VersionedTextDocumentIdentifier : sig
   type t =
     { uri : documentUri
-    ; version : zero_based_int
+    ; version : int
     }
 
   include Yojsonable.S with type t := t
@@ -120,7 +114,7 @@ module TextDocumentItem : sig
   type t =
     { uri : documentUri
     ; languageId : string
-    ; version : zero_based_int
+    ; version : int
     ; text : string
     }
 
@@ -151,7 +145,7 @@ module DidChange : sig
 
   and textDocumentContentChangeEvent =
     { range : Range.t option
-    ; rangeLength : zero_based_int option
+    ; rangeLength : int option
     ; text : string
     }
 
@@ -236,14 +230,14 @@ module WorkspaceEdit : sig
   val make :
        documentChanges:bool
     -> uri:documentUri
-    -> version:zero_based_int
+    -> version:int
     -> edits:TextEdit.t list
     -> t
 end
 
 module PublishDiagnostics : sig
   type diagnosticCode =
-    | IntCode of zero_based_int
+    | IntCode of int
     | StringCode of string
     | NoCode
 
@@ -343,12 +337,11 @@ module Completion : sig
     | Operator
     | TypeParameter
 
-  val int_of_completionItemKind : completionItemKind -> zero_based_int
+  val int_of_completionItemKind : completionItemKind -> int
 
   val yojson_of_completionItemKind : completionItemKind -> json
 
-  val completionItemKind_of_int_opt :
-    zero_based_int -> completionItemKind option
+  val completionItemKind_of_int_opt : int -> completionItemKind option
 
   val completionItemKind_of_yojson : json -> completionItemKind
 
@@ -356,11 +349,11 @@ module Completion : sig
     | PlainText
     | SnippetFormat
 
-  val int_of_insertFormat : insertTextFormat -> zero_based_int
+  val int_of_insertFormat : insertTextFormat -> int
 
   val yojson_of_insertTextFormat : insertTextFormat -> json
 
-  val insertFormat_of_int_opt : zero_based_int -> insertTextFormat option
+  val insertFormat_of_int_opt : int -> insertTextFormat option
 
   val insertTextFormat_of_yojson : json -> insertTextFormat
 
@@ -457,7 +450,7 @@ module ParameterInformation : sig
   module Label : sig
     type t =
       | Substring of string
-      | Range of zero_based_int * zero_based_int
+      | Range of int * int
 
     include Yojsonable.S with type t := t
   end
@@ -483,8 +476,8 @@ end
 module SignatureHelp : sig
   type t =
     { signatures : SignatureInformation.t list
-    ; activeSignature : zero_based_int option
-    ; activeParameter : zero_based_int option
+    ; activeSignature : int option
+    ; activeParameter : int option
     }
 
   include Yojsonable.S with type t := t
@@ -634,7 +627,7 @@ module Initialize : sig
     workspaceClientCapabilities -> json
 
   type foldingRangeClientCapabilities =
-    { rangeLimit : zero_based_int option
+    { rangeLimit : int option
     ; lineFoldingOnly : bool
     }
 
@@ -659,7 +652,7 @@ module Initialize : sig
   val client_capabilities_empty : client_capabilities
 
   type params =
-    { processId : zero_based_int option
+    { processId : int option
     ; rootPath : string option
     ; rootUri : documentUri option
     ; client_capabilities : client_capabilities
@@ -980,10 +973,10 @@ module FoldingRange : sig
   end
 
   type t =
-    { startLine : zero_based_int
-    ; startCharacter : zero_based_int option
-    ; endLine : zero_based_int
-    ; endCharacter : zero_based_int option
+    { startLine : int
+    ; startCharacter : int option
+    ; endLine : int
+    ; endCharacter : int option
     ; kind : Kind.t option
     }
 

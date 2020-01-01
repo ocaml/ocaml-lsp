@@ -58,26 +58,10 @@ let _ = yojson_of_documentUri
 
 [@@@end]
 
-type zero_based_int = int [@@deriving_inline yojson]
-
-let _ = fun (_ : zero_based_int) -> ()
-
-let zero_based_int_of_yojson =
-  (int_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> zero_based_int)
-
-let _ = zero_based_int_of_yojson
-
-let yojson_of_zero_based_int =
-  (yojson_of_int : zero_based_int -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
-let _ = yojson_of_zero_based_int
-
-[@@@end]
-
 module Position = struct
   type t =
-    { line : zero_based_int
-    ; character : zero_based_int
+    { line : int
+    ; character : int
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -97,7 +81,7 @@ module Position = struct
             | "line" -> (
               match Ppx_yojson_conv_lib.( ! ) line_field with
               | None ->
-                let fvalue = zero_based_int_of_yojson _field_yojson in
+                let fvalue = int_of_yojson _field_yojson in
                 line_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -105,7 +89,7 @@ module Position = struct
             | "character" -> (
               match Ppx_yojson_conv_lib.( ! ) character_field with
               | None ->
-                let fvalue = zero_based_int_of_yojson _field_yojson in
+                let fvalue = int_of_yojson _field_yojson in
                 character_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -157,11 +141,11 @@ module Position = struct
       | { line = v_line; character = v_character } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_zero_based_int v_character in
+          let arg = yojson_of_int v_character in
           ("character", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_zero_based_int v_line in
+          let arg = yojson_of_int v_line in
           ("line", arg) :: bnds
         in
         `Assoc bnds
@@ -8254,10 +8238,10 @@ module FoldingRange = struct
   end
 
   type t =
-    { startLine : zero_based_int
-    ; startCharacter : zero_based_int option [@yojson.option]
-    ; endLine : zero_based_int
-    ; endCharacter : zero_based_int option [@yojson.option]
+    { startLine : int
+    ; startCharacter : int option [@yojson.option]
+    ; endLine : int
+    ; endCharacter : int option [@yojson.option]
     ; kind : Kind.t option [@yojson.option]
     }
   [@@deriving_inline yojson]
@@ -8281,7 +8265,7 @@ module FoldingRange = struct
             | "startLine" -> (
               match Ppx_yojson_conv_lib.( ! ) startLine_field with
               | None ->
-                let fvalue = zero_based_int_of_yojson _field_yojson in
+                let fvalue = int_of_yojson _field_yojson in
                 startLine_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -8289,7 +8273,7 @@ module FoldingRange = struct
             | "startCharacter" -> (
               match Ppx_yojson_conv_lib.( ! ) startCharacter_field with
               | None ->
-                let fvalue = zero_based_int_of_yojson _field_yojson in
+                let fvalue = int_of_yojson _field_yojson in
                 startCharacter_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -8297,7 +8281,7 @@ module FoldingRange = struct
             | "endLine" -> (
               match Ppx_yojson_conv_lib.( ! ) endLine_field with
               | None ->
-                let fvalue = zero_based_int_of_yojson _field_yojson in
+                let fvalue = int_of_yojson _field_yojson in
                 endLine_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -8305,7 +8289,7 @@ module FoldingRange = struct
             | "endCharacter" -> (
               match Ppx_yojson_conv_lib.( ! ) endCharacter_field with
               | None ->
-                let fvalue = zero_based_int_of_yojson _field_yojson in
+                let fvalue = int_of_yojson _field_yojson in
                 endCharacter_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -8400,24 +8384,24 @@ module FoldingRange = struct
           match v_endCharacter with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_zero_based_int v in
+            let arg = yojson_of_int v in
             let bnd = ("endCharacter", arg) in
             bnd :: bnds
         in
         let bnds =
-          let arg = yojson_of_zero_based_int v_endLine in
+          let arg = yojson_of_int v_endLine in
           ("endLine", arg) :: bnds
         in
         let bnds =
           match v_startCharacter with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_zero_based_int v in
+            let arg = yojson_of_int v in
             let bnd = ("startCharacter", arg) in
             bnd :: bnds
         in
         let bnds =
-          let arg = yojson_of_zero_based_int v_startLine in
+          let arg = yojson_of_int v_startLine in
           ("startLine", arg) :: bnds
         in
         `Assoc bnds
