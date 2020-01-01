@@ -65,7 +65,6 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; documentLinkProvider = None
       ; executeCommandProvider = None
       ; typeCoverageProvider = false
-      ; rageProvider = false
       ; foldingRangeProvider = Bool true
       ; signatureHelpProvider = None
       }
@@ -75,7 +74,7 @@ let dispatch_in_doc doc command =
   Document.with_pipeline doc (fun pipeline ->
       Query_commands.dispatch pipeline command)
 
-let logical_of_position (position : Lsp.Protocol.position) =
+let logical_of_position (position : Lsp.Protocol.Position.t) =
   let line = position.line + 1 in
   let col = position.character in
   `Logical (line, col)
@@ -83,9 +82,9 @@ let logical_of_position (position : Lsp.Protocol.position) =
 let position_of_lexical_position (lex_position : Lexing.position) =
   let line = lex_position.pos_lnum - 1 in
   let character = lex_position.pos_cnum - lex_position.pos_bol in
-  Lsp.Protocol.{ line; character }
+  { Lsp.Protocol.Position.line; character }
 
-let range_of_loc (loc : Location.t) : Lsp.Protocol.range =
+let range_of_loc (loc : Location.t) : Lsp.Protocol.Range.t =
   { start_ = position_of_lexical_position loc.loc_start
   ; end_ = position_of_lexical_position loc.loc_end
   }
@@ -154,7 +153,7 @@ let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
   | Some set
     when not (List.mem (Lsp.Protocol.CodeActionKind.Other Action.destruct) ~set)
     ->
-    return (store, None)
+    return (store, [])
   | None
   | Some _ ->
     Document_store.get store params.textDocument.uri >>= fun doc ->
@@ -166,14 +165,14 @@ let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
     let result : Lsp.Protocol.CodeAction.result =
       try
         let res = dispatch_in_doc doc command in
-        Some
-          [ Lsp.Protocol.Either.Right
-              (code_action_of_case_analysis params.textDocument.uri res)
-          ]
+        [ Either.Right
+            (code_action_of_case_analysis params.textDocument.uri res)
+        ]
       with
-      | Destruct.Not_allowed _ -> None
-      | Destruct.Useless_refine -> None
-      | Destruct.Nothing_to_do -> None
+      | Destruct.Not_allowed _
+      | Destruct.Useless_refine
+      | Destruct.Nothing_to_do ->
+        []
     in
     return (store, result)
 
@@ -182,19 +181,19 @@ let on_request :
        Lsp.Rpc.t
     -> Document_store.t
     -> Lsp.Protocol.Initialize.client_capabilities
-    -> resp Lsp.Rpc.Request.t
+    -> resp Lsp.Request.t
     -> (Document_store.t * resp, string) result =
  fun _rpc store client_capabilities req ->
   let open Lsp.Import.Result.Infix in
   match req with
-  | Lsp.Rpc.Request.Shutdown -> return (store, ())
-  | Lsp.Rpc.Request.DebugTextDocumentGet
-      { textDocument = { uri }; position = _ } -> (
+  | Lsp.Request.Shutdown -> return (store, ())
+  | Lsp.Request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
+    -> (
     match Document_store.get_opt store uri with
     | None -> return (store, None)
     | Some doc -> return (store, Some (Msource.text (Document.source doc))) )
-  | Lsp.Rpc.Request.DebugEcho params -> return (store, params)
-  | Lsp.Rpc.Request.TextDocumentHover { textDocument = { uri }; position } -> (
+  | Lsp.Request.DebugEcho params -> return (store, params)
+  | Lsp.Request.TextDocumentHover { textDocument = { uri }; position } -> (
     let query_type doc pos =
       let command = Query_protocol.Type_enclosing (None, pos, None) in
       match dispatch_in_doc doc command with
@@ -244,7 +243,7 @@ let on_request :
       let range = Some (range_of_loc loc) in
       let resp = { Lsp.Protocol.Hover.contents; range } in
       return (store, Some resp) )
-  | Lsp.Rpc.Request.TextDocumentReferences
+  | Lsp.Request.TextDocumentReferences
       { textDocument = { uri }; position; context = _ } ->
     Document_store.get store uri >>= fun doc ->
     let command =
@@ -260,7 +259,7 @@ let on_request :
         locs
     in
     return (store, lsp_locs)
-  | Lsp.Rpc.Request.TextDocumentCodeLens { textDocument = { uri } } ->
+  | Lsp.Request.TextDocumentCodeLens { textDocument = { uri } } ->
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
@@ -284,8 +283,7 @@ let on_request :
       List.concat_map ~f:symbol_info_of_outline_item outline
     in
     return (store, symbol_infos)
-  | Lsp.Rpc.Request.TextDocumentHighlight { textDocument = { uri }; position }
-    ->
+  | Lsp.Request.TextDocumentHighlight { textDocument = { uri }; position } ->
     Document_store.get store uri >>= fun doc ->
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position position))
@@ -301,12 +299,12 @@ let on_request :
         locs
     in
     return (store, lsp_locs)
-  | Lsp.Rpc.Request.DocumentSymbol { textDocument = { uri } } ->
+  | Lsp.Request.DocumentSymbol { textDocument = { uri } } ->
     let range item = range_of_loc item.Query_protocol.location in
 
     let rec symbol item =
       let children = List.map item.Query_protocol.children ~f:symbol in
-      let range = range item in
+      let range : Lsp.Protocol.Range.t = range item in
       { Lsp.Protocol.DocumentSymbol.name = item.Query_protocol.outline_name
       ; detail = item.Query_protocol.outline_type
       ; kind = outline_kind item.outline_kind
@@ -322,7 +320,7 @@ let on_request :
       let info =
         { Lsp.Protocol.SymbolInformation.name = item.Query_protocol.outline_name
         ; kind = outline_kind item.outline_kind
-        ; deprecated = false
+        ; deprecated = Some false
         ; location
         ; containerName
         }
@@ -347,15 +345,14 @@ let on_request :
         Lsp.Protocol.TextDocumentDocumentSymbol.SymbolInformation symbols
     in
     return (store, symbols)
-  | Lsp.Rpc.Request.TextDocumentDefinition { textDocument = { uri }; position }
-    -> (
+  | Lsp.Request.TextDocumentDefinition { textDocument = { uri }; position } -> (
     Document_store.get store uri >>= fun doc ->
     let position = logical_of_position position in
     let command = Query_protocol.Locate (None, `ML, position) in
     match dispatch_in_doc doc command with
     | `Found (path, lex_position) ->
       let position = position_of_lexical_position lex_position in
-      let range = { Lsp.Protocol.start_ = position; end_ = position } in
+      let range = { Lsp.Protocol.Range.start_ = position; end_ = position } in
       let uri =
         match path with
         | None -> uri
@@ -372,8 +369,8 @@ let on_request :
     | `Not_found _
     | `Not_in_env _ ->
       Ok (store, None) )
-  | Lsp.Rpc.Request.TextDocumentTypeDefinition
-      { textDocument = { uri }; position } ->
+  | Lsp.Request.TextDocumentTypeDefinition { textDocument = { uri }; position }
+    ->
     Document_store.get store uri >>= fun doc ->
     let position = logical_of_position position in
     Document.with_pipeline doc @@ fun pipeline ->
@@ -413,7 +410,9 @@ let on_request :
           | exception Env.Error _ -> None
           | `Found (path, lex_position) ->
             let position = position_of_lexical_position lex_position in
-            let range = { Lsp.Protocol.start_ = position; end_ = position } in
+            let range =
+              { Lsp.Protocol.Range.start_ = position; end_ = position }
+            in
             let uri =
               match path with
               | None -> uri
@@ -431,7 +430,7 @@ let on_request :
             None)
     in
     return (store, locs)
-  | Lsp.Rpc.Request.TextDocumentCompletion
+  | Lsp.Request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let lsp_position = position in
     let position = logical_of_position position in
@@ -476,7 +475,7 @@ let on_request :
         let character = lsp_position.character - len in
         { lsp_position with character }
       in
-      { Lsp.Protocol.start_; end_ = lsp_position }
+      { Lsp.Protocol.Range.start_; end_ = lsp_position }
     in
 
     let item index entry =
@@ -495,8 +494,6 @@ let on_request :
       { Lsp.Protocol.Completion.label = entry.name
       ; kind
       ; detail = Some entry.desc
-      ; inlineDetail = None
-      ; itemType = Some entry.desc
       ; documentation = Some entry.info
       ; (* Without this field the client is not forced to respect the order
            provided by merlin. *)
@@ -565,8 +562,8 @@ let on_request :
     let items = List.mapi ~f:item all in
     let resp = { Lsp.Protocol.Completion.isIncomplete = false; items } in
     return (store, resp)
-  | Lsp.Rpc.Request.TextDocumentRename
-      { textDocument = { uri }; position; newName } ->
+  | Lsp.Request.TextDocumentRename { textDocument = { uri }; position; newName }
+    ->
     Document_store.get store uri >>= fun doc ->
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position position))
@@ -587,12 +584,12 @@ let on_request :
       Lsp.Protocol.WorkspaceEdit.make ~documentChanges ~uri ~version ~edits
     in
     return (store, workspace_edits)
-  | Lsp.Rpc.Request.TextDocumentFoldingRange { textDocument = { uri } } ->
+  | Lsp.Request.TextDocumentFoldingRange { textDocument = { uri } } ->
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let folds : Lsp.Protocol.FoldingRange.result =
-      let folding_range (range : Lsp.Protocol.range) =
+      let folding_range (range : Lsp.Protocol.Range.t) =
         { Lsp.Protocol.FoldingRange.startLine = range.start_.line
         ; endLine = range.end_.line
         ; startCharacter = Some range.start_.character
@@ -615,10 +612,10 @@ let on_request :
       loop [] outline |> List.sort ~cmp:compare
     in
     return (store, folds)
-  | Lsp.Rpc.Request.SignatureHelp _ -> not_supported ()
-  | Lsp.Rpc.Request.CodeAction params -> code_action store params
-  | Lsp.Rpc.Request.CompletionItemResolve compl -> return (store, compl)
-  | Lsp.Rpc.Request.UnknownRequest _ -> errorf "got unknown request"
+  | Lsp.Request.SignatureHelp _ -> not_supported ()
+  | Lsp.Request.CodeAction params -> code_action store params
+  | Lsp.Request.CompletionItemResolve compl -> return (store, compl)
+  | Lsp.Request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
   let open Lsp.Import.Result.Infix in
@@ -645,9 +642,12 @@ let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
   | UnknownNotification ("$/setTraceNotification", _) -> Ok store
   | UnknownNotification ("$/cancelRequest", _) -> Ok store
   | UnknownNotification (id, json) ->
-    log ~title:"warn" "unknown notification: %s %a" id
-      (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-      json;
+    ( match json with
+    | None -> log ~title:"warn" "unknown notification: %s" id
+    | Some json ->
+      log ~title:"warn" "unknown notification: %s %a" id
+        (fun () -> Yojson.Safe.pretty_to_string ~std:false)
+        json );
     Ok store
 
 let start () =

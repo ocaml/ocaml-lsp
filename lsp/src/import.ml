@@ -239,6 +239,10 @@ let let_ref r v f =
 external reraise : exn -> 'a = "%reraise"
 
 module Result = struct
+  type ('ok, 'err) t = ('ok, 'err) result =
+    | Ok of 'ok
+    | Error of 'err
+
   let bind x ~f =
     match x with
     | Ok v -> f v
@@ -263,3 +267,20 @@ module Result = struct
     let errorf = errorf
   end
 end
+
+module Option = struct
+  let map t ~f =
+    match t with
+    | None -> None
+    | Some x -> Some (f x)
+end
+
+module Either = struct
+  type ('left, 'right) t =
+    | Left of 'left
+    | Right of 'right
+end
+
+module Yojsonable = Ppx_yojson_conv_lib.Yojsonable
+
+let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
