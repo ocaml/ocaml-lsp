@@ -12,7 +12,4 @@ val with_pipeline : t -> (Mpipeline.t -> 'a) -> 'a
 val version : t -> int
 
 val update_text :
-     ?version:int
-  -> Lsp.Protocol.DidChange.textDocumentContentChangeEvent
-  -> t
-  -> t
+  ?version:int -> Lsp.Protocol.TextDocumentContentChangeEvent.t -> t -> t

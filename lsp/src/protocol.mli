@@ -141,33 +141,23 @@ module DidOpen : sig
   val yojson_of_didOpenTextDocumentParams : params -> json
 end
 
-module DidChange : sig
-  type params = didChangeTextDocumentParams
-
-  and didChangeTextDocumentParams =
-    { textDocument : VersionedTextDocumentIdentifier.t
-    ; contentChanges : textDocumentContentChangeEvent list
-    }
-
-  and textDocumentContentChangeEvent =
+module TextDocumentContentChangeEvent : sig
+  type t =
     { range : Range.t option
     ; rangeLength : int option
     ; text : string
     }
 
-  val params_of_yojson : json -> params
+  include Yojsonable.S with type t := t
+end
 
-  val didChangeTextDocumentParams_of_yojson : json -> params
+module DidChangeTextDocumentParams : sig
+  type t =
+    { textDocument : VersionedTextDocumentIdentifier.t
+    ; contentChanges : TextDocumentContentChangeEvent.t list
+    }
 
-  val textDocumentContentChangeEvent_of_yojson :
-    json -> textDocumentContentChangeEvent
-
-  val yojson_of_params : params -> json
-
-  val yojson_of_didChangeTextDocumentParams : params -> json
-
-  val yojson_of_textDocumentContentChangeEvent :
-    textDocumentContentChangeEvent -> json
+  include Yojsonable.S with type t := t
 end
 
 module TextDocumentPositionParams : sig

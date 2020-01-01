@@ -145,7 +145,7 @@ module Client_notification = struct
 
   type t =
     | TextDocumentDidOpen of DidOpen.params
-    | TextDocumentDidChange of DidChange.params
+    | TextDocumentDidChange of DidChangeTextDocumentParams.t
     | Initialized
     | Exit
     | UnknownNotification of string * json option
@@ -242,8 +242,8 @@ module Message = struct
         Client_notification (TextDocumentDidOpen params)
       | "textDocument/didChange" ->
         require_params packet.params >>= fun params ->
-        parse_yojson DidChange.params_of_yojson params >>| fun params ->
-        Client_notification (TextDocumentDidChange params)
+        parse_yojson DidChangeTextDocumentParams.t_of_yojson params
+        >>| fun params -> Client_notification (TextDocumentDidChange params)
       | "exit" -> Ok (Client_notification Exit)
       | "initialized" -> Ok (Client_notification Initialized)
       | _ ->

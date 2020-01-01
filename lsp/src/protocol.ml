@@ -1176,17 +1176,8 @@ module DidOpen = struct
   [@@@end]
 end
 
-(* DidChangeTextDocument notification, method="textDocument/didChange" *)
-module DidChange = struct
-  type params = didChangeTextDocumentParams
-
-  and didChangeTextDocumentParams =
-    { textDocument : VersionedTextDocumentIdentifier.t
-    ; contentChanges : textDocumentContentChangeEvent list
-    }
-  [@@yojson.allow_extra_fields]
-
-  and textDocumentContentChangeEvent =
+module TextDocumentContentChangeEvent = struct
+  type t =
     { range : Range.t option [@yojson.option]
     ; (* the range of the document that changed *)
       rangeLength : int option [@yojson.option]
@@ -1195,97 +1186,10 @@ module DidChange = struct
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
-  let _ = fun (_ : params) -> ()
+  let _ = fun (_ : t) -> ()
 
-  let _ = fun (_ : didChangeTextDocumentParams) -> ()
-
-  let _ = fun (_ : textDocumentContentChangeEvent) -> ()
-
-  let rec params_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.DidChange.params" in
-      fun t -> didChangeTextDocumentParams_of_yojson t
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
-
-  and didChangeTextDocumentParams_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.DidChange.didChangeTextDocumentParams"
-      in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let textDocument_field = ref None
-        and contentChanges_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "textDocument" -> (
-              match Ppx_yojson_conv_lib.( ! ) textDocument_field with
-              | None ->
-                let fvalue =
-                  VersionedTextDocumentIdentifier.t_of_yojson _field_yojson
-                in
-                textDocument_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "contentChanges" -> (
-              match Ppx_yojson_conv_lib.( ! ) contentChanges_field with
-              | None ->
-                let fvalue =
-                  list_of_yojson textDocumentContentChangeEvent_of_yojson
-                    _field_yojson
-                in
-                contentChanges_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) textDocument_field
-              , Ppx_yojson_conv_lib.( ! ) contentChanges_field )
-            with
-            | Some textDocument_value, Some contentChanges_value ->
-              { textDocument = textDocument_value
-              ; contentChanges = contentChanges_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) textDocument_field)
-                      None
-                  , "textDocument" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) contentChanges_field)
-                      None
-                  , "contentChanges" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> didChangeTextDocumentParams )
-
-  and textDocumentContentChangeEvent_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.DidChange.textDocumentContentChangeEvent"
-      in
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.TextDocumentContentChangeEvent.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let range_field = ref None
@@ -1358,39 +1262,11 @@ module DidChange = struct
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> textDocumentContentChangeEvent )
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  let _ = params_of_yojson
+  let _ = t_of_yojson
 
-  and _ = didChangeTextDocumentParams_of_yojson
-
-  and _ = textDocumentContentChangeEvent_of_yojson
-
-  let rec yojson_of_params =
-    ( fun v -> yojson_of_didChangeTextDocumentParams v
-      : params -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_didChangeTextDocumentParams =
-    ( function
-      | { textDocument = v_textDocument; contentChanges = v_contentChanges } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg =
-            yojson_of_list yojson_of_textDocumentContentChangeEvent
-              v_contentChanges
-          in
-          ("contentChanges", arg) :: bnds
-        in
-        let bnds =
-          let arg =
-            VersionedTextDocumentIdentifier.yojson_of_t v_textDocument
-          in
-          ("textDocument", arg) :: bnds
-        in
-        `Assoc bnds
-      : didChangeTextDocumentParams -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_textDocumentContentChangeEvent =
+  let yojson_of_t =
     ( function
       | { range = v_range; rangeLength = v_rangeLength; text = v_text } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
@@ -1415,13 +1291,119 @@ module DidChange = struct
             bnd :: bnds
         in
         `Assoc bnds
-      : textDocumentContentChangeEvent -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  let _ = yojson_of_params
+  let _ = yojson_of_t
 
-  and _ = yojson_of_didChangeTextDocumentParams
+  [@@@end]
+end
 
-  and _ = yojson_of_textDocumentContentChangeEvent
+module DidChangeTextDocumentParams = struct
+  type t =
+    { textDocument : VersionedTextDocumentIdentifier.t
+    ; contentChanges : TextDocumentContentChangeEvent.t list
+    }
+  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.DidChangeTextDocumentParams.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let textDocument_field = ref None
+        and contentChanges_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "textDocument" -> (
+              match Ppx_yojson_conv_lib.( ! ) textDocument_field with
+              | None ->
+                let fvalue =
+                  VersionedTextDocumentIdentifier.t_of_yojson _field_yojson
+                in
+                textDocument_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "contentChanges" -> (
+              match Ppx_yojson_conv_lib.( ! ) contentChanges_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson TextDocumentContentChangeEvent.t_of_yojson
+                    _field_yojson
+                in
+                contentChanges_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) textDocument_field
+              , Ppx_yojson_conv_lib.( ! ) contentChanges_field )
+            with
+            | Some textDocument_value, Some contentChanges_value ->
+              { textDocument = textDocument_value
+              ; contentChanges = contentChanges_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) textDocument_field)
+                      None
+                  , "textDocument" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) contentChanges_field)
+                      None
+                  , "contentChanges" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { textDocument = v_textDocument; contentChanges = v_contentChanges } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg =
+            yojson_of_list TextDocumentContentChangeEvent.yojson_of_t
+              v_contentChanges
+          in
+          ("contentChanges", arg) :: bnds
+        in
+        let bnds =
+          let arg =
+            VersionedTextDocumentIdentifier.yojson_of_t v_textDocument
+          in
+          ("textDocument", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
 
   [@@@end]
 end

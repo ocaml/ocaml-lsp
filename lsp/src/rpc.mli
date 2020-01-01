@@ -13,7 +13,7 @@ module Client_notification : sig
 
   type t =
     | TextDocumentDidOpen of DidOpen.params
-    | TextDocumentDidChange of DidChange.params
+    | TextDocumentDidChange of DidChangeTextDocumentParams.t
     | Initialized
     | Exit
     | UnknownNotification of string * json option
