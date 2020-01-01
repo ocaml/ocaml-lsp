@@ -526,26 +526,24 @@ module Initialize : sig
     include Yojsonable.S with type t := t
   end
 
-  type textDocumentSyncKind =
-    | NoSync
-    | FullSync
-    | IncrementalSync
+  module TextDocumentSyncKind : sig
+    type t =
+      | NoSync
+      | FullSync
+      | IncrementalSync
 
-  val yojson_of_textDocumentSyncKind : textDocumentSyncKind -> json
+    include Yojsonable.S with type t := t
+  end
 
-  val textDocumentSyncKind_of_yojson : json -> textDocumentSyncKind
+  module Synchronization : sig
+    type t =
+      { willSave : bool
+      ; willSaveWaitUntil : bool
+      ; didSave : bool
+      }
 
-  type synchronization =
-    { willSave : bool
-    ; willSaveWaitUntil : bool
-    ; didSave : bool
-    }
-
-  val synchronization_of_yojson : json -> synchronization
-
-  val yojson_of_synchronization : synchronization -> json
-
-  val synchronization_empty : synchronization
+    include Yojsonable.S with type t := t
+  end
 
   type completionItem = { snippetSupport : bool }
 
@@ -555,57 +553,55 @@ module Initialize : sig
 
   val completionItem_empty : completionItem
 
-  type completion = { completionItem : completionItem }
+  module Completion : sig
+    type t = { completionItem : completionItem }
 
-  val completion_of_yojson : json -> completion
+    include Yojsonable.S with type t := t
 
-  val yojson_of_completion : completion -> json
+    val empty : t
+  end
 
-  val completion_empty : completion
+  module Hover : sig
+    type t = { contentFormat : MarkupKind.t list }
 
-  type hover = { contentFormat : MarkupKind.t list }
+    val empty : t
 
-  val hover_of_yojson : json -> hover
+    include Yojsonable.S with type t := t
+  end
 
-  val yojson_of_hover : hover -> json
+  module CodeAction : sig
+    type t =
+      { codeActionLiteralSupport : CodeActionLiteralSupport.t option
+      ; dynamicRegistration : bool option
+      ; isPreferredSupport : bool option
+      }
 
-  val hover_empty : hover
+    include Yojsonable.S with type t := t
 
-  type codeAction =
-    { codeActionLiteralSupport : CodeActionLiteralSupport.t option
-    ; dynamicRegistration : bool option
-    ; isPreferredSupport : bool option
-    }
+    val empty : t
+  end
 
-  val codeAction_of_yojson : json -> codeAction
+  module DocumentSymbol : sig
+    type t = { hierarchicalDocumentSymbolSupport : bool }
 
-  val yojson_of_codeAction : codeAction -> json
+    include Yojsonable.S with type t := t
 
-  val codeAction_empty : codeAction
+    val empty : t
+  end
 
-  type documentSymbol = { hierarchicalDocumentSymbolSupport : bool }
+  module TextDocumentClientCapabilities : sig
+    type t =
+      { synchronization : Synchronization.t
+      ; completion : Completion.t
+      ; documentSymbol : DocumentSymbol.t
+      ; hover : Hover.t
+      ; codeAction : CodeAction.t
+      }
 
-  val documentSymbol_of_yojson : json -> documentSymbol
+    include Yojsonable.S with type t := t
 
-  val yojson_of_documentSymbol : documentSymbol -> json
-
-  val documentSymbol_empty : documentSymbol
-
-  type textDocumentClientCapabilities =
-    { synchronization : synchronization
-    ; completion : completion
-    ; documentSymbol : documentSymbol
-    ; hover : hover
-    ; codeAction : codeAction
-    }
-
-  val textDocumentClientCapabilities_of_yojson :
-    json -> textDocumentClientCapabilities
-
-  val yojson_of_textDocumentClientCapabilities :
-    textDocumentClientCapabilities -> json
-
-  val textDocumentClientCapabilities_empty : textDocumentClientCapabilities
+    val empty : t
+  end
 
   type workspaceEdit = { documentChanges : bool }
 
@@ -641,7 +637,7 @@ module Initialize : sig
 
   type client_capabilities =
     { workspace : workspaceClientCapabilities
-    ; textDocument : textDocumentClientCapabilities
+    ; textDocument : TextDocumentClientCapabilities.t
     ; foldingRange : foldingRangeClientCapabilities
     }
 
@@ -704,7 +700,7 @@ module Initialize : sig
 
   and textDocumentSyncOptions =
     { openClose : bool
-    ; change : textDocumentSyncKind
+    ; change : TextDocumentSyncKind.t
     ; willSave : bool
     ; willSaveWaitUntil : bool
     ; didSave : saveOptions option

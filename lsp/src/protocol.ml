@@ -4206,148 +4206,153 @@ module Initialize = struct
       | node -> yojson_error "invalid trace" node
   end
 
-  type textDocumentSyncKind =
-    | NoSync (* 0 *)
-    (* docs should not be synced at all. Wire "None" *)
-    | FullSync (* 1 *)
-    (* synced by always sending full content. Wire "Full" *)
-    | IncrementalSync
+  module TextDocumentSyncKind = struct
+    type t =
+      | NoSync (* 0 *)
+      (* docs should not be synced at all. Wire "None" *)
+      | FullSync (* 1 *)
+      (* synced by always sending full content. Wire "Full" *)
+      | IncrementalSync
 
-  (* 2 *)
-  (* full only on open. Wire "Incremental" *)
+    (* 2 *)
 
-  let yojson_of_textDocumentSyncKind = function
-    | NoSync -> `Int 0
-    | FullSync -> `Int 1
-    | IncrementalSync -> `Int 2
+    (* full only on open. Wire "Incremental" *)
 
-  let textDocumentSyncKind_of_yojson = function
-    | `Int 0 -> NoSync
-    | `Int 1 -> FullSync
-    | `Int 2 -> IncrementalSync
-    | node -> yojson_error "invalid textDocumentSyncKind" node
+    let yojson_of_t = function
+      | NoSync -> `Int 0
+      | FullSync -> `Int 1
+      | IncrementalSync -> `Int 2
 
-  (* synchronization capabilities say what messages the client is capable
-   * of sending, should be be so asked by the server.
-   * We use the "can_" prefix for OCaml naming reasons; it's absent in LSP *)
+    let t_of_yojson = function
+      | `Int 0 -> NoSync
+      | `Int 1 -> FullSync
+      | `Int 2 -> IncrementalSync
+      | node -> yojson_error "invalid textDocumentSyncKind" node
+  end
 
-  type synchronization =
-    { willSave : bool [@default false]
-    ; (* client can send textDocument/willSave *)
-      willSaveWaitUntil : bool [@default false]
-    ; (* textDoc.../willSaveWaitUntil *)
-      didSave : bool [@default false] (* textDocument/didSave *)
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+  module Synchronization = struct
+    (* synchronization capabilities say what messages the client is capable
+     * of sending, should be be so asked by the server.
+     * We use the "can_" prefix for OCaml naming reasons; it's absent in LSP *)
 
-  let _ = fun (_ : synchronization) -> ()
+    type t =
+      { willSave : bool [@default false]
+      ; (* client can send textDocument/willSave *)
+        willSaveWaitUntil : bool [@default false]
+      ; (* textDoc.../willSaveWaitUntil *)
+        didSave : bool [@default false] (* textDocument/didSave *)
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  let synchronization_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.synchronization" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let willSave_field = ref None
-        and willSaveWaitUntil_field = ref None
-        and didSave_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "willSave" -> (
-              match Ppx_yojson_conv_lib.( ! ) willSave_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                willSave_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "willSaveWaitUntil" -> (
-              match Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                willSaveWaitUntil_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "didSave" -> (
-              match Ppx_yojson_conv_lib.( ! ) didSave_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                didSave_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.Synchronization.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let willSave_field = ref None
+          and willSaveWaitUntil_field = ref None
+          and didSave_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "willSave" -> (
+                match Ppx_yojson_conv_lib.( ! ) willSave_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  willSave_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "willSaveWaitUntil" -> (
+                match Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  willSaveWaitUntil_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "didSave" -> (
+                match Ppx_yojson_conv_lib.( ! ) didSave_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  didSave_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let willSave_value, willSaveWaitUntil_value, didSave_value =
-              ( Ppx_yojson_conv_lib.( ! ) willSave_field
-              , Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field
-              , Ppx_yojson_conv_lib.( ! ) didSave_field )
-            in
-            { willSave =
-                ( match willSave_value with
-                | None -> false
-                | Some v -> v )
-            ; willSaveWaitUntil =
-                ( match willSaveWaitUntil_value with
-                | None -> false
-                | Some v -> v )
-            ; didSave =
-                ( match didSave_value with
-                | None -> false
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> synchronization )
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let willSave_value, willSaveWaitUntil_value, didSave_value =
+                ( Ppx_yojson_conv_lib.( ! ) willSave_field
+                , Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field
+                , Ppx_yojson_conv_lib.( ! ) didSave_field )
+              in
+              { willSave =
+                  ( match willSave_value with
+                  | None -> false
+                  | Some v -> v )
+              ; willSaveWaitUntil =
+                  ( match willSaveWaitUntil_value with
+                  | None -> false
+                  | Some v -> v )
+              ; didSave =
+                  ( match didSave_value with
+                  | None -> false
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  let _ = synchronization_of_yojson
+    let _ = t_of_yojson
 
-  let yojson_of_synchronization =
-    ( function
-      | { willSave = v_willSave
-        ; willSaveWaitUntil = v_willSaveWaitUntil
-        ; didSave = v_didSave
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_didSave in
-          ("didSave", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_willSaveWaitUntil in
-          ("willSaveWaitUntil", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_willSave in
-          ("willSave", arg) :: bnds
-        in
-        `Assoc bnds
-      : synchronization -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let yojson_of_t =
+      ( function
+        | { willSave = v_willSave
+          ; willSaveWaitUntil = v_willSaveWaitUntil
+          ; didSave = v_didSave
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_didSave in
+            ("didSave", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_willSaveWaitUntil in
+            ("willSaveWaitUntil", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_willSave in
+            ("willSave", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  let _ = yojson_of_synchronization
+    let _ = yojson_of_t
 
-  [@@@end]
+    [@@@end]
 
-  let synchronization_empty =
-    { willSave = true; willSaveWaitUntil = true; didSave = true }
+    let empty = { willSave = true; willSaveWaitUntil = true; didSave = true }
+  end
 
   type completionItem =
     { snippetSupport : bool [@default false]
@@ -4424,537 +4429,551 @@ module Initialize = struct
 
   let completionItem_empty = { snippetSupport = false }
 
-  type completion =
-    { completionItem : completionItem [@default completionItem_empty] }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+  module Completion = struct
+    type t = { completionItem : completionItem [@default completionItem_empty] }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  let _ = fun (_ : completion) -> ()
+    let _ = fun (_ : t) -> ()
 
-  let completion_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.completion" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let completionItem_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "completionItem" -> (
-              match Ppx_yojson_conv_lib.( ! ) completionItem_field with
-              | None ->
-                let fvalue = completionItem_of_yojson _field_yojson in
-                completionItem_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.Completion.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let completionItem_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "completionItem" -> (
+                match Ppx_yojson_conv_lib.( ! ) completionItem_field with
+                | None ->
+                  let fvalue = completionItem_of_yojson _field_yojson in
+                  completionItem_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let completionItem_value =
-              Ppx_yojson_conv_lib.( ! ) completionItem_field
-            in
-            { completionItem =
-                ( match completionItem_value with
-                | None -> completionItem_empty
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> completion )
-
-  let _ = completion_of_yojson
-
-  let yojson_of_completion =
-    ( function
-      | { completionItem = v_completionItem } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_completionItem v_completionItem in
-          ("completionItem", arg) :: bnds
-        in
-        `Assoc bnds
-      : completion -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_completion
-
-  [@@@end]
-
-  let completion_empty = { completionItem = completionItem_empty }
-
-  type hover = { contentFormat : MarkupKind.t list [@default [ Plaintext ]] }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : hover) -> ()
-
-  let hover_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.hover" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let contentFormat_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "contentFormat" -> (
-              match Ppx_yojson_conv_lib.( ! ) contentFormat_field with
-              | None ->
-                let fvalue =
-                  list_of_yojson MarkupKind.t_of_yojson _field_yojson
-                in
-                contentFormat_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let completionItem_value =
+                Ppx_yojson_conv_lib.( ! ) completionItem_field
+              in
+              { completionItem =
+                  ( match completionItem_value with
+                  | None -> completionItem_empty
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { completionItem = v_completionItem } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_completionItem v_completionItem in
+            ("completionItem", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+
+    let empty = { completionItem = completionItem_empty }
+  end
+
+  module Hover = struct
+    type t = { contentFormat : MarkupKind.t list [@default [ Plaintext ]] }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.Hover.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let contentFormat_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "contentFormat" -> (
+                match Ppx_yojson_conv_lib.( ! ) contentFormat_field with
+                | None ->
+                  let fvalue =
+                    list_of_yojson MarkupKind.t_of_yojson _field_yojson
+                  in
+                  contentFormat_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let contentFormat_value =
-              Ppx_yojson_conv_lib.( ! ) contentFormat_field
-            in
-            { contentFormat =
-                ( match contentFormat_value with
-                | None -> [ Plaintext ]
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> hover )
-
-  let _ = hover_of_yojson
-
-  let yojson_of_hover =
-    ( function
-      | { contentFormat = v_contentFormat } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_list MarkupKind.yojson_of_t v_contentFormat in
-          ("contentFormat", arg) :: bnds
-        in
-        `Assoc bnds
-      : hover -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_hover
-
-  [@@@end]
-
-  let hover_empty = { contentFormat = [ Plaintext ] }
-
-  type codeAction =
-    { codeActionLiteralSupport : CodeActionLiteralSupport.t option
-          [@yojson.option]
-    ; dynamicRegistration : bool option [@yojson.option]
-    ; isPreferredSupport : bool option [@yojson.option]
-    }
-  [@@deriving_inline yojson]
-
-  let _ = fun (_ : codeAction) -> ()
-
-  let codeAction_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.codeAction" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let codeActionLiteralSupport_field = ref None
-        and dynamicRegistration_field = ref None
-        and isPreferredSupport_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "codeActionLiteralSupport" -> (
-              match
-                Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field
-              with
-              | None ->
-                let fvalue =
-                  CodeActionLiteralSupport.t_of_yojson _field_yojson
-                in
-                codeActionLiteralSupport_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "dynamicRegistration" -> (
-              match Ppx_yojson_conv_lib.( ! ) dynamicRegistration_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                dynamicRegistration_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "isPreferredSupport" -> (
-              match Ppx_yojson_conv_lib.( ! ) isPreferredSupport_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                isPreferredSupport_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ ->
-              if
-                Ppx_yojson_conv_lib.( ! )
-                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
-              then
-                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
-              else
-                () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let contentFormat_value =
+                Ppx_yojson_conv_lib.( ! ) contentFormat_field
+              in
+              { contentFormat =
+                  ( match contentFormat_value with
+                  | None -> [ Plaintext ]
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { contentFormat = v_contentFormat } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_list MarkupKind.yojson_of_t v_contentFormat in
+            ("contentFormat", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+
+    let empty = { contentFormat = [ Plaintext ] }
+  end
+
+  module CodeAction = struct
+    type t =
+      { codeActionLiteralSupport : CodeActionLiteralSupport.t option
+            [@yojson.option]
+      ; dynamicRegistration : bool option [@yojson.option]
+      ; isPreferredSupport : bool option [@yojson.option]
+      }
+    [@@deriving_inline yojson]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.CodeAction.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let codeActionLiteralSupport_field = ref None
+          and dynamicRegistration_field = ref None
+          and isPreferredSupport_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "codeActionLiteralSupport" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field
+                with
+                | None ->
+                  let fvalue =
+                    CodeActionLiteralSupport.t_of_yojson _field_yojson
+                  in
+                  codeActionLiteralSupport_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "dynamicRegistration" -> (
+                match Ppx_yojson_conv_lib.( ! ) dynamicRegistration_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  dynamicRegistration_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "isPreferredSupport" -> (
+                match Ppx_yojson_conv_lib.( ! ) isPreferredSupport_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  isPreferredSupport_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ ->
+                if
+                  Ppx_yojson_conv_lib.( ! )
+                    Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+                then
+                  extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
+                else
+                  () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let ( codeActionLiteralSupport_value
-                , dynamicRegistration_value
-                , isPreferredSupport_value ) =
-              ( Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field
-              , Ppx_yojson_conv_lib.( ! ) dynamicRegistration_field
-              , Ppx_yojson_conv_lib.( ! ) isPreferredSupport_field )
-            in
-            { codeActionLiteralSupport = codeActionLiteralSupport_value
-            ; dynamicRegistration = dynamicRegistration_value
-            ; isPreferredSupport = isPreferredSupport_value
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> codeAction )
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let ( codeActionLiteralSupport_value
+                  , dynamicRegistration_value
+                  , isPreferredSupport_value ) =
+                ( Ppx_yojson_conv_lib.( ! ) codeActionLiteralSupport_field
+                , Ppx_yojson_conv_lib.( ! ) dynamicRegistration_field
+                , Ppx_yojson_conv_lib.( ! ) isPreferredSupport_field )
+              in
+              { codeActionLiteralSupport = codeActionLiteralSupport_value
+              ; dynamicRegistration = dynamicRegistration_value
+              ; isPreferredSupport = isPreferredSupport_value
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  let _ = codeAction_of_yojson
+    let _ = t_of_yojson
 
-  let yojson_of_codeAction =
-    ( function
-      | { codeActionLiteralSupport = v_codeActionLiteralSupport
-        ; dynamicRegistration = v_dynamicRegistration
-        ; isPreferredSupport = v_isPreferredSupport
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          match v_isPreferredSupport with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_bool v in
-            let bnd = ("isPreferredSupport", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          match v_dynamicRegistration with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_bool v in
-            let bnd = ("dynamicRegistration", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          match v_codeActionLiteralSupport with
-          | None -> bnds
-          | Some v ->
-            let arg = CodeActionLiteralSupport.yojson_of_t v in
-            let bnd = ("codeActionLiteralSupport", arg) in
-            bnd :: bnds
-        in
-        `Assoc bnds
-      : codeAction -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let yojson_of_t =
+      ( function
+        | { codeActionLiteralSupport = v_codeActionLiteralSupport
+          ; dynamicRegistration = v_dynamicRegistration
+          ; isPreferredSupport = v_isPreferredSupport
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            match v_isPreferredSupport with
+            | None -> bnds
+            | Some v ->
+              let arg = yojson_of_bool v in
+              let bnd = ("isPreferredSupport", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            match v_dynamicRegistration with
+            | None -> bnds
+            | Some v ->
+              let arg = yojson_of_bool v in
+              let bnd = ("dynamicRegistration", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            match v_codeActionLiteralSupport with
+            | None -> bnds
+            | Some v ->
+              let arg = CodeActionLiteralSupport.yojson_of_t v in
+              let bnd = ("codeActionLiteralSupport", arg) in
+              bnd :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  let _ = yojson_of_codeAction
+    let _ = yojson_of_t
 
-  [@@@end]
+    [@@@end]
 
-  let codeAction_empty =
-    { codeActionLiteralSupport = None
-    ; dynamicRegistration = None
-    ; isPreferredSupport = None
-    }
+    let empty =
+      { codeActionLiteralSupport = None
+      ; dynamicRegistration = None
+      ; isPreferredSupport = None
+      }
+  end
 
-  type documentSymbol =
-    { hierarchicalDocumentSymbolSupport : bool [@default false] }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+  module DocumentSymbol = struct
+    type t = { hierarchicalDocumentSymbolSupport : bool [@default false] }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  let _ = fun (_ : documentSymbol) -> ()
+    let _ = fun (_ : t) -> ()
 
-  let documentSymbol_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.documentSymbol" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let hierarchicalDocumentSymbolSupport_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "hierarchicalDocumentSymbolSupport" -> (
-              match
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.DocumentSymbol.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let hierarchicalDocumentSymbolSupport_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "hierarchicalDocumentSymbolSupport" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! )
+                    hierarchicalDocumentSymbolSupport_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  hierarchicalDocumentSymbolSupport_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let hierarchicalDocumentSymbolSupport_value =
                 Ppx_yojson_conv_lib.( ! )
                   hierarchicalDocumentSymbolSupport_field
-              with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                hierarchicalDocumentSymbolSupport_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+              in
+              { hierarchicalDocumentSymbolSupport =
+                  ( match hierarchicalDocumentSymbolSupport_value with
+                  | None -> false
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { hierarchicalDocumentSymbolSupport =
+              v_hierarchicalDocumentSymbolSupport
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_hierarchicalDocumentSymbolSupport in
+            ("hierarchicalDocumentSymbolSupport", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+
+    let empty = { hierarchicalDocumentSymbolSupport = false }
+  end
+
+  module TextDocumentClientCapabilities = struct
+    type t =
+      { synchronization : Synchronization.t [@default Synchronization.empty]
+            (** textDocument/completion *)
+      ; completion : Completion.t [@default Completion.empty]
+            (** textDocument/documentSymbol *)
+      ; documentSymbol : DocumentSymbol.t [@default DocumentSymbol.empty]
+            (** textDocument/hover *)
+      ; hover : Hover.t
+            [@default Hover.empty] (* omitted: dynamic-registration fields *)
+      ; codeAction : CodeAction.t [@default CodeAction.empty]
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc =
+          "lsp/src/protocol.ml.Initialize.TextDocumentClientCapabilities.t"
+        in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let synchronization_field = ref None
+          and completion_field = ref None
+          and documentSymbol_field = ref None
+          and hover_field = ref None
+          and codeAction_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "synchronization" -> (
+                match Ppx_yojson_conv_lib.( ! ) synchronization_field with
+                | None ->
+                  let fvalue = Synchronization.t_of_yojson _field_yojson in
+                  synchronization_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "completion" -> (
+                match Ppx_yojson_conv_lib.( ! ) completion_field with
+                | None ->
+                  let fvalue = Completion.t_of_yojson _field_yojson in
+                  completion_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "documentSymbol" -> (
+                match Ppx_yojson_conv_lib.( ! ) documentSymbol_field with
+                | None ->
+                  let fvalue = DocumentSymbol.t_of_yojson _field_yojson in
+                  documentSymbol_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "hover" -> (
+                match Ppx_yojson_conv_lib.( ! ) hover_field with
+                | None ->
+                  let fvalue = Hover.t_of_yojson _field_yojson in
+                  hover_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "codeAction" -> (
+                match Ppx_yojson_conv_lib.( ! ) codeAction_field with
+                | None ->
+                  let fvalue = CodeAction.t_of_yojson _field_yojson in
+                  codeAction_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let hierarchicalDocumentSymbolSupport_value =
-              Ppx_yojson_conv_lib.( ! ) hierarchicalDocumentSymbolSupport_field
-            in
-            { hierarchicalDocumentSymbolSupport =
-                ( match hierarchicalDocumentSymbolSupport_value with
-                | None -> false
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> documentSymbol )
-
-  let _ = documentSymbol_of_yojson
-
-  let yojson_of_documentSymbol =
-    ( function
-      | { hierarchicalDocumentSymbolSupport =
-            v_hierarchicalDocumentSymbolSupport
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_hierarchicalDocumentSymbolSupport in
-          ("hierarchicalDocumentSymbolSupport", arg) :: bnds
-        in
-        `Assoc bnds
-      : documentSymbol -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_documentSymbol
-
-  [@@@end]
-
-  let documentSymbol_empty = { hierarchicalDocumentSymbolSupport = false }
-
-  type textDocumentClientCapabilities =
-    { synchronization : synchronization [@default synchronization_empty]
-          (** textDocument/completion *)
-    ; completion : completion [@default completion_empty]
-          (** textDocument/documentSymbol *)
-    ; documentSymbol : documentSymbol [@default documentSymbol_empty]
-          (** textDocument/hover *)
-    ; hover : hover
-          [@default hover_empty] (* omitted: dynamic-registration fields *)
-    ; codeAction : codeAction [@default codeAction_empty]
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : textDocumentClientCapabilities) -> ()
-
-  let textDocumentClientCapabilities_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.Initialize.textDocumentClientCapabilities"
-      in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let synchronization_field = ref None
-        and completion_field = ref None
-        and documentSymbol_field = ref None
-        and hover_field = ref None
-        and codeAction_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "synchronization" -> (
-              match Ppx_yojson_conv_lib.( ! ) synchronization_field with
-              | None ->
-                let fvalue = synchronization_of_yojson _field_yojson in
-                synchronization_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "completion" -> (
-              match Ppx_yojson_conv_lib.( ! ) completion_field with
-              | None ->
-                let fvalue = completion_of_yojson _field_yojson in
-                completion_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "documentSymbol" -> (
-              match Ppx_yojson_conv_lib.( ! ) documentSymbol_field with
-              | None ->
-                let fvalue = documentSymbol_of_yojson _field_yojson in
-                documentSymbol_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "hover" -> (
-              match Ppx_yojson_conv_lib.( ! ) hover_field with
-              | None ->
-                let fvalue = hover_of_yojson _field_yojson in
-                hover_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "codeAction" -> (
-              match Ppx_yojson_conv_lib.( ! ) codeAction_field with
-              | None ->
-                let fvalue = codeAction_of_yojson _field_yojson in
-                codeAction_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let ( synchronization_value
+                  , completion_value
+                  , documentSymbol_value
+                  , hover_value
+                  , codeAction_value ) =
+                ( Ppx_yojson_conv_lib.( ! ) synchronization_field
+                , Ppx_yojson_conv_lib.( ! ) completion_field
+                , Ppx_yojson_conv_lib.( ! ) documentSymbol_field
+                , Ppx_yojson_conv_lib.( ! ) hover_field
+                , Ppx_yojson_conv_lib.( ! ) codeAction_field )
+              in
+              { synchronization =
+                  ( match synchronization_value with
+                  | None -> Synchronization.empty
+                  | Some v -> v )
+              ; completion =
+                  ( match completion_value with
+                  | None -> Completion.empty
+                  | Some v -> v )
+              ; documentSymbol =
+                  ( match documentSymbol_value with
+                  | None -> DocumentSymbol.empty
+                  | Some v -> v )
+              ; hover =
+                  ( match hover_value with
+                  | None -> Hover.empty
+                  | Some v -> v )
+              ; codeAction =
+                  ( match codeAction_value with
+                  | None -> CodeAction.empty
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] ->
-            let ( synchronization_value
-                , completion_value
-                , documentSymbol_value
-                , hover_value
-                , codeAction_value ) =
-              ( Ppx_yojson_conv_lib.( ! ) synchronization_field
-              , Ppx_yojson_conv_lib.( ! ) completion_field
-              , Ppx_yojson_conv_lib.( ! ) documentSymbol_field
-              , Ppx_yojson_conv_lib.( ! ) hover_field
-              , Ppx_yojson_conv_lib.( ! ) codeAction_field )
-            in
-            { synchronization =
-                ( match synchronization_value with
-                | None -> synchronization_empty
-                | Some v -> v )
-            ; completion =
-                ( match completion_value with
-                | None -> completion_empty
-                | Some v -> v )
-            ; documentSymbol =
-                ( match documentSymbol_value with
-                | None -> documentSymbol_empty
-                | Some v -> v )
-            ; hover =
-                ( match hover_value with
-                | None -> hover_empty
-                | Some v -> v )
-            ; codeAction =
-                ( match codeAction_value with
-                | None -> codeAction_empty
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> textDocumentClientCapabilities )
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  let _ = textDocumentClientCapabilities_of_yojson
+    let _ = t_of_yojson
 
-  let yojson_of_textDocumentClientCapabilities =
-    ( function
-      | { synchronization = v_synchronization
-        ; completion = v_completion
-        ; documentSymbol = v_documentSymbol
-        ; hover = v_hover
-        ; codeAction = v_codeAction
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_codeAction v_codeAction in
-          ("codeAction", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_hover v_hover in
-          ("hover", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_documentSymbol v_documentSymbol in
-          ("documentSymbol", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_completion v_completion in
-          ("completion", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_synchronization v_synchronization in
-          ("synchronization", arg) :: bnds
-        in
-        `Assoc bnds
-      : textDocumentClientCapabilities -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let yojson_of_t =
+      ( function
+        | { synchronization = v_synchronization
+          ; completion = v_completion
+          ; documentSymbol = v_documentSymbol
+          ; hover = v_hover
+          ; codeAction = v_codeAction
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = CodeAction.yojson_of_t v_codeAction in
+            ("codeAction", arg) :: bnds
+          in
+          let bnds =
+            let arg = Hover.yojson_of_t v_hover in
+            ("hover", arg) :: bnds
+          in
+          let bnds =
+            let arg = DocumentSymbol.yojson_of_t v_documentSymbol in
+            ("documentSymbol", arg) :: bnds
+          in
+          let bnds =
+            let arg = Completion.yojson_of_t v_completion in
+            ("completion", arg) :: bnds
+          in
+          let bnds =
+            let arg = Synchronization.yojson_of_t v_synchronization in
+            ("synchronization", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  let _ = yojson_of_textDocumentClientCapabilities
+    let _ = yojson_of_t
 
-  [@@@end]
+    [@@@end]
 
-  let textDocumentClientCapabilities_empty =
-    { completion = completion_empty
-    ; synchronization = synchronization_empty
-    ; hover = hover_empty
-    ; documentSymbol = documentSymbol_empty
-    ; codeAction = codeAction_empty
-    }
+    let empty =
+      { completion = Completion.empty
+      ; synchronization = Synchronization.empty
+      ; hover = Hover.empty
+      ; documentSymbol = DocumentSymbol.empty
+      ; codeAction = CodeAction.empty
+      }
+  end
 
   type workspaceEdit =
     { documentChanges : bool [@default false]
@@ -5234,8 +5253,8 @@ module Initialize = struct
   type client_capabilities =
     { workspace : workspaceClientCapabilities
           [@default workspaceClientCapabilities_empty]
-    ; textDocument : textDocumentClientCapabilities
-          [@default textDocumentClientCapabilities_empty]
+    ; textDocument : TextDocumentClientCapabilities.t
+          [@default TextDocumentClientCapabilities.empty]
     ; foldingRange : foldingRangeClientCapabilities
           [@default foldingRangeClientCapabilities_empty]
     }
@@ -5269,7 +5288,7 @@ module Initialize = struct
               match Ppx_yojson_conv_lib.( ! ) textDocument_field with
               | None ->
                 let fvalue =
-                  textDocumentClientCapabilities_of_yojson _field_yojson
+                  TextDocumentClientCapabilities.t_of_yojson _field_yojson
                 in
                 textDocument_field := Some fvalue
               | Some _ ->
@@ -5313,7 +5332,7 @@ module Initialize = struct
                 | Some v -> v )
             ; textDocument =
                 ( match textDocument_value with
-                | None -> textDocumentClientCapabilities_empty
+                | None -> TextDocumentClientCapabilities.empty
                 | Some v -> v )
             ; foldingRange =
                 ( match foldingRange_value with
@@ -5339,7 +5358,7 @@ module Initialize = struct
           ("foldingRange", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_textDocumentClientCapabilities v_textDocument in
+          let arg = TextDocumentClientCapabilities.yojson_of_t v_textDocument in
           ("textDocument", arg) :: bnds
         in
         let bnds =
@@ -5355,7 +5374,7 @@ module Initialize = struct
 
   let client_capabilities_empty =
     { workspace = workspaceClientCapabilities_empty
-    ; textDocument = textDocumentClientCapabilities_empty
+    ; textDocument = TextDocumentClientCapabilities.empty
     ; foldingRange = foldingRangeClientCapabilities_empty
     }
 
@@ -5444,7 +5463,7 @@ module Initialize = struct
   and textDocumentSyncOptions =
     { openClose : bool
     ; (* textDocument/didOpen+didClose *)
-      change : textDocumentSyncKind
+      change : TextDocumentSyncKind.t
     ; willSave : bool
     ; (* textDocument/willSave *)
       willSaveWaitUntil : bool
@@ -6353,7 +6372,7 @@ module Initialize = struct
             | "change" -> (
               match Ppx_yojson_conv_lib.( ! ) change_field with
               | None ->
-                let fvalue = textDocumentSyncKind_of_yojson _field_yojson in
+                let fvalue = TextDocumentSyncKind.t_of_yojson _field_yojson in
                 change_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -6813,7 +6832,7 @@ module Initialize = struct
           ("willSave", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_textDocumentSyncKind v_change in
+          let arg = TextDocumentSyncKind.yojson_of_t v_change in
           ("change", arg) :: bnds
         in
         let bnds =
