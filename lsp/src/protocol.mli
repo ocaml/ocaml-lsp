@@ -117,6 +117,38 @@ module VersionedTextDocumentIdentifier : sig
   include Yojsonable.S with type t := t
 end
 
+module SymbolKind : sig
+  type t =
+    | File
+    | Module
+    | Namespace
+    | Package
+    | Class
+    | Method
+    | Property
+    | Field
+    | Constructor
+    | Enum
+    | Interface
+    | Function
+    | Variable
+    | Constant
+    | String
+    | Number
+    | Boolean
+    | Array
+    | Object
+    | Key
+    | Null
+    | EnumMember
+    | Struct
+    | Event
+    | Operator
+    | TypeParameter
+
+  include Yojsonable.S with type t := t
+end
+
 module TextDocumentItem : sig
   type t =
     { uri : documentUri
@@ -684,9 +716,14 @@ module Initialize : sig
   end
 
   module WorkspaceClientCapabilities : sig
+    module Symbol : sig
+      type t = { valueSet : SymbolKind.t list }
+    end
+
     type t =
       { applyEdit : bool
       ; workspaceEdit : WorkspaceEdit.t
+      ; symbol : Symbol.t
       }
 
     include Yojsonable.S with type t := t
@@ -864,38 +901,6 @@ module TextDocumentHighlight : sig
   val yojson_of_params : params -> json
 
   val yojson_of_result : result -> json
-end
-
-module SymbolKind : sig
-  type t =
-    | File
-    | Module
-    | Namespace
-    | Package
-    | Class
-    | Method
-    | Property
-    | Field
-    | Constructor
-    | Enum
-    | Interface
-    | Function
-    | Variable
-    | Constant
-    | String
-    | Number
-    | Boolean
-    | Array
-    | Object
-    | Key
-    | Null
-    | EnumMember
-    | Struct
-    | Event
-    | Operator
-    | TypeParameter
-
-  include Yojsonable.S with type t := t
 end
 
 module SymbolInformation : sig

@@ -269,6 +269,95 @@ module Range = struct
   [@@@end]
 end
 
+module SymbolKind = struct
+  type t =
+    | File (* 1 *)
+    | Module (* 2 *)
+    | Namespace (* 3 *)
+    | Package (* 4 *)
+    | Class (* 5 *)
+    | Method (* 6 *)
+    | Property (* 7 *)
+    | Field (* 8 *)
+    | Constructor (* 9 *)
+    | Enum (* 10 *)
+    | Interface (* 11 *)
+    | Function (* 12 *)
+    | Variable (* 13 *)
+    | Constant (* 14 *)
+    | String (* 15 *)
+    | Number (* 16 *)
+    | Boolean (* 17 *)
+    | Array (* 18 *)
+    | Object (* 19 *)
+    | Key (* 20 *)
+    | Null (* 21 *)
+    | EnumMember (* 22 *)
+    | Struct (* 23 *)
+    | Event (* 24 *)
+    | Operator (* 25 *)
+    | TypeParameter
+
+  (* 26 *)
+
+  let yojson_of_t = function
+    | File -> `Int 1
+    | Module -> `Int 2
+    | Namespace -> `Int 3
+    | Package -> `Int 4
+    | Class -> `Int 5
+    | Method -> `Int 6
+    | Property -> `Int 7
+    | Field -> `Int 8
+    | Constructor -> `Int 9
+    | Enum -> `Int 10
+    | Interface -> `Int 11
+    | Function -> `Int 12
+    | Variable -> `Int 13
+    | Constant -> `Int 14
+    | String -> `Int 15
+    | Number -> `Int 16
+    | Boolean -> `Int 17
+    | Array -> `Int 18
+    | Object -> `Int 19
+    | Key -> `Int 20
+    | Null -> `Int 21
+    | EnumMember -> `Int 22
+    | Struct -> `Int 23
+    | Event -> `Int 24
+    | Operator -> `Int 25
+    | TypeParameter -> `Int 26
+
+  let t_of_yojson = function
+    | `Int 1 -> File
+    | `Int 2 -> Module
+    | `Int 3 -> Namespace
+    | `Int 4 -> Package
+    | `Int 5 -> Class
+    | `Int 6 -> Method
+    | `Int 7 -> Property
+    | `Int 8 -> Field
+    | `Int 9 -> Constructor
+    | `Int 10 -> Enum
+    | `Int 11 -> Interface
+    | `Int 12 -> Function
+    | `Int 13 -> Variable
+    | `Int 14 -> Constant
+    | `Int 15 -> String
+    | `Int 16 -> Number
+    | `Int 17 -> Boolean
+    | `Int 18 -> Array
+    | `Int 19 -> Object
+    | `Int 20 -> Key
+    | `Int 21 -> Null
+    | `Int 22 -> EnumMember
+    | `Int 23 -> Struct
+    | `Int 24 -> Event
+    | `Int 25 -> Operator
+    | `Int 26 -> TypeParameter
+    | node -> yojson_error "invalid SymbolKind" node
+end
+
 module Command = struct
   type t =
     { title : string
@@ -5939,11 +6028,109 @@ module Initialize = struct
   end
 
   module WorkspaceClientCapabilities = struct
+    module Symbol = struct
+      let default_set : SymbolKind.t list =
+        [ File
+        ; Module
+        ; Namespace
+        ; Package
+        ; Class
+        ; Method
+        ; Property
+        ; Field
+        ; Constructor
+        ; Enum
+        ; Interface
+        ; Function
+        ; Variable
+        ; Constant
+        ; String
+        ; Number
+        ; Boolean
+        ]
+
+      type t = { valueSet : SymbolKind.t list [@default default_set] }
+      [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+      let _ = fun (_ : t) -> ()
+
+      let t_of_yojson =
+        ( let _tp_loc =
+            "lsp/src/protocol.ml.Initialize.WorkspaceClientCapabilities.Symbol.t"
+          in
+          function
+          | `Assoc field_yojsons as yojson -> (
+            let valueSet_field = ref None
+            and duplicates = ref []
+            and extra = ref [] in
+            let rec iter = function
+              | (field_name, _field_yojson) :: tail ->
+                ( match field_name with
+                | "valueSet" -> (
+                  match Ppx_yojson_conv_lib.( ! ) valueSet_field with
+                  | None ->
+                    let fvalue =
+                      list_of_yojson SymbolKind.t_of_yojson _field_yojson
+                    in
+                    valueSet_field := Some fvalue
+                  | Some _ ->
+                    duplicates :=
+                      field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+                | _ -> () );
+                iter tail
+              | [] -> ()
+            in
+            iter field_yojsons;
+            match Ppx_yojson_conv_lib.( ! ) duplicates with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+                _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) duplicates)
+                yojson
+            | [] -> (
+              match Ppx_yojson_conv_lib.( ! ) extra with
+              | _ :: _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+                  _tp_loc
+                  (Ppx_yojson_conv_lib.( ! ) extra)
+                  yojson
+              | [] ->
+                let valueSet_value = Ppx_yojson_conv_lib.( ! ) valueSet_field in
+                { valueSet =
+                    ( match valueSet_value with
+                    | None -> default_set
+                    | Some v -> v )
+                } ) )
+          | _ as yojson ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom
+              _tp_loc yojson
+          : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+      let _ = t_of_yojson
+
+      let yojson_of_t =
+        ( function
+          | { valueSet = v_valueSet } ->
+            let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+            let bnds =
+              let arg = yojson_of_list SymbolKind.yojson_of_t v_valueSet in
+              ("valueSet", arg) :: bnds
+            in
+            `Assoc bnds
+          : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+      let _ = yojson_of_t
+
+      [@@@end]
+
+      let default = { valueSet = default_set }
+    end
+
     type t =
       { applyEdit : bool [@default false]
-            (** client supports applying batch edits *)
       ; workspaceEdit : WorkspaceEdit.t [@default WorkspaceEdit.empty]
             (** omitted: dynamic-registration fields *)
+      ; symbol : Symbol.t [@default Symbol.default]
       }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -5957,6 +6144,7 @@ module Initialize = struct
         | `Assoc field_yojsons as yojson -> (
           let applyEdit_field = ref None
           and workspaceEdit_field = ref None
+          and symbol_field = ref None
           and duplicates = ref []
           and extra = ref [] in
           let rec iter = function
@@ -5978,6 +6166,14 @@ module Initialize = struct
                 | Some _ ->
                   duplicates :=
                     field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "symbol" -> (
+                match Ppx_yojson_conv_lib.( ! ) symbol_field with
+                | None ->
+                  let fvalue = Symbol.t_of_yojson _field_yojson in
+                  symbol_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
               | _ -> () );
               iter tail
             | [] -> ()
@@ -5996,9 +6192,10 @@ module Initialize = struct
                 (Ppx_yojson_conv_lib.( ! ) extra)
                 yojson
             | [] ->
-              let applyEdit_value, workspaceEdit_value =
+              let applyEdit_value, workspaceEdit_value, symbol_value =
                 ( Ppx_yojson_conv_lib.( ! ) applyEdit_field
-                , Ppx_yojson_conv_lib.( ! ) workspaceEdit_field )
+                , Ppx_yojson_conv_lib.( ! ) workspaceEdit_field
+                , Ppx_yojson_conv_lib.( ! ) symbol_field )
               in
               { applyEdit =
                   ( match applyEdit_value with
@@ -6007,6 +6204,10 @@ module Initialize = struct
               ; workspaceEdit =
                   ( match workspaceEdit_value with
                   | None -> WorkspaceEdit.empty
+                  | Some v -> v )
+              ; symbol =
+                  ( match symbol_value with
+                  | None -> Symbol.default
                   | Some v -> v )
               } ) )
         | _ as yojson ->
@@ -6018,8 +6219,15 @@ module Initialize = struct
 
     let yojson_of_t =
       ( function
-        | { applyEdit = v_applyEdit; workspaceEdit = v_workspaceEdit } ->
+        | { applyEdit = v_applyEdit
+          ; workspaceEdit = v_workspaceEdit
+          ; symbol = v_symbol
+          } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = Symbol.yojson_of_t v_symbol in
+            ("symbol", arg) :: bnds
+          in
           let bnds =
             let arg = WorkspaceEdit.yojson_of_t v_workspaceEdit in
             ("workspaceEdit", arg) :: bnds
@@ -6035,7 +6243,11 @@ module Initialize = struct
 
     [@@@end]
 
-    let empty = { applyEdit = false; workspaceEdit = WorkspaceEdit.empty }
+    let empty =
+      { applyEdit = false
+      ; workspaceEdit = WorkspaceEdit.empty
+      ; symbol = Symbol.default
+      }
   end
 
   module FoldingRangeClientCapabilities = struct
@@ -8234,95 +8446,6 @@ module TextDocumentHighlight = struct
   and _ = yojson_of_result
 
   [@@@end]
-end
-
-module SymbolKind = struct
-  type t =
-    | File (* 1 *)
-    | Module (* 2 *)
-    | Namespace (* 3 *)
-    | Package (* 4 *)
-    | Class (* 5 *)
-    | Method (* 6 *)
-    | Property (* 7 *)
-    | Field (* 8 *)
-    | Constructor (* 9 *)
-    | Enum (* 10 *)
-    | Interface (* 11 *)
-    | Function (* 12 *)
-    | Variable (* 13 *)
-    | Constant (* 14 *)
-    | String (* 15 *)
-    | Number (* 16 *)
-    | Boolean (* 17 *)
-    | Array (* 18 *)
-    | Object (* 19 *)
-    | Key (* 20 *)
-    | Null (* 21 *)
-    | EnumMember (* 22 *)
-    | Struct (* 23 *)
-    | Event (* 24 *)
-    | Operator (* 25 *)
-    | TypeParameter
-
-  (* 26 *)
-
-  let yojson_of_t = function
-    | File -> `Int 1
-    | Module -> `Int 2
-    | Namespace -> `Int 3
-    | Package -> `Int 4
-    | Class -> `Int 5
-    | Method -> `Int 6
-    | Property -> `Int 7
-    | Field -> `Int 8
-    | Constructor -> `Int 9
-    | Enum -> `Int 10
-    | Interface -> `Int 11
-    | Function -> `Int 12
-    | Variable -> `Int 13
-    | Constant -> `Int 14
-    | String -> `Int 15
-    | Number -> `Int 16
-    | Boolean -> `Int 17
-    | Array -> `Int 18
-    | Object -> `Int 19
-    | Key -> `Int 20
-    | Null -> `Int 21
-    | EnumMember -> `Int 22
-    | Struct -> `Int 23
-    | Event -> `Int 24
-    | Operator -> `Int 25
-    | TypeParameter -> `Int 26
-
-  let t_of_yojson = function
-    | `Int 1 -> File
-    | `Int 2 -> Module
-    | `Int 3 -> Namespace
-    | `Int 4 -> Package
-    | `Int 5 -> Class
-    | `Int 6 -> Method
-    | `Int 7 -> Property
-    | `Int 8 -> Field
-    | `Int 9 -> Constructor
-    | `Int 10 -> Enum
-    | `Int 11 -> Interface
-    | `Int 12 -> Function
-    | `Int 13 -> Variable
-    | `Int 14 -> Constant
-    | `Int 15 -> String
-    | `Int 16 -> Number
-    | `Int 17 -> Boolean
-    | `Int 18 -> Array
-    | `Int 19 -> Object
-    | `Int 20 -> Key
-    | `Int 21 -> Null
-    | `Int 22 -> EnumMember
-    | `Int 23 -> Struct
-    | `Int 24 -> Event
-    | `Int 25 -> Operator
-    | `Int 26 -> TypeParameter
-    | node -> yojson_error "invalid SymbolKind" node
 end
 
 module SymbolInformation = struct
