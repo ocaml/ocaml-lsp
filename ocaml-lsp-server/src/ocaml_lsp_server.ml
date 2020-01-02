@@ -8,7 +8,7 @@ module Action = struct
   let destruct = "destruct"
 end
 
-let completion_kind kind : Lsp.Protocol.Completion.completionItemKind option =
+let completion_kind kind : Lsp.Completion.completionItemKind option =
   match kind with
   | `Value -> Some Value
   | `Constructor -> Some Constructor
@@ -493,7 +493,7 @@ let on_request :
         | `Replace range ->
           Some { Lsp.Protocol.TextEdit.range; newText = entry.name }
       in
-      { Lsp.Protocol.Completion.label = entry.name
+      { Lsp.Completion.label = entry.name
       ; kind
       ; detail = Some entry.desc
       ; documentation = Some entry.info
@@ -562,7 +562,7 @@ let on_request :
     in
     let all = List.concat [ labels; items ] in
     let items = List.mapi ~f:item all in
-    let resp = { Lsp.Protocol.Completion.isIncomplete = false; items } in
+    let resp = { Lsp.Completion.isIncomplete = false; items } in
     return (store, resp)
   | Lsp.Request.TextDocumentRename { textDocument = { uri }; position; newName }
     ->
