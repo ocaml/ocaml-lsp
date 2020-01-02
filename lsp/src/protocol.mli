@@ -559,6 +559,15 @@ module CodeActionLiteralSupport : sig
   include Yojsonable.S with type t := t
 end
 
+module WorkspaceFolder : sig
+  type t =
+    { uri : documentUri
+    ; name : string
+    }
+
+  include Yojsonable.S with type t := t
+end
+
 module Initialize : sig
   module Trace : sig
     type t =
@@ -696,6 +705,7 @@ module Initialize : sig
     ; rootUri : documentUri option
     ; client_capabilities : client_capabilities
     ; trace : Trace.t
+    ; workspaceFolders : WorkspaceFolder.t list
     }
 
   and result = { server_capabilities : server_capabilities }

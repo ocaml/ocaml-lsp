@@ -4848,6 +4848,111 @@ module CodeActionLiteralSupport = struct
   [@@@end]
 end
 
+module WorkspaceFolder = struct
+  type t =
+    { uri : documentUri
+    ; name : string
+    }
+  [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.WorkspaceFolder.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let uri_field = ref None
+        and name_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "uri" -> (
+              match Ppx_yojson_conv_lib.( ! ) uri_field with
+              | None ->
+                let fvalue = documentUri_of_yojson _field_yojson in
+                uri_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "name" -> (
+              match Ppx_yojson_conv_lib.( ! ) name_field with
+              | None ->
+                let fvalue = string_of_yojson _field_yojson in
+                name_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ ->
+              if
+                Ppx_yojson_conv_lib.( ! )
+                  Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+              then
+                extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
+              else
+                () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) uri_field
+              , Ppx_yojson_conv_lib.( ! ) name_field )
+            with
+            | Some uri_value, Some name_value ->
+              { uri = uri_value; name = name_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) uri_field)
+                      None
+                  , "uri" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) name_field)
+                      None
+                  , "name" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { uri = v_uri; name = v_name } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_string v_name in
+          ("name", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_documentUri v_uri in
+          ("uri", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
 (* Initialize request, method="initialize" *)
 module Initialize = struct
   module Trace = struct
@@ -6049,8 +6154,11 @@ module Initialize = struct
     ; (* the root URI of the workspace *)
       client_capabilities : client_capabilities
           [@key "capabilities"] [@default client_capabilities_empty]
-    ; trace : Trace.t [@default Trace.Off] [@yojson_drop_default ( = )]
+    ; trace : Trace.t
+          [@default Trace.Off]
+          [@yojson_drop_default ( = )]
           (* the initial trace setting, default="off" *)
+    ; workspaceFolders : WorkspaceFolder.t list [@default []]
     }
   [@@yojson.allow_extra_fields]
 
@@ -6169,6 +6277,7 @@ module Initialize = struct
         and rootUri_field = ref None
         and client_capabilities_field = ref None
         and trace_field = ref None
+        and workspaceFolders_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -6216,6 +6325,16 @@ module Initialize = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "workspaceFolders" -> (
+              match Ppx_yojson_conv_lib.( ! ) workspaceFolders_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson WorkspaceFolder.t_of_yojson _field_yojson
+                in
+                workspaceFolders_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -6237,12 +6356,14 @@ module Initialize = struct
                 , rootPath_value
                 , rootUri_value
                 , client_capabilities_value
-                , trace_value ) =
+                , trace_value
+                , workspaceFolders_value ) =
               ( Ppx_yojson_conv_lib.( ! ) processId_field
               , Ppx_yojson_conv_lib.( ! ) rootPath_field
               , Ppx_yojson_conv_lib.( ! ) rootUri_field
               , Ppx_yojson_conv_lib.( ! ) client_capabilities_field
-              , Ppx_yojson_conv_lib.( ! ) trace_field )
+              , Ppx_yojson_conv_lib.( ! ) trace_field
+              , Ppx_yojson_conv_lib.( ! ) workspaceFolders_field )
             in
             { processId =
                 ( match processId_value with
@@ -6263,6 +6384,10 @@ module Initialize = struct
             ; trace =
                 ( match trace_value with
                 | None -> Trace.Off
+                | Some v -> v )
+            ; workspaceFolders =
+                ( match workspaceFolders_value with
+                | None -> []
                 | Some v -> v )
             } ) )
       | _ as yojson ->
@@ -7213,8 +7338,15 @@ module Initialize = struct
         ; rootUri = v_rootUri
         ; client_capabilities = v_client_capabilities
         ; trace = v_trace
+        ; workspaceFolders = v_workspaceFolders
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg =
+            yojson_of_list WorkspaceFolder.yojson_of_t v_workspaceFolders
+          in
+          ("workspaceFolders", arg) :: bnds
+        in
         let bnds =
           if Trace.Off = v_trace then
             bnds
