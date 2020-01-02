@@ -25,11 +25,11 @@ type 'state handler =
   { on_initialize :
          t
       -> 'state
-      -> Protocol.Initialize.Params.t
-      -> ('state * Protocol.Initialize.Result.t, string) result
+      -> Initialize.Params.t
+      -> ('state * Initialize.Result.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Protocol.Initialize.ClientCapabilities.t
-      -> 'res Request.t -> ('state * 'res, string) result
+      'res.    t -> 'state -> Initialize.ClientCapabilities.t -> 'res Request.t
+      -> ('state * 'res, string) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }

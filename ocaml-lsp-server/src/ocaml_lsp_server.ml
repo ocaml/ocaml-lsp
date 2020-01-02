@@ -32,8 +32,8 @@ let outline_kind kind : Lsp.Protocol.SymbolKind.t =
   | `Class -> Class
   | `Method -> Method
 
-let initializeInfo : Lsp.Protocol.Initialize.Result.t =
-  let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
+let initializeInfo : Lsp.Initialize.Result.t =
+  let codeActionProvider : Lsp.Initialize.CodeActionOptions.t =
     { codeActionsKinds = [ Other Action.destruct ] }
   in
   { capabilities =
@@ -177,7 +177,7 @@ let on_request :
     type resp.
        Lsp.Rpc.t
     -> Document_store.t
-    -> Lsp.Protocol.Initialize.ClientCapabilities.t
+    -> Lsp.Initialize.ClientCapabilities.t
     -> resp Lsp.Request.t
     -> (Document_store.t * resp, string) result =
  fun _rpc store client_capabilities req ->

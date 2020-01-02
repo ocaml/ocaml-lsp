@@ -9,7 +9,7 @@ type t =
 
 and state =
   | Ready
-  | Initialized of Protocol.Initialize.ClientCapabilities.t
+  | Initialized of Initialize.ClientCapabilities.t
   | Closed
 
 let { Logger.log } = Logger.for_section "lsp"
@@ -155,7 +155,7 @@ module Message = struct
   open Protocol
 
   type t =
-    | Initialize : Jsonrpc.Id.t * Protocol.Initialize.Params.t -> t
+    | Initialize : Jsonrpc.Id.t * Initialize.Params.t -> t
     | Request : Jsonrpc.Id.t * 'result Request.t -> t
     | Client_notification : Client_notification.t -> t
 
@@ -178,8 +178,8 @@ module Message = struct
       match packet.method_ with
       | "initialize" ->
         require_params packet.params >>= fun params ->
-        parse_yojson Protocol.Initialize.Params.t_of_yojson params
-        >>| fun params -> Initialize (id, params)
+        parse_yojson Initialize.Params.t_of_yojson params >>| fun params ->
+        Initialize (id, params)
       | "shutdown" -> Ok (Request (id, Shutdown))
       | "textDocument/completion" ->
         require_params packet.params >>= fun params ->
@@ -256,11 +256,11 @@ type 'state handler =
   { on_initialize :
          t
       -> 'state
-      -> Protocol.Initialize.Params.t
-      -> ('state * Protocol.Initialize.Result.t, string) result
+      -> Initialize.Params.t
+      -> ('state * Initialize.Result.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Protocol.Initialize.ClientCapabilities.t
-      -> 'res Request.t -> ('state * 'res, string) result
+      'res.    t -> 'state -> Initialize.ClientCapabilities.t -> 'res Request.t
+      -> ('state * 'res, string) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }
@@ -291,7 +291,7 @@ let start init_state handler ic oc =
             | Message.Initialize (id, params) ->
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
-              let json = Protocol.Initialize.Result.yojson_of_t result in
+              let json = Initialize.Result.yojson_of_t result in
               let response = Jsonrpc.Response.ok id json in
               rpc.state <- Initialized params.capabilities;
               send_response rpc response;
