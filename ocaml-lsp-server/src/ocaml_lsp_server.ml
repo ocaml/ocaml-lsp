@@ -180,7 +180,7 @@ let on_request :
     type resp.
        Lsp.Rpc.t
     -> Document_store.t
-    -> Lsp.Protocol.Initialize.client_capabilities
+    -> Lsp.Protocol.Initialize.ClientCapabilities.t
     -> resp Lsp.Request.t
     -> (Document_store.t * resp, string) result =
  fun _rpc store client_capabilities req ->

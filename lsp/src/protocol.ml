@@ -5742,408 +5742,422 @@ module Initialize = struct
       }
   end
 
-  type workspaceEdit =
-    { documentChanges : bool [@default false]
-          (** client supports versioned doc changes *)
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+  module WorkspaceEdit = struct
+    type t =
+      { documentChanges : bool [@default false]
+            (** client supports versioned doc changes *)
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  let _ = fun (_ : workspaceEdit) -> ()
+    let _ = fun (_ : t) -> ()
 
-  let workspaceEdit_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.workspaceEdit" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let documentChanges_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "documentChanges" -> (
-              match Ppx_yojson_conv_lib.( ! ) documentChanges_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                documentChanges_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.WorkspaceEdit.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let documentChanges_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "documentChanges" -> (
+                match Ppx_yojson_conv_lib.( ! ) documentChanges_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  documentChanges_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] ->
-            let documentChanges_value =
-              Ppx_yojson_conv_lib.( ! ) documentChanges_field
-            in
-            { documentChanges =
-                ( match documentChanges_value with
-                | None -> false
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> workspaceEdit )
-
-  let _ = workspaceEdit_of_yojson
-
-  let yojson_of_workspaceEdit =
-    ( function
-      | { documentChanges = v_documentChanges } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_documentChanges in
-          ("documentChanges", arg) :: bnds
-        in
-        `Assoc bnds
-      : workspaceEdit -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_workspaceEdit
-
-  [@@@end]
-
-  let workspaceEdit_empty = { documentChanges = false }
-
-  type workspaceClientCapabilities =
-    { applyEdit : bool [@default false]
-          (** client supports applying batch edits *)
-    ; workspaceEdit : workspaceEdit [@default workspaceEdit_empty]
-          (** omitted: dynamic-registration fields *)
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : workspaceClientCapabilities) -> ()
-
-  let workspaceClientCapabilities_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.Initialize.workspaceClientCapabilities"
-      in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let applyEdit_field = ref None
-        and workspaceEdit_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "applyEdit" -> (
-              match Ppx_yojson_conv_lib.( ! ) applyEdit_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                applyEdit_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "workspaceEdit" -> (
-              match Ppx_yojson_conv_lib.( ! ) workspaceEdit_field with
-              | None ->
-                let fvalue = workspaceEdit_of_yojson _field_yojson in
-                workspaceEdit_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] ->
-            let applyEdit_value, workspaceEdit_value =
-              ( Ppx_yojson_conv_lib.( ! ) applyEdit_field
-              , Ppx_yojson_conv_lib.( ! ) workspaceEdit_field )
-            in
-            { applyEdit =
-                ( match applyEdit_value with
-                | None -> false
-                | Some v -> v )
-            ; workspaceEdit =
-                ( match workspaceEdit_value with
-                | None -> workspaceEdit_empty
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> workspaceClientCapabilities )
-
-  let _ = workspaceClientCapabilities_of_yojson
-
-  let yojson_of_workspaceClientCapabilities =
-    ( function
-      | { applyEdit = v_applyEdit; workspaceEdit = v_workspaceEdit } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_workspaceEdit v_workspaceEdit in
-          ("workspaceEdit", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_applyEdit in
-          ("applyEdit", arg) :: bnds
-        in
-        `Assoc bnds
-      : workspaceClientCapabilities -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_workspaceClientCapabilities
-
-  [@@@end]
-
-  let workspaceClientCapabilities_empty =
-    { applyEdit = false; workspaceEdit = workspaceEdit_empty }
-
-  type foldingRangeClientCapabilities =
-    { rangeLimit : int option
-    ; lineFoldingOnly : bool [@default false]
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : foldingRangeClientCapabilities) -> ()
-
-  let foldingRangeClientCapabilities_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.Initialize.foldingRangeClientCapabilities"
-      in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let rangeLimit_field = ref None
-        and lineFoldingOnly_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "rangeLimit" -> (
-              match Ppx_yojson_conv_lib.( ! ) rangeLimit_field with
-              | None ->
-                let fvalue = option_of_yojson int_of_yojson _field_yojson in
-                rangeLimit_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "lineFoldingOnly" -> (
-              match Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                lineFoldingOnly_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
           | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) rangeLimit_field
-              , Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field )
-            with
-            | Some rangeLimit_value, lineFoldingOnly_value ->
-              { rangeLimit = rangeLimit_value
-              ; lineFoldingOnly =
-                  ( match lineFoldingOnly_value with
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let documentChanges_value =
+                Ppx_yojson_conv_lib.( ! ) documentChanges_field
+              in
+              { documentChanges =
+                  ( match documentChanges_value with
                   | None -> false
                   | Some v -> v )
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) rangeLimit_field)
-                      None
-                  , "rangeLimit" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> foldingRangeClientCapabilities )
-
-  let _ = foldingRangeClientCapabilities_of_yojson
-
-  let yojson_of_foldingRangeClientCapabilities =
-    ( function
-      | { rangeLimit = v_rangeLimit; lineFoldingOnly = v_lineFoldingOnly } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_lineFoldingOnly in
-          ("lineFoldingOnly", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_option yojson_of_int v_rangeLimit in
-          ("rangeLimit", arg) :: bnds
-        in
-        `Assoc bnds
-      : foldingRangeClientCapabilities -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  let _ = yojson_of_foldingRangeClientCapabilities
-
-  [@@@end]
-
-  let foldingRangeClientCapabilities_empty =
-    { rangeLimit = None; lineFoldingOnly = false }
-
-  type client_capabilities =
-    { workspace : workspaceClientCapabilities
-          [@default workspaceClientCapabilities_empty]
-    ; textDocument : TextDocumentClientCapabilities.t
-          [@default TextDocumentClientCapabilities.empty]
-    ; foldingRange : foldingRangeClientCapabilities
-          [@default foldingRangeClientCapabilities_empty]
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : client_capabilities) -> ()
-
-  let client_capabilities_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.client_capabilities" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let workspace_field = ref None
-        and textDocument_field = ref None
-        and foldingRange_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "workspace" -> (
-              match Ppx_yojson_conv_lib.( ! ) workspace_field with
-              | None ->
-                let fvalue =
-                  workspaceClientCapabilities_of_yojson _field_yojson
-                in
-                workspace_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "textDocument" -> (
-              match Ppx_yojson_conv_lib.( ! ) textDocument_field with
-              | None ->
-                let fvalue =
-                  TextDocumentClientCapabilities.t_of_yojson _field_yojson
-                in
-                textDocument_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "foldingRange" -> (
-              match Ppx_yojson_conv_lib.( ! ) foldingRange_field with
-              | None ->
-                let fvalue =
-                  foldingRangeClientCapabilities_of_yojson _field_yojson
-                in
-                foldingRange_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { documentChanges = v_documentChanges } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_documentChanges in
+            ("documentChanges", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+
+    let empty = { documentChanges = false }
+  end
+
+  module WorkspaceClientCapabilities = struct
+    type t =
+      { applyEdit : bool [@default false]
+            (** client supports applying batch edits *)
+      ; workspaceEdit : WorkspaceEdit.t [@default WorkspaceEdit.empty]
+            (** omitted: dynamic-registration fields *)
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc =
+          "lsp/src/protocol.ml.Initialize.WorkspaceClientCapabilities.t"
+        in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let applyEdit_field = ref None
+          and workspaceEdit_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "applyEdit" -> (
+                match Ppx_yojson_conv_lib.( ! ) applyEdit_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  applyEdit_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "workspaceEdit" -> (
+                match Ppx_yojson_conv_lib.( ! ) workspaceEdit_field with
+                | None ->
+                  let fvalue = WorkspaceEdit.t_of_yojson _field_yojson in
+                  workspaceEdit_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let workspace_value, textDocument_value, foldingRange_value =
-              ( Ppx_yojson_conv_lib.( ! ) workspace_field
-              , Ppx_yojson_conv_lib.( ! ) textDocument_field
-              , Ppx_yojson_conv_lib.( ! ) foldingRange_field )
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let applyEdit_value, workspaceEdit_value =
+                ( Ppx_yojson_conv_lib.( ! ) applyEdit_field
+                , Ppx_yojson_conv_lib.( ! ) workspaceEdit_field )
+              in
+              { applyEdit =
+                  ( match applyEdit_value with
+                  | None -> false
+                  | Some v -> v )
+              ; workspaceEdit =
+                  ( match workspaceEdit_value with
+                  | None -> WorkspaceEdit.empty
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { applyEdit = v_applyEdit; workspaceEdit = v_workspaceEdit } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = WorkspaceEdit.yojson_of_t v_workspaceEdit in
+            ("workspaceEdit", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_applyEdit in
+            ("applyEdit", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+
+    let empty = { applyEdit = false; workspaceEdit = WorkspaceEdit.empty }
+  end
+
+  module FoldingRangeClientCapabilities = struct
+    type t =
+      { rangeLimit : int option
+      ; lineFoldingOnly : bool [@default false]
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc =
+          "lsp/src/protocol.ml.Initialize.FoldingRangeClientCapabilities.t"
+        in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let rangeLimit_field = ref None
+          and lineFoldingOnly_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "rangeLimit" -> (
+                match Ppx_yojson_conv_lib.( ! ) rangeLimit_field with
+                | None ->
+                  let fvalue = option_of_yojson int_of_yojson _field_yojson in
+                  rangeLimit_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "lineFoldingOnly" -> (
+                match Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  lineFoldingOnly_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) rangeLimit_field
+                , Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field )
+              with
+              | Some rangeLimit_value, lineFoldingOnly_value ->
+                { rangeLimit = rangeLimit_value
+                ; lineFoldingOnly =
+                    ( match lineFoldingOnly_value with
+                    | None -> false
+                    | Some v -> v )
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) rangeLimit_field)
+                        None
+                    , "rangeLimit" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { rangeLimit = v_rangeLimit; lineFoldingOnly = v_lineFoldingOnly } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_lineFoldingOnly in
+            ("lineFoldingOnly", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_option yojson_of_int v_rangeLimit in
+            ("rangeLimit", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+
+    let empty = { rangeLimit = None; lineFoldingOnly = false }
+  end
+
+  module ClientCapabilities = struct
+    type t =
+      { workspace : WorkspaceClientCapabilities.t
+            [@default WorkspaceClientCapabilities.empty]
+      ; textDocument : TextDocumentClientCapabilities.t
+            [@default TextDocumentClientCapabilities.empty]
+      ; foldingRange : FoldingRangeClientCapabilities.t
+            [@default FoldingRangeClientCapabilities.empty]
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.ClientCapabilities.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let workspace_field = ref None
+          and textDocument_field = ref None
+          and foldingRange_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "workspace" -> (
+                match Ppx_yojson_conv_lib.( ! ) workspace_field with
+                | None ->
+                  let fvalue =
+                    WorkspaceClientCapabilities.t_of_yojson _field_yojson
+                  in
+                  workspace_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "textDocument" -> (
+                match Ppx_yojson_conv_lib.( ! ) textDocument_field with
+                | None ->
+                  let fvalue =
+                    TextDocumentClientCapabilities.t_of_yojson _field_yojson
+                  in
+                  textDocument_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "foldingRange" -> (
+                match Ppx_yojson_conv_lib.( ! ) foldingRange_field with
+                | None ->
+                  let fvalue =
+                    FoldingRangeClientCapabilities.t_of_yojson _field_yojson
+                  in
+                  foldingRange_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let workspace_value, textDocument_value, foldingRange_value =
+                ( Ppx_yojson_conv_lib.( ! ) workspace_field
+                , Ppx_yojson_conv_lib.( ! ) textDocument_field
+                , Ppx_yojson_conv_lib.( ! ) foldingRange_field )
+              in
+              { workspace =
+                  ( match workspace_value with
+                  | None -> WorkspaceClientCapabilities.empty
+                  | Some v -> v )
+              ; textDocument =
+                  ( match textDocument_value with
+                  | None -> TextDocumentClientCapabilities.empty
+                  | Some v -> v )
+              ; foldingRange =
+                  ( match foldingRange_value with
+                  | None -> FoldingRangeClientCapabilities.empty
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { workspace = v_workspace
+          ; textDocument = v_textDocument
+          ; foldingRange = v_foldingRange
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg =
+              FoldingRangeClientCapabilities.yojson_of_t v_foldingRange
             in
-            { workspace =
-                ( match workspace_value with
-                | None -> workspaceClientCapabilities_empty
-                | Some v -> v )
-            ; textDocument =
-                ( match textDocument_value with
-                | None -> TextDocumentClientCapabilities.empty
-                | Some v -> v )
-            ; foldingRange =
-                ( match foldingRange_value with
-                | None -> foldingRangeClientCapabilities_empty
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> client_capabilities )
+            ("foldingRange", arg) :: bnds
+          in
+          let bnds =
+            let arg =
+              TextDocumentClientCapabilities.yojson_of_t v_textDocument
+            in
+            ("textDocument", arg) :: bnds
+          in
+          let bnds =
+            let arg = WorkspaceClientCapabilities.yojson_of_t v_workspace in
+            ("workspace", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  let _ = client_capabilities_of_yojson
+    let _ = yojson_of_t
 
-  let yojson_of_client_capabilities =
-    ( function
-      | { workspace = v_workspace
-        ; textDocument = v_textDocument
-        ; foldingRange = v_foldingRange
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_foldingRangeClientCapabilities v_foldingRange in
-          ("foldingRange", arg) :: bnds
-        in
-        let bnds =
-          let arg = TextDocumentClientCapabilities.yojson_of_t v_textDocument in
-          ("textDocument", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_workspaceClientCapabilities v_workspace in
-          ("workspace", arg) :: bnds
-        in
-        `Assoc bnds
-      : client_capabilities -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    [@@@end]
 
-  let _ = yojson_of_client_capabilities
-
-  [@@@end]
-
-  let client_capabilities_empty =
-    { workspace = workspaceClientCapabilities_empty
-    ; textDocument = TextDocumentClientCapabilities.empty
-    ; foldingRange = foldingRangeClientCapabilities_empty
-    }
+    let empty =
+      { workspace = WorkspaceClientCapabilities.empty
+      ; textDocument = TextDocumentClientCapabilities.empty
+      ; foldingRange = FoldingRangeClientCapabilities.empty
+      }
+  end
 
   type params =
     { processId : int option [@default None] [@yojson_drop_default ( = )]
@@ -6152,8 +6166,8 @@ module Initialize = struct
     ; (* deprecated *)
       rootUri : documentUri option [@default None]
     ; (* the root URI of the workspace *)
-      client_capabilities : client_capabilities
-          [@key "capabilities"] [@default client_capabilities_empty]
+      client_capabilities : ClientCapabilities.t
+          [@key "capabilities"] [@default ClientCapabilities.empty]
     ; trace : Trace.t
           [@default Trace.Off] (* the initial trace setting, default="off" *)
     ; workspaceFolders : WorkspaceFolder.t list [@default []]
@@ -6310,7 +6324,7 @@ module Initialize = struct
             | "capabilities" -> (
               match Ppx_yojson_conv_lib.( ! ) client_capabilities_field with
               | None ->
-                let fvalue = client_capabilities_of_yojson _field_yojson in
+                let fvalue = ClientCapabilities.t_of_yojson _field_yojson in
                 client_capabilities_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -6377,7 +6391,7 @@ module Initialize = struct
                 | Some v -> v )
             ; client_capabilities =
                 ( match client_capabilities_value with
-                | None -> client_capabilities_empty
+                | None -> ClientCapabilities.empty
                 | Some v -> v )
             ; trace =
                 ( match trace_value with
@@ -7350,7 +7364,7 @@ module Initialize = struct
           ("trace", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_client_capabilities v_client_capabilities in
+          let arg = ClientCapabilities.yojson_of_t v_client_capabilities in
           ("capabilities", arg) :: bnds
         in
         let bnds =

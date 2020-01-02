@@ -655,55 +655,51 @@ module Initialize : sig
     val empty : t
   end
 
-  type workspaceEdit = { documentChanges : bool }
+  module WorkspaceEdit : sig
+    type t = { documentChanges : bool }
 
-  val workspaceEdit_of_yojson : json -> workspaceEdit
+    include Yojsonable.S with type t := t
 
-  val yojson_of_workspaceEdit : workspaceEdit -> json
+    val empty : t
+  end
 
-  val workspaceEdit_empty : workspaceEdit
+  module WorkspaceClientCapabilities : sig
+    type t =
+      { applyEdit : bool
+      ; workspaceEdit : WorkspaceEdit.t
+      }
 
-  type workspaceClientCapabilities =
-    { applyEdit : bool
-    ; workspaceEdit : workspaceEdit
-    }
+    include Yojsonable.S with type t := t
+  end
 
-  val workspaceClientCapabilities_of_yojson :
-    json -> workspaceClientCapabilities
+  module FoldingRangeClientCapabilities : sig
+    type t =
+      { rangeLimit : int option
+      ; lineFoldingOnly : bool
+      }
 
-  val yojson_of_workspaceClientCapabilities :
-    workspaceClientCapabilities -> json
+    include Yojsonable.S with type t := t
 
-  type foldingRangeClientCapabilities =
-    { rangeLimit : int option
-    ; lineFoldingOnly : bool
-    }
+    val empty : t
+  end
 
-  val foldingRangeClientCapabilities_of_yojson :
-    json -> foldingRangeClientCapabilities
+  module ClientCapabilities : sig
+    type t =
+      { workspace : WorkspaceClientCapabilities.t
+      ; textDocument : TextDocumentClientCapabilities.t
+      ; foldingRange : FoldingRangeClientCapabilities.t
+      }
 
-  val yojson_of_foldingRangeClientCapabilities :
-    foldingRangeClientCapabilities -> json
+    include Yojsonable.S with type t := t
 
-  val foldingRangeClientCapabilities_empty : foldingRangeClientCapabilities
-
-  type client_capabilities =
-    { workspace : workspaceClientCapabilities
-    ; textDocument : TextDocumentClientCapabilities.t
-    ; foldingRange : foldingRangeClientCapabilities
-    }
-
-  val client_capabilities_of_yojson : json -> client_capabilities
-
-  val yojson_of_client_capabilities : client_capabilities -> json
-
-  val client_capabilities_empty : client_capabilities
+    val empty : t
+  end
 
   type params =
     { processId : int option
     ; rootPath : string option
     ; rootUri : documentUri option
-    ; client_capabilities : client_capabilities
+    ; client_capabilities : ClientCapabilities.t
     ; trace : Trace.t
     ; workspaceFolders : WorkspaceFolder.t list
     }

@@ -9,7 +9,7 @@ type t =
 
 and state =
   | Ready
-  | Initialized of Protocol.Initialize.client_capabilities
+  | Initialized of Protocol.Initialize.ClientCapabilities.t
   | Closed
 
 let { Logger.log } = Logger.for_section "lsp"
@@ -259,7 +259,7 @@ type 'state handler =
       -> Protocol.Initialize.params
       -> ('state * Protocol.Initialize.result, string) result
   ; on_request :
-      'res.    t -> 'state -> Protocol.Initialize.client_capabilities
+      'res.    t -> 'state -> Protocol.Initialize.ClientCapabilities.t
       -> 'res Request.t -> ('state * 'res, string) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
