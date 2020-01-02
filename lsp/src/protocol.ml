@@ -6041,11 +6041,11 @@ module Initialize = struct
     }
 
   type params =
-    { processId : int option [@yojson.option]
+    { processId : int option [@default None] [@yojson_drop_default ( = )]
     ; (* pid of parent process *)
-      rootPath : string option [@yojson.option]
+      rootPath : string option [@default None] [@yojson_drop_default ( = )]
     ; (* deprecated *)
-      rootUri : documentUri option [@yojson.option]
+      rootUri : documentUri option [@default None]
     ; (* the root URI of the workspace *)
       client_capabilities : client_capabilities
           [@key "capabilities"] [@default client_capabilities_empty]
@@ -6177,7 +6177,7 @@ module Initialize = struct
             | "processId" -> (
               match Ppx_yojson_conv_lib.( ! ) processId_field with
               | None ->
-                let fvalue = int_of_yojson _field_yojson in
+                let fvalue = option_of_yojson int_of_yojson _field_yojson in
                 processId_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -6185,7 +6185,7 @@ module Initialize = struct
             | "rootPath" -> (
               match Ppx_yojson_conv_lib.( ! ) rootPath_field with
               | None ->
-                let fvalue = string_of_yojson _field_yojson in
+                let fvalue = option_of_yojson string_of_yojson _field_yojson in
                 rootPath_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -6193,7 +6193,9 @@ module Initialize = struct
             | "rootUri" -> (
               match Ppx_yojson_conv_lib.( ! ) rootUri_field with
               | None ->
-                let fvalue = documentUri_of_yojson _field_yojson in
+                let fvalue =
+                  option_of_yojson documentUri_of_yojson _field_yojson
+                in
                 rootUri_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -6242,9 +6244,18 @@ module Initialize = struct
               , Ppx_yojson_conv_lib.( ! ) client_capabilities_field
               , Ppx_yojson_conv_lib.( ! ) trace_field )
             in
-            { processId = processId_value
-            ; rootPath = rootPath_value
-            ; rootUri = rootUri_value
+            { processId =
+                ( match processId_value with
+                | None -> None
+                | Some v -> v )
+            ; rootPath =
+                ( match rootPath_value with
+                | None -> None
+                | Some v -> v )
+            ; rootUri =
+                ( match rootUri_value with
+                | None -> None
+                | Some v -> v )
             ; client_capabilities =
                 ( match client_capabilities_value with
                 | None -> client_capabilities_empty
@@ -7217,26 +7228,22 @@ module Initialize = struct
           ("capabilities", arg) :: bnds
         in
         let bnds =
-          match v_rootUri with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_documentUri v in
-            let bnd = ("rootUri", arg) in
-            bnd :: bnds
+          let arg = yojson_of_option yojson_of_documentUri v_rootUri in
+          ("rootUri", arg) :: bnds
         in
         let bnds =
-          match v_rootPath with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_string v in
+          if None = v_rootPath then
+            bnds
+          else
+            let arg = (yojson_of_option yojson_of_string) v_rootPath in
             let bnd = ("rootPath", arg) in
             bnd :: bnds
         in
         let bnds =
-          match v_processId with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_int v in
+          if None = v_processId then
+            bnds
+          else
+            let arg = (yojson_of_option yojson_of_int) v_processId in
             let bnd = ("processId", arg) in
             bnd :: bnds
         in
