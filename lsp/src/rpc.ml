@@ -293,7 +293,7 @@ let start init_state handler ic oc =
               >>= fun (next_state, result) ->
               let json = Protocol.Initialize.Result.yojson_of_t result in
               let response = Jsonrpc.Response.ok id json in
-              rpc.state <- Initialized params.client_capabilities;
+              rpc.state <- Initialized params.capabilities;
               send_response rpc response;
               Ok next_state
             | Message.Client_notification Exit ->

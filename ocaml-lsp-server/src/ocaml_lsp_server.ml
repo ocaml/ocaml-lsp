@@ -272,7 +272,12 @@ let on_request :
           let loc = item.Query_protocol.location in
           let info =
             { Lsp.Protocol.CodeLens.range = range_of_loc loc
-            ; command = Some { Lsp.Protocol.Command.title = typ; command = "" }
+            ; command =
+                Some
+                  { Lsp.Protocol.Command.title = typ
+                  ; command = ""
+                  ; arguments = None
+                  }
             }
           in
           info :: children

@@ -273,6 +273,7 @@ module Command = struct
   type t =
     { title : string
     ; command : string
+    ; arguments : json list option [@yojson.option]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -284,6 +285,7 @@ module Command = struct
       | `Assoc field_yojsons as yojson -> (
         let title_field = ref None
         and command_field = ref None
+        and arguments_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -302,6 +304,14 @@ module Command = struct
               | None ->
                 let fvalue = string_of_yojson _field_yojson in
                 command_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "arguments" -> (
+              match Ppx_yojson_conv_lib.( ! ) arguments_field with
+              | None ->
+                let fvalue = list_of_yojson json_of_yojson _field_yojson in
+                arguments_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -324,10 +334,14 @@ module Command = struct
           | [] -> (
             match
               ( Ppx_yojson_conv_lib.( ! ) title_field
-              , Ppx_yojson_conv_lib.( ! ) command_field )
+              , Ppx_yojson_conv_lib.( ! ) command_field
+              , Ppx_yojson_conv_lib.( ! ) arguments_field )
             with
-            | Some title_value, Some command_value ->
-              { title = title_value; command = command_value }
+            | Some title_value, Some command_value, arguments_value ->
+              { title = title_value
+              ; command = command_value
+              ; arguments = arguments_value
+              }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
@@ -349,8 +363,16 @@ module Command = struct
 
   let yojson_of_t =
     ( function
-      | { title = v_title; command = v_command } ->
+      | { title = v_title; command = v_command; arguments = v_arguments } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_arguments with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_list yojson_of_json v in
+            let bnd = ("arguments", arg) in
+            bnd :: bnds
+        in
         let bnds =
           let arg = yojson_of_string v_command in
           ("command", arg) :: bnds

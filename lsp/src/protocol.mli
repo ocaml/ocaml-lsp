@@ -52,6 +52,7 @@ module Command : sig
   type t =
     { title : string
     ; command : string
+    ; arguments : json list option
     }
 
   include Yojsonable.S with type t := t
