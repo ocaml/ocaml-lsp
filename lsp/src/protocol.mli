@@ -10,16 +10,12 @@ module Or_bool : sig
   type 'a t =
     | Bool of bool
     | Value of 'a
-
-  include Yojsonable.S1 with type 'a t := 'a t
 end
 
 module Or_string : sig
   type 'a t =
     | String of string
     | Value of 'a
-
-  include Yojsonable.S1 with type 'a t := 'a t
 end
 
 module Void : Yojsonable.S
@@ -35,8 +31,6 @@ module Position : sig
     { line : int
     ; character : int
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module Range : sig
@@ -44,8 +38,6 @@ module Range : sig
     { start_ : Position.t
     ; end_ : Position.t
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module Command : sig
@@ -54,16 +46,12 @@ module Command : sig
     ; command : string
     ; arguments : json list option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module MarkupKind : sig
   type t =
     | Plaintext
     | Markdown
-
-  include Yojsonable.S with type t := t
 end
 
 module MarkupContent : sig
@@ -71,8 +59,6 @@ module MarkupContent : sig
     { value : string
     ; kind : MarkupKind.t
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module Location : sig
@@ -80,8 +66,6 @@ module Location : sig
     { uri : Uri.t
     ; range : Range.t
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module LocationLink : sig
@@ -91,8 +75,6 @@ module LocationLink : sig
     ; targetrange : Range.t
     ; targetSelectionRange : Range.t
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module Locations : sig
@@ -104,8 +86,6 @@ end
 
 module TextDocumentIdentifier : sig
   type t = { uri : documentUri }
-
-  include Yojsonable.S with type t := t
 end
 
 module VersionedTextDocumentIdentifier : sig
@@ -113,8 +93,6 @@ module VersionedTextDocumentIdentifier : sig
     { uri : documentUri
     ; version : int
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module SymbolKind : sig
@@ -145,8 +123,6 @@ module SymbolKind : sig
     | Event
     | Operator
     | TypeParameter
-
-  include Yojsonable.S with type t := t
 end
 
 module TextDocumentItem : sig
@@ -156,8 +132,6 @@ module TextDocumentItem : sig
     ; version : int
     ; text : string
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module DidOpen : sig
@@ -180,8 +154,6 @@ module TextDocumentContentChangeEvent : sig
     ; rangeLength : int option
     ; text : string
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module DidChangeTextDocumentParams : sig
@@ -208,16 +180,10 @@ module DocumentHighlight : sig
     | Read
     | Write
 
-  val yojson_of_kind : kind -> json
-
-  val kind_of_yojson : json -> kind
-
   type t =
     { range : Range.t
     ; kind : kind option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module TextEdit : sig
@@ -225,8 +191,6 @@ module TextEdit : sig
     { range : Range.t
     ; newText : string
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module TextDocumentEdit : sig
@@ -234,8 +198,6 @@ module TextDocumentEdit : sig
     { textDocument : VersionedTextDocumentIdentifier.t
     ; edits : TextEdit.t list
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module CreateFileOptions : sig
@@ -250,8 +212,6 @@ module CreateFile : sig
     { uri : documentUri
     ; options : CreateFileOptions.t option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module RenameFileOptions : sig
@@ -259,8 +219,6 @@ module RenameFileOptions : sig
     { overwrite : bool option
     ; ignoreIfExists : bool option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module RenameFile : sig
@@ -269,8 +227,6 @@ module RenameFile : sig
     ; newUri : documentUri
     ; options : RenameFileOptions.t option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module DeleteFileOptions : sig
@@ -278,8 +234,6 @@ module DeleteFileOptions : sig
     { recursive : bool option
     ; ignoreIfNotExists : bool option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module DeleteFile : sig
@@ -287,8 +241,6 @@ module DeleteFile : sig
     { uri : documentUri
     ; options : DeleteFileOptions.t option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module WorkspaceEdit : sig
@@ -518,8 +470,6 @@ end
 
 module SignatureHelpOptions : sig
   type t = { triggerCharacters : string list }
-
-  include Yojsonable.S with type t := t
 end
 
 module ParameterInformation : sig
@@ -527,16 +477,12 @@ module ParameterInformation : sig
     type t =
       | Substring of string
       | Range of int * int
-
-    include Yojsonable.S with type t := t
   end
 
   type t =
     { label : Label.t
     ; documentation : MarkupContent.t Or_string.t
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module SignatureInformation : sig
@@ -545,8 +491,6 @@ module SignatureInformation : sig
     ; documentation : string option
     ; parameters : ParameterInformation.t list
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module SignatureHelp : sig
@@ -570,26 +514,16 @@ module CodeActionKind : sig
     | Source
     | SourceOrganizeImports
     | Other of string
-
-  include Yojsonable.S with type t := t
 end
 
 module CodeActionOptions : sig
   type t = { codeActionsKinds : CodeActionKind.t list }
-
-  include Yojsonable.S with type t := t
 end
 
 module CodeActionLiteralSupport : sig
   type codeActionKind = { valueSet : CodeActionKind.t list }
 
-  val codeActionKind_of_yojson : json -> codeActionKind
-
-  val yojson_of_codeActionKind : codeActionKind -> json
-
   type t = { codeActionKind : codeActionKind }
-
-  include Yojsonable.S with type t := t
 end
 
 module WorkspaceFolder : sig
@@ -597,8 +531,6 @@ module WorkspaceFolder : sig
     { uri : documentUri
     ; name : string
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module Initialize : sig
@@ -607,8 +539,6 @@ module Initialize : sig
       | Off
       | Messages
       | Verbose
-
-    include Yojsonable.S with type t := t
   end
 
   module TextDocumentSyncKind : sig
@@ -616,8 +546,6 @@ module Initialize : sig
       | NoSync
       | FullSync
       | IncrementalSync
-
-    include Yojsonable.S with type t := t
   end
 
   module Synchronization : sig
@@ -626,22 +554,16 @@ module Initialize : sig
       ; willSaveWaitUntil : bool
       ; didSave : bool
       }
-
-    include Yojsonable.S with type t := t
   end
 
   module CompletionItem : sig
     type t = { snippetSupport : bool }
-
-    include Yojsonable.S with type t := t
 
     val empty : t
   end
 
   module Completion : sig
     type t = { completionItem : CompletionItem.t }
-
-    include Yojsonable.S with type t := t
 
     val empty : t
   end
@@ -650,8 +572,6 @@ module Initialize : sig
     type t = { contentFormat : MarkupKind.t list }
 
     val empty : t
-
-    include Yojsonable.S with type t := t
   end
 
   module CodeAction : sig
@@ -661,15 +581,11 @@ module Initialize : sig
       ; isPreferredSupport : bool option
       }
 
-    include Yojsonable.S with type t := t
-
     val empty : t
   end
 
   module DocumentSymbol : sig
     type t = { hierarchicalDocumentSymbolSupport : bool }
-
-    include Yojsonable.S with type t := t
 
     val empty : t
   end
@@ -682,8 +598,6 @@ module Initialize : sig
       ; hover : Hover.t
       ; codeAction : CodeAction.t
       }
-
-    include Yojsonable.S with type t := t
 
     val empty : t
   end
@@ -710,8 +624,6 @@ module Initialize : sig
       ; failureHandlingKind : FailureHandlingKind.t option
       }
 
-    include Yojsonable.S with type t := t
-
     val empty : t
   end
 
@@ -734,8 +646,6 @@ module Initialize : sig
       { rangeLimit : int option
       ; lineFoldingOnly : bool
       }
-
-    include Yojsonable.S with type t := t
 
     val empty : t
   end
@@ -826,8 +736,6 @@ module Initialize : sig
       ; typeCoverageProvider : bool
       ; foldingRangeProvider : Void.t Or_bool.t
       }
-
-    include Yojsonable.S with type t := t
   end
 
   module Result : sig
@@ -911,8 +819,6 @@ module SymbolInformation : sig
     ; location : Location.t
     ; containerName : string option
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module DocumentSymbol : sig
@@ -925,8 +831,6 @@ module DocumentSymbol : sig
     ; selectionRange : Range.t
     ; children : t list
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module TextDocumentDocumentSymbol : sig
@@ -1014,8 +918,6 @@ module FoldingRange : sig
       | Comment
       | Imports
       | Region
-
-    include Yojsonable.S with type t := t
   end
 
   type t =
@@ -1025,8 +927,6 @@ module FoldingRange : sig
     ; endCharacter : int option
     ; kind : Kind.t option
     }
-
-  include Yojsonable.S with type t := t
 
   type params = { textDocument : TextDocumentIdentifier.t }
 
@@ -1044,8 +944,6 @@ module CodeActionContext : sig
     { diagnostics : PublishDiagnostics.diagnostic list
     ; only : CodeActionKind.t Only.t
     }
-
-  include Yojsonable.S with type t := t
 end
 
 module CodeActionParams : sig
