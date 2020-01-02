@@ -2667,6 +2667,14 @@ module TextDocumentSyncOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let default =
+    { openClose = false
+    ; change = TextDocumentSyncKind.NoSync
+    ; willSave = false
+    ; willSaveWaitUntil = false
+    ; didSave = None
+    }
 end
 
 module ServerCapabilities = struct
@@ -3198,6 +3206,29 @@ module ServerCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let default =
+    { textDocumentSync = TextDocumentSyncOptions.default
+    ; hoverProvider = false
+    ; completionProvider = None
+    ; signatureHelpProvider = None
+    ; definitionProvider = false
+    ; typeDefinitionProvider = false
+    ; referencesProvider = false
+    ; documentHighlightProvider = false
+    ; documentSymbolProvider = false
+    ; workspaceSymbolProvider = false
+    ; codeActionProvider = Bool false
+    ; codeLensProvider = None
+    ; documentFormattingProvider = false
+    ; documentRangeFormattingProvider = false
+    ; documentOnTypeFormattingProvider = None
+    ; renameProvider = false
+    ; documentLinkProvider = None
+    ; executeCommandProvider = None
+    ; typeCoverageProvider = false
+    ; foldingRangeProvider = Bool false
+    }
 end
 
 module Result = struct
@@ -3346,4 +3377,5 @@ module ErrorData = struct
   let _ = yojson_of_t
 
   [@@@end]
+
 end

@@ -217,6 +217,8 @@ module ServerCapabilities : sig
     ; typeCoverageProvider : bool
     ; foldingRangeProvider : Void.t Or_bool.t
     }
+
+  val default : t
 end
 
 module Result : sig
