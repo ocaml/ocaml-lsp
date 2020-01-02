@@ -32,13 +32,13 @@ let outline_kind kind : Lsp.Protocol.SymbolKind.t =
   | `Class -> Class
   | `Method -> Method
 
-let initializeInfo : Lsp.Protocol.Initialize.result =
+let initializeInfo : Lsp.Protocol.Initialize.Result.t =
   let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
     { codeActionsKinds = [ Other Action.destruct ] }
   in
-  { server_capabilities =
+  { capabilities =
       { textDocumentSync =
-          { Lsp.Protocol.Initialize.openClose = true
+          { openClose = true
           ; change = IncrementalSync
           ; willSave = false
           ; willSaveWaitUntil = false
@@ -48,16 +48,13 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; definitionProvider = true
       ; typeDefinitionProvider = true
       ; completionProvider =
-          Some
-            { Lsp.Protocol.Initialize.resolveProvider = true
-            ; triggerCharacters = [ "." ]
-            }
+          Some { resolveProvider = true; triggerCharacters = [ "." ] }
       ; referencesProvider = true
       ; documentHighlightProvider = true
       ; documentSymbolProvider = true
       ; workspaceSymbolProvider = false
       ; codeActionProvider = Value codeActionProvider
-      ; codeLensProvider = Some { codelens_resolveProvider = false }
+      ; codeLensProvider = Some { resolveProvider = false }
       ; documentFormattingProvider = false
       ; documentRangeFormattingProvider = false
       ; documentOnTypeFormattingProvider = None

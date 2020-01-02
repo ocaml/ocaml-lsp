@@ -5121,83 +5121,87 @@ module Initialize = struct
     let empty = { willSave = true; willSaveWaitUntil = true; didSave = true }
   end
 
-  type completionItem =
-    { snippetSupport : bool [@default false]
-          (* client can do snippets as insert text *)
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+  module CompletionItem = struct
+    type t =
+      { snippetSupport : bool [@default false]
+            (* client can do snippets as insert text *)
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  let _ = fun (_ : completionItem) -> ()
+    let _ = fun (_ : t) -> ()
 
-  let completionItem_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.completionItem" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let snippetSupport_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "snippetSupport" -> (
-              match Ppx_yojson_conv_lib.( ! ) snippetSupport_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                snippetSupport_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.CompletionItem.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let snippetSupport_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "snippetSupport" -> (
+                match Ppx_yojson_conv_lib.( ! ) snippetSupport_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  snippetSupport_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let snippetSupport_value =
-              Ppx_yojson_conv_lib.( ! ) snippetSupport_field
-            in
-            { snippetSupport =
-                ( match snippetSupport_value with
-                | None -> false
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionItem )
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let snippetSupport_value =
+                Ppx_yojson_conv_lib.( ! ) snippetSupport_field
+              in
+              { snippetSupport =
+                  ( match snippetSupport_value with
+                  | None -> false
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  let _ = completionItem_of_yojson
+    let _ = t_of_yojson
 
-  let yojson_of_completionItem =
-    ( function
-      | { snippetSupport = v_snippetSupport } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_snippetSupport in
-          ("snippetSupport", arg) :: bnds
-        in
-        `Assoc bnds
-      : completionItem -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let yojson_of_t =
+      ( function
+        | { snippetSupport = v_snippetSupport } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_snippetSupport in
+            ("snippetSupport", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  let _ = yojson_of_completionItem
+    let _ = yojson_of_t
 
-  [@@@end]
+    [@@@end]
 
-  let completionItem_empty = { snippetSupport = false }
+    let empty = { snippetSupport = false }
+  end
 
   module Completion = struct
-    type t = { completionItem : completionItem [@default completionItem_empty] }
+    type t =
+      { completionItem : CompletionItem.t [@default CompletionItem.empty] }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
     let _ = fun (_ : t) -> ()
@@ -5215,7 +5219,7 @@ module Initialize = struct
               | "completionItem" -> (
                 match Ppx_yojson_conv_lib.( ! ) completionItem_field with
                 | None ->
-                  let fvalue = completionItem_of_yojson _field_yojson in
+                  let fvalue = CompletionItem.t_of_yojson _field_yojson in
                   completionItem_field := Some fvalue
                 | Some _ ->
                   duplicates :=
@@ -5243,7 +5247,7 @@ module Initialize = struct
               in
               { completionItem =
                   ( match completionItem_value with
-                  | None -> completionItem_empty
+                  | None -> CompletionItem.empty
                   | Some v -> v )
               } ) )
         | _ as yojson ->
@@ -5258,7 +5262,7 @@ module Initialize = struct
         | { completionItem = v_completionItem } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
           let bnds =
-            let arg = yojson_of_completionItem v_completionItem in
+            let arg = CompletionItem.yojson_of_t v_completionItem in
             ("completionItem", arg) :: bnds
           in
           `Assoc bnds
@@ -5268,7 +5272,7 @@ module Initialize = struct
 
     [@@@end]
 
-    let empty = { completionItem = completionItem_empty }
+    let empty = { completionItem = CompletionItem.empty }
   end
 
   module Hover = struct
@@ -6159,1532 +6163,1598 @@ module Initialize = struct
       }
   end
 
-  type params =
-    { processId : int option [@default None] [@yojson_drop_default ( = )]
-    ; (* pid of parent process *)
-      rootPath : string option [@default None] [@yojson_drop_default ( = )]
-    ; (* deprecated *)
-      rootUri : documentUri option [@default None]
-    ; (* the root URI of the workspace *)
-      client_capabilities : ClientCapabilities.t
-          [@key "capabilities"] [@default ClientCapabilities.empty]
-    ; trace : Trace.t
-          [@default Trace.Off] (* the initial trace setting, default="off" *)
-    ; workspaceFolders : WorkspaceFolder.t list [@default []]
-    }
-  [@@yojson.allow_extra_fields]
+  module Params = struct
+    type t =
+      { processId : int option [@default None] [@yojson_drop_default ( = )]
+      ; (* pid of parent process *)
+        rootPath : string option [@default None] [@yojson_drop_default ( = )]
+      ; (* deprecated *)
+        rootUri : documentUri option [@default None]
+      ; (* the root URI of the workspace *)
+        client_capabilities : ClientCapabilities.t
+            [@key "capabilities"] [@default ClientCapabilities.empty]
+      ; trace : Trace.t
+            [@default Trace.Off] (* the initial trace setting, default="off" *)
+      ; workspaceFolders : WorkspaceFolder.t list [@default []]
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  and result =
-    { server_capabilities : server_capabilities [@key "capabilities"] }
-  [@@yojson.allow_extra_fields]
+    let _ = fun (_ : t) -> ()
 
-  and errorData =
-    { retry : bool (* should client retry the initialize request *) }
-  [@@yojson.allow_extra_fields]
-
-  (* What capabilities the server provides *)
-  and server_capabilities =
-    { textDocumentSync : textDocumentSyncOptions
-    ; (* how to sync *)
-      hoverProvider : bool
-    ; completionProvider : completionOptions option [@yojson.option]
-    ; signatureHelpProvider : SignatureHelpOptions.t option [@yojson.option]
-    ; definitionProvider : bool
-    ; typeDefinitionProvider : bool
-    ; referencesProvider : bool
-    ; documentHighlightProvider : bool
-    ; documentSymbolProvider : bool
-    ; (* ie. document outline *)
-      workspaceSymbolProvider : bool
-    ; (* ie. find-symbol-in-project *)
-      codeActionProvider : CodeActionOptions.t Or_bool.t
-    ; codeLensProvider : codeLensOptions option [@yojson.option]
-    ; documentFormattingProvider : bool
-    ; documentRangeFormattingProvider : bool
-    ; documentOnTypeFormattingProvider : documentOnTypeFormattingOptions option
-          [@yojson.option]
-    ; renameProvider : bool
-    ; documentLinkProvider : documentLinkOptions option [@yojson.option]
-    ; executeCommandProvider : executeCommandOptions option [@yojson.option]
-    ; typeCoverageProvider : bool
-    ; foldingRangeProvider : Void.t Or_bool.t
-    }
-  [@@yojson.allow_extra_fields]
-
-  and completionOptions =
-    { resolveProvider : bool
-    ; (* server resolves extra info on demand *)
-      triggerCharacters : string list (* wire "triggerCharacters" *)
-    }
-  [@@yojson.allow_extra_fields]
-
-  and codeLensOptions =
-    { codelens_resolveProvider : bool [@key "resolveProvider"]
-          (* wire "resolveProvider" *)
-    }
-  [@@yojson.allow_extra_fields]
-
-  and documentOnTypeFormattingOptions =
-    { firstTriggerCharacter : string
-    ; (* e.g. "}" *)
-      moreTriggerCharacter : string list
-    }
-  [@@yojson.allow_extra_fields]
-
-  and documentLinkOptions =
-    { doclink_resolveProvider : bool (* wire "resolveProvider" *) }
-  [@@yojson.allow_extra_fields]
-
-  and executeCommandOptions =
-    { commands : string list (* the commands to be executed on the server *) }
-  [@@yojson.allow_extra_fields]
-
-  (* text document sync options say what messages the server requests the
-   * client to send. We use the "want_" prefix for OCaml naming reasons;
-   * this prefix is absent in LSP. *)
-  and textDocumentSyncOptions =
-    { openClose : bool
-    ; (* textDocument/didOpen+didClose *)
-      change : TextDocumentSyncKind.t
-    ; willSave : bool
-    ; (* textDocument/willSave *)
-      willSaveWaitUntil : bool
-    ; (* textDoc.../willSaveWaitUntil *)
-      didSave : saveOptions option [@yojson.option] (* textDocument/didSave *)
-    }
-  [@@yojson.allow_extra_fields]
-
-  and saveOptions =
-    { includeText : bool (* the client should include content on save *) }
-  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
-
-  let _ = fun (_ : params) -> ()
-
-  let _ = fun (_ : result) -> ()
-
-  let _ = fun (_ : errorData) -> ()
-
-  let _ = fun (_ : server_capabilities) -> ()
-
-  let _ = fun (_ : completionOptions) -> ()
-
-  let _ = fun (_ : codeLensOptions) -> ()
-
-  let _ = fun (_ : documentOnTypeFormattingOptions) -> ()
-
-  let _ = fun (_ : documentLinkOptions) -> ()
-
-  let _ = fun (_ : executeCommandOptions) -> ()
-
-  let _ = fun (_ : textDocumentSyncOptions) -> ()
-
-  let _ = fun (_ : saveOptions) -> ()
-
-  let rec params_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.params" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let processId_field = ref None
-        and rootPath_field = ref None
-        and rootUri_field = ref None
-        and client_capabilities_field = ref None
-        and trace_field = ref None
-        and workspaceFolders_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "processId" -> (
-              match Ppx_yojson_conv_lib.( ! ) processId_field with
-              | None ->
-                let fvalue = option_of_yojson int_of_yojson _field_yojson in
-                processId_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "rootPath" -> (
-              match Ppx_yojson_conv_lib.( ! ) rootPath_field with
-              | None ->
-                let fvalue = option_of_yojson string_of_yojson _field_yojson in
-                rootPath_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "rootUri" -> (
-              match Ppx_yojson_conv_lib.( ! ) rootUri_field with
-              | None ->
-                let fvalue =
-                  option_of_yojson documentUri_of_yojson _field_yojson
-                in
-                rootUri_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "capabilities" -> (
-              match Ppx_yojson_conv_lib.( ! ) client_capabilities_field with
-              | None ->
-                let fvalue = ClientCapabilities.t_of_yojson _field_yojson in
-                client_capabilities_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "trace" -> (
-              match Ppx_yojson_conv_lib.( ! ) trace_field with
-              | None ->
-                let fvalue = Trace.t_of_yojson _field_yojson in
-                trace_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "workspaceFolders" -> (
-              match Ppx_yojson_conv_lib.( ! ) workspaceFolders_field with
-              | None ->
-                let fvalue =
-                  list_of_yojson WorkspaceFolder.t_of_yojson _field_yojson
-                in
-                workspaceFolders_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.Params.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let processId_field = ref None
+          and rootPath_field = ref None
+          and rootUri_field = ref None
+          and client_capabilities_field = ref None
+          and trace_field = ref None
+          and workspaceFolders_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "processId" -> (
+                match Ppx_yojson_conv_lib.( ! ) processId_field with
+                | None ->
+                  let fvalue = option_of_yojson int_of_yojson _field_yojson in
+                  processId_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "rootPath" -> (
+                match Ppx_yojson_conv_lib.( ! ) rootPath_field with
+                | None ->
+                  let fvalue =
+                    option_of_yojson string_of_yojson _field_yojson
+                  in
+                  rootPath_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "rootUri" -> (
+                match Ppx_yojson_conv_lib.( ! ) rootUri_field with
+                | None ->
+                  let fvalue =
+                    option_of_yojson documentUri_of_yojson _field_yojson
+                  in
+                  rootUri_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "capabilities" -> (
+                match Ppx_yojson_conv_lib.( ! ) client_capabilities_field with
+                | None ->
+                  let fvalue = ClientCapabilities.t_of_yojson _field_yojson in
+                  client_capabilities_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "trace" -> (
+                match Ppx_yojson_conv_lib.( ! ) trace_field with
+                | None ->
+                  let fvalue = Trace.t_of_yojson _field_yojson in
+                  trace_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "workspaceFolders" -> (
+                match Ppx_yojson_conv_lib.( ! ) workspaceFolders_field with
+                | None ->
+                  let fvalue =
+                    list_of_yojson WorkspaceFolder.t_of_yojson _field_yojson
+                  in
+                  workspaceFolders_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
-          | [] ->
-            let ( processId_value
-                , rootPath_value
-                , rootUri_value
-                , client_capabilities_value
-                , trace_value
-                , workspaceFolders_value ) =
-              ( Ppx_yojson_conv_lib.( ! ) processId_field
-              , Ppx_yojson_conv_lib.( ! ) rootPath_field
-              , Ppx_yojson_conv_lib.( ! ) rootUri_field
-              , Ppx_yojson_conv_lib.( ! ) client_capabilities_field
-              , Ppx_yojson_conv_lib.( ! ) trace_field
-              , Ppx_yojson_conv_lib.( ! ) workspaceFolders_field )
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] ->
+              let ( processId_value
+                  , rootPath_value
+                  , rootUri_value
+                  , client_capabilities_value
+                  , trace_value
+                  , workspaceFolders_value ) =
+                ( Ppx_yojson_conv_lib.( ! ) processId_field
+                , Ppx_yojson_conv_lib.( ! ) rootPath_field
+                , Ppx_yojson_conv_lib.( ! ) rootUri_field
+                , Ppx_yojson_conv_lib.( ! ) client_capabilities_field
+                , Ppx_yojson_conv_lib.( ! ) trace_field
+                , Ppx_yojson_conv_lib.( ! ) workspaceFolders_field )
+              in
+              { processId =
+                  ( match processId_value with
+                  | None -> None
+                  | Some v -> v )
+              ; rootPath =
+                  ( match rootPath_value with
+                  | None -> None
+                  | Some v -> v )
+              ; rootUri =
+                  ( match rootUri_value with
+                  | None -> None
+                  | Some v -> v )
+              ; client_capabilities =
+                  ( match client_capabilities_value with
+                  | None -> ClientCapabilities.empty
+                  | Some v -> v )
+              ; trace =
+                  ( match trace_value with
+                  | None -> Trace.Off
+                  | Some v -> v )
+              ; workspaceFolders =
+                  ( match workspaceFolders_value with
+                  | None -> []
+                  | Some v -> v )
+              } ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { processId = v_processId
+          ; rootPath = v_rootPath
+          ; rootUri = v_rootUri
+          ; client_capabilities = v_client_capabilities
+          ; trace = v_trace
+          ; workspaceFolders = v_workspaceFolders
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg =
+              yojson_of_list WorkspaceFolder.yojson_of_t v_workspaceFolders
             in
-            { processId =
-                ( match processId_value with
-                | None -> None
-                | Some v -> v )
-            ; rootPath =
-                ( match rootPath_value with
-                | None -> None
-                | Some v -> v )
-            ; rootUri =
-                ( match rootUri_value with
-                | None -> None
-                | Some v -> v )
-            ; client_capabilities =
-                ( match client_capabilities_value with
-                | None -> ClientCapabilities.empty
-                | Some v -> v )
-            ; trace =
-                ( match trace_value with
-                | None -> Trace.Off
-                | Some v -> v )
-            ; workspaceFolders =
-                ( match workspaceFolders_value with
-                | None -> []
-                | Some v -> v )
-            } ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
+            ("workspaceFolders", arg) :: bnds
+          in
+          let bnds =
+            let arg = Trace.yojson_of_t v_trace in
+            ("trace", arg) :: bnds
+          in
+          let bnds =
+            let arg = ClientCapabilities.yojson_of_t v_client_capabilities in
+            ("capabilities", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_option yojson_of_documentUri v_rootUri in
+            ("rootUri", arg) :: bnds
+          in
+          let bnds =
+            if None = v_rootPath then
+              bnds
+            else
+              let arg = (yojson_of_option yojson_of_string) v_rootPath in
+              let bnd = ("rootPath", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            if None = v_processId then
+              bnds
+            else
+              let arg = (yojson_of_option yojson_of_int) v_processId in
+              let bnd = ("processId", arg) in
+              bnd :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  and result_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.result" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let server_capabilities_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "capabilities" -> (
-              match Ppx_yojson_conv_lib.( ! ) server_capabilities_field with
-              | None ->
-                let fvalue = server_capabilities_of_yojson _field_yojson in
-                server_capabilities_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module CompletionOptions = struct
+    type t =
+      { resolveProvider : bool
+      ; (* server resolves extra info on demand *)
+        triggerCharacters : string list (* wire "triggerCharacters" *)
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.CompletionOptions.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let resolveProvider_field = ref None
+          and triggerCharacters_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "resolveProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) resolveProvider_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  resolveProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "triggerCharacters" -> (
+                match Ppx_yojson_conv_lib.( ! ) triggerCharacters_field with
+                | None ->
+                  let fvalue = list_of_yojson string_of_yojson _field_yojson in
+                  triggerCharacters_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
           | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) server_capabilities_field with
-            | Some server_capabilities_value ->
-              { server_capabilities = server_capabilities_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) server_capabilities_field)
-                      None
-                  , "server_capabilities" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
-
-  and errorData_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.errorData" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let retry_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "retry" -> (
-              match Ppx_yojson_conv_lib.( ! ) retry_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                retry_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) resolveProvider_field
+                , Ppx_yojson_conv_lib.( ! ) triggerCharacters_field )
+              with
+              | Some resolveProvider_value, Some triggerCharacters_value ->
+                { resolveProvider = resolveProvider_value
+                ; triggerCharacters = triggerCharacters_value
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) resolveProvider_field)
+                        None
+                    , "resolveProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) triggerCharacters_field)
+                        None
+                    , "triggerCharacters" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { resolveProvider = v_resolveProvider
+          ; triggerCharacters = v_triggerCharacters
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_list yojson_of_string v_triggerCharacters in
+            ("triggerCharacters", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_resolveProvider in
+            ("resolveProvider", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module CodeLensOptions = struct
+    type t = { resolveProvider : bool (* wire "resolveProvider" *) }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.CodeLensOptions.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let resolveProvider_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "resolveProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) resolveProvider_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  resolveProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
           | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) retry_field with
-            | Some retry_value -> { retry = retry_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) retry_field)
-                      None
-                  , "retry" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> errorData )
-
-  and server_capabilities_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.server_capabilities" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let textDocumentSync_field = ref None
-        and hoverProvider_field = ref None
-        and completionProvider_field = ref None
-        and signatureHelpProvider_field = ref None
-        and definitionProvider_field = ref None
-        and typeDefinitionProvider_field = ref None
-        and referencesProvider_field = ref None
-        and documentHighlightProvider_field = ref None
-        and documentSymbolProvider_field = ref None
-        and workspaceSymbolProvider_field = ref None
-        and codeActionProvider_field = ref None
-        and codeLensProvider_field = ref None
-        and documentFormattingProvider_field = ref None
-        and documentRangeFormattingProvider_field = ref None
-        and documentOnTypeFormattingProvider_field = ref None
-        and renameProvider_field = ref None
-        and documentLinkProvider_field = ref None
-        and executeCommandProvider_field = ref None
-        and typeCoverageProvider_field = ref None
-        and foldingRangeProvider_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "textDocumentSync" -> (
-              match Ppx_yojson_conv_lib.( ! ) textDocumentSync_field with
-              | None ->
-                let fvalue = textDocumentSyncOptions_of_yojson _field_yojson in
-                textDocumentSync_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "hoverProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) hoverProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                hoverProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "completionProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) completionProvider_field with
-              | None ->
-                let fvalue = completionOptions_of_yojson _field_yojson in
-                completionProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "signatureHelpProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) signatureHelpProvider_field with
-              | None ->
-                let fvalue = SignatureHelpOptions.t_of_yojson _field_yojson in
-                signatureHelpProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "definitionProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) definitionProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                definitionProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "typeDefinitionProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) typeDefinitionProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                typeDefinitionProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "referencesProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) referencesProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                referencesProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "documentHighlightProvider" -> (
-              match
-                Ppx_yojson_conv_lib.( ! ) documentHighlightProvider_field
-              with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                documentHighlightProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "documentSymbolProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) documentSymbolProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                documentSymbolProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "workspaceSymbolProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) workspaceSymbolProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                workspaceSymbolProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "codeActionProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) codeActionProvider_field with
-              | None ->
-                let fvalue =
-                  Or_bool.t_of_yojson CodeActionOptions.t_of_yojson
-                    _field_yojson
-                in
-                codeActionProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "codeLensProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) codeLensProvider_field with
-              | None ->
-                let fvalue = codeLensOptions_of_yojson _field_yojson in
-                codeLensProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "documentFormattingProvider" -> (
-              match
-                Ppx_yojson_conv_lib.( ! ) documentFormattingProvider_field
-              with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                documentFormattingProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "documentRangeFormattingProvider" -> (
-              match
-                Ppx_yojson_conv_lib.( ! ) documentRangeFormattingProvider_field
-              with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                documentRangeFormattingProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "documentOnTypeFormattingProvider" -> (
-              match
-                Ppx_yojson_conv_lib.( ! ) documentOnTypeFormattingProvider_field
-              with
-              | None ->
-                let fvalue =
-                  documentOnTypeFormattingOptions_of_yojson _field_yojson
-                in
-                documentOnTypeFormattingProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "renameProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) renameProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                renameProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "documentLinkProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) documentLinkProvider_field with
-              | None ->
-                let fvalue = documentLinkOptions_of_yojson _field_yojson in
-                documentLinkProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "executeCommandProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) executeCommandProvider_field with
-              | None ->
-                let fvalue = executeCommandOptions_of_yojson _field_yojson in
-                executeCommandProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "typeCoverageProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                typeCoverageProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "foldingRangeProvider" -> (
-              match Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field with
-              | None ->
-                let fvalue =
-                  Or_bool.t_of_yojson Void.t_of_yojson _field_yojson
-                in
-                foldingRangeProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) textDocumentSync_field
-              , Ppx_yojson_conv_lib.( ! ) hoverProvider_field
-              , Ppx_yojson_conv_lib.( ! ) completionProvider_field
-              , Ppx_yojson_conv_lib.( ! ) signatureHelpProvider_field
-              , Ppx_yojson_conv_lib.( ! ) definitionProvider_field
-              , Ppx_yojson_conv_lib.( ! ) typeDefinitionProvider_field
-              , Ppx_yojson_conv_lib.( ! ) referencesProvider_field
-              , Ppx_yojson_conv_lib.( ! ) documentHighlightProvider_field
-              , Ppx_yojson_conv_lib.( ! ) documentSymbolProvider_field
-              , Ppx_yojson_conv_lib.( ! ) workspaceSymbolProvider_field
-              , Ppx_yojson_conv_lib.( ! ) codeActionProvider_field
-              , Ppx_yojson_conv_lib.( ! ) codeLensProvider_field
-              , Ppx_yojson_conv_lib.( ! ) documentFormattingProvider_field
-              , Ppx_yojson_conv_lib.( ! ) documentRangeFormattingProvider_field
-              , Ppx_yojson_conv_lib.( ! ) documentOnTypeFormattingProvider_field
-              , Ppx_yojson_conv_lib.( ! ) renameProvider_field
-              , Ppx_yojson_conv_lib.( ! ) documentLinkProvider_field
-              , Ppx_yojson_conv_lib.( ! ) executeCommandProvider_field
-              , Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field
-              , Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field )
-            with
-            | ( Some textDocumentSync_value
-              , Some hoverProvider_value
-              , completionProvider_value
-              , signatureHelpProvider_value
-              , Some definitionProvider_value
-              , Some typeDefinitionProvider_value
-              , Some referencesProvider_value
-              , Some documentHighlightProvider_value
-              , Some documentSymbolProvider_value
-              , Some workspaceSymbolProvider_value
-              , Some codeActionProvider_value
-              , codeLensProvider_value
-              , Some documentFormattingProvider_value
-              , Some documentRangeFormattingProvider_value
-              , documentOnTypeFormattingProvider_value
-              , Some renameProvider_value
-              , documentLinkProvider_value
-              , executeCommandProvider_value
-              , Some typeCoverageProvider_value
-              , Some foldingRangeProvider_value ) ->
-              { textDocumentSync = textDocumentSync_value
-              ; hoverProvider = hoverProvider_value
-              ; completionProvider = completionProvider_value
-              ; signatureHelpProvider = signatureHelpProvider_value
-              ; definitionProvider = definitionProvider_value
-              ; typeDefinitionProvider = typeDefinitionProvider_value
-              ; referencesProvider = referencesProvider_value
-              ; documentHighlightProvider = documentHighlightProvider_value
-              ; documentSymbolProvider = documentSymbolProvider_value
-              ; workspaceSymbolProvider = workspaceSymbolProvider_value
-              ; codeActionProvider = codeActionProvider_value
-              ; codeLensProvider = codeLensProvider_value
-              ; documentFormattingProvider = documentFormattingProvider_value
-              ; documentRangeFormattingProvider =
-                  documentRangeFormattingProvider_value
-              ; documentOnTypeFormattingProvider =
-                  documentOnTypeFormattingProvider_value
-              ; renameProvider = renameProvider_value
-              ; documentLinkProvider = documentLinkProvider_value
-              ; executeCommandProvider = executeCommandProvider_value
-              ; typeCoverageProvider = typeCoverageProvider_value
-              ; foldingRangeProvider = foldingRangeProvider_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) textDocumentSync_field)
-                      None
-                  , "textDocumentSync" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) hoverProvider_field)
-                      None
-                  , "hoverProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) definitionProvider_field)
-                      None
-                  , "definitionProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) typeDefinitionProvider_field)
-                      None
-                  , "typeDefinitionProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) referencesProvider_field)
-                      None
-                  , "referencesProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! )
-                         documentHighlightProvider_field)
-                      None
-                  , "documentHighlightProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) documentSymbolProvider_field)
-                      None
-                  , "documentSymbolProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) workspaceSymbolProvider_field)
-                      None
-                  , "workspaceSymbolProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) codeActionProvider_field)
-                      None
-                  , "codeActionProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! )
-                         documentFormattingProvider_field)
-                      None
-                  , "documentFormattingProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! )
-                         documentRangeFormattingProvider_field)
-                      None
-                  , "documentRangeFormattingProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) renameProvider_field)
-                      None
-                  , "renameProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field)
-                      None
-                  , "typeCoverageProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field)
-                      None
-                  , "foldingRangeProvider" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> server_capabilities )
-
-  and completionOptions_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.completionOptions" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let resolveProvider_field = ref None
-        and triggerCharacters_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "resolveProvider" -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
               match Ppx_yojson_conv_lib.( ! ) resolveProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                resolveProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "triggerCharacters" -> (
-              match Ppx_yojson_conv_lib.( ! ) triggerCharacters_field with
-              | None ->
-                let fvalue = list_of_yojson string_of_yojson _field_yojson in
-                triggerCharacters_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+              | Some resolveProvider_value ->
+                { resolveProvider = resolveProvider_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) resolveProvider_field)
+                        None
+                    , "resolveProvider" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { resolveProvider = v_resolveProvider } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_resolveProvider in
+            ("resolveProvider", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module DocumentLinkOptions = struct
+    type t = { doclink_resolveProvider : bool (* wire "resolveProvider" *) }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.DocumentLinkOptions.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let doclink_resolveProvider_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "doclink_resolveProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) doclink_resolveProvider_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  doclink_resolveProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
           | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) resolveProvider_field
-              , Ppx_yojson_conv_lib.( ! ) triggerCharacters_field )
-            with
-            | Some resolveProvider_value, Some triggerCharacters_value ->
-              { resolveProvider = resolveProvider_value
-              ; triggerCharacters = triggerCharacters_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) resolveProvider_field)
-                      None
-                  , "resolveProvider" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) triggerCharacters_field)
-                      None
-                  , "triggerCharacters" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionOptions )
-
-  and codeLensOptions_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.codeLensOptions" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let codelens_resolveProvider_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "resolveProvider" -> (
-              match
-                Ppx_yojson_conv_lib.( ! ) codelens_resolveProvider_field
-              with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                codelens_resolveProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) codelens_resolveProvider_field with
-            | Some codelens_resolveProvider_value ->
-              { codelens_resolveProvider = codelens_resolveProvider_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) codelens_resolveProvider_field)
-                      None
-                  , "codelens_resolveProvider" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> codeLensOptions )
-
-  and documentOnTypeFormattingOptions_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.Initialize.documentOnTypeFormattingOptions"
-      in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let firstTriggerCharacter_field = ref None
-        and moreTriggerCharacter_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "firstTriggerCharacter" -> (
-              match Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field with
-              | None ->
-                let fvalue = string_of_yojson _field_yojson in
-                firstTriggerCharacter_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "moreTriggerCharacter" -> (
-              match Ppx_yojson_conv_lib.( ! ) moreTriggerCharacter_field with
-              | None ->
-                let fvalue = list_of_yojson string_of_yojson _field_yojson in
-                moreTriggerCharacter_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field
-              , Ppx_yojson_conv_lib.( ! ) moreTriggerCharacter_field )
-            with
-            | Some firstTriggerCharacter_value, Some moreTriggerCharacter_value
-              ->
-              { firstTriggerCharacter = firstTriggerCharacter_value
-              ; moreTriggerCharacter = moreTriggerCharacter_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field)
-                      None
-                  , "firstTriggerCharacter" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) moreTriggerCharacter_field)
-                      None
-                  , "moreTriggerCharacter" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> documentOnTypeFormattingOptions )
-
-  and documentLinkOptions_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.documentLinkOptions" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let doclink_resolveProvider_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "doclink_resolveProvider" -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
               match Ppx_yojson_conv_lib.( ! ) doclink_resolveProvider_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                doclink_resolveProvider_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+              | Some doclink_resolveProvider_value ->
+                { doclink_resolveProvider = doclink_resolveProvider_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! )
+                           doclink_resolveProvider_field)
+                        None
+                    , "doclink_resolveProvider" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { doclink_resolveProvider = v_doclink_resolveProvider } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_doclink_resolveProvider in
+            ("doclink_resolveProvider", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module DocumentOnTypeFormattingOptions = struct
+    type t =
+      { firstTriggerCharacter : string
+      ; (* e.g. "}" *)
+        moreTriggerCharacter : string list
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc =
+          "lsp/src/protocol.ml.Initialize.DocumentOnTypeFormattingOptions.t"
+        in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let firstTriggerCharacter_field = ref None
+          and moreTriggerCharacter_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "firstTriggerCharacter" -> (
+                match Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field with
+                | None ->
+                  let fvalue = string_of_yojson _field_yojson in
+                  firstTriggerCharacter_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "moreTriggerCharacter" -> (
+                match Ppx_yojson_conv_lib.( ! ) moreTriggerCharacter_field with
+                | None ->
+                  let fvalue = list_of_yojson string_of_yojson _field_yojson in
+                  moreTriggerCharacter_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
           | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) doclink_resolveProvider_field with
-            | Some doclink_resolveProvider_value ->
-              { doclink_resolveProvider = doclink_resolveProvider_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) doclink_resolveProvider_field)
-                      None
-                  , "doclink_resolveProvider" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> documentLinkOptions )
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field
+                , Ppx_yojson_conv_lib.( ! ) moreTriggerCharacter_field )
+              with
+              | ( Some firstTriggerCharacter_value
+                , Some moreTriggerCharacter_value ) ->
+                { firstTriggerCharacter = firstTriggerCharacter_value
+                ; moreTriggerCharacter = moreTriggerCharacter_value
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field)
+                        None
+                    , "firstTriggerCharacter" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) moreTriggerCharacter_field)
+                        None
+                    , "moreTriggerCharacter" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  and executeCommandOptions_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.executeCommandOptions" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let commands_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "commands" -> (
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { firstTriggerCharacter = v_firstTriggerCharacter
+          ; moreTriggerCharacter = v_moreTriggerCharacter
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_list yojson_of_string v_moreTriggerCharacter in
+            ("moreTriggerCharacter", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_string v_firstTriggerCharacter in
+            ("firstTriggerCharacter", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module ExecuteCommandOptions = struct
+    type t =
+      { commands : string list (* the commands to be executed on the server *) }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.ExecuteCommandOptions.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let commands_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "commands" -> (
+                match Ppx_yojson_conv_lib.( ! ) commands_field with
+                | None ->
+                  let fvalue = list_of_yojson string_of_yojson _field_yojson in
+                  commands_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
               match Ppx_yojson_conv_lib.( ! ) commands_field with
-              | None ->
-                let fvalue = list_of_yojson string_of_yojson _field_yojson in
-                commands_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+              | Some commands_value -> { commands = commands_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) commands_field)
+                        None
+                    , "commands" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { commands = v_commands } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_list yojson_of_string v_commands in
+            ("commands", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module TextDocumentSyncOptions = struct
+    type saveOptions =
+      { includeText : bool (* the client should include content on save *) }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : saveOptions) -> ()
+
+    let saveOptions_of_yojson =
+      ( let _tp_loc =
+          "lsp/src/protocol.ml.Initialize.TextDocumentSyncOptions.saveOptions"
+        in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let includeText_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "includeText" -> (
+                match Ppx_yojson_conv_lib.( ! ) includeText_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  includeText_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
           | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) commands_field with
-            | Some commands_value -> { commands = commands_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) commands_field)
-                      None
-                  , "commands" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> executeCommandOptions )
-
-  and textDocumentSyncOptions_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.textDocumentSyncOptions" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let openClose_field = ref None
-        and change_field = ref None
-        and willSave_field = ref None
-        and willSaveWaitUntil_field = ref None
-        and didSave_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "openClose" -> (
-              match Ppx_yojson_conv_lib.( ! ) openClose_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                openClose_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "change" -> (
-              match Ppx_yojson_conv_lib.( ! ) change_field with
-              | None ->
-                let fvalue = TextDocumentSyncKind.t_of_yojson _field_yojson in
-                change_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "willSave" -> (
-              match Ppx_yojson_conv_lib.( ! ) willSave_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                willSave_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "willSaveWaitUntil" -> (
-              match Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                willSaveWaitUntil_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "didSave" -> (
-              match Ppx_yojson_conv_lib.( ! ) didSave_field with
-              | None ->
-                let fvalue = saveOptions_of_yojson _field_yojson in
-                didSave_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) openClose_field
-              , Ppx_yojson_conv_lib.( ! ) change_field
-              , Ppx_yojson_conv_lib.( ! ) willSave_field
-              , Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field
-              , Ppx_yojson_conv_lib.( ! ) didSave_field )
-            with
-            | ( Some openClose_value
-              , Some change_value
-              , Some willSave_value
-              , Some willSaveWaitUntil_value
-              , didSave_value ) ->
-              { openClose = openClose_value
-              ; change = change_value
-              ; willSave = willSave_value
-              ; willSaveWaitUntil = willSaveWaitUntil_value
-              ; didSave = didSave_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) openClose_field)
-                      None
-                  , "openClose" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) change_field)
-                      None
-                  , "change" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) willSave_field)
-                      None
-                  , "willSave" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field)
-                      None
-                  , "willSaveWaitUntil" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> textDocumentSyncOptions )
-
-  and saveOptions_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.Initialize.saveOptions" in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let includeText_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "includeText" -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
               match Ppx_yojson_conv_lib.( ! ) includeText_field with
-              | None ->
-                let fvalue = bool_of_yojson _field_yojson in
-                includeText_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
+              | Some includeText_value -> { includeText = includeText_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) includeText_field)
+                        None
+                    , "includeText" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
             yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> saveOptions )
+
+    let _ = saveOptions_of_yojson
+
+    let yojson_of_saveOptions =
+      ( function
+        | { includeText = v_includeText } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_includeText in
+            ("includeText", arg) :: bnds
+          in
+          `Assoc bnds
+        : saveOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_saveOptions
+
+    [@@@end]
+
+    type t =
+      { openClose : bool
+      ; (* textDocument/didOpen+didClose *)
+        change : TextDocumentSyncKind.t
+      ; willSave : bool
+      ; (* textDocument/willSave *)
+        willSaveWaitUntil : bool
+      ; (* textDoc.../willSaveWaitUntil *)
+        didSave : saveOptions option [@yojson.option] (* textDocument/didSave *)
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc =
+          "lsp/src/protocol.ml.Initialize.TextDocumentSyncOptions.t"
+        in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let openClose_field = ref None
+          and change_field = ref None
+          and willSave_field = ref None
+          and willSaveWaitUntil_field = ref None
+          and didSave_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "openClose" -> (
+                match Ppx_yojson_conv_lib.( ! ) openClose_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  openClose_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "change" -> (
+                match Ppx_yojson_conv_lib.( ! ) change_field with
+                | None ->
+                  let fvalue = TextDocumentSyncKind.t_of_yojson _field_yojson in
+                  change_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "willSave" -> (
+                match Ppx_yojson_conv_lib.( ! ) willSave_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  willSave_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "willSaveWaitUntil" -> (
+                match Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  willSaveWaitUntil_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "didSave" -> (
+                match Ppx_yojson_conv_lib.( ! ) didSave_field with
+                | None ->
+                  let fvalue = saveOptions_of_yojson _field_yojson in
+                  didSave_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
           | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
               yojson
           | [] -> (
-            match Ppx_yojson_conv_lib.( ! ) includeText_field with
-            | Some includeText_value -> { includeText = includeText_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) includeText_field)
-                      None
-                  , "includeText" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> saveOptions )
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) openClose_field
+                , Ppx_yojson_conv_lib.( ! ) change_field
+                , Ppx_yojson_conv_lib.( ! ) willSave_field
+                , Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field
+                , Ppx_yojson_conv_lib.( ! ) didSave_field )
+              with
+              | ( Some openClose_value
+                , Some change_value
+                , Some willSave_value
+                , Some willSaveWaitUntil_value
+                , didSave_value ) ->
+                { openClose = openClose_value
+                ; change = change_value
+                ; willSave = willSave_value
+                ; willSaveWaitUntil = willSaveWaitUntil_value
+                ; didSave = didSave_value
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) openClose_field)
+                        None
+                    , "openClose" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) change_field)
+                        None
+                    , "change" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) willSave_field)
+                        None
+                    , "willSave" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field)
+                        None
+                    , "willSaveWaitUntil" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  let _ = params_of_yojson
+    let _ = t_of_yojson
 
-  and _ = result_of_yojson
-
-  and _ = errorData_of_yojson
-
-  and _ = server_capabilities_of_yojson
-
-  and _ = completionOptions_of_yojson
-
-  and _ = codeLensOptions_of_yojson
-
-  and _ = documentOnTypeFormattingOptions_of_yojson
-
-  and _ = documentLinkOptions_of_yojson
-
-  and _ = executeCommandOptions_of_yojson
-
-  and _ = textDocumentSyncOptions_of_yojson
-
-  and _ = saveOptions_of_yojson
-
-  let rec yojson_of_params =
-    ( function
-      | { processId = v_processId
-        ; rootPath = v_rootPath
-        ; rootUri = v_rootUri
-        ; client_capabilities = v_client_capabilities
-        ; trace = v_trace
-        ; workspaceFolders = v_workspaceFolders
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg =
-            yojson_of_list WorkspaceFolder.yojson_of_t v_workspaceFolders
+    let yojson_of_t =
+      ( function
+        | { openClose = v_openClose
+          ; change = v_change
+          ; willSave = v_willSave
+          ; willSaveWaitUntil = v_willSaveWaitUntil
+          ; didSave = v_didSave
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            match v_didSave with
+            | None -> bnds
+            | Some v ->
+              let arg = yojson_of_saveOptions v in
+              let bnd = ("didSave", arg) in
+              bnd :: bnds
           in
-          ("workspaceFolders", arg) :: bnds
-        in
-        let bnds =
-          let arg = Trace.yojson_of_t v_trace in
-          ("trace", arg) :: bnds
-        in
-        let bnds =
-          let arg = ClientCapabilities.yojson_of_t v_client_capabilities in
-          ("capabilities", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_option yojson_of_documentUri v_rootUri in
-          ("rootUri", arg) :: bnds
-        in
-        let bnds =
-          if None = v_rootPath then
-            bnds
-          else
-            let arg = (yojson_of_option yojson_of_string) v_rootPath in
-            let bnd = ("rootPath", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          if None = v_processId then
-            bnds
-          else
-            let arg = (yojson_of_option yojson_of_int) v_processId in
-            let bnd = ("processId", arg) in
-            bnd :: bnds
-        in
-        `Assoc bnds
-      : params -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_result =
-    ( function
-      | { server_capabilities = v_server_capabilities } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_server_capabilities v_server_capabilities in
-          ("capabilities", arg) :: bnds
-        in
-        `Assoc bnds
-      : result -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_errorData =
-    ( function
-      | { retry = v_retry } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_retry in
-          ("retry", arg) :: bnds
-        in
-        `Assoc bnds
-      : errorData -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_server_capabilities =
-    ( function
-      | { textDocumentSync = v_textDocumentSync
-        ; hoverProvider = v_hoverProvider
-        ; completionProvider = v_completionProvider
-        ; signatureHelpProvider = v_signatureHelpProvider
-        ; definitionProvider = v_definitionProvider
-        ; typeDefinitionProvider = v_typeDefinitionProvider
-        ; referencesProvider = v_referencesProvider
-        ; documentHighlightProvider = v_documentHighlightProvider
-        ; documentSymbolProvider = v_documentSymbolProvider
-        ; workspaceSymbolProvider = v_workspaceSymbolProvider
-        ; codeActionProvider = v_codeActionProvider
-        ; codeLensProvider = v_codeLensProvider
-        ; documentFormattingProvider = v_documentFormattingProvider
-        ; documentRangeFormattingProvider = v_documentRangeFormattingProvider
-        ; documentOnTypeFormattingProvider = v_documentOnTypeFormattingProvider
-        ; renameProvider = v_renameProvider
-        ; documentLinkProvider = v_documentLinkProvider
-        ; executeCommandProvider = v_executeCommandProvider
-        ; typeCoverageProvider = v_typeCoverageProvider
-        ; foldingRangeProvider = v_foldingRangeProvider
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg =
-            Or_bool.yojson_of_t Void.yojson_of_t v_foldingRangeProvider
+          let bnds =
+            let arg = yojson_of_bool v_willSaveWaitUntil in
+            ("willSaveWaitUntil", arg) :: bnds
           in
-          ("foldingRangeProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_typeCoverageProvider in
-          ("typeCoverageProvider", arg) :: bnds
-        in
-        let bnds =
-          match v_executeCommandProvider with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_executeCommandOptions v in
-            let bnd = ("executeCommandProvider", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          match v_documentLinkProvider with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_documentLinkOptions v in
-            let bnd = ("documentLinkProvider", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_renameProvider in
-          ("renameProvider", arg) :: bnds
-        in
-        let bnds =
-          match v_documentOnTypeFormattingProvider with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_documentOnTypeFormattingOptions v in
-            let bnd = ("documentOnTypeFormattingProvider", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_documentRangeFormattingProvider in
-          ("documentRangeFormattingProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_documentFormattingProvider in
-          ("documentFormattingProvider", arg) :: bnds
-        in
-        let bnds =
-          match v_codeLensProvider with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_codeLensOptions v in
-            let bnd = ("codeLensProvider", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          let arg =
-            Or_bool.yojson_of_t CodeActionOptions.yojson_of_t
-              v_codeActionProvider
+          let bnds =
+            let arg = yojson_of_bool v_willSave in
+            ("willSave", arg) :: bnds
           in
-          ("codeActionProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_workspaceSymbolProvider in
-          ("workspaceSymbolProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_documentSymbolProvider in
-          ("documentSymbolProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_documentHighlightProvider in
-          ("documentHighlightProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_referencesProvider in
-          ("referencesProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_typeDefinitionProvider in
-          ("typeDefinitionProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_definitionProvider in
-          ("definitionProvider", arg) :: bnds
-        in
-        let bnds =
-          match v_signatureHelpProvider with
-          | None -> bnds
-          | Some v ->
-            let arg = SignatureHelpOptions.yojson_of_t v in
-            let bnd = ("signatureHelpProvider", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          match v_completionProvider with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_completionOptions v in
-            let bnd = ("completionProvider", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_hoverProvider in
-          ("hoverProvider", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_textDocumentSyncOptions v_textDocumentSync in
-          ("textDocumentSync", arg) :: bnds
-        in
-        `Assoc bnds
-      : server_capabilities -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+          let bnds =
+            let arg = TextDocumentSyncKind.yojson_of_t v_change in
+            ("change", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_openClose in
+            ("openClose", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  and yojson_of_completionOptions =
-    ( function
-      | { resolveProvider = v_resolveProvider
-        ; triggerCharacters = v_triggerCharacters
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_list yojson_of_string v_triggerCharacters in
-          ("triggerCharacters", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_resolveProvider in
-          ("resolveProvider", arg) :: bnds
-        in
-        `Assoc bnds
-      : completionOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let _ = yojson_of_t
 
-  and yojson_of_codeLensOptions =
-    ( function
-      | { codelens_resolveProvider = v_codelens_resolveProvider } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_codelens_resolveProvider in
-          ("resolveProvider", arg) :: bnds
-        in
-        `Assoc bnds
-      : codeLensOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    [@@@end]
+  end
 
-  and yojson_of_documentOnTypeFormattingOptions =
-    ( function
-      | { firstTriggerCharacter = v_firstTriggerCharacter
-        ; moreTriggerCharacter = v_moreTriggerCharacter
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_list yojson_of_string v_moreTriggerCharacter in
-          ("moreTriggerCharacter", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_string v_firstTriggerCharacter in
-          ("firstTriggerCharacter", arg) :: bnds
-        in
-        `Assoc bnds
-      : documentOnTypeFormattingOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+  module ServerCapabilities = struct
+    type t =
+      { textDocumentSync : TextDocumentSyncOptions.t
+      ; (* how to sync *)
+        hoverProvider : bool
+      ; completionProvider : CompletionOptions.t option [@yojson.option]
+      ; signatureHelpProvider : SignatureHelpOptions.t option [@yojson.option]
+      ; definitionProvider : bool
+      ; typeDefinitionProvider : bool
+      ; referencesProvider : bool
+      ; documentHighlightProvider : bool
+      ; documentSymbolProvider : bool
+      ; (* ie. document outline *)
+        workspaceSymbolProvider : bool
+      ; (* ie. find-symbol-in-project *)
+        codeActionProvider : CodeActionOptions.t Or_bool.t
+      ; codeLensProvider : CodeLensOptions.t option [@yojson.option]
+      ; documentFormattingProvider : bool
+      ; documentRangeFormattingProvider : bool
+      ; documentOnTypeFormattingProvider :
+          DocumentOnTypeFormattingOptions.t option
+            [@yojson.option]
+      ; renameProvider : bool
+      ; documentLinkProvider : DocumentLinkOptions.t option [@yojson.option]
+      ; executeCommandProvider : ExecuteCommandOptions.t option [@yojson.option]
+      ; typeCoverageProvider : bool
+      ; foldingRangeProvider : Void.t Or_bool.t
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  and yojson_of_documentLinkOptions =
-    ( function
-      | { doclink_resolveProvider = v_doclink_resolveProvider } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_doclink_resolveProvider in
-          ("doclink_resolveProvider", arg) :: bnds
-        in
-        `Assoc bnds
-      : documentLinkOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let _ = fun (_ : t) -> ()
 
-  and yojson_of_executeCommandOptions =
-    ( function
-      | { commands = v_commands } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_list yojson_of_string v_commands in
-          ("commands", arg) :: bnds
-        in
-        `Assoc bnds
-      : executeCommandOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.ServerCapabilities.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let textDocumentSync_field = ref None
+          and hoverProvider_field = ref None
+          and completionProvider_field = ref None
+          and signatureHelpProvider_field = ref None
+          and definitionProvider_field = ref None
+          and typeDefinitionProvider_field = ref None
+          and referencesProvider_field = ref None
+          and documentHighlightProvider_field = ref None
+          and documentSymbolProvider_field = ref None
+          and workspaceSymbolProvider_field = ref None
+          and codeActionProvider_field = ref None
+          and codeLensProvider_field = ref None
+          and documentFormattingProvider_field = ref None
+          and documentRangeFormattingProvider_field = ref None
+          and documentOnTypeFormattingProvider_field = ref None
+          and renameProvider_field = ref None
+          and documentLinkProvider_field = ref None
+          and executeCommandProvider_field = ref None
+          and typeCoverageProvider_field = ref None
+          and foldingRangeProvider_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "textDocumentSync" -> (
+                match Ppx_yojson_conv_lib.( ! ) textDocumentSync_field with
+                | None ->
+                  let fvalue =
+                    TextDocumentSyncOptions.t_of_yojson _field_yojson
+                  in
+                  textDocumentSync_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "hoverProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) hoverProvider_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  hoverProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "completionProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) completionProvider_field with
+                | None ->
+                  let fvalue = CompletionOptions.t_of_yojson _field_yojson in
+                  completionProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "signatureHelpProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) signatureHelpProvider_field with
+                | None ->
+                  let fvalue = SignatureHelpOptions.t_of_yojson _field_yojson in
+                  signatureHelpProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "definitionProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) definitionProvider_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  definitionProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "typeDefinitionProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) typeDefinitionProvider_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  typeDefinitionProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "referencesProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) referencesProvider_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  referencesProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "documentHighlightProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) documentHighlightProvider_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  documentHighlightProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "documentSymbolProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) documentSymbolProvider_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  documentSymbolProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "workspaceSymbolProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) workspaceSymbolProvider_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  workspaceSymbolProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "codeActionProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) codeActionProvider_field with
+                | None ->
+                  let fvalue =
+                    Or_bool.t_of_yojson CodeActionOptions.t_of_yojson
+                      _field_yojson
+                  in
+                  codeActionProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "codeLensProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) codeLensProvider_field with
+                | None ->
+                  let fvalue = CodeLensOptions.t_of_yojson _field_yojson in
+                  codeLensProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "documentFormattingProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) documentFormattingProvider_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  documentFormattingProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "documentRangeFormattingProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! )
+                    documentRangeFormattingProvider_field
+                with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  documentRangeFormattingProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "documentOnTypeFormattingProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! )
+                    documentOnTypeFormattingProvider_field
+                with
+                | None ->
+                  let fvalue =
+                    DocumentOnTypeFormattingOptions.t_of_yojson _field_yojson
+                  in
+                  documentOnTypeFormattingProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "renameProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) renameProvider_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  renameProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "documentLinkProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) documentLinkProvider_field with
+                | None ->
+                  let fvalue = DocumentLinkOptions.t_of_yojson _field_yojson in
+                  documentLinkProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "executeCommandProvider" -> (
+                match
+                  Ppx_yojson_conv_lib.( ! ) executeCommandProvider_field
+                with
+                | None ->
+                  let fvalue =
+                    ExecuteCommandOptions.t_of_yojson _field_yojson
+                  in
+                  executeCommandProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "typeCoverageProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  typeCoverageProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "foldingRangeProvider" -> (
+                match Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field with
+                | None ->
+                  let fvalue =
+                    Or_bool.t_of_yojson Void.t_of_yojson _field_yojson
+                  in
+                  foldingRangeProvider_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) textDocumentSync_field
+                , Ppx_yojson_conv_lib.( ! ) hoverProvider_field
+                , Ppx_yojson_conv_lib.( ! ) completionProvider_field
+                , Ppx_yojson_conv_lib.( ! ) signatureHelpProvider_field
+                , Ppx_yojson_conv_lib.( ! ) definitionProvider_field
+                , Ppx_yojson_conv_lib.( ! ) typeDefinitionProvider_field
+                , Ppx_yojson_conv_lib.( ! ) referencesProvider_field
+                , Ppx_yojson_conv_lib.( ! ) documentHighlightProvider_field
+                , Ppx_yojson_conv_lib.( ! ) documentSymbolProvider_field
+                , Ppx_yojson_conv_lib.( ! ) workspaceSymbolProvider_field
+                , Ppx_yojson_conv_lib.( ! ) codeActionProvider_field
+                , Ppx_yojson_conv_lib.( ! ) codeLensProvider_field
+                , Ppx_yojson_conv_lib.( ! ) documentFormattingProvider_field
+                , Ppx_yojson_conv_lib.( ! )
+                    documentRangeFormattingProvider_field
+                , Ppx_yojson_conv_lib.( ! )
+                    documentOnTypeFormattingProvider_field
+                , Ppx_yojson_conv_lib.( ! ) renameProvider_field
+                , Ppx_yojson_conv_lib.( ! ) documentLinkProvider_field
+                , Ppx_yojson_conv_lib.( ! ) executeCommandProvider_field
+                , Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field
+                , Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field )
+              with
+              | ( Some textDocumentSync_value
+                , Some hoverProvider_value
+                , completionProvider_value
+                , signatureHelpProvider_value
+                , Some definitionProvider_value
+                , Some typeDefinitionProvider_value
+                , Some referencesProvider_value
+                , Some documentHighlightProvider_value
+                , Some documentSymbolProvider_value
+                , Some workspaceSymbolProvider_value
+                , Some codeActionProvider_value
+                , codeLensProvider_value
+                , Some documentFormattingProvider_value
+                , Some documentRangeFormattingProvider_value
+                , documentOnTypeFormattingProvider_value
+                , Some renameProvider_value
+                , documentLinkProvider_value
+                , executeCommandProvider_value
+                , Some typeCoverageProvider_value
+                , Some foldingRangeProvider_value ) ->
+                { textDocumentSync = textDocumentSync_value
+                ; hoverProvider = hoverProvider_value
+                ; completionProvider = completionProvider_value
+                ; signatureHelpProvider = signatureHelpProvider_value
+                ; definitionProvider = definitionProvider_value
+                ; typeDefinitionProvider = typeDefinitionProvider_value
+                ; referencesProvider = referencesProvider_value
+                ; documentHighlightProvider = documentHighlightProvider_value
+                ; documentSymbolProvider = documentSymbolProvider_value
+                ; workspaceSymbolProvider = workspaceSymbolProvider_value
+                ; codeActionProvider = codeActionProvider_value
+                ; codeLensProvider = codeLensProvider_value
+                ; documentFormattingProvider = documentFormattingProvider_value
+                ; documentRangeFormattingProvider =
+                    documentRangeFormattingProvider_value
+                ; documentOnTypeFormattingProvider =
+                    documentOnTypeFormattingProvider_value
+                ; renameProvider = renameProvider_value
+                ; documentLinkProvider = documentLinkProvider_value
+                ; executeCommandProvider = executeCommandProvider_value
+                ; typeCoverageProvider = typeCoverageProvider_value
+                ; foldingRangeProvider = foldingRangeProvider_value
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) textDocumentSync_field)
+                        None
+                    , "textDocumentSync" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) hoverProvider_field)
+                        None
+                    , "hoverProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) definitionProvider_field)
+                        None
+                    , "definitionProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) typeDefinitionProvider_field)
+                        None
+                    , "typeDefinitionProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) referencesProvider_field)
+                        None
+                    , "referencesProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! )
+                           documentHighlightProvider_field)
+                        None
+                    , "documentHighlightProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSymbolProvider_field)
+                        None
+                    , "documentSymbolProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! )
+                           workspaceSymbolProvider_field)
+                        None
+                    , "workspaceSymbolProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) codeActionProvider_field)
+                        None
+                    , "codeActionProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! )
+                           documentFormattingProvider_field)
+                        None
+                    , "documentFormattingProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! )
+                           documentRangeFormattingProvider_field)
+                        None
+                    , "documentRangeFormattingProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) renameProvider_field)
+                        None
+                    , "renameProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field)
+                        None
+                    , "typeCoverageProvider" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field)
+                        None
+                    , "foldingRangeProvider" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  and yojson_of_textDocumentSyncOptions =
-    ( function
-      | { openClose = v_openClose
-        ; change = v_change
-        ; willSave = v_willSave
-        ; willSaveWaitUntil = v_willSaveWaitUntil
-        ; didSave = v_didSave
-        } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          match v_didSave with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_saveOptions v in
-            let bnd = ("didSave", arg) in
-            bnd :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_willSaveWaitUntil in
-          ("willSaveWaitUntil", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_willSave in
-          ("willSave", arg) :: bnds
-        in
-        let bnds =
-          let arg = TextDocumentSyncKind.yojson_of_t v_change in
-          ("change", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_bool v_openClose in
-          ("openClose", arg) :: bnds
-        in
-        `Assoc bnds
-      : textDocumentSyncOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let _ = t_of_yojson
 
-  and yojson_of_saveOptions =
-    ( function
-      | { includeText = v_includeText } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_bool v_includeText in
-          ("includeText", arg) :: bnds
-        in
-        `Assoc bnds
-      : saveOptions -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+    let yojson_of_t =
+      ( function
+        | { textDocumentSync = v_textDocumentSync
+          ; hoverProvider = v_hoverProvider
+          ; completionProvider = v_completionProvider
+          ; signatureHelpProvider = v_signatureHelpProvider
+          ; definitionProvider = v_definitionProvider
+          ; typeDefinitionProvider = v_typeDefinitionProvider
+          ; referencesProvider = v_referencesProvider
+          ; documentHighlightProvider = v_documentHighlightProvider
+          ; documentSymbolProvider = v_documentSymbolProvider
+          ; workspaceSymbolProvider = v_workspaceSymbolProvider
+          ; codeActionProvider = v_codeActionProvider
+          ; codeLensProvider = v_codeLensProvider
+          ; documentFormattingProvider = v_documentFormattingProvider
+          ; documentRangeFormattingProvider = v_documentRangeFormattingProvider
+          ; documentOnTypeFormattingProvider =
+              v_documentOnTypeFormattingProvider
+          ; renameProvider = v_renameProvider
+          ; documentLinkProvider = v_documentLinkProvider
+          ; executeCommandProvider = v_executeCommandProvider
+          ; typeCoverageProvider = v_typeCoverageProvider
+          ; foldingRangeProvider = v_foldingRangeProvider
+          } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg =
+              Or_bool.yojson_of_t Void.yojson_of_t v_foldingRangeProvider
+            in
+            ("foldingRangeProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_typeCoverageProvider in
+            ("typeCoverageProvider", arg) :: bnds
+          in
+          let bnds =
+            match v_executeCommandProvider with
+            | None -> bnds
+            | Some v ->
+              let arg = ExecuteCommandOptions.yojson_of_t v in
+              let bnd = ("executeCommandProvider", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            match v_documentLinkProvider with
+            | None -> bnds
+            | Some v ->
+              let arg = DocumentLinkOptions.yojson_of_t v in
+              let bnd = ("documentLinkProvider", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_renameProvider in
+            ("renameProvider", arg) :: bnds
+          in
+          let bnds =
+            match v_documentOnTypeFormattingProvider with
+            | None -> bnds
+            | Some v ->
+              let arg = DocumentOnTypeFormattingOptions.yojson_of_t v in
+              let bnd = ("documentOnTypeFormattingProvider", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_documentRangeFormattingProvider in
+            ("documentRangeFormattingProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_documentFormattingProvider in
+            ("documentFormattingProvider", arg) :: bnds
+          in
+          let bnds =
+            match v_codeLensProvider with
+            | None -> bnds
+            | Some v ->
+              let arg = CodeLensOptions.yojson_of_t v in
+              let bnd = ("codeLensProvider", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            let arg =
+              Or_bool.yojson_of_t CodeActionOptions.yojson_of_t
+                v_codeActionProvider
+            in
+            ("codeActionProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_workspaceSymbolProvider in
+            ("workspaceSymbolProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_documentSymbolProvider in
+            ("documentSymbolProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_documentHighlightProvider in
+            ("documentHighlightProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_referencesProvider in
+            ("referencesProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_typeDefinitionProvider in
+            ("typeDefinitionProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_definitionProvider in
+            ("definitionProvider", arg) :: bnds
+          in
+          let bnds =
+            match v_signatureHelpProvider with
+            | None -> bnds
+            | Some v ->
+              let arg = SignatureHelpOptions.yojson_of_t v in
+              let bnd = ("signatureHelpProvider", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            match v_completionProvider with
+            | None -> bnds
+            | Some v ->
+              let arg = CompletionOptions.yojson_of_t v in
+              let bnd = ("completionProvider", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_hoverProvider in
+            ("hoverProvider", arg) :: bnds
+          in
+          let bnds =
+            let arg = TextDocumentSyncOptions.yojson_of_t v_textDocumentSync in
+            ("textDocumentSync", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  let _ = yojson_of_params
+    let _ = yojson_of_t
 
-  and _ = yojson_of_result
+    [@@@end]
+  end
 
-  and _ = yojson_of_errorData
+  module Result = struct
+    type t = { capabilities : ServerCapabilities.t }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  and _ = yojson_of_server_capabilities
+    let _ = fun (_ : t) -> ()
 
-  and _ = yojson_of_completionOptions
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.Result.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let capabilities_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "capabilities" -> (
+                match Ppx_yojson_conv_lib.( ! ) capabilities_field with
+                | None ->
+                  let fvalue = ServerCapabilities.t_of_yojson _field_yojson in
+                  capabilities_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match Ppx_yojson_conv_lib.( ! ) capabilities_field with
+              | Some capabilities_value -> { capabilities = capabilities_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) capabilities_field)
+                        None
+                    , "capabilities" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
 
-  and _ = yojson_of_codeLensOptions
+    let _ = t_of_yojson
 
-  and _ = yojson_of_documentOnTypeFormattingOptions
+    let yojson_of_t =
+      ( function
+        | { capabilities = v_capabilities } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = ServerCapabilities.yojson_of_t v_capabilities in
+            ("capabilities", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  and _ = yojson_of_documentLinkOptions
+    let _ = yojson_of_t
 
-  and _ = yojson_of_executeCommandOptions
+    [@@@end]
+  end
 
-  and _ = yojson_of_textDocumentSyncOptions
+  module ErrorData = struct
+    type t = { retry : bool (* should client retry the initialize request *) }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  and _ = yojson_of_saveOptions
+    let _ = fun (_ : t) -> ()
 
-  [@@@end]
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Initialize.ErrorData.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let retry_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "retry" -> (
+                match Ppx_yojson_conv_lib.( ! ) retry_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  retry_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match Ppx_yojson_conv_lib.( ! ) retry_field with
+              | Some retry_value -> { retry = retry_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) retry_field)
+                        None
+                    , "retry" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { retry = v_retry } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_retry in
+            ("retry", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
 end
 
 (* Goto Definition request, method="textDocument/definition" *)

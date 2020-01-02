@@ -25,8 +25,8 @@ type 'state handler =
   { on_initialize :
          t
       -> 'state
-      -> Protocol.Initialize.params
-      -> ('state * Protocol.Initialize.result, string) result
+      -> Protocol.Initialize.Params.t
+      -> ('state * Protocol.Initialize.Result.t, string) result
   ; on_request :
       'res.    t -> 'state -> Protocol.Initialize.ClientCapabilities.t
       -> 'res Request.t -> ('state * 'res, string) result

@@ -597,16 +597,16 @@ module Initialize : sig
     include Yojsonable.S with type t := t
   end
 
-  type completionItem = { snippetSupport : bool }
+  module CompletionItem : sig
+    type t = { snippetSupport : bool }
 
-  val completionItem_of_yojson : json -> completionItem
+    include Yojsonable.S with type t := t
 
-  val yojson_of_completionItem : completionItem -> json
-
-  val completionItem_empty : completionItem
+    val empty : t
+  end
 
   module Completion : sig
-    type t = { completionItem : completionItem }
+    type t = { completionItem : CompletionItem.t }
 
     include Yojsonable.S with type t := t
 
@@ -690,118 +690,93 @@ module Initialize : sig
       ; foldingRange : FoldingRangeClientCapabilities.t
       }
 
-    include Yojsonable.S with type t := t
-
     val empty : t
   end
 
-  type params =
-    { processId : int option
-    ; rootPath : string option
-    ; rootUri : documentUri option
-    ; client_capabilities : ClientCapabilities.t
-    ; trace : Trace.t
-    ; workspaceFolders : WorkspaceFolder.t list
-    }
+  module Params : sig
+    type t =
+      { processId : int option
+      ; rootPath : string option
+      ; rootUri : documentUri option
+      ; client_capabilities : ClientCapabilities.t
+      ; trace : Trace.t
+      ; workspaceFolders : WorkspaceFolder.t list
+      }
 
-  and result = { server_capabilities : server_capabilities }
+    include Yojsonable.S with type t := t
+  end
 
-  and errorData = { retry : bool }
+  module TextDocumentSyncOptions : sig
+    type saveOptions = { includeText : bool }
 
-  and server_capabilities =
-    { textDocumentSync : textDocumentSyncOptions
-    ; hoverProvider : bool
-    ; completionProvider : completionOptions option
-    ; signatureHelpProvider : SignatureHelpOptions.t option
-    ; definitionProvider : bool
-    ; typeDefinitionProvider : bool
-    ; referencesProvider : bool
-    ; documentHighlightProvider : bool
-    ; documentSymbolProvider : bool
-    ; workspaceSymbolProvider : bool
-    ; codeActionProvider : CodeActionOptions.t Or_bool.t
-    ; codeLensProvider : codeLensOptions option
-    ; documentFormattingProvider : bool
-    ; documentRangeFormattingProvider : bool
-    ; documentOnTypeFormattingProvider : documentOnTypeFormattingOptions option
-    ; renameProvider : bool
-    ; documentLinkProvider : documentLinkOptions option
-    ; executeCommandProvider : executeCommandOptions option
-    ; typeCoverageProvider : bool
-    ; foldingRangeProvider : Void.t Or_bool.t
-    }
+    type t =
+      { openClose : bool
+      ; change : TextDocumentSyncKind.t
+      ; willSave : bool
+      ; willSaveWaitUntil : bool
+      ; didSave : saveOptions option
+      }
+  end
 
-  and completionOptions =
-    { resolveProvider : bool
-    ; triggerCharacters : string list
-    }
+  module CompletionOptions : sig
+    type t =
+      { resolveProvider : bool
+      ; triggerCharacters : string list
+      }
+  end
 
-  and codeLensOptions = { codelens_resolveProvider : bool }
+  module CodeLensOptions : sig
+    type t = { resolveProvider : bool }
+  end
 
-  and documentOnTypeFormattingOptions =
-    { firstTriggerCharacter : string
-    ; moreTriggerCharacter : string list
-    }
+  module DocumentOnTypeFormattingOptions : sig
+    type t =
+      { firstTriggerCharacter : string
+      ; moreTriggerCharacter : string list
+      }
+  end
 
-  and documentLinkOptions = { doclink_resolveProvider : bool }
+  module DocumentLinkOptions : sig
+    type t = { doclink_resolveProvider : bool }
+  end
 
-  and executeCommandOptions = { commands : string list }
+  module ExecuteCommandOptions : sig
+    type t = { commands : string list }
+  end
 
-  and textDocumentSyncOptions =
-    { openClose : bool
-    ; change : TextDocumentSyncKind.t
-    ; willSave : bool
-    ; willSaveWaitUntil : bool
-    ; didSave : saveOptions option
-    }
+  module ServerCapabilities : sig
+    type t =
+      { textDocumentSync : TextDocumentSyncOptions.t
+      ; hoverProvider : bool
+      ; completionProvider : CompletionOptions.t option
+      ; signatureHelpProvider : SignatureHelpOptions.t option
+      ; definitionProvider : bool
+      ; typeDefinitionProvider : bool
+      ; referencesProvider : bool
+      ; documentHighlightProvider : bool
+      ; documentSymbolProvider : bool
+      ; workspaceSymbolProvider : bool
+      ; codeActionProvider : CodeActionOptions.t Or_bool.t
+      ; codeLensProvider : CodeLensOptions.t option
+      ; documentFormattingProvider : bool
+      ; documentRangeFormattingProvider : bool
+      ; documentOnTypeFormattingProvider :
+          DocumentOnTypeFormattingOptions.t option
+      ; renameProvider : bool
+      ; documentLinkProvider : DocumentLinkOptions.t option
+      ; executeCommandProvider : ExecuteCommandOptions.t option
+      ; typeCoverageProvider : bool
+      ; foldingRangeProvider : Void.t Or_bool.t
+      }
 
-  and saveOptions = { includeText : bool }
+    include Yojsonable.S with type t := t
+  end
 
-  val params_of_yojson : json -> params
+  module Result : sig
+    type t = { capabilities : ServerCapabilities.t }
 
-  val result_of_yojson : json -> result
-
-  val errorData_of_yojson : json -> errorData
-
-  val server_capabilities_of_yojson : json -> server_capabilities
-
-  val completionOptions_of_yojson : json -> completionOptions
-
-  val codeLensOptions_of_yojson : json -> codeLensOptions
-
-  val documentOnTypeFormattingOptions_of_yojson :
-    json -> documentOnTypeFormattingOptions
-
-  val documentLinkOptions_of_yojson : json -> documentLinkOptions
-
-  val executeCommandOptions_of_yojson : json -> executeCommandOptions
-
-  val textDocumentSyncOptions_of_yojson : json -> textDocumentSyncOptions
-
-  val saveOptions_of_yojson : json -> saveOptions
-
-  val yojson_of_params : params -> json
-
-  val yojson_of_result : result -> json
-
-  val yojson_of_errorData : errorData -> json
-
-  val yojson_of_server_capabilities : server_capabilities -> json
-
-  val yojson_of_completionOptions : completionOptions -> json
-
-  val yojson_of_codeLensOptions : codeLensOptions -> json
-
-  val yojson_of_documentOnTypeFormattingOptions :
-    documentOnTypeFormattingOptions -> json
-
-  val yojson_of_documentLinkOptions : documentLinkOptions -> json
-
-  val yojson_of_executeCommandOptions : executeCommandOptions -> json
-
-  val yojson_of_textDocumentSyncOptions : textDocumentSyncOptions -> json
-
-  val yojson_of_saveOptions : saveOptions -> json
+    include Yojsonable.S with type t := t
+  end
 end
 
 module Definition : sig
