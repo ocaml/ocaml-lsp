@@ -6,10 +6,6 @@ type completionTriggerKind =
   | TriggerCharacter
   | TriggerForIncompleteCompletions
 
-val yojson_of_completionTriggerKind : completionTriggerKind -> json
-
-val completionTriggerKind_of_yojson : json -> completionTriggerKind
-
 type completionItemKind =
   | Text
   | Method
@@ -78,24 +74,10 @@ type params = completionParams
 
 val params_of_yojson : json -> params
 
-val completionParams_of_yojson : json -> params
-
-val completionContext_of_yojson : json -> completionContext
-
 val result_of_yojson : json -> result
-
-val completionList_of_yojson : json -> result
-
-val completionItem_of_yojson : json -> completionItem
 
 val yojson_of_params : params -> json
 
-val yojson_of_completionParams : params -> json
-
-val yojson_of_completionContext : completionContext -> json
-
 val yojson_of_result : result -> json
-
-val yojson_of_completionList : result -> json
 
 val yojson_of_completionItem : completionItem -> json
