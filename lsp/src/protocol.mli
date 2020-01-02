@@ -657,7 +657,26 @@ module Initialize : sig
   end
 
   module WorkspaceEdit : sig
-    type t = { documentChanges : bool }
+    module ResourceOperationKind : sig
+      type t =
+        | Create
+        | Rename
+        | Delete
+    end
+
+    module FailureHandlingKind : sig
+      type t =
+        | Abort
+        | Transactional
+        | TextOnlyTransactional
+        | Undo
+    end
+
+    type t =
+      { documentChanges : bool
+      ; resourceOperations : ResourceOperationKind.t list option
+      ; failureHandlingKind : FailureHandlingKind.t option
+      }
 
     include Yojsonable.S with type t := t
 

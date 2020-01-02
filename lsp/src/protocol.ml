@@ -5769,9 +5769,51 @@ module Initialize = struct
   end
 
   module WorkspaceEdit = struct
+    module ResourceOperationKind = struct
+      type t =
+        | Create
+        | Rename
+        | Delete
+
+      let t_of_yojson = function
+        | `String "create" -> Create
+        | `String "rename" -> Rename
+        | `String "delete" -> Delete
+        | json -> yojson_error "resource operation kind" json
+
+      let yojson_of_t = function
+        | Create -> `String "create"
+        | Rename -> `String "rename"
+        | Delete -> `String "delete"
+    end
+
+    module FailureHandlingKind = struct
+      type t =
+        | Abort
+        | Transactional
+        | TextOnlyTransactional
+        | Undo
+
+      let t_of_yojson = function
+        | `String "abort" -> Abort
+        | `String "transactional" -> Transactional
+        | `String "textOnlyTransactional" -> TextOnlyTransactional
+        | `String "undo" -> Undo
+        | json -> yojson_error "failure handling kind" json
+
+      let yojson_of_t = function
+        | Abort -> `String "abort"
+        | Transactional -> `String "transactional"
+        | TextOnlyTransactional -> `String "textOnlyTransactional"
+        | Undo -> `String "undo"
+    end
+
     type t =
       { documentChanges : bool [@default false]
             (** client supports versioned doc changes *)
+      ; resourceOperations : ResourceOperationKind.t list option
+            [@yojson.option]
+      ; failureHandlingKind : FailureHandlingKind.t option [@yojson.option]
       }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -5782,6 +5824,8 @@ module Initialize = struct
         function
         | `Assoc field_yojsons as yojson -> (
           let documentChanges_field = ref None
+          and resourceOperations_field = ref None
+          and failureHandlingKind_field = ref None
           and duplicates = ref []
           and extra = ref [] in
           let rec iter = function
@@ -5792,6 +5836,25 @@ module Initialize = struct
                 | None ->
                   let fvalue = bool_of_yojson _field_yojson in
                   documentChanges_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "resourceOperations" -> (
+                match Ppx_yojson_conv_lib.( ! ) resourceOperations_field with
+                | None ->
+                  let fvalue =
+                    list_of_yojson ResourceOperationKind.t_of_yojson
+                      _field_yojson
+                  in
+                  resourceOperations_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "failureHandlingKind" -> (
+                match Ppx_yojson_conv_lib.( ! ) failureHandlingKind_field with
+                | None ->
+                  let fvalue = FailureHandlingKind.t_of_yojson _field_yojson in
+                  failureHandlingKind_field := Some fvalue
                 | Some _ ->
                   duplicates :=
                     field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
@@ -5813,13 +5876,19 @@ module Initialize = struct
                 (Ppx_yojson_conv_lib.( ! ) extra)
                 yojson
             | [] ->
-              let documentChanges_value =
-                Ppx_yojson_conv_lib.( ! ) documentChanges_field
+              let ( documentChanges_value
+                  , resourceOperations_value
+                  , failureHandlingKind_value ) =
+                ( Ppx_yojson_conv_lib.( ! ) documentChanges_field
+                , Ppx_yojson_conv_lib.( ! ) resourceOperations_field
+                , Ppx_yojson_conv_lib.( ! ) failureHandlingKind_field )
               in
               { documentChanges =
                   ( match documentChanges_value with
                   | None -> false
                   | Some v -> v )
+              ; resourceOperations = resourceOperations_value
+              ; failureHandlingKind = failureHandlingKind_value
               } ) )
         | _ as yojson ->
           Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
@@ -5830,8 +5899,27 @@ module Initialize = struct
 
     let yojson_of_t =
       ( function
-        | { documentChanges = v_documentChanges } ->
+        | { documentChanges = v_documentChanges
+          ; resourceOperations = v_resourceOperations
+          ; failureHandlingKind = v_failureHandlingKind
+          } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            match v_failureHandlingKind with
+            | None -> bnds
+            | Some v ->
+              let arg = FailureHandlingKind.yojson_of_t v in
+              let bnd = ("failureHandlingKind", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            match v_resourceOperations with
+            | None -> bnds
+            | Some v ->
+              let arg = yojson_of_list ResourceOperationKind.yojson_of_t v in
+              let bnd = ("resourceOperations", arg) in
+              bnd :: bnds
+          in
           let bnds =
             let arg = yojson_of_bool v_documentChanges in
             ("documentChanges", arg) :: bnds
@@ -5843,7 +5931,11 @@ module Initialize = struct
 
     [@@@end]
 
-    let empty = { documentChanges = false }
+    let empty =
+      { documentChanges = false
+      ; resourceOperations = None
+      ; failureHandlingKind = None
+      }
   end
 
   module WorkspaceClientCapabilities = struct
