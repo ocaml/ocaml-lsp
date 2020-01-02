@@ -6176,6 +6176,7 @@ module Initialize = struct
       ; trace : Trace.t
             [@default Trace.Off] (* the initial trace setting, default="off" *)
       ; workspaceFolders : WorkspaceFolder.t list [@default []]
+      ; initializationOptions : json option [@yojson.option]
       }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6191,6 +6192,7 @@ module Initialize = struct
           and client_capabilities_field = ref None
           and trace_field = ref None
           and workspaceFolders_field = ref None
+          and initializationOptions_field = ref None
           and duplicates = ref []
           and extra = ref [] in
           let rec iter = function
@@ -6250,6 +6252,14 @@ module Initialize = struct
                 | Some _ ->
                   duplicates :=
                     field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "initializationOptions" -> (
+                match Ppx_yojson_conv_lib.( ! ) initializationOptions_field with
+                | None ->
+                  let fvalue = json_of_yojson _field_yojson in
+                  initializationOptions_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
               | _ -> () );
               iter tail
             | [] -> ()
@@ -6273,13 +6283,15 @@ module Initialize = struct
                   , rootUri_value
                   , client_capabilities_value
                   , trace_value
-                  , workspaceFolders_value ) =
+                  , workspaceFolders_value
+                  , initializationOptions_value ) =
                 ( Ppx_yojson_conv_lib.( ! ) processId_field
                 , Ppx_yojson_conv_lib.( ! ) rootPath_field
                 , Ppx_yojson_conv_lib.( ! ) rootUri_field
                 , Ppx_yojson_conv_lib.( ! ) client_capabilities_field
                 , Ppx_yojson_conv_lib.( ! ) trace_field
-                , Ppx_yojson_conv_lib.( ! ) workspaceFolders_field )
+                , Ppx_yojson_conv_lib.( ! ) workspaceFolders_field
+                , Ppx_yojson_conv_lib.( ! ) initializationOptions_field )
               in
               { processId =
                   ( match processId_value with
@@ -6305,6 +6317,7 @@ module Initialize = struct
                   ( match workspaceFolders_value with
                   | None -> []
                   | Some v -> v )
+              ; initializationOptions = initializationOptions_value
               } ) )
         | _ as yojson ->
           Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
@@ -6321,8 +6334,17 @@ module Initialize = struct
           ; client_capabilities = v_client_capabilities
           ; trace = v_trace
           ; workspaceFolders = v_workspaceFolders
+          ; initializationOptions = v_initializationOptions
           } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            match v_initializationOptions with
+            | None -> bnds
+            | Some v ->
+              let arg = yojson_of_json v in
+              let bnd = ("initializationOptions", arg) in
+              bnd :: bnds
+          in
           let bnds =
             let arg =
               yojson_of_list WorkspaceFolder.yojson_of_t v_workspaceFolders

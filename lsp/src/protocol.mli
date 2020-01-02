@@ -701,6 +701,7 @@ module Initialize : sig
       ; client_capabilities : ClientCapabilities.t
       ; trace : Trace.t
       ; workspaceFolders : WorkspaceFolder.t list
+      ; initializationOptions : json option
       }
 
     include Yojsonable.S with type t := t
