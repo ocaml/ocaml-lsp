@@ -6131,6 +6131,8 @@ module Initialize = struct
       ; workspaceEdit : WorkspaceEdit.t [@default WorkspaceEdit.empty]
             (** omitted: dynamic-registration fields *)
       ; symbol : Symbol.t [@default Symbol.default]
+      ; workspaceFolders : bool [@default false]
+      ; configuration : bool [@default false]
       }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6145,6 +6147,8 @@ module Initialize = struct
           let applyEdit_field = ref None
           and workspaceEdit_field = ref None
           and symbol_field = ref None
+          and workspaceFolders_field = ref None
+          and configuration_field = ref None
           and duplicates = ref []
           and extra = ref [] in
           let rec iter = function
@@ -6174,6 +6178,22 @@ module Initialize = struct
                 | Some _ ->
                   duplicates :=
                     field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "workspaceFolders" -> (
+                match Ppx_yojson_conv_lib.( ! ) workspaceFolders_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  workspaceFolders_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "configuration" -> (
+                match Ppx_yojson_conv_lib.( ! ) configuration_field with
+                | None ->
+                  let fvalue = bool_of_yojson _field_yojson in
+                  configuration_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
               | _ -> () );
               iter tail
             | [] -> ()
@@ -6192,10 +6212,16 @@ module Initialize = struct
                 (Ppx_yojson_conv_lib.( ! ) extra)
                 yojson
             | [] ->
-              let applyEdit_value, workspaceEdit_value, symbol_value =
+              let ( applyEdit_value
+                  , workspaceEdit_value
+                  , symbol_value
+                  , workspaceFolders_value
+                  , configuration_value ) =
                 ( Ppx_yojson_conv_lib.( ! ) applyEdit_field
                 , Ppx_yojson_conv_lib.( ! ) workspaceEdit_field
-                , Ppx_yojson_conv_lib.( ! ) symbol_field )
+                , Ppx_yojson_conv_lib.( ! ) symbol_field
+                , Ppx_yojson_conv_lib.( ! ) workspaceFolders_field
+                , Ppx_yojson_conv_lib.( ! ) configuration_field )
               in
               { applyEdit =
                   ( match applyEdit_value with
@@ -6208,6 +6234,14 @@ module Initialize = struct
               ; symbol =
                   ( match symbol_value with
                   | None -> Symbol.default
+                  | Some v -> v )
+              ; workspaceFolders =
+                  ( match workspaceFolders_value with
+                  | None -> false
+                  | Some v -> v )
+              ; configuration =
+                  ( match configuration_value with
+                  | None -> false
                   | Some v -> v )
               } ) )
         | _ as yojson ->
@@ -6222,8 +6256,18 @@ module Initialize = struct
         | { applyEdit = v_applyEdit
           ; workspaceEdit = v_workspaceEdit
           ; symbol = v_symbol
+          ; workspaceFolders = v_workspaceFolders
+          ; configuration = v_configuration
           } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_bool v_configuration in
+            ("configuration", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_bool v_workspaceFolders in
+            ("workspaceFolders", arg) :: bnds
+          in
           let bnds =
             let arg = Symbol.yojson_of_t v_symbol in
             ("symbol", arg) :: bnds
@@ -6247,6 +6291,8 @@ module Initialize = struct
       { applyEdit = false
       ; workspaceEdit = WorkspaceEdit.empty
       ; symbol = Symbol.default
+      ; configuration = false
+      ; workspaceFolders = false
       }
   end
 

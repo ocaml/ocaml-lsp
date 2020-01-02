@@ -724,9 +724,9 @@ module Initialize : sig
       { applyEdit : bool
       ; workspaceEdit : WorkspaceEdit.t
       ; symbol : Symbol.t
+      ; workspaceFolders : bool
+      ; configuration : bool
       }
-
-    include Yojsonable.S with type t := t
   end
 
   module FoldingRangeClientCapabilities : sig
