@@ -6155,9 +6155,7 @@ module Initialize = struct
       client_capabilities : client_capabilities
           [@key "capabilities"] [@default client_capabilities_empty]
     ; trace : Trace.t
-          [@default Trace.Off]
-          [@yojson_drop_default ( = )]
-          (* the initial trace setting, default="off" *)
+          [@default Trace.Off] (* the initial trace setting, default="off" *)
     ; workspaceFolders : WorkspaceFolder.t list [@default []]
     }
   [@@yojson.allow_extra_fields]
@@ -7348,12 +7346,8 @@ module Initialize = struct
           ("workspaceFolders", arg) :: bnds
         in
         let bnds =
-          if Trace.Off = v_trace then
-            bnds
-          else
-            let arg = Trace.yojson_of_t v_trace in
-            let bnd = ("trace", arg) in
-            bnd :: bnds
+          let arg = Trace.yojson_of_t v_trace in
+          ("trace", arg) :: bnds
         in
         let bnds =
           let arg = yojson_of_client_capabilities v_client_capabilities in
