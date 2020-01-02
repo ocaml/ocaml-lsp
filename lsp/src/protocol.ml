@@ -6171,8 +6171,7 @@ module Initialize = struct
       ; (* deprecated *)
         rootUri : documentUri option [@default None]
       ; (* the root URI of the workspace *)
-        client_capabilities : ClientCapabilities.t
-            [@key "capabilities"] [@default ClientCapabilities.empty]
+        capabilities : ClientCapabilities.t [@default ClientCapabilities.empty]
       ; trace : Trace.t
             [@default Trace.Off] (* the initial trace setting, default="off" *)
       ; workspaceFolders : WorkspaceFolder.t list [@default []]
@@ -6189,7 +6188,7 @@ module Initialize = struct
           let processId_field = ref None
           and rootPath_field = ref None
           and rootUri_field = ref None
-          and client_capabilities_field = ref None
+          and capabilities_field = ref None
           and trace_field = ref None
           and workspaceFolders_field = ref None
           and initializationOptions_field = ref None
@@ -6227,10 +6226,10 @@ module Initialize = struct
                   duplicates :=
                     field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
               | "capabilities" -> (
-                match Ppx_yojson_conv_lib.( ! ) client_capabilities_field with
+                match Ppx_yojson_conv_lib.( ! ) capabilities_field with
                 | None ->
                   let fvalue = ClientCapabilities.t_of_yojson _field_yojson in
-                  client_capabilities_field := Some fvalue
+                  capabilities_field := Some fvalue
                 | Some _ ->
                   duplicates :=
                     field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
@@ -6281,14 +6280,14 @@ module Initialize = struct
               let ( processId_value
                   , rootPath_value
                   , rootUri_value
-                  , client_capabilities_value
+                  , capabilities_value
                   , trace_value
                   , workspaceFolders_value
                   , initializationOptions_value ) =
                 ( Ppx_yojson_conv_lib.( ! ) processId_field
                 , Ppx_yojson_conv_lib.( ! ) rootPath_field
                 , Ppx_yojson_conv_lib.( ! ) rootUri_field
-                , Ppx_yojson_conv_lib.( ! ) client_capabilities_field
+                , Ppx_yojson_conv_lib.( ! ) capabilities_field
                 , Ppx_yojson_conv_lib.( ! ) trace_field
                 , Ppx_yojson_conv_lib.( ! ) workspaceFolders_field
                 , Ppx_yojson_conv_lib.( ! ) initializationOptions_field )
@@ -6305,8 +6304,8 @@ module Initialize = struct
                   ( match rootUri_value with
                   | None -> None
                   | Some v -> v )
-              ; client_capabilities =
-                  ( match client_capabilities_value with
+              ; capabilities =
+                  ( match capabilities_value with
                   | None -> ClientCapabilities.empty
                   | Some v -> v )
               ; trace =
@@ -6331,7 +6330,7 @@ module Initialize = struct
         | { processId = v_processId
           ; rootPath = v_rootPath
           ; rootUri = v_rootUri
-          ; client_capabilities = v_client_capabilities
+          ; capabilities = v_capabilities
           ; trace = v_trace
           ; workspaceFolders = v_workspaceFolders
           ; initializationOptions = v_initializationOptions
@@ -6356,7 +6355,7 @@ module Initialize = struct
             ("trace", arg) :: bnds
           in
           let bnds =
-            let arg = ClientCapabilities.yojson_of_t v_client_capabilities in
+            let arg = ClientCapabilities.yojson_of_t v_capabilities in
             ("capabilities", arg) :: bnds
           in
           let bnds =

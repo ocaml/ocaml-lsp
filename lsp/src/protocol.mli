@@ -698,7 +698,7 @@ module Initialize : sig
       { processId : int option
       ; rootPath : string option
       ; rootUri : documentUri option
-      ; client_capabilities : ClientCapabilities.t
+      ; capabilities : ClientCapabilities.t
       ; trace : Trace.t
       ; workspaceFolders : WorkspaceFolder.t list
       ; initializationOptions : json option
