@@ -217,12 +217,12 @@ let _ = fun (_ : completionList) -> ()
 let _ = fun (_ : completionItem) -> ()
 
 let rec params_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.Completion.params" in
+  ( let _tp_loc = "lsp/src/completion.ml.params" in
     fun t -> completionParams_of_yojson t
     : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
 
 and completionParams_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionParams" in
+  ( let _tp_loc = "lsp/src/completion.ml.completionParams" in
     function
     | `Assoc field_yojsons as yojson -> (
       let textDocument_field = ref None
@@ -299,7 +299,7 @@ and completionParams_of_yojson =
     : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionParams )
 
 and completionContext_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionContext" in
+  ( let _tp_loc = "lsp/src/completion.ml.completionContext" in
     function
     | `Assoc field_yojsons as yojson -> (
       let triggerKind_field = ref None
@@ -362,12 +362,12 @@ and completionContext_of_yojson =
     : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionContext )
 
 and result_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.Completion.result" in
+  ( let _tp_loc = "lsp/src/completion.ml.result" in
     fun t -> completionList_of_yojson t
     : Ppx_yojson_conv_lib.Yojson.Safe.t -> result )
 
 and completionList_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionList" in
+  ( let _tp_loc = "lsp/src/completion.ml.completionList" in
     function
     | `Assoc field_yojsons as yojson -> (
       let isIncomplete_field = ref None
@@ -434,7 +434,7 @@ and completionList_of_yojson =
     : Ppx_yojson_conv_lib.Yojson.Safe.t -> completionList )
 
 and completionItem_of_yojson =
-  ( let _tp_loc = "lsp/src/protocol.ml.Completion.completionItem" in
+  ( let _tp_loc = "lsp/src/completion.ml.completionItem" in
     function
     | `Assoc field_yojsons as yojson -> (
       let label_field = ref None

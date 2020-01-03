@@ -22,6 +22,41 @@ end
 
 module Void : Yojsonable.S
 
+module DocumentFilter : sig
+  type t =
+    { language : string option
+    ; scheme : string option
+    ; pattern : string
+    }
+
+  include Yojsonable.S with type t := t
+end
+
+module Registration : sig
+  type t =
+    { id : string
+    ; method_ : string
+    ; registerOptions : json option
+    }
+
+  include Yojsonable.S with type t := t
+end
+
+module Unregistration : sig
+  type t =
+    { id : string
+    ; method_ : string
+    }
+
+  include Yojsonable.S with type t := t
+end
+
+module UnregistrationParams : sig
+  type t = { unregistrations : Unregistration.t list }
+
+  include Yojsonable.S with type t := t
+end
+
 type documentUri = Uri.t
 
 val documentUri_of_yojson : json -> documentUri

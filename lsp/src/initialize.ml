@@ -8,7 +8,7 @@ module SignatureHelpOptions = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.SignatureHelpOptions.t" in
+    ( let _tp_loc = "lsp/src/initialize.ml.SignatureHelpOptions.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let triggerCharacters_field = ref None
@@ -87,7 +87,7 @@ module CodeActionOptions = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.CodeActionOptions.t" in
+    ( let _tp_loc = "lsp/src/initialize.ml.CodeActionOptions.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let codeActionsKinds_field = ref None
@@ -171,7 +171,7 @@ module CodeActionLiteralSupport = struct
 
   let codeActionKind_of_yojson =
     ( let _tp_loc =
-        "lsp/src/protocol.ml.CodeActionLiteralSupport.codeActionKind"
+        "lsp/src/initialize.ml.CodeActionLiteralSupport.codeActionKind"
       in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -252,7 +252,7 @@ module CodeActionLiteralSupport = struct
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.CodeActionLiteralSupport.t" in
+    ( let _tp_loc = "lsp/src/initialize.ml.CodeActionLiteralSupport.t" in
       function
       | `Assoc field_yojsons as yojson -> (
         let codeActionKind_field = ref None
