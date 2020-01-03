@@ -16,8 +16,8 @@ let version doc = doc.version
 
 let text doc = doc.text
 
-let apply_content_change ?version
-    (change : DidChange.textDocumentContentChangeEvent) doc =
+let apply_content_change ?version (change : TextDocumentContentChangeEvent.t)
+    doc =
   let version =
     match version with
     | None -> doc.version + 1

@@ -8,7 +8,7 @@ module Action = struct
   let destruct = "destruct"
 end
 
-let completion_kind kind : Lsp.Protocol.Completion.completionItemKind option =
+let completion_kind kind : Lsp.Completion.completionItemKind option =
   match kind with
   | `Value -> Some Value
   | `Constructor -> Some Constructor
@@ -32,13 +32,13 @@ let outline_kind kind : Lsp.Protocol.SymbolKind.t =
   | `Class -> Class
   | `Method -> Method
 
-let initializeInfo : Lsp.Protocol.Initialize.result =
-  let codeActionProvider : Lsp.Protocol.CodeActionOptions.t =
+let initializeInfo : Lsp.Initialize.Result.t =
+  let codeActionProvider : Lsp.Initialize.CodeActionOptions.t =
     { codeActionsKinds = [ Other Action.destruct ] }
   in
-  { server_capabilities =
+  { capabilities =
       { textDocumentSync =
-          { Lsp.Protocol.Initialize.openClose = true
+          { openClose = true
           ; change = IncrementalSync
           ; willSave = false
           ; willSaveWaitUntil = false
@@ -48,16 +48,13 @@ let initializeInfo : Lsp.Protocol.Initialize.result =
       ; definitionProvider = true
       ; typeDefinitionProvider = true
       ; completionProvider =
-          Some
-            { Lsp.Protocol.Initialize.resolveProvider = true
-            ; triggerCharacters = [ "." ]
-            }
+          Some { resolveProvider = true; triggerCharacters = [ "." ] }
       ; referencesProvider = true
       ; documentHighlightProvider = true
       ; documentSymbolProvider = true
       ; workspaceSymbolProvider = false
       ; codeActionProvider = Value codeActionProvider
-      ; codeLensProvider = Some { codelens_resolveProvider = false }
+      ; codeLensProvider = Some { resolveProvider = false }
       ; documentFormattingProvider = false
       ; documentRangeFormattingProvider = false
       ; documentOnTypeFormattingProvider = None
@@ -137,7 +134,7 @@ let code_action_of_case_analysis uri (loc, newText) =
     let textedit : Lsp.Protocol.TextEdit.t =
       { range = range_of_loc loc; newText }
     in
-    { changes = Some [ (uri, [ textedit ]) ]; documentChanges = None }
+    { changes = [ (uri, [ textedit ]) ]; documentChanges = [] }
   in
   let title = String.capitalize_ascii Action.destruct in
   { Lsp.Protocol.CodeAction.title
@@ -150,12 +147,12 @@ let code_action_of_case_analysis uri (loc, newText) =
 let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
   let open Lsp.Import.Result.Infix in
   match params.context.only with
-  | Some set
+  | Only set
     when not (List.mem (Lsp.Protocol.CodeActionKind.Other Action.destruct) ~set)
     ->
     return (store, [])
-  | None
-  | Some _ ->
+  | Only _
+  | All ->
     Document_store.get store params.textDocument.uri >>= fun doc ->
     let command =
       let start = logical_of_position params.range.start_ in
@@ -180,7 +177,7 @@ let on_request :
     type resp.
        Lsp.Rpc.t
     -> Document_store.t
-    -> Lsp.Protocol.Initialize.client_capabilities
+    -> Lsp.Initialize.ClientCapabilities.t
     -> resp Lsp.Request.t
     -> (Document_store.t * resp, string) result =
  fun _rpc store client_capabilities req ->
@@ -275,7 +272,12 @@ let on_request :
           let loc = item.Query_protocol.location in
           let info =
             { Lsp.Protocol.CodeLens.range = range_of_loc loc
-            ; command = Some { Lsp.Protocol.Command.title = typ; command = "" }
+            ; command =
+                Some
+                  { Lsp.Protocol.Command.title = typ
+                  ; command = ""
+                  ; arguments = None
+                  }
             }
           in
           info :: children
@@ -491,7 +493,7 @@ let on_request :
         | `Replace range ->
           Some { Lsp.Protocol.TextEdit.range; newText = entry.name }
       in
-      { Lsp.Protocol.Completion.label = entry.name
+      { Lsp.Completion.label = entry.name
       ; kind
       ; detail = Some entry.desc
       ; documentation = Some entry.info
@@ -560,7 +562,7 @@ let on_request :
     in
     let all = List.concat [ labels; items ] in
     let items = List.mapi ~f:item all in
-    let resp = { Lsp.Protocol.Completion.isIncomplete = false; items } in
+    let resp = { Lsp.Completion.isIncomplete = false; items } in
     return (store, resp)
   | Lsp.Request.TextDocumentRename { textDocument = { uri }; position; newName }
     ->

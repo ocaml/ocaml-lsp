@@ -13,7 +13,7 @@ module Client_notification : sig
 
   type t =
     | TextDocumentDidOpen of DidOpen.params
-    | TextDocumentDidChange of DidChange.params
+    | TextDocumentDidChange of DidChangeTextDocumentParams.t
     | Initialized
     | Exit
     | UnknownNotification of string * json option
@@ -25,11 +25,11 @@ type 'state handler =
   { on_initialize :
          t
       -> 'state
-      -> Protocol.Initialize.params
-      -> ('state * Protocol.Initialize.result, string) result
+      -> Initialize.Params.t
+      -> ('state * Initialize.Result.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Protocol.Initialize.client_capabilities
-      -> 'res Request.t -> ('state * 'res, string) result
+      'res.    t -> 'state -> Initialize.ClientCapabilities.t -> 'res Request.t
+      -> ('state * 'res, string) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }

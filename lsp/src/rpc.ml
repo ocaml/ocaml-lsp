@@ -9,7 +9,7 @@ type t =
 
 and state =
   | Ready
-  | Initialized of Protocol.Initialize.client_capabilities
+  | Initialized of Initialize.ClientCapabilities.t
   | Closed
 
 let { Logger.log } = Logger.for_section "lsp"
@@ -128,26 +128,24 @@ module Server_notification = struct
 
   let yojson_of_params = function
     | PublishDiagnostics params -> PublishDiagnostics.yojson_of_params params
+
+  let to_jsonrpc_request t =
+    let method_ = method_ t in
+    let params = Some (yojson_of_params t) in
+    { Jsonrpc.Request.id = None; params; method_ }
 end
 
 let send_notification rpc notif =
-  let method_ = Server_notification.method_ notif in
-  let params = Server_notification.yojson_of_params notif in
-  let response =
-    `Assoc
-      [ ("jsonrpc", `String "2.0")
-      ; ("method", `String method_)
-      ; ("params", params)
-      ]
-  in
-  send rpc response
+  let response = Server_notification.to_jsonrpc_request notif in
+  let json = Jsonrpc.Request.yojson_of_t response in
+  send rpc json
 
 module Client_notification = struct
   open Protocol
 
   type t =
     | TextDocumentDidOpen of DidOpen.params
-    | TextDocumentDidChange of DidChange.params
+    | TextDocumentDidChange of DidChangeTextDocumentParams.t
     | Initialized
     | Exit
     | UnknownNotification of string * json option
@@ -157,7 +155,7 @@ module Message = struct
   open Protocol
 
   type t =
-    | Initialize : Jsonrpc.Id.t * Protocol.Initialize.params -> t
+    | Initialize : Jsonrpc.Id.t * Initialize.Params.t -> t
     | Request : Jsonrpc.Id.t * 'result Request.t -> t
     | Client_notification : Client_notification.t -> t
 
@@ -180,8 +178,8 @@ module Message = struct
       match packet.method_ with
       | "initialize" ->
         require_params packet.params >>= fun params ->
-        parse_yojson Protocol.Initialize.params_of_yojson params
-        >>| fun params -> Initialize (id, params)
+        parse_yojson Initialize.Params.t_of_yojson params >>| fun params ->
+        Initialize (id, params)
       | "shutdown" -> Ok (Request (id, Shutdown))
       | "textDocument/completion" ->
         require_params packet.params >>= fun params ->
@@ -244,8 +242,8 @@ module Message = struct
         Client_notification (TextDocumentDidOpen params)
       | "textDocument/didChange" ->
         require_params packet.params >>= fun params ->
-        parse_yojson DidChange.params_of_yojson params >>| fun params ->
-        Client_notification (TextDocumentDidChange params)
+        parse_yojson DidChangeTextDocumentParams.t_of_yojson params
+        >>| fun params -> Client_notification (TextDocumentDidChange params)
       | "exit" -> Ok (Client_notification Exit)
       | "initialized" -> Ok (Client_notification Initialized)
       | _ ->
@@ -258,11 +256,11 @@ type 'state handler =
   { on_initialize :
          t
       -> 'state
-      -> Protocol.Initialize.params
-      -> ('state * Protocol.Initialize.result, string) result
+      -> Initialize.Params.t
+      -> ('state * Initialize.Result.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Protocol.Initialize.client_capabilities
-      -> 'res Request.t -> ('state * 'res, string) result
+      'res.    t -> 'state -> Initialize.ClientCapabilities.t -> 'res Request.t
+      -> ('state * 'res, string) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }
@@ -293,9 +291,9 @@ let start init_state handler ic oc =
             | Message.Initialize (id, params) ->
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
-              let json = Protocol.Initialize.yojson_of_result result in
+              let json = Initialize.Result.yojson_of_t result in
               let response = Jsonrpc.Response.ok id json in
-              rpc.state <- Initialized params.client_capabilities;
+              rpc.state <- Initialized params.capabilities;
               send_response rpc response;
               Ok next_state
             | Message.Client_notification Exit ->

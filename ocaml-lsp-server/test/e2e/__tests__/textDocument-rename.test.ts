@@ -45,7 +45,6 @@ describe("textDocument/rename", () => {
     let result = await query(Types.Position.create(0, 4));
 
     expect(result).toMatchObject({
-      documentChanges: null,
       changes: {
         "file:///test.ml": [
           {
@@ -129,7 +128,6 @@ describe("textDocument/rename", () => {
           ],
         },
       ],
-      changes: null,
     });
   });
 });

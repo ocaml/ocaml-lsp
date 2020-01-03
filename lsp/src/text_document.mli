@@ -11,4 +11,4 @@ val version : t -> int
 val text : t -> string
 
 val apply_content_change :
-  ?version:int -> DidChange.textDocumentContentChangeEvent -> t -> t
+  ?version:int -> TextDocumentContentChangeEvent.t -> t -> t
