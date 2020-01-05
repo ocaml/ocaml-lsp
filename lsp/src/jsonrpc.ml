@@ -44,7 +44,11 @@ module Request = struct
     }
 
   let yojson_of_t { id; method_; params } =
-    let json = [ (Constant.method_, `String method_) ] in
+    let json =
+      [ (Constant.method_, `String method_)
+      ; (Constant.jsonrpc, `String Constant.jsonrpcv)
+      ]
+    in
     let json =
       match params with
       | None -> json
