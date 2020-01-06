@@ -19,83 +19,26 @@ let send rpc json =
     (fun () -> Yojson.Safe.pretty_to_string ~std:false)
     json;
   let data = Yojson.Safe.to_string json in
-  let length = String.length data in
-  let contentLengthString =
-    "Content-Length: " ^ string_of_int length ^ "\r\n"
-  in
-  output_string rpc.oc contentLengthString;
-  output_string rpc.oc "\r\n";
+  let content_length = String.length data in
+  let header = Header.create ~content_length in
+  Header.write header rpc.oc;
   output_string rpc.oc data;
   flush rpc.oc
-
-module Headers = struct
-  type t = { content_length : int option }
-
-  let initial = { content_length = None }
-
-  let content_length = "Content-Length: "
-
-  let content_length_len = String.length content_length
-
-  let end_line = "\r\n"
-
-  let end_line_len = String.length end_line
-
-  let has_content_length s =
-    String.length s > content_length_len
-    && String.compare
-         (String.sub s ~pos:0 ~len:content_length_len)
-         content_length
-       = 0
-
-  let parse_content_length line =
-    let v =
-      String.sub line ~pos:content_length_len
-        ~len:(String.length line - end_line_len - content_length_len)
-    in
-    int_of_string v
-
-  type state =
-    | Partial of t
-    | Done of t
-
-  let parse_line headers line =
-    if String.compare line "\r\n" = 0 then
-      Done headers
-    else if has_content_length line then
-      let content_length = parse_content_length line in
-      Partial { content_length = Some content_length }
-    else
-      Partial headers
-
-  let read ic =
-    let rec loop headers =
-      let line = input_line ic in
-      match parse_line headers (line ^ "\n") with
-      | Partial headers -> loop headers
-      | Done headers -> headers
-    in
-    loop initial
-end
 
 let read rpc =
   let open Result.Infix in
   let read_content rpc =
     Thread.wait_read rpc.fd;
-    let headers = Headers.read rpc.ic in
-    match headers.content_length with
-    | Some len ->
-      let buffer = Bytes.create len in
-      let rec read_loop read =
-        if read < len then
-          let n = input rpc.ic buffer read (len - read) in
-          read_loop (read + n)
-        else
-          ()
-      in
-      let () = read_loop 0 in
-      Ok (Bytes.to_string buffer)
-    | None -> Error "missing Content-length header"
+    let header = Header.read rpc.ic in
+    let len = Header.content_length header in
+    let buffer = Bytes.create len in
+    let rec read_loop read =
+      if read < len then
+        let n = input rpc.ic buffer read (len - read) in
+        read_loop (read + n)
+    in
+    let () = read_loop 0 in
+    Ok (Bytes.to_string buffer)
   in
 
   let parse_json content =

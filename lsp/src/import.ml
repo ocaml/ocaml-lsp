@@ -225,6 +225,15 @@ module String = struct
         Buffer.contents buffer
 end
 
+module Int = struct
+  include Int
+
+  let of_string s =
+    match int_of_string s with
+    | i -> Some i
+    | exception _ -> None
+end
+
 let let_ref r v f =
   let v' = !r in
   r := v;
