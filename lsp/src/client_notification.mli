@@ -4,6 +4,8 @@ open Protocol
 type t =
   | TextDocumentDidOpen of DidOpen.params
   | TextDocumentDidChange of DidChangeTextDocumentParams.t
+  | ChangeWorkspaceFolders of DidChangeWorkspaceFolders.Params.t
+  | ChangeConfiguration of DidChangeConfiguration.Params.t
   | Initialized
   | Exit
   | Unknown_notification of Jsonrpc.Request.t

@@ -4,6 +4,8 @@ open Protocol
 type t =
   | TextDocumentDidOpen of DidOpen.params
   | TextDocumentDidChange of DidChangeTextDocumentParams.t
+  | ChangeWorkspaceFolders of DidChangeWorkspaceFolders.Params.t
+  | ChangeConfiguration of DidChangeConfiguration.Params.t
   | Initialized
   | Exit
   | Unknown_notification of Jsonrpc.Request.t
@@ -19,4 +21,10 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     >>| fun params -> TextDocumentDidChange params
   | "exit" -> Ok Exit
   | "initialized" -> Ok Initialized
+  | "workspace/didChangeWorkspaceFolders" ->
+    Jsonrpc.Request.params r DidChangeWorkspaceFolders.Params.t_of_yojson
+    >>| fun params -> ChangeWorkspaceFolders params
+  | "workspace/didChangeConfiguration" ->
+    Jsonrpc.Request.params r DidChangeConfiguration.Params.t_of_yojson
+    >>| fun params -> ChangeConfiguration params
   | _ -> Ok (Unknown_notification r)

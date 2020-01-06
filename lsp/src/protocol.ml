@@ -1161,31 +1161,108 @@ module Locations = struct
     | _ -> yojson_error "Locations.t" json
 end
 
-module MessageType = struct
-  type t =
-    | Error
-    | Warning
-    | Info
-    | Log
+module Message = struct
+  module Type = struct
+    type t =
+      | Error
+      | Warning
+      | Info
+      | Log
 
-  let yojson_of_t = function
-    | Error -> `Int 1
-    | Warning -> `Int 2
-    | Info -> `Int 3
-    | Log -> `Int 4
+    let yojson_of_t = function
+      | Error -> `Int 1
+      | Warning -> `Int 2
+      | Info -> `Int 3
+      | Log -> `Int 4
 
-  let t_of_yojson = function
-    | `Int 1 -> Error
-    | `Int 2 -> Warning
-    | `Int 3 -> Info
-    | `Int 4 -> Log
-    | json -> yojson_error "invalid MessageType" json
+    let t_of_yojson = function
+      | `Int 1 -> Error
+      | `Int 2 -> Warning
+      | `Int 3 -> Info
+      | `Int 4 -> Log
+      | json -> yojson_error "invalid Message.Type" json
+  end
+
+  module ActionItem = struct
+    type t = { title : string }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.Message.ActionItem.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let title_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "title" -> (
+                match Ppx_yojson_conv_lib.( ! ) title_field with
+                | None ->
+                  let fvalue = string_of_yojson _field_yojson in
+                  title_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match Ppx_yojson_conv_lib.( ! ) title_field with
+              | Some title_value -> { title = title_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) title_field)
+                        None
+                    , "title" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { title = v_title } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_string v_title in
+            ("title", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
 end
 
 module ShowMessage = struct
   module Params = struct
     type t =
-      { type_ : MessageType.t [@key "type"]
+      { type_ : Message.Type.t [@key "type"]
       ; message : string
       }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -1206,7 +1283,7 @@ module ShowMessage = struct
               | "type" -> (
                 match Ppx_yojson_conv_lib.( ! ) type__field with
                 | None ->
-                  let fvalue = MessageType.t_of_yojson _field_yojson in
+                  let fvalue = Message.Type.t_of_yojson _field_yojson in
                   type__field := Some fvalue
                 | Some _ ->
                   duplicates :=
@@ -1271,7 +1348,129 @@ module ShowMessage = struct
             ("message", arg) :: bnds
           in
           let bnds =
-            let arg = MessageType.yojson_of_t v_type_ in
+            let arg = Message.Type.yojson_of_t v_type_ in
+            ("type", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module Request = struct
+    type t =
+      { type_ : Message.Type.t [@key "type"]
+      ; message : string
+      ; actions : Message.ActionItem.t list [@default []]
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.ShowMessage.Request.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let type__field = ref None
+          and message_field = ref None
+          and actions_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "type" -> (
+                match Ppx_yojson_conv_lib.( ! ) type__field with
+                | None ->
+                  let fvalue = Message.Type.t_of_yojson _field_yojson in
+                  type__field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "message" -> (
+                match Ppx_yojson_conv_lib.( ! ) message_field with
+                | None ->
+                  let fvalue = string_of_yojson _field_yojson in
+                  message_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "actions" -> (
+                match Ppx_yojson_conv_lib.( ! ) actions_field with
+                | None ->
+                  let fvalue =
+                    list_of_yojson Message.ActionItem.t_of_yojson _field_yojson
+                  in
+                  actions_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) type__field
+                , Ppx_yojson_conv_lib.( ! ) message_field
+                , Ppx_yojson_conv_lib.( ! ) actions_field )
+              with
+              | Some type__value, Some message_value, actions_value ->
+                { type_ = type__value
+                ; message = message_value
+                ; actions =
+                    ( match actions_value with
+                    | None -> []
+                    | Some v -> v )
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) type__field)
+                        None
+                    , "type_" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) message_field)
+                        None
+                    , "message" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { type_ = v_type_; message = v_message; actions = v_actions } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_list Message.ActionItem.yojson_of_t v_actions in
+            ("actions", arg) :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_string v_message in
+            ("message", arg) :: bnds
+          in
+          let bnds =
+            let arg = Message.Type.yojson_of_t v_type_ in
             ("type", arg) :: bnds
           in
           `Assoc bnds
@@ -4951,6 +5150,264 @@ module WorkspaceFolder = struct
   let _ = yojson_of_t
 
   [@@@end]
+end
+
+module WorkspaceFoldersChangeEvent = struct
+  type t =
+    { added : WorkspaceFolder.t list
+    ; removed : WorkspaceFolder.t list
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.WorkspaceFoldersChangeEvent.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let added_field = ref None
+        and removed_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "added" -> (
+              match Ppx_yojson_conv_lib.( ! ) added_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson WorkspaceFolder.t_of_yojson _field_yojson
+                in
+                added_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "removed" -> (
+              match Ppx_yojson_conv_lib.( ! ) removed_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson WorkspaceFolder.t_of_yojson _field_yojson
+                in
+                removed_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) added_field
+              , Ppx_yojson_conv_lib.( ! ) removed_field )
+            with
+            | Some added_value, Some removed_value ->
+              { added = added_value; removed = removed_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) added_field)
+                      None
+                  , "added" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) removed_field)
+                      None
+                  , "removed" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { added = v_added; removed = v_removed } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_list WorkspaceFolder.yojson_of_t v_removed in
+          ("removed", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_list WorkspaceFolder.yojson_of_t v_added in
+          ("added", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
+module DidChangeConfiguration = struct
+  module Params = struct
+    type t = { settings : json }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.DidChangeConfiguration.Params.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let settings_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "settings" -> (
+                match Ppx_yojson_conv_lib.( ! ) settings_field with
+                | None ->
+                  let fvalue = json_of_yojson _field_yojson in
+                  settings_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match Ppx_yojson_conv_lib.( ! ) settings_field with
+              | Some settings_value -> { settings = settings_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) settings_field)
+                        None
+                    , "settings" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { settings = v_settings } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_json v_settings in
+            ("settings", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+end
+
+module DidChangeWorkspaceFolders = struct
+  module Params = struct
+    type t = { event : WorkspaceFoldersChangeEvent.t }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.DidChangeWorkspaceFolders.Params.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let event_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "event" -> (
+                match Ppx_yojson_conv_lib.( ! ) event_field with
+                | None ->
+                  let fvalue =
+                    WorkspaceFoldersChangeEvent.t_of_yojson _field_yojson
+                  in
+                  event_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match Ppx_yojson_conv_lib.( ! ) event_field with
+              | Some event_value -> { event = event_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) event_field)
+                        None
+                    , "event" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { event = v_event } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = WorkspaceFoldersChangeEvent.yojson_of_t v_event in
+            ("event", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
 end
 
 (* Goto Definition request, method="textDocument/definition" *)

@@ -115,22 +115,36 @@ module Locations : sig
     | Location_links of LocationLink.t list
 end
 
-module MessageType : sig
-  type t =
-    | Error
-    | Warning
-    | Info
-    | Log
+module Message : sig
+  module Type : sig
+    type t =
+      | Error
+      | Warning
+      | Info
+      | Log
+  end
+
+  module ActionItem : sig
+    type t = { title : string }
+  end
 end
 
 module ShowMessage : sig
   module Params : sig
     type t =
-      { type_ : MessageType.t
+      { type_ : Message.Type.t
       ; message : string
       }
 
     include Yojsonable.S with type t := t
+  end
+
+  module Request : sig
+    type t =
+      { type_ : Message.Type.t
+      ; message : string
+      ; actions : Message.ActionItem.t list
+      }
   end
 end
 
@@ -513,6 +527,29 @@ module WorkspaceFolder : sig
     }
 
   include Yojsonable.S with type t := t
+end
+
+module WorkspaceFoldersChangeEvent : sig
+  type t =
+    { added : WorkspaceFolder.t list
+    ; removed : WorkspaceFolder.t list
+    }
+end
+
+module DidChangeConfiguration : sig
+  module Params : sig
+    type t = { settings : json }
+
+    include Yojsonable.S with type t := t
+  end
+end
+
+module DidChangeWorkspaceFolders : sig
+  module Params : sig
+    type t = { event : WorkspaceFoldersChangeEvent.t }
+
+    include Yojsonable.S with type t := t
+  end
 end
 
 module Definition : sig

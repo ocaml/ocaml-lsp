@@ -643,8 +643,11 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) =
     Document_store.put store doc;
     send_diagnostics rpc doc;
     Ok store
-  | Initialized -> Ok store
-  | Exit -> Ok store
+  | ChangeConfiguration _
+  | ChangeWorkspaceFolders _
+  | Initialized
+  | Exit ->
+    Ok store
   | Unknown_notification req -> (
     match req.method_ with
     | "$/setTraceNotification" -> Ok store
