@@ -11,8 +11,8 @@ type 'state handler =
       -> Initialize.Params.t
       -> ('state * Initialize.Result.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Initialize.ClientCapabilities.t -> 'res Request.t
-      -> ('state * 'res, string) result
+      'res.    t -> 'state -> Initialize.ClientCapabilities.t
+      -> 'res Client_request.t -> ('state * 'res, string) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }

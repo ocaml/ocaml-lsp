@@ -125,7 +125,7 @@ let send_notification rpc notif =
 
 module Message = struct
   type t =
-    | Request of Jsonrpc.Id.t * Request.packed
+    | Request of Jsonrpc.Id.t * Client_request.packed
     | Client_notification of Client_notification.t
 
   let of_jsonrpc (packet : Jsonrpc.Request.t) =
@@ -133,7 +133,7 @@ module Message = struct
     match packet.id with
     | None ->
       Client_notification.of_jsonrpc packet >>| fun cn -> Client_notification cn
-    | Some id -> Request.of_jsonrpc packet >>| fun r -> Request (id, r)
+    | Some id -> Client_request.of_jsonrpc packet >>| fun r -> Request (id, r)
 end
 
 type 'state handler =
@@ -143,8 +143,8 @@ type 'state handler =
       -> Initialize.Params.t
       -> ('state * Initialize.Result.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Initialize.ClientCapabilities.t -> 'res Request.t
-      -> ('state * 'res, string) result
+      'res.    t -> 'state -> Initialize.ClientCapabilities.t
+      -> 'res Client_request.t -> ('state * 'res, string) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }
@@ -172,7 +172,7 @@ let start init_state handler ic oc =
       let next_state =
         handle_message state (fun () ->
             read_message rpc >>= function
-            | Message.Request (id, E (Request.Initialize params)) ->
+            | Message.Request (id, E (Client_request.Initialize params)) ->
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
               let json = Initialize.Result.yojson_of_t result in
@@ -214,7 +214,7 @@ let start init_state handler ic oc =
             | Message.Request (id, E req) -> (
               handler.on_request rpc state client_capabilities req
               >>= fun (next_state, result) ->
-              match Request.yojson_of_result req result with
+              match Client_request.yojson_of_result req result with
               | None -> Ok next_state
               | Some response ->
                 let response = Jsonrpc.Response.ok id response in
