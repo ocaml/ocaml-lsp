@@ -3,6 +3,7 @@ open Protocol
 
 type _ t =
   | Shutdown : unit t
+  | Initialize : Initialize.Params.t -> Initialize.Result.t t
   | TextDocumentHover : Hover.params -> Hover.result t
   | TextDocumentDefinition : Definition.params -> Definition.result t
   | TextDocumentTypeDefinition :
@@ -33,6 +34,7 @@ type _ t =
 let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with
   | Shutdown, () -> None
+  | Initialize _, result -> Some (Initialize.Result.yojson_of_t result)
   | TextDocumentHover _, result -> Some (Hover.yojson_of_result result)
   | TextDocumentDefinition _, result ->
     Some (Definition.yojson_of_result result)
@@ -58,3 +60,50 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | CompletionItemResolve _, result ->
     Some (Completion.yojson_of_completionItem result)
   | UnknownRequest _, _resp -> None
+
+type packed = E : 'r t -> packed
+
+let of_jsonrpc (r : Jsonrpc.Request.t) =
+  let open Result.Infix in
+  let parse f = Jsonrpc.Request.params r f in
+  match r.method_ with
+  | "initialize" ->
+    parse Initialize.Params.t_of_yojson >>| fun params -> E (Initialize params)
+  | "shutdown" -> Ok (E Shutdown)
+  | "textDocument/completion" ->
+    parse Completion.params_of_yojson >>| fun params ->
+    E (TextDocumentCompletion params)
+  | "textDocument/documentSymbol" ->
+    parse TextDocumentDocumentSymbol.params_of_yojson >>| fun params ->
+    E (DocumentSymbol params)
+  | "textDocument/hover" ->
+    parse Hover.params_of_yojson >>| fun params -> E (TextDocumentHover params)
+  | "textDocument/definition" ->
+    parse Definition.params_of_yojson >>| fun params ->
+    E (TextDocumentDefinition params)
+  | "textDocument/typeDefinition" ->
+    parse TypeDefinition.params_of_yojson >>| fun params ->
+    E (TextDocumentTypeDefinition params)
+  | "textDocument/references" ->
+    parse References.params_of_yojson >>| fun params ->
+    E (TextDocumentReferences params)
+  | "textDocument/codeLens" ->
+    parse CodeLens.params_of_yojson >>| fun params ->
+    E (TextDocumentCodeLens params)
+  | "textDocument/rename" ->
+    parse Rename.params_of_yojson >>| fun params ->
+    E (TextDocumentRename params)
+  | "textDocument/documentHighlight" ->
+    parse TextDocumentHighlight.params_of_yojson >>| fun params ->
+    E (TextDocumentHighlight params)
+  | "textDocument/foldingRange" ->
+    parse FoldingRange.params_of_yojson >>| fun params ->
+    E (TextDocumentFoldingRange params)
+  | "textDocument/codeAction" ->
+    parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
+  | "debug/echo" ->
+    parse DebugEcho.params_of_yojson >>| fun params -> E (DebugEcho params)
+  | "debug/textDocument/get" ->
+    parse DebugTextDocumentGet.params_of_yojson >>| fun params ->
+    E (DebugTextDocumentGet params)
+  | m -> Ok (E (UnknownRequest (m, r.params)))

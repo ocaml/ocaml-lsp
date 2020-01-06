@@ -140,116 +140,17 @@ let send_notification rpc notif =
   let json = Jsonrpc.Request.yojson_of_t response in
   send rpc json
 
-module Client_notification = struct
-  open Protocol
-
-  type t =
-    | TextDocumentDidOpen of DidOpen.params
-    | TextDocumentDidChange of DidChangeTextDocumentParams.t
-    | Initialized
-    | Exit
-    | UnknownNotification of string * json option
-end
-
 module Message = struct
-  open Protocol
-
   type t =
-    | Initialize : Jsonrpc.Id.t * Initialize.Params.t -> t
-    | Request : Jsonrpc.Id.t * 'result Request.t -> t
-    | Client_notification : Client_notification.t -> t
+    | Request of Jsonrpc.Id.t * Request.packed
+    | Client_notification of Client_notification.t
 
-  (* TODO there's a proper error code for this *)
-  let require_params = function
-    | None -> Error "parameters are required"
-    | Some p -> Ok p
-
-  let parse packet =
+  let of_jsonrpc (packet : Jsonrpc.Request.t) =
     let open Result.Infix in
-    let parse_yojson f v =
-      match f v with
-      | exception
-          Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _) ->
-        Error msg
-      | r -> Ok r
-    in
-    match packet.Jsonrpc.Request.id with
-    | Some id -> (
-      match packet.method_ with
-      | "initialize" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson Initialize.Params.t_of_yojson params >>| fun params ->
-        Initialize (id, params)
-      | "shutdown" -> Ok (Request (id, Shutdown))
-      | "textDocument/completion" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson Completion.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentCompletion params)
-      | "textDocument/documentSymbol" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson TextDocumentDocumentSymbol.params_of_yojson params
-        >>| fun params -> Request (id, DocumentSymbol params)
-      | "textDocument/hover" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson Hover.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentHover params)
-      | "textDocument/definition" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson Definition.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentDefinition params)
-      | "textDocument/typeDefinition" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson TypeDefinition.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentTypeDefinition params)
-      | "textDocument/references" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson References.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentReferences params)
-      | "textDocument/codeLens" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson CodeLens.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentCodeLens params)
-      | "textDocument/rename" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson Rename.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentRename params)
-      | "textDocument/documentHighlight" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson TextDocumentHighlight.params_of_yojson params
-        >>| fun params -> Request (id, TextDocumentHighlight params)
-      | "textDocument/foldingRange" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson FoldingRange.params_of_yojson params >>| fun params ->
-        Request (id, TextDocumentFoldingRange params)
-      | "textDocument/codeAction" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson CodeActionParams.t_of_yojson params >>| fun params ->
-        Request (id, CodeAction params)
-      | "debug/echo" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson DebugEcho.params_of_yojson params >>| fun params ->
-        Request (id, DebugEcho params)
-      | "debug/textDocument/get" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson DebugTextDocumentGet.params_of_yojson params
-        >>| fun params -> Request (id, DebugTextDocumentGet params)
-      | name -> Ok (Request (id, UnknownRequest (name, packet.params))) )
-    | None -> (
-      match packet.method_ with
-      | "textDocument/didOpen" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson DidOpen.params_of_yojson params >>| fun params ->
-        Client_notification (TextDocumentDidOpen params)
-      | "textDocument/didChange" ->
-        require_params packet.params >>= fun params ->
-        parse_yojson DidChangeTextDocumentParams.t_of_yojson params
-        >>| fun params -> Client_notification (TextDocumentDidChange params)
-      | "exit" -> Ok (Client_notification Exit)
-      | "initialized" -> Ok (Client_notification Initialized)
-      | _ ->
-        Ok
-          (Client_notification
-             (UnknownNotification (packet.method_, packet.params))) )
+    match packet.id with
+    | None ->
+      Client_notification.of_jsonrpc packet >>| fun cn -> Client_notification cn
+    | Some id -> Request.of_jsonrpc packet >>| fun r -> Request (id, r)
 end
 
 type 'state handler =
@@ -267,7 +168,7 @@ type 'state handler =
 
 let start init_state handler ic oc =
   let open Result.Infix in
-  let read_message rpc = read rpc >>= fun packet -> Message.parse packet in
+  let read_message rpc = read rpc >>= Message.of_jsonrpc in
 
   let handle_message prev_state f =
     let start = Unix.gettimeofday () in
@@ -288,7 +189,7 @@ let start init_state handler ic oc =
       let next_state =
         handle_message state (fun () ->
             read_message rpc >>= function
-            | Message.Initialize (id, params) ->
+            | Message.Request (id, E (Request.Initialize params)) ->
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
               let json = Initialize.Result.yojson_of_t result in
@@ -320,14 +221,14 @@ let start init_state handler ic oc =
       let next_state =
         handle_message state (fun () ->
             read_message rpc >>= function
-            | Message.Initialize _ ->
+            | Message.Request (_id, E (Initialize _)) ->
               errorf "received another initialize request"
             | Message.Client_notification (Exit as notif) ->
               rpc.state <- Closed;
               handler.on_notification rpc state notif
             | Message.Client_notification notif ->
               handler.on_notification rpc state notif
-            | Message.Request (id, req) -> (
+            | Message.Request (id, E req) -> (
               handler.on_request rpc state client_capabilities req
               >>= fun (next_state, result) ->
               match Request.yojson_of_result req result with

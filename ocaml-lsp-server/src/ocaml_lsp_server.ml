@@ -183,6 +183,7 @@ let on_request :
  fun _rpc store client_capabilities req ->
   let open Lsp.Import.Result.Infix in
   match req with
+  | Lsp.Request.Initialize _ -> assert false
   | Lsp.Request.Shutdown -> return (store, ())
   | Lsp.Request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
     -> (
@@ -619,7 +620,7 @@ let on_request :
   | Lsp.Request.CompletionItemResolve compl -> return (store, compl)
   | Lsp.Request.UnknownRequest _ -> errorf "got unknown request"
 
-let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
+let on_notification rpc store (notification : Lsp.Client_notification.t) =
   let open Lsp.Import.Result.Infix in
   match notification with
   | TextDocumentDidOpen params ->
@@ -641,16 +642,18 @@ let on_notification rpc store (notification : Lsp.Rpc.Client_notification.t) =
     Ok store
   | Initialized -> Ok store
   | Exit -> Ok store
-  | UnknownNotification ("$/setTraceNotification", _) -> Ok store
-  | UnknownNotification ("$/cancelRequest", _) -> Ok store
-  | UnknownNotification (id, json) ->
-    ( match json with
-    | None -> log ~title:"warn" "unknown notification: %s" id
-    | Some json ->
-      log ~title:"warn" "unknown notification: %s %a" id
-        (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-        json );
-    Ok store
+  | Unknown_notification req -> (
+    match req.method_ with
+    | "$/setTraceNotification" -> Ok store
+    | "$/cancelRequest" -> Ok store
+    | _ ->
+      ( match req.params with
+      | None -> log ~title:"warn" "unknown notification: %s" req.method_
+      | Some json ->
+        log ~title:"warn" "unknown notification: %s %a" req.method_
+          (fun () -> Yojson.Safe.pretty_to_string ~std:false)
+          json );
+      Ok store )
 
 let start () =
   let docs = Document_store.make () in

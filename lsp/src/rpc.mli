@@ -1,4 +1,4 @@
-open Import
+open! Import
 
 (** * This encodes LSP RPC state machine. *)
 
@@ -6,17 +6,6 @@ module Server_notification : sig
   open Protocol
 
   type t = PublishDiagnostics of PublishDiagnostics.publishDiagnosticsParams
-end
-
-module Client_notification : sig
-  open Protocol
-
-  type t =
-    | TextDocumentDidOpen of DidOpen.params
-    | TextDocumentDidChange of DidChangeTextDocumentParams.t
-    | Initialized
-    | Exit
-    | UnknownNotification of string * json option
 end
 
 type t

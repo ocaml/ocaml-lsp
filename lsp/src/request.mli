@@ -3,6 +3,7 @@ open Protocol
 
 type _ t =
   | Shutdown : unit t
+  | Initialize : Initialize.Params.t -> Initialize.Result.t t
   | TextDocumentHover : Hover.params -> Hover.result t
   | TextDocumentDefinition : Definition.params -> Definition.result t
   | TextDocumentTypeDefinition :
@@ -31,3 +32,7 @@ type _ t =
   | UnknownRequest : string * json option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> json option
+
+type packed = E : 'r t -> packed
+
+val of_jsonrpc : Jsonrpc.Request.t -> (packed, string) Result.t

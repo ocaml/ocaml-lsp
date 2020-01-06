@@ -77,6 +77,22 @@ module Request = struct
       else
         yojson_error "invalid version" json
     | _ -> yojson_error "invalid request" json
+
+  let read_json_params f v =
+    match f v with
+    | r -> Ok r
+    | exception Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _)
+      ->
+      Error msg
+
+  let require_params json =
+    match json with
+    | None -> Error "params are required"
+    | Some params -> Ok params
+
+  let params t f =
+    let open Result.Infix in
+    require_params t.params >>= read_json_params f
 end
 
 module Response = struct
