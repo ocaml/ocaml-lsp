@@ -32,16 +32,6 @@ module DocumentFilter : sig
   include Yojsonable.S with type t := t
 end
 
-module Registration : sig
-  type t =
-    { id : string
-    ; method_ : string
-    ; registerOptions : json option
-    }
-
-  include Yojsonable.S with type t := t
-end
-
 module Unregistration : sig
   type t =
     { id : string
@@ -49,12 +39,12 @@ module Unregistration : sig
     }
 
   include Yojsonable.S with type t := t
-end
 
-module UnregistrationParams : sig
-  type t = { unregistrations : Unregistration.t list }
+  module Params : sig
+    type nonrec t = { unregistrations : t list }
 
-  include Yojsonable.S with type t := t
+    include Yojsonable.S with type t := t
+  end
 end
 
 type documentUri = Uri.t
@@ -139,6 +129,21 @@ module ShowMessage : sig
       { type_ : MessageType.t
       ; message : string
       }
+
+    include Yojsonable.S with type t := t
+  end
+end
+
+module Configuration : sig
+  module Item : sig
+    type t =
+      { scopeUri : documentUri option
+      ; section : string option
+      }
+  end
+
+  module Params : sig
+    type t = { items : Item.t list }
 
     include Yojsonable.S with type t := t
   end
@@ -335,6 +340,36 @@ module WorkspaceEdit : sig
     -> version:int
     -> edits:TextEdit.t list
     -> t
+end
+
+module Registration : sig
+  type t =
+    { id : string
+    ; method_ : string
+    ; registerOptions : json option
+    }
+
+  module Params : sig
+    type nonrec t = { registrations : t list }
+
+    include Yojsonable.S with type t := t
+  end
+end
+
+module ApplyWorkspaceEdit : sig
+  module Params : sig
+    type t =
+      { label : string option
+      ; edit : WorkspaceEdit.t list
+      }
+  end
+
+  module Response : sig
+    type t =
+      { applied : bool
+      ; failureReason : string option
+      }
+  end
 end
 
 module PublishDiagnostics : sig
