@@ -8,6 +8,7 @@ type t =
   }
 
 let content_type t = t.content_type
+
 let content_length t = t.content_length
 
 module Key = struct

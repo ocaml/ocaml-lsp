@@ -9,4 +9,4 @@ type _ t =
   | WorkspaceConfiguration : Configuration.Params.t -> json list t
   | ClientRegisterCapability : Registration.Params.t -> unit t
   | ClientUnregisterCapability : Unregistration.Params.t -> unit t
-  | ShowMessage : ShowMessage.Request.t -> Message.ActionItem.t option t
+  | ShowMessageRequest : ShowMessage.Request.t -> Message.ActionItem.t option t
