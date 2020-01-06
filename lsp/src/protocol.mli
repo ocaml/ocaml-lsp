@@ -125,6 +125,25 @@ module Locations : sig
     | Location_links of LocationLink.t list
 end
 
+module MessageType : sig
+  type t =
+    | Error
+    | Warning
+    | Info
+    | Log
+end
+
+module ShowMessage : sig
+  module Params : sig
+    type t =
+      { type_ : MessageType.t
+      ; message : string
+      }
+
+    include Yojsonable.S with type t := t
+  end
+end
+
 module TextDocumentIdentifier : sig
   type t = { uri : documentUri }
 

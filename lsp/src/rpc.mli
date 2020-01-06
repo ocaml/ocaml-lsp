@@ -2,12 +2,6 @@ open! Import
 
 (** * This encodes LSP RPC state machine. *)
 
-module Server_notification : sig
-  open Protocol
-
-  type t = PublishDiagnostics of PublishDiagnostics.publishDiagnosticsParams
-end
-
 type t
 
 type 'state handler =

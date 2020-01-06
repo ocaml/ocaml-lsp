@@ -1362,6 +1362,128 @@ module Locations = struct
     | _ -> yojson_error "Locations.t" json
 end
 
+module MessageType = struct
+  type t =
+    | Error
+    | Warning
+    | Info
+    | Log
+
+  let yojson_of_t = function
+    | Error -> `Int 1
+    | Warning -> `Int 2
+    | Info -> `Int 3
+    | Log -> `Int 4
+
+  let t_of_yojson = function
+    | `Int 1 -> Error
+    | `Int 2 -> Warning
+    | `Int 3 -> Info
+    | `Int 4 -> Log
+    | json -> yojson_error "invalid MessageType" json
+end
+
+module ShowMessage = struct
+  module Params = struct
+    type t =
+      { type_ : MessageType.t [@key "type"]
+      ; message : string
+      }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.ShowMessage.Params.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let type__field = ref None
+          and message_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "type" -> (
+                match Ppx_yojson_conv_lib.( ! ) type__field with
+                | None ->
+                  let fvalue = MessageType.t_of_yojson _field_yojson in
+                  type__field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "message" -> (
+                match Ppx_yojson_conv_lib.( ! ) message_field with
+                | None ->
+                  let fvalue = string_of_yojson _field_yojson in
+                  message_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) type__field
+                , Ppx_yojson_conv_lib.( ! ) message_field )
+              with
+              | Some type__value, Some message_value ->
+                { type_ = type__value; message = message_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) type__field)
+                        None
+                    , "type_" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) message_field)
+                        None
+                    , "message" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { type_ = v_type_; message = v_message } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_string v_message in
+            ("message", arg) :: bnds
+          in
+          let bnds =
+            let arg = MessageType.yojson_of_t v_type_ in
+            ("type", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+end
+
 (* Text documents are identified using a URI. *)
 module TextDocumentIdentifier = struct
   type t = { uri : documentUri (* the text document's URI *) }
