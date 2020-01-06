@@ -114,8 +114,9 @@ let start init_state handler ic oc =
     | Ready ->
       let next_state =
         handle_message state (fun () ->
+            let open Client_request in
             read_message rpc >>= function
-            | Message.Request (id, E (Client_request.Initialize params)) ->
+            | Message.Request (id, E (Initialize params)) ->
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
               let json = Initialize.Result.yojson_of_t result in
@@ -146,6 +147,7 @@ let start init_state handler ic oc =
     | Initialized client_capabilities ->
       let next_state =
         handle_message state (fun () ->
+            let open Client_request in
             read_message rpc >>= function
             | Message.Request (_id, E (Initialize _)) ->
               errorf "received another initialize request"

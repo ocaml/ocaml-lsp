@@ -226,8 +226,6 @@ module String = struct
 end
 
 module Int = struct
-  include Int
-
   let of_string s =
     match int_of_string s with
     | i -> Some i
