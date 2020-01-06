@@ -152,6 +152,17 @@ module Params : sig
     ; initializationOptions : json option
     }
 
+  val create :
+       ?processId:int
+    -> ?rootPath:string
+    -> ?rootUri:documentUri
+    -> ?capabilities:ClientCapabilities.t
+    -> ?trace:Trace.t
+    -> ?workspaceFolders:WorkspaceFolder.t list
+    -> ?initializationOptions:json
+    -> unit
+    -> t
+
   include Yojsonable.S with type t := t
 end
 

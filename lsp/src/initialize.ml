@@ -1988,6 +1988,18 @@ module Params = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?processId ?rootPath ?rootUri
+      ?(capabilities = ClientCapabilities.empty) ?(trace = Trace.Off)
+      ?(workspaceFolders = []) ?initializationOptions () =
+    { processId
+    ; rootPath
+    ; rootUri
+    ; capabilities
+    ; trace
+    ; workspaceFolders
+    ; initializationOptions
+    }
 end
 
 module CompletionOptions = struct
