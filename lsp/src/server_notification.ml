@@ -5,7 +5,7 @@ type t =
   | PublishDiagnostics of PublishDiagnostics.params
   | ShowMessage of ShowMessage.Params.t
   | LogMessage of ShowMessage.Params.t
-  | TelemetryNotification of json
+  | TelemetryNotification of Json.t
 
 let method_ = function
   | ShowMessage _ -> "window/showMessage"

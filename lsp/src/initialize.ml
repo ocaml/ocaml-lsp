@@ -342,7 +342,7 @@ module Trace = struct
     | `String "off" -> Off
     | `String "messages" -> Messages
     | `String "verbose" -> Verbose
-    | node -> yojson_error "invalid trace" node
+    | node -> Json.error "invalid trace" node
 end
 
 module TextDocumentSyncKind = struct
@@ -366,7 +366,7 @@ module TextDocumentSyncKind = struct
     | `Int 0 -> NoSync
     | `Int 1 -> FullSync
     | `Int 2 -> IncrementalSync
-    | node -> yojson_error "invalid textDocumentSyncKind" node
+    | node -> Json.error "invalid textDocumentSyncKind" node
 end
 
 module Synchronization = struct
@@ -1118,7 +1118,7 @@ module WorkspaceEdit = struct
       | `String "create" -> Create
       | `String "rename" -> Rename
       | `String "delete" -> Delete
-      | json -> yojson_error "resource operation kind" json
+      | json -> Json.error "resource operation kind" json
 
     let yojson_of_t = function
       | Create -> `String "create"
@@ -1138,7 +1138,7 @@ module WorkspaceEdit = struct
       | `String "transactional" -> Transactional
       | `String "textOnlyTransactional" -> TextOnlyTransactional
       | `String "undo" -> Undo
-      | json -> yojson_error "failure handling kind" json
+      | json -> Json.error "failure handling kind" json
 
     let yojson_of_t = function
       | Abort -> `String "abort"
@@ -1782,7 +1782,7 @@ module Params = struct
     ; trace : Trace.t
           [@default Trace.Off] (* the initial trace setting, default="off" *)
     ; workspaceFolders : WorkspaceFolder.t list [@default []]
-    ; initializationOptions : json option [@yojson.option]
+    ; initializationOptions : Json.t option [@yojson.option]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -1859,7 +1859,7 @@ module Params = struct
             | "initializationOptions" -> (
               match Ppx_yojson_conv_lib.( ! ) initializationOptions_field with
               | None ->
-                let fvalue = json_of_yojson _field_yojson in
+                let fvalue = Json.t_of_yojson _field_yojson in
                 initializationOptions_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -1944,7 +1944,7 @@ module Params = struct
           match v_initializationOptions with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_json v in
+            let arg = Json.yojson_of_t v in
             let bnd = ("initializationOptions", arg) in
             bnd :: bnds
         in

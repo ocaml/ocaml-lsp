@@ -32,9 +32,9 @@ type _ t =
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
-  | UnknownRequest : string * json option -> unit t
+  | UnknownRequest : string * Json.t option -> unit t
 
-val yojson_of_result : 'a t -> 'a -> json option
+val yojson_of_result : 'a t -> 'a -> Json.t option
 
 type packed = E : 'r t -> packed
 

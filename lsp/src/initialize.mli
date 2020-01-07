@@ -149,7 +149,7 @@ module Params : sig
     ; capabilities : ClientCapabilities.t
     ; trace : Trace.t
     ; workspaceFolders : WorkspaceFolder.t list
-    ; initializationOptions : json option
+    ; initializationOptions : Json.t option
     }
 
   val create :
@@ -159,11 +159,11 @@ module Params : sig
     -> ?capabilities:ClientCapabilities.t
     -> ?trace:Trace.t
     -> ?workspaceFolders:WorkspaceFolder.t list
-    -> ?initializationOptions:json
+    -> ?initializationOptions:Json.t
     -> unit
     -> t
 
-  include Yojsonable.S with type t := t
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentSyncOptions : sig
@@ -235,5 +235,5 @@ end
 module Result : sig
   type t = { capabilities : ServerCapabilities.t }
 
-  include Yojsonable.S with type t := t
+  include Json.Jsonable.S with type t := t
 end

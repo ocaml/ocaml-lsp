@@ -1,6 +1,6 @@
-open Import
+open! Import
 
-include Yojsonable.S
+include Json.Jsonable.S
 
 val to_path : t -> string
 

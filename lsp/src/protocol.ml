@@ -16,7 +16,7 @@ module Only = struct
   let t_of_yojson f = function
     | `Null -> All
     | `List xs -> Only (List.map ~f xs)
-    | json -> yojson_error "invalid only" json
+    | json -> Json.error "invalid only" json
 end
 
 module Or_bool = struct
@@ -52,7 +52,7 @@ end
 module Void = struct
   type t
 
-  let t_of_yojson = yojson_error "Void.t"
+  let t_of_yojson = Json.error "Void.t"
 
   let yojson_of_t (_ : t) = assert false
 end
@@ -649,14 +649,14 @@ module SymbolKind = struct
     | `Int 24 -> Event
     | `Int 25 -> Operator
     | `Int 26 -> TypeParameter
-    | node -> yojson_error "invalid SymbolKind" node
+    | node -> Json.error "invalid SymbolKind" node
 end
 
 module Command = struct
   type t =
     { title : string
     ; command : string
-    ; arguments : json list option [@yojson.option]
+    ; arguments : Json.t list option [@yojson.option]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -693,7 +693,7 @@ module Command = struct
             | "arguments" -> (
               match Ppx_yojson_conv_lib.( ! ) arguments_field with
               | None ->
-                let fvalue = list_of_yojson json_of_yojson _field_yojson in
+                let fvalue = list_of_yojson Json.t_of_yojson _field_yojson in
                 arguments_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -752,7 +752,7 @@ module Command = struct
           match v_arguments with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_list yojson_of_json v in
+            let arg = yojson_of_list Json.yojson_of_t v in
             let bnd = ("arguments", arg) in
             bnd :: bnds
         in
@@ -785,7 +785,7 @@ module MarkupKind = struct
     | `String "plaintext" -> Plaintext
     | `String "markdown" -> Markdown
     | `String _ -> Plaintext
-    | node -> yojson_error "invalid contentFormat" node
+    | node -> Json.error "invalid contentFormat" node
 end
 
 module MarkupContent = struct
@@ -1149,7 +1149,7 @@ module Locations = struct
     | Locations l -> `List (List.map ~f:Location.yojson_of_t l)
     | Location_links l -> `List (List.map ~f:LocationLink.yojson_of_t l)
 
-  let t_of_yojson (json : json) =
+  let t_of_yojson (json : Json.t) =
     match json with
     | `Assoc _ -> Location (Location.t_of_yojson json)
     | `List [] -> Locations []
@@ -1158,7 +1158,7 @@ module Locations = struct
       | loc -> Locations (loc :: List.map ~f:Location.t_of_yojson xs)
       | exception Of_yojson_error (_, _) ->
         Location_links (List.map ~f:LocationLink.t_of_yojson (x :: xs)) )
-    | _ -> yojson_error "Locations.t" json
+    | _ -> Json.error "Locations.t" json
 end
 
 module Message = struct
@@ -1180,7 +1180,7 @@ module Message = struct
       | `Int 2 -> Warning
       | `Int 3 -> Info
       | `Int 4 -> Log
-      | json -> yojson_error "invalid Message.Type" json
+      | json -> Json.error "invalid Message.Type" json
   end
 
   module ActionItem = struct
@@ -2423,7 +2423,7 @@ module DocumentHighlight = struct
     | `Int 1 -> Text
     | `Int 2 -> Read
     | `Int 3 -> Write
-    | node -> yojson_error "kind expected to be an int between 1 and 3" node
+    | node -> Json.error "kind expected to be an int between 1 and 3" node
 
   type t =
     { range : Range.t
@@ -3426,12 +3426,12 @@ module WorkspaceEdit = struct
   module Changes = struct
     type t = (Uri.t * TextEdit.t list) list
 
-    let t_of_yojson (json : json) =
+    let t_of_yojson (json : Json.t) =
       match json with
       | `Assoc elems ->
         List.map elems ~f:(fun (uri, te) ->
             (Uri.of_path uri, list_of_yojson TextEdit.t_of_yojson te))
-      | json -> yojson_error "invalid Changes.t" json
+      | json -> Json.error "invalid Changes.t" json
 
     let yojson_of_t changes =
       let changes =
@@ -3583,7 +3583,7 @@ module Registration = struct
   type t =
     { id : string
     ; method_ : string [@key "method"]
-    ; registerOptions : json option [@yojson.option]
+    ; registerOptions : Json.t option [@yojson.option]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3620,7 +3620,7 @@ module Registration = struct
             | "registerOptions" -> (
               match Ppx_yojson_conv_lib.( ! ) registerOptions_field with
               | None ->
-                let fvalue = json_of_yojson _field_yojson in
+                let fvalue = Json.t_of_yojson _field_yojson in
                 registerOptions_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -3680,7 +3680,7 @@ module Registration = struct
           match v_registerOptions with
           | None -> bnds
           | Some v ->
-            let arg = yojson_of_json v in
+            let arg = Json.yojson_of_t v in
             let bnd = ("registerOptions", arg) in
             bnd :: bnds
         in
@@ -3994,7 +3994,7 @@ module PublishDiagnostics = struct
     | `Int v -> IntCode v
     | `String v -> StringCode v
     | `Null -> NoCode
-    | node -> yojson_error "invalid diagnostic.code" node
+    | node -> Json.error "invalid diagnostic.code" node
 
   type diagnosticSeverity =
     | Error (* 1 *)
@@ -4015,7 +4015,7 @@ module PublishDiagnostics = struct
     | `Int 2 -> Warning
     | `Int 3 -> Information
     | `Int 4 -> Hint
-    | node -> yojson_error "diagnostic.severity expected to be int" node
+    | node -> Json.error "diagnostic.severity expected to be int" node
 
   type params = publishDiagnosticsParams
 
@@ -4623,7 +4623,7 @@ module ParameterInformation = struct
     let t_of_yojson = function
       | `String b -> Substring b
       | `List [ `Int s; `Int e ] -> Range (s, e)
-      | y -> yojson_error "ParameterInformation.Label.t" y
+      | y -> Json.error "ParameterInformation.Label.t" y
 
     let yojson_of_t = function
       | Substring s -> `String s
@@ -5044,7 +5044,7 @@ module CodeActionKind = struct
       | "source" -> Source
       | "source.organizeImports" -> SourceOrganizeImports
       | s -> Other s )
-    | j -> yojson_error "Invalid code action" j
+    | j -> Json.error "Invalid code action" j
 end
 
 module WorkspaceFolder = struct
@@ -5256,7 +5256,7 @@ end
 
 module DidChangeConfiguration = struct
   module Params = struct
-    type t = { settings : json }
+    type t = { settings : Json.t }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
     let _ = fun (_ : t) -> ()
@@ -5274,7 +5274,7 @@ module DidChangeConfiguration = struct
               | "settings" -> (
                 match Ppx_yojson_conv_lib.( ! ) settings_field with
                 | None ->
-                  let fvalue = json_of_yojson _field_yojson in
+                  let fvalue = Json.t_of_yojson _field_yojson in
                   settings_field := Some fvalue
                 | Some _ ->
                   duplicates :=
@@ -5319,7 +5319,7 @@ module DidChangeConfiguration = struct
         | { settings = v_settings } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
           let bnds =
-            let arg = yojson_of_json v_settings in
+            let arg = Json.yojson_of_t v_settings in
             ("settings", arg) :: bnds
           in
           `Assoc bnds
@@ -6444,7 +6444,7 @@ module PrepareRename = struct
         | Some _ as placeholder ->
           let range = Json.field_exn fields "range" Range.t_of_yojson in
           { range; placeholder } )
-      | _ -> yojson_error "PrepareRename range" json
+      | _ -> Json.error "PrepareRename range" json
   end
 
   module Result = struct
@@ -6744,8 +6744,8 @@ module FoldingRange = struct
         | "comment" -> Comment
         | "imports" -> Imports
         | "region" -> Region
-        | _ -> yojson_error "invalid t_of_yojson" node )
-      | _ -> yojson_error "invalid t_of_yojson" node
+        | _ -> Json.error "invalid t_of_yojson" node )
+      | _ -> Json.error "invalid t_of_yojson" node
   end
 
   type t =

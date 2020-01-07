@@ -3,19 +3,19 @@ open Import
 module Id : sig
   type t = (string, int) Either.t
 
-  include Yojsonable.S with type t := t
+  include Json.Jsonable.S with type t := t
 end
 
 module Request : sig
   type t =
     { id : Id.t option
     ; method_ : string
-    ; params : json option
+    ; params : Json.t option
     }
 
-  include Yojsonable.S with type t := t
+  include Json.Jsonable.S with type t := t
 
-  val params : t -> (json -> 'a) -> ('a, string) Result.t
+  val params : t -> (Json.t -> 'a) -> ('a, string) Result.t
 end
 
 module Response : sig
@@ -38,20 +38,20 @@ module Response : sig
     type t =
       { code : Code.t
       ; message : string
-      ; data : json option
+      ; data : Json.t option
       }
 
-    val make : ?data:json -> code:Code.t -> message:string -> unit -> t
+    val make : ?data:Json.t -> code:Code.t -> message:string -> unit -> t
   end
 
   type t =
     { id : Id.t
-    ; result : (json, Error.t) Result.t
+    ; result : (Json.t, Error.t) Result.t
     }
 
-  val ok : Id.t -> json -> t
+  val ok : Id.t -> Json.t -> t
 
   val error : Id.t -> Error.t -> t
 
-  include Yojsonable.S with type t := t
+  include Json.Jsonable.S with type t := t
 end

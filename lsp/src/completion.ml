@@ -18,8 +18,7 @@ let completionTriggerKind_of_yojson = function
   | `Int 2 -> TriggerCharacter
   | `Int 3 -> TriggerForIncompleteCompletions
   | v ->
-    yojson_error "invalid completion.triggerKind, should be equal to 1, 2 or 3"
-      v
+    Json.error "invalid completion.triggerKind, should be equal to 1, 2 or 3" v
 
 type completionItemKind =
   | Text (* 1 *)
@@ -116,8 +115,8 @@ let completionItemKind_of_yojson = function
     match completionItemKind_of_int_opt v with
     | Some v -> v
     | None ->
-      yojson_error "completion.kind expected to be between 1 and 25" (`Int v) )
-  | node -> yojson_error "completion.kind expected to be between 1 and 25" node
+      Json.error "completion.kind expected to be between 1 and 25" (`Int v) )
+  | node -> Json.error "completion.kind expected to be between 1 and 25" node
 
 (** Keep this in sync with `int_of_completionItemKind`. *)
 type insertTextFormat =
@@ -147,8 +146,8 @@ let insertTextFormat_of_yojson = function
   | `Int v -> (
     match insertFormat_of_int_opt v with
     | Some v -> v
-    | None -> yojson_error "insertTextFormat expected to be 1 or 2" (`Int v) )
-  | node -> yojson_error "insertTextFormat expected to be 1 or 2" node
+    | None -> Json.error "insertTextFormat expected to be 1 or 2" (`Int v) )
+  | node -> Json.error "insertTextFormat expected to be 1 or 2" node
 
 type params = completionParams
 
@@ -200,7 +199,7 @@ and completionItem =
            executed after completion *1) *)
         (* data: Hh_json.json option [@default None]; *)
   ; commitCharacters : string list [@default []] [@yojson_drop_default ( = )]
-  ; data : json option [@yojson.option]
+  ; data : Json.t option [@yojson.option]
   }
 [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -534,7 +533,7 @@ and completionItem_of_yojson =
           | "data" -> (
             match Ppx_yojson_conv_lib.( ! ) data_field with
             | None ->
-              let fvalue = json_of_yojson _field_yojson in
+              let fvalue = Json.t_of_yojson _field_yojson in
               data_field := Some fvalue
             | Some _ ->
               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
@@ -713,7 +712,7 @@ and yojson_of_completionItem =
         match v_data with
         | None -> bnds
         | Some v ->
-          let arg = yojson_of_json v in
+          let arg = Json.yojson_of_t v in
           let bnd = ("data", arg) in
           bnd :: bnds
       in

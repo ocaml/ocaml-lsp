@@ -1,9 +1,3 @@
-type json = Ppx_yojson_conv_lib.Yojson.Safe.t
-
-let yojson_of_json x = x
-
-let json_of_yojson x = x
-
 module List = struct
   module List = ListLabels
 
@@ -288,15 +282,21 @@ module Either = struct
     | Right of 'right
 end
 
-module Yojsonable = Ppx_yojson_conv_lib.Yojsonable
-
-let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
-
 module Json = struct
+  type t = Ppx_yojson_conv_lib.Yojson.Safe.t
+
+  let yojson_of_t x = x
+
+  let t_of_yojson x = x
+
+  let error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
+
+  module Jsonable = Ppx_yojson_conv_lib.Yojsonable
+
   let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
 
   let field_exn fields name conv =
     match field fields name conv with
-    | None -> yojson_error "Jsonrpc.Result.t: missing field" (`Assoc fields)
+    | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
     | Some f -> f
 end
