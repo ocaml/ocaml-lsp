@@ -14,6 +14,8 @@ module Request : sig
     }
 
   include Yojsonable.S with type t := t
+
+  val params : t -> (json -> 'a) -> ('a, string) Result.t
 end
 
 module Response : sig

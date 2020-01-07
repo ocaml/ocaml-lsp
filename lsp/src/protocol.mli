@@ -32,16 +32,6 @@ module DocumentFilter : sig
   include Yojsonable.S with type t := t
 end
 
-module Registration : sig
-  type t =
-    { id : string
-    ; method_ : string
-    ; registerOptions : json option
-    }
-
-  include Yojsonable.S with type t := t
-end
-
 module Unregistration : sig
   type t =
     { id : string
@@ -49,12 +39,12 @@ module Unregistration : sig
     }
 
   include Yojsonable.S with type t := t
-end
 
-module UnregistrationParams : sig
-  type t = { unregistrations : Unregistration.t list }
+  module Params : sig
+    type nonrec t = { unregistrations : t list }
 
-  include Yojsonable.S with type t := t
+    include Yojsonable.S with type t := t
+  end
 end
 
 type documentUri = Uri.t
@@ -123,6 +113,54 @@ module Locations : sig
     | Location of Location.t
     | Locations of Location.t list
     | Location_links of LocationLink.t list
+end
+
+module Message : sig
+  module Type : sig
+    type t =
+      | Error
+      | Warning
+      | Info
+      | Log
+  end
+
+  module ActionItem : sig
+    type t = { title : string }
+  end
+end
+
+module ShowMessage : sig
+  module Params : sig
+    type t =
+      { type_ : Message.Type.t
+      ; message : string
+      }
+
+    include Yojsonable.S with type t := t
+  end
+
+  module Request : sig
+    type t =
+      { type_ : Message.Type.t
+      ; message : string
+      ; actions : Message.ActionItem.t list
+      }
+  end
+end
+
+module Configuration : sig
+  module Item : sig
+    type t =
+      { scopeUri : documentUri option
+      ; section : string option
+      }
+  end
+
+  module Params : sig
+    type t = { items : Item.t list }
+
+    include Yojsonable.S with type t := t
+  end
 end
 
 module TextDocumentIdentifier : sig
@@ -217,6 +255,21 @@ module TextDocumentPositionParams : sig
     }
 
   include Yojsonable.S with type t := t
+end
+
+module PrepareRename : sig
+  module Range : sig
+    type t =
+      { range : Range.t
+      ; placeholder : string option
+      }
+  end
+
+  module Result : sig
+    type nonrec t = Range.t option
+
+    include Yojsonable.S with type t := t
+  end
 end
 
 module DocumentHighlight : sig
@@ -316,6 +369,36 @@ module WorkspaceEdit : sig
     -> version:int
     -> edits:TextEdit.t list
     -> t
+end
+
+module Registration : sig
+  type t =
+    { id : string
+    ; method_ : string
+    ; registerOptions : json option
+    }
+
+  module Params : sig
+    type nonrec t = { registrations : t list }
+
+    include Yojsonable.S with type t := t
+  end
+end
+
+module ApplyWorkspaceEdit : sig
+  module Params : sig
+    type t =
+      { label : string option
+      ; edit : WorkspaceEdit.t list
+      }
+  end
+
+  module Response : sig
+    type t =
+      { applied : bool
+      ; failureReason : string option
+      }
+  end
 end
 
 module PublishDiagnostics : sig
@@ -459,6 +542,29 @@ module WorkspaceFolder : sig
     }
 
   include Yojsonable.S with type t := t
+end
+
+module WorkspaceFoldersChangeEvent : sig
+  type t =
+    { added : WorkspaceFolder.t list
+    ; removed : WorkspaceFolder.t list
+    }
+end
+
+module DidChangeConfiguration : sig
+  module Params : sig
+    type t = { settings : json }
+
+    include Yojsonable.S with type t := t
+  end
+end
+
+module DidChangeWorkspaceFolders : sig
+  module Params : sig
+    type t = { event : WorkspaceFoldersChangeEvent.t }
+
+    include Yojsonable.S with type t := t
+  end
 end
 
 module Definition : sig
