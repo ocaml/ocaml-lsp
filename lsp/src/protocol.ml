@@ -6422,6 +6422,53 @@ module CodeLens = struct
   [@@@end]
 end
 
+module PrepareRename = struct
+  module Range = struct
+    type t =
+      { range : Range.t
+      ; placeholder : string option
+      }
+
+    let yojson_of_t { range; placeholder } =
+      let range = Range.yojson_of_t range in
+      match placeholder with
+      | None -> range
+      | Some placeholder ->
+        `Assoc [ ("range", range); ("placeholder", `String placeholder) ]
+
+    let t_of_yojson json =
+      match json with
+      | `Assoc fields -> (
+        match Json.field fields "placeholder" string_of_yojson with
+        | None -> { placeholder = None; range = Range.t_of_yojson json }
+        | Some _ as placeholder ->
+          let range = Json.field_exn fields "range" Range.t_of_yojson in
+          { range; placeholder } )
+      | _ -> yojson_error "PrepareRename range" json
+  end
+
+  module Result = struct
+    type nonrec t = Range.t option [@@deriving_inline yojson]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.PrepareRename.Result.t" in
+        fun t -> option_of_yojson Range.t_of_yojson t
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( fun v -> yojson_of_option Range.yojson_of_t v
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+end
+
 (** Rename symbol request, metho="textDocument/rename" *)
 module Rename = struct
   type params =

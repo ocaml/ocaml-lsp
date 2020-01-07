@@ -257,6 +257,21 @@ module TextDocumentPositionParams : sig
   include Yojsonable.S with type t := t
 end
 
+module PrepareRename : sig
+  module Range : sig
+    type t =
+      { range : Range.t
+      ; placeholder : string option
+      }
+  end
+
+  module Result : sig
+    type nonrec t = Range.t option
+
+    include Yojsonable.S with type t := t
+  end
+end
+
 module DocumentHighlight : sig
   type kind =
     | Text

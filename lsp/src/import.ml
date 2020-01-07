@@ -291,3 +291,12 @@ end
 module Yojsonable = Ppx_yojson_conv_lib.Yojsonable
 
 let yojson_error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
+
+module Json = struct
+  let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
+
+  let field_exn fields name conv =
+    match field fields name conv with
+    | None -> yojson_error "Jsonrpc.Result.t: missing field" (`Assoc fields)
+    | Some f -> f
+end

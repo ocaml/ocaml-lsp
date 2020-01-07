@@ -11,6 +11,9 @@ type _ t =
       -> TypeDefinition.result t
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLens.params -> CodeLens.result t
+  | TextDocumentPrepareRename :
+      TextDocumentPositionParams.t
+      -> PrepareRename.Result.t t
   | TextDocumentRename : Rename.params -> Rename.result t
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
@@ -43,6 +46,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentCompletion _, result ->
     Some (Completion.yojson_of_result result)
   | TextDocumentCodeLens _, result -> Some (CodeLens.yojson_of_result result)
+  | TextDocumentPrepareRename _, result ->
+    Some (PrepareRename.Result.yojson_of_t result)
   | TextDocumentRename _, result -> Some (Rename.yojson_of_result result)
   | DocumentSymbol _, result ->
     Some (TextDocumentDocumentSymbol.yojson_of_result result)

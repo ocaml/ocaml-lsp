@@ -11,6 +11,9 @@ type _ t =
       -> TypeDefinition.result t
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLens.params -> CodeLens.result t
+  | TextDocumentPrepareRename :
+      TextDocumentPositionParams.t
+      -> PrepareRename.Result.t t
   | TextDocumentRename : Rename.params -> Rename.result t
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params

@@ -13,13 +13,6 @@ module Id = struct
     | j -> yojson_error "Id.t" j
 end
 
-let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
-
-let field_exn fields name conv =
-  match field fields name conv with
-  | None -> yojson_error "Jsonrpc.Result.t: missing field" (`Assoc fields)
-  | Some f -> f
-
 module Constant = struct
   let jsonrpc = "jsonrpc"
 
@@ -65,12 +58,12 @@ module Request = struct
     match json with
     | `Assoc fields ->
       let method_ =
-        field_exn fields Constant.method_ Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.method_ Yojson_conv.string_of_yojson
       in
-      let params = field fields Constant.params json_of_yojson in
-      let id = field fields Constant.id Id.t_of_yojson in
+      let params = Json.field fields Constant.params json_of_yojson in
+      let id = Json.field fields Constant.id Id.t_of_yojson in
       let jsonrpc =
-        field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
       in
       if jsonrpc = Constant.jsonrpcv then
         { method_; params; id }
@@ -298,18 +291,18 @@ module Response = struct
   let t_of_yojson json =
     match json with
     | `Assoc fields -> (
-      let id = field_exn fields Constant.id Id.t_of_yojson in
+      let id = Json.field_exn fields Constant.id Id.t_of_yojson in
       let jsonrpc =
-        field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
       in
       if jsonrpc <> Constant.jsonrpcv then
         yojson_error "Invalid response" json
       else
-        match field fields Constant.result json_of_yojson with
+        match Json.field fields Constant.result json_of_yojson with
         | Some res -> { id; result = Ok res }
         | None ->
           let result =
-            Error (field_exn fields Constant.error Error.t_of_yojson)
+            Error (Json.field_exn fields Constant.error Error.t_of_yojson)
           in
           { id; result } )
     | _ -> yojson_error "Jsonrpc.Result.t" json

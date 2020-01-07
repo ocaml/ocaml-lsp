@@ -568,6 +568,8 @@ let on_request :
     let items = List.mapi ~f:item all in
     let resp = { Lsp.Completion.isIncomplete = false; items } in
     return (store, resp)
+  | Lsp.Client_request.TextDocumentPrepareRename _ ->
+    Ok (store, None)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
     Document_store.get store uri >>= fun doc ->
