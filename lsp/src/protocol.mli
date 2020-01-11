@@ -176,6 +176,22 @@ module VersionedTextDocumentIdentifier : sig
     }
 end
 
+module TextDocumentSaveReason : sig
+  type t =
+    | Manual
+    | AfterDelay
+    | FocusOut
+end
+
+module WillSaveTextDocumentParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; reason : TextDocumentSaveReason.t
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
 module SymbolKind : sig
   type t =
     | File

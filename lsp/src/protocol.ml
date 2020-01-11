@@ -1828,6 +1828,112 @@ module VersionedTextDocumentIdentifier = struct
   [@@@end]
 end
 
+module TextDocumentSaveReason = struct
+  type t =
+    | Manual
+    | AfterDelay
+    | FocusOut
+
+  let yojson_of_t = function
+    | Manual -> `Int 1
+    | AfterDelay -> `Int 2
+    | FocusOut -> `Int 3
+
+  let t_of_yojson = function
+    | `Int 1 -> Manual
+    | `Int 2 -> AfterDelay
+    | `Int 3 -> FocusOut
+    | json -> Json.error "Invalid TextDocumentSaveReason" json
+end
+
+module WillSaveTextDocumentParams = struct
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; reason : TextDocumentSaveReason.t
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+  
+let _ = fun (_ : t) -> ()
+let t_of_yojson =
+  (let _tp_loc = "lsp/src/protocol.ml.WillSaveTextDocumentParams.t" in
+   function
+   | `Assoc field_yojsons as yojson ->
+       let textDocument_field = ref None
+       and reason_field = ref None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter =
+         function
+         | (field_name, _field_yojson)::tail ->
+             ((match field_name with
+               | "textDocument" ->
+                   (match Ppx_yojson_conv_lib.(!) textDocument_field with
+                    | None ->
+                        let fvalue =
+                          TextDocumentIdentifier.t_of_yojson _field_yojson in
+                        textDocument_field := (Some fvalue)
+                    | Some _ ->
+                        duplicates := (field_name ::
+                          (Ppx_yojson_conv_lib.(!) duplicates)))
+               | "reason" ->
+                   (match Ppx_yojson_conv_lib.(!) reason_field with
+                    | None ->
+                        let fvalue =
+                          TextDocumentSaveReason.t_of_yojson _field_yojson in
+                        reason_field := (Some fvalue)
+                    | Some _ ->
+                        duplicates := (field_name ::
+                          (Ppx_yojson_conv_lib.(!) duplicates)))
+               | _ -> ());
+              iter tail)
+         | [] -> () in
+       (iter field_yojsons;
+        (match Ppx_yojson_conv_lib.(!) duplicates with
+         | _::_ ->
+             Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+               _tp_loc (Ppx_yojson_conv_lib.(!) duplicates) yojson
+         | [] ->
+             (match Ppx_yojson_conv_lib.(!) extra with
+              | _::_ ->
+                  Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+                    _tp_loc (Ppx_yojson_conv_lib.(!) extra) yojson
+              | [] ->
+                  (match ((Ppx_yojson_conv_lib.(!) textDocument_field),
+                           (Ppx_yojson_conv_lib.(!) reason_field))
+                   with
+                   | (Some textDocument_value, Some reason_value) ->
+                       {
+                         textDocument = textDocument_value;
+                         reason = reason_value
+                       }
+                   | _ ->
+                       Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                         _tp_loc yojson
+                         [((Ppx_yojson_conv_lib.poly_equal
+                              (Ppx_yojson_conv_lib.(!) textDocument_field)
+                              None), "textDocument");
+                         ((Ppx_yojson_conv_lib.poly_equal
+                             (Ppx_yojson_conv_lib.(!) reason_field) None),
+                           "reason")]))))
+   | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+let _ = t_of_yojson
+let yojson_of_t =
+  (function
+   | { textDocument = v_textDocument; reason = v_reason } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         let arg = TextDocumentSaveReason.yojson_of_t v_reason in
+         ("reason", arg) :: bnds in
+       let bnds =
+         let arg = TextDocumentIdentifier.yojson_of_t v_textDocument in
+         ("textDocument", arg) :: bnds in
+       `Assoc bnds : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+let _ = yojson_of_t
+[@@@end]
+end
+
 (* An item to transfer a text document from the client to the server. The
    version number strictly increases after each change, including undo/redo. *)
 module TextDocumentItem = struct
