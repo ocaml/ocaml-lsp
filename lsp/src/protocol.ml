@@ -1852,7 +1852,7 @@ module WillSaveTextDocumentParams = struct
     ; reason : TextDocumentSaveReason.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-  
+
 let _ = fun (_ : t) -> ()
 let t_of_yojson =
   (let _tp_loc = "lsp/src/protocol.ml.WillSaveTextDocumentParams.t" in
@@ -2738,6 +2738,25 @@ module TextEdit = struct
   let _ = yojson_of_t
 
   [@@@end]
+end
+
+module WillSaveWaitUntilTextDocument = struct
+  module Result = struct
+    type t = (TextEdit.t list [@default []])
+    [@@deriving_inline yojson]
+    
+let _ = fun (_ : t) -> ()
+let t_of_yojson =
+  (let _tp_loc = "lsp/src/protocol.ml.WillSaveWaitUntilTextDocument.Result.t" in
+   fun t -> list_of_yojson TextEdit.t_of_yojson t : Ppx_yojson_conv_lib.Yojson.Safe.t
+                                                      -> t)
+let _ = t_of_yojson
+let yojson_of_t =
+  (fun v -> yojson_of_list TextEdit.yojson_of_t v : t ->
+                                                      Ppx_yojson_conv_lib.Yojson.Safe.t)
+let _ = yojson_of_t
+[@@@end]
+  end
 end
 
 (** Describes textual changes on a single text document. The text document is

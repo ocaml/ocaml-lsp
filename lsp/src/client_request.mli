@@ -32,6 +32,7 @@ type _ t =
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
+  | WillSaveWaitUntilTextDocument : WillSaveTextDocumentParams.t -> WillSaveWaitUntilTextDocument.Result.t t
   | UnknownRequest : string * Json.t option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> Json.t option

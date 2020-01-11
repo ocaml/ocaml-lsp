@@ -620,6 +620,7 @@ let on_request :
     in
     return (store, folds)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
+  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> return (store, [])
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> return (store, compl)
   | Lsp.Client_request.UnknownRequest _ -> errorf "got unknown request"

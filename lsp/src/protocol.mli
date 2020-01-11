@@ -309,6 +309,14 @@ module TextEdit : sig
   include Json.Jsonable.S with type t := t
 end
 
+module WillSaveWaitUntilTextDocument : sig
+  module Result : sig
+    type t = TextEdit.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
 module TextDocumentEdit : sig
   type t =
     { textDocument : VersionedTextDocumentIdentifier.t
