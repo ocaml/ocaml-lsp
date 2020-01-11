@@ -35,6 +35,9 @@ type _ t =
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
       -> WillSaveWaitUntilTextDocument.Result.t t
+  | TextDocumentFormatting :
+      DocumentFormattingParams.t
+      -> TextDocumentFormatting.Result.t t
   | TextDocumentOnTypeFormatting :
       DocumentOnTypeFormattingParams.t
       -> TextDocumentOnTypeFormatting.Result.t t
@@ -74,6 +77,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (WillSaveWaitUntilTextDocument.Result.yojson_of_t result)
   | TextDocumentOnTypeFormatting _, result ->
     Some (TextDocumentOnTypeFormatting.Result.yojson_of_t result)
+  | TextDocumentFormatting _, result ->
+    Some (TextDocumentFormatting.Result.yojson_of_t result)
   | UnknownRequest _, _resp -> None
 
 type packed = E : 'r t -> packed

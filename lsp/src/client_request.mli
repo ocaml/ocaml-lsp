@@ -35,6 +35,7 @@ type _ t =
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
       -> WillSaveWaitUntilTextDocument.Result.t t
+  | TextDocumentFormatting : DocumentFormattingParams.t -> TextEdit.t list t
   | TextDocumentOnTypeFormatting :
       DocumentOnTypeFormattingParams.t
       -> TextDocumentOnTypeFormatting.Result.t t

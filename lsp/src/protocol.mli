@@ -333,6 +333,15 @@ module FormattingOptions : sig
     }
 end
 
+module DocumentFormattingParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; options : FormattingOptions.t
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
 module DocumentOnTypeFormattingParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
@@ -345,6 +354,14 @@ module DocumentOnTypeFormattingParams : sig
 end
 
 module TextDocumentOnTypeFormatting : sig
+  module Result : sig
+    type t = TextEdit.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module TextDocumentFormatting : sig
   module Result : sig
     type t = TextEdit.t list
 
