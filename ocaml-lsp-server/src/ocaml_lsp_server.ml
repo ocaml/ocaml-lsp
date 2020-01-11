@@ -623,6 +623,7 @@ let on_request :
   | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> return (store, [])
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> return (store, compl)
+  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> return (store, [])
   | Lsp.Client_request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Client_notification.t) =

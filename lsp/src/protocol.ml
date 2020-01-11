@@ -1944,6 +1944,251 @@ module WillSaveTextDocumentParams = struct
   [@@@end]
 end
 
+module FormattingOptions = struct
+  type t =
+    { tabSize : int
+    ; insertSpaces : bool
+    }
+  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.FormattingOptions.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let tabSize_field = ref None
+        and insertSpaces_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "tabSize" -> (
+              match Ppx_yojson_conv_lib.( ! ) tabSize_field with
+              | None ->
+                let fvalue = int_of_yojson _field_yojson in
+                tabSize_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "insertSpaces" -> (
+              match Ppx_yojson_conv_lib.( ! ) insertSpaces_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                insertSpaces_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) tabSize_field
+              , Ppx_yojson_conv_lib.( ! ) insertSpaces_field )
+            with
+            | Some tabSize_value, Some insertSpaces_value ->
+              { tabSize = tabSize_value; insertSpaces = insertSpaces_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) tabSize_field)
+                      None
+                  , "tabSize" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) insertSpaces_field)
+                      None
+                  , "insertSpaces" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { tabSize = v_tabSize; insertSpaces = v_insertSpaces } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_bool v_insertSpaces in
+          ("insertSpaces", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_int v_tabSize in
+          ("tabSize", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
+module DocumentOnTypeFormattingParams = struct
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; position : Position.t
+    ; ch : string
+    ; options : FormattingOptions.t
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.DocumentOnTypeFormattingParams.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let textDocument_field = ref None
+        and position_field = ref None
+        and ch_field = ref None
+        and options_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "textDocument" -> (
+              match Ppx_yojson_conv_lib.( ! ) textDocument_field with
+              | None ->
+                let fvalue = TextDocumentIdentifier.t_of_yojson _field_yojson in
+                textDocument_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "position" -> (
+              match Ppx_yojson_conv_lib.( ! ) position_field with
+              | None ->
+                let fvalue = Position.t_of_yojson _field_yojson in
+                position_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "ch" -> (
+              match Ppx_yojson_conv_lib.( ! ) ch_field with
+              | None ->
+                let fvalue = string_of_yojson _field_yojson in
+                ch_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "options" -> (
+              match Ppx_yojson_conv_lib.( ! ) options_field with
+              | None ->
+                let fvalue = FormattingOptions.t_of_yojson _field_yojson in
+                options_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) textDocument_field
+              , Ppx_yojson_conv_lib.( ! ) position_field
+              , Ppx_yojson_conv_lib.( ! ) ch_field
+              , Ppx_yojson_conv_lib.( ! ) options_field )
+            with
+            | ( Some textDocument_value
+              , Some position_value
+              , Some ch_value
+              , Some options_value ) ->
+              { textDocument = textDocument_value
+              ; position = position_value
+              ; ch = ch_value
+              ; options = options_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) textDocument_field)
+                      None
+                  , "textDocument" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) position_field)
+                      None
+                  , "position" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) ch_field)
+                      None
+                  , "ch" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) options_field)
+                      None
+                  , "options" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { textDocument = v_textDocument
+        ; position = v_position
+        ; ch = v_ch
+        ; options = v_options
+        } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = FormattingOptions.yojson_of_t v_options in
+          ("options", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_string v_ch in
+          ("ch", arg) :: bnds
+        in
+        let bnds =
+          let arg = Position.yojson_of_t v_position in
+          ("position", arg) :: bnds
+        in
+        let bnds =
+          let arg = TextDocumentIdentifier.yojson_of_t v_textDocument in
+          ("textDocument", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
 module DidSaveTextDocumentParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
@@ -2871,6 +3116,10 @@ module WillSaveWaitUntilTextDocument = struct
 
     [@@@end]
   end
+end
+
+module TextDocumentOnTypeFormatting = struct
+  module Result = WillSaveWaitUntilTextDocument.Result
 end
 
 (** Describes textual changes on a single text document. The text document is

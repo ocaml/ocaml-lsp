@@ -35,6 +35,9 @@ type _ t =
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
       -> WillSaveWaitUntilTextDocument.Result.t t
+  | TextDocumentOnTypeFormatting :
+      DocumentOnTypeFormattingParams.t
+      -> TextDocumentOnTypeFormatting.Result.t t
   | UnknownRequest : string * Json.t option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> Json.t option

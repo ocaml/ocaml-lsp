@@ -326,6 +326,32 @@ module WillSaveWaitUntilTextDocument : sig
   end
 end
 
+module FormattingOptions : sig
+  type t =
+    { tabSize : int
+    ; insertSpaces : bool
+    }
+end
+
+module DocumentOnTypeFormattingParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; position : Position.t
+    ; ch : string
+    ; options : FormattingOptions.t
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
+module TextDocumentOnTypeFormatting : sig
+  module Result : sig
+    type t = TextEdit.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
 module TextDocumentEdit : sig
   type t =
     { textDocument : VersionedTextDocumentIdentifier.t
