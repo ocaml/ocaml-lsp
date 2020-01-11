@@ -10,7 +10,8 @@ type _ t =
       TypeDefinition.params
       -> TypeDefinition.result t
   | TextDocumentCompletion : Completion.params -> Completion.result t
-  | TextDocumentCodeLens : CodeLens.params -> CodeLens.result t
+  | TextDocumentCodeLens : CodeLens.Params.t -> CodeLens.Result.t t
+  | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename :
       TextDocumentPositionParams.t
       -> PrepareRename.Result.t t

@@ -258,6 +258,8 @@ let on_request :
         locs
     in
     return (store, lsp_locs)
+  | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
+    Ok (store, codeLens)
   | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } ->
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
@@ -274,6 +276,7 @@ let on_request :
           let loc = item.Query_protocol.location in
           let info =
             { Lsp.Protocol.CodeLens.range = range_of_loc loc
+            ; data = None
             ; command =
                 Some
                   { Lsp.Protocol.Command.title = typ

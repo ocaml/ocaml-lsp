@@ -768,26 +768,25 @@ module TextDocumentDocumentSymbol : sig
 end
 
 module CodeLens : sig
-  type params = { textDocument : TextDocumentIdentifier.t }
-
-  and result = item list
-
-  and item =
+  type t =
     { range : Range.t
     ; command : Command.t option
+    ; data : Json.t option
     }
 
-  val params_of_yojson : Json.t -> params
+  include Json.Jsonable.S with type t := t
 
-  val result_of_yojson : Json.t -> result
+  module Params : sig
+    type t = { textDocument : TextDocumentIdentifier.t }
 
-  val item_of_yojson : Json.t -> item
+    include Json.Jsonable.S with type t := t
+  end
 
-  val yojson_of_params : params -> Json.t
+  module Result : sig
+    type nonrec t = t list
 
-  val yojson_of_result : result -> Json.t
-
-  val yojson_of_item : item -> Json.t
+    include Json.Jsonable.S with type t := t
+  end
 end
 
 module Rename : sig
