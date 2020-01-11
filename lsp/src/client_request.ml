@@ -126,4 +126,10 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "debug/textDocument/get" ->
     parse DebugTextDocumentGet.params_of_yojson >>| fun params ->
     E (DebugTextDocumentGet params)
+  | "textDocument/onTypeFormatting" ->
+    parse DocumentOnTypeFormattingParams.t_of_yojson >>| fun params ->
+    E (TextDocumentOnTypeFormatting params)
+  | "textDocument/formatting" ->
+    parse DocumentFormattingParams.t_of_yojson >>| fun params ->
+    E (TextDocumentFormatting params)
   | m -> Ok (E (UnknownRequest (m, r.params)))
