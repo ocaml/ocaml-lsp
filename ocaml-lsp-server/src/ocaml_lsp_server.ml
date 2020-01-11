@@ -645,6 +645,7 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) =
     Document_store.put store doc;
     send_diagnostics rpc doc;
     Ok store
+  | DidSaveTextDocument _
   | WillSaveTextDocument _
   | ChangeConfiguration _
   | ChangeWorkspaceFolders _

@@ -32,7 +32,9 @@ type _ t =
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
-  | WillSaveWaitUntilTextDocument : WillSaveTextDocumentParams.t -> WillSaveWaitUntilTextDocument.Result.t t
+  | WillSaveWaitUntilTextDocument :
+      WillSaveTextDocumentParams.t
+      -> WillSaveWaitUntilTextDocument.Result.t t
   | UnknownRequest : string * Json.t option -> unit t
 
 let yojson_of_result (type a) (req : a t) (result : a) =

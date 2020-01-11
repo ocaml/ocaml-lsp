@@ -192,6 +192,15 @@ module WillSaveTextDocumentParams : sig
   include Json.Jsonable.S with type t := t
 end
 
+module DidSaveTextDocumentParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; text : string option
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
 module SymbolKind : sig
   type t =
     | File
