@@ -15,6 +15,8 @@ type _ t =
       TextDocumentPositionParams.t
       -> PrepareRename.Result.t t
   | TextDocumentRename : Rename.params -> Rename.result t
+  | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
+  | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
       -> TextDocumentDocumentSymbol.result t
@@ -79,6 +81,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (TextDocumentOnTypeFormatting.Result.yojson_of_t result)
   | TextDocumentFormatting _, result ->
     Some (TextDocumentFormatting.Result.yojson_of_t result)
+  | TextDocumentLink _, result -> Some (DocumentLink.Result.yojson_of_t result)
+  | TextDocumentLinkResolve _, result -> Some (DocumentLink.yojson_of_t result)
   | UnknownRequest _, _resp -> None
 
 type packed = E : 'r t -> packed
@@ -132,4 +136,10 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/formatting" ->
     parse DocumentFormattingParams.t_of_yojson >>| fun params ->
     E (TextDocumentFormatting params)
+  | "textDocument/documentLink" ->
+    parse DocumentLink.Params.t_of_yojson >>| fun params ->
+    E (TextDocumentLink params)
+  | "textDocument/resolve" ->
+    parse DocumentLink.t_of_yojson >>| fun params ->
+    E (TextDocumentLinkResolve params)
   | m -> Ok (E (UnknownRequest (m, r.params)))

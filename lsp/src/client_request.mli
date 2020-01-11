@@ -15,6 +15,8 @@ type _ t =
       TextDocumentPositionParams.t
       -> PrepareRename.Result.t t
   | TextDocumentRename : Rename.params -> Rename.result t
+  | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
+  | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
       -> TextDocumentDocumentSymbol.result t

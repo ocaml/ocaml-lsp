@@ -342,6 +342,28 @@ module DocumentFormattingParams : sig
   include Json.Jsonable.S with type t := t
 end
 
+module DocumentLink : sig
+  type t =
+    { range : Range.t
+    ; target : documentUri option
+    ; data : Json.t option
+    }
+
+  include Json.Jsonable.S with type t := t
+
+  module Params : sig
+    type t = { textDocument : TextDocumentIdentifier.t }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type nonrec t = t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
 module DocumentOnTypeFormattingParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t

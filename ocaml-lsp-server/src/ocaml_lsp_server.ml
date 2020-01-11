@@ -620,6 +620,8 @@ let on_request :
     in
     return (store, folds)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
+  | Lsp.Client_request.TextDocumentLinkResolve l -> return (store, l)
+  | Lsp.Client_request.TextDocumentLink _ -> return (store, [])
   | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> return (store, [])
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> return (store, compl)
