@@ -35,7 +35,7 @@ type _ t =
       -> TextDocumentHighlight.result t
   | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
-  | CodeAction : CodeActionParams.t -> CodeAction.result t
+  | CodeAction : CodeAction.Params.t -> CodeAction.result t
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t

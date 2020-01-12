@@ -35,7 +35,7 @@ type _ t =
       -> TextDocumentHighlight.result t
   | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
-  | CodeAction : CodeActionParams.t -> CodeAction.result t
+  | CodeAction : CodeAction.Params.t -> CodeAction.result t
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
@@ -142,7 +142,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse FoldingRange.params_of_yojson >>| fun params ->
     E (TextDocumentFoldingRange params)
   | "textDocument/codeAction" ->
-    parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
+    parse CodeAction.Params.t_of_yojson >>| fun params -> E (CodeAction params)
   | "debug/echo" ->
     parse DebugEcho.params_of_yojson >>| fun params -> E (DebugEcho params)
   | "debug/textDocument/get" ->

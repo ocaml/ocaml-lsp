@@ -6,11 +6,11 @@ module SignatureHelpOptions : sig
 end
 
 module CodeActionOptions : sig
-  type t = { codeActionsKinds : CodeActionKind.t list }
+  type t = { codeActionsKinds : CodeAction.Kind.t list }
 end
 
 module CodeActionLiteralSupport : sig
-  type codeActionKind = { valueSet : CodeActionKind.t list }
+  type codeActionKind = { valueSet : CodeAction.Kind.t list }
 
   type t = { codeActionKind : codeActionKind }
 end

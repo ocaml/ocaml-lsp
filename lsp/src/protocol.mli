@@ -4,6 +4,8 @@ module Only : sig
   type 'a t =
     | All
     | Only of 'a list
+
+  include Json.Jsonable.S1 with type 'a t := 'a t
 end
 
 module Or_bool : sig
@@ -67,6 +69,8 @@ module Range : sig
     { start_ : Position.t
     ; end_ : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Command : sig
@@ -75,6 +79,8 @@ module Command : sig
     ; command : string
     ; arguments : Json.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module MarkupKind : sig
@@ -620,21 +626,6 @@ module SignatureHelp : sig
   include Json.Jsonable.S with type t := t
 end
 
-module CodeActionKind : sig
-  type t =
-    | Empty
-    | QuickFix
-    | Refactor
-    | RefactorExtract
-    | RefactorInline
-    | RefactorRewrite
-    | Source
-    | SourceOrganizeImports
-    | Other of string
-
-  include Json.Jsonable.S with type t := t
-end
-
 module WorkspaceFolder : sig
   type t =
     { uri : documentUri
@@ -928,37 +919,4 @@ module FoldingRange : sig
   type result = t list
 
   val yojson_of_result : t list -> Json.t
-end
-
-module CodeActionContext : sig
-  type t =
-    { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t Only.t
-    }
-end
-
-module CodeActionParams : sig
-  type t =
-    { textDocument : TextDocumentIdentifier.t
-    ; range : Range.t
-    ; context : CodeActionContext.t
-    }
-
-  include Json.Jsonable.S with type t := t
-end
-
-module CodeAction : sig
-  type t =
-    { title : string
-    ; kind : CodeActionKind.t option
-    ; diagnostics : PublishDiagnostics.diagnostic list
-    ; edit : WorkspaceEdit.t option
-    ; command : Command.t option
-    }
-
-  val yojson_of_t : t -> Json.t
-
-  type result = (Command.t, t) Either.t list
-
-  val yojson_of_result : result -> Json.t
 end
