@@ -788,6 +788,13 @@ module Color : sig
     ; blue : int
     ; alpha : int
     }
+
+  module Information : sig
+    type nonrec t =
+      { color : t
+      ; range : Range.t
+      }
+  end
 end
 
 module ColorPresentation : sig
@@ -811,6 +818,20 @@ module ColorPresentation : sig
 
   module Result : sig
     type nonrec t = t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module DocumentColor : sig
+  module Params : sig
+    type t = { textDocument : TextDocumentIdentifier.t }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type t = Color.Information.t list
 
     include Json.Jsonable.S with type t := t
   end
