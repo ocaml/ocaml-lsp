@@ -356,6 +356,7 @@ let on_request :
         Lsp.Protocol.TextDocumentDocumentSymbol.SymbolInformation symbols
     in
     return (store, symbols)
+  | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
     Document_store.get store uri >>= fun doc ->
@@ -507,6 +508,8 @@ let on_request :
       ; kind
       ; detail = Some entry.desc
       ; documentation = Some entry.info
+      ; deprecated = false
+      ; preselect = None
       ; (* Without this field the client is not forced to respect the order
            provided by merlin. *)
         sortText = Some (Printf.sprintf "%04d" index)

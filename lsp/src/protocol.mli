@@ -113,6 +113,8 @@ module Locations : sig
     | Location of Location.t
     | Locations of Location.t list
     | Location_links of LocationLink.t list
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Message : sig

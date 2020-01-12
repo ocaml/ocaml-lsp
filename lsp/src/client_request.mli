@@ -6,6 +6,9 @@ type _ t =
   | Initialize : Initialize.Params.t -> Initialize.Result.t t
   | TextDocumentHover : Hover.params -> Hover.result t
   | TextDocumentDefinition : Definition.params -> Definition.result t
+  | TextDocumentDeclaration :
+      TextDocumentPositionParams.t
+      -> Locations.t option t
   | TextDocumentTypeDefinition :
       TypeDefinition.params
       -> TypeDefinition.result t

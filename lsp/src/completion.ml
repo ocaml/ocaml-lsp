@@ -178,26 +178,18 @@ and completionList =
 
 and completionItem =
   { label : string
-  ; (* the label in the UI *)
-    kind : completionItemKind option [@yojson.option]
-  ; (* tells editor which icon to use *)
-    detail : string option [@yojson.option]
+  ; kind : completionItemKind option [@yojson.option]
+  ; detail : string option [@yojson.option]
   ; documentation : string option [@yojson.option]
-  ; (* human-readable doc-comment *)
-    sortText : string option [@yojson.option]
-  ; (* used for sorting; if absent, uses label *)
-    filterText : string option [@yojson.option]
-  ; (* used for filtering; if absent, uses label *)
-    insertText : string option [@yojson.option]
-  ; (* used for inserting; if absent, uses label *)
-    insertTextFormat : insertTextFormat option [@yojson.option]
+  ; deprecated : bool [@default false]
+  ; preselect : bool option [@yojson.option]
+  ; sortText : string option [@yojson.option]
+  ; filterText : string option [@yojson.option]
+  ; insertText : string option [@yojson.option]
+  ; insertTextFormat : insertTextFormat option [@yojson.option]
   ; textEdit : TextEdit.t option [@yojson.option]
   ; additionalTextEdits : TextEdit.t list
-        [@default []]
-        [@yojson_drop_default ( = )]
-        (* command: Command.t option [@default None]; (1* if present, is
-           executed after completion *1) *)
-        (* data: Hh_json.json option [@default None]; *)
+        [@default []] [@yojson_drop_default ( = )]
   ; commitCharacters : string list [@default []] [@yojson_drop_default ( = )]
   ; data : Json.t option [@yojson.option]
   }
@@ -440,6 +432,8 @@ and completionItem_of_yojson =
       and kind_field = ref None
       and detail_field = ref None
       and documentation_field = ref None
+      and deprecated_field = ref None
+      and preselect_field = ref None
       and sortText_field = ref None
       and filterText_field = ref None
       and insertText_field = ref None
@@ -479,6 +473,20 @@ and completionItem_of_yojson =
             | None ->
               let fvalue = string_of_yojson _field_yojson in
               documentation_field := Some fvalue
+            | Some _ ->
+              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+          | "deprecated" -> (
+            match Ppx_yojson_conv_lib.( ! ) deprecated_field with
+            | None ->
+              let fvalue = bool_of_yojson _field_yojson in
+              deprecated_field := Some fvalue
+            | Some _ ->
+              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+          | "preselect" -> (
+            match Ppx_yojson_conv_lib.( ! ) preselect_field with
+            | None ->
+              let fvalue = bool_of_yojson _field_yojson in
+              preselect_field := Some fvalue
             | Some _ ->
               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
           | "sortText" -> (
@@ -559,6 +567,8 @@ and completionItem_of_yojson =
             , Ppx_yojson_conv_lib.( ! ) kind_field
             , Ppx_yojson_conv_lib.( ! ) detail_field
             , Ppx_yojson_conv_lib.( ! ) documentation_field
+            , Ppx_yojson_conv_lib.( ! ) deprecated_field
+            , Ppx_yojson_conv_lib.( ! ) preselect_field
             , Ppx_yojson_conv_lib.( ! ) sortText_field
             , Ppx_yojson_conv_lib.( ! ) filterText_field
             , Ppx_yojson_conv_lib.( ! ) insertText_field
@@ -572,6 +582,8 @@ and completionItem_of_yojson =
             , kind_value
             , detail_value
             , documentation_value
+            , deprecated_value
+            , preselect_value
             , sortText_value
             , filterText_value
             , insertText_value
@@ -584,6 +596,11 @@ and completionItem_of_yojson =
             ; kind = kind_value
             ; detail = detail_value
             ; documentation = documentation_value
+            ; deprecated =
+                ( match deprecated_value with
+                | None -> false
+                | Some v -> v )
+            ; preselect = preselect_value
             ; sortText = sortText_value
             ; filterText = filterText_value
             ; insertText = insertText_value
@@ -698,6 +715,8 @@ and yojson_of_completionItem =
       ; kind = v_kind
       ; detail = v_detail
       ; documentation = v_documentation
+      ; deprecated = v_deprecated
+      ; preselect = v_preselect
       ; sortText = v_sortText
       ; filterText = v_filterText
       ; insertText = v_insertText
@@ -773,6 +792,18 @@ and yojson_of_completionItem =
           let arg = yojson_of_string v in
           let bnd = ("sortText", arg) in
           bnd :: bnds
+      in
+      let bnds =
+        match v_preselect with
+        | None -> bnds
+        | Some v ->
+          let arg = yojson_of_bool v in
+          let bnd = ("preselect", arg) in
+          bnd :: bnds
+      in
+      let bnds =
+        let arg = yojson_of_bool v_deprecated in
+        ("deprecated", arg) :: bnds
       in
       let bnds =
         match v_documentation with

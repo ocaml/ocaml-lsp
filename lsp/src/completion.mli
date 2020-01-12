@@ -42,6 +42,8 @@ type completionItem =
   ; kind : completionItemKind option
   ; detail : string option
   ; documentation : string option
+  ; deprecated : bool
+  ; preselect : bool option
   ; sortText : string option
   ; filterText : string option
   ; insertText : string option

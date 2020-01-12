@@ -6,6 +6,9 @@ type _ t =
   | Initialize : Initialize.Params.t -> Initialize.Result.t t
   | TextDocumentHover : Hover.params -> Hover.result t
   | TextDocumentDefinition : Definition.params -> Definition.result t
+  | TextDocumentDeclaration :
+      TextDocumentPositionParams.t
+      -> Locations.t option t
   | TextDocumentTypeDefinition :
       TypeDefinition.params
       -> TypeDefinition.result t
@@ -55,6 +58,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with
   | Shutdown, () -> None
   | Initialize _, result -> Some (Initialize.Result.yojson_of_t result)
+  | TextDocumentDeclaration _, result ->
+    Some (yojson_of_option Locations.yojson_of_t result)
   | TextDocumentHover _, result -> Some (Hover.yojson_of_result result)
   | TextDocumentDefinition _, result ->
     Some (Definition.yojson_of_result result)
@@ -164,4 +169,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/documentColor" ->
     parse DocumentColor.Params.t_of_yojson >>| fun params ->
     E (TextDocumentColor params)
+  | "textDocument/declaration" ->
+    parse TextDocumentPositionParams.t_of_yojson >>| fun params ->
+    E (TextDocumentDeclaration params)
   | m -> Ok (E (UnknownRequest (m, r.params)))
