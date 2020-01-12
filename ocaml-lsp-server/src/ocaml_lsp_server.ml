@@ -191,6 +191,7 @@ let on_request :
     | None -> return (store, None)
     | Some doc -> return (store, Some (Msource.text (Document.source doc))) )
   | Lsp.Client_request.DebugEcho params -> return (store, params)
+  | Lsp.Client_request.TextDocumentColorPresentation _ -> return (store, [])
   | Lsp.Client_request.TextDocumentHover { textDocument = { uri }; position }
     -> (
     let query_type doc pos =

@@ -7140,6 +7140,422 @@ module WorkspaceSymbol = struct
   end
 end
 
+module Color = struct
+  type t =
+    { red : int
+    ; green : int
+    ; blue : int
+    ; alpha : int
+    }
+  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.Color.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let red_field = ref None
+        and green_field = ref None
+        and blue_field = ref None
+        and alpha_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "red" -> (
+              match Ppx_yojson_conv_lib.( ! ) red_field with
+              | None ->
+                let fvalue = int_of_yojson _field_yojson in
+                red_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "green" -> (
+              match Ppx_yojson_conv_lib.( ! ) green_field with
+              | None ->
+                let fvalue = int_of_yojson _field_yojson in
+                green_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "blue" -> (
+              match Ppx_yojson_conv_lib.( ! ) blue_field with
+              | None ->
+                let fvalue = int_of_yojson _field_yojson in
+                blue_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "alpha" -> (
+              match Ppx_yojson_conv_lib.( ! ) alpha_field with
+              | None ->
+                let fvalue = int_of_yojson _field_yojson in
+                alpha_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) red_field
+              , Ppx_yojson_conv_lib.( ! ) green_field
+              , Ppx_yojson_conv_lib.( ! ) blue_field
+              , Ppx_yojson_conv_lib.( ! ) alpha_field )
+            with
+            | ( Some red_value
+              , Some green_value
+              , Some blue_value
+              , Some alpha_value ) ->
+              { red = red_value
+              ; green = green_value
+              ; blue = blue_value
+              ; alpha = alpha_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) red_field)
+                      None
+                  , "red" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) green_field)
+                      None
+                  , "green" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) blue_field)
+                      None
+                  , "blue" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) alpha_field)
+                      None
+                  , "alpha" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { red = v_red; green = v_green; blue = v_blue; alpha = v_alpha } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_int v_alpha in
+          ("alpha", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_int v_blue in
+          ("blue", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_int v_green in
+          ("green", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_int v_red in
+          ("red", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
+module ColorPresentation = struct
+  type t =
+    { label : string
+    ; textEdit : TextEdit.t option
+    ; additionalTextEdits : TextEdit.t list
+    }
+  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.ColorPresentation.t" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let label_field = ref None
+        and textEdit_field = ref None
+        and additionalTextEdits_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "label" -> (
+              match Ppx_yojson_conv_lib.( ! ) label_field with
+              | None ->
+                let fvalue = string_of_yojson _field_yojson in
+                label_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "textEdit" -> (
+              match Ppx_yojson_conv_lib.( ! ) textEdit_field with
+              | None ->
+                let fvalue =
+                  option_of_yojson TextEdit.t_of_yojson _field_yojson
+                in
+                textEdit_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "additionalTextEdits" -> (
+              match Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson TextEdit.t_of_yojson _field_yojson
+                in
+                additionalTextEdits_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) label_field
+              , Ppx_yojson_conv_lib.( ! ) textEdit_field
+              , Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field )
+            with
+            | ( Some label_value
+              , Some textEdit_value
+              , Some additionalTextEdits_value ) ->
+              { label = label_value
+              ; textEdit = textEdit_value
+              ; additionalTextEdits = additionalTextEdits_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) label_field)
+                      None
+                  , "label" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) textEdit_field)
+                      None
+                  , "textEdit" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field)
+                      None
+                  , "additionalTextEdits" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { label = v_label
+        ; textEdit = v_textEdit
+        ; additionalTextEdits = v_additionalTextEdits
+        } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_list TextEdit.yojson_of_t v_additionalTextEdits in
+          ("additionalTextEdits", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_option TextEdit.yojson_of_t v_textEdit in
+          ("textEdit", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_string v_label in
+          ("label", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  module Params = struct
+    type t =
+      { textDocument : TextDocumentIdentifier.t
+      ; color : Color.t
+      ; range : Range.t
+      }
+    [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.ColorPresentation.Params.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let textDocument_field = ref None
+          and color_field = ref None
+          and range_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "textDocument" -> (
+                match Ppx_yojson_conv_lib.( ! ) textDocument_field with
+                | None ->
+                  let fvalue =
+                    TextDocumentIdentifier.t_of_yojson _field_yojson
+                  in
+                  textDocument_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "color" -> (
+                match Ppx_yojson_conv_lib.( ! ) color_field with
+                | None ->
+                  let fvalue = Color.t_of_yojson _field_yojson in
+                  color_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "range" -> (
+                match Ppx_yojson_conv_lib.( ! ) range_field with
+                | None ->
+                  let fvalue = Range.t_of_yojson _field_yojson in
+                  range_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) textDocument_field
+                , Ppx_yojson_conv_lib.( ! ) color_field
+                , Ppx_yojson_conv_lib.( ! ) range_field )
+              with
+              | Some textDocument_value, Some color_value, Some range_value ->
+                { textDocument = textDocument_value
+                ; color = color_value
+                ; range = range_value
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) textDocument_field)
+                        None
+                    , "textDocument" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) color_field)
+                        None
+                    , "color" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) range_field)
+                        None
+                    , "range" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { textDocument = v_textDocument; color = v_color; range = v_range } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = Range.yojson_of_t v_range in
+            ("range", arg) :: bnds
+          in
+          let bnds =
+            let arg = Color.yojson_of_t v_color in
+            ("color", arg) :: bnds
+          in
+          let bnds =
+            let arg = TextDocumentIdentifier.yojson_of_t v_textDocument in
+            ("textDocument", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module Result = struct
+    type nonrec t = t list [@@deriving_inline yojson]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.ColorPresentation.Result.t" in
+        fun t -> list_of_yojson t_of_yojson t
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( fun v -> yojson_of_list yojson_of_t v
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+end
+
 module CodeLens = struct
   type t =
     { range : Range.t

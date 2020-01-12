@@ -781,6 +781,41 @@ module WorkspaceSymbol : sig
   end
 end
 
+module Color : sig
+  type t =
+    { red : int
+    ; green : int
+    ; blue : int
+    ; alpha : int
+    }
+end
+
+module ColorPresentation : sig
+  type t =
+    { label : string
+    ; textEdit : TextEdit.t option
+    ; additionalTextEdits : TextEdit.t list
+    }
+
+  include Json.Jsonable.S with type t := t
+
+  module Params : sig
+    type t =
+      { textDocument : TextDocumentIdentifier.t
+      ; color : Color.t
+      ; range : Range.t
+      }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type nonrec t = t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
 module CodeLens : sig
   type t =
     { range : Range.t

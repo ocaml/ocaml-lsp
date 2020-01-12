@@ -43,6 +43,9 @@ type _ t =
   | TextDocumentOnTypeFormatting :
       DocumentOnTypeFormattingParams.t
       -> TextDocumentOnTypeFormatting.Result.t t
+  | TextDocumentColorPresentation :
+      ColorPresentation.Params.t
+      -> ColorPresentation.t list t
   | UnknownRequest : string * Json.t option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> Json.t option
