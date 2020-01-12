@@ -21,6 +21,7 @@ type _ t =
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
       -> TextDocumentDocumentSymbol.result t
+  | WorkspaceSymbol : WorkspaceSymbol.Params.t -> WorkspaceSymbol.Result.t t
   | DebugEcho : DebugEcho.params -> DebugEcho.result t
   | DebugTextDocumentGet :
       DebugTextDocumentGet.params
@@ -85,6 +86,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (TextDocumentFormatting.Result.yojson_of_t result)
   | TextDocumentLink _, result -> Some (DocumentLink.Result.yojson_of_t result)
   | TextDocumentLinkResolve _, result -> Some (DocumentLink.yojson_of_t result)
+  | WorkspaceSymbol _, result ->
+    Some (WorkspaceSymbol.Result.yojson_of_t result)
   | UnknownRequest _, _resp -> None
 
 type packed = E : 'r t -> packed
@@ -144,4 +147,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/resolve" ->
     parse DocumentLink.t_of_yojson >>| fun params ->
     E (TextDocumentLinkResolve params)
+  | "workspace/symbol" ->
+    parse WorkspaceSymbol.Params.t_of_yojson >>| fun params ->
+    E (WorkspaceSymbol params)
   | m -> Ok (E (UnknownRequest (m, r.params)))

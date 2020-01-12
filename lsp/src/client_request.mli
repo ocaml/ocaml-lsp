@@ -21,6 +21,7 @@ type _ t =
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
       -> TextDocumentDocumentSymbol.result t
+  | WorkspaceSymbol : WorkspaceSymbol.Params.t -> WorkspaceSymbol.Result.t t
   | DebugEcho : DebugEcho.params -> DebugEcho.result t
   | DebugTextDocumentGet :
       DebugTextDocumentGet.params

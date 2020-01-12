@@ -767,6 +767,20 @@ module TextDocumentDocumentSymbol : sig
   val yojson_of_result : result -> Json.t
 end
 
+module WorkspaceSymbol : sig
+  module Params : sig
+    type t = { query : string }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type t = SymbolInformation.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
 module CodeLens : sig
   type t =
     { range : Range.t
