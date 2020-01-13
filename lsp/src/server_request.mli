@@ -11,4 +11,4 @@ type _ t =
   | ClientUnregisterCapability : Unregistration.Params.t -> unit t
   | ShowMessageRequest : ShowMessage.Request.t -> Message.ActionItem.t option t
 
-val method_ : _ t -> string
+val to_jsonrpc_request : _ t -> id:Jsonrpc.Id.t -> Jsonrpc.Request.t

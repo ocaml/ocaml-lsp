@@ -36,6 +36,12 @@ module Request = struct
     ; params : Json.t option [@yojson.option]
     }
 
+  let create ?id ?params ~method_ () =
+    { id
+    ; method_
+    ; params
+    }
+
   let yojson_of_t { id; method_; params } =
     let json =
       [ (Constant.method_, `String method_)

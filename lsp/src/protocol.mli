@@ -153,6 +153,8 @@ module ShowMessage : sig
       ; message : string
       ; actions : Message.ActionItem.t list
       }
+
+    include Json.Jsonable.S with type t := t
   end
 end
 
@@ -497,6 +499,8 @@ module ApplyWorkspaceEdit : sig
       { label : string option
       ; edit : WorkspaceEdit.t list
       }
+
+    include Json.Jsonable.S with type t := t
   end
 
   module Response : sig
@@ -504,6 +508,8 @@ module ApplyWorkspaceEdit : sig
       { applied : bool
       ; failureReason : string option
       }
+
+    include Json.Jsonable.S with type t := t
   end
 end
 

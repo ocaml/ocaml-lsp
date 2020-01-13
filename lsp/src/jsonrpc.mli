@@ -16,6 +16,8 @@ module Request : sig
   include Json.Jsonable.S with type t := t
 
   val params : t -> (Json.t -> 'a) -> ('a, string) Result.t
+
+  val create : ?id:Id.t -> ?params:Json.t -> method_:string -> unit -> t
 end
 
 module Response : sig
