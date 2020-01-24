@@ -22,13 +22,12 @@ let method_ (type a) (t : a t) =
 
 let params (type a) (t : a t) =
   match t with
-  | WorkspaceApplyEdit params ->
-    ApplyWorkspaceEdit.Params.yojson_of_t params
+  | WorkspaceApplyEdit params -> ApplyWorkspaceEdit.Params.yojson_of_t params
   | WorkspaceFolders -> `Null
-  | WorkspaceConfiguration params ->
-    Configuration.Params.yojson_of_t params
+  | WorkspaceConfiguration params -> Configuration.Params.yojson_of_t params
   | ClientRegisterCapability params -> Registration.Params.yojson_of_t params
-  | ClientUnregisterCapability params -> Unregistration.Params.yojson_of_t params
+  | ClientUnregisterCapability params ->
+    Unregistration.Params.yojson_of_t params
   | ShowMessageRequest params -> ShowMessage.Request.yojson_of_t params
 
 let to_jsonrpc_request t ~id =
