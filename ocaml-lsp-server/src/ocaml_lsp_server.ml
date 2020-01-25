@@ -137,19 +137,18 @@ let code_action_of_case_analysis uri (loc, newText) =
     { changes = [ (uri, [ textedit ]) ]; documentChanges = [] }
   in
   let title = String.capitalize_ascii Action.destruct in
-  { Lsp.Protocol.CodeAction.title
-  ; kind = Some (Lsp.Protocol.CodeActionKind.Other Action.destruct)
+  { Lsp.CodeAction.title
+  ; kind = Some (Lsp.CodeAction.Kind.Other Action.destruct)
   ; diagnostics = []
   ; edit = Some edit
   ; command = None
   }
 
-let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
+let code_action store (params : Lsp.CodeAction.Params.t) =
   let open Lsp.Import.Result.Infix in
   match params.context.only with
   | Only set
-    when not (List.mem (Lsp.Protocol.CodeActionKind.Other Action.destruct) ~set)
-    ->
+    when not (List.mem (Lsp.CodeAction.Kind.Other Action.destruct) ~set) ->
     return (store, [])
   | Only _
   | All ->
@@ -159,7 +158,7 @@ let code_action store (params : Lsp.Protocol.CodeActionParams.t) =
       let finish = logical_of_position params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
-    let result : Lsp.Protocol.CodeAction.result =
+    let result : Lsp.CodeAction.result =
       try
         let res = dispatch_in_doc doc command in
         [ Either.Right
@@ -191,6 +190,8 @@ let on_request :
     | None -> return (store, None)
     | Some doc -> return (store, Some (Msource.text (Document.source doc))) )
   | Lsp.Client_request.DebugEcho params -> return (store, params)
+  | Lsp.Client_request.TextDocumentColor _ -> return (store, [])
+  | Lsp.Client_request.TextDocumentColorPresentation _ -> return (store, [])
   | Lsp.Client_request.TextDocumentHover { textDocument = { uri }; position }
     -> (
     let query_type doc pos =
@@ -258,6 +259,8 @@ let on_request :
         locs
     in
     return (store, lsp_locs)
+  | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
+    Ok (store, codeLens)
   | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } ->
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
@@ -274,6 +277,7 @@ let on_request :
           let loc = item.Query_protocol.location in
           let info =
             { Lsp.Protocol.CodeLens.range = range_of_loc loc
+            ; data = None
             ; command =
                 Some
                   { Lsp.Protocol.Command.title = typ
@@ -304,6 +308,7 @@ let on_request :
         locs
     in
     return (store, lsp_locs)
+  | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, [])
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
     let range item = range_of_loc item.Query_protocol.location in
 
@@ -350,6 +355,7 @@ let on_request :
         Lsp.Protocol.TextDocumentDocumentSymbol.SymbolInformation symbols
     in
     return (store, symbols)
+  | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
     Document_store.get store uri >>= fun doc ->
@@ -501,6 +507,8 @@ let on_request :
       ; kind
       ; detail = Some entry.desc
       ; documentation = Some entry.info
+      ; deprecated = false
+      ; preselect = None
       ; (* Without this field the client is not forced to respect the order
            provided by merlin. *)
         sortText = Some (Printf.sprintf "%04d" index)
@@ -620,8 +628,13 @@ let on_request :
     in
     return (store, folds)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
+  | Lsp.Client_request.TextDocumentLinkResolve l -> return (store, l)
+  | Lsp.Client_request.TextDocumentLink _ -> return (store, [])
+  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> return (store, [])
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> return (store, compl)
+  | Lsp.Client_request.TextDocumentFormatting _ -> return (store, [])
+  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> return (store, [])
   | Lsp.Client_request.UnknownRequest _ -> errorf "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Client_notification.t) =
@@ -644,6 +657,8 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) =
     Document_store.put store doc;
     send_diagnostics rpc doc;
     Ok store
+  | DidSaveTextDocument _
+  | WillSaveTextDocument _
   | ChangeConfiguration _
   | ChangeWorkspaceFolders _
   | Initialized

@@ -6,18 +6,25 @@ type _ t =
   | Initialize : Initialize.Params.t -> Initialize.Result.t t
   | TextDocumentHover : Hover.params -> Hover.result t
   | TextDocumentDefinition : Definition.params -> Definition.result t
+  | TextDocumentDeclaration :
+      TextDocumentPositionParams.t
+      -> Locations.t option t
   | TextDocumentTypeDefinition :
       TypeDefinition.params
       -> TypeDefinition.result t
   | TextDocumentCompletion : Completion.params -> Completion.result t
-  | TextDocumentCodeLens : CodeLens.params -> CodeLens.result t
+  | TextDocumentCodeLens : CodeLens.Params.t -> CodeLens.Result.t t
+  | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename :
       TextDocumentPositionParams.t
       -> PrepareRename.Result.t t
   | TextDocumentRename : Rename.params -> Rename.result t
+  | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
+  | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
       -> TextDocumentDocumentSymbol.result t
+  | WorkspaceSymbol : WorkspaceSymbol.Params.t -> WorkspaceSymbol.Result.t t
   | DebugEcho : DebugEcho.params -> DebugEcho.result t
   | DebugTextDocumentGet :
       DebugTextDocumentGet.params
@@ -28,16 +35,31 @@ type _ t =
       -> TextDocumentHighlight.result t
   | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
-  | CodeAction : CodeActionParams.t -> CodeAction.result t
+  | CodeAction : CodeAction.Params.t -> CodeAction.result t
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
+  | WillSaveWaitUntilTextDocument :
+      WillSaveTextDocumentParams.t
+      -> WillSaveWaitUntilTextDocument.Result.t t
+  | TextDocumentFormatting :
+      DocumentFormattingParams.t
+      -> TextDocumentFormatting.Result.t t
+  | TextDocumentOnTypeFormatting :
+      DocumentOnTypeFormattingParams.t
+      -> TextDocumentOnTypeFormatting.Result.t t
+  | TextDocumentColorPresentation :
+      ColorPresentation.Params.t
+      -> ColorPresentation.t list t
+  | TextDocumentColor : DocumentColor.Params.t -> DocumentColor.Result.t t
   | UnknownRequest : string * Json.t option -> unit t
 
 let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with
   | Shutdown, () -> None
   | Initialize _, result -> Some (Initialize.Result.yojson_of_t result)
+  | TextDocumentDeclaration _, result ->
+    Some (yojson_of_option Locations.yojson_of_t result)
   | TextDocumentHover _, result -> Some (Hover.yojson_of_result result)
   | TextDocumentDefinition _, result ->
     Some (Definition.yojson_of_result result)
@@ -45,7 +67,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (TypeDefinition.yojson_of_result result)
   | TextDocumentCompletion _, result ->
     Some (Completion.yojson_of_result result)
-  | TextDocumentCodeLens _, result -> Some (CodeLens.yojson_of_result result)
+  | TextDocumentCodeLens _, result -> Some (CodeLens.Result.yojson_of_t result)
+  | TextDocumentCodeLensResolve _, result -> Some (CodeLens.yojson_of_t result)
   | TextDocumentPrepareRename _, result ->
     Some (PrepareRename.Result.yojson_of_t result)
   | TextDocumentRename _, result -> Some (Rename.yojson_of_result result)
@@ -64,6 +87,20 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | CodeAction _, result -> Some (CodeAction.yojson_of_result result)
   | CompletionItemResolve _, result ->
     Some (Completion.yojson_of_completionItem result)
+  | WillSaveWaitUntilTextDocument _, result ->
+    Some (WillSaveWaitUntilTextDocument.Result.yojson_of_t result)
+  | TextDocumentOnTypeFormatting _, result ->
+    Some (TextDocumentOnTypeFormatting.Result.yojson_of_t result)
+  | TextDocumentFormatting _, result ->
+    Some (TextDocumentFormatting.Result.yojson_of_t result)
+  | TextDocumentLink _, result -> Some (DocumentLink.Result.yojson_of_t result)
+  | TextDocumentLinkResolve _, result -> Some (DocumentLink.yojson_of_t result)
+  | WorkspaceSymbol _, result ->
+    Some (WorkspaceSymbol.Result.yojson_of_t result)
+  | TextDocumentColorPresentation _, result ->
+    Some (ColorPresentation.Result.yojson_of_t result)
+  | TextDocumentColor _, result ->
+    Some (DocumentColor.Result.yojson_of_t result)
   | UnknownRequest _, _resp -> None
 
 type packed = E : 'r t -> packed
@@ -93,7 +130,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse References.params_of_yojson >>| fun params ->
     E (TextDocumentReferences params)
   | "textDocument/codeLens" ->
-    parse CodeLens.params_of_yojson >>| fun params ->
+    parse CodeLens.Params.t_of_yojson >>| fun params ->
     E (TextDocumentCodeLens params)
   | "textDocument/rename" ->
     parse Rename.params_of_yojson >>| fun params ->
@@ -105,10 +142,34 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse FoldingRange.params_of_yojson >>| fun params ->
     E (TextDocumentFoldingRange params)
   | "textDocument/codeAction" ->
-    parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
+    parse CodeAction.Params.t_of_yojson >>| fun params -> E (CodeAction params)
   | "debug/echo" ->
     parse DebugEcho.params_of_yojson >>| fun params -> E (DebugEcho params)
   | "debug/textDocument/get" ->
     parse DebugTextDocumentGet.params_of_yojson >>| fun params ->
     E (DebugTextDocumentGet params)
+  | "textDocument/onTypeFormatting" ->
+    parse DocumentOnTypeFormattingParams.t_of_yojson >>| fun params ->
+    E (TextDocumentOnTypeFormatting params)
+  | "textDocument/formatting" ->
+    parse DocumentFormattingParams.t_of_yojson >>| fun params ->
+    E (TextDocumentFormatting params)
+  | "textDocument/documentLink" ->
+    parse DocumentLink.Params.t_of_yojson >>| fun params ->
+    E (TextDocumentLink params)
+  | "textDocument/resolve" ->
+    parse DocumentLink.t_of_yojson >>| fun params ->
+    E (TextDocumentLinkResolve params)
+  | "workspace/symbol" ->
+    parse WorkspaceSymbol.Params.t_of_yojson >>| fun params ->
+    E (WorkspaceSymbol params)
+  | "textDocument/colorPresentation" ->
+    parse ColorPresentation.Params.t_of_yojson >>| fun params ->
+    E (TextDocumentColorPresentation params)
+  | "textDocument/documentColor" ->
+    parse DocumentColor.Params.t_of_yojson >>| fun params ->
+    E (TextDocumentColor params)
+  | "textDocument/declaration" ->
+    parse TextDocumentPositionParams.t_of_yojson >>| fun params ->
+    E (TextDocumentDeclaration params)
   | m -> Ok (E (UnknownRequest (m, r.params)))

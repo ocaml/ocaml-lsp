@@ -4,6 +4,8 @@ open Protocol
 type t =
   | TextDocumentDidOpen of DidOpen.params
   | TextDocumentDidChange of DidChangeTextDocumentParams.t
+  | DidSaveTextDocument of DidSaveTextDocumentParams.t
+  | WillSaveTextDocument of WillSaveTextDocumentParams.t
   | ChangeWorkspaceFolders of DidChangeWorkspaceFolders.Params.t
   | ChangeConfiguration of DidChangeConfiguration.Params.t
   | Initialized
@@ -27,4 +29,10 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "workspace/didChangeConfiguration" ->
     Jsonrpc.Request.params r DidChangeConfiguration.Params.t_of_yojson
     >>| fun params -> ChangeConfiguration params
+  | "textdocument/willSave" ->
+    Jsonrpc.Request.params r WillSaveTextDocumentParams.t_of_yojson
+    >>| fun params -> WillSaveTextDocument params
+  | "textdocument/didSave" ->
+    Jsonrpc.Request.params r DidSaveTextDocumentParams.t_of_yojson
+    >>| fun params -> DidSaveTextDocument params
   | _ -> Ok (Unknown_notification r)

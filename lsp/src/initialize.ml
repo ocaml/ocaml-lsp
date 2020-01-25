@@ -81,7 +81,7 @@ module SignatureHelpOptions = struct
 end
 
 module CodeActionOptions = struct
-  type t = { codeActionsKinds : CodeActionKind.t list [@default []] }
+  type t = { codeActionsKinds : CodeAction.Kind.t list [@default []] }
   [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
@@ -100,7 +100,7 @@ module CodeActionOptions = struct
               match Ppx_yojson_conv_lib.( ! ) codeActionsKinds_field with
               | None ->
                 let fvalue =
-                  list_of_yojson CodeActionKind.t_of_yojson _field_yojson
+                  list_of_yojson CodeAction.Kind.t_of_yojson _field_yojson
                 in
                 codeActionsKinds_field := Some fvalue
               | Some _ ->
@@ -151,7 +151,7 @@ module CodeActionOptions = struct
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
           let arg =
-            yojson_of_list CodeActionKind.yojson_of_t v_codeActionsKinds
+            yojson_of_list CodeAction.Kind.yojson_of_t v_codeActionsKinds
           in
           ("codeActionsKinds", arg) :: bnds
         in
@@ -164,7 +164,7 @@ module CodeActionOptions = struct
 end
 
 module CodeActionLiteralSupport = struct
-  type codeActionKind = { valueSet : CodeActionKind.t list }
+  type codeActionKind = { valueSet : CodeAction.Kind.t list }
   [@@deriving_inline yojson]
 
   let _ = fun (_ : codeActionKind) -> ()
@@ -185,7 +185,7 @@ module CodeActionLiteralSupport = struct
               match Ppx_yojson_conv_lib.( ! ) valueSet_field with
               | None ->
                 let fvalue =
-                  list_of_yojson CodeActionKind.t_of_yojson _field_yojson
+                  list_of_yojson CodeAction.Kind.t_of_yojson _field_yojson
                 in
                 valueSet_field := Some fvalue
               | Some _ ->
@@ -237,7 +237,7 @@ module CodeActionLiteralSupport = struct
       | { valueSet = v_valueSet } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_list CodeActionKind.yojson_of_t v_valueSet in
+          let arg = yojson_of_list CodeAction.Kind.yojson_of_t v_valueSet in
           ("valueSet", arg) :: bnds
         in
         `Assoc bnds

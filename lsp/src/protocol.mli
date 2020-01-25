@@ -4,6 +4,8 @@ module Only : sig
   type 'a t =
     | All
     | Only of 'a list
+
+  include Json.Jsonable.S1 with type 'a t := 'a t
 end
 
 module Or_bool : sig
@@ -67,6 +69,8 @@ module Range : sig
     { start_ : Position.t
     ; end_ : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Command : sig
@@ -75,6 +79,8 @@ module Command : sig
     ; command : string
     ; arguments : Json.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module MarkupKind : sig
@@ -113,6 +119,8 @@ module Locations : sig
     | Location of Location.t
     | Locations of Location.t list
     | Location_links of LocationLink.t list
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Message : sig
@@ -145,6 +153,8 @@ module ShowMessage : sig
       ; message : string
       ; actions : Message.ActionItem.t list
       }
+
+    include Json.Jsonable.S with type t := t
   end
 end
 
@@ -174,6 +184,31 @@ module VersionedTextDocumentIdentifier : sig
     { uri : documentUri
     ; version : int
     }
+end
+
+module TextDocumentSaveReason : sig
+  type t =
+    | Manual
+    | AfterDelay
+    | FocusOut
+end
+
+module WillSaveTextDocumentParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; reason : TextDocumentSaveReason.t
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
+module DidSaveTextDocumentParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; text : string option
+    }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SymbolKind : sig
@@ -293,6 +328,79 @@ module TextEdit : sig
   include Json.Jsonable.S with type t := t
 end
 
+module WillSaveWaitUntilTextDocument : sig
+  module Result : sig
+    type t = TextEdit.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module FormattingOptions : sig
+  type t =
+    { tabSize : int
+    ; insertSpaces : bool
+    }
+end
+
+module DocumentFormattingParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; options : FormattingOptions.t
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
+module DocumentLink : sig
+  type t =
+    { range : Range.t
+    ; target : documentUri option
+    ; data : Json.t option
+    }
+
+  include Json.Jsonable.S with type t := t
+
+  module Params : sig
+    type t = { textDocument : TextDocumentIdentifier.t }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type nonrec t = t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module DocumentOnTypeFormattingParams : sig
+  type t =
+    { textDocument : TextDocumentIdentifier.t
+    ; position : Position.t
+    ; ch : string
+    ; options : FormattingOptions.t
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
+module TextDocumentOnTypeFormatting : sig
+  module Result : sig
+    type t = TextEdit.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module TextDocumentFormatting : sig
+  module Result : sig
+    type t = TextEdit.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
 module TextDocumentEdit : sig
   type t =
     { textDocument : VersionedTextDocumentIdentifier.t
@@ -391,6 +499,8 @@ module ApplyWorkspaceEdit : sig
       { label : string option
       ; edit : WorkspaceEdit.t list
       }
+
+    include Json.Jsonable.S with type t := t
   end
 
   module Response : sig
@@ -398,6 +508,8 @@ module ApplyWorkspaceEdit : sig
       { applied : bool
       ; failureReason : string option
       }
+
+    include Json.Jsonable.S with type t := t
   end
 end
 
@@ -516,21 +628,6 @@ module SignatureHelp : sig
     ; activeSignature : int option
     ; activeParameter : int option
     }
-
-  include Json.Jsonable.S with type t := t
-end
-
-module CodeActionKind : sig
-  type t =
-    | Empty
-    | QuickFix
-    | Refactor
-    | RefactorExtract
-    | RefactorInline
-    | RefactorRewrite
-    | Source
-    | SourceOrganizeImports
-    | Other of string
 
   include Json.Jsonable.S with type t := t
 end
@@ -669,27 +766,96 @@ module TextDocumentDocumentSymbol : sig
   val yojson_of_result : result -> Json.t
 end
 
-module CodeLens : sig
-  type params = { textDocument : TextDocumentIdentifier.t }
+module WorkspaceSymbol : sig
+  module Params : sig
+    type t = { query : string }
 
-  and result = item list
+    include Json.Jsonable.S with type t := t
+  end
 
-  and item =
-    { range : Range.t
-    ; command : Command.t option
+  module Result : sig
+    type t = SymbolInformation.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module Color : sig
+  type t =
+    { red : int
+    ; green : int
+    ; blue : int
+    ; alpha : int
     }
 
-  val params_of_yojson : Json.t -> params
+  module Information : sig
+    type nonrec t =
+      { color : t
+      ; range : Range.t
+      }
+  end
+end
 
-  val result_of_yojson : Json.t -> result
+module ColorPresentation : sig
+  type t =
+    { label : string
+    ; textEdit : TextEdit.t option
+    ; additionalTextEdits : TextEdit.t list
+    }
 
-  val item_of_yojson : Json.t -> item
+  include Json.Jsonable.S with type t := t
 
-  val yojson_of_params : params -> Json.t
+  module Params : sig
+    type t =
+      { textDocument : TextDocumentIdentifier.t
+      ; color : Color.t
+      ; range : Range.t
+      }
 
-  val yojson_of_result : result -> Json.t
+    include Json.Jsonable.S with type t := t
+  end
 
-  val yojson_of_item : item -> Json.t
+  module Result : sig
+    type nonrec t = t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module DocumentColor : sig
+  module Params : sig
+    type t = { textDocument : TextDocumentIdentifier.t }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type t = Color.Information.t list
+
+    include Json.Jsonable.S with type t := t
+  end
+end
+
+module CodeLens : sig
+  type t =
+    { range : Range.t
+    ; command : Command.t option
+    ; data : Json.t option
+    }
+
+  include Json.Jsonable.S with type t := t
+
+  module Params : sig
+    type t = { textDocument : TextDocumentIdentifier.t }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type nonrec t = t list
+
+    include Json.Jsonable.S with type t := t
+  end
 end
 
 module Rename : sig
@@ -759,37 +925,4 @@ module FoldingRange : sig
   type result = t list
 
   val yojson_of_result : t list -> Json.t
-end
-
-module CodeActionContext : sig
-  type t =
-    { diagnostics : PublishDiagnostics.diagnostic list
-    ; only : CodeActionKind.t Only.t
-    }
-end
-
-module CodeActionParams : sig
-  type t =
-    { textDocument : TextDocumentIdentifier.t
-    ; range : Range.t
-    ; context : CodeActionContext.t
-    }
-
-  include Json.Jsonable.S with type t := t
-end
-
-module CodeAction : sig
-  type t =
-    { title : string
-    ; kind : CodeActionKind.t option
-    ; diagnostics : PublishDiagnostics.diagnostic list
-    ; edit : WorkspaceEdit.t option
-    ; command : Command.t option
-    }
-
-  val yojson_of_t : t -> Json.t
-
-  type result = (Command.t, t) Either.t list
-
-  val yojson_of_result : result -> Json.t
 end
