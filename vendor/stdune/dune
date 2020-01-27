@@ -1,0 +1,7 @@
+(library
+ (name stdune)
+ (public_name lsp.stdune)
+ (synopsis "[Internal] Standard library of Dune")
+ (preprocess future_syntax)
+ (libraries unix)
+ (c_names fcntl_stubs))

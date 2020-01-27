@@ -86,7 +86,7 @@ module Request = struct
     | Some params -> Ok params
 
   let params t f =
-    let open Result.Infix in
+    let open Result.O in
     require_params t.params >>= read_json_params f
 end
 

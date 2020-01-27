@@ -13,7 +13,7 @@ type t =
   | Unknown_notification of Jsonrpc.Request.t
 
 let of_jsonrpc (r : Jsonrpc.Request.t) =
-  let open Result.Infix in
+  let open Result.O in
   match r.method_ with
   | "textDocument/didOpen" ->
     Jsonrpc.Request.params r DidOpen.params_of_yojson >>| fun params ->

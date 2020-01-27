@@ -1,16 +1,16 @@
 open! Import
+module Table = Hashtbl.Make (Lsp.Uri)
 
-type t = (Lsp.Protocol.documentUri, Document.t) Hashtbl.t
+type t = Document.t Table.t
 
-let make () = Hashtbl.create 50
+let make () = Table.create 50
 
-let put store doc = Hashtbl.replace store (Document.uri doc) doc
+let put store doc = Table.set store (Document.uri doc) doc
 
-let get_opt store uri =
-  try Some (Hashtbl.find store uri) with Not_found -> None
+let get_opt store = Table.find store
 
 let get store uri =
-  match get_opt store uri with
+  match Table.find store uri with
   | Some doc -> Ok doc
   | None ->
     Lsp.Import.Result.errorf "no document found with uri: %a" Lsp.Uri.pp uri
