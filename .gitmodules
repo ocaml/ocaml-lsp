@@ -6,3 +6,6 @@
 [submodule "vendor/cmdliner"]
 	path = vendor/cmdliner
 	url = https://github.com/dbuenzli/cmdliner.git
+[submodule "ocaml-syntax-shims"]
+	path = vendor/ocaml-syntax-shims
+	url = https://github.com/ocaml-ppx/ocaml-syntax-shims
