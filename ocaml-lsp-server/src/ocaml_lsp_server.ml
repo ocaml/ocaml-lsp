@@ -558,6 +558,7 @@ let on_request :
               ; kind = `Label
               ; desc = typ
               ; info = ""
+              ; deprecated = false (* TODO this is wrong *)
               })
           labels
     in
