@@ -57,7 +57,7 @@ let read ic =
     | line -> (
       match String.split_on_char ~sep:':' line with
       | [ k; v ] ->
-        let k = String.lowercase (String.trim k) in
+        let k = String.lowercase_ascii (String.trim k) in
         if
           k = Key.content_length_lowercase
           && acc.content_length = empty.content_length

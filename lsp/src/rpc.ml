@@ -26,7 +26,7 @@ let send rpc json =
   flush rpc.oc
 
 let read rpc =
-  let open Result.Infix in
+  let open Result.O in
   let read_content rpc =
     Thread.wait_read rpc.fd;
     let header = Header.read rpc.ic in
@@ -72,7 +72,7 @@ module Message = struct
     | Client_notification of Client_notification.t
 
   let of_jsonrpc (packet : Jsonrpc.Request.t) =
-    let open Result.Infix in
+    let open Result.O in
     match packet.id with
     | None ->
       Client_notification.of_jsonrpc packet >>| fun cn -> Client_notification cn
@@ -93,7 +93,7 @@ type 'state handler =
   }
 
 let start init_state handler ic oc =
-  let open Result.Infix in
+  let open Result.O in
   let read_message rpc = read rpc >>= Message.of_jsonrpc in
 
   let handle_message prev_state f =
@@ -150,7 +150,7 @@ let start init_state handler ic oc =
             let open Client_request in
             read_message rpc >>= function
             | Message.Request (_id, E (Initialize _)) ->
-              errorf "received another initialize request"
+              Error "received another initialize request"
             | Message.Client_notification (Exit as notif) ->
               rpc.state <- Closed;
               handler.on_notification rpc state notif

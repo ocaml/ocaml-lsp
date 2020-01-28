@@ -145,11 +145,11 @@ let code_action_of_case_analysis uri (loc, newText) =
   }
 
 let code_action store (params : Lsp.CodeAction.Params.t) =
-  let open Lsp.Import.Result.Infix in
+  let open Lsp.Import.Result.O in
   match params.context.only with
   | Only set
     when not (List.mem (Lsp.CodeAction.Kind.Other Action.destruct) ~set) ->
-    return (store, [])
+    Ok (store, [])
   | Only _
   | All ->
     Document_store.get store params.textDocument.uri >>= fun doc ->
@@ -170,7 +170,7 @@ let code_action store (params : Lsp.CodeAction.Params.t) =
       | Destruct.Nothing_to_do ->
         []
     in
-    return (store, result)
+    Ok (store, result)
 
 let on_request :
     type resp.
@@ -180,18 +180,18 @@ let on_request :
     -> resp Lsp.Client_request.t
     -> (Document_store.t * resp, string) result =
  fun _rpc store client_capabilities req ->
-  let open Lsp.Import.Result.Infix in
+  let open Lsp.Import.Result.O in
   match req with
   | Lsp.Client_request.Initialize _ -> assert false
-  | Lsp.Client_request.Shutdown -> return (store, ())
+  | Lsp.Client_request.Shutdown -> Ok (store, ())
   | Lsp.Client_request.DebugTextDocumentGet
       { textDocument = { uri }; position = _ } -> (
     match Document_store.get_opt store uri with
-    | None -> return (store, None)
-    | Some doc -> return (store, Some (Msource.text (Document.source doc))) )
-  | Lsp.Client_request.DebugEcho params -> return (store, params)
-  | Lsp.Client_request.TextDocumentColor _ -> return (store, [])
-  | Lsp.Client_request.TextDocumentColorPresentation _ -> return (store, [])
+    | None -> Ok (store, None)
+    | Some doc -> Ok (store, Some (Msource.text (Document.source doc))) )
+  | Lsp.Client_request.DebugEcho params -> Ok (store, params)
+  | Lsp.Client_request.TextDocumentColor _ -> Ok (store, [])
+  | Lsp.Client_request.TextDocumentColorPresentation _ -> Ok (store, [])
   | Lsp.Client_request.TextDocumentHover { textDocument = { uri }; position }
     -> (
     let query_type doc pos =
@@ -232,7 +232,7 @@ let on_request :
     Document_store.get store uri >>= fun doc ->
     let pos = logical_of_position position in
     match query_type doc pos with
-    | None -> return (store, None)
+    | None -> Ok (store, None)
     | Some (loc, typ) ->
       let doc = query_doc doc pos in
       let as_markdown =
@@ -242,7 +242,7 @@ let on_request :
       let contents = format_contents ~as_markdown ~typ ~doc in
       let range = Some (range_of_loc loc) in
       let resp = { Lsp.Protocol.Hover.contents; range } in
-      return (store, Some resp) )
+      Ok (store, Some resp) )
   | Lsp.Client_request.TextDocumentReferences
       { textDocument = { uri }; position; context = _ } ->
     Document_store.get store uri >>= fun doc ->
@@ -258,7 +258,7 @@ let on_request :
           { Lsp.Protocol.Location.uri; range })
         locs
     in
-    return (store, lsp_locs)
+    Ok (store, lsp_locs)
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
     Ok (store, codeLens)
   | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } ->
@@ -290,7 +290,7 @@ let on_request :
       in
       List.concat_map ~f:symbol_info_of_outline_item outline
     in
-    return (store, symbol_infos)
+    Ok (store, symbol_infos)
   | Lsp.Client_request.TextDocumentHighlight
       { textDocument = { uri }; position } ->
     Document_store.get store uri >>= fun doc ->
@@ -307,7 +307,7 @@ let on_request :
           { Lsp.Protocol.DocumentHighlight.kind = Some Text; range })
         locs
     in
-    return (store, lsp_locs)
+    Ok (store, lsp_locs)
   | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, [])
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
     let range item = range_of_loc item.Query_protocol.location in
@@ -354,7 +354,7 @@ let on_request :
         let symbols = List.concat_map ~f:symbol_info outline in
         Lsp.Protocol.TextDocumentDocumentSymbol.SymbolInformation symbols
     in
-    return (store, symbols)
+    Ok (store, symbols)
   | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
@@ -373,7 +373,7 @@ let on_request :
       let locs =
         Lsp.Protocol.Locations.Location { Lsp.Protocol.Location.uri; range }
       in
-      return (store, Some locs)
+      Ok (store, Some locs)
     | `At_origin
     | `Builtin _
     | `File_not_found _
@@ -441,7 +441,7 @@ let on_request :
           | `Not_in_env _ ->
             None)
     in
-    return (store, locs)
+    Ok (store, locs)
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let lsp_position = position in
@@ -575,7 +575,7 @@ let on_request :
     let all = List.concat [ labels; items ] in
     let items = List.mapi ~f:item all in
     let resp = { Lsp.Completion.isIncomplete = false; items } in
-    return (store, resp)
+    Ok (store, resp)
   | Lsp.Client_request.TextDocumentPrepareRename _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
@@ -598,7 +598,7 @@ let on_request :
       in
       Lsp.Protocol.WorkspaceEdit.make ~documentChanges ~uri ~version ~edits
     in
-    return (store, workspace_edits)
+    Ok (store, workspace_edits)
   | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
@@ -624,21 +624,22 @@ let on_request :
             let range = folding_range range in
             loop (range :: acc) items
       in
-      loop [] outline |> List.sort ~cmp:compare
+      loop [] outline
+      |> List.sort ~compare:(fun x y -> Ordering.of_int (compare x y))
     in
-    return (store, folds)
+    Ok (store, folds)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
-  | Lsp.Client_request.TextDocumentLinkResolve l -> return (store, l)
-  | Lsp.Client_request.TextDocumentLink _ -> return (store, [])
-  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> return (store, [])
+  | Lsp.Client_request.TextDocumentLinkResolve l -> Ok (store, l)
+  | Lsp.Client_request.TextDocumentLink _ -> Ok (store, [])
+  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> Ok (store, [])
   | Lsp.Client_request.CodeAction params -> code_action store params
-  | Lsp.Client_request.CompletionItemResolve compl -> return (store, compl)
-  | Lsp.Client_request.TextDocumentFormatting _ -> return (store, [])
-  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> return (store, [])
-  | Lsp.Client_request.UnknownRequest _ -> errorf "got unknown request"
+  | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
+  | Lsp.Client_request.TextDocumentFormatting _ -> Ok (store, [])
+  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
+  | Lsp.Client_request.UnknownRequest _ -> Error "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Client_notification.t) =
-  let open Lsp.Import.Result.Infix in
+  let open Lsp.Import.Result.O in
   match notification with
   | TextDocumentDidOpen params ->
     let doc =

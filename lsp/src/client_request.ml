@@ -106,7 +106,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
 type packed = E : 'r t -> packed
 
 let of_jsonrpc (r : Jsonrpc.Request.t) =
-  let open Result.Infix in
+  let open Result.O in
   let parse f = Jsonrpc.Request.params r f in
   match r.method_ with
   | "initialize" ->

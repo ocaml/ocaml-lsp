@@ -38,7 +38,7 @@ let selected_sections = ref None
 let is_section_enabled section =
   match !selected_sections with
   | None -> true
-  | Some sections -> Hashtbl.mem sections section
+  | Some sections -> String.Table.mem sections section
 
 let output_section oc section title =
   Printf.fprintf oc "# %2.2f %s - %s\n" (delta_time ()) section title
@@ -111,8 +111,8 @@ let with_sections sections f =
     match sections with
     | [] -> None
     | sections ->
-      let table = Hashtbl.create (List.length sections) in
-      List.iter sections ~f:(fun section -> Hashtbl.replace table section ());
+      let table = String.Table.create (List.length sections) in
+      List.iter sections ~f:(fun section -> String.Table.set table section ());
       Some table
   in
   let sections0 = !selected_sections in
@@ -123,7 +123,7 @@ let with_sections sections f =
     result
   | exception exn ->
     selected_sections := sections0;
-    reraise exn
+    Exn.reraise exn
 
 let with_log_file file ?(sections = []) f =
   match file with
@@ -155,7 +155,7 @@ let with_log_file file ?(sections = []) f =
       v
     | exception exn ->
       release ();
-      reraise exn )
+      Exn.reraise exn )
 
 type 'a printf = title:string -> ('a, unit, string, unit) format4 -> 'a
 

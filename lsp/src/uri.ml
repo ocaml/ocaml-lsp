@@ -2,6 +2,12 @@ open Import
 
 type t = string [@@deriving_inline yojson]
 
+let equal = String.equal
+
+let hash = String.hash
+
+let to_dyn = String.to_dyn
+
 let _ = fun (_ : t) -> ()
 
 let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -23,7 +29,7 @@ let proto =
 
 let to_path (uri : t) =
   let path =
-    match String.chop_prefix ~prefix:proto uri with
+    match String.drop_prefix ~prefix:proto uri with
     | Some path -> path
     | None -> uri
   in
