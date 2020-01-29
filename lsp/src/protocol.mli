@@ -548,6 +548,7 @@ module PublishDiagnostics : sig
     ; source : string option
     ; message : string
     ; relatedInformation : diagnosticRelatedInformation list
+    ; tags : Diagnostics.Tag.t list
     }
 
   type params =

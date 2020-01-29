@@ -116,6 +116,7 @@ let send_diagnostics rpc doc =
           ; relatedInformation = []
           ; code = NoCode
           ; source = None
+          ; tags = []
           }
         in
         diagnostic)

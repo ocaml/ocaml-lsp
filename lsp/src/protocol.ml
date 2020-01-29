@@ -5010,6 +5010,7 @@ module PublishDiagnostics = struct
       message : string
     ; (* the diagnostic's message *)
       relatedInformation : diagnosticRelatedInformation list
+    ; tags : Diagnostics.Tag.t list [@default []]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -5025,6 +5026,7 @@ module PublishDiagnostics = struct
         and source_field = ref None
         and message_field = ref None
         and relatedInformation_field = ref None
+        and tags_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -5081,6 +5083,16 @@ module PublishDiagnostics = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "tags" -> (
+              match Ppx_yojson_conv_lib.( ! ) tags_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson Diagnostics.Tag.t_of_yojson _field_yojson
+                in
+                tags_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -5104,14 +5116,16 @@ module PublishDiagnostics = struct
               , Ppx_yojson_conv_lib.( ! ) code_field
               , Ppx_yojson_conv_lib.( ! ) source_field
               , Ppx_yojson_conv_lib.( ! ) message_field
-              , Ppx_yojson_conv_lib.( ! ) relatedInformation_field )
+              , Ppx_yojson_conv_lib.( ! ) relatedInformation_field
+              , Ppx_yojson_conv_lib.( ! ) tags_field )
             with
             | ( Some range_value
               , severity_value
               , code_value
               , source_value
               , Some message_value
-              , Some relatedInformation_value ) ->
+              , Some relatedInformation_value
+              , tags_value ) ->
               { range = range_value
               ; severity = severity_value
               ; code =
@@ -5121,6 +5135,10 @@ module PublishDiagnostics = struct
               ; source = source_value
               ; message = message_value
               ; relatedInformation = relatedInformation_value
+              ; tags =
+                  ( match tags_value with
+                  | None -> []
+                  | Some v -> v )
               }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -5153,8 +5171,13 @@ module PublishDiagnostics = struct
         ; source = v_source
         ; message = v_message
         ; relatedInformation = v_relatedInformation
+        ; tags = v_tags
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_list Diagnostics.Tag.yojson_of_t v_tags in
+          ("tags", arg) :: bnds
+        in
         let bnds =
           let arg =
             yojson_of_list yojson_of_diagnosticRelatedInformation

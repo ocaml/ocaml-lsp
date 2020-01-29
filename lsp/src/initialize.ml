@@ -936,6 +936,204 @@ module DocumentSymbol = struct
   let empty = { hierarchicalDocumentSymbolSupport = false }
 end
 
+module PublishDiagnosticsClientCapabilities = struct
+  type tagSupport = { valueSet : Diagnostics.Tag.t list }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : tagSupport) -> ()
+
+  let tagSupport_of_yojson =
+    ( let _tp_loc =
+        "lsp/src/initialize.ml.PublishDiagnosticsClientCapabilities.tagSupport"
+      in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let valueSet_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "valueSet" -> (
+              match Ppx_yojson_conv_lib.( ! ) valueSet_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson Diagnostics.Tag.t_of_yojson _field_yojson
+                in
+                valueSet_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) valueSet_field with
+            | Some valueSet_value -> { valueSet = valueSet_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) valueSet_field)
+                      None
+                  , "valueSet" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> tagSupport )
+
+  let _ = tagSupport_of_yojson
+
+  let yojson_of_tagSupport =
+    ( function
+      | { valueSet = v_valueSet } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_list Diagnostics.Tag.yojson_of_t v_valueSet in
+          ("valueSet", arg) :: bnds
+        in
+        `Assoc bnds
+      : tagSupport -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_tagSupport
+
+  [@@@end]
+
+  type t =
+    { relatedInformation : bool [@default false]
+    ; tagSupport : tagSupport option [@yojson.option]
+    ; versionSupport : bool [@default false]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    ( let _tp_loc =
+        "lsp/src/initialize.ml.PublishDiagnosticsClientCapabilities.t"
+      in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let relatedInformation_field = ref None
+        and tagSupport_field = ref None
+        and versionSupport_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "relatedInformation" -> (
+              match Ppx_yojson_conv_lib.( ! ) relatedInformation_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                relatedInformation_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "tagSupport" -> (
+              match Ppx_yojson_conv_lib.( ! ) tagSupport_field with
+              | None ->
+                let fvalue = tagSupport_of_yojson _field_yojson in
+                tagSupport_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "versionSupport" -> (
+              match Ppx_yojson_conv_lib.( ! ) versionSupport_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                versionSupport_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] ->
+            let relatedInformation_value, tagSupport_value, versionSupport_value
+                =
+              ( Ppx_yojson_conv_lib.( ! ) relatedInformation_field
+              , Ppx_yojson_conv_lib.( ! ) tagSupport_field
+              , Ppx_yojson_conv_lib.( ! ) versionSupport_field )
+            in
+            { relatedInformation =
+                ( match relatedInformation_value with
+                | None -> false
+                | Some v -> v )
+            ; tagSupport = tagSupport_value
+            ; versionSupport =
+                ( match versionSupport_value with
+                | None -> false
+                | Some v -> v )
+            } ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    ( function
+      | { relatedInformation = v_relatedInformation
+        ; tagSupport = v_tagSupport
+        ; versionSupport = v_versionSupport
+        } ->
+        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = yojson_of_bool v_versionSupport in
+          ("versionSupport", arg) :: bnds
+        in
+        let bnds =
+          match v_tagSupport with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_tagSupport v in
+            let bnd = ("tagSupport", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_bool v_relatedInformation in
+          ("relatedInformation", arg) :: bnds
+        in
+        `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let empty =
+    { relatedInformation = false; tagSupport = None; versionSupport = false }
+end
+
 module TextDocumentClientCapabilities = struct
   type t =
     { synchronization : Synchronization.t [@default Synchronization.empty]
@@ -947,6 +1145,7 @@ module TextDocumentClientCapabilities = struct
     ; hover : Hover.t
           [@default Hover.empty] (* omitted: dynamic-registration fields *)
     ; codeAction : CodeAction.t [@default CodeAction.empty]
+    ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -961,6 +1160,7 @@ module TextDocumentClientCapabilities = struct
         and documentSymbol_field = ref None
         and hover_field = ref None
         and codeAction_field = ref None
+        and publishDiagnostics_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -1006,6 +1206,16 @@ module TextDocumentClientCapabilities = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "publishDiagnostics" -> (
+              match Ppx_yojson_conv_lib.( ! ) publishDiagnostics_field with
+              | None ->
+                let fvalue =
+                  PublishDiagnosticsClientCapabilities.t_of_yojson _field_yojson
+                in
+                publishDiagnostics_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -1022,39 +1232,51 @@ module TextDocumentClientCapabilities = struct
             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
-          | [] ->
-            let ( synchronization_value
-                , completion_value
-                , documentSymbol_value
-                , hover_value
-                , codeAction_value ) =
+          | [] -> (
+            match
               ( Ppx_yojson_conv_lib.( ! ) synchronization_field
               , Ppx_yojson_conv_lib.( ! ) completion_field
               , Ppx_yojson_conv_lib.( ! ) documentSymbol_field
               , Ppx_yojson_conv_lib.( ! ) hover_field
-              , Ppx_yojson_conv_lib.( ! ) codeAction_field )
-            in
-            { synchronization =
-                ( match synchronization_value with
-                | None -> Synchronization.empty
-                | Some v -> v )
-            ; completion =
-                ( match completion_value with
-                | None -> Completion.empty
-                | Some v -> v )
-            ; documentSymbol =
-                ( match documentSymbol_value with
-                | None -> DocumentSymbol.empty
-                | Some v -> v )
-            ; hover =
-                ( match hover_value with
-                | None -> Hover.empty
-                | Some v -> v )
-            ; codeAction =
-                ( match codeAction_value with
-                | None -> CodeAction.empty
-                | Some v -> v )
-            } ) )
+              , Ppx_yojson_conv_lib.( ! ) codeAction_field
+              , Ppx_yojson_conv_lib.( ! ) publishDiagnostics_field )
+            with
+            | ( synchronization_value
+              , completion_value
+              , documentSymbol_value
+              , hover_value
+              , codeAction_value
+              , Some publishDiagnostics_value ) ->
+              { synchronization =
+                  ( match synchronization_value with
+                  | None -> Synchronization.empty
+                  | Some v -> v )
+              ; completion =
+                  ( match completion_value with
+                  | None -> Completion.empty
+                  | Some v -> v )
+              ; documentSymbol =
+                  ( match documentSymbol_value with
+                  | None -> DocumentSymbol.empty
+                  | Some v -> v )
+              ; hover =
+                  ( match hover_value with
+                  | None -> Hover.empty
+                  | Some v -> v )
+              ; codeAction =
+                  ( match codeAction_value with
+                  | None -> CodeAction.empty
+                  | Some v -> v )
+              ; publishDiagnostics = publishDiagnostics_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) publishDiagnostics_field)
+                      None
+                  , "publishDiagnostics" )
+                ] ) ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
@@ -1069,8 +1291,16 @@ module TextDocumentClientCapabilities = struct
         ; documentSymbol = v_documentSymbol
         ; hover = v_hover
         ; codeAction = v_codeAction
+        ; publishDiagnostics = v_publishDiagnostics
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg =
+            PublishDiagnosticsClientCapabilities.yojson_of_t
+              v_publishDiagnostics
+          in
+          ("publishDiagnostics", arg) :: bnds
+        in
         let bnds =
           let arg = CodeAction.yojson_of_t v_codeAction in
           ("codeAction", arg) :: bnds
@@ -1104,6 +1334,7 @@ module TextDocumentClientCapabilities = struct
     ; hover = Hover.empty
     ; documentSymbol = DocumentSymbol.empty
     ; codeAction = CodeAction.empty
+    ; publishDiagnostics = PublishDiagnosticsClientCapabilities.empty
     }
 end
 
