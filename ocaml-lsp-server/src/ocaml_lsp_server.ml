@@ -125,7 +125,7 @@ let send_diagnostics rpc doc =
 
   let notif =
     Lsp.Server_notification.PublishDiagnostics
-      { uri = Document.uri doc; diagnostics }
+      { uri = Document.uri doc; diagnostics; version = None }
   in
 
   Lsp.Rpc.send_notification rpc notif

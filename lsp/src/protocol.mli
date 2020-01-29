@@ -554,6 +554,7 @@ module PublishDiagnostics : sig
   type params =
     { uri : documentUri
     ; diagnostics : diagnostic list
+    ; version : int option
     }
 
   val params_of_yojson : Json.t -> params

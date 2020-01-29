@@ -5227,6 +5227,7 @@ module PublishDiagnostics = struct
   type params =
     { uri : documentUri
     ; diagnostics : diagnostic list
+    ; version : int option [@yojson.option]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -5238,6 +5239,7 @@ module PublishDiagnostics = struct
       | `Assoc field_yojsons as yojson -> (
         let uri_field = ref None
         and diagnostics_field = ref None
+        and version_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -5261,6 +5263,14 @@ module PublishDiagnostics = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "version" -> (
+              match Ppx_yojson_conv_lib.( ! ) version_field with
+              | None ->
+                let fvalue = int_of_yojson _field_yojson in
+                version_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -5280,10 +5290,14 @@ module PublishDiagnostics = struct
           | [] -> (
             match
               ( Ppx_yojson_conv_lib.( ! ) uri_field
-              , Ppx_yojson_conv_lib.( ! ) diagnostics_field )
+              , Ppx_yojson_conv_lib.( ! ) diagnostics_field
+              , Ppx_yojson_conv_lib.( ! ) version_field )
             with
-            | Some uri_value, Some diagnostics_value ->
-              { uri = uri_value; diagnostics = diagnostics_value }
+            | Some uri_value, Some diagnostics_value, version_value ->
+              { uri = uri_value
+              ; diagnostics = diagnostics_value
+              ; version = version_value
+              }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
@@ -5305,8 +5319,16 @@ module PublishDiagnostics = struct
 
   let yojson_of_params =
     ( function
-      | { uri = v_uri; diagnostics = v_diagnostics } ->
+      | { uri = v_uri; diagnostics = v_diagnostics; version = v_version } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_version with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_int v in
+            let bnd = ("version", arg) in
+            bnd :: bnds
+        in
         let bnds =
           let arg = yojson_of_list yojson_of_diagnostic v_diagnostics in
           ("diagnostics", arg) :: bnds
