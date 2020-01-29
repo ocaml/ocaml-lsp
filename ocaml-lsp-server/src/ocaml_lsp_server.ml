@@ -114,7 +114,6 @@ let send_diagnostics rpc doc =
           ; severity
           ; range
           ; relatedInformation = []
-          ; relatedLocations = []
           ; code = NoCode
           ; source = None
           }
