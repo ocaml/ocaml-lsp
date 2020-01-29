@@ -539,45 +539,44 @@ let on_request :
     Document_store.get store uri >>= fun doc ->
     let prefix = prefix_of_position (Document.source doc) position in
     log ~title:"debug" "completion prefix: |%s|" prefix;
-    let complete =
-      Query_protocol.Complete_prefix
-        (prefix, position, completion_kinds, true, true)
-    in
-    let expand =
-      Query_protocol.Expand_prefix (prefix, position, completion_kinds, true)
-    in
 
     Document.with_pipeline doc @@ fun pipeline ->
-    let completions = Query_commands.dispatch pipeline complete in
-    let labels =
-      match completions with
-      | { Query_protocol.Compl.entries = _; context = `Unknown } -> []
-      | { Query_protocol.Compl.entries = _; context = `Application context } ->
-        let { Query_protocol.Compl.labels; argument_type = _ } = context in
-        List.map
-          ~f:(fun (name, typ) ->
-            `Keep
-              { Query_protocol.Compl.name
-              ; kind = `Label
-              ; desc = typ
-              ; info = ""
-              ; deprecated = false (* TODO this is wrong *)
-              })
-          labels
+    let completion =
+      let complete =
+        Query_protocol.Complete_prefix
+          (prefix, position, completion_kinds, true, true)
+      in
+      Query_commands.dispatch pipeline complete
+    in
+    let items = completion.entries |> List.map ~f:(fun entry -> `Keep entry) in
+    let items =
+      match completion.context with
+      | `Unknown -> items
+      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
+        items
+        @ List.map labels ~f:(fun (name, typ) ->
+              `Keep
+                { Query_protocol.Compl.name
+                ; kind = `Label
+                ; desc = typ
+                ; info = ""
+                ; deprecated = false (* TODO this is wrong *)
+                })
     in
     let items =
-      match (completions, labels) with
-      | { Query_protocol.Compl.entries = []; context = _ }, [] ->
+      match items with
+      | _ :: _ -> items
+      | [] ->
+        let expand =
+          Query_protocol.Expand_prefix (prefix, position, completion_kinds, true)
+        in
         let { Query_protocol.Compl.entries; context = _ } =
           Query_commands.dispatch pipeline expand
         in
         let range = range_prefix prefix in
         List.map ~f:(fun entry -> `Replace (range, entry)) entries
-      | { entries; context = _ }, _labels ->
-        List.map ~f:(fun entry -> `Keep entry) entries
     in
-    let all = List.concat [ labels; items ] in
-    let items = List.mapi ~f:item all in
+    let items = List.mapi ~f:item items in
     let resp = { Lsp.Completion.isIncomplete = false; items } in
     Ok (store, resp)
   | Lsp.Client_request.TextDocumentPrepareRename _ -> Ok (store, None)
