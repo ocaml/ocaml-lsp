@@ -507,7 +507,7 @@ let on_request :
       ; kind
       ; detail = Some entry.desc
       ; documentation = Some entry.info
-      ; deprecated = false
+      ; deprecated = entry.deprecated
       ; preselect = None
       ; (* Without this field the client is not forced to respect the order
            provided by merlin. *)
