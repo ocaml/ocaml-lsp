@@ -2,12 +2,6 @@ open Import
 
 type t = string [@@deriving_inline yojson]
 
-let equal = String.equal
-
-let hash = String.hash
-
-let to_dyn = String.to_dyn
-
 let _ = fun (_ : t) -> ()
 
 let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -19,6 +13,12 @@ let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
 let _ = yojson_of_t
 
 [@@@end]
+
+let equal = String.equal
+
+let hash = String.hash
+
+let to_dyn = String.to_dyn
 
 let to_string uri = uri
 
