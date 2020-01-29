@@ -141,6 +141,13 @@ module ClientCapabilities : sig
   val empty : t
 end
 
+module Info : sig
+  type t =
+    { name : string
+    ; version : string option
+    }
+end
+
 module Params : sig
   type t =
     { processId : int option
@@ -150,6 +157,7 @@ module Params : sig
     ; trace : Trace.t
     ; workspaceFolders : WorkspaceFolder.t list
     ; initializationOptions : Json.t option
+    ; clientInfo : Info.t option
     }
 
   val create :
@@ -160,6 +168,7 @@ module Params : sig
     -> ?trace:Trace.t
     -> ?workspaceFolders:WorkspaceFolder.t list
     -> ?initializationOptions:Json.t
+    -> ?clientInfo:Info.t
     -> unit
     -> t
 
@@ -233,7 +242,10 @@ module ServerCapabilities : sig
 end
 
 module Result : sig
-  type t = { capabilities : ServerCapabilities.t }
+  type t =
+    { capabilities : ServerCapabilities.t
+    ; serverInfo : Info.t option
+    }
 
   include Json.Jsonable.S with type t := t
 end
