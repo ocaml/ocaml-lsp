@@ -38,7 +38,18 @@ module Synchronization : sig
 end
 
 module CompletionItem : sig
-  type t = { snippetSupport : bool }
+  module TagSupport : sig
+    type t = { valueSet : Completion.ItemTag.t list }
+  end
+
+  type t =
+    { snippetSupport : bool
+    ; commitCharactersSupport : bool
+    ; documentationFormat : MarkupKind.t list
+    ; deprecatedSupport : bool
+    ; preselectSupport : bool
+    ; tagSupport : TagSupport.t
+    }
 
   val empty : t
 end

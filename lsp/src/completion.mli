@@ -3,6 +3,8 @@ open Protocol
 
 module ItemTag : sig
   type t = Deprecated
+
+  include Json.Jsonable.S with type t := t
 end
 
 type completionTriggerKind =

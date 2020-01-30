@@ -453,8 +453,8 @@ and completionItem_of_yojson =
       and textEdit_field = ref None
       and additionalTextEdits_field = ref None
       and commitCharacters_field = ref None
-      and data_field = ref None
       and tags_field = ref None
+      and data_field = ref None
       and duplicates = ref []
       and extra = ref [] in
       let rec iter = function
@@ -551,18 +551,18 @@ and completionItem_of_yojson =
               commitCharacters_field := Some fvalue
             | Some _ ->
               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
-          | "data" -> (
-            match Ppx_yojson_conv_lib.( ! ) data_field with
-            | None ->
-              let fvalue = Json.t_of_yojson _field_yojson in
-              data_field := Some fvalue
-            | Some _ ->
-              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
           | "tags" -> (
             match Ppx_yojson_conv_lib.( ! ) tags_field with
             | None ->
               let fvalue = list_of_yojson ItemTag.t_of_yojson _field_yojson in
               tags_field := Some fvalue
+            | Some _ ->
+              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+          | "data" -> (
+            match Ppx_yojson_conv_lib.( ! ) data_field with
+            | None ->
+              let fvalue = Json.t_of_yojson _field_yojson in
+              data_field := Some fvalue
             | Some _ ->
               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
           | _ -> () );
@@ -596,8 +596,8 @@ and completionItem_of_yojson =
             , Ppx_yojson_conv_lib.( ! ) textEdit_field
             , Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field
             , Ppx_yojson_conv_lib.( ! ) commitCharacters_field
-            , Ppx_yojson_conv_lib.( ! ) data_field
-            , Ppx_yojson_conv_lib.( ! ) tags_field )
+            , Ppx_yojson_conv_lib.( ! ) tags_field
+            , Ppx_yojson_conv_lib.( ! ) data_field )
           with
           | ( Some label_value
             , kind_value
@@ -612,8 +612,8 @@ and completionItem_of_yojson =
             , textEdit_value
             , additionalTextEdits_value
             , commitCharacters_value
-            , data_value
-            , tags_value ) ->
+            , tags_value
+            , data_value ) ->
             { label = label_value
             ; kind = kind_value
             ; detail = detail_value
@@ -636,11 +636,11 @@ and completionItem_of_yojson =
                 ( match commitCharacters_value with
                 | None -> []
                 | Some v -> v )
-            ; data = data_value
             ; tags =
                 ( match tags_value with
                 | None -> []
                 | Some v -> v )
+            ; data = data_value
             }
           | _ ->
             Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -750,24 +750,24 @@ and yojson_of_completionItem =
       ; textEdit = v_textEdit
       ; additionalTextEdits = v_additionalTextEdits
       ; commitCharacters = v_commitCharacters
-      ; data = v_data
       ; tags = v_tags
+      ; data = v_data
       } ->
       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-      let bnds =
-        if [] = v_tags then
-          bnds
-        else
-          let arg = (yojson_of_list ItemTag.yojson_of_t) v_tags in
-          let bnd = ("tags", arg) in
-          bnd :: bnds
-      in
       let bnds =
         match v_data with
         | None -> bnds
         | Some v ->
           let arg = Json.yojson_of_t v in
           let bnd = ("data", arg) in
+          bnd :: bnds
+      in
+      let bnds =
+        if [] = v_tags then
+          bnds
+        else
+          let arg = (yojson_of_list ItemTag.yojson_of_t) v_tags in
+          let bnd = ("tags", arg) in
           bnd :: bnds
       in
       let bnds =

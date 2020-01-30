@@ -493,9 +493,95 @@ module Synchronization = struct
 end
 
 module CompletionItem = struct
+  module TagSupport = struct
+    type t = { valueSet : Completion.ItemTag.t list }
+    [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/initialize.ml.CompletionItem.TagSupport.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let valueSet_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "valueSet" -> (
+                match Ppx_yojson_conv_lib.( ! ) valueSet_field with
+                | None ->
+                  let fvalue =
+                    list_of_yojson Completion.ItemTag.t_of_yojson _field_yojson
+                  in
+                  valueSet_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match Ppx_yojson_conv_lib.( ! ) valueSet_field with
+              | Some valueSet_value -> { valueSet = valueSet_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) valueSet_field)
+                        None
+                    , "valueSet" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { valueSet = v_valueSet } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg =
+              yojson_of_list Completion.ItemTag.yojson_of_t v_valueSet
+            in
+            ("valueSet", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+
+    let default = { valueSet = [] }
+  end
+
   type t =
-    { snippetSupport : bool [@default false]
-          (* client can do snippets as insert text *)
+    { snippetSupport : bool
+          [@default false] (* client can do snippets as insert text *)
+    ; commitCharactersSupport : bool [@default false]
+    ; documentationFormat : MarkupKind.t list [@default []]
+    ; deprecatedSupport : bool [@default false]
+    ; preselectSupport : bool [@default false]
+    ; tagSupport : TagSupport.t [@default TagSupport.default]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -506,6 +592,11 @@ module CompletionItem = struct
       function
       | `Assoc field_yojsons as yojson -> (
         let snippetSupport_field = ref None
+        and commitCharactersSupport_field = ref None
+        and documentationFormat_field = ref None
+        and deprecatedSupport_field = ref None
+        and preselectSupport_field = ref None
+        and tagSupport_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -516,6 +607,48 @@ module CompletionItem = struct
               | None ->
                 let fvalue = bool_of_yojson _field_yojson in
                 snippetSupport_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "commitCharactersSupport" -> (
+              match Ppx_yojson_conv_lib.( ! ) commitCharactersSupport_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                commitCharactersSupport_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "documentationFormat" -> (
+              match Ppx_yojson_conv_lib.( ! ) documentationFormat_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson MarkupKind.t_of_yojson _field_yojson
+                in
+                documentationFormat_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "deprecatedSupport" -> (
+              match Ppx_yojson_conv_lib.( ! ) deprecatedSupport_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                deprecatedSupport_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "preselectSupport" -> (
+              match Ppx_yojson_conv_lib.( ! ) preselectSupport_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                preselectSupport_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "tagSupport" -> (
+              match Ppx_yojson_conv_lib.( ! ) tagSupport_field with
+              | None ->
+                let fvalue = TagSupport.t_of_yojson _field_yojson in
+                tagSupport_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -536,12 +669,42 @@ module CompletionItem = struct
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
           | [] ->
-            let snippetSupport_value =
-              Ppx_yojson_conv_lib.( ! ) snippetSupport_field
+            let ( snippetSupport_value
+                , commitCharactersSupport_value
+                , documentationFormat_value
+                , deprecatedSupport_value
+                , preselectSupport_value
+                , tagSupport_value ) =
+              ( Ppx_yojson_conv_lib.( ! ) snippetSupport_field
+              , Ppx_yojson_conv_lib.( ! ) commitCharactersSupport_field
+              , Ppx_yojson_conv_lib.( ! ) documentationFormat_field
+              , Ppx_yojson_conv_lib.( ! ) deprecatedSupport_field
+              , Ppx_yojson_conv_lib.( ! ) preselectSupport_field
+              , Ppx_yojson_conv_lib.( ! ) tagSupport_field )
             in
             { snippetSupport =
                 ( match snippetSupport_value with
                 | None -> false
+                | Some v -> v )
+            ; commitCharactersSupport =
+                ( match commitCharactersSupport_value with
+                | None -> false
+                | Some v -> v )
+            ; documentationFormat =
+                ( match documentationFormat_value with
+                | None -> []
+                | Some v -> v )
+            ; deprecatedSupport =
+                ( match deprecatedSupport_value with
+                | None -> false
+                | Some v -> v )
+            ; preselectSupport =
+                ( match preselectSupport_value with
+                | None -> false
+                | Some v -> v )
+            ; tagSupport =
+                ( match tagSupport_value with
+                | None -> TagSupport.default
                 | Some v -> v )
             } ) )
       | _ as yojson ->
@@ -553,8 +716,36 @@ module CompletionItem = struct
 
   let yojson_of_t =
     ( function
-      | { snippetSupport = v_snippetSupport } ->
+      | { snippetSupport = v_snippetSupport
+        ; commitCharactersSupport = v_commitCharactersSupport
+        ; documentationFormat = v_documentationFormat
+        ; deprecatedSupport = v_deprecatedSupport
+        ; preselectSupport = v_preselectSupport
+        ; tagSupport = v_tagSupport
+        } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg = TagSupport.yojson_of_t v_tagSupport in
+          ("tagSupport", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_bool v_preselectSupport in
+          ("preselectSupport", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_bool v_deprecatedSupport in
+          ("deprecatedSupport", arg) :: bnds
+        in
+        let bnds =
+          let arg =
+            yojson_of_list MarkupKind.yojson_of_t v_documentationFormat
+          in
+          ("documentationFormat", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_bool v_commitCharactersSupport in
+          ("commitCharactersSupport", arg) :: bnds
+        in
         let bnds =
           let arg = yojson_of_bool v_snippetSupport in
           ("snippetSupport", arg) :: bnds
@@ -566,7 +757,14 @@ module CompletionItem = struct
 
   [@@@end]
 
-  let empty = { snippetSupport = false }
+  let empty =
+    { snippetSupport = false
+    ; commitCharactersSupport = false
+    ; documentationFormat = []
+    ; deprecatedSupport = false
+    ; preselectSupport = false
+    ; tagSupport = TagSupport.default
+    }
 end
 
 module Completion = struct
