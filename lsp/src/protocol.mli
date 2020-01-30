@@ -340,6 +340,9 @@ module FormattingOptions : sig
   type t =
     { tabSize : int
     ; insertSpaces : bool
+    ; trimTrailingWhitespace : bool option
+    ; insertFinalNewline : bool option
+    ; trimFinalNewlines : bool option
     }
 end
 

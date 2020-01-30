@@ -1948,6 +1948,9 @@ module FormattingOptions = struct
   type t =
     { tabSize : int
     ; insertSpaces : bool
+    ; trimTrailingWhitespace : bool option [@yojson.option]
+    ; insertFinalNewline : bool option [@yojson.option]
+    ; trimFinalNewlines : bool option [@yojson.option]
     }
   [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
@@ -1959,6 +1962,9 @@ module FormattingOptions = struct
       | `Assoc field_yojsons as yojson -> (
         let tabSize_field = ref None
         and insertSpaces_field = ref None
+        and trimTrailingWhitespace_field = ref None
+        and insertFinalNewline_field = ref None
+        and trimFinalNewlines_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -1977,6 +1983,30 @@ module FormattingOptions = struct
               | None ->
                 let fvalue = bool_of_yojson _field_yojson in
                 insertSpaces_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "trimTrailingWhitespace" -> (
+              match Ppx_yojson_conv_lib.( ! ) trimTrailingWhitespace_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                trimTrailingWhitespace_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "insertFinalNewline" -> (
+              match Ppx_yojson_conv_lib.( ! ) insertFinalNewline_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                insertFinalNewline_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "trimFinalNewlines" -> (
+              match Ppx_yojson_conv_lib.( ! ) trimFinalNewlines_field with
+              | None ->
+                let fvalue = bool_of_yojson _field_yojson in
+                trimFinalNewlines_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -1999,10 +2029,22 @@ module FormattingOptions = struct
           | [] -> (
             match
               ( Ppx_yojson_conv_lib.( ! ) tabSize_field
-              , Ppx_yojson_conv_lib.( ! ) insertSpaces_field )
+              , Ppx_yojson_conv_lib.( ! ) insertSpaces_field
+              , Ppx_yojson_conv_lib.( ! ) trimTrailingWhitespace_field
+              , Ppx_yojson_conv_lib.( ! ) insertFinalNewline_field
+              , Ppx_yojson_conv_lib.( ! ) trimFinalNewlines_field )
             with
-            | Some tabSize_value, Some insertSpaces_value ->
-              { tabSize = tabSize_value; insertSpaces = insertSpaces_value }
+            | ( Some tabSize_value
+              , Some insertSpaces_value
+              , trimTrailingWhitespace_value
+              , insertFinalNewline_value
+              , trimFinalNewlines_value ) ->
+              { tabSize = tabSize_value
+              ; insertSpaces = insertSpaces_value
+              ; trimTrailingWhitespace = trimTrailingWhitespace_value
+              ; insertFinalNewline = insertFinalNewline_value
+              ; trimFinalNewlines = trimFinalNewlines_value
+              }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
@@ -2024,8 +2066,37 @@ module FormattingOptions = struct
 
   let yojson_of_t =
     ( function
-      | { tabSize = v_tabSize; insertSpaces = v_insertSpaces } ->
+      | { tabSize = v_tabSize
+        ; insertSpaces = v_insertSpaces
+        ; trimTrailingWhitespace = v_trimTrailingWhitespace
+        ; insertFinalNewline = v_insertFinalNewline
+        ; trimFinalNewlines = v_trimFinalNewlines
+        } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          match v_trimFinalNewlines with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_bool v in
+            let bnd = ("trimFinalNewlines", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          match v_insertFinalNewline with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_bool v in
+            let bnd = ("insertFinalNewline", arg) in
+            bnd :: bnds
+        in
+        let bnds =
+          match v_trimTrailingWhitespace with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_bool v in
+            let bnd = ("trimTrailingWhitespace", arg) in
+            bnd :: bnds
+        in
         let bnds =
           let arg = yojson_of_bool v_insertSpaces in
           ("insertSpaces", arg) :: bnds
