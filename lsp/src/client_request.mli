@@ -50,6 +50,7 @@ type _ t =
       ColorPresentation.Params.t
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColor.Params.t -> DocumentColor.Result.t t
+  | SelectionRange : SelectionRange.Params.t -> SelectionRange.t list t
   | UnknownRequest : string * Json.t option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> Json.t option

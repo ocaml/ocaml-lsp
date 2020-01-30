@@ -637,6 +637,7 @@ let on_request :
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting _ -> Ok (store, [])
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
+  | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
   | Lsp.Client_request.UnknownRequest _ -> Error "got unknown request"
 
 let on_notification rpc store (notification : Lsp.Client_notification.t) =
