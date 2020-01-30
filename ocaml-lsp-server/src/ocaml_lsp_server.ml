@@ -36,7 +36,10 @@ let initializeInfo : Lsp.Initialize.Result.t =
   let codeActionProvider : Lsp.Initialize.CodeActionOptions.t =
     { codeActionsKinds = [ Other Action.destruct ] }
   in
-  { capabilities =
+  (* TODO use actual version *)
+  let serverInfo = None in
+  { serverInfo
+  ; capabilities =
       { textDocumentSync =
           { openClose = true
           ; change = IncrementalSync
