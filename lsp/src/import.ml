@@ -123,6 +123,8 @@ module Json = struct
 
   let error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
 
+  let yojson_of_list = Ppx_yojson_conv_lib.Yojson_conv.yojson_of_list
+
   module Jsonable = Ppx_yojson_conv_lib.Yojsonable
 
   let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv

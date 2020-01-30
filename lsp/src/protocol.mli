@@ -929,3 +929,21 @@ module FoldingRange : sig
 
   val yojson_of_result : t list -> Json.t
 end
+
+module SelectionRange : sig
+  module Params : sig
+    type t =
+      { textDocument : TextDocumentIdentifier.t
+      ; positions : Position.t list
+      }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  type t =
+    { range : Range.t
+    ; parent : t option
+    }
+
+  include Json.Jsonable.S with type t := t
+end

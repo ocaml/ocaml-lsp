@@ -52,6 +52,7 @@ type _ t =
       ColorPresentation.Params.t
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColor.Params.t -> DocumentColor.Result.t t
+  | SelectionRange : SelectionRange.Params.t -> SelectionRange.t list t
   | UnknownRequest : string * Json.t option -> unit t
 
 let yojson_of_result (type a) (req : a t) (result : a) =
@@ -101,6 +102,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (ColorPresentation.Result.yojson_of_t result)
   | TextDocumentColor _, result ->
     Some (DocumentColor.Result.yojson_of_t result)
+  | SelectionRange _, result ->
+    Some (Json.yojson_of_list SelectionRange.yojson_of_t result)
   | UnknownRequest _, _resp -> None
 
 type packed = E : 'r t -> packed
@@ -172,4 +175,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/declaration" ->
     parse TextDocumentPositionParams.t_of_yojson >>| fun params ->
     E (TextDocumentDeclaration params)
+  | "textDocument/selectionRange" ->
+    parse SelectionRange.Params.t_of_yojson >>| fun params ->
+    E (SelectionRange params)
   | m -> Ok (E (UnknownRequest (m, r.params)))
