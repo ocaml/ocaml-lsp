@@ -1,6 +1,10 @@
 open Import
 open Protocol
 
+module ItemTag : sig
+  type t = Deprecated
+end
+
 type completionTriggerKind =
   | Invoked
   | TriggerCharacter
@@ -51,6 +55,7 @@ type completionItem =
   ; textEdit : TextEdit.t option
   ; additionalTextEdits : TextEdit.t list
   ; commitCharacters : string list
+  ; tags : ItemTag.t list
   ; data : Json.t option
   }
 

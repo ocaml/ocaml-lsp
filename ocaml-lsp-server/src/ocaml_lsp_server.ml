@@ -522,6 +522,7 @@ let on_request :
       ; additionalTextEdits = []
       ; commitCharacters = []
       ; data = None
+      ; tags = []
       }
     in
 

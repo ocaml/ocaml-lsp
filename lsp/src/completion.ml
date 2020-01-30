@@ -1,6 +1,17 @@
 open Import
 open Protocol
 
+module ItemTag = struct
+  type t = Deprecated
+
+  let yojson_of_t = function
+    | Deprecated -> `Int 1
+
+  let t_of_yojson = function
+    | `Int 1 -> Deprecated
+    | json -> Json.error "ItemTag" json
+end
+
 type completionTriggerKind =
   | Invoked (* 1 *)
   | TriggerCharacter (* 2 *)
@@ -191,6 +202,7 @@ and completionItem =
   ; additionalTextEdits : TextEdit.t list
         [@default []] [@yojson_drop_default ( = )]
   ; commitCharacters : string list [@default []] [@yojson_drop_default ( = )]
+  ; tags : ItemTag.t list [@default []] [@yojson_drop_default ( = )]
   ; data : Json.t option [@yojson.option]
   }
 [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
@@ -442,6 +454,7 @@ and completionItem_of_yojson =
       and additionalTextEdits_field = ref None
       and commitCharacters_field = ref None
       and data_field = ref None
+      and tags_field = ref None
       and duplicates = ref []
       and extra = ref [] in
       let rec iter = function
@@ -545,6 +558,13 @@ and completionItem_of_yojson =
               data_field := Some fvalue
             | Some _ ->
               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+          | "tags" -> (
+            match Ppx_yojson_conv_lib.( ! ) tags_field with
+            | None ->
+              let fvalue = list_of_yojson ItemTag.t_of_yojson _field_yojson in
+              tags_field := Some fvalue
+            | Some _ ->
+              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
           | _ -> () );
           iter tail
         | [] -> ()
@@ -576,7 +596,8 @@ and completionItem_of_yojson =
             , Ppx_yojson_conv_lib.( ! ) textEdit_field
             , Ppx_yojson_conv_lib.( ! ) additionalTextEdits_field
             , Ppx_yojson_conv_lib.( ! ) commitCharacters_field
-            , Ppx_yojson_conv_lib.( ! ) data_field )
+            , Ppx_yojson_conv_lib.( ! ) data_field
+            , Ppx_yojson_conv_lib.( ! ) tags_field )
           with
           | ( Some label_value
             , kind_value
@@ -591,7 +612,8 @@ and completionItem_of_yojson =
             , textEdit_value
             , additionalTextEdits_value
             , commitCharacters_value
-            , data_value ) ->
+            , data_value
+            , tags_value ) ->
             { label = label_value
             ; kind = kind_value
             ; detail = detail_value
@@ -615,6 +637,10 @@ and completionItem_of_yojson =
                 | None -> []
                 | Some v -> v )
             ; data = data_value
+            ; tags =
+                ( match tags_value with
+                | None -> []
+                | Some v -> v )
             }
           | _ ->
             Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -725,8 +751,17 @@ and yojson_of_completionItem =
       ; additionalTextEdits = v_additionalTextEdits
       ; commitCharacters = v_commitCharacters
       ; data = v_data
+      ; tags = v_tags
       } ->
       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+      let bnds =
+        if [] = v_tags then
+          bnds
+        else
+          let arg = (yojson_of_list ItemTag.yojson_of_t) v_tags in
+          let bnd = ("tags", arg) in
+          bnd :: bnds
+      in
       let bnds =
         match v_data with
         | None -> bnds
