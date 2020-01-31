@@ -536,10 +536,12 @@ module PublishDiagnostics : sig
 
   val diagnosticSeverity_of_yojson : Json.t -> diagnosticSeverity
 
-  type diagnosticRelatedInformation =
-    { relatedLocation : Location.t
-    ; relatedMessage : string
-    }
+  module DiagnosticRelatedInformation : sig
+    type t =
+      { location : Location.t
+      ; message : string
+      }
+  end
 
   type diagnostic =
     { range : Range.t
@@ -547,7 +549,7 @@ module PublishDiagnostics : sig
     ; code : diagnosticCode
     ; source : string option
     ; message : string
-    ; relatedInformation : diagnosticRelatedInformation list
+    ; relatedInformation : DiagnosticRelatedInformation.t list
     ; tags : Diagnostics.Tag.t list
     }
 
