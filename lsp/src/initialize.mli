@@ -71,6 +71,15 @@ module DocumentSymbol : sig
   val empty : t
 end
 
+module FoldingRangeClientCapabilities : sig
+  type t =
+    { rangeLimit : int option
+    ; lineFoldingOnly : bool
+    }
+
+  val empty : t
+end
+
 module TextDocumentClientCapabilities : sig
   type t =
     { synchronization : Synchronization.t
@@ -78,6 +87,7 @@ module TextDocumentClientCapabilities : sig
     ; documentSymbol : DocumentSymbol.t
     ; hover : Hover.t
     ; codeAction : CodeAction.t
+    ; foldingRange : FoldingRangeClientCapabilities.t
     }
 
   val empty : t
@@ -122,20 +132,10 @@ module WorkspaceClientCapabilities : sig
     }
 end
 
-module FoldingRangeClientCapabilities : sig
-  type t =
-    { rangeLimit : int option
-    ; lineFoldingOnly : bool
-    }
-
-  val empty : t
-end
-
 module ClientCapabilities : sig
   type t =
     { workspace : WorkspaceClientCapabilities.t
     ; textDocument : TextDocumentClientCapabilities.t
-    ; foldingRange : FoldingRangeClientCapabilities.t
     }
 
   val empty : t
