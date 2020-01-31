@@ -291,61 +291,49 @@ type t =
         [@default []] [@yojson_drop_default ( = )]
   ; edit : WorkspaceEdit.t option [@yojson.option]
   ; command : Command.t option [@yojson.option]
+  ; isPreferred : bool [@default false]
   }
 [@@deriving_inline yojson_of]
 
 let _ = fun (_ : t) -> ()
 
 let yojson_of_t =
-  ( function
-    | { title = v_title
-      ; kind = v_kind
-      ; diagnostics = v_diagnostics
-      ; edit = v_edit
-      ; command = v_command
-      } ->
-      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-      let bnds =
-        match v_command with
-        | None -> bnds
-        | Some v ->
-          let arg = Command.yojson_of_t v in
-          let bnd = ("command", arg) in
-          bnd :: bnds
-      in
-      let bnds =
-        match v_edit with
-        | None -> bnds
-        | Some v ->
-          let arg = WorkspaceEdit.yojson_of_t v in
-          let bnd = ("edit", arg) in
-          bnd :: bnds
-      in
-      let bnds =
-        if [] = v_diagnostics then
-          bnds
-        else
-          let arg =
-            (yojson_of_list PublishDiagnostics.yojson_of_diagnostic)
-              v_diagnostics
-          in
-          let bnd = ("diagnostics", arg) in
-          bnd :: bnds
-      in
-      let bnds =
-        match v_kind with
-        | None -> bnds
-        | Some v ->
-          let arg = Kind.yojson_of_t v in
-          let bnd = ("kind", arg) in
-          bnd :: bnds
-      in
-      let bnds =
-        let arg = yojson_of_string v_title in
-        ("title", arg) :: bnds
-      in
-      `Assoc bnds
-    : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+  (function
+   | { title = v_title; kind = v_kind; diagnostics = v_diagnostics;
+       edit = v_edit; command = v_command; isPreferred = v_isPreferred } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         let arg = yojson_of_bool v_isPreferred in ("isPreferred", arg) ::
+           bnds in
+       let bnds =
+         match v_command with
+         | None -> bnds
+         | Some v ->
+             let arg = Command.yojson_of_t v in
+             let bnd = ("command", arg) in bnd :: bnds in
+       let bnds =
+         match v_edit with
+         | None -> bnds
+         | Some v ->
+             let arg = WorkspaceEdit.yojson_of_t v in
+             let bnd = ("edit", arg) in bnd :: bnds in
+       let bnds =
+         if [] = v_diagnostics
+         then bnds
+         else
+           (let arg =
+              (yojson_of_list PublishDiagnostics.yojson_of_diagnostic)
+                v_diagnostics in
+            let bnd = ("diagnostics", arg) in bnd :: bnds) in
+       let bnds =
+         match v_kind with
+         | None -> bnds
+         | Some v ->
+             let arg = Kind.yojson_of_t v in
+             let bnd = ("kind", arg) in bnd :: bnds in
+       let bnds =
+         let arg = yojson_of_string v_title in ("title", arg) :: bnds in
+       `Assoc bnds : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
 
 let _ = yojson_of_t
 
