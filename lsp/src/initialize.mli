@@ -80,12 +80,30 @@ module FoldingRangeClientCapabilities : sig
   val empty : t
 end
 
+module SignatureHelpClientCapabilities : sig
+  type parameterInformation = { labelOffsetSupport : bool }
+
+  type signatureInformation =
+    { documentationFormat : MarkupKind.t list
+    ; parameterInformation : parameterInformation
+    }
+
+  type t =
+    { dynamicRegistration : bool
+    ; signatureInformation : signatureInformation
+    ; contextSupport : bool
+    }
+
+  val empty : t
+end
+
 module TextDocumentClientCapabilities : sig
   type t =
     { synchronization : Synchronization.t
     ; completion : Completion.t
-    ; documentSymbol : DocumentSymbol.t
     ; hover : Hover.t
+    ; signatureHelp : SignatureHelpClientCapabilities.t
+    ; documentSymbol : DocumentSymbol.t
     ; codeAction : CodeAction.t
     ; foldingRange : FoldingRangeClientCapabilities.t
     }
