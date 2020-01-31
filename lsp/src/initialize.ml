@@ -1344,6 +1344,7 @@ module TextDocumentClientCapabilities = struct
           [@default Hover.empty] (* omitted: dynamic-registration fields *)
     ; codeAction : CodeAction.t [@default CodeAction.empty]
     ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t
+          [@default PublishDiagnosticsClientCapabilities.empty]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -1430,51 +1431,45 @@ module TextDocumentClientCapabilities = struct
             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
-          | [] -> (
-            match
+          | [] ->
+            let ( synchronization_value
+                , completion_value
+                , documentSymbol_value
+                , hover_value
+                , codeAction_value
+                , publishDiagnostics_value ) =
               ( Ppx_yojson_conv_lib.( ! ) synchronization_field
               , Ppx_yojson_conv_lib.( ! ) completion_field
               , Ppx_yojson_conv_lib.( ! ) documentSymbol_field
               , Ppx_yojson_conv_lib.( ! ) hover_field
               , Ppx_yojson_conv_lib.( ! ) codeAction_field
               , Ppx_yojson_conv_lib.( ! ) publishDiagnostics_field )
-            with
-            | ( synchronization_value
-              , completion_value
-              , documentSymbol_value
-              , hover_value
-              , codeAction_value
-              , Some publishDiagnostics_value ) ->
-              { synchronization =
-                  ( match synchronization_value with
-                  | None -> Synchronization.empty
-                  | Some v -> v )
-              ; completion =
-                  ( match completion_value with
-                  | None -> Completion.empty
-                  | Some v -> v )
-              ; documentSymbol =
-                  ( match documentSymbol_value with
-                  | None -> DocumentSymbol.empty
-                  | Some v -> v )
-              ; hover =
-                  ( match hover_value with
-                  | None -> Hover.empty
-                  | Some v -> v )
-              ; codeAction =
-                  ( match codeAction_value with
-                  | None -> CodeAction.empty
-                  | Some v -> v )
-              ; publishDiagnostics = publishDiagnostics_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) publishDiagnostics_field)
-                      None
-                  , "publishDiagnostics" )
-                ] ) ) )
+            in
+            { synchronization =
+                ( match synchronization_value with
+                | None -> Synchronization.empty
+                | Some v -> v )
+            ; completion =
+                ( match completion_value with
+                | None -> Completion.empty
+                | Some v -> v )
+            ; documentSymbol =
+                ( match documentSymbol_value with
+                | None -> DocumentSymbol.empty
+                | Some v -> v )
+            ; hover =
+                ( match hover_value with
+                | None -> Hover.empty
+                | Some v -> v )
+            ; codeAction =
+                ( match codeAction_value with
+                | None -> CodeAction.empty
+                | Some v -> v )
+            ; publishDiagnostics =
+                ( match publishDiagnostics_value with
+                | None -> PublishDiagnosticsClientCapabilities.empty
+                | Some v -> v )
+            } ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
