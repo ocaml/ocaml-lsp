@@ -145,6 +145,7 @@ let code_action_of_case_analysis uri (loc, newText) =
   ; diagnostics = []
   ; edit = Some edit
   ; command = None
+  ; isPreferred = false
   }
 
 let code_action store (params : Lsp.CodeAction.Params.t) =

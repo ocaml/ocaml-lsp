@@ -39,6 +39,7 @@ type t =
   ; diagnostics : PublishDiagnostics.diagnostic list
   ; edit : WorkspaceEdit.t option
   ; command : Command.t option
+  ; isPreferred : bool
   }
 
 val yojson_of_t : t -> Json.t
