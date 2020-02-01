@@ -536,49 +536,36 @@ module PublishDiagnostics : sig
 
   val diagnosticSeverity_of_yojson : Json.t -> diagnosticSeverity
 
-  type params = publishDiagnosticsParams
+  module DiagnosticRelatedInformation : sig
+    type t =
+      { location : Location.t
+      ; message : string
+      }
+  end
 
-  and publishDiagnosticsParams =
-    { uri : documentUri
-    ; diagnostics : diagnostic list
-    }
-
-  and diagnostic =
+  type diagnostic =
     { range : Range.t
     ; severity : diagnosticSeverity option
     ; code : diagnosticCode
     ; source : string option
     ; message : string
-    ; relatedInformation : diagnosticRelatedInformation list
-    ; relatedLocations : relatedLocation list
+    ; relatedInformation : DiagnosticRelatedInformation.t list
+    ; tags : Diagnostics.Tag.t list
     }
 
-  and diagnosticRelatedInformation =
-    { relatedLocation : Location.t
-    ; relatedMessage : string
+  type params =
+    { uri : documentUri
+    ; diagnostics : diagnostic list
+    ; version : int option
     }
-
-  and relatedLocation = diagnosticRelatedInformation
 
   val params_of_yojson : Json.t -> params
 
-  val publishDiagnosticsParams_of_yojson : Json.t -> params
-
   val diagnostic_of_yojson : Json.t -> diagnostic
-
-  val diagnosticRelatedInformation_of_yojson : Json.t -> relatedLocation
-
-  val relatedLocation_of_yojson : Json.t -> relatedLocation
 
   val yojson_of_params : params -> Json.t
 
-  val yojson_of_publishDiagnosticsParams : params -> Json.t
-
   val yojson_of_diagnostic : diagnostic -> Json.t
-
-  val yojson_of_diagnosticRelatedInformation : relatedLocation -> Json.t
-
-  val yojson_of_relatedLocation : relatedLocation -> Json.t
 end
 
 module Hover : sig

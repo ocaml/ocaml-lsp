@@ -114,9 +114,9 @@ let send_diagnostics rpc doc =
           ; severity
           ; range
           ; relatedInformation = []
-          ; relatedLocations = []
           ; code = NoCode
           ; source = None
+          ; tags = []
           }
         in
         diagnostic)
@@ -125,7 +125,7 @@ let send_diagnostics rpc doc =
 
   let notif =
     Lsp.Server_notification.PublishDiagnostics
-      { uri = Document.uri doc; diagnostics }
+      { uri = Document.uri doc; diagnostics; version = None }
   in
 
   Lsp.Rpc.send_notification rpc notif
@@ -523,6 +523,7 @@ let on_request :
       ; additionalTextEdits = []
       ; commitCharacters = []
       ; data = None
+      ; tags = []
       }
     in
 

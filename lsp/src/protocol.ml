@@ -4895,15 +4895,108 @@ module PublishDiagnostics = struct
     | `Int 4 -> Hint
     | node -> Json.error "diagnostic.severity expected to be int" node
 
-  type params = publishDiagnosticsParams
+  module DiagnosticRelatedInformation = struct
+    type t =
+      { location : Location.t
+      ; message : string
+      }
+    [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
-  and publishDiagnosticsParams =
-    { uri : documentUri
-    ; diagnostics : diagnostic list
-    }
-  [@@yojson.allow_extra_fields]
+    let _ = fun (_ : t) -> ()
 
-  and diagnostic =
+    let t_of_yojson =
+      ( let _tp_loc =
+          "lsp/src/protocol.ml.PublishDiagnostics.DiagnosticRelatedInformation.t"
+        in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let location_field = ref None
+          and message_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "location" -> (
+                match Ppx_yojson_conv_lib.( ! ) location_field with
+                | None ->
+                  let fvalue = Location.t_of_yojson _field_yojson in
+                  location_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "message" -> (
+                match Ppx_yojson_conv_lib.( ! ) message_field with
+                | None ->
+                  let fvalue = string_of_yojson _field_yojson in
+                  message_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) location_field
+                , Ppx_yojson_conv_lib.( ! ) message_field )
+              with
+              | Some location_value, Some message_value ->
+                { location = location_value; message = message_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) location_field)
+                        None
+                    , "location" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) message_field)
+                        None
+                    , "message" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { location = v_location; message = v_message } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            let arg = yojson_of_string v_message in
+            ("message", arg) :: bnds
+          in
+          let bnds =
+            let arg = Location.yojson_of_t v_location in
+            ("location", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  type diagnostic =
     { range : Range.t
     ; (* the range at which the message applies *)
       severity : diagnosticSeverity option [@yojson.option]
@@ -4914,108 +5007,15 @@ module PublishDiagnostics = struct
     ; (* human-readable string, eg. typescript/lint *)
       message : string
     ; (* the diagnostic's message *)
-      relatedInformation : diagnosticRelatedInformation list
-    ; relatedLocations : relatedLocation list (* legacy FB extension *)
+      relatedInformation : DiagnosticRelatedInformation.t list
+          [@default []] [@yojson_drop_default ( = )]
+    ; tags : Diagnostics.Tag.t list [@default []] [@yojson_drop_default ( = )]
     }
-  [@@yojson.allow_extra_fields]
-
-  and diagnosticRelatedInformation =
-    { relatedLocation : Location.t
-    ; (* wire: just "location" *)
-      relatedMessage : string (* wire: just "message" *)
-    }
-  [@@yojson.allow_extra_fields]
-
-  (* legacy FB extension *)
-  and relatedLocation = diagnosticRelatedInformation [@@deriving_inline yojson]
-
-  let _ = fun (_ : params) -> ()
-
-  let _ = fun (_ : publishDiagnosticsParams) -> ()
+  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
 
   let _ = fun (_ : diagnostic) -> ()
 
-  let _ = fun (_ : diagnosticRelatedInformation) -> ()
-
-  let _ = fun (_ : relatedLocation) -> ()
-
-  let rec params_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.PublishDiagnostics.params" in
-      fun t -> publishDiagnosticsParams_of_yojson t
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
-
-  and publishDiagnosticsParams_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.PublishDiagnostics.publishDiagnosticsParams"
-      in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let uri_field = ref None
-        and diagnostics_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "uri" -> (
-              match Ppx_yojson_conv_lib.( ! ) uri_field with
-              | None ->
-                let fvalue = documentUri_of_yojson _field_yojson in
-                uri_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "diagnostics" -> (
-              match Ppx_yojson_conv_lib.( ! ) diagnostics_field with
-              | None ->
-                let fvalue =
-                  list_of_yojson diagnostic_of_yojson _field_yojson
-                in
-                diagnostics_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) uri_field
-              , Ppx_yojson_conv_lib.( ! ) diagnostics_field )
-            with
-            | Some uri_value, Some diagnostics_value ->
-              { uri = uri_value; diagnostics = diagnostics_value }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) uri_field)
-                      None
-                  , "uri" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) diagnostics_field)
-                      None
-                  , "diagnostics" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> publishDiagnosticsParams )
-
-  and diagnostic_of_yojson =
+  let diagnostic_of_yojson =
     ( let _tp_loc = "lsp/src/protocol.ml.PublishDiagnostics.diagnostic" in
       function
       | `Assoc field_yojsons as yojson -> (
@@ -5025,7 +5025,7 @@ module PublishDiagnostics = struct
         and source_field = ref None
         and message_field = ref None
         and relatedInformation_field = ref None
-        and relatedLocations_field = ref None
+        and tags_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -5075,20 +5075,20 @@ module PublishDiagnostics = struct
               match Ppx_yojson_conv_lib.( ! ) relatedInformation_field with
               | None ->
                 let fvalue =
-                  list_of_yojson diagnosticRelatedInformation_of_yojson
+                  list_of_yojson DiagnosticRelatedInformation.t_of_yojson
                     _field_yojson
                 in
                 relatedInformation_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
-            | "relatedLocations" -> (
-              match Ppx_yojson_conv_lib.( ! ) relatedLocations_field with
+            | "tags" -> (
+              match Ppx_yojson_conv_lib.( ! ) tags_field with
               | None ->
                 let fvalue =
-                  list_of_yojson relatedLocation_of_yojson _field_yojson
+                  list_of_yojson Diagnostics.Tag.t_of_yojson _field_yojson
                 in
-                relatedLocations_field := Some fvalue
+                tags_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -5116,15 +5116,15 @@ module PublishDiagnostics = struct
               , Ppx_yojson_conv_lib.( ! ) source_field
               , Ppx_yojson_conv_lib.( ! ) message_field
               , Ppx_yojson_conv_lib.( ! ) relatedInformation_field
-              , Ppx_yojson_conv_lib.( ! ) relatedLocations_field )
+              , Ppx_yojson_conv_lib.( ! ) tags_field )
             with
             | ( Some range_value
               , severity_value
               , code_value
               , source_value
               , Some message_value
-              , Some relatedInformation_value
-              , Some relatedLocations_value ) ->
+              , relatedInformation_value
+              , tags_value ) ->
               { range = range_value
               ; severity = severity_value
               ; code =
@@ -5133,8 +5133,14 @@ module PublishDiagnostics = struct
                   | Some v -> v )
               ; source = source_value
               ; message = message_value
-              ; relatedInformation = relatedInformation_value
-              ; relatedLocations = relatedLocations_value
+              ; relatedInformation =
+                  ( match relatedInformation_value with
+                  | None -> []
+                  | Some v -> v )
+              ; tags =
+                  ( match tags_value with
+                  | None -> []
+                  | Some v -> v )
               }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -5147,126 +5153,15 @@ module PublishDiagnostics = struct
                       (Ppx_yojson_conv_lib.( ! ) message_field)
                       None
                   , "message" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) relatedInformation_field)
-                      None
-                  , "relatedInformation" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) relatedLocations_field)
-                      None
-                  , "relatedLocations" )
                 ] ) ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> diagnostic )
 
-  and diagnosticRelatedInformation_of_yojson =
-    ( let _tp_loc =
-        "lsp/src/protocol.ml.PublishDiagnostics.diagnosticRelatedInformation"
-      in
-      function
-      | `Assoc field_yojsons as yojson -> (
-        let relatedLocation_field = ref None
-        and relatedMessage_field = ref None
-        and duplicates = ref []
-        and extra = ref [] in
-        let rec iter = function
-          | (field_name, _field_yojson) :: tail ->
-            ( match field_name with
-            | "relatedLocation" -> (
-              match Ppx_yojson_conv_lib.( ! ) relatedLocation_field with
-              | None ->
-                let fvalue = Location.t_of_yojson _field_yojson in
-                relatedLocation_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | "relatedMessage" -> (
-              match Ppx_yojson_conv_lib.( ! ) relatedMessage_field with
-              | None ->
-                let fvalue = string_of_yojson _field_yojson in
-                relatedMessage_field := Some fvalue
-              | Some _ ->
-                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
-              )
-            | _ -> () );
-            iter tail
-          | [] -> ()
-        in
-        iter field_yojsons;
-        match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] -> (
-          match Ppx_yojson_conv_lib.( ! ) extra with
-          | _ :: _ ->
-            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-              (Ppx_yojson_conv_lib.( ! ) extra)
-              yojson
-          | [] -> (
-            match
-              ( Ppx_yojson_conv_lib.( ! ) relatedLocation_field
-              , Ppx_yojson_conv_lib.( ! ) relatedMessage_field )
-            with
-            | Some relatedLocation_value, Some relatedMessage_value ->
-              { relatedLocation = relatedLocation_value
-              ; relatedMessage = relatedMessage_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) relatedLocation_field)
-                      None
-                  , "relatedLocation" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) relatedMessage_field)
-                      None
-                  , "relatedMessage" )
-                ] ) ) )
-      | _ as yojson ->
-        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-          yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> diagnosticRelatedInformation )
+  let _ = diagnostic_of_yojson
 
-  and relatedLocation_of_yojson =
-    ( let _tp_loc = "lsp/src/protocol.ml.PublishDiagnostics.relatedLocation" in
-      fun t -> diagnosticRelatedInformation_of_yojson t
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> relatedLocation )
-
-  let _ = params_of_yojson
-
-  and _ = publishDiagnosticsParams_of_yojson
-
-  and _ = diagnostic_of_yojson
-
-  and _ = diagnosticRelatedInformation_of_yojson
-
-  and _ = relatedLocation_of_yojson
-
-  let rec yojson_of_params =
-    ( fun v -> yojson_of_publishDiagnosticsParams v
-      : params -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_publishDiagnosticsParams =
-    ( function
-      | { uri = v_uri; diagnostics = v_diagnostics } ->
-        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-        let bnds =
-          let arg = yojson_of_list yojson_of_diagnostic v_diagnostics in
-          ("diagnostics", arg) :: bnds
-        in
-        let bnds =
-          let arg = yojson_of_documentUri v_uri in
-          ("uri", arg) :: bnds
-        in
-        `Assoc bnds
-      : publishDiagnosticsParams -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_diagnostic =
+  let yojson_of_diagnostic =
     ( function
       | { range = v_range
         ; severity = v_severity
@@ -5274,21 +5169,27 @@ module PublishDiagnostics = struct
         ; source = v_source
         ; message = v_message
         ; relatedInformation = v_relatedInformation
-        ; relatedLocations = v_relatedLocations
+        ; tags = v_tags
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg =
-            yojson_of_list yojson_of_relatedLocation v_relatedLocations
-          in
-          ("relatedLocations", arg) :: bnds
+          if [] = v_tags then
+            bnds
+          else
+            let arg = (yojson_of_list Diagnostics.Tag.yojson_of_t) v_tags in
+            let bnd = ("tags", arg) in
+            bnd :: bnds
         in
         let bnds =
-          let arg =
-            yojson_of_list yojson_of_diagnosticRelatedInformation
-              v_relatedInformation
-          in
-          ("relatedInformation", arg) :: bnds
+          if [] = v_relatedInformation then
+            bnds
+          else
+            let arg =
+              (yojson_of_list DiagnosticRelatedInformation.yojson_of_t)
+                v_relatedInformation
+            in
+            let bnd = ("relatedInformation", arg) in
+            bnd :: bnds
         in
         let bnds =
           let arg = yojson_of_string v_message in
@@ -5325,36 +5226,127 @@ module PublishDiagnostics = struct
         `Assoc bnds
       : diagnostic -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
-  and yojson_of_diagnosticRelatedInformation =
+  let _ = yojson_of_diagnostic
+
+  [@@@end]
+
+  type params =
+    { uri : documentUri
+    ; diagnostics : diagnostic list
+    ; version : int option [@yojson.option]
+    }
+  [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+  let _ = fun (_ : params) -> ()
+
+  let params_of_yojson =
+    ( let _tp_loc = "lsp/src/protocol.ml.PublishDiagnostics.params" in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let uri_field = ref None
+        and diagnostics_field = ref None
+        and version_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "uri" -> (
+              match Ppx_yojson_conv_lib.( ! ) uri_field with
+              | None ->
+                let fvalue = documentUri_of_yojson _field_yojson in
+                uri_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "diagnostics" -> (
+              match Ppx_yojson_conv_lib.( ! ) diagnostics_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson diagnostic_of_yojson _field_yojson
+                in
+                diagnostics_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "version" -> (
+              match Ppx_yojson_conv_lib.( ! ) version_field with
+              | None ->
+                let fvalue = int_of_yojson _field_yojson in
+                version_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) uri_field
+              , Ppx_yojson_conv_lib.( ! ) diagnostics_field
+              , Ppx_yojson_conv_lib.( ! ) version_field )
+            with
+            | Some uri_value, Some diagnostics_value, version_value ->
+              { uri = uri_value
+              ; diagnostics = diagnostics_value
+              ; version = version_value
+              }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) uri_field)
+                      None
+                  , "uri" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) diagnostics_field)
+                      None
+                  , "diagnostics" )
+                ] ) ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> params )
+
+  let _ = params_of_yojson
+
+  let yojson_of_params =
     ( function
-      | { relatedLocation = v_relatedLocation
-        ; relatedMessage = v_relatedMessage
-        } ->
+      | { uri = v_uri; diagnostics = v_diagnostics; version = v_version } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          let arg = yojson_of_string v_relatedMessage in
-          ("relatedMessage", arg) :: bnds
+          match v_version with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_int v in
+            let bnd = ("version", arg) in
+            bnd :: bnds
         in
         let bnds =
-          let arg = Location.yojson_of_t v_relatedLocation in
-          ("relatedLocation", arg) :: bnds
+          let arg = yojson_of_list yojson_of_diagnostic v_diagnostics in
+          ("diagnostics", arg) :: bnds
+        in
+        let bnds =
+          let arg = yojson_of_documentUri v_uri in
+          ("uri", arg) :: bnds
         in
         `Assoc bnds
-      : diagnosticRelatedInformation -> Ppx_yojson_conv_lib.Yojson.Safe.t )
-
-  and yojson_of_relatedLocation =
-    ( fun v -> yojson_of_diagnosticRelatedInformation v
-      : relatedLocation -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+      : params -> Ppx_yojson_conv_lib.Yojson.Safe.t )
 
   let _ = yojson_of_params
-
-  and _ = yojson_of_publishDiagnosticsParams
-
-  and _ = yojson_of_diagnostic
-
-  and _ = yojson_of_diagnosticRelatedInformation
-
-  and _ = yojson_of_relatedLocation
 
   [@@@end]
 end

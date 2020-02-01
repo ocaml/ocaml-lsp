@@ -38,7 +38,18 @@ module Synchronization : sig
 end
 
 module CompletionItem : sig
-  type t = { snippetSupport : bool }
+  module TagSupport : sig
+    type t = { valueSet : Completion.ItemTag.t list }
+  end
+
+  type t =
+    { snippetSupport : bool
+    ; commitCharactersSupport : bool
+    ; documentationFormat : MarkupKind.t list
+    ; deprecatedSupport : bool
+    ; preselectSupport : bool
+    ; tagSupport : TagSupport.t
+    }
 
   val empty : t
 end
@@ -71,6 +82,16 @@ module DocumentSymbol : sig
   val empty : t
 end
 
+module PublishDiagnosticsClientCapabilities : sig
+  type tagSupport = { valueSet : Diagnostics.Tag.t list }
+
+  type t =
+    { relatedInformation : bool
+    ; tagSupport : tagSupport option
+    ; versionSupport : bool
+    }
+end
+
 module TextDocumentClientCapabilities : sig
   type t =
     { synchronization : Synchronization.t
@@ -78,6 +99,7 @@ module TextDocumentClientCapabilities : sig
     ; documentSymbol : DocumentSymbol.t
     ; hover : Hover.t
     ; codeAction : CodeAction.t
+    ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t
     }
 
   val empty : t

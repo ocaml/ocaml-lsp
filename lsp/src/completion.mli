@@ -1,6 +1,12 @@
 open Import
 open Protocol
 
+module ItemTag : sig
+  type t = Deprecated
+
+  include Json.Jsonable.S with type t := t
+end
+
 type completionTriggerKind =
   | Invoked
   | TriggerCharacter
@@ -51,6 +57,7 @@ type completionItem =
   ; textEdit : TextEdit.t option
   ; additionalTextEdits : TextEdit.t list
   ; commitCharacters : string list
+  ; tags : ItemTag.t list
   ; data : Json.t option
   }
 
