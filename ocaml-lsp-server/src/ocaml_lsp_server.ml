@@ -634,6 +634,7 @@ let on_request :
     in
     Ok (store, folds)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
+  | Lsp.Client_request.ExecuteCommand _ -> not_supported ()
   | Lsp.Client_request.TextDocumentLinkResolve l -> Ok (store, l)
   | Lsp.Client_request.TextDocumentLink _ -> Ok (store, [])
   | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> Ok (store, [])

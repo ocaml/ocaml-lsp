@@ -8775,3 +8775,125 @@ module SelectionRange = struct
 
   [@@@end]
 end
+
+module ExecuteCommand = struct
+  module Params = struct
+    type t =
+      { command : string
+      ; arguments : Json.t list option [@yojson.option]
+      }
+    [@@yojson.allow_extra_fields] [@@deriving_inline yojson]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.ExecuteCommand.Params.t" in
+        function
+        | `Assoc field_yojsons as yojson -> (
+          let command_field = ref None
+          and arguments_field = ref None
+          and duplicates = ref []
+          and extra = ref [] in
+          let rec iter = function
+            | (field_name, _field_yojson) :: tail ->
+              ( match field_name with
+              | "command" -> (
+                match Ppx_yojson_conv_lib.( ! ) command_field with
+                | None ->
+                  let fvalue = string_of_yojson _field_yojson in
+                  command_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | "arguments" -> (
+                match Ppx_yojson_conv_lib.( ! ) arguments_field with
+                | None ->
+                  let fvalue = list_of_yojson Json.t_of_yojson _field_yojson in
+                  arguments_field := Some fvalue
+                | Some _ ->
+                  duplicates :=
+                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates )
+              | _ -> () );
+              iter tail
+            | [] -> ()
+          in
+          iter field_yojsons;
+          match Ppx_yojson_conv_lib.( ! ) duplicates with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+              _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) duplicates)
+              yojson
+          | [] -> (
+            match Ppx_yojson_conv_lib.( ! ) extra with
+            | _ :: _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+                (Ppx_yojson_conv_lib.( ! ) extra)
+                yojson
+            | [] -> (
+              match
+                ( Ppx_yojson_conv_lib.( ! ) command_field
+                , Ppx_yojson_conv_lib.( ! ) arguments_field )
+              with
+              | Some command_value, arguments_value ->
+                { command = command_value; arguments = arguments_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) command_field)
+                        None
+                    , "command" )
+                  ] ) ) )
+        | _ as yojson ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+            yojson
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( function
+        | { command = v_command; arguments = v_arguments } ->
+          let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+          let bnds =
+            match v_arguments with
+            | None -> bnds
+            | Some v ->
+              let arg = yojson_of_list Json.yojson_of_t v in
+              let bnd = ("arguments", arg) in
+              bnd :: bnds
+          in
+          let bnds =
+            let arg = yojson_of_string v_command in
+            ("command", arg) :: bnds
+          in
+          `Assoc bnds
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+
+  module Result = struct
+    type t = (Json.t option[@yojson.option]) [@@deriving_inline yojson]
+
+    let _ = fun (_ : t) -> ()
+
+    let t_of_yojson =
+      ( let _tp_loc = "lsp/src/protocol.ml.ExecuteCommand.Result.t" in
+        fun t -> option_of_yojson Json.t_of_yojson t
+        : Ppx_yojson_conv_lib.Yojson.Safe.t -> t )
+
+    let _ = t_of_yojson
+
+    let yojson_of_t =
+      ( fun v -> yojson_of_option Json.yojson_of_t v
+        : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
+
+    let _ = yojson_of_t
+
+    [@@@end]
+  end
+end
