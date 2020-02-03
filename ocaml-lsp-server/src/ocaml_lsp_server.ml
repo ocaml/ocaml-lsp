@@ -277,17 +277,12 @@ let on_request :
         in
         match item.Query_protocol.outline_type with
         | None -> children
-        | Some typ ->
+        | Some _ ->
           let loc = item.Query_protocol.location in
           let info =
             { Lsp.Protocol.CodeLens.range = range_of_loc loc
             ; data = None
-            ; command =
-                Some
-                  { Lsp.Protocol.Command.title = typ
-                  ; command = ""
-                  ; arguments = None
-                  }
+            ; command = None
             }
           in
           info :: children
