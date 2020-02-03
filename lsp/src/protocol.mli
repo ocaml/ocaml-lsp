@@ -934,3 +934,20 @@ module SelectionRange : sig
 
   include Json.Jsonable.S with type t := t
 end
+
+module ExecuteCommand : sig
+  module Params : sig
+    type t =
+      { command : string
+      ; arguments : Json.t list option
+      }
+
+    include Json.Jsonable.S with type t := t
+  end
+
+  module Result : sig
+    type t = Json.t option
+
+    include Json.Jsonable.S with type t := t
+  end
+end
