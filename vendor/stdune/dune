@@ -3,5 +3,5 @@
  (public_name lsp.stdune)
  (synopsis "[Internal] Standard library of Dune")
  (preprocess future_syntax)
- (libraries unix)
+ (libraries stdlib-shims unix)
  (c_names fcntl_stubs))
