@@ -36,6 +36,8 @@ possible and does not make any assumptions about IO.
  (description " An LSP server for OCaml.")
  (depends
   yojson
+  stdlib-shims
+  ocaml-syntax-shims
   ppx_yojson_conv_lib
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
