@@ -33,7 +33,7 @@ possible and does not make any assumptions about IO.
 (package
  (name ocaml-lsp-server)
  (synopsis "LSP Server for OCaml")
- (description " An LSP server for OCaml.")
+ (description "An LSP server for OCaml.")
  (depends
   yojson
   stdlib-shims
