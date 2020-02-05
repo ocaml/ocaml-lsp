@@ -5,6 +5,10 @@
 
 let ws = [' ' '\t' '\n']+
 
+let digit = ['0' - '9']
+let ident_first = ['a' - 'z' 'A' - 'Z' '_' ]
+let ident_char = ident_first | digit
+
 rule token = parse
   | "//" [^ '\n']* '\n' { token lexbuf }
   | "/*" { comment lexbuf }
@@ -30,10 +34,11 @@ rule token = parse
   | '[' { Square L }
   | ']' { Square R }
   | '?' { Question }
-  | ['0' - '9']* '.' ['0' - '9']+ { Float (Option.value_exn (Float.of_string (Lexing.lexeme lexbuf))) }
-  | ['0' - '9']+ as i { Int (Int.of_string_exn i) }
+  | '-'? digit* '.' digit+ { Float (Option.value_exn (Float.of_string (Lexing.lexeme lexbuf))) }
+  | '-'? digit+ as i { Int (Int.of_string_exn i) }
   | '"' ([^ '"']* as s) '"' { String s }
   | '\'' ([^ '\'']* as s) '\'' { String s }
+  | ident_first ident_char* { Ident (Lexing.lexeme lexbuf) }
   | ws { token lexbuf }
 
 and comment = parse
