@@ -25,6 +25,7 @@ Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 ")
  (depends
+  stdlib-shims
   yojson
   ppx_yojson_conv_lib
   (ocaml (>= 4.06))
@@ -37,7 +38,6 @@ possible and does not make any assumptions about IO.
  (depends
   yojson
   stdlib-shims
-  ppx_yojson_conv_lib
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
