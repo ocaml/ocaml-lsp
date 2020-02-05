@@ -17,10 +17,12 @@ let () =
       (Filename.basename Sys.executable_name) in
   Arg.parse args anon usage;
   let md_file = Option.value_exn !md_file in
-  let out_dir = Option.value_exn !out_dir in
+  let out_dir = !out_dir in
   let ch = open_in md_file in
   let lexing = Lexing.from_channel ch in
   let typescript = Markdown.read_typescript lexing in
   let asts = Typescript.of_snippets typescript in
   let ocaml = Ocaml.of_typescript asts in
-  Ocaml.output ocaml out_dir
+  match out_dir with
+  | None -> print_endline "parsed successfully"
+  | Some out_dir -> Ocaml.output ocaml out_dir

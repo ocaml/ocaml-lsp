@@ -3,3 +3,8 @@
 (executable
  (name gen)
  (libraries stdune))
+
+(alias
+ (name runtest)
+ (deps ./specifications/specification-3-14.md)
+ (action (run ./gen.exe --md %{deps})))
