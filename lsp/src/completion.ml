@@ -135,9 +135,6 @@ type insertTextFormat =
   (* the insertText/textEdits are just plain strings *)
   | SnippetFormat
 
-(* 2 *)
-(* wire: just "Snippet" *)
-
 (** Once we get better PPX support we can use [@@deriving enum]. Keep in sync
     with insertFormat_of_int_opt. *)
 let int_of_insertFormat = function
@@ -179,7 +176,6 @@ and completionContext =
 
 and result = completionList
 
-(* wire: can also be 'completionItem list' *)
 and completionList =
   { isIncomplete : bool
   ; (* further typing should result in recomputing *)
