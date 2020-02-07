@@ -38,6 +38,7 @@ possible and does not make any assumptions about IO.
  (depends
   yojson
   stdlib-shims
+  menhir
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
   (dune (>= 1.11))))

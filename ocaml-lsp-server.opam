@@ -16,6 +16,7 @@ bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "yojson"
   "stdlib-shims"
+  "menhir"
   "ocamlfind" {>= "1.5.2"}
   "ocaml" {>= "4.06"}
   "dune" {>= "1.11"}
