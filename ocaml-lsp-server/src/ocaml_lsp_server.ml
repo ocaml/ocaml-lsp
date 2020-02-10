@@ -643,10 +643,32 @@ let on_request :
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting
-      { textDocument = { uri }; options } ->
+      { textDocument = { uri }; options = _ } ->
     Document_store.get store uri >>= fun doc ->
-    
-    Ok (store, [])
+    let src = Document.source doc |> Msource.text in
+    let edits =
+      begin match Ocamlformat.exec src [] with
+      | Result.Error _ -> begin
+        []
+        end
+      | Result.Ok result -> begin
+        let pos line col =
+          { Lsp.Protocol.Position.character = col; line }
+        in
+        let range =
+          let startPos = pos 0 0 in
+          begin match Msource.get_logical (Document.source doc) `End with
+          | `Logical (l, c) ->
+            let endPos = pos l c in
+            { Lsp.Protocol.Range.start_ = startPos; end_ = endPos }
+          end
+        in
+        let change = { Lsp.Protocol.TextEdit.newText = result; range } in
+        [ change ]
+        end
+      end
+    in
+    Ok (store, edits)
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
   | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
   | Lsp.Client_request.UnknownRequest _ -> Error "got unknown request"

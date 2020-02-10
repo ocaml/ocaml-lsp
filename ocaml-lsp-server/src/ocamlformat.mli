@@ -1,5 +1,8 @@
 open Import
 
-type opts = (string * string option) list
+module Options: sig
+  type t = (string * string option) list
+  val to_string_array: t -> string array
+end
 
-val exec: string -> opts -> (string, string) Result.t
+val exec: string -> Options.t -> (string, string) Result.t
