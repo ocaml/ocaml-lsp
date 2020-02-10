@@ -1,1 +1,4 @@
 (ocamllex ts_lexer)
+
+(menhir
+ (modules ts_parser))

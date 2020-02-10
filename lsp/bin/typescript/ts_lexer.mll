@@ -1,48 +1,54 @@
 {
   open! Import
-  open Ts_token
+  open Ts_parser
 }
 
-let ws = [' ' '\t' '\n']+
+let ws = [' ' '\r' '\t' '\n']+
 
 let digit = ['0' - '9']
 let ident_first = ['a' - 'z' 'A' - 'Z' '_' ]
 let ident_char = ident_first | digit
 
 rule token = parse
-  | "//" [^ '\n']* '\n' { token lexbuf }
+  | "//" [^ '\n']* '\n' { Lexing.new_line lexbuf; token lexbuf }
   | "/*" { comment lexbuf }
-  | "null" { Null }
   | "extends" { Extends }
   | "const" { Const }
   | "export" { Export }
+  | "export enum" { Enum }
   | "type" { Type }
   | "interface" { Interface }
   | "namespace" { Namespace }
+  | "readonly" { Readonly }
   | '|' { Alt }
   | ';' { Semicolon }
-  | '(' { Paren L }
-  | ')' { Paren R }
-  | '{' { Curly L }
-  | '}' { Curly R }
+  | '(' { L_paren }
+  | ')' { R_paren }
+  | '{' { L_curly }
+  | '}' { R_curly }
   | ':' { Colon }
   | '=' { Equal }
-  | '<' { Angle L }
+  | '<' { L_angle }
+  | '>' { R_angle }
   | ',' { Comma }
-  | '>' { Angle R }
   | "[]" { Array_type }
-  | '[' { Square L }
-  | ']' { Square R }
+  | '[' { L_square }
+  | ']' { R_square }
   | '?' { Question }
   | '-'? digit* '.' digit+ { Float (Option.value_exn (Float.of_string (Lexing.lexeme lexbuf))) }
   | '-'? digit+ as i { Int (Int.of_string_exn i) }
   | '"' ([^ '"']* as s) '"' { String s }
   | '\'' ([^ '\'']* as s) '\'' { String s }
   | ident_first ident_char* { Ident (Lexing.lexeme lexbuf) }
-  | ws { token lexbuf }
+  | '\n' { Lexing.new_line lexbuf; token lexbuf }
+  | [' ' '\t' '\r']* { token lexbuf }
+  | _ { failwith ("token: " ^ (Lexing.lexeme lexbuf)) }
+  | eof { Eof }
 
 and comment = parse
   | "*/" { token lexbuf }
+  | '\n' { Lexing.new_line lexbuf; comment lexbuf }
   | _ { comment lexbuf }
+  | eof { failwith "unterminated comment" }
 {
 }

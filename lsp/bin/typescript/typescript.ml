@@ -1,83 +1,38 @@
-module Named = struct
-  type 'a t =
-    { name : string
-    ; data : 'a
-    }
-end
+open Import
 
-module Type = struct
-  module Prim = struct
-    type t =
-      | Number
-      | Boolean
-  end
+type test =
+  { snippet : string
+  ; loc : Lexing.position
+  ; exn : exn
+  }
 
-  type t =
-    | Name of string
-    | Sum of t list
-    | List of t
-    | Prim of Prim.t
-    | App of
-        { name : string
-        ; param : t
-        }
-end
+let test_snippets s =
+  List.filter_map s ~f:(fun s ->
+      let lexbuf = Lexing.from_string s in
+      try
+        ignore (Ts_parser.main Ts_lexer.token lexbuf);
+        None
+      with exn ->
+        Some
+          { snippet = s
+          ; loc = lexbuf.lex_curr_p
+          ; exn
+          })
 
-module Field = struct
-  type typ =
-    | Const of string
-    | Type of typ
+let pp_results ppf tests =
+  List.iteri tests ~f:(fun i { snippet ; loc ; exn } ->
+      Format.pp_print_string ppf snippet;
+      Format.fprintf ppf "line: %d char: %d@."
+        loc.pos_lnum (loc.pos_cnum - loc.pos_bol);
+      Format.fprintf ppf "%d. exn: %s@.%!" (i + 1) (Printexc.to_string exn);
+      Format.fprintf ppf "@.---@.")
 
-  module Single = struct
-    type t' =
-      { optional : bool
-      ; typ : typ
-      }
-
-    type t = t' Named.t
-  end
-
-  module Pattern = struct
-    type t =
-      { key : typ
-      ; val_ : typ
-      }
-  end
-
-  type t' =
-    | Single of Single.t
-    | Pattern of Pattern.t
-
-  type t = t' Named.t
-end
-
-module Interface = struct
-  type t =
-    { extends : string list
-    ; fields : Field.t list
-    ; params : string list
-    }
-end
-
-module Alias = struct
-  type t = Type.t Named.t
-end
-
-module Enum = struct
-  type ('a, 'b) constrs =
-    | Int of 'a list
-    | String of 'b list
-
-  type t' =
-    | Anon of (int, string) constrs
-    | Named of (int Named.t, string Named.t) constrs
-
-  type t = t' Named.t
-end
-
-type t =
-  | Interface of Interface.t
-  | Alias of Alias.t
-  | Enum of Enum.t
-
-let of_snippets _ = []
+let of_snippets s =
+  List.concat_map s ~f:(fun s ->
+      let lexbuf = Lexing.from_string s in
+      try
+        Ts_parser.main Ts_lexer.token lexbuf
+      with _exn -> begin
+          []
+        end
+    )
