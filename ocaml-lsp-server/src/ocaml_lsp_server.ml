@@ -648,7 +648,8 @@ let on_request :
     let src = Document.source doc |> Msource.text in
     let edits =
       begin match Ocamlformat.exec src [] with
-      | Result.Error _ -> begin
+      | Result.Error e -> begin
+        Lsp.Logger.log ~title:"error" ~section:"textDocument_formatting" "%s" e;
         []
         end
       | Result.Ok result -> begin
