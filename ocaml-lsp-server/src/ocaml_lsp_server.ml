@@ -644,12 +644,15 @@ let on_request :
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
+    Printf.eprintf "start format\n";
     Document_store.get store uri >>= fun doc ->
     let src = Document.source doc |> Msource.text in
+    let fileName = Document.uri doc |> Lsp.Uri.to_path in
     let edits =
-      begin match Ocamlformat.exec src [] with
+      begin match Ocamlformat.exec ~fileName ~content:src [] with
       | Result.Error e -> begin
-        Lsp.Logger.log ~title:"error" ~section:"textDocument_formatting" "%s" e;
+        Printf.eprintf "format error: \n%s\n" e;
+        log ~title:"error" "%s" e;
         []
         end
       | Result.Ok result -> begin
@@ -736,6 +739,7 @@ let start () =
   let on_request rpc state caps req =
     prepare_and_run @@ fun () -> on_request rpc state caps req
   in
+  log ~title:"info" "starting";
   Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout;
   log ~title:"info" "exiting"
 
