@@ -62,11 +62,7 @@ let fields :=
 
 let typ :=
   | l = lit; { Type.Literal l }
-  | ident = Ident; {
-      match Type.Prim.of_string ident with
-      | Some s -> Prim s
-      | None -> Name ident
-    }
+  | ident = Ident; { Name ident }
   | sum = delimited(L_paren, separated_nonempty_list(Alt, typ), R_paren);
     { Sum sum }
   | t = typ ; Array_type; { Type.List t }

@@ -43,32 +43,11 @@ module Literal = struct
 end
 
 module Type = struct
-  module Prim = struct
-    type t =
-      | Number
-      | Boolean
-      | Object
-      | Array
-      | Null
-      | Any
-
-    let of_string = function
-      | "any" -> Some Any
-      | "number" -> Some Number
-      | "boolean" -> Some Boolean
-      | "object" -> Some Object
-      | "Array" -> Some Array
-      | "array" -> Some Array
-      | "null" -> Some Null
-      | _ -> None
-  end
-
   type t =
     | Literal of Literal.t
     | Name of string
     | Sum of t list
     | List of t
-    | Prim of Prim.t
     | Record of t Field.t list
     | Tuple of t list
     | App of t * t
