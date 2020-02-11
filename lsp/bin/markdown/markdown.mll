@@ -10,6 +10,7 @@ rule md acc b = parse
   | _ { md acc b lexbuf }
 
 and ts acc b = parse
+  (* We parse typescript comments because they can include mrakdown fragments *)
   | "/*" as s { Buffer.add_string b s; comment acc b lexbuf }
   | "```"
     { let snippet = Buffer.contents b in
