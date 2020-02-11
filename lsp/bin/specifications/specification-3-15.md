@@ -1608,7 +1608,7 @@ interface InitializeResult {
 ```
 * error.code:
 
-```typescript
+```typescript[@ignore]
 /**
  * Known error codes for an `InitializeError`;
  */
@@ -1624,7 +1624,7 @@ export namespace InitializeError {
 
 * error.data:
 
-```typescript
+```typescript[@ignore]
 interface InitializeError {
 	/**
 	 * Indicates whether the client execute the following retry logic:
@@ -2255,7 +2255,7 @@ interface DidChangeConfigurationParams {
 ```
 
 #### <a href="#workspace_configuration" name="workspace_configuration" class="anchor">Configuration Request (:arrow_right_hook:)</a>
-    
+
 > *Since version 3.6.0*
 
 The `workspace/configuration` request is sent from the server to the client to fetch configuration settings from the client. The request can fetch several configuration settings in one roundtrip. The order of the returned configuration settings correspond to the order of the passed `ConfigurationItems` (e.g. the first item in the response is the result for the first configuration item in the params).
@@ -2513,7 +2513,7 @@ _Server Capability_:
 * property path (optional): `executeCommandProvider`
 * property type: `ExecuteCommandOptions` defined as follows:
 
-```typescript
+```typescript[@ignore]
 export interface ExecuteCommandOptions extends WorkDoneProgressOptions {
 	/**
 	 * The commands to be executed on the server
@@ -2620,7 +2620,7 @@ Controls whether text document synchronization supports dynamic registration.
 * property path (optional): `textDocumentSync`
 * property type: `TextDocumentSyncKind | TextDocumentSyncOptions` both defined as follows:
 
-```typescript
+```typescript[@ignore]
 /**
  * Defines how the host (editor) should sync document changes to the language server.
  */
