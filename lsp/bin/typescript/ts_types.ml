@@ -8,29 +8,16 @@ module Named = struct
 end
 
 module Field = struct
-  module Single = struct
-    type 't t =
-      { optional : bool
-      ; typ : 't
-      }
-  end
-
-  module Pattern = struct
-    type 't t =
-      { pat : 't
-      ; typ : 't
-      }
-  end
 
   type 't t' =
-    | Single of 't Single.t
-    | Pattern of 't Pattern.t
+    | Single of { optional : bool ; typ: 't }
+    | Pattern of  { pat : 't; typ: 't }
 
   let pattern ~name ~pat ~typ =
-    { Named.name; data = Pattern { Pattern.pat; typ } }
+    { Named.name; data = Pattern { pat; typ } }
 
   let named ?(optional = false) typ name =
-    { Named.name; data = Single { Single.optional; typ } }
+    { Named.name; data = Single { optional ; typ } }
 
   type nonrec 't t = 't t' Named.t
 end
