@@ -28,6 +28,7 @@ possible and does not make any assumptions about IO.
   stdlib-shims
   yojson
   ppx_yojson_conv_lib
+  (cppo :dev)
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
 

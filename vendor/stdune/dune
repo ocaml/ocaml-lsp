@@ -1,3 +1,8 @@
+(rule
+ (targets exn.ml)
+ (deps (:ml exn.cppo.ml))
+ (action (run %{bin:cppo} -V OCAML:%{ocaml_version} %{ml} -o %{targets})))
+
 (library
  (name stdune)
  (public_name lsp.stdune)

@@ -14,7 +14,7 @@ fmt-check:
 	cd $(TEST_E2E_DIR) && yarn fmt-check
 .PHONY: fmt-check
 
-lsp-server: fmt
+lsp-server:
 	dune build @install
 .PHONY: lsp-server
 
