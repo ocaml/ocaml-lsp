@@ -1,5 +1,6 @@
 %{
   open Ts_types
+  open Ts_types.Unresolved
   open! Import
 %}
 
@@ -28,10 +29,10 @@
 %token Equal
 %token Eof
 
-%type <Literal.t> lit
-%type <Type.t> typ
+%type <Ts_types.Literal.t> lit
+%type <Ts_types.Unresolved.typ> typ
 
-%start <Ts_types.t list> main
+%start <Ts_types.Unresolved.t list> main
 
 %%
 
@@ -42,11 +43,11 @@ let field_name :=
 let field :=
   | Readonly?; name = field_name; q = Question?; Colon; t = toplevel_typ; Semicolon?;
     { let optional = Option.is_some q in
-      Field.named ~optional t name }
+      named_field ~optional t name }
   | L_square
     ; name = field_name; Colon; pat = toplevel_typ
     ; R_square; Colon; typ = toplevel_typ ; Semicolon?;
-    { Field.pattern ~name ~pat ~typ
+    { pattern_field ~name ~pat ~typ
     }
 
 let lit :=
@@ -61,18 +62,18 @@ let fields :=
     ; R_curly ; { fields }
 
 let typ :=
-  | l = lit; { Type.Literal l }
-  | ident = Ident; { Name ident }
+  | l = lit; { Literal l }
+  | ident = Ident; { Ident ident }
   | sum = delimited(L_paren, separated_nonempty_list(Alt, typ), R_paren);
     { Sum sum }
-  | t = typ ; Array_type; { Type.List t }
-  | ~ = fields; { Type.Record fields }
-  | t = typ ; a = delimited (L_angle, typ, R_angle); { Type.App (t, a) }
+  | t = typ ; Array_type; { List t }
+  | ~ = fields; { Record fields }
+  | t = typ ; a = delimited (L_angle, typ, R_angle); { App (t, a) }
   | typs = delimited(L_square, separated_nonempty_list(Comma, typ), R_square);
     { Tuple typs }
 
 let toplevel_typ ==
-  | types = separated_nonempty_list(Alt, typ); { Type.Sum types }
+  | types = separated_nonempty_list(Alt, typ); { Sum types }
   | ~ = typ; { typ }
 
 let extends := Extends; separated_list(Comma, Ident)
@@ -86,7 +87,7 @@ let interface :=
     ; ~ = fields;
     { let extends = match extends with None -> [] | Some xs -> xs in
       let params = match params with None -> [] | Some xs -> xs in
-      Interface.make ~name ~extends ~fields ~params
+      interface ~name ~extends ~fields ~params
     }
 
 let const_constr :=
@@ -106,12 +107,12 @@ let enum_constrs := separated_nonempty_list(Comma, enum_constr)
 let enum :=
   | Enum; name = Ident
     ; L_curly; constrs = enum_constrs ; R_curly;
-    { Enum.named ~name ~constrs
+    { enum ~name ~constrs
     }
   | Export?; Namespace; name = Ident ; L_curly
     ; constrs = list(const_constr)
     ; R_curly ;
-    { Enum.named ~name ~constrs
+    { enum ~name ~constrs
     }
 
 let alias :=
@@ -123,10 +124,10 @@ let type_decl :=
     { Named.make ~name typ }
 
 let definition :=
-  | ~ = interface; { Interface interface }
-  | ~ = enum; { Enum_anon enum }
-  | ~ = type_decl; { Type type_decl }
-  | ~ = alias; { Alias alias }
+  | i = interface; { { i with data = Interface i.Named.data } }
+  | i = enum; { { i with data = Enum_anon i.Named.data } }
+  | i = type_decl; { { i with data = Type i.Named.data } }
+  | i = alias; { { i with data = Alias i.Named.data } }
 
 let main :=
   | defs = definition*; Eof; { defs }
