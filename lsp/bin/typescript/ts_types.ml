@@ -45,6 +45,13 @@ module Field = struct
   type nonrec 't t = 't t' Named.t
 end
 
+module Literal = struct
+  type t =
+    | String of string
+    | Int of int
+    | Float of float
+end
+
 module Type = struct
   module Prim = struct
     type t =
@@ -64,13 +71,6 @@ module Type = struct
       | "array" -> Some Array
       | "null" -> Some Null
       | _ -> None
-  end
-
-  module Literal = struct
-    type t =
-      | String of string
-      | Int of int
-      | Float of float
   end
 
   type t =
@@ -102,22 +102,14 @@ module Alias = struct
 end
 
 module Enum = struct
-  type ('a, 'b) constrs =
-    | Int of 'a list
-    | String of 'b list
+  type t = (string * Literal.t) list Named.t
 
-  type t' =
-    | Anon of (int, string) constrs
-    | Named of (int Named.t, string Named.t) constrs
-
-  type t = t' Named.t
-
-  let named ~name ~constrs:_ =
-    { Named.name ; data = Anon (Int []) }
+  let named ~name ~constrs =
+    { Named.name ; data = constrs }
 end
 
 type t =
   | Interface of Interface.t Named.t
   | Alias of Alias.t
   | Type of Type.t Named.t
-  | Enum of Enum.t
+  | Enum_anon of Enum.t

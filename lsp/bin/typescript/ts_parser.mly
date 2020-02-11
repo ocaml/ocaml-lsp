@@ -28,7 +28,7 @@
 %token Equal
 %token Eof
 
-%type <Type.Literal.t> lit
+%type <Literal.t> lit
 %type <Type.t> typ
 
 %start <Ts_types.t list> main
@@ -50,9 +50,9 @@ let field :=
     }
 
 let lit :=
-  | lit = String; { Type.Literal.String lit }
-  | lit = Int; { Type.Literal.Int lit }
-  | lit = Float; { Type.Literal.Float lit }
+  | lit = String; { Literal.String lit }
+  | lit = Int; { Literal.Int lit }
+  | lit = Float; {Literal.Float lit }
 
 let fields :=
   | L_curly
@@ -128,7 +128,7 @@ let type_decl :=
 
 let definition :=
   | ~ = interface; { Interface interface }
-  | ~ = enum; { Enum enum }
+  | ~ = enum; { Enum_anon enum }
   | ~ = type_decl; { Type type_decl }
   | ~ = alias; { Alias alias }
 
