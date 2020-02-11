@@ -4,7 +4,7 @@ module Named = struct
     ; data : 'a
     }
 
-  let make ~name data = { name ; data }
+  let make ~name data = { name; data }
 end
 
 module Field = struct
@@ -27,20 +27,10 @@ module Field = struct
     | Pattern of 't Pattern.t
 
   let pattern ~name ~pat ~typ =
-    { Named.
-      name
-    ; data =
-        Pattern { Pattern.
-                  pat
-                ; typ
-                }
-    }
+    { Named.name; data = Pattern { Pattern.pat; typ } }
 
-  let named ?(optional=false) typ name =
-    { Named.
-      name
-    ; data = Single { Single. optional; typ }
-    }
+  let named ?(optional = false) typ name =
+    { Named.name; data = Single { Single.optional; typ } }
 
   type nonrec 't t = 't t' Named.t
 end
@@ -92,9 +82,7 @@ module Interface = struct
     }
 
   let make ~name ~extends ~fields ~params =
-    { Named. name
-    ; data = { extends ; fields ; params }
-    }
+    { Named.name; data = { extends; fields; params } }
 end
 
 module Alias = struct
@@ -104,8 +92,7 @@ end
 module Enum = struct
   type t = (string * Literal.t) list Named.t
 
-  let named ~name ~constrs =
-    { Named.name ; data = constrs }
+  let named ~name ~constrs = { Named.name; data = constrs }
 end
 
 type t =

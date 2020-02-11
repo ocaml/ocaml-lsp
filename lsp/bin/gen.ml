@@ -5,20 +5,18 @@ let () =
   let out_dir = ref None in
   let test = ref false in
   let args =
-    [ "--md"
-    , Arg.String (fun s -> md_file := Some s)
-    , "markdown file containing specification"
-    ; "--out-dir"
-    , Arg.String (fun s -> out_dir := Some s)
-    , "output directory"
-    ; "--test"
-    , Arg.Set test
-    , "test mode"
+    [ ( "--md"
+      , Arg.String (fun s -> md_file := Some s)
+      , "markdown file containing specification" )
+    ; ("--out-dir", Arg.String (fun s -> out_dir := Some s), "output directory")
+    ; ("--test", Arg.Set test, "test mode")
     ]
   in
   let anon s = raise (Arg.Bad (sprintf "don't know what to do with %s" s)) in
-  let usage = sprintf "%s --md [FILE] --out-dor [DIR]"
-      (Filename.basename Sys.executable_name) in
+  let usage =
+    sprintf "%s --md [FILE] --out-dor [DIR]"
+      (Filename.basename Sys.executable_name)
+  in
   Arg.parse args anon usage;
   let md_file = Option.value_exn !md_file in
   let out_dir = !out_dir in
