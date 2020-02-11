@@ -159,10 +159,47 @@ end
 module rec Resolved : (S with type ident := Prim.t) = Make (Prim)
 and Prim : (Prim_intf with type resolved := Resolved.t) = Prim_make (Resolved)
 
-let rec resolve_all ts ~(names : string -> Unresolved.t) : Resolved.t list =
+let subst unresolved =
+  object
+    val params = String.Map.empty
+
+    method resolve n =
+      match String.Map.find params n with
+      | Some [] -> assert false
+      | Some (x :: _) -> `Resolved x
+      | None -> `Unresolved (String.Map.find_exn unresolved n)
+
+    method push x y =
+      let params =
+        String.Map.update params x ~f:(function
+            | None -> Some [y]
+            | Some [] -> assert false
+            | Some (y' :: xs) ->
+              if y = y' then
+                Some xs
+              else
+                Some (y :: y' :: xs))
+      in
+      {< params >}
+
+    method pop x =
+      let params =
+        String.Map.update params x ~f:(function
+            | None ->
+              ignore (String.Map.find_exn params x);
+              None
+            | Some [] -> assert false
+            | Some (_ :: xs) -> Some xs)
+      in
+      {< params >}
+  end
+
+let rec resolve_all ts ~(names : Unresolved.t String.Map.t) : Resolved.t list =
+  let names = subst names in
   List.map ts ~f:(resolve ~names)
 
 and resolve (t : Unresolved.t) ~names : Resolved.t =
+  Format.eprintf "name: %s@.%!" t.name;
   let data : Resolved.decl =
     match t.data with
     | Interface i -> Interface (resolve_interface i ~names)
@@ -173,7 +210,10 @@ and resolve (t : Unresolved.t) ~names : Resolved.t =
   { t with Named.data }
 
 and resolve_ident i ~names =
-  Prim.of_string i ~resolve:(fun s -> Resolved (resolve (names s) ~names))
+  Prim.of_string i ~resolve:(fun s ->
+      match names # resolve s with
+      | `Resolved s -> s
+      | `Unresolved s -> Resolved (resolve s ~names))
 
 and resolve_type t ~names : Resolved.typ =
   match t with
@@ -188,7 +228,12 @@ and resolve_type t ~names : Resolved.typ =
 and resolve_interface i ~names : Resolved.interface =
   { extends = List.map ~f:(resolve_ident ~names) i.extends
   ; params = i.params
-  ; fields = List.map ~f:(resolve_field ~names) i.fields
+  ; fields =
+      let names =
+        List.fold_left ~init:names i.params ~f:(fun acc x ->
+            acc # push x Prim.Any)
+      in
+      List.map ~f:(resolve_field ~names) i.fields
   }
 
 and resolve_field f ~names : Resolved.field =

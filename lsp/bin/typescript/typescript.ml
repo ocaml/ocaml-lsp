@@ -21,6 +21,10 @@ let name_table (defns : Unresolved.t list) =
              let open Dyn.Encoder in
              Code_error.raise "definition conflict" [ ("name", string name) ])
 
+let resolve_all (defns : Unresolved.t list) =
+  let names = name_table defns in
+  Ts_types.resolve_all defns ~names
+
 let test_snippets s =
   let fails, succs =
     List.partition_map s ~f:(fun s ->
@@ -28,10 +32,7 @@ let test_snippets s =
         try Right (Ts_parser.main Ts_lexer.token lexbuf)
         with exn -> Left { snippet = s; loc = lexbuf.lex_curr_p; exn })
   in
-  let succs = List.concat succs in
-  let name_table = name_table succs in
-  let names x = String.Map.find_exn name_table x in
-  ignore (Ts_types.resolve_all succs ~names);
+  ignore (resolve_all (List.concat succs));
   fails
 
 let pp_results ppf tests =
