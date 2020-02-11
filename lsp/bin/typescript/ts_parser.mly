@@ -35,10 +35,6 @@
 
 %%
 
-/* let field_name := */
-/*   | ident = Ident; { `Required ident } */
-/*   | ident = Ident; Question; { `Optional ident } */
-
 let field_name :=
   | i = Ident; { i }
   | Type; { "type" }
@@ -52,14 +48,6 @@ let field :=
     ; R_square; Colon; typ = toplevel_typ ; Semicolon?;
     { Field.pattern ~name ~pat ~typ
     }
-  /* | fn = field_name; Colon; t = typ; Semicolon; { */
-  /*   let (optional, name) = */
-  /*     match fn with */
-  /*     | `Required name -> (false, name) */
-  /*     | `Optional name -> (true, name) */
-  /*   in */
-  /*   Field.named ~optional t name */
-  /* } */
 
 let lit :=
   | lit = String; { Type.Literal.String lit }
@@ -81,13 +69,11 @@ let typ :=
     }
   | sum = delimited(L_paren, separated_nonempty_list(Alt, typ), R_paren);
     { Sum sum }
-  /* | types = separated_nonempty_list(Alt, typ); { Sum types } */
   | t = typ ; Array_type; { Type.List t }
   | ~ = fields; { Type.Record fields }
   | t = typ ; a = delimited (L_angle, typ, R_angle); { Type.App (t, a) }
   | typs = delimited(L_square, separated_nonempty_list(Comma, typ), R_square);
     { Tuple typs }
-  /* | delimited(L_paren, typ, R_paren) */
 
 let toplevel_typ ==
   | types = separated_nonempty_list(Alt, typ); { Type.Sum types }
