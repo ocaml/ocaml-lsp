@@ -6246,9 +6246,7 @@ module Definition = struct
 
   type params = TextDocumentPositionParams.t
 
-  and result = Locations.t option
-  (* wire: either a single one or an array *)
-  [@@deriving_inline yojson]
+  and result = Locations.t option [@@deriving_inline yojson]
 
   let _ = fun (_ : params) -> ()
 
@@ -6289,8 +6287,7 @@ module TypeDefinition = struct
 
   type params = TextDocumentPositionParams.t
 
-  and result = Location.t list (* wire: either a single one or an array *)
-  [@@deriving_inline yojson]
+  and result = Location.t list [@@deriving_inline yojson]
 
   let _ = fun (_ : params) -> ()
 
@@ -6339,8 +6336,7 @@ module References = struct
   and referenceContext = { includeDeclaration : bool }
   [@@yojson.allow_extra_fields]
 
-  and result = Location.t list (* wire: either a single one or an array *)
-  [@@deriving_inline yojson]
+  and result = Location.t list [@@deriving_inline yojson]
 
   let _ = fun (_ : params) -> ()
 
@@ -6547,9 +6543,7 @@ module TextDocumentHighlight = struct
 
   type params = TextDocumentPositionParams.t
 
-  and result = DocumentHighlight.t list
-  (* wire: either a single one or an array *)
-  [@@deriving_inline yojson]
+  and result = DocumentHighlight.t list [@@deriving_inline yojson]
 
   let _ = fun (_ : params) -> ()
 

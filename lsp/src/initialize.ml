@@ -347,15 +347,9 @@ end
 
 module TextDocumentSyncKind = struct
   type t =
-    | NoSync (* 0 *)
-    (* docs should not be synced at all. Wire "None" *)
-    | FullSync (* 1 *)
-    (* synced by always sending full content. Wire "Full" *)
+    | NoSync
+    | FullSync
     | IncrementalSync
-
-  (* 2 *)
-
-  (* full only on open. Wire "Incremental" *)
 
   let yojson_of_t = function
     | NoSync -> `Int 0
