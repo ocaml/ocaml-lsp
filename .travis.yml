@@ -9,7 +9,7 @@ env:
     - PINS="lsp.dev:. ocaml-lsp-server.dev:."
   matrix:
     # disabled temporarily
-    - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.06" TESTS="false"
+    - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.06"
     # - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.07" TESTS="false"
     - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.08"
     - PACKAGE="ocaml-lsp-server" OCAML_VERSION="4.09"
