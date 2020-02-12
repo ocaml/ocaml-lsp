@@ -643,36 +643,28 @@ let on_request :
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting
-      { textDocument = { uri }; options = _ } ->
-    Printf.eprintf "start format\n";
+      { textDocument = { uri }; options = _ } -> (
     Document_store.get store uri >>= fun doc ->
     let src = Document.source doc |> Msource.text in
     let fileName = Document.uri doc |> Lsp.Uri.to_path in
-    let edits =
-      begin match Ocamlformat.exec ~fileName ~content:src [] with
-      | Result.Error e -> begin
-        Printf.eprintf "format error: \n%s\n" e;
-        log ~title:"error" "%s" e;
-        []
-        end
-      | Result.Ok result -> begin
-        let pos line col =
-          { Lsp.Protocol.Position.character = col; line }
-        in
-        let range =
-          let startPos = pos 0 0 in
-          begin match Msource.get_logical (Document.source doc) `End with
-          | `Logical (l, c) ->
-            let endPos = pos l c in
-            { Lsp.Protocol.Range.start_ = startPos; end_ = endPos }
-          end
-        in
-        let change = { Lsp.Protocol.TextEdit.newText = result; range } in
-        [ change ]
-        end
-      end
+    let result =
+      Ocamlformat.format_file
+        (Ocamlformat.Input.Stdin (src, Ocamlformat.FileType.Name fileName))
+        Ocamlformat.Output.Stdout Ocamlformat.Options.default
     in
-    Ok (store, edits)
+    match result with
+    | Result.Error e -> Error (Printf.sprintf "format failed: %s" e)
+    | Result.Ok result ->
+      let pos line col = { Lsp.Protocol.Position.character = col; line } in
+      let range =
+        let startPos = pos 0 0 in
+        match Msource.get_logical (Document.source doc) `End with
+        | `Logical (l, c) ->
+          let endPos = pos l c in
+          { Lsp.Protocol.Range.start_ = startPos; end_ = endPos }
+      in
+      let change = { Lsp.Protocol.TextEdit.newText = result; range } in
+      Ok (store, [ change ]) )
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
   | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
   | Lsp.Client_request.UnknownRequest _ -> Error "got unknown request"
