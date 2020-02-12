@@ -1328,7 +1328,7 @@ end
 
 module FoldingRangeClientCapabilities = struct
   type t =
-    { rangeLimit : int option
+    { rangeLimit : int option [@yojson.option]
     ; lineFoldingOnly : bool [@default false]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -1349,7 +1349,7 @@ module FoldingRangeClientCapabilities = struct
             | "rangeLimit" -> (
               match Ppx_yojson_conv_lib.( ! ) rangeLimit_field with
               | None ->
-                let fvalue = option_of_yojson int_of_yojson _field_yojson in
+                let fvalue = int_of_yojson _field_yojson in
                 rangeLimit_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -1378,26 +1378,17 @@ module FoldingRangeClientCapabilities = struct
             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
-          | [] -> (
-            match
+          | [] ->
+            let rangeLimit_value, lineFoldingOnly_value =
               ( Ppx_yojson_conv_lib.( ! ) rangeLimit_field
               , Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field )
-            with
-            | Some rangeLimit_value, lineFoldingOnly_value ->
-              { rangeLimit = rangeLimit_value
-              ; lineFoldingOnly =
-                  ( match lineFoldingOnly_value with
-                  | None -> false
-                  | Some v -> v )
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) rangeLimit_field)
-                      None
-                  , "rangeLimit" )
-                ] ) ) )
+            in
+            { rangeLimit = rangeLimit_value
+            ; lineFoldingOnly =
+                ( match lineFoldingOnly_value with
+                | None -> false
+                | Some v -> v )
+            } ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
@@ -1414,8 +1405,12 @@ module FoldingRangeClientCapabilities = struct
           ("lineFoldingOnly", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_option yojson_of_int v_rangeLimit in
-          ("rangeLimit", arg) :: bnds
+          match v_rangeLimit with
+          | None -> bnds
+          | Some v ->
+            let arg = yojson_of_int v in
+            let bnd = ("rangeLimit", arg) in
+            bnd :: bnds
         in
         `Assoc bnds
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
@@ -1511,71 +1506,71 @@ module SignatureHelpClientCapabilities = struct
 
   let _ = fun (_ : signatureInformation) -> ()
 
-  
-let signatureInformation_of_yojson =
-  (let _tp_loc =
-     "lsp/src/initialize.ml.SignatureHelpClientCapabilities.signatureInformation" in
-   function
-   | `Assoc field_yojsons as yojson ->
-       let documentationFormat_field = ref None
-       and parameterInformation_field = ref None
-       and duplicates = ref []
-       and extra = ref [] in
-       let rec iter =
-         function
-         | (field_name, _field_yojson)::tail ->
-             ((match field_name with
-               | "documentationFormat" ->
-                   (match Ppx_yojson_conv_lib.(!) documentationFormat_field
-                    with
-                    | None ->
-                        let fvalue =
-                          list_of_yojson MarkupKind.t_of_yojson _field_yojson in
-                        documentationFormat_field := (Some fvalue)
-                    | Some _ ->
-                        duplicates := (field_name ::
-                          (Ppx_yojson_conv_lib.(!) duplicates)))
-               | "parameterInformation" ->
-                   (match Ppx_yojson_conv_lib.(!) parameterInformation_field
-                    with
-                    | None ->
-                        let fvalue =
-                          parameterInformation_of_yojson _field_yojson in
-                        parameterInformation_field := (Some fvalue)
-                    | Some _ ->
-                        duplicates := (field_name ::
-                          (Ppx_yojson_conv_lib.(!) duplicates)))
-               | _ -> ());
-              iter tail)
-         | [] -> () in
-       (iter field_yojsons;
-        (match Ppx_yojson_conv_lib.(!) duplicates with
-         | _::_ ->
-             Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
-               _tp_loc (Ppx_yojson_conv_lib.(!) duplicates) yojson
-         | [] ->
-             (match Ppx_yojson_conv_lib.(!) extra with
-              | _::_ ->
-                  Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
-                    _tp_loc (Ppx_yojson_conv_lib.(!) extra) yojson
-              | [] ->
-                  let (documentationFormat_value, parameterInformation_value)
-                    =
-                    ((Ppx_yojson_conv_lib.(!) documentationFormat_field),
-                      (Ppx_yojson_conv_lib.(!) parameterInformation_field)) in
-                  {
-                    documentationFormat =
-                      ((match documentationFormat_value with
-                        | None -> []
-                        | Some v -> v));
-                    parameterInformation =
-                      ((match parameterInformation_value with
-                        | None -> parameterInformation_empty
-                        | Some v -> v))
-                  })))
-   | _ as yojson ->
-       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-         yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> signatureInformation)
+  let signatureInformation_of_yojson =
+    ( let _tp_loc =
+        "lsp/src/initialize.ml.SignatureHelpClientCapabilities.signatureInformation"
+      in
+      function
+      | `Assoc field_yojsons as yojson -> (
+        let documentationFormat_field = ref None
+        and parameterInformation_field = ref None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            ( match field_name with
+            | "documentationFormat" -> (
+              match Ppx_yojson_conv_lib.( ! ) documentationFormat_field with
+              | None ->
+                let fvalue =
+                  list_of_yojson MarkupKind.t_of_yojson _field_yojson
+                in
+                documentationFormat_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "parameterInformation" -> (
+              match Ppx_yojson_conv_lib.( ! ) parameterInformation_field with
+              | None ->
+                let fvalue = parameterInformation_of_yojson _field_yojson in
+                parameterInformation_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> () );
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] ->
+            let documentationFormat_value, parameterInformation_value =
+              ( Ppx_yojson_conv_lib.( ! ) documentationFormat_field
+              , Ppx_yojson_conv_lib.( ! ) parameterInformation_field )
+            in
+            { documentationFormat =
+                ( match documentationFormat_value with
+                | None -> []
+                | Some v -> v )
+            ; parameterInformation =
+                ( match parameterInformation_value with
+                | None -> parameterInformation_empty
+                | Some v -> v )
+            } ) )
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> signatureInformation )
 
   let _ = signatureInformation_of_yojson
 
