@@ -1328,7 +1328,8 @@ end
 
 module FoldingRangeClientCapabilities = struct
   type t =
-    { rangeLimit : int option [@yojson.option]
+    { rangeLimit : int Protocol.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
     ; lineFoldingOnly : bool [@default false]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -1349,7 +1350,10 @@ module FoldingRangeClientCapabilities = struct
             | "rangeLimit" -> (
               match Ppx_yojson_conv_lib.( ! ) rangeLimit_field with
               | None ->
-                let fvalue = int_of_yojson _field_yojson in
+                let fvalue =
+                  Protocol.Nullable_option.t_of_yojson int_of_yojson
+                    _field_yojson
+                in
                 rangeLimit_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -1383,7 +1387,10 @@ module FoldingRangeClientCapabilities = struct
               ( Ppx_yojson_conv_lib.( ! ) rangeLimit_field
               , Ppx_yojson_conv_lib.( ! ) lineFoldingOnly_field )
             in
-            { rangeLimit = rangeLimit_value
+            { rangeLimit =
+                ( match rangeLimit_value with
+                | None -> None
+                | Some v -> v )
             ; lineFoldingOnly =
                 ( match lineFoldingOnly_value with
                 | None -> false
@@ -1405,10 +1412,12 @@ module FoldingRangeClientCapabilities = struct
           ("lineFoldingOnly", arg) :: bnds
         in
         let bnds =
-          match v_rangeLimit with
-          | None -> bnds
-          | Some v ->
-            let arg = yojson_of_int v in
+          if None = v_rangeLimit then
+            bnds
+          else
+            let arg =
+              (Protocol.Nullable_option.yojson_of_t yojson_of_int) v_rangeLimit
+            in
             let bnd = ("rangeLimit", arg) in
             bnd :: bnds
         in

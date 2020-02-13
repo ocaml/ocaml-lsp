@@ -49,6 +49,18 @@ module Or_string = struct
     | Value x -> f x
 end
 
+module Nullable_option = struct
+  type 'a t = 'a option
+
+  let t_of_yojson f = function
+    | `Null -> None
+    | json -> Some (f json)
+
+  let yojson_of_t f = function
+    | None -> assert false
+    | Some s -> f s
+end
+
 module Void = struct
   type t
 

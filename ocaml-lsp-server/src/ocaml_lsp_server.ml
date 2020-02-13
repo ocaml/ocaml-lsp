@@ -51,7 +51,9 @@ let initializeInfo : Lsp.Initialize.Result.t =
       ; definitionProvider = true
       ; typeDefinitionProvider = true
       ; completionProvider =
-          Some { resolveProvider = true; triggerCharacters = [ "." ] }
+          (* TODO even if this re-enabled in general, it should stay disabled
+             for emacs. It makes completion too slow *)
+          Some { resolveProvider = false; triggerCharacters = [ "." ] }
       ; referencesProvider = true
       ; documentHighlightProvider = true
       ; documentSymbolProvider = true
