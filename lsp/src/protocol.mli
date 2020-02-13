@@ -22,6 +22,12 @@ module Or_string : sig
     | Value of 'a
 end
 
+module Nullable_option : sig
+  type 'a t = 'a option
+
+  include Json.Jsonable.S1 with type 'a t := 'a t
+end
+
 module Void : Json.Jsonable.S
 
 module DocumentFilter : sig
