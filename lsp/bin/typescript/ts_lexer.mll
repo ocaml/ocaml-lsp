@@ -16,6 +16,7 @@ rule token = parse
   | "const" { Const }
   | "export" { Export }
   | "export enum" { Enum }
+  | "export class" { Interface }
   | "type" { Type }
   | "interface" { Interface }
   | "namespace" { Namespace }
