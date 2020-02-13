@@ -125,6 +125,7 @@ module type Prim_intf = sig
     | Any
     | Object
     | List
+    | Self
     | Resolved of resolved
 
   val of_string : string -> resolve:(string -> t) -> t
@@ -142,6 +143,7 @@ struct
     | Any
     | Object
     | List
+    | Self
     | Resolved of Resolved.t
 
   let of_string s ~resolve =
@@ -162,12 +164,19 @@ and Prim : (Prim_intf with type resolved := Resolved.t) = Prim_make (Resolved)
 let subst unresolved =
   object
     val params = String.Map.empty
+    val inside = None
+
+    method inside s = {< inside = Some s >}
 
     method resolve n =
       match String.Map.find params n with
       | Some [] -> assert false
       | Some (x :: _) -> `Resolved x
-      | None -> `Unresolved (String.Map.find_exn unresolved n)
+      | None ->
+        if inside = Some n then
+          `Self
+        else
+          `Unresolved (String.Map.find_exn unresolved n)
 
     method push x y =
       let params =
@@ -199,10 +208,9 @@ let rec resolve_all ts ~(names : Unresolved.t String.Map.t) : Resolved.t list =
   List.map ts ~f:(resolve ~names)
 
 and resolve (t : Unresolved.t) ~names : Resolved.t =
-  Format.eprintf "name: %s@.%!" t.name;
   let data : Resolved.decl =
     match t.data with
-    | Interface i -> Interface (resolve_interface i ~names)
+    | Interface i -> Interface (resolve_interface { t with data = i } ~names)
     | Alias t -> Type (resolve_type t ~names)
     | Type t -> Type (resolve_type t ~names)
     | Enum_anon a -> Enum_anon a
@@ -213,6 +221,7 @@ and resolve_ident i ~names =
   Prim.of_string i ~resolve:(fun s ->
       match names # resolve s with
       | `Resolved s -> s
+      | `Self -> Self
       | `Unresolved s -> Resolved (resolve s ~names))
 
 and resolve_type t ~names : Resolved.typ =
@@ -226,6 +235,8 @@ and resolve_type t ~names : Resolved.typ =
   | Record fields -> Record (List.map ~f:(resolve_field ~names) fields)
 
 and resolve_interface i ~names : Resolved.interface =
+  let names = names # inside i.name in
+  let i = i.data in
   { extends = List.map ~f:(resolve_ident ~names) i.extends
   ; params = i.params
   ; fields =
