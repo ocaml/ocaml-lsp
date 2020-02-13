@@ -52,7 +52,6 @@ module type S = sig
 
   and decl =
     | Interface of interface
-    | Alias of typ
     | Type of typ
     | Enum_anon of Enum.t
 
@@ -92,7 +91,6 @@ struct
 
   and decl =
     | Interface of interface
-    | Alias of typ
     | Type of typ
     | Enum_anon of Enum.t
 
@@ -211,7 +209,6 @@ and resolve (t : Unresolved.t) ~names : Resolved.t =
   let data : Resolved.decl =
     match t.data with
     | Interface i -> Interface (resolve_interface { t with data = i } ~names)
-    | Alias t -> Type (resolve_type t ~names)
     | Type t -> Type (resolve_type t ~names)
     | Enum_anon a -> Enum_anon a
   in

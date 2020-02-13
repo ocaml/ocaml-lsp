@@ -7,7 +7,6 @@
 %token Const
 %token Enum
 %token Extends
-%token Export
 %token Interface
 %token Namespace
 %token Readonly
@@ -115,19 +114,14 @@ let enum :=
     { enum ~name ~constrs
     }
 
-let alias :=
-  | Type; name = Ident; Equal; typ = toplevel_typ; Semicolon;
-    { Named.make ~name typ }
-
 let type_decl :=
-  | Export; Type; name = Ident; Equal; typ = toplevel_typ; Semicolon?;
+  | Type; name = Ident; Equal; typ = toplevel_typ; Semicolon?;
     { Named.make ~name typ }
 
 let definition :=
   | i = interface; { { i with data = Interface i.Named.data } }
   | i = enum; { { i with data = Enum_anon i.Named.data } }
   | i = type_decl; { { i with data = Type i.Named.data } }
-  | i = alias; { { i with data = Alias i.Named.data } }
 
 let main :=
   | defs = definition*; Eof; { defs }

@@ -15,10 +15,10 @@ rule token = parse
   | "extends" { Extends }
   | "const" { Const }
   | "export const" { Const }
-  | "export" { Export }
   | "export enum" { Enum }
   | "export class" { Interface }
   | "type" { Type }
+  | "export type" { Type }
   | "export interface" { Interface }
   | "interface" { Interface }
   | "export namespace" { Namespace }
