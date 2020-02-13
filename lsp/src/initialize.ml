@@ -81,7 +81,7 @@ module SignatureHelpOptions = struct
 end
 
 module CodeActionOptions = struct
-  type t = { codeActionsKinds : CodeAction.Kind.t list [@default []] }
+  type t = { codeActionKinds : CodeAction.Kind.t list [@default []] }
   [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
@@ -90,19 +90,19 @@ module CodeActionOptions = struct
     ( let _tp_loc = "lsp/src/initialize.ml.CodeActionOptions.t" in
       function
       | `Assoc field_yojsons as yojson -> (
-        let codeActionsKinds_field = ref None
+        let codeActionKinds_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
           | (field_name, _field_yojson) :: tail ->
             ( match field_name with
-            | "codeActionsKinds" -> (
-              match Ppx_yojson_conv_lib.( ! ) codeActionsKinds_field with
+            | "codeActionKinds" -> (
+              match Ppx_yojson_conv_lib.( ! ) codeActionKinds_field with
               | None ->
                 let fvalue =
                   list_of_yojson CodeAction.Kind.t_of_yojson _field_yojson
                 in
-                codeActionsKinds_field := Some fvalue
+                codeActionKinds_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -130,11 +130,11 @@ module CodeActionOptions = struct
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
           | [] ->
-            let codeActionsKinds_value =
-              Ppx_yojson_conv_lib.( ! ) codeActionsKinds_field
+            let codeActionKinds_value =
+              Ppx_yojson_conv_lib.( ! ) codeActionKinds_field
             in
-            { codeActionsKinds =
-                ( match codeActionsKinds_value with
+            { codeActionKinds =
+                ( match codeActionKinds_value with
                 | None -> []
                 | Some v -> v )
             } ) )
@@ -147,13 +147,13 @@ module CodeActionOptions = struct
 
   let yojson_of_t =
     ( function
-      | { codeActionsKinds = v_codeActionsKinds } ->
+      | { codeActionKinds = v_codeActionKinds } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
           let arg =
-            yojson_of_list CodeAction.Kind.yojson_of_t v_codeActionsKinds
+            yojson_of_list CodeAction.Kind.yojson_of_t v_codeActionKinds
           in
-          ("codeActionsKinds", arg) :: bnds
+          ("codeActionKinds", arg) :: bnds
         in
         `Assoc bnds
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )

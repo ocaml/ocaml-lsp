@@ -34,7 +34,7 @@ let outline_kind kind : Lsp.Protocol.SymbolKind.t =
 
 let initializeInfo : Lsp.Initialize.Result.t =
   let codeActionProvider : Lsp.Initialize.CodeActionOptions.t =
-    { codeActionsKinds = [ Other Action.destruct ] }
+    { codeActionKinds = [ Other Action.destruct ] }
   in
   (* TODO use actual version *)
   let serverInfo = None in

@@ -6,7 +6,7 @@ module SignatureHelpOptions : sig
 end
 
 module CodeActionOptions : sig
-  type t = { codeActionsKinds : CodeAction.Kind.t list }
+  type t = { codeActionKinds : CodeAction.Kind.t list }
 end
 
 module CodeActionLiteralSupport : sig
