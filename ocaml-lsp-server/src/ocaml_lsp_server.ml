@@ -649,7 +649,7 @@ let on_request :
     let fileName = Document.uri doc |> Lsp.Uri.to_path in
     let result =
       Ocamlformat.format_file
-        (Ocamlformat.Input.Stdin (src, Ocamlformat.FileType.Name fileName))
+        (Ocamlformat.Input.Stdin (src, Ocamlformat.File_type.Name fileName))
         Ocamlformat.Output.Stdout Ocamlformat.Options.default
     in
     match result with

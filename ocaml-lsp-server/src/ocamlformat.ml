@@ -1,6 +1,6 @@
 open Import
 
-module FileType = struct
+module File_type = struct
   type t =
     | Impl
     | Intf
@@ -14,7 +14,7 @@ end
 
 module Input = struct
   type t =
-    | Stdin of string * FileType.t
+    | Stdin of string * File_type.t
     | File of string
 end
 
@@ -28,117 +28,10 @@ module Output = struct
     | Stdout -> []
 end
 
-module Config = struct
-  type t = (string * string) list
-
-  let to_comma_separated_list (conf : t) : string =
-    List.map conf ~f:(fun (k, v) -> Printf.sprintf "%s=%s" k v)
-    |> String.concat ~sep:","
-
-  let of_comma_separated_list (s : string) : t option =
-    String.split_on_char s ~sep:','
-    |> List.fold_right ~init:(Some []) ~f:(fun s state ->
-           match state with
-           | None -> None
-           | Some acc -> (
-             match String.split_on_char s ~sep:'=' with
-             | k :: v :: _ -> Some ((k, v) :: acc)
-             | _ -> None ))
-
-  let of_print_config_output (s : string) : t option =
-    String.split_lines s
-    |> List.fold_right ~init:(Some []) ~f:(fun s state ->
-           match state with
-           | None -> None
-           | Some acc -> (
-             match String.split_on_char s ~sep:' ' with
-             | [ x ]
-             | x :: "(file" :: _ -> (
-               match String.split_on_char x ~sep:'=' with
-               | [ key; value ] -> Some ((key, value) :: acc)
-               | _ -> None )
-             | _ -> None ))
-end
-
-let append_if flag value xs =
-  if flag then
-    value :: xs
-  else
-    xs
-
-let append_opt opt f xs =
-  match opt with
-  | None -> xs
-  | Some x -> f x :: xs
-
 module Options = struct
-  module Profile = struct
-    type t =
-      | Conventional
-      | Default
-      | Compact
-      | Sparse
-      | Ocamlformat
-      | Janestreet
+  type t = string list
 
-    let to_string = function
-      | Conventional -> "conventional"
-      | Default -> "default"
-      | Compact -> "compact"
-      | Sparse -> "sparse"
-      | Ocamlformat -> "ocamlformat"
-      | Janestreet -> "janestreet"
-  end
-
-  type t =
-    { config : Config.t option
-    ; commentCheck : bool option
-    ; disableConfAttrs : bool
-    ; disableConfLines : bool
-    ; enableOutsideDetectedProject : bool
-    ; ignoreInvalidOption : bool
-    ; maxIters : int option
-    ; noVersionCheck : bool
-    ; ocpIndentConfig : bool
-    ; profile : Profile.t option
-    ; quiet : bool option
-    ; root : string option
-    }
-
-  let default =
-    { config = None
-    ; commentCheck = None
-    ; disableConfAttrs = false
-    ; disableConfLines = false
-    ; enableOutsideDetectedProject = false
-    ; ignoreInvalidOption = false
-    ; maxIters = None
-    ; noVersionCheck = false
-    ; ocpIndentConfig = false
-    ; profile = None
-    ; quiet = None
-    ; root = None
-    }
-
-  let to_cmdline_args (opt : t) : string list =
-    []
-    |> append_opt opt.root (Printf.sprintf "--root=%s")
-    |> append_opt opt.quiet (function
-         | true -> "--quiet"
-         | _ -> "--no-quiet")
-    |> append_opt opt.profile Profile.to_string
-    |> append_if opt.ocpIndentConfig "--ocp-indent-config"
-    |> append_if opt.noVersionCheck "--no-version-check"
-    |> append_opt opt.maxIters (Printf.sprintf "--max-iters:%d")
-    |> append_if opt.ignoreInvalidOption "--ignore-invalid-option"
-    |> append_if opt.enableOutsideDetectedProject
-         "--enable-outside-detected-project"
-    |> append_if opt.disableConfLines "-disable-conf-lines"
-    |> append_if opt.disableConfAttrs "-disable-conf-attrs"
-    |> append_opt opt.commentCheck (function
-         | true -> "--comment-check"
-         | _ -> "--no-comment-check")
-    |> append_opt opt.config Config.to_comma_separated_list
+  let default : t = []
 end
 
 type 'result command =
@@ -183,25 +76,24 @@ let run_command command ?stdin_value args : command_result =
   { stdout; stderr; status }
 
 let build_args : type r. r command -> Options.t -> string list * string option =
- fun cmd opts ->
-  let optArgs = Options.to_cmdline_args opts in
+ fun cmd args ->
   match cmd with
   | FormatFile (i, o) -> (
-    let args = optArgs @ Output.to_cmdline_args o in
+    let output = Output.to_cmdline_args o in
     match i with
-    | Input.File f -> (args @ [ f ], None)
-    | Input.Stdin (v, f) -> (args @ FileType.to_cmdline_args f @ [ "-" ], Some v)
-    )
-  | FormatFilesInPlace fs -> (optArgs @ ("--inplace" :: fs), None)
+    | Input.File f -> (args @ output @ [ f ], None)
+    | Input.Stdin (v, f) ->
+      (args @ output @ File_type.to_cmdline_args f @ [ "-" ], Some v) )
+  | FormatFilesInPlace fs -> (args @ ("--inplace" :: fs), None)
   | Check i -> (
     match i with
-    | Input.File f -> (optArgs @ [ f ], None)
+    | Input.File f -> (args @ [ f ], None)
     | Input.Stdin (v, f) ->
-      (optArgs @ FileType.to_cmdline_args f @ [ "-" ], Some v) )
+      (args @ File_type.to_cmdline_args f @ [ "-" ], Some v) )
 
 let exec : type r. r command -> Options.t -> (r, string) Result.t =
- fun cmd opts ->
-  let args, stdin_value = build_args cmd opts in
+ fun cmd args ->
+  let args, stdin_value = build_args cmd args in
   let res = run_command "ocamlformat" ?stdin_value args in
   match res.status with
   | Unix.WEXITED i -> (
@@ -215,25 +107,13 @@ let exec : type r. r command -> Options.t -> (r, string) Result.t =
     | FormatFilesInPlace _ -> Result.Ok () )
   | _ -> Result.Error res.stderr
 
-let get_config : type r. r command -> Options.t -> (Config.t, string) Result.t =
- fun cmd opts ->
-  let args, stdin_value = build_args cmd opts in
-  let args = "--print-config" :: args in
-  let res = run_command "ocamlformat" ?stdin_value args in
-  match res.status with
-  | Unix.WEXITED 0 -> (
-    match Config.of_print_config_output res.stdout with
-    | None -> Result.Error "get_config: parse error"
-    | Some c -> Result.Ok c )
-  | _ -> Result.Error res.stderr
-
 let format_file :
     type r. Input.t -> r Output.t -> Options.t -> (r, string) Result.t =
- fun input output opts -> exec (FormatFile (input, output)) opts
+ fun input output args -> exec (FormatFile (input, output)) args
 
-let format_files_in_place (files : string list) (opts : Options.t) :
+let format_files_in_place (files : string list) (options : Options.t) :
     (unit, string) Result.t =
-  exec (FormatFilesInPlace files) opts
+  exec (FormatFilesInPlace files) options
 
-let check (input : Input.t) (opts : Options.t) : (bool, string) Result.t =
-  exec (Check input) opts
+let check (input : Input.t) (options : Options.t) : (bool, string) Result.t =
+  exec (Check input) options
