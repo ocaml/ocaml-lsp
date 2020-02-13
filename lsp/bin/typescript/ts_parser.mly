@@ -81,7 +81,7 @@ let extends := Extends; separated_list(Comma, Ident)
 let params := idents = delimited(L_angle, separated_list(Comma, Ident), R_angle); { idents }
 
 let interface :=
-  | Export?; Interface; name = Ident
+  | Interface; name = Ident
     ; params = params?
     ; extends = extends?
     ; ~ = fields;
@@ -91,13 +91,13 @@ let interface :=
     }
 
 let const_constr :=
-  | Export; Const; name = Ident; Equal; ~ = lit; Semicolon;
+  | Const; name = Ident; Equal; ~ = lit; Semicolon;
     { (name, lit)
     }
-  | Export; Const; name = Ident; Colon; Ident; Equal; ~ = lit; Semicolon;
+  | Const; name = Ident; Colon; Ident; Equal; ~ = lit; Semicolon;
     { (name, lit)
     }
-  | Export; Const; name = Ident; Colon; lit; Equal; ~ = lit; Semicolon;
+  | Const; name = Ident; Colon; lit; Equal; ~ = lit; Semicolon;
     { (name, lit)
     }
 
@@ -109,7 +109,7 @@ let enum :=
     ; L_curly; constrs = enum_constrs ; R_curly;
     { enum ~name ~constrs
     }
-  | Export?; Namespace; name = Ident ; L_curly
+  | Namespace; name = Ident ; L_curly
     ; constrs = list(const_constr)
     ; R_curly ;
     { enum ~name ~constrs

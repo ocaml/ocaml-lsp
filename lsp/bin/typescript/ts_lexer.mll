@@ -14,12 +14,14 @@ rule token = parse
   | "/*" { comment lexbuf }
   | "extends" { Extends }
   | "const" { Const }
+  | "export const" { Const }
   | "export" { Export }
   | "export enum" { Enum }
   | "export class" { Interface }
   | "type" { Type }
+  | "export interface" { Interface }
   | "interface" { Interface }
-  | "namespace" { Namespace }
+  | "export namespace" { Namespace }
   | "readonly" { Readonly }
   | '|' { Alt }
   | ';' { Semicolon }
