@@ -223,7 +223,7 @@ module TextDocumentSyncOptions : sig
     ; change : TextDocumentSyncKind.t
     ; willSave : bool
     ; willSaveWaitUntil : bool
-    ; didSave : saveOptions option
+    ; save : saveOptions option
     }
 end
 
