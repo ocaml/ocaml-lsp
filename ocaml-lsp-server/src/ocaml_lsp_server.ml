@@ -646,10 +646,10 @@ let on_request :
       { textDocument = { uri }; options = _ } -> (
     Document_store.get store uri >>= fun doc ->
     let src = Document.source doc |> Msource.text in
-    let fileName = Document.uri doc |> Lsp.Uri.to_path in
+    let file_name = Document.uri doc |> Lsp.Uri.to_path in
     let result =
       Ocamlformat.format_file
-        (Ocamlformat.Input.Stdin (src, Ocamlformat.File_type.Name fileName))
+        (Ocamlformat.Input.Stdin (src, Ocamlformat.File_type.Name file_name))
         Ocamlformat.Output.Stdout Ocamlformat.Options.default
     in
     match result with
@@ -657,11 +657,11 @@ let on_request :
     | Result.Ok result ->
       let pos line col = { Lsp.Protocol.Position.character = col; line } in
       let range =
-        let startPos = pos 0 0 in
+        let start_pos = pos 0 0 in
         match Msource.get_logical (Document.source doc) `End with
         | `Logical (l, c) ->
-          let endPos = pos l c in
-          { Lsp.Protocol.Range.start_ = startPos; end_ = endPos }
+          let end_pos = pos l c in
+          { Lsp.Protocol.Range.start_ = start_pos; end_ = end_pos }
       in
       let change = { Lsp.Protocol.TextEdit.newText = result; range } in
       Ok (store, [ change ]) )

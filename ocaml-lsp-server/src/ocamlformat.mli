@@ -26,8 +26,8 @@ module Options : sig
 end
 
 type 'result command =
-  | FormatFile : Input.t * 'result Output.t -> 'result command
-  | FormatFilesInPlace : string list -> unit command
+  | Format_file : Input.t * 'result Output.t -> 'result command
+  | Format_files_in_place : string list -> unit command
   | Check : Input.t -> bool command
 
 val exec : 'result command -> Options.t -> ('result, string) Result.t

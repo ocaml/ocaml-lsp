@@ -35,21 +35,20 @@ module Options = struct
 end
 
 type 'result command =
-  | FormatFile : Input.t * 'result Output.t -> 'result command
-  | FormatFilesInPlace : string list -> unit command
+  | Format_file : Input.t * 'result Output.t -> 'result command
+  | Format_files_in_place : string list -> unit command
   | Check : Input.t -> bool command
 
-let read_to_end ?(hint = 0) (inChan : in_channel) : string =
+let read_to_end ?(hint = 0) (in_chan : in_channel) : string =
   let buf = Buffer.create hint in
   let rec go () =
-    try
-      let line = input_line inChan in
-      Buffer.add_string buf line;
-      Buffer.add_char buf '\n';
-      go ()
-    with End_of_file -> Buffer.contents buf
+    let line = input_line in_chan in
+    Buffer.add_string buf line;
+    Buffer.add_char buf '\n';
+    go ()
   in
-  go ()
+  (try go () with End_of_file -> ());
+  Buffer.contents buf
 
 type command_result =
   { stdout : string
@@ -64,27 +63,27 @@ let run_command command ?stdin_value args : command_result =
     | _ -> Printf.sprintf "%s %s" command (String.concat ~sep:" " args)
   in
   let env = Unix.environment () in
-  let inChan, outChan, errChan = Unix.open_process_full command env in
+  let in_chan, out_chan, err_chan = Unix.open_process_full command env in
   let f stdin =
-    output_string outChan stdin;
-    close_out outChan
+    output_string out_chan stdin;
+    close_out out_chan
   in
   Option.iter stdin_value ~f;
-  let stdout = read_to_end inChan in
-  let stderr = read_to_end errChan in
-  let status = Unix.close_process_full (inChan, outChan, errChan) in
+  let stdout = read_to_end in_chan in
+  let stderr = read_to_end err_chan in
+  let status = Unix.close_process_full (in_chan, out_chan, err_chan) in
   { stdout; stderr; status }
 
 let build_args : type r. r command -> Options.t -> string list * string option =
  fun cmd args ->
   match cmd with
-  | FormatFile (i, o) -> (
+  | Format_file (i, o) -> (
     let output = Output.to_cmdline_args o in
     match i with
     | Input.File f -> (args @ output @ [ f ], None)
     | Input.Stdin (v, f) ->
       (args @ output @ File_type.to_cmdline_args f @ [ "-" ], Some v) )
-  | FormatFilesInPlace fs -> (args @ ("--inplace" :: fs), None)
+  | Format_files_in_place fs -> (args @ ("--inplace" :: fs), None)
   | Check i -> (
     match i with
     | Input.File f -> (args @ [ f ], None)
@@ -100,20 +99,20 @@ let exec : type r. r command -> Options.t -> (r, string) Result.t =
     match cmd with
     | Check _ -> Result.Ok (i = 0)
     | _ when i <> 0 -> Result.Error res.stderr
-    | FormatFile (_, o) -> (
+    | Format_file (_, o) -> (
       match o with
       | Output.File _ -> Result.Ok ()
       | Output.Stdout -> Result.Ok res.stdout )
-    | FormatFilesInPlace _ -> Result.Ok () )
+    | Format_files_in_place _ -> Result.Ok () )
   | _ -> Result.Error res.stderr
 
 let format_file :
     type r. Input.t -> r Output.t -> Options.t -> (r, string) Result.t =
- fun input output args -> exec (FormatFile (input, output)) args
+ fun input output args -> exec (Format_file (input, output)) args
 
 let format_files_in_place (files : string list) (options : Options.t) :
     (unit, string) Result.t =
-  exec (FormatFilesInPlace files) options
+  exec (Format_files_in_place files) options
 
 let check (input : Input.t) (options : Options.t) : (bool, string) Result.t =
   exec (Check input) options
