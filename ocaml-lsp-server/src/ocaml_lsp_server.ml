@@ -60,7 +60,7 @@ let initializeInfo : Lsp.Initialize.Result.t =
       ; workspaceSymbolProvider = false
       ; codeActionProvider = Value codeActionProvider
       ; codeLensProvider = Some { resolveProvider = false }
-      ; documentFormattingProvider = false
+      ; documentFormattingProvider = true
       ; documentRangeFormattingProvider = false
       ; documentOnTypeFormattingProvider = None
       ; renameProvider = true
