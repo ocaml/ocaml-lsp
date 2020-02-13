@@ -6,7 +6,7 @@ module SignatureHelpOptions : sig
 end
 
 module CodeActionOptions : sig
-  type t = { codeActionsKinds : CodeAction.Kind.t list }
+  type t = { codeActionKinds : CodeAction.Kind.t list }
 end
 
 module CodeActionLiteralSupport : sig
@@ -223,7 +223,7 @@ module TextDocumentSyncOptions : sig
     ; change : TextDocumentSyncKind.t
     ; willSave : bool
     ; willSaveWaitUntil : bool
-    ; didSave : saveOptions option
+    ; save : saveOptions option
     }
 end
 

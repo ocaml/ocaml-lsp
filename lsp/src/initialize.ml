@@ -81,7 +81,7 @@ module SignatureHelpOptions = struct
 end
 
 module CodeActionOptions = struct
-  type t = { codeActionsKinds : CodeAction.Kind.t list [@default []] }
+  type t = { codeActionKinds : CodeAction.Kind.t list [@default []] }
   [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
@@ -90,19 +90,19 @@ module CodeActionOptions = struct
     ( let _tp_loc = "lsp/src/initialize.ml.CodeActionOptions.t" in
       function
       | `Assoc field_yojsons as yojson -> (
-        let codeActionsKinds_field = ref None
+        let codeActionKinds_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
           | (field_name, _field_yojson) :: tail ->
             ( match field_name with
-            | "codeActionsKinds" -> (
-              match Ppx_yojson_conv_lib.( ! ) codeActionsKinds_field with
+            | "codeActionKinds" -> (
+              match Ppx_yojson_conv_lib.( ! ) codeActionKinds_field with
               | None ->
                 let fvalue =
                   list_of_yojson CodeAction.Kind.t_of_yojson _field_yojson
                 in
-                codeActionsKinds_field := Some fvalue
+                codeActionKinds_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -130,11 +130,11 @@ module CodeActionOptions = struct
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
           | [] ->
-            let codeActionsKinds_value =
-              Ppx_yojson_conv_lib.( ! ) codeActionsKinds_field
+            let codeActionKinds_value =
+              Ppx_yojson_conv_lib.( ! ) codeActionKinds_field
             in
-            { codeActionsKinds =
-                ( match codeActionsKinds_value with
+            { codeActionKinds =
+                ( match codeActionKinds_value with
                 | None -> []
                 | Some v -> v )
             } ) )
@@ -147,13 +147,13 @@ module CodeActionOptions = struct
 
   let yojson_of_t =
     ( function
-      | { codeActionsKinds = v_codeActionsKinds } ->
+      | { codeActionKinds = v_codeActionKinds } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
           let arg =
-            yojson_of_list CodeAction.Kind.yojson_of_t v_codeActionsKinds
+            yojson_of_list CodeAction.Kind.yojson_of_t v_codeActionKinds
           in
-          ("codeActionsKinds", arg) :: bnds
+          ("codeActionKinds", arg) :: bnds
         in
         `Assoc bnds
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
@@ -3371,14 +3371,11 @@ module TextDocumentSyncOptions = struct
   [@@@end]
 
   type t =
-    { openClose : bool
-    ; (* textDocument/didOpen+didClose *)
-      change : TextDocumentSyncKind.t
-    ; willSave : bool
-    ; (* textDocument/willSave *)
-      willSaveWaitUntil : bool
-    ; (* textDoc.../willSaveWaitUntil *)
-      didSave : saveOptions option [@yojson.option] (* textDocument/didSave *)
+    { openClose : bool [@default false]
+    ; change : TextDocumentSyncKind.t [@default TextDocumentSyncKind.NoSync]
+    ; willSave : bool [@default false]
+    ; willSaveWaitUntil : bool [@default false]
+    ; save : saveOptions option [@yojson.option]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3392,7 +3389,7 @@ module TextDocumentSyncOptions = struct
         and change_field = ref None
         and willSave_field = ref None
         and willSaveWaitUntil_field = ref None
-        and didSave_field = ref None
+        and save_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -3430,11 +3427,11 @@ module TextDocumentSyncOptions = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
-            | "didSave" -> (
-              match Ppx_yojson_conv_lib.( ! ) didSave_field with
+            | "save" -> (
+              match Ppx_yojson_conv_lib.( ! ) save_field with
               | None ->
                 let fvalue = saveOptions_of_yojson _field_yojson in
-                didSave_field := Some fvalue
+                save_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
@@ -3454,45 +3451,36 @@ module TextDocumentSyncOptions = struct
             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
               (Ppx_yojson_conv_lib.( ! ) extra)
               yojson
-          | [] -> (
-            match
+          | [] ->
+            let ( openClose_value
+                , change_value
+                , willSave_value
+                , willSaveWaitUntil_value
+                , save_value ) =
               ( Ppx_yojson_conv_lib.( ! ) openClose_field
               , Ppx_yojson_conv_lib.( ! ) change_field
               , Ppx_yojson_conv_lib.( ! ) willSave_field
               , Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field
-              , Ppx_yojson_conv_lib.( ! ) didSave_field )
-            with
-            | ( Some openClose_value
-              , Some change_value
-              , Some willSave_value
-              , Some willSaveWaitUntil_value
-              , didSave_value ) ->
-              { openClose = openClose_value
-              ; change = change_value
-              ; willSave = willSave_value
-              ; willSaveWaitUntil = willSaveWaitUntil_value
-              ; didSave = didSave_value
-              }
-            | _ ->
-              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                _tp_loc yojson
-                [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) openClose_field)
-                      None
-                  , "openClose" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) change_field)
-                      None
-                  , "change" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) willSave_field)
-                      None
-                  , "willSave" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) willSaveWaitUntil_field)
-                      None
-                  , "willSaveWaitUntil" )
-                ] ) ) )
+              , Ppx_yojson_conv_lib.( ! ) save_field )
+            in
+            { openClose =
+                ( match openClose_value with
+                | None -> false
+                | Some v -> v )
+            ; change =
+                ( match change_value with
+                | None -> TextDocumentSyncKind.NoSync
+                | Some v -> v )
+            ; willSave =
+                ( match willSave_value with
+                | None -> false
+                | Some v -> v )
+            ; willSaveWaitUntil =
+                ( match willSaveWaitUntil_value with
+                | None -> false
+                | Some v -> v )
+            ; save = save_value
+            } ) )
       | _ as yojson ->
         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
           yojson
@@ -3506,15 +3494,15 @@ module TextDocumentSyncOptions = struct
         ; change = v_change
         ; willSave = v_willSave
         ; willSaveWaitUntil = v_willSaveWaitUntil
-        ; didSave = v_didSave
+        ; save = v_save
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
-          match v_didSave with
+          match v_save with
           | None -> bnds
           | Some v ->
             let arg = yojson_of_saveOptions v in
-            let bnd = ("didSave", arg) in
+            let bnd = ("save", arg) in
             bnd :: bnds
         in
         let bnds =
@@ -3545,7 +3533,7 @@ module TextDocumentSyncOptions = struct
     ; change = TextDocumentSyncKind.NoSync
     ; willSave = false
     ; willSaveWaitUntil = false
-    ; didSave = None
+    ; save = None
     }
 end
 
