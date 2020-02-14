@@ -483,7 +483,7 @@ module Synchronization = struct
 
   [@@@end]
 
-  let empty = { willSave = true; willSaveWaitUntil = true; didSave = true }
+  let empty = { willSave = false; willSaveWaitUntil = false; didSave = true }
 end
 
 module CompletionItem = struct
