@@ -39,6 +39,17 @@ type 'result command =
   | Format_files_in_place : string list -> unit command
   | Check : Input.t -> bool command
 
+let read_to_end ?(hint = 0) (in_chan : in_channel) : string =
+  let buf = Buffer.create hint in
+  let rec go () =
+    let line = input_line in_chan in
+    Buffer.add_string buf line;
+    Buffer.add_char buf '\n';
+    go ()
+  in
+  (try go () with End_of_file -> ());
+  Buffer.contents buf
+
 type command_result =
   { stdout : string
   ; stderr : string
@@ -58,8 +69,8 @@ let run_command command ?stdin_value args : command_result =
     close_out out_chan
   in
   Option.iter stdin_value ~f;
-  let stdout = Stdune.Io.read_all in_chan in
-  let stderr = Stdune.Io.read_all err_chan in
+  let stdout = read_to_end in_chan in
+  let stderr = read_to_end err_chan in
   let status = Unix.close_process_full (in_chan, out_chan, err_chan) in
   { stdout; stderr; status }
 
