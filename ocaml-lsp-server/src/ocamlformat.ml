@@ -45,13 +45,10 @@ let read_to_end (in_chan : in_channel) : string =
   let chunk = Bytes.create chunk_size in
   let rec go pos =
     let actual_len = input in_chan chunk pos chunk_size in
-    if actual_len = 0 then
-      (* EOF *)
-      ()
-    else (
+    if actual_len > 0 then begin
       Buffer.add_subbytes buf chunk 0 actual_len;
       go pos
-    )
+    end
   in
   go 0;
   Buffer.contents buf
