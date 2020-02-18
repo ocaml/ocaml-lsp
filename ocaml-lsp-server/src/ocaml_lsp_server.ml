@@ -185,7 +185,7 @@ let on_request :
     -> Lsp.Initialize.ClientCapabilities.t
     -> resp Lsp.Client_request.t
     -> (Document_store.t * resp, string) result =
- fun _rpc store client_capabilities req ->
+ fun rpc store client_capabilities req ->
   let open Lsp.Import.Result.O in
   match req with
   | Lsp.Client_request.Initialize _ -> assert false
@@ -653,7 +653,16 @@ let on_request :
         Ocamlformat.Output.Stdout Ocamlformat.Options.default
     in
     match result with
-    | Result.Error e -> Error (Printf.sprintf "format failed: %s" e)
+    | Result.Error Missing_binary ->
+      let message = "Unable to find ocamlformat binary" in
+      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
+      Lsp.Rpc.send_notification rpc (ShowMessage msg);
+      Error message
+    | Result.Error (Message e) ->
+      let message = Printf.sprintf "failed to format: %s e" e in
+      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
+      Lsp.Rpc.send_notification rpc (ShowMessage msg);
+      Error message
     | Result.Ok result ->
       let pos line col = { Lsp.Protocol.Position.character = col; line } in
       let range =

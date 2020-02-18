@@ -30,11 +30,15 @@ type 'result command =
   | Format_files_in_place : string list -> unit command
   | Check : Input.t -> bool command
 
-val exec : 'result command -> Options.t -> ('result, string) Result.t
+type error =
+  | Missing_binary
+  | Message of string
+
+val exec : 'result command -> Options.t -> ('result, error) Result.t
 
 val format_file :
-  Input.t -> 'result Output.t -> Options.t -> ('result, string) Result.t
+  Input.t -> 'result Output.t -> Options.t -> ('result, error) Result.t
 
-val format_files_in_place : string list -> Options.t -> (unit, string) Result.t
+val format_files_in_place : string list -> Options.t -> (unit, error) Result.t
 
-val check : Input.t -> Options.t -> (bool, string) Result.t
+val check : Input.t -> Options.t -> (bool, error) Result.t

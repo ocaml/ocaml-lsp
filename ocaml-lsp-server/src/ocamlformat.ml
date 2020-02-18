@@ -45,10 +45,10 @@ let read_to_end (in_chan : in_channel) : string =
   let chunk = Bytes.create chunk_size in
   let rec go pos =
     let actual_len = input in_chan chunk pos chunk_size in
-    if actual_len > 0 then begin
+    if actual_len > 0 then (
       Buffer.add_subbytes buf chunk 0 actual_len;
       go pos
-    end
+    )
   in
   go 0;
   Buffer.contents buf
@@ -94,29 +94,43 @@ let build_args : type r. r command -> Options.t -> string list * string option =
     | Input.Stdin (v, f) ->
       (args @ File_type.to_cmdline_args f @ [ "-" ], Some v) )
 
-let exec : type r. r command -> Options.t -> (r, string) Result.t =
+let _PATH =
+  lazy
+    (Bin.parse_path
+       (Option.value ~default:"" (Unix_env.get Unix_env.initial "PATH")))
+
+type error =
+  | Missing_binary
+  | Message of string
+
+let exec : type r. r command -> Options.t -> (r, error) Result.t =
  fun cmd args ->
   let args, stdin_value = build_args cmd args in
-  let res = run_command "ocamlformat" ?stdin_value args in
-  match res.status with
-  | Unix.WEXITED i -> (
-    match cmd with
-    | Check _ -> Result.Ok (i = 0)
-    | _ when i <> 0 -> Result.Error res.stderr
-    | Format_file (_, o) -> (
-      match o with
-      | Output.File _ -> Result.Ok ()
-      | Output.Stdout -> Result.Ok res.stdout )
-    | Format_files_in_place _ -> Result.Ok () )
-  | _ -> Result.Error res.stderr
+  let ocamlformat = Bin.which ~path:(Lazy.force _PATH) "ocamlformat" in
+  match ocamlformat with
+  | None -> Result.Error Missing_binary
+  | Some ocamlformat -> (
+    let ocamlformat = Fpath.to_string ocamlformat in
+    let res = run_command ocamlformat ?stdin_value args in
+    match res.status with
+    | Unix.WEXITED i -> (
+      match cmd with
+      | Check _ -> Result.Ok (i = 0)
+      | _ when i <> 0 -> Result.Error (Message res.stderr)
+      | Format_file (_, o) -> (
+        match o with
+        | Output.File _ -> Result.Ok ()
+        | Output.Stdout -> Result.Ok res.stdout )
+      | Format_files_in_place _ -> Result.Ok () )
+    | _ -> Result.Error (Message res.stderr) )
 
 let format_file :
-    type r. Input.t -> r Output.t -> Options.t -> (r, string) Result.t =
+    type r. Input.t -> r Output.t -> Options.t -> (r, error) Result.t =
  fun input output args -> exec (Format_file (input, output)) args
 
 let format_files_in_place (files : string list) (options : Options.t) :
-    (unit, string) Result.t =
+    (unit, error) Result.t =
   exec (Format_files_in_place files) options
 
-let check (input : Input.t) (options : Options.t) : (bool, string) Result.t =
+let check (input : Input.t) (options : Options.t) : (bool, error) Result.t =
   exec (Check input) options
