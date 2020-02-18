@@ -67,7 +67,7 @@ The server supports the following queries:
 - [x] `textDocument/references`
 - [ ] `textDocument/documentColor`
 - [ ] `textDocument/colorPresentation`
-- [ ] `textDocument/formatting`
+- [x] `textDocument/formatting`
 - [ ] `textDocument/rangeFormatting`
 - [ ] `textDocument/onTypeFormatting`
 - [ ] `textDocument/prepareRename`
