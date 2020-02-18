@@ -39,15 +39,21 @@ type 'result command =
   | Format_files_in_place : string list -> unit command
   | Check : Input.t -> bool command
 
-let read_to_end ?(hint = 0) (in_chan : in_channel) : string =
-  let buf = Buffer.create hint in
-  let rec go () =
-    let line = input_line in_chan in
-    Buffer.add_string buf line;
-    Buffer.add_char buf '\n';
-    go ()
+let read_to_end (in_chan : in_channel) : string =
+  let buf = Buffer.create 0 in
+  let chunk_size = 1024 in
+  let chunk = Bytes.create chunk_size in
+  let rec go pos =
+    let actual_len = input in_chan chunk pos chunk_size in
+    if actual_len = 0 then
+      (* EOF *)
+      ()
+    else (
+      Buffer.add_subbytes buf chunk 0 actual_len;
+      go pos
+    )
   in
-  (try go () with End_of_file -> ());
+  go 0;
   Buffer.contents buf
 
 type command_result =
@@ -66,6 +72,7 @@ let run_command command ?stdin_value args : command_result =
   let in_chan, out_chan, err_chan = Unix.open_process_full command env in
   let f stdin =
     output_string out_chan stdin;
+    flush out_chan;
     close_out out_chan
   in
   Option.iter stdin_value ~f;

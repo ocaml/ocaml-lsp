@@ -731,7 +731,6 @@ let start () =
   let on_request rpc state caps req =
     prepare_and_run @@ fun () -> on_request rpc state caps req
   in
-  log ~title:"info" "starting";
   Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout;
   log ~title:"info" "exiting"
 
