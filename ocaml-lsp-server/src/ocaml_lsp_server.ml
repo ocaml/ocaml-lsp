@@ -60,7 +60,7 @@ let initializeInfo : Lsp.Initialize.Result.t =
       ; workspaceSymbolProvider = false
       ; codeActionProvider = Value codeActionProvider
       ; codeLensProvider = Some { resolveProvider = false }
-      ; documentFormattingProvider = false
+      ; documentFormattingProvider = true
       ; documentRangeFormattingProvider = false
       ; documentOnTypeFormattingProvider = None
       ; renameProvider = true
@@ -185,7 +185,7 @@ let on_request :
     -> Lsp.Initialize.ClientCapabilities.t
     -> resp Lsp.Client_request.t
     -> (Document_store.t * resp, string) result =
- fun _rpc store client_capabilities req ->
+ fun rpc store client_capabilities req ->
   let open Lsp.Import.Result.O in
   match req with
   | Lsp.Client_request.Initialize _ -> assert false
@@ -642,7 +642,38 @@ let on_request :
   | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> Ok (store, [])
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
-  | Lsp.Client_request.TextDocumentFormatting _ -> Ok (store, [])
+  | Lsp.Client_request.TextDocumentFormatting
+      { textDocument = { uri }; options = _ } -> (
+    Document_store.get store uri >>= fun doc ->
+    let src = Document.source doc |> Msource.text in
+    let file_name = Document.uri doc |> Lsp.Uri.to_path in
+    let result =
+      Ocamlformat.format_file
+        (Ocamlformat.Input.Stdin (src, Ocamlformat.File_type.Name file_name))
+        Ocamlformat.Output.Stdout Ocamlformat.Options.default
+    in
+    match result with
+    | Result.Error Missing_binary ->
+      let message = "Unable to find ocamlformat binary" in
+      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
+      Lsp.Rpc.send_notification rpc (ShowMessage msg);
+      Error message
+    | Result.Error (Message e) ->
+      let message = Printf.sprintf "failed to format: %s e" e in
+      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
+      Lsp.Rpc.send_notification rpc (ShowMessage msg);
+      Error message
+    | Result.Ok result ->
+      let pos line col = { Lsp.Protocol.Position.character = col; line } in
+      let range =
+        let start_pos = pos 0 0 in
+        match Msource.get_logical (Document.source doc) `End with
+        | `Logical (l, c) ->
+          let end_pos = pos l c in
+          { Lsp.Protocol.Range.start_ = start_pos; end_ = end_pos }
+      in
+      let change = { Lsp.Protocol.TextEdit.newText = result; range } in
+      Ok (store, [ change ]) )
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
   | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
   | Lsp.Client_request.UnknownRequest _ -> Error "got unknown request"

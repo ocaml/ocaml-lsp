@@ -6,6 +6,9 @@ module Int = Stdune.Int
 module Dyn = Stdune.Dyn
 module Ordering = Stdune.Ordering
 module Exn = Stdune.Exn
+module Bin = Stdune.Bin
+module Unix_env = Stdune.Env
+module Fpath = Stdune.Path
 
 module String = struct
   include Stdune.String
