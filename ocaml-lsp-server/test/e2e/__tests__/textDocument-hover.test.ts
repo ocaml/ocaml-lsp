@@ -139,4 +139,42 @@ describe("textDocument/hover", () => {
       },
     });
   });
+
+  it("returns string type when string contains a type name", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      textDocument: {
+        hover: {
+          dynamicRegistration: true,
+          contentFormat: ["markdown", "plaintext"],
+        },
+      },
+    });
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "txt",
+        0,
+        outdent`
+          type example_type = int
+          let s = "this is a string with an example_type in the middle"
+       `,
+      ),
+    });
+
+    let result = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(1, 42),
+    });
+
+    expect(result).toMatchObject({
+      contents: {
+        kind: "markdown",
+        value: "```ocaml\ntype example_type = int\n```",
+      },
+      range: {
+        start: { character: 34, line: 1 },
+        end: { character: 46, line: 1 },
+      },
+    });
+  });
 });
