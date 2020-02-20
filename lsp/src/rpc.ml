@@ -158,23 +158,22 @@ let start init_state handler ic oc =
               try handler.on_notification rpc state notif
               with exn -> Error (Printexc.to_string exn) )
             | Message.Request (id, E req) -> (
-              try
-                handler.on_request rpc state client_capabilities req
-                >>= fun (next_state, result) ->
-                match Client_request.yojson_of_result req result with
-                | None -> Ok next_state
-                | Some response ->
-                  let response = Jsonrpc.Response.ok id response in
+              ( try handler.on_request rpc state client_capabilities req
+                with exn ->
+                  let message = Printexc.to_string exn in
+                  let error =
+                    Jsonrpc.Response.Error.make ~code:InternalError ~message ()
+                  in
+                  let response = Jsonrpc.Response.error id error in
                   send_response rpc response;
-                  Ok next_state
-              with exn ->
-                let message = Printexc.to_string exn in
-                let error =
-                  Jsonrpc.Response.Error.make ~code:InternalError ~message ()
-                in
-                let response = Jsonrpc.Response.error id error in
+                  Error message )
+              >>= fun (next_state, result) ->
+              match Client_request.yojson_of_result req result with
+              | None -> Ok next_state
+              | Some response ->
+                let response = Jsonrpc.Response.ok id response in
                 send_response rpc response;
-                Error message ))
+                Ok next_state ))
       in
       Logger.log_flush ();
       loop rpc next_state
