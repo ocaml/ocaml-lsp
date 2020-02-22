@@ -7,7 +7,7 @@
  (action
   (with-stdout-to
    3-15.errors
-   (run ../gen.exe --test --md %{deps}))))
+   (run ../gen.exe --out test --md %{deps}))))
 
 ; (rule
 ;  (alias runtest)

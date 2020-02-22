@@ -1,35 +1,59 @@
 open Import
 
+module Output = struct
+  type t =
+    | Test
+    | Ocaml
+
+  let of_string = function
+    | "test" -> Some Test
+    | "ocaml" -> Some Ocaml
+    | _ -> None
+
+  let arg () =
+    let field = ref None in
+    let name = "--out" in
+    let set s =
+      match of_string s with
+      | Some f -> field := Some f
+      | None -> raise (Arg.Bad (sprintf "invalid output mode %s" s))
+    in
+    ( (name, Arg.String set, "test | ocaml")
+    , lazy (
+      match !field with
+      | Some f -> f
+      | None ->
+        raise (Arg.Bad (sprintf "%s not set" name))
+    )
+    )
+end
+
 let () =
   let md_file = ref None in
-  let out_dir = ref None in
-  let test = ref false in
+  let (out_arg, out) = Output.arg () in
   let args =
     [ ( "--md"
       , Arg.String (fun s -> md_file := Some s)
       , "markdown file containing specification" )
-    ; ("--out-dir", Arg.String (fun s -> out_dir := Some s), "output directory")
-    ; ("--test", Arg.Set test, "test mode")
+    ; out_arg
     ]
   in
   let anon s = raise (Arg.Bad (sprintf "don't know what to do with %s" s)) in
   let usage =
-    sprintf "%s --md [FILE] --out-dor [DIR]"
+    sprintf "%s --md [FILE] --out [test | ocaml]"
       (Filename.basename Sys.executable_name)
   in
   Arg.parse args anon usage;
   let md_file = Option.value_exn !md_file in
-  let out_dir = !out_dir in
-  let test = !test in
   let ch = open_in md_file in
   let lexing = Lexing.from_channel ch in
   let typescript = Markdown.read_typescript lexing in
-  if test then
+  let asts = Typescript.of_snippets typescript in
+  match Lazy.force out with
+  | Test ->
     let tests = Typescript.test_snippets typescript in
-    Format.printf "%a%!" Typescript.pp_results tests
-  else
-    let asts = Typescript.of_snippets typescript in
+    Format.printf "%a%!" Typescript.pp_results tests;
+    ignore (Ocaml.of_typescript asts)
+  | Ocaml ->
     let ocaml = Ocaml.of_typescript asts in
-    match out_dir with
-    | None -> print_endline "parsed successfully"
-    | Some out_dir -> Ocaml.output ocaml out_dir
+    Ocaml.output ocaml
