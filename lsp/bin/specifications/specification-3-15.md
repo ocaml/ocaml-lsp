@@ -45,7 +45,7 @@ The header part is encoded using the 'ascii' encoding. This includes the '\r\n' 
 
 ### <a href="#contentPart" name="contentPart" class="anchor"> Content Part </a>
 
-Contains the actual content of the message. The content part of a message uses [JSON-RPC](http://www.jsonrpc.org/) to describe requests, responses and notifications. The content part is encoded using the charset provided in the Content-Type field. It defaults to `utf-8`, which is the only encoding supported right now. If a server or client receives a header with a different encoding then `utf-8` it should respond with an error.
+Contains the actual content of the message. The content part of a message uses [JSON-RPC](http://www.jsonrpc.org/) to describe requests, responses and notifications. The content part is encoded using the charset provided in the Content-Type field. It defaults to `utf-8`, which is the only encoding supported right now. If a server or client receives a header with a different encoding than `utf-8` it should respond with an error.
 
 (Prior versions of the protocol used the string constant `utf8` which is not a correct encoding constant according to [specification](http://www.iana.org/assignments/character-sets/character-sets.xhtml).) For backwards compatibility it is highly recommended that a client and a server treats the string `utf8` as `utf-8`.
 
@@ -1322,7 +1322,7 @@ The initialize request is sent as the first request from the client to the serve
 * For a request the response should be an error with `code: -32002`. The message can be picked by the server.
 * Notifications should be dropped, except for the exit notification. This will allow the exit of a server without an initialize request.
 
-Until the server has responded to the `initialize` request with an `InitializeResult`, the client must not send any additional requests or notifications to the server. In addition the server is not allowed to send any requests or notifications to the client until it has responded with an `InitializeResult`, with the exception that during the `initialize` request the server is allowed to send the notifications `window/showMessage`, `window/logMessage` and `telemetry/event` as well as the `window/showMessageRequest` request to the client. In case the client sets up a progress token in the initialize params (e.g. property `workDoneToken`) the server is also allowed to used that token (and only that token) using the `$/progress` notification sent from the server to the client.
+Until the server has responded to the `initialize` request with an `InitializeResult`, the client must not send any additional requests or notifications to the server. In addition the server is not allowed to send any requests or notifications to the client until it has responded with an `InitializeResult`, with the exception that during the `initialize` request the server is allowed to send the notifications `window/showMessage`, `window/logMessage` and `telemetry/event` as well as the `window/showMessageRequest` request to the client. In case the client sets up a progress token in the initialize params (e.g. property `workDoneToken`) the server is also allowed to use that token (and only that token) using the `$/progress` notification sent from the server to the client.
 
 The `initialize` request may only be sent once.
 
@@ -1520,6 +1520,13 @@ export interface TextDocumentClientCapabilities {
 	 * @since 3.10.0
 	 */
 	foldingRange?: FoldingRangeClientCapabilities;
+
+	/**
+	 * Capabilities specific to the `textDocument/selectionRange` request.
+	 *
+	 * @since 3.15.0
+	 */
+	selectionRange?: SelectionRangeClientCapabilities;
 }
 ```
 
@@ -1564,12 +1571,39 @@ interface ClientCapabilities {
 		* Capabilities specific to the `workspace/executeCommand` request.
 		*/
 		executeCommand?: ExecuteCommandClientCapabilities;
+
+		/**
+		* The client has support for workspace folders.
+		*
+		* Since 3.6.0
+		*/
+		workspaceFolders?: boolean;
+
+		/**
+		* The client supports `workspace/configuration` requests.
+		*
+		* Since 3.6.0
+		*/
+		configuration?: boolean;
 	};
 
 	/**
 	 * Text document specific client capabilities.
 	 */
 	textDocument?: TextDocumentClientCapabilities;
+
+	/**
+	 * Window specific client capabilities.
+	 */
+	window?: {
+		/**
+		 * Whether client supports handling progress notifications. If set servers are allowed to
+		 * report in `workDoneProgress` property in the request specific server capabilities.
+		 *
+		 * Since 3.15.0
+		 */
+		workDoneProgress?: boolean;
+	}
 
 	/**
 	 * Experimental client capabilities.
@@ -1608,7 +1642,7 @@ interface InitializeResult {
 ```
 * error.code:
 
-```typescript[@ignore]
+```typescript
 /**
  * Known error codes for an `InitializeError`;
  */
@@ -1624,7 +1658,7 @@ export namespace InitializeError {
 
 * error.data:
 
-```typescript[@ignore]
+```typescript
 interface InitializeError {
 	/**
 	 * Indicates whether the client execute the following retry logic:
@@ -1639,16 +1673,6 @@ interface InitializeError {
 The server can signal the following capabilities:
 
 ```typescript
-/**
- * Execute command options.
- */
-export interface ExecuteCommandOptions {
-	/**
-	 * The commands to be executed on the server
-	 */
-	commands: string[]
-}
-
 interface ServerCapabilities {
 	/**
 	 * Defines how text documents are synced. Is either a detailed structure defining each notification or
@@ -1766,16 +1790,16 @@ interface ServerCapabilities {
 	foldingRangeProvider?: boolean | FoldingRangeOptions | FoldingRangeRegistrationOptions;
 
 	/**
-	 * The server provides folding provider support.
-	 *
-	 * @since 3.10.0
-	 */
-	foldingRangeProvider?: boolean | FoldingRangeOptions | FoldingRangeRegistrationOptions;
-
-	/**
 	 * The server provides execute command support.
 	 */
 	executeCommandProvider?: ExecuteCommandOptions;
+
+	/**
+	 * The server provides selection range support.
+	 *
+	 * @since 3.15.0
+	 */
+	selectionRangeProvider?: boolean | SelectionRangeOptions | SelectionRangeRegistrationOptions;
 
 	/**
 	 * The server provides workspace symbol support.
@@ -1953,7 +1977,7 @@ _Request_:
 * method: 'window/workDoneProgress/create'
 * params: `WorkDoneProgressCreateParams` defined as follows:
 
-```ts
+```typescript
 export interface WorkDoneProgressCreateParams {
 	/**
 	 * The token to be used to report progress.
@@ -1976,7 +2000,7 @@ _Notification_:
 * method: 'window/workDoneProgress/cancel'
 * params: `WorkDoneProgressCancelParams` defined as follows:
 
-```ts
+```typescript
 export interface WorkDoneProgressCancelParams {
 	/**
 	 * The token to be used to report progress.
@@ -2032,17 +2056,7 @@ export interface RegistrationParams {
 }
 ```
 
-Since most of the registration options require to specify a document selector there is a base interface that can be used.
-
-```typescript
-export interface TextDocumentRegistrationOptions {
-	/**
-	 * A document selector to identify the scope of the registration. If set to null
-	 * the document selector provided on the client side will be used.
-	 */
-	documentSelector: DocumentSelector | null;
-}
-```
+Since most of the registration options require to specify a document selector there is a base interface that can be used. See `TextDocumentRegistrationOptions`.
 
 An example JSON RPC message to register dynamically for the `textDocument/willSaveWaitUntil` feature on the client side is as follows (only details shown):
 
@@ -2513,7 +2527,7 @@ _Server Capability_:
 * property path (optional): `executeCommandProvider`
 * property type: `ExecuteCommandOptions` defined as follows:
 
-```typescript[@ignore]
+```typescript
 export interface ExecuteCommandOptions extends WorkDoneProgressOptions {
 	/**
 	 * The commands to be executed on the server
@@ -2618,7 +2632,7 @@ Controls whether text document synchronization supports dynamic registration.
 
 <a href="#textDocument_synchronization_sc" name="textDocument_synchronization_sc" class="anchor"></a>_Server Capability_:
 * property path (optional): `textDocumentSync`
-* property type: `TextDocumentSyncKind | TextDocumentSyncOptions` both defined as follows:
+* property type: `TextDocumentSyncKind | TextDocumentSyncOptions`. The below definition of the `TextDocumentSyncOptions` only covers the properties specific to the open, change and close notifications. A complete definition covering all properties can be found [here](#textDocument_didClose):
 
 ```typescript[@ignore]
 /**
@@ -2650,6 +2664,7 @@ export interface TextDocumentSyncOptions {
 	 * be sent.
 	 */
 	openClose?: boolean;
+
 	/**
 	 * Change notifications are sent to the server. See TextDocumentSyncKind.None, TextDocumentSyncKind.Full
 	 * and TextDocumentSyncKind.Incremental. If omitted it defaults to TextDocumentSyncKind.None.
@@ -3086,7 +3101,7 @@ interface PublishDiagnosticsParams {
 
 #### <a href="#textDocument_completion" name="textDocument_completion" class="anchor">Completion Request (:leftwards_arrow_with_hook:)</a>
 
-The Completion request is sent from the client to the server to compute completion items at a given cursor position. Completion items are presented in the [IntelliSense](https://code.visualstudio.com/docs/editor/editingevolved#_intellisense) user interface. If computing full completion items is expensive, servers can additionally provide a handler for the completion item resolve request ('completionItem/resolve'). This request is sent when a completion item is selected in the user interface. A typical use case is for example: the 'textDocument/completion' request doesn't fill in the `documentation` property for returned completion items since it is expensive to compute. When the item is selected in the user interface then a 'completionItem/resolve' request is sent with the selected completion item as a parameter. The returned completion item should have the documentation property filled in. The request can delay the computation of the `detail` and `documentation` properties. However, properties that are needed for the initial sorting and filtering, like `sortText`, `filterText`, `insertText`, and `textEdit` must be provided in the `textDocument/completion` response and must not be changed during resolve.
+The Completion request is sent from the client to the server to compute completion items at a given cursor position. Completion items are presented in the [IntelliSense](https://code.visualstudio.com/docs/editor/editingevolved#_intellisense) user interface. If computing full completion items is expensive, servers can additionally provide a handler for the completion item resolve request ('completionItem/resolve'). This request is sent when a completion item is selected in the user interface. A typical use case is for example: the 'textDocument/completion' request doesn't fill in the `documentation` property for returned completion items since it is expensive to compute. When the item is selected in the user interface then a 'completionItem/resolve' request is sent with the selected completion item as a parameter. The returned completion item should have the documentation property filled in. The request can only delay the computation of the `detail` and `documentation` properties. Other properties like `sortText`, `filterText`, `insertText`, `textEdit` and `additionalTextEdits` must be provided in the `textDocument/completion` response and must not be changed during resolve.
 
 _Client Capability_:
 * property name (optional): `textDocument.completion`
@@ -4880,7 +4895,8 @@ export interface DocumentLinkOptions extends WorkDoneProgressOptions {
 	 * Document links have a resolve provider as well.
 	 */
 	resolveProvider?: boolean;
-}```
+}
+```
 
 _Registration Options_: `DocumentLinkRegistrationOptions` defined as follows:
 ```typescript
@@ -4996,7 +5012,7 @@ _Request_:
 * method: 'textDocument/documentColor'
 * params: `DocumentColorParams` defined as follows
 
-```ts
+```typescript
 interface DocumentColorParams extends WorkDoneProgressParams, PartialResultParams {
 	/**
 	 * The text document.
@@ -5312,17 +5328,7 @@ _Request_:
 * params: `DocumentOnTypeFormattingParams` defined as follows:
 
 ```typescript
-interface DocumentOnTypeFormattingParams {
-	/**
-	 * The document to format.
-	 */
-	textDocument: TextDocumentIdentifier;
-
-	/**
-	 * The position at which this request was sent.
-	 */
-	position: Position;
-
+interface DocumentOnTypeFormattingParams extends TextDocumentPositionParams {
 	/**
 	 * The character that has been typed.
 	 */
@@ -5390,17 +5396,7 @@ _Request_:
 * params: `RenameParams` defined as follows
 
 ```typescript
-interface RenameParams extends WorkDoneProgressParams {
-	/**
-	 * The document to rename.
-	 */
-	textDocument: TextDocumentIdentifier;
-
-	/**
-	 * The position at which this request was sent.
-	 */
-	position: Position;
-
+interface RenameParams extends TextDocumentPositionParams, WorkDoneProgressParams {
 	/**
 	 * The new name of the symbol. If the given name is not valid the
 	 * request must return a [ResponseError](#ResponseError) with an
@@ -5422,7 +5418,11 @@ The prepare rename request is sent from the client to the server to setup and te
 
 _Request_:
 * method: 'textDocument/prepareRename'
-* params: [`TextDocumentPositionParams`](#textdocumentpositionparams)
+* params: `PrepareRenameParams` defined as follows:
+```typescript
+export interface PrepareRenameParams extends TextDocumentPositionParams {
+}
+```
 
 _Response_:
 * result: [`Range`](#range) \| `{ range: Range, placeholder: string }` \| `null` describing the range of the string to rename and optionally a placeholder text of the string content to be renamed. If `null` is returned then it is deemed that a 'textDocument/rename' request is not valid at the given position.
@@ -5623,7 +5623,7 @@ export interface SelectionRange {
 ```
 
 * partial result: `SelectionRange[]`
-* error: code and message set in case an exception happens during the 'textDocument/foldingRange' request
+* error: code and message set in case an exception happens during the 'textDocument/selectionRange' request
 
 ### Implementation considerations
 
