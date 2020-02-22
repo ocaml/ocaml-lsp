@@ -160,13 +160,10 @@ let start init_state handler ic oc =
             | Message.Request (id, E req) -> (
               ( try handler.on_request rpc state client_capabilities req
                 with exn ->
-                  let message = Printexc.to_string exn in
-                  let error =
-                    Jsonrpc.Response.Error.make ~code:InternalError ~message ()
-                  in
+                  let error = Jsonrpc.Response.Error.of_exn exn in
                   let response = Jsonrpc.Response.error id error in
                   send_response rpc response;
-                  Error message )
+                  Error error.message )
               >>= fun (next_state, result) ->
               match Client_request.yojson_of_result req result with
               | None -> Ok next_state

@@ -44,6 +44,8 @@ module Response : sig
       }
 
     val make : ?data:Json.t -> code:Code.t -> message:string -> unit -> t
+
+    val of_exn : Exn.t -> t
   end
 
   type t =
