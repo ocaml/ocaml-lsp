@@ -271,6 +271,10 @@ module Response = struct
     [@@@end]
 
     let make ?data ~code ~message () = { data; code; message }
+
+    let of_exn exn =
+      let message = Printexc.to_string exn in
+      make ~code:InternalError ~message ()
   end
 
   type t =
