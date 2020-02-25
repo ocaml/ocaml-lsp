@@ -26,7 +26,15 @@ module Type = struct
     | Sum of (string * anon option) list
     | Record of field list
 
+  let of_named (r : _ Named.t) = Named (String.capitalize_ascii r.name ^ ".t")
+
   let t = Named "t"
+
+  let string = Named "string"
+
+  let int = Named "int"
+
+  let bool = Named "bool"
 
   let alpha = Anon (Var "a")
 
@@ -321,7 +329,16 @@ module Record = struct
     | Pattern _ -> Type.unit
     | Resolved.Single { typ; optional = _ } -> (
       match typ with
-      | Ident _
+      | Ident Number -> Type.int
+      | Ident String -> Type.string
+      | Ident Bool -> Type.bool
+      | Ident Any
+      | Ident Object ->
+        Type.json
+      | Ident Self -> Type.t (* XXX wrong *)
+      | Ident Null -> assert false
+      | Ident List -> assert false
+      | Ident (Resolved r) -> Type.of_named r
       | List _
       | App _
       | Tuple _
@@ -332,11 +349,16 @@ module Record = struct
 
   let attrs_of_field (field : Resolved.field) =
     match field.data with
-    | Single s ->
-      if s.optional then
-        [ W.Type.opt_attr ]
-      else
-        []
+    | Single s -> (
+      let attrs =
+        if s.optional then
+          [ W.Type.opt_attr ]
+        else
+          []
+      in
+      match String.drop_suffix field.name ~suffix:"_" with
+      | Some s -> W.Type.key s :: attrs
+      | None -> attrs )
     | Pattern _ -> []
 
   let record_ name fields =

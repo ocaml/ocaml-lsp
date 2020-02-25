@@ -85,7 +85,7 @@ module Type = struct
 
   let default f def = Pp.concat [ f; ident "[@default "; ident def; ident "]" ]
 
-  let key f name = Pp.concat [ f; ident "[@key "; quoted name; ident "]" ]
+  let key name = concat [ ident "[@key "; quoted name; ident "]" ]
 
   let variant_ constrs =
     Pp.concat_map constrs ~sep:Pp.newline ~f:(fun (name, arg) ->
