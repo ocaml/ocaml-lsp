@@ -1,14 +1,5 @@
 open Import
 
-module Named = struct
-  type 'a t =
-    { name : string
-    ; data : 'a
-    }
-
-  let make ~name data = { name; data }
-end
-
 module Literal = struct
   type t =
     | String of string
@@ -162,9 +153,10 @@ and Prim : (Prim_intf with type resolved := Resolved.t) = Prim_make (Resolved)
 let subst unresolved =
   object
     val params = String.Map.empty
+
     val inside = None
 
-    method inside s = {< inside = Some s >}
+    method inside s = {<inside = Some s>}
 
     method resolve n =
       match String.Map.find params n with
@@ -179,26 +171,26 @@ let subst unresolved =
     method push x y =
       let params =
         String.Map.update params x ~f:(function
-            | None -> Some [y]
-            | Some [] -> assert false
-            | Some (y' :: xs) ->
-              if y = y' then
-                Some xs
-              else
-                Some (y :: y' :: xs))
+          | None -> Some [ y ]
+          | Some [] -> assert false
+          | Some (y' :: xs) ->
+            if y = y' then
+              Some xs
+            else
+              Some (y :: y' :: xs))
       in
-      {< params >}
+      {<params>}
 
     method pop x =
       let params =
         String.Map.update params x ~f:(function
-            | None ->
-              ignore (String.Map.find_exn params x);
-              None
-            | Some [] -> assert false
-            | Some (_ :: xs) -> Some xs)
+          | None ->
+            ignore (String.Map.find_exn params x);
+            None
+          | Some [] -> assert false
+          | Some (_ :: xs) -> Some xs)
       in
-      {< params >}
+      {<params>}
   end
 
 let rec resolve_all ts ~(names : Unresolved.t String.Map.t) : Resolved.t list =
@@ -216,7 +208,7 @@ and resolve (t : Unresolved.t) ~names : Resolved.t =
 
 and resolve_ident i ~names =
   Prim.of_string i ~resolve:(fun s ->
-      match names # resolve s with
+      match names#resolve s with
       | `Resolved s -> s
       | `Self -> Self
       | `Unresolved s -> Resolved (resolve s ~names))
@@ -232,16 +224,16 @@ and resolve_type t ~names : Resolved.typ =
   | Record fields -> Record (List.map ~f:(resolve_field ~names) fields)
 
 and resolve_interface i ~names : Resolved.interface =
-  let names = names # inside i.name in
+  let names = names#inside i.name in
   let i = i.data in
   { extends = List.map ~f:(resolve_ident ~names) i.extends
   ; params = i.params
   ; fields =
-      let names =
-        List.fold_left ~init:names i.params ~f:(fun acc x ->
-            acc # push x Prim.Any)
-      in
-      List.map ~f:(resolve_field ~names) i.fields
+      (let names =
+         List.fold_left ~init:names i.params ~f:(fun acc x ->
+             acc#push x Prim.Any)
+       in
+       List.map ~f:(resolve_field ~names) i.fields)
   }
 
 and resolve_field f ~names : Resolved.field =

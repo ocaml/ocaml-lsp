@@ -19,18 +19,15 @@ module Output = struct
       | None -> raise (Arg.Bad (sprintf "invalid output mode %s" s))
     in
     ( (name, Arg.String set, "test | ocaml")
-    , lazy (
-      match !field with
-      | Some f -> f
-      | None ->
-        raise (Arg.Bad (sprintf "%s not set" name))
-    )
-    )
+    , lazy
+        ( match !field with
+        | Some f -> f
+        | None -> raise (Arg.Bad (sprintf "%s not set" name)) ) )
 end
 
 let () =
   let md_file = ref None in
-  let (out_arg, out) = Output.arg () in
+  let out_arg, out = Output.arg () in
   let args =
     [ ( "--md"
       , Arg.String (fun s -> md_file := Some s)
@@ -52,8 +49,8 @@ let () =
   match Lazy.force out with
   | Test ->
     let tests = Typescript.test_snippets typescript in
-    Format.printf "%a%!" Typescript.pp_results tests;
-    ignore (Ocaml.of_typescript asts)
+    Format.printf "%a%!" Typescript.pp_results tests
   | Ocaml ->
+    let asts = Typescript.resolve_all asts in
     let ocaml = Ocaml.of_typescript asts in
     Ocaml.output ocaml

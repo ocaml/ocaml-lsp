@@ -23,6 +23,7 @@ let name_table (defns : Unresolved.t list) =
 
 let resolve_all (defns : Unresolved.t list) =
   let names = name_table defns in
+  let defns = String.Map.values names in
   Ts_types.resolve_all defns ~names
 
 let test_snippets s =
