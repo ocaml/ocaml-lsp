@@ -23,6 +23,8 @@ depends: [
   "ppx_yojson_conv_lib"
   "cppo" {dev}
   "ocaml" {>= "4.06"}
+  "octavius"
+  "omd"
   "dune" {>= "1.11"}
 ]
 build: [

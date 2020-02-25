@@ -219,17 +219,25 @@ let on_request :
     in
 
     let format_contents ~as_markdown ~typ ~doc =
-      let doc =
-        match doc with
-        | None -> ""
-        | Some s -> Printf.sprintf "\n(** %s *)" s
-      in
       if as_markdown then
-        { Lsp.Protocol.MarkupContent.value =
-            Printf.sprintf "```ocaml\n%s%s\n```" typ doc
+        let value =
+          match doc with
+          | None -> Printf.sprintf "```ocaml\n%s\n```" typ
+          | Some s -> (
+            match Doc_comment.doc_comment_to_markdown s with
+            | `Raw doc -> Printf.sprintf "```ocaml\n%s\n(** %s *)\n```" typ doc
+            | `Markdown doc ->
+              Printf.sprintf "```ocaml\n%s\n```\n---\n%s" typ doc )
+        in
+        { Lsp.Protocol.MarkupContent.value
         ; kind = Lsp.Protocol.MarkupKind.Markdown
         }
       else
+        let doc =
+          match doc with
+          | None -> ""
+          | Some s -> Printf.sprintf "\n(** %s *)" s
+        in
         { Lsp.Protocol.MarkupContent.value = Printf.sprintf "%s%s" typ doc
         ; kind = Lsp.Protocol.MarkupKind.Plaintext
         }
