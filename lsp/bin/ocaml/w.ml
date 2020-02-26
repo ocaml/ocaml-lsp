@@ -143,14 +143,14 @@ let match_ e clauses =
   in
   Pp.concat [ Pp.textf "match %s with" e; Pp.newline; clauses ]
 
-let to_yojson t body =
+let to_json t body =
   Pp.concat
     [ Pp.textf "let %s (json : Json.t) : t =" (Name.to_json t)
     ; Pp.newline
     ; Pp.hovbox ~indent:2 body
     ]
 
-let of_yojson t body =
+let of_json t body =
   Pp.concat
     [ Pp.textf "let %s (t : t) : Json.t =" (Name.of_json t)
     ; Pp.newline
