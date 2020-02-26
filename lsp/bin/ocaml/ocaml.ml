@@ -394,13 +394,32 @@ module Record = struct
     | _ :: _ -> Some { Module.name; type_decls = [ type_decl ]; lets }
 end
 
+class idents = object
+  inherit [Resolved.t list] Resolved.fold_ident
+
+  method! ident i ~init =
+    match i with
+    | Resolved r -> r :: init
+    | _ -> init
+end
+
 let of_typescript (ts : Resolved.t list) =
-  List.filter_map ts ~f:(fun (t : Resolved.t) ->
-      let name = t.name in
-      match t.data with
-      | Enum_anon constr -> Enum.module_ { t with data = constr }
-      | Interface data -> Record.module_ { t with data }
-      | _ -> Some (Module.empty name))
+  match
+    Top_closure.String.top_closure ts
+      ~key:(fun (x : Resolved.t) -> x.name)
+      ~deps:(fun (x : Resolved.t) ->
+          (new idents) # t x ~init:[]
+        )
+  with
+  | Error _ ->
+    Code_error.raise "Unexpected cycle" []
+  | Ok ts ->
+    List.filter_map ts ~f:(fun (t : Resolved.t) ->
+        let name = t.name in
+        match t.data with
+        | Enum_anon constr -> Enum.module_ { t with data = constr }
+        | Interface data -> Record.module_ { t with data }
+        | _ -> Some (Module.empty name))
 
 let mli = name ^ ".mli"
 
