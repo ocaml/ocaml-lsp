@@ -683,7 +683,43 @@ let on_request :
       let change = { Lsp.Protocol.TextEdit.newText = result; range } in
       Ok (store, [ change ]) )
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
-  | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
+  | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
+    let selection_range_of_shapes (shapes : Query_protocol.shape list) :
+        Lsp.Protocol.SelectionRange.t option =
+      match shapes with
+      | [] -> None
+      | h :: t ->
+        let merge_range r1 r2 =
+          let start_ =
+            min r1.Lsp.Protocol.Range.start_ r2.Lsp.Protocol.Range.start_
+          in
+          let end_ =
+            max r1.Lsp.Protocol.Range.end_ r2.Lsp.Protocol.Range.end_
+          in
+          { Lsp.Protocol.Range.start_; end_ }
+        in
+        let rec ranges_of_shape s =
+          range_of_loc s.Query_protocol.shape_loc
+          :: List.concat_map s.Query_protocol.shape_sub ~f:ranges_of_shape
+        in
+        let range =
+          List.fold_left
+            (List.append
+               (List.concat_map h.Query_protocol.shape_sub ~f:ranges_of_shape)
+               (List.concat_map t ~f:ranges_of_shape))
+            ~init:(range_of_loc h.Query_protocol.shape_loc)
+            ~f:merge_range
+        in
+        Some { Lsp.Protocol.SelectionRange.range; parent = None }
+    in
+    Document_store.get store uri >>= fun doc ->
+    let results =
+      List.filter_map positions ~f:(fun x ->
+          let command = Query_protocol.Shape (logical_of_position x) in
+          let shapes = dispatch_in_doc doc command in
+          selection_range_of_shapes shapes)
+    in
+    Ok (store, results)
   | Lsp.Client_request.UnknownRequest _ ->
     Error (make_error ~code:InvalidRequest ~message:"Got unkown request" ())
 
