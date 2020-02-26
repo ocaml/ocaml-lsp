@@ -224,10 +224,8 @@ let on_request :
           match doc with
           | None -> Printf.sprintf "```ocaml\n%s\n```" typ
           | Some s -> (
-            match Doc_comment.doc_comment_to_markdown s with
-            | `Raw doc -> Printf.sprintf "```ocaml\n%s\n(** %s *)\n```" typ doc
-            | `Markdown doc ->
-              Printf.sprintf "```ocaml\n%s\n```\n---\n%s" typ doc )
+            let doc = Doc2md.Doc_comment.doc_comment_to_markdown s in
+            Printf.sprintf "```ocaml\n%s\n```\n---\n%s" typ doc )
         in
         { Lsp.Protocol.MarkupContent.value
         ; kind = Lsp.Protocol.MarkupKind.Markdown

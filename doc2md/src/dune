@@ -1,0 +1,5 @@
+(library
+ (name doc2md)
+ (public_name ocaml-lsp-server.doc2md)
+ (libraries omd odoc.model odoc.parser )
+)
