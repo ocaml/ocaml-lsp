@@ -2,6 +2,7 @@ module Appendable_list = Appendable_list
 module Ansi_color = Ansi_color
 module Array = Array
 module Bytes = Bytes
+module Clflags = Clflags
 module Comparator = Comparator
 module Console = Console
 module Csexp = Csexp
@@ -35,9 +36,9 @@ module Sexp = Sexp
 module Path = Path
 module Fmt = Fmt
 module Interned = Interned
+module Interned_intf = Interned_intf
 module Univ_map = Univ_map
 module Loc = Loc
-module Log = Log
 module Env = Env
 module Proc = Proc
 module Type_eq = Type_eq
@@ -54,14 +55,23 @@ module Tuple = Tuple
 module Poly = Poly
 module Code_error = Code_error
 module User_error = User_error
+module Report_error = Report_error
 module User_message = User_message
 module User_warning = User_warning
 module Lexbuf = Lexbuf
 module Scanf = Scanf
+module Sys = Sys
+module Pid = Pid
+module Applicative_intf = Applicative_intf
+module Monad_intf = Monad_intf
+module Applicative = Applicative
+module Top_closure_intf = Top_closure_intf
+module Top_closure = Top_closure
+module Spawn = Spawn
 
 external reraise : exn -> _ = "%reraise"
 
-let compare a b = Ordering.of_int (compare a b)
+let compare _ _ = `Use_Poly_compare
 
 (* The following types are re-exported here so that they are always available in
    scope *)
