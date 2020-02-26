@@ -1,22 +1,28 @@
-(** Generation ocaml code  *)
+(** Generation ocaml code *)
 
 open Import
 
 module Json : sig
   val invalid_pat : string -> 'a Pp.t * 'b Pp.t
+
   val typ : string
-  module Literal :
-  sig
+
+  module Literal : sig
     val str : string -> string
+
     val int : int -> string
+
     val null : string
+
     val bool : bool -> string
   end
+
   val str : string -> string
+
   val int : string -> string
+
   val bool : string -> string
 end
-
 
 module Type : sig
   val and_ : string -> 'a Pp.t -> 'a Pp.t

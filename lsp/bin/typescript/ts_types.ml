@@ -51,8 +51,11 @@ module type S = sig
   class ['a] fold_ident :
     object
       method field : field -> init:'a -> 'a
+
       method ident : ident -> init:'a -> 'a
+
       method t : t -> init:'a -> 'a
+
       method typ : typ -> init:'a -> 'a
     end
 end
@@ -95,44 +98,42 @@ struct
 
   and t = decl Named.t
 
-  class ['a] fold_ident = object(self)
-    method t (t : t) ~init =
-      match t.data with
-      | Interface (i : interface) ->
-        let init =
-          List.fold_left i.extends ~init ~f:(fun acc e ->
-              self # ident e ~init:acc)
-        in
-        List.fold_left ~init i.fields ~f:(fun init f ->
-            self # field f ~init)
-      | Type (t : typ) -> self # typ t ~init
-      | Enum_anon _ -> init
+  class ['a] fold_ident =
+    object (self)
+      method t (t : t) ~init =
+        match t.data with
+        | Interface (i : interface) ->
+          let init =
+            List.fold_left i.extends ~init ~f:(fun acc e ->
+                self#ident e ~init:acc)
+          in
+          List.fold_left ~init i.fields ~f:(fun init f -> self#field f ~init)
+        | Type (t : typ) -> self#typ t ~init
+        | Enum_anon _ -> init
 
-    method ident _ ~init = init
+      method ident _ ~init = init
 
-    method field (f : field) ~init : 'a =
-      match f.data with
-      | Single { optional = _ ; typ } -> self # typ ~init typ
-      | Pattern { pat ; typ } ->
-        let init = self # typ ~init pat in
-        self # typ ~init typ
+      method field (f : field) ~init : 'a =
+        match f.data with
+        | Single { optional = _; typ } -> self#typ ~init typ
+        | Pattern { pat; typ } ->
+          let init = self#typ ~init pat in
+          self#typ ~init typ
 
-    method typ (t : typ) ~init =
-      match t with
-      | Literal _ -> init
-      | Ident i -> self # ident i ~init
-      | App (t1 , t2) ->
-        let init = self # typ t1 ~init in
-        self # typ t2 ~init
-      | List t -> self # typ t ~init
-      | Tuple typs
-      | Sum typs ->
-        List.fold_left typs ~init ~f:(fun init f ->
-            self # typ f ~init)
-      | Record fs ->
-        List.fold_left fs ~init ~f:(fun init f ->
-            self # field f ~init)
-  end
+      method typ (t : typ) ~init =
+        match t with
+        | Literal _ -> init
+        | Ident i -> self#ident i ~init
+        | App (t1, t2) ->
+          let init = self#typ t1 ~init in
+          self#typ t2 ~init
+        | List t -> self#typ t ~init
+        | Tuple typs
+        | Sum typs ->
+          List.fold_left typs ~init ~f:(fun init f -> self#typ f ~init)
+        | Record fs ->
+          List.fold_left fs ~init ~f:(fun init f -> self#field f ~init)
+    end
 end
 
 module Unresolved = struct
