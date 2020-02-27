@@ -72,6 +72,7 @@ let initializeInfo : Lsp.Initialize.Result.t =
       ; executeCommandProvider = None
       ; typeCoverageProvider = false
       ; foldingRangeProvider = Bool true
+      ; selectionRangeProvider = Bool true
       ; signatureHelpProvider = None
       }
   }

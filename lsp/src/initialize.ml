@@ -3573,6 +3573,7 @@ module ServerCapabilities = struct
     ; executeCommandProvider : ExecuteCommandOptions.t option [@yojson.option]
     ; typeCoverageProvider : bool
     ; foldingRangeProvider : Void.t Or_bool.t
+    ; selectionRangeProvider : Void.t Or_bool.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3602,6 +3603,7 @@ module ServerCapabilities = struct
         and executeCommandProvider_field = ref None
         and typeCoverageProvider_field = ref None
         and foldingRangeProvider_field = ref None
+        and selectionRangeProvider_field = ref None
         and duplicates = ref []
         and extra = ref [] in
         let rec iter = function
@@ -3784,6 +3786,16 @@ module ServerCapabilities = struct
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
               )
+            | "selectionRangeProvider" -> (
+              match Ppx_yojson_conv_lib.( ! ) selectionRangeProvider_field with
+              | None ->
+                let fvalue =
+                  Or_bool.t_of_yojson Void.t_of_yojson _field_yojson
+                in
+                selectionRangeProvider_field := Some fvalue
+              | Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
             | _ -> () );
             iter tail
           | [] -> ()
@@ -3821,7 +3833,8 @@ module ServerCapabilities = struct
               , Ppx_yojson_conv_lib.( ! ) documentLinkProvider_field
               , Ppx_yojson_conv_lib.( ! ) executeCommandProvider_field
               , Ppx_yojson_conv_lib.( ! ) typeCoverageProvider_field
-              , Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field )
+              , Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field
+              , Ppx_yojson_conv_lib.( ! ) selectionRangeProvider_field )
             with
             | ( Some textDocumentSync_value
               , Some hoverProvider_value
@@ -3842,7 +3855,8 @@ module ServerCapabilities = struct
               , documentLinkProvider_value
               , executeCommandProvider_value
               , Some typeCoverageProvider_value
-              , Some foldingRangeProvider_value ) ->
+              , Some foldingRangeProvider_value
+              , Some selectionRangeProvider_value ) ->
               { textDocumentSync = textDocumentSync_value
               ; hoverProvider = hoverProvider_value
               ; completionProvider = completionProvider_value
@@ -3865,6 +3879,7 @@ module ServerCapabilities = struct
               ; executeCommandProvider = executeCommandProvider_value
               ; typeCoverageProvider = typeCoverageProvider_value
               ; foldingRangeProvider = foldingRangeProvider_value
+              ; selectionRangeProvider = selectionRangeProvider_value
               }
             | _ ->
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -3958,8 +3973,15 @@ module ServerCapabilities = struct
         ; executeCommandProvider = v_executeCommandProvider
         ; typeCoverageProvider = v_typeCoverageProvider
         ; foldingRangeProvider = v_foldingRangeProvider
+        ; selectionRangeProvider = v_selectionRangeProvider
         } ->
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+        let bnds =
+          let arg =
+            Or_bool.yojson_of_t Void.yojson_of_t v_selectionRangeProvider
+          in
+          ("selectionRangeProvider", arg) :: bnds
+        in
         let bnds =
           let arg =
             Or_bool.yojson_of_t Void.yojson_of_t v_foldingRangeProvider
@@ -4097,6 +4119,7 @@ module ServerCapabilities = struct
     ; executeCommandProvider = None
     ; typeCoverageProvider = false
     ; foldingRangeProvider = Bool false
+    ; selectionRangeProvider = Bool false
     }
 end
 
