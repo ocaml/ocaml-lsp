@@ -324,28 +324,30 @@ module Record = struct
           | _ -> [] )
         | Pattern _ -> [])
 
+  let make_typ name (typ : Resolved.typ) =
+    match typ with
+    | Ident Number -> Type.int
+    | Ident String -> Type.string
+    | Ident Bool -> Type.bool
+    | Ident Any
+    | Ident Object ->
+      Type.json
+    | Ident Self -> Type.t (* XXX wrong *)
+    | Ident Null -> assert false
+    | Ident List -> assert false
+    | Ident (Resolved r) -> Type.of_named r
+    | List _
+    | App _
+    | Tuple _
+    | Sum _
+    | Literal _ ->
+      Type.unit
+    | Record _ -> Type.Named name
+
   let make_field (field : Resolved.field) =
     match field.data with
     | Pattern _ -> Type.unit
-    | Resolved.Single { typ; optional = _ } -> (
-      match typ with
-      | Ident Number -> Type.int
-      | Ident String -> Type.string
-      | Ident Bool -> Type.bool
-      | Ident Any
-      | Ident Object ->
-        Type.json
-      | Ident Self -> Type.t (* XXX wrong *)
-      | Ident Null -> assert false
-      | Ident List -> assert false
-      | Ident (Resolved r) -> Type.of_named r
-      | List _
-      | App _
-      | Tuple _
-      | Sum _
-      | Literal _ ->
-        Type.unit
-      | Record _ -> Type.Named field.name )
+    | Resolved.Single { typ; optional = _ } -> make_typ field.name typ
 
   let attrs_of_field (field : Resolved.field) =
     match field.data with
@@ -394,6 +396,17 @@ module Record = struct
     | _ :: _ -> Some { Module.name; type_decls = [ type_decl ]; lets }
 end
 
+module Lsp_type = struct
+  let module_ { Named.name; data = typ } =
+    ignore typ;
+    let main_type =
+      let defn = Type.Anon Type.unit in
+      { Type_decl.name = "t"; defn }
+    in
+    let type_decl = { Type_decl.deriving = true; decls = [ main_type ] } in
+    Some { Module.name; type_decls = [ type_decl ]; lets = [] }
+end
+
 class idents =
   object
     inherit [Resolved.t list] Resolved.fold_ident
@@ -413,11 +426,10 @@ let of_typescript (ts : Resolved.t list) =
   | Error _ -> Code_error.raise "Unexpected cycle" []
   | Ok ts ->
     List.filter_map ts ~f:(fun (t : Resolved.t) ->
-        let name = t.name in
         match t.data with
-        | Enum_anon constr -> Enum.module_ { t with data = constr }
+        | Enum_anon data -> Enum.module_ { t with data }
         | Interface data -> Record.module_ { t with data }
-        | _ -> Some (Module.empty name))
+        | Type data -> Lsp_type.module_ { t with data })
 
 let mli = name ^ ".mli"
 

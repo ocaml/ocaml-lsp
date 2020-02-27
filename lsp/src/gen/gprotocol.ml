@@ -12,7 +12,11 @@ module DeleteFileOptions = struct
   [@@@end]
 end
 
-module DocumentUri = struct end
+module DocumentUri = struct
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module DeleteFile = struct
   type t =
@@ -912,7 +916,11 @@ module CodeActionOptions = struct
   [@@@end]
 end
 
-module ProgressToken = struct end
+module ProgressToken = struct
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module PartialResultParams = struct
   type t = { partialResultToken : ProgressToken.t option [@yojson.option] }
@@ -950,7 +958,11 @@ module DocumentFilter = struct
   [@@@end]
 end
 
-module DocumentSelector = struct end
+module DocumentSelector = struct
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module TextDocumentRegistrationOptions = struct
   type t = { documentSelector : unit }
@@ -1177,7 +1189,11 @@ module DidChangeConfigurationParams = struct
   [@@@end]
 end
 
-module TextDocumentContentChangeEvent = struct end
+module TextDocumentContentChangeEvent = struct
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module DidChangeTextDocumentParams = struct
   type t =
@@ -1544,7 +1560,11 @@ module FoldingRangeParams = struct
   [@@@end]
 end
 
-module MarkedString = struct end
+module MarkedString = struct
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module Hover = struct
   type t =

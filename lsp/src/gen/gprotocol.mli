@@ -12,7 +12,11 @@ module DeleteFileOptions : sig
   [@@@end]
 end
 
-module DocumentUri : sig end
+module DocumentUri : sig
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module DeleteFile : sig
   type t =
@@ -735,7 +739,11 @@ module CodeActionOptions : sig
   [@@@end]
 end
 
-module ProgressToken : sig end
+module ProgressToken : sig
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module PartialResultParams : sig
   type t = { partialResultToken : ProgressToken.t option [@yojson.option] }
@@ -773,7 +781,11 @@ module DocumentFilter : sig
   [@@@end]
 end
 
-module DocumentSelector : sig end
+module DocumentSelector : sig
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module TextDocumentRegistrationOptions : sig
   type t = { documentSelector : unit }
@@ -984,7 +996,11 @@ module DidChangeConfigurationParams : sig
   [@@@end]
 end
 
-module TextDocumentContentChangeEvent : sig end
+module TextDocumentContentChangeEvent : sig
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module DidChangeTextDocumentParams : sig
   type t =
@@ -1299,7 +1315,11 @@ module FoldingRangeParams : sig
   [@@@end]
 end
 
-module MarkedString : sig end
+module MarkedString : sig
+  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+end
 
 module Hover : sig
   type t =
