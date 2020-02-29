@@ -13,7 +13,7 @@ module DeleteFileOptions : sig
 end
 
 module DocumentUri : sig
-  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = string [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end

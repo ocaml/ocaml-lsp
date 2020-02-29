@@ -373,19 +373,21 @@ module Record = struct
              }))
     in
     { Type_decl.name; defn }
+end
 
+module Interface = struct
   let module_
       { Named.name; data = { Resolved.extends = _; fields; params = _ } } =
-    let all_types = all_types fields in
+    let all_types = Record.all_types fields in
     let main_type =
       List.map fields ~f:(fun (n : Resolved.field) ->
           let name = rename_ident n.name in
           { n with name })
-      |> record_ "t"
+      |> Record.record_ "t"
     in
     let rest_types =
       List.map all_types ~f:(fun ((t : Resolved.field), subfields) ->
-          record_ t.name subfields)
+          Record.record_ t.name subfields)
     in
     let type_decl =
       { Type_decl.deriving = true; decls = main_type :: rest_types }
@@ -398,10 +400,28 @@ end
 
 module Lsp_type = struct
   let module_ { Named.name; data = typ } =
-    ignore typ;
     let main_type =
-      let defn = Type.Anon Type.unit in
-      { Type_decl.name = "t"; defn }
+      let defn =
+        match (typ : Resolved.typ) with
+        | Ident Number -> Type.int
+        | Ident String -> Type.string
+        | Ident Bool -> Type.bool
+        | Ident Any
+        | Ident Object ->
+          Type.json
+        | Ident Self -> Type.t (* XXX wrong *)
+        | Ident Null -> assert false
+        | Ident List -> assert false
+        | Ident (Resolved r) -> Type.of_named r
+        | List _
+        | App _
+        | Tuple _
+        | Sum _
+        | Literal _ ->
+          Type.unit
+        | Record _ -> Type.Named name
+      in
+      { Type_decl.name = "t"; defn = Type.Anon defn }
     in
     let type_decl = { Type_decl.deriving = true; decls = [ main_type ] } in
     Some { Module.name; type_decls = [ type_decl ]; lets = [] }
@@ -428,7 +448,7 @@ let of_typescript (ts : Resolved.t list) =
     List.filter_map ts ~f:(fun (t : Resolved.t) ->
         match t.data with
         | Enum_anon data -> Enum.module_ { t with data }
-        | Interface data -> Record.module_ { t with data }
+        | Interface data -> Interface.module_ { t with data }
         | Type data -> Lsp_type.module_ { t with data })
 
 let mli = name ^ ".mli"

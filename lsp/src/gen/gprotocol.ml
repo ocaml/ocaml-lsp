@@ -13,7 +13,7 @@ module DeleteFileOptions = struct
 end
 
 module DocumentUri = struct
-  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = string [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
