@@ -309,6 +309,28 @@ let rename_ident = function
   | "end" -> "end_"
   | s -> s
 
+module Sum = struct
+  (* Sum types are a bit involved. All special handling is grouped here.
+
+     The rules are as follows:
+
+     - If the type is only composed of literals it's treated as an enum
+
+     - If there are only two characters and one of them is null. This is treated
+     as a nullable option
+
+     - If it's a string | number, it's treated as an Id.
+
+     - string | number | boolean | array | object | null is hard coded to be a
+     json type
+
+     - Anonymous sums in field names are treated as polymoprhic variants. The
+     tags are chosen mechanically based on the arguments
+
+     - Anonymous sums of records are hardeset to handle. We compose the various
+     parsers with <|> *)
+end
+
 module Record = struct
   (* The steps to process a record are:
 
