@@ -136,4 +136,24 @@ module Json = struct
     match field fields name conv with
     | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
     | Some f -> f
+
+  module Nullable_option = struct
+    type 'a t = 'a option
+
+    let t_of_yojson f = function
+      | `Null -> None
+      | json -> Some (f json)
+
+    let yojson_of_t f = function
+      | None -> assert false
+      | Some s -> f s
+  end
+
+  module Void = struct
+    type t
+
+    let t_of_yojson = error "Void.t"
+
+    let yojson_of_t (_ : t) = assert false
+  end
 end

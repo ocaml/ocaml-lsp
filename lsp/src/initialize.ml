@@ -1328,7 +1328,7 @@ end
 
 module FoldingRangeClientCapabilities = struct
   type t =
-    { rangeLimit : int Protocol.Nullable_option.t
+    { rangeLimit : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; lineFoldingOnly : bool [@default false]
     }
@@ -1351,8 +1351,7 @@ module FoldingRangeClientCapabilities = struct
               match Ppx_yojson_conv_lib.( ! ) rangeLimit_field with
               | None ->
                 let fvalue =
-                  Protocol.Nullable_option.t_of_yojson int_of_yojson
-                    _field_yojson
+                  Json.Nullable_option.t_of_yojson int_of_yojson _field_yojson
                 in
                 rangeLimit_field := Some fvalue
               | Some _ ->
@@ -1416,7 +1415,7 @@ module FoldingRangeClientCapabilities = struct
             bnds
           else
             let arg =
-              (Protocol.Nullable_option.yojson_of_t yojson_of_int) v_rangeLimit
+              (Json.Nullable_option.yojson_of_t yojson_of_int) v_rangeLimit
             in
             let bnd = ("rangeLimit", arg) in
             bnd :: bnds
@@ -3572,7 +3571,7 @@ module ServerCapabilities = struct
     ; documentLinkProvider : DocumentLinkOptions.t option [@yojson.option]
     ; executeCommandProvider : ExecuteCommandOptions.t option [@yojson.option]
     ; typeCoverageProvider : bool
-    ; foldingRangeProvider : Void.t Or_bool.t
+    ; foldingRangeProvider : Json.Void.t Or_bool.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3778,7 +3777,7 @@ module ServerCapabilities = struct
               match Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field with
               | None ->
                 let fvalue =
-                  Or_bool.t_of_yojson Void.t_of_yojson _field_yojson
+                  Or_bool.t_of_yojson Json.Void.t_of_yojson _field_yojson
                 in
                 foldingRangeProvider_field := Some fvalue
               | Some _ ->
@@ -3962,7 +3961,7 @@ module ServerCapabilities = struct
         let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
         let bnds =
           let arg =
-            Or_bool.yojson_of_t Void.yojson_of_t v_foldingRangeProvider
+            Or_bool.yojson_of_t Json.Void.yojson_of_t v_foldingRangeProvider
           in
           ("foldingRangeProvider", arg) :: bnds
         in

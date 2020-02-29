@@ -275,7 +275,7 @@ module ServerCapabilities : sig
     ; documentLinkProvider : DocumentLinkOptions.t option
     ; executeCommandProvider : ExecuteCommandOptions.t option
     ; typeCoverageProvider : bool
-    ; foldingRangeProvider : Void.t Or_bool.t
+    ; foldingRangeProvider : Json.Void.t Or_bool.t
     }
 
   val default : t
