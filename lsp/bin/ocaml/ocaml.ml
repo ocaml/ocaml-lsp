@@ -328,25 +328,28 @@ module Record = struct
           | _ -> [] )
         | Pattern _ -> [])
 
-  let make_typ name (typ : Resolved.typ) =
-    match typ with
-    | Ident Number -> Type.int
-    | Ident String -> Type.string
-    | Ident Bool -> Type.bool
-    | Ident Any
-    | Ident Object ->
-      Type.json
-    | Ident Self -> Type.t (* XXX wrong *)
-    | Ident Null -> assert false
-    | Ident List -> assert false
-    | Ident (Resolved r) -> Type.of_named r
-    | List _
-    | App _
-    | Tuple _
-    | Sum _
-    | Literal _ ->
-      Type.unit
-    | Record _ -> Type.Named name
+  let make_typ name t =
+    let rec typ (t : Resolved.typ) =
+      match t with
+      | Ident Number -> Type.int
+      | Ident String -> Type.string
+      | Ident Bool -> Type.bool
+      | Ident Any
+      | Ident Object ->
+        Type.json
+      | Ident Self -> Type.t (* XXX wrong *)
+      | Ident Null -> assert false
+      | Ident List -> assert false
+      | Ident (Resolved r) -> Type.of_named r
+      | List t -> Type.list (typ t)
+      | App _
+      | Tuple _
+      | Sum _
+      | Literal _ ->
+        Type.unit
+      | Record _ -> Type.Named name
+    in
+    typ t
 
   let make_field (field : Resolved.field) =
     match field.data with

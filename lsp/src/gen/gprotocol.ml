@@ -118,7 +118,7 @@ end
 module TextDocumentEdit = struct
   type t =
     { textDocument : VersionedTextDocumentIdentifier.t
-    ; edits : unit
+    ; edits : TextEdit.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -204,7 +204,7 @@ module PublishDiagnosticsClientCapabilities = struct
     ; versionSupport : bool option [@yojson.option]
     }
 
-  and tagSupport = { valueSet : unit }
+  and tagSupport = { valueSet : DiagnosticTag.t list }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -310,7 +310,7 @@ module CodeActionClientCapabilities = struct
 
   and codeActionLiteralSupport = { codeActionKind : codeActionKind }
 
-  and codeActionKind = { valueSet : unit }
+  and codeActionKind = { valueSet : CodeActionKind.t list }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -412,7 +412,7 @@ module DocumentSymbolClientCapabilities = struct
     ; hierarchicalDocumentSymbolSupport : bool option [@yojson.option]
     }
 
-  and symbolKind = { valueSet : unit option [@yojson.option] }
+  and symbolKind = { valueSet : SymbolKind.t list option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -497,7 +497,7 @@ module SignatureHelpClientCapabilities = struct
     }
 
   and signatureInformation =
-    { documentationFormat : unit option [@yojson.option]
+    { documentationFormat : MarkupKind.t list option [@yojson.option]
     ; parameterInformation : parameterInformation option [@yojson.option]
     }
 
@@ -511,7 +511,7 @@ end
 module HoverClientCapabilities = struct
   type t =
     { dynamicRegistration : bool option [@yojson.option]
-    ; contentFormat : unit option [@yojson.option]
+    ; contentFormat : MarkupKind.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -628,15 +628,16 @@ module CompletionClientCapabilities = struct
   and completionItem =
     { snippetSupport : bool option [@yojson.option]
     ; commitCharactersSupport : bool option [@yojson.option]
-    ; documentationFormat : unit option [@yojson.option]
+    ; documentationFormat : MarkupKind.t list option [@yojson.option]
     ; deprecatedSupport : bool option [@yojson.option]
     ; preselectSupport : bool option [@yojson.option]
     ; tagSupport : tagSupport option [@yojson.option]
     }
 
-  and tagSupport = { valueSet : unit }
+  and tagSupport = { valueSet : CompletionItemTag.t list }
 
-  and completionItemKind = { valueSet : unit option [@yojson.option] }
+  and completionItemKind =
+    { valueSet : CompletionItemKind.t list option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -707,7 +708,7 @@ module WorkspaceSymbolClientCapabilities = struct
     ; symbolKind : symbolKind option [@yojson.option]
     }
 
-  and symbolKind = { valueSet : unit option [@yojson.option] }
+  and symbolKind = { valueSet : SymbolKind.t list option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -773,7 +774,7 @@ end
 module WorkspaceEditClientCapabilities = struct
   type t =
     { documentChanges : bool option [@yojson.option]
-    ; resourceOperations : unit option [@yojson.option]
+    ; resourceOperations : ResourceOperationKind.t list option [@yojson.option]
     ; failureHandling : FailureHandlingKind.t option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -813,7 +814,7 @@ module Command = struct
   type t =
     { title : string
     ; command : string
-    ; arguments : unit option [@yojson.option]
+    ; arguments : Json.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -870,8 +871,9 @@ module Diagnostic = struct
     ; code : unit option [@yojson.option]
     ; source : string option [@yojson.option]
     ; message : string
-    ; tags : unit option [@yojson.option]
-    ; relatedInformation : unit option [@yojson.option]
+    ; tags : DiagnosticTag.t list option [@yojson.option]
+    ; relatedInformation : DiagnosticRelatedInformation.t list option
+          [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -882,7 +884,7 @@ module CodeAction = struct
   type t =
     { title : string
     ; kind : CodeActionKind.t option [@yojson.option]
-    ; diagnostics : unit option [@yojson.option]
+    ; diagnostics : Diagnostic.t list option [@yojson.option]
     ; isPreferred : bool option [@yojson.option]
     ; edit : WorkspaceEdit.t option [@yojson.option]
     ; command : Command.t option [@yojson.option]
@@ -894,8 +896,8 @@ end
 
 module CodeActionContext = struct
   type t =
-    { diagnostics : unit
-    ; only : unit option [@yojson.option]
+    { diagnostics : Diagnostic.t list
+    ; only : CodeActionKind.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -910,7 +912,7 @@ module WorkDoneProgressOptions = struct
 end
 
 module CodeActionOptions = struct
-  type t = { codeActionKinds : unit option [@yojson.option] }
+  type t = { codeActionKinds : CodeActionKind.t list option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1023,7 +1025,7 @@ module ColorPresentation = struct
   type t =
     { label : string
     ; textEdit : TextEdit.t option [@yojson.option]
-    ; additionalTextEdits : unit option [@yojson.option]
+    ; additionalTextEdits : TextEdit.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1102,7 +1104,7 @@ module CompletionItem = struct
   type t =
     { label : string
     ; kind : int option [@yojson.option]
-    ; tags : unit option [@yojson.option]
+    ; tags : CompletionItemTag.t list option [@yojson.option]
     ; detail : string option [@yojson.option]
     ; documentation : unit option [@yojson.option]
     ; deprecated : bool option [@yojson.option]
@@ -1112,8 +1114,8 @@ module CompletionItem = struct
     ; insertText : string option [@yojson.option]
     ; insertTextFormat : InsertTextFormat.t option [@yojson.option]
     ; textEdit : TextEdit.t option [@yojson.option]
-    ; additionalTextEdits : unit option [@yojson.option]
-    ; commitCharacters : unit option [@yojson.option]
+    ; additionalTextEdits : TextEdit.t list option [@yojson.option]
+    ; commitCharacters : string list option [@yojson.option]
     ; command : Command.t option [@yojson.option]
     ; data : Json.t option [@yojson.option]
     }
@@ -1125,7 +1127,7 @@ end
 module CompletionList = struct
   type t =
     { isIncomplete : bool
-    ; items : unit
+    ; items : CompletionItem.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1134,8 +1136,8 @@ end
 
 module CompletionOptions = struct
   type t =
-    { triggerCharacters : unit option [@yojson.option]
-    ; allCommitCharacters : unit option [@yojson.option]
+    { triggerCharacters : string list option [@yojson.option]
+    ; allCommitCharacters : string list option [@yojson.option]
     ; resolveProvider : bool option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -1171,7 +1173,8 @@ module ConfigurationItem = struct
 end
 
 module ConfigurationParams = struct
-  type t = { items : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { items : ConfigurationItem.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1199,7 +1202,7 @@ end
 module DidChangeTextDocumentParams = struct
   type t =
     { textDocument : VersionedTextDocumentIdentifier.t
-    ; contentChanges : unit
+    ; contentChanges : TextDocumentContentChangeEvent.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1217,7 +1220,8 @@ module FileEvent = struct
 end
 
 module DidChangeWatchedFilesParams = struct
-  type t = { changes : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { changes : FileEvent.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1233,7 +1237,8 @@ module FileSystemWatcher = struct
 end
 
 module DidChangeWatchedFilesRegistrationOptions = struct
-  type t = { watchers : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { watchers : FileSystemWatcher.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1250,8 +1255,8 @@ end
 
 module WorkspaceFoldersChangeEvent = struct
   type t =
-    { added : unit
-    ; removed : unit
+    { added : WorkspaceFolder.t list
+    ; removed : WorkspaceFolder.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1391,7 +1396,7 @@ end
 module DocumentOnTypeFormattingOptions = struct
   type t =
     { firstTriggerCharacter : string
-    ; moreTriggerCharacter : unit option [@yojson.option]
+    ; moreTriggerCharacter : string list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1427,7 +1432,7 @@ module DocumentSymbol = struct
     ; deprecated : bool option [@yojson.option]
     ; range : Range.t
     ; selectionRange : Range.t
-    ; children : unit option [@yojson.option]
+    ; children : t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1486,7 +1491,8 @@ module ErrorCodes = struct
 end
 
 module ExecuteCommandOptions = struct
-  type t = { commands : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { commands : string list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1494,7 +1500,7 @@ end
 module ExecuteCommandParams = struct
   type t =
     { command : string
-    ; arguments : unit option [@yojson.option]
+    ; arguments : Json.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1630,8 +1636,8 @@ end
 
 module SignatureHelpOptions = struct
   type t =
-    { triggerCharacters : unit option [@yojson.option]
-    ; retriggerCharacters : unit option [@yojson.option]
+    { triggerCharacters : string list option [@yojson.option]
+    ; retriggerCharacters : string list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1805,7 +1811,7 @@ module PublishDiagnosticsParams = struct
   type t =
     { uri : DocumentUri.t
     ; version : int option [@yojson.option]
-    ; diagnostics : unit
+    ; diagnostics : Diagnostic.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1838,7 +1844,7 @@ module Registration = struct
 end
 
 module RegistrationParams = struct
-  type t = { registrations : unit }
+  type t = { registrations : Registration.t list }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1897,7 +1903,7 @@ end
 module SelectionRangeParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
-    ; positions : unit
+    ; positions : Position.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1918,7 +1924,7 @@ module ShowMessageRequestParams = struct
   type t =
     { type_ : int [@key "type"]
     ; message : string
-    ; actions : unit option [@yojson.option]
+    ; actions : MessageActionItem.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1929,7 +1935,7 @@ module SignatureInformation = struct
   type t =
     { label : string
     ; documentation : unit option [@yojson.option]
-    ; parameters : unit option [@yojson.option]
+    ; parameters : ParameterInformation.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1938,7 +1944,7 @@ end
 
 module SignatureHelp = struct
   type t =
-    { signatures : unit
+    { signatures : SignatureInformation.t list
     ; activeSignature : int option [@yojson.option]
     ; activeParameter : int option [@yojson.option]
     }
@@ -2064,7 +2070,7 @@ module Unregistration = struct
 end
 
 module UnregistrationParams = struct
-  type t = { unregisterations : unit }
+  type t = { unregisterations : Unregistration.t list }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
