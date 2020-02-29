@@ -14,6 +14,7 @@ module Type = struct
     | Named of string
     | Tuple of anon list
     | Var of string
+    | App of anon * anon
 
   and field =
     { name : string
@@ -27,6 +28,8 @@ module Type = struct
     | Record of field list
 
   let of_named (r : _ Named.t) = Named (String.capitalize_ascii r.name ^ ".t")
+
+  let list t = App (Named "list", t)
 
   let t = Named "t"
 
@@ -44,11 +47,12 @@ module Type = struct
 
   let unit = Named "unit"
 
-  let pp_anon (a : anon) =
+  let rec pp_anon (a : anon) =
     match a with
     | Var v -> Pp.textf "'%s" v
     | Named v -> Pp.verbatim v
-    | _ -> assert false
+    | App (f, x) -> Pp.concat [ pp_anon x; Pp.space; pp_anon f ]
+    | Tuple _ -> assert false
 
   let pp (t : t) =
     let open W in
@@ -401,7 +405,7 @@ end
 module Lsp_type = struct
   let module_ { Named.name; data = typ } =
     let main_type =
-      let defn =
+      let rec defn typ =
         match (typ : Resolved.typ) with
         | Ident Number -> Type.int
         | Ident String -> Type.string
@@ -413,7 +417,7 @@ module Lsp_type = struct
         | Ident Null -> assert false
         | Ident List -> assert false
         | Ident (Resolved r) -> Type.of_named r
-        | List _
+        | List f -> Type.list (defn f)
         | App _
         | Tuple _
         | Sum _
@@ -421,7 +425,7 @@ module Lsp_type = struct
           Type.unit
         | Record _ -> Type.Named name
       in
-      { Type_decl.name = "t"; defn = Type.Anon defn }
+      { Type_decl.name = "t"; defn = Type.Anon (defn typ) }
     in
     let type_decl = { Type_decl.deriving = true; decls = [ main_type ] } in
     Some { Module.name; type_decls = [ type_decl ]; lets = [] }

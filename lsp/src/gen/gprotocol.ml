@@ -959,7 +959,8 @@ module DocumentFilter = struct
 end
 
 module DocumentSelector = struct
-  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = DocumentFilter.t list
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
