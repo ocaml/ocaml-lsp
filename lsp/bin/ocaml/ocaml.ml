@@ -1,6 +1,88 @@
 open! Import
 open! Ts_types
 
+module Expanded = struct
+  (** After this pass, we can assume that:
+
+      - we don't need to introduce any new types - the types are printed in a
+      topological order - module names are decided *)
+  type t =
+    { module_ : string
+    ; defns : Resolved.t list
+    }
+
+  class discovered_types =
+    object
+      inherit [Resolved.t list] Resolved.fold as super
+
+      (* Every record valued field introduces a new type *)
+      method! field f ~init =
+        let init = super#field f ~init in
+        match f.data with
+        | Pattern _ -> init
+        | Single { optional = _; typ } -> (
+          let new_type = { f with data = Resolved.Type typ } in
+          match typ with
+          | Record _ -> new_type :: init
+          | _ -> init )
+    end
+
+  let of_ts (t : Resolved.t) =
+    let init = [ { t with name = "t" } ] in
+    let module_ = t.name in
+    let defns =
+      match t.data with
+      | Enum_anon _ -> init
+      | Type typ -> (new discovered_types)#typ typ ~init
+      | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
+    in
+    { module_; defns }
+end
+
+module Simplify_ts = struct
+  let is_same_as_json =
+    let constrs =
+      [ Prim.Null; String; Bool; Number; Object; List ]
+      |> List.map ~f:(fun s -> Resolved.Ident s)
+    in
+    fun set -> List.for_all constrs ~f:(List.mem ~set)
+
+  (* let remove_null cs =
+   *   let is_null x =
+   *     match x with
+   *     | Prim.Null -> Left x
+   *     | _ -> Right x
+   *   in
+   *   let (nulls, non_nulls) = List.partition_map ~f:is_null cs in
+   *   match nulls with
+   *   | [] -> Sum non_nulls
+   *   | _ :: _ :: _ -> assert false
+   *   | [_] ->
+   *     App () *)
+
+  (* let json = Resolved.Ident Any
+   *
+   * let id = Resolved.Ident "Id.t"
+   *
+   * class simplify_sum =
+   *   object (self)
+   *     inherit Resolved.map
+   *
+   *     method! typ (t : Resolved.typ) =
+   *       match t with
+   *       | Sum constrs ->
+   *         if is_same_as_json constrs then
+   *           json
+   *         else if is_same_as_id constrs then
+   *           id
+   *         else
+   *           t
+   *       | _ -> t
+   *   end
+   *
+   * let of_resolved (t : Resolved.t) : Resolved.t = (new simplify_sum)#t t *)
+end
+
 module Json = struct
   let pp_literal (t : Literal.t) =
     match t with
@@ -364,8 +446,8 @@ module Record = struct
       | Ident List -> assert false
       | Ident (Resolved r) -> Type.of_named r
       | List t -> Type.list (typ t)
+      | Tuple ts -> Type.Tuple (List.map ~f:typ ts)
       | App _
-      | Tuple _
       | Sum _
       | Literal _ ->
         Type.unit
@@ -443,8 +525,8 @@ module Lsp_type = struct
         | Ident List -> assert false
         | Ident (Resolved r) -> Type.of_named r
         | List f -> Type.list (defn f)
+        | Tuple ts -> Type.Tuple (List.map ~f:defn ts)
         | App _
-        | Tuple _
         | Sum _
         | Literal _ ->
           Type.unit
@@ -458,7 +540,7 @@ end
 
 class idents =
   object
-    inherit [Resolved.t list] Resolved.fold_ident
+    inherit [Resolved.t list] Resolved.fold
 
     method! ident i ~init =
       match i with

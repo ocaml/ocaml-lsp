@@ -48,7 +48,18 @@ module type S = sig
 
   and t = decl Named.t
 
-  class ['a] fold_ident :
+  class map :
+    object
+      method typ : typ -> typ
+
+      method interface : interface -> interface
+
+      method field : field -> field
+
+      method t : t -> t
+    end
+
+  class ['a] fold :
     object
       method field : field -> init:'a -> 'a
 
@@ -98,7 +109,7 @@ struct
 
   and t = decl Named.t
 
-  class ['a] fold_ident =
+  class ['a] fold =
     object (self)
       method t (t : t) ~init =
         match t.data with
@@ -133,6 +144,48 @@ struct
           List.fold_left typs ~init ~f:(fun init f -> self#typ f ~init)
         | Record fs ->
           List.fold_left fs ~init ~f:(fun init f -> self#field f ~init)
+    end
+
+  class map =
+    object (self)
+      method field (f : field) =
+        let data =
+          match f.data with
+          | Single s ->
+            let typ = self#typ s.typ in
+            Single { s with typ }
+          | Pattern { pat; typ } ->
+            let pat = self#typ pat in
+            let typ = self#typ typ in
+            Pattern { pat; typ }
+        in
+        { f with data }
+
+      method interface (i : interface) =
+        let fields = List.map ~f:self#field i.fields in
+        { i with fields }
+
+      method typ (t : typ) =
+        match t with
+        | Literal i -> Literal i
+        | Ident i -> Ident i
+        | App (x, y) ->
+          let x = self#typ x
+          and y = self#typ y in
+          App (x, y)
+        | List t -> List (self#typ t)
+        | Tuple ts -> Tuple (List.map ts ~f:self#typ)
+        | Sum ts -> Sum (List.map ts ~f:self#typ)
+        | Record ts -> Record (List.map ts ~f:self#field)
+
+      method t (t : t) =
+        let data =
+          match t.data with
+          | Interface i -> Interface (self#interface i)
+          | Type t -> Type (self#typ t)
+          | Enum_anon _ -> t.data
+        in
+        { t with data }
     end
 end
 
