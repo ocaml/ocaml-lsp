@@ -14,3 +14,8 @@ let get store uri =
   | Some doc -> Ok doc
   | None ->
     Lsp.Import.Result.errorf "no document found with uri: %a" Lsp.Uri.pp uri
+
+let remove_document store uri =
+  Table.filter_map_inplace ~f:(fun ~key ~data ->  if Lsp.Uri.equal uri key then None else Some data) store
+
+let get_size store = Table.length store

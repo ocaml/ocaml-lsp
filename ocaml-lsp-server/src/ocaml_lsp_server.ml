@@ -689,6 +689,9 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) =
     Document_store.put store doc;
     send_diagnostics rpc doc;
     Ok store
+  | TextDocumentDidClose { textDocument = { uri } } ->
+    Document_store.remove_document store uri;
+    Ok store
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
     Document_store.get store uri >>= fun prev_doc ->
     let doc =

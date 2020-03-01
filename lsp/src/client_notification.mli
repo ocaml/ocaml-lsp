@@ -3,6 +3,7 @@ open Protocol
 
 type t =
   | TextDocumentDidOpen of DidOpen.params
+  | TextDocumentDidClose of DidCloseTextDocumentParams.t
   | TextDocumentDidChange of DidChangeTextDocumentParams.t
   | DidSaveTextDocument of DidSaveTextDocumentParams.t
   | WillSaveTextDocument of WillSaveTextDocumentParams.t
