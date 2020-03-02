@@ -66,19 +66,6 @@ module Simplify_ts = struct
     in
     fun set -> List.for_all constrs ~f:(List.mem ~set)
 
-  (* let remove_null cs =
-   *   let is_null x =
-   *     match x with
-   *     | Prim.Null -> Left x
-   *     | _ -> Right x
-   *   in
-   *   let (nulls, non_nulls) = List.partition_map ~f:is_null cs in
-   *   match nulls with
-   *   | [] -> Sum non_nulls
-   *   | _ :: _ :: _ -> assert false
-   *   | [_] ->
-   *     App () *)
-
   let json = Resolved.Ident Any
 
   class simplify_sum =
@@ -362,6 +349,25 @@ module Mapper = struct
     in
     fun set -> List.for_all constrs ~f:(List.mem ~set)
 
+  let is_same_as_id =
+    let sort = List.sort ~compare:Poly.compare in
+    let constrs =
+      [ Prim.String; Number ] |> List.map ~f:(fun s -> Resolved.Ident s) |> sort
+    in
+    fun cs -> List.equal ( = ) constrs (sort cs)
+
+  let remove_null cs =
+    let is_null x =
+      match x with
+      | Resolved.Ident Prim.Null -> Left x
+      | _ -> Right x
+    in
+    let nulls, non_nulls = List.partition_map ~f:is_null cs in
+    match nulls with
+    | [] -> `No_null_present
+    | _ :: _ :: _ -> assert false
+    | [ _ ] -> `Null_removed non_nulls
+
   let make_typ name t =
     let rec typ (t : Resolved.typ) =
       match t with
@@ -377,11 +383,13 @@ module Mapper = struct
       | Ident (Resolved r) -> Type.module_t r.name
       | List t -> Type.list (typ t)
       | Tuple ts -> Type.Tuple (List.map ~f:typ ts)
-      | Sum s ->
+      | Sum s -> (
         if is_same_as_json s then
           Type.json
         else
-          Type.unit
+          match remove_null s with
+          | `No_null_present -> Type.unit
+          | `Null_removed _ -> Type.Optional Type.unit )
       | App _
       | Literal _ ->
         Type.unit

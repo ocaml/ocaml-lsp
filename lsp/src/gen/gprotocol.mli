@@ -80,7 +80,7 @@ end
 module VersionedTextDocumentIdentifier : sig
   type version = unit
 
-  type t = { version : unit }
+  type t = { version : unit option [@yojson.option] }
 end
 
 module TextDocumentEdit : sig
@@ -573,7 +573,7 @@ end
 module TextDocumentRegistrationOptions : sig
   type documentSelector = unit
 
-  type t = { documentSelector : unit }
+  type t = { documentSelector : unit option [@yojson.option] }
 end
 
 module CodeActionRegistrationOptions : sig end
@@ -1035,14 +1035,14 @@ module InitializeParams : sig
   type processId = unit
 
   type t =
-    { processId : unit
+    { processId : unit option [@yojson.option]
     ; clientInfo : clientInfo
-    ; rootPath : unit
-    ; rootUri : unit
+    ; rootPath : unit option [@yojson.option]
+    ; rootUri : unit option [@yojson.option]
     ; initializationOptions : Json.t
     ; capabilities : ClientCapabilities.t
     ; trace : unit
-    ; workspaceFolders : unit
+    ; workspaceFolders : unit option [@yojson.option]
     }
 end
 
@@ -1293,8 +1293,8 @@ module ResponseMessage : sig
   type id = unit
 
   type t =
-    { id : unit
-    ; result : unit
+    { id : unit option [@yojson.option]
+    ; result : unit option [@yojson.option]
     ; error : ResponseError.t
     }
 end

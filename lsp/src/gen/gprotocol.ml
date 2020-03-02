@@ -110,7 +110,8 @@ end
 module VersionedTextDocumentIdentifier = struct
   type version = unit
 
-  type t = { version : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { version : unit option [@yojson.option] }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -781,7 +782,7 @@ end
 module TextDocumentRegistrationOptions = struct
   type documentSelector = unit
 
-  type t = { documentSelector : unit }
+  type t = { documentSelector : unit option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1389,14 +1390,14 @@ module InitializeParams = struct
   type processId = unit
 
   type t =
-    { processId : unit
+    { processId : unit option [@yojson.option]
     ; clientInfo : clientInfo
-    ; rootPath : unit
-    ; rootUri : unit
+    ; rootPath : unit option [@yojson.option]
+    ; rootUri : unit option [@yojson.option]
     ; initializationOptions : Json.t
     ; capabilities : ClientCapabilities.t
     ; trace : unit
-    ; workspaceFolders : unit
+    ; workspaceFolders : unit option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1721,8 +1722,8 @@ module ResponseMessage = struct
   type id = unit
 
   type t =
-    { id : unit
-    ; result : unit
+    { id : unit option [@yojson.option]
+    ; result : unit option [@yojson.option]
     ; error : ResponseError.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
