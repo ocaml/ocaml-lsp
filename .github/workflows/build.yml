@@ -14,12 +14,7 @@ jobs:
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
     - uses: actions/checkout@v2
-    - name: Checkout submodules
-      shell: bash
-      run: |
-        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
-        git submodule sync --recursive
-        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    - uses: textbook/git-checkout-submodule-action@v2
     - run: opam pin add lsp.dev -n .
     - run: opam pin add ocaml-lsp-server.dev.dev -n .
     - run: opam depext -yt lsp
