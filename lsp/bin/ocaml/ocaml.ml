@@ -349,6 +349,8 @@ module Mapper = struct
     in
     fun set -> List.for_all constrs ~f:(List.mem ~set)
 
+  let id = Type.name "Jsonrpc.Id.t"
+
   let is_same_as_id =
     let sort = List.sort ~compare:Poly.compare in
     let constrs =
@@ -387,9 +389,20 @@ module Mapper = struct
         if is_same_as_json s then
           Type.json
         else
-          match remove_null s with
-          | `No_null_present -> Type.unit
-          | `Null_removed _ -> Type.Optional Type.unit )
+          let opt, t =
+            match remove_null s with
+            | `No_null_present -> (`Required, s)
+            | `Null_removed s -> (`Optional, s)
+          in
+          let t =
+            if is_same_as_id t then
+              id
+            else
+              Type.unit
+          in
+          match opt with
+          | `Optional -> Type.Optional t
+          | `Required -> t )
       | App _
       | Literal _ ->
         Type.unit

@@ -166,7 +166,8 @@ end
 module CancelParams = struct
   type id = unit
 
-  type t = { id : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { id : Jsonrpc.Id.t }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -686,7 +687,7 @@ module Diagnostic = struct
   type t =
     { range : Range.t
     ; severity : DiagnosticSeverity.t
-    ; code : unit
+    ; code : Jsonrpc.Id.t
     ; source : string
     ; message : string
     ; tags : DiagnosticTag.t list
@@ -1694,7 +1695,7 @@ module RequestMessage = struct
   type id = unit
 
   type t =
-    { id : unit
+    { id : Jsonrpc.Id.t
     ; method_ : string [@key "method"]
     ; params : unit
     }
@@ -1722,7 +1723,7 @@ module ResponseMessage = struct
   type id = unit
 
   type t =
-    { id : unit option [@yojson.option]
+    { id : Jsonrpc.Id.t option [@yojson.option]
     ; result : unit option [@yojson.option]
     ; error : ResponseError.t
     }

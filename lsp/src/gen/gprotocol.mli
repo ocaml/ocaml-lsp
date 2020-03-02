@@ -118,7 +118,7 @@ end
 module CancelParams : sig
   type id = unit
 
-  type t = { id : unit }
+  type t = { id : Jsonrpc.Id.t }
 end
 
 module SelectionRangeClientCapabilities : sig
@@ -504,7 +504,7 @@ module Diagnostic : sig
   type t =
     { range : Range.t
     ; severity : DiagnosticSeverity.t
-    ; code : unit
+    ; code : Jsonrpc.Id.t
     ; source : string
     ; message : string
     ; tags : DiagnosticTag.t list
@@ -1271,7 +1271,7 @@ module RequestMessage : sig
   type id = unit
 
   type t =
-    { id : unit
+    { id : Jsonrpc.Id.t
     ; method_ : string [@key "method"]
     ; params : unit
     }
@@ -1293,7 +1293,7 @@ module ResponseMessage : sig
   type id = unit
 
   type t =
-    { id : unit option [@yojson.option]
+    { id : Jsonrpc.Id.t option [@yojson.option]
     ; result : unit option [@yojson.option]
     ; error : ResponseError.t
     }
