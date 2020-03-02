@@ -32,6 +32,11 @@ function setupOcamlFormat(ocamlFormat: string) {
   return tmpdir;
 }
 
+function setupRefmt() {
+  let tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), "ocamllsp-test-"));
+  return tmpdir;
+}
+
 describe("textDocument/formatting", () => {
   let languageServer = null;
 
@@ -108,6 +113,70 @@ describe("textDocument/formatting", () => {
       {
         newText:
           "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
+      },
+    ]);
+  });
+
+  it("can format a reason impl file", async () => {
+    languageServer = await LanguageServer.startAndInitialize();
+
+    let name = path.join(setupOcamlFormat(ocamlFormat), "test.re");
+
+    await openDocument(
+      outdent`
+      let rec gcd = (a, b) =>
+        switch (a, b){
+          | (0, n) | (n, 0) => n
+          | (_, _) =>
+            gcd(a, (b mod a))
+        };
+    `,
+      name,
+    );
+
+    let result = await query(name);
+    expect(result).toMatchObject([
+      {
+        newText:
+          "let rec gcd = (a, b) =>\n" +
+          "  switch (a, b) {\n" +
+          "  | (0, n)\n" +
+          "  | (n, 0) => n\n" +
+          "  | (_, _) => gcd(a, b mod a)\n" +
+          "  };\n",
+      },
+    ]);
+  });
+
+  it("can format a reason intf file", async () => {
+    languageServer = await LanguageServer.startAndInitialize();
+
+    let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
+
+    await openDocument(
+      outdent`
+      module Test:
+        {
+          type t =
+            Foo
+          | Bar
+          | Baz
+        };
+    `,
+      name,
+    );
+
+    let result = await query(name);
+
+    expect(result).toMatchObject([
+      {
+        newText:
+          "module Test: {\n" +
+          "  type t =\n" +
+          "    | Foo\n" +
+          "    | Bar\n" +
+          "    | Baz;\n" +
+          "};\n",
       },
     ]);
   });
