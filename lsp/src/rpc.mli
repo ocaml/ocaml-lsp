@@ -12,7 +12,8 @@ type 'state handler =
       -> ('state * Initialize.Result.t, string) result
   ; on_request :
       'res.    t -> 'state -> Initialize.ClientCapabilities.t
-      -> 'res Client_request.t -> ('state * 'res, string) result
+      -> 'res Client_request.t
+      -> ('state * 'res, Jsonrpc.Response.Error.t) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }
