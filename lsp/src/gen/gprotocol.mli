@@ -1283,7 +1283,7 @@ module ResponseError : sig
   type t =
     { code : int
     ; message : string
-    ; data : unit
+    ; data : Json.t
     }
 end
 

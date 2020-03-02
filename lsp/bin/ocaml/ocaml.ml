@@ -377,13 +377,14 @@ module Mapper = struct
       | Ident (Resolved r) -> Type.module_t r.name
       | List t -> Type.list (typ t)
       | Tuple ts -> Type.Tuple (List.map ~f:typ ts)
+      | Sum s ->
+        if is_same_as_json s then
+          Type.json
+        else
+          Type.unit
       | App _
-      | Sum _ ->
-        (* if is_same_as_json s then
-         *   Type.json
-         * else *)
+      | Literal _ ->
         Type.unit
-      | Literal _ -> Type.unit
       | Record _ -> Type.Named name
     in
     typ t

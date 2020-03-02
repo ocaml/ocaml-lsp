@@ -1708,7 +1708,7 @@ module ResponseError = struct
   type t =
     { code : int
     ; message : string
-    ; data : unit
+    ; data : Json.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
