@@ -1,0 +1,32 @@
+name: Build
+on: [push]
+jobs:
+  run:
+    name: BuildAndTest
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ macos-latest, ubuntu-latest, windows-latest ]
+        ocaml-version: [ '4.09.0', '4.08.1', '4.06.1']
+    steps:
+    - uses: actions/setup-node@v1
+    - uses: avsm/setup-ocaml@v1.0
+      with:
+        ocaml-version: ${{ matrix.ocaml-version }}
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    - run: opam pin add lsp.dev -n .
+    - run: opam pin add ocaml-lsp-server.dev.dev -n .
+    - run: opam depext -yt lsp
+    - run: opam depext -yt ocaml-lsp-server
+    - run: opam install -t . --deps-only
+    - run: opam exec -- make
+    - run: yarn install --frozen-lockfile
+      working-directory: ocaml-lsp-server/test/e2e
+    - run: yarn test
+      working-directory: ocaml-lsp-server/test/e2e
