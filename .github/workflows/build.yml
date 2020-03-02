@@ -13,8 +13,9 @@ jobs:
     - uses: avsm/setup-ocaml@v1.0
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
-    - uses: actions/checkout@v2
-    - uses: textbook/git-checkout-submodule-action@v2
+    - uses: actions/checkout@v1
+      with:
+        submodules: true
     - run: opam pin add lsp.dev -n .
     - run: opam pin add ocaml-lsp-server.dev.dev -n .
     - run: opam depext -yt lsp
