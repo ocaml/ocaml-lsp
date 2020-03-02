@@ -3,6 +3,7 @@ open Protocol
 
 type t =
   | TextDocumentDidOpen of DidOpen.params
+  | TextDocumentDidClose of DidCloseTextDocumentParams.t
   | TextDocumentDidChange of DidChangeTextDocumentParams.t
   | DidSaveTextDocument of DidSaveTextDocumentParams.t
   | WillSaveTextDocument of WillSaveTextDocumentParams.t
@@ -21,6 +22,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/didChange" ->
     Jsonrpc.Request.params r DidChangeTextDocumentParams.t_of_yojson
     >>| fun params -> TextDocumentDidChange params
+  | "textDocument/didClose" ->
+    Jsonrpc.Request.params r DidCloseTextDocumentParams.t_of_yojson
+    >>| fun params -> TextDocumentDidClose params
   | "exit" -> Ok Exit
   | "initialized" -> Ok Initialized
   | "workspace/didChangeWorkspaceFolders" ->
