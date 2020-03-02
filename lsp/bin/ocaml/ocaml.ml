@@ -8,6 +8,7 @@ module Expanded = struct
       topological order - module names are decided *)
   type binding =
     | Record of Resolved.field list
+    | Interface of Resolved.interface
     | Poly_enum of Resolved.typ list
     | Alias of Resolved.typ
 
@@ -41,7 +42,7 @@ module Expanded = struct
     let t : binding Named.t =
       match r.data with
       | Enum_anon _ -> assert false
-      | Interface i -> { t with data = Record i.fields }
+      | Interface i -> { t with data = Interface i }
       | Type typ -> (
         match new_binding_of_typ typ with
         | Some data -> { t with data }
@@ -429,11 +430,29 @@ module Gen = struct
     in
     [ main_type ]
 
-  let interface { Named.name; data = fields } =
+  let record { Named.name; data = fields } =
     let main_type = Mapper.record_ name fields in
     match fields with
     | [] -> []
     | _ :: _ -> [ main_type ]
+
+  let interface_fields (i : Resolved.interface) =
+    let rec interface init (i : Resolved.interface) =
+      let init =
+        List.fold_left i.extends ~init ~f:(fun init a ->
+            match a with
+            | Prim.Resolved r -> type_ init r.data
+            | _ -> assert false)
+      in
+      init @ i.fields
+    and type_ init (i : Resolved.decl) =
+      match i with
+      | Enum_anon _ -> assert false
+      | Type (Record fields) -> List.rev_append fields init
+      | Type _ -> assert false
+      | Interface i -> interface init i
+    in
+    interface [] i
 
   let poly_enum { Named.name; data = _ } : Type.decl Named.t list =
     [ { Named.name; data = Type.Alias Type.unit } ]
@@ -442,7 +461,8 @@ module Gen = struct
     let type_decls =
       List.concat_map bindings ~f:(fun (r : Expanded.binding Named.t) ->
           match r.data with
-          | Record data -> interface { r with data }
+          | Record data -> record { r with data }
+          | Interface data -> record { r with data = interface_fields data }
           | Poly_enum data -> poly_enum { r with data }
           | Alias data -> type_ { r with data })
     in
