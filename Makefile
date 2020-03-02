@@ -29,12 +29,3 @@ test: $(TEST_E2E_DIR)/node_modules lsp-server
 
 $(TEST_E2E_DIR)/node_modules:
 	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
-
-travis-test:
-	curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-	echo "deb https://dl.yarnpkg.com/debian/ stable main" \
-		| sudo tee /etc/apt/sources.list.d/yarn.list
-	sudo apt update
-	sudo apt install -y yarn
-	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
-	cd $(TEST_E2E_DIR) && yarn test
