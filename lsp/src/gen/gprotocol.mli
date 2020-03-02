@@ -78,9 +78,7 @@ module TextDocumentIdentifier : sig
 end
 
 module VersionedTextDocumentIdentifier : sig
-  type version = unit
-
-  type t = { version : unit option [@yojson.option] }
+  type t = { version : int option [@yojson.option] }
 end
 
 module TextDocumentEdit : sig
@@ -91,8 +89,6 @@ module TextDocumentEdit : sig
 end
 
 module WorkspaceEdit : sig
-  type documentChanges = unit
-
   type changes = { uri : unit }
 
   type t =
@@ -116,8 +112,6 @@ module ApplyWorkspaceEditResponse : sig
 end
 
 module CancelParams : sig
-  type id = unit
-
   type t = { id : Jsonrpc.Id.t }
 end
 
@@ -499,8 +493,6 @@ module DiagnosticSeverity : sig
 end
 
 module Diagnostic : sig
-  type code = unit
-
   type t =
     { range : Range.t
     ; severity : DiagnosticSeverity.t
@@ -539,7 +531,7 @@ module CodeActionOptions : sig
 end
 
 module ProgressToken : sig
-  type t = unit
+  type t = Jsonrpc.Id.t
 end
 
 module PartialResultParams : sig
@@ -571,9 +563,7 @@ module DocumentSelector : sig
 end
 
 module TextDocumentRegistrationOptions : sig
-  type documentSelector = unit
-
-  type t = { documentSelector : unit option [@yojson.option] }
+  type t = { documentSelector : DocumentSelector.t option [@yojson.option] }
 end
 
 module CodeActionRegistrationOptions : sig end
@@ -656,8 +646,6 @@ module MarkupContent : sig
 end
 
 module CompletionItem : sig
-  type documentation = unit
-
   type t =
     { label : string
     ; kind : int
@@ -994,8 +982,6 @@ module MarkedString : sig
 end
 
 module Hover : sig
-  type contents = unit
-
   type t =
     { contents : unit
     ; range : Range.t
@@ -1019,36 +1005,24 @@ module InitializeError : sig
 end
 
 module InitializeParams : sig
-  type workspaceFolders = unit
-
-  type trace = unit
-
-  type rootUri = unit
-
-  type rootPath = unit
-
   type clientInfo =
     { name : string
     ; version : string
     }
 
-  type processId = unit
-
   type t =
-    { processId : unit option [@yojson.option]
+    { processId : int option [@yojson.option]
     ; clientInfo : clientInfo
-    ; rootPath : unit option [@yojson.option]
-    ; rootUri : unit option [@yojson.option]
+    ; rootPath : string option [@yojson.option]
+    ; rootUri : DocumentUri.t option [@yojson.option]
     ; initializationOptions : Json.t
     ; capabilities : ClientCapabilities.t
     ; trace : unit
-    ; workspaceFolders : unit option [@yojson.option]
+    ; workspaceFolders : WorkspaceFolder.t list option [@yojson.option]
     }
 end
 
 module WorkspaceFoldersServerCapabilities : sig
-  type changeNotifications = unit
-
   type t =
     { supported : bool
     ; changeNotifications : unit
@@ -1092,38 +1066,6 @@ end
 
 module ServerCapabilities : sig
   type workspace = { workspaceFolders : WorkspaceFoldersServerCapabilities.t }
-
-  type selectionRangeProvider = unit
-
-  type foldingRangeProvider = unit
-
-  type renameProvider = unit
-
-  type documentRangeFormattingProvider = unit
-
-  type documentFormattingProvider = unit
-
-  type colorProvider = unit
-
-  type codeActionProvider = unit
-
-  type documentSymbolProvider = unit
-
-  type documentHighlightProvider = unit
-
-  type referencesProvider = unit
-
-  type implementationProvider = unit
-
-  type typeDefinitionProvider = unit
-
-  type definitionProvider = unit
-
-  type declarationProvider = unit
-
-  type hoverProvider = unit
-
-  type textDocumentSync = unit
 
   type t =
     { textDocumentSync : unit
@@ -1201,8 +1143,6 @@ module MessageType : sig
 end
 
 module NotificationMessage : sig
-  type params = unit
-
   type t =
     { method_ : string [@key "method"]
     ; params : unit
@@ -1210,10 +1150,6 @@ module NotificationMessage : sig
 end
 
 module ParameterInformation : sig
-  type documentation = unit
-
-  type label = unit
-
   type t =
     { label : unit
     ; documentation : unit
@@ -1266,10 +1202,6 @@ end
 module RenameRegistrationOptions : sig end
 
 module RequestMessage : sig
-  type params = unit
-
-  type id = unit
-
   type t =
     { id : Jsonrpc.Id.t
     ; method_ : string [@key "method"]
@@ -1278,8 +1210,6 @@ module RequestMessage : sig
 end
 
 module ResponseError : sig
-  type data = unit
-
   type t =
     { code : int
     ; message : string
@@ -1288,10 +1218,6 @@ module ResponseError : sig
 end
 
 module ResponseMessage : sig
-  type result = unit
-
-  type id = unit
-
   type t =
     { id : Jsonrpc.Id.t option [@yojson.option]
     ; result : unit option [@yojson.option]
@@ -1329,8 +1255,6 @@ module ShowMessageRequestParams : sig
 end
 
 module SignatureInformation : sig
-  type documentation = unit
-
   type t =
     { label : string
     ; documentation : unit

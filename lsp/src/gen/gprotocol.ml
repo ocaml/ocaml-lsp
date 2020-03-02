@@ -108,9 +108,7 @@ module TextDocumentIdentifier = struct
 end
 
 module VersionedTextDocumentIdentifier = struct
-  type version = unit
-
-  type t = { version : unit option [@yojson.option] }
+  type t = { version : int option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -127,8 +125,6 @@ module TextDocumentEdit = struct
 end
 
 module WorkspaceEdit = struct
-  type documentChanges = unit
-
   type changes = { uri : unit }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -164,8 +160,6 @@ module ApplyWorkspaceEditResponse = struct
 end
 
 module CancelParams = struct
-  type id = unit
-
   type t = { id : Jsonrpc.Id.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -682,8 +676,6 @@ module DiagnosticSeverity = struct
 end
 
 module Diagnostic = struct
-  type code = unit
-
   type t =
     { range : Range.t
     ; severity : DiagnosticSeverity.t
@@ -737,7 +729,7 @@ module CodeActionOptions = struct
 end
 
 module ProgressToken = struct
-  type t = unit
+  type t = Jsonrpc.Id.t
 end
 
 module PartialResultParams = struct
@@ -781,9 +773,7 @@ module DocumentSelector = struct
 end
 
 module TextDocumentRegistrationOptions = struct
-  type documentSelector = unit
-
-  type t = { documentSelector : unit option [@yojson.option] }
+  type t = { documentSelector : DocumentSelector.t option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -896,8 +886,6 @@ module MarkupContent = struct
 end
 
 module CompletionItem = struct
-  type documentation = unit
-
   type t =
     { label : string
     ; kind : int
@@ -1344,8 +1332,6 @@ module MarkedString = struct
 end
 
 module Hover = struct
-  type contents = unit
-
   type t =
     { contents : unit
     ; range : Range.t
@@ -1372,14 +1358,6 @@ module InitializeError = struct
 end
 
 module InitializeParams = struct
-  type workspaceFolders = unit
-
-  type trace = unit
-
-  type rootUri = unit
-
-  type rootPath = unit
-
   type clientInfo =
     { name : string
     ; version : string
@@ -1388,17 +1366,15 @@ module InitializeParams = struct
 
   [@@@end]
 
-  type processId = unit
-
   type t =
-    { processId : unit option [@yojson.option]
+    { processId : int option [@yojson.option]
     ; clientInfo : clientInfo
-    ; rootPath : unit option [@yojson.option]
-    ; rootUri : unit option [@yojson.option]
+    ; rootPath : string option [@yojson.option]
+    ; rootUri : DocumentUri.t option [@yojson.option]
     ; initializationOptions : Json.t
     ; capabilities : ClientCapabilities.t
     ; trace : unit
-    ; workspaceFolders : unit option [@yojson.option]
+    ; workspaceFolders : WorkspaceFolder.t list option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1406,8 +1382,6 @@ module InitializeParams = struct
 end
 
 module WorkspaceFoldersServerCapabilities = struct
-  type changeNotifications = unit
-
   type t =
     { supported : bool
     ; changeNotifications : unit
@@ -1469,38 +1443,6 @@ module ServerCapabilities = struct
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
-
-  type selectionRangeProvider = unit
-
-  type foldingRangeProvider = unit
-
-  type renameProvider = unit
-
-  type documentRangeFormattingProvider = unit
-
-  type documentFormattingProvider = unit
-
-  type colorProvider = unit
-
-  type codeActionProvider = unit
-
-  type documentSymbolProvider = unit
-
-  type documentHighlightProvider = unit
-
-  type referencesProvider = unit
-
-  type implementationProvider = unit
-
-  type typeDefinitionProvider = unit
-
-  type definitionProvider = unit
-
-  type declarationProvider = unit
-
-  type hoverProvider = unit
-
-  type textDocumentSync = unit
 
   type t =
     { textDocumentSync : unit
@@ -1598,8 +1540,6 @@ module MessageType = struct
 end
 
 module NotificationMessage = struct
-  type params = unit
-
   type t =
     { method_ : string [@key "method"]
     ; params : unit
@@ -1610,10 +1550,6 @@ module NotificationMessage = struct
 end
 
 module ParameterInformation = struct
-  type documentation = unit
-
-  type label = unit
-
   type t =
     { label : unit
     ; documentation : unit
@@ -1690,10 +1626,6 @@ end
 module RenameRegistrationOptions = struct end
 
 module RequestMessage = struct
-  type params = unit
-
-  type id = unit
-
   type t =
     { id : Jsonrpc.Id.t
     ; method_ : string [@key "method"]
@@ -1705,8 +1637,6 @@ module RequestMessage = struct
 end
 
 module ResponseError = struct
-  type data = unit
-
   type t =
     { code : int
     ; message : string
@@ -1718,10 +1648,6 @@ module ResponseError = struct
 end
 
 module ResponseMessage = struct
-  type result = unit
-
-  type id = unit
-
   type t =
     { id : Jsonrpc.Id.t option [@yojson.option]
     ; result : unit option [@yojson.option]
@@ -1774,8 +1700,6 @@ module ShowMessageRequestParams = struct
 end
 
 module SignatureInformation = struct
-  type documentation = unit
-
   type t =
     { label : string
     ; documentation : unit

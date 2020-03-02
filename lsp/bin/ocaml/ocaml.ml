@@ -16,7 +16,6 @@ module Expanded = struct
   let new_binding_of_typ (x : Resolved.typ) : binding option =
     match x with
     | Record d -> Some (Record d)
-    | Sum c -> Some (Poly_enum c)
     | _ -> None
 
   class discovered_types =
@@ -389,20 +388,15 @@ module Mapper = struct
         if is_same_as_json s then
           Type.json
         else
-          let opt, t =
-            match remove_null s with
-            | `No_null_present -> (`Required, s)
-            | `Null_removed s -> (`Optional, s)
-          in
-          let t =
-            if is_same_as_id t then
+          match remove_null s with
+          | `No_null_present ->
+            if is_same_as_id s then
               id
             else
               Type.unit
-          in
-          match opt with
-          | `Optional -> Type.Optional t
-          | `Required -> t )
+          | `Null_removed [ s ] -> Type.Optional (typ s)
+          | `Null_removed [] -> assert false
+          | `Null_removed cs -> Type.Optional (typ (Sum cs)) )
       | App _
       | Literal _ ->
         Type.unit
