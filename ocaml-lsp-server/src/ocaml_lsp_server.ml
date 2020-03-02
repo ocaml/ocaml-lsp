@@ -2,7 +2,11 @@ open Import
 
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"
 
-let not_supported () = Error "request not supported yet"
+let make_error = Lsp.Jsonrpc.Response.Error.make
+
+let not_supported () =
+  Error
+    (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
 module Action = struct
   let destruct = "destruct"
@@ -184,7 +188,7 @@ let on_request :
     -> Document_store.t
     -> Lsp.Initialize.ClientCapabilities.t
     -> resp Lsp.Client_request.t
-    -> (Document_store.t * resp, string) result =
+    -> (Document_store.t * resp, Lsp.Jsonrpc.Response.Error.t) result =
  fun rpc store client_capabilities req ->
   let open Lsp.Import.Result.O in
   match req with
@@ -657,12 +661,14 @@ let on_request :
       let message = "Unable to find ocamlformat binary" in
       let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
       Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      Error message
+      let err = make_error ~code:InvalidRequest ~message () in
+      Error err
     | Result.Error (Message e) ->
       let message = Printf.sprintf "failed to format: %s e" e in
       let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
       Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      Error message
+      let err = make_error ~code:InternalError ~message () in
+      Error err
     | Result.Ok result ->
       let pos line col = { Lsp.Protocol.Position.character = col; line } in
       let range =
@@ -676,10 +682,11 @@ let on_request :
       Ok (store, [ change ]) )
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
   | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
-  | Lsp.Client_request.UnknownRequest _ -> Error "got unknown request"
+  | Lsp.Client_request.UnknownRequest _ ->
+    Error (make_error ~code:InvalidRequest ~message:"Got unkown request" ())
 
-let on_notification rpc store (notification : Lsp.Client_notification.t) =
-  let open Lsp.Import.Result.O in
+let on_notification rpc store (notification : Lsp.Client_notification.t) :
+    (Document_store.t, string) result =
   match notification with
   | TextDocumentDidOpen params ->
     let doc =
@@ -692,15 +699,18 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) =
   | TextDocumentDidClose { textDocument = { uri } } ->
     Document_store.remove_document store uri;
     Ok store
-  | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
-    Document_store.get store uri >>= fun prev_doc ->
-    let doc =
-      let f doc change = Document.update_text ~version change doc in
-      List.fold_left ~f ~init:prev_doc contentChanges
-    in
-    Document_store.put store doc;
-    send_diagnostics rpc doc;
-    Ok store
+  | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
+    -> (
+    match Document_store.get store uri with
+    | Ok prev_doc ->
+      let doc =
+        let f doc change = Document.update_text ~version change doc in
+        List.fold_left ~f ~init:prev_doc contentChanges
+      in
+      Document_store.put store doc;
+      send_diagnostics rpc doc;
+      Ok store
+    | Error e -> Error e.message )
   | DidSaveTextDocument _
   | WillSaveTextDocument _
   | ChangeConfiguration _
@@ -723,25 +733,28 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) =
 
 let start () =
   let docs = Document_store.make () in
-  let prepare_and_run f =
+  let prepare_and_run prep_exn f =
     let f () =
       match f () with
       | Ok s -> Ok s
       | Error e -> Error e
-      | exception exn -> Error (Printexc.to_string exn)
+      | exception exn -> Error (prep_exn exn)
     in
     (* TODO: what to do with merlin notifications? *)
     let _notifications = ref [] in
     Logger.with_notifications (ref []) @@ fun () -> File_id.with_cache @@ f
   in
   let on_initialize rpc state params =
-    prepare_and_run @@ fun () -> on_initialize rpc state params
+    prepare_and_run Printexc.to_string @@ fun () ->
+    on_initialize rpc state params
   in
   let on_notification rpc state notif =
-    prepare_and_run @@ fun () -> on_notification rpc state notif
+    prepare_and_run Printexc.to_string @@ fun () ->
+    on_notification rpc state notif
   in
   let on_request rpc state caps req =
-    prepare_and_run @@ fun () -> on_request rpc state caps req
+    prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
+    on_request rpc state caps req
   in
   Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout;
   log ~title:"info" "exiting"

@@ -13,7 +13,11 @@ let get store uri =
   match Table.find store uri with
   | Some doc -> Ok doc
   | None ->
-    Lsp.Import.Result.errorf "no document found with uri: %a" Lsp.Uri.pp uri
+    Error
+      (Lsp.Jsonrpc.Response.Error.make ~code:InvalidRequest
+         ~message:
+           (Format.asprintf "no document found with uri: %a" Lsp.Uri.pp uri)
+         ())
 
 let remove_document store uri =
   Table.filter_map_inplace

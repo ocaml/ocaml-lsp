@@ -87,7 +87,8 @@ type 'state handler =
       -> ('state * Initialize.Result.t, string) result
   ; on_request :
       'res.    t -> 'state -> Initialize.ClientCapabilities.t
-      -> 'res Client_request.t -> ('state * 'res, string) result
+      -> 'res Client_request.t
+      -> ('state * 'res, Jsonrpc.Response.Error.t) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
   }
@@ -158,19 +159,24 @@ let start init_state handler ic oc =
               try handler.on_notification rpc state notif
               with exn -> Error (Printexc.to_string exn) )
             | Message.Request (id, E req) -> (
-              ( try handler.on_request rpc state client_capabilities req
-                with exn ->
-                  let error = Jsonrpc.Response.Error.of_exn exn in
-                  let response = Jsonrpc.Response.error id error in
-                  send_response rpc response;
-                  Error error.message )
-              >>= fun (next_state, result) ->
-              match Client_request.yojson_of_result req result with
-              | None -> Ok next_state
-              | Some response ->
-                let response = Jsonrpc.Response.ok id response in
+              let handled =
+                try handler.on_request rpc state client_capabilities req
+                with exn -> Error (Jsonrpc.Response.Error.of_exn exn)
+              in
+              match handled with
+              | Ok (next_state, result) ->
+                let yojson_result =
+                  match Client_request.yojson_of_result req result with
+                  | None -> `Null
+                  | Some res -> res
+                in
+                let response = Jsonrpc.Response.ok id yojson_result in
                 send_response rpc response;
-                Ok next_state ))
+                Ok next_state
+              | Error e ->
+                let response = Jsonrpc.Response.error id e in
+                send_response rpc response;
+                Error e.message ))
       in
       Logger.log_flush ();
       loop rpc next_state
