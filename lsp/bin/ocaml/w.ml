@@ -2,6 +2,10 @@ open Import
 open Pp.O
 open Pp
 
+type t = unit Pp.t
+
+type w = t
+
 (* This module contains all the writing primitives *)
 
 let ident = verbatim
@@ -9,6 +13,15 @@ let ident = verbatim
 let i = verbatim
 
 let quoted s = i (sprintf "%S" s)
+
+let surround delim a =
+  let start, finish =
+    match delim with
+    | `Paren -> (i "(", i ")")
+    | `Curly -> (i "{", i "}")
+    | `Square -> (i "[", i "]")
+  in
+  Pp.concat [ start; a; finish ]
 
 module Name = struct
   let to_json t = sprintf "yojson_of_%s" t
@@ -52,7 +65,33 @@ module Gen = struct
       [ verbatim "| "; l; Pp.verbatim (sprintf " %s " delim); r; Pp.newline ]
 end
 
+module Attr = struct
+  type t =
+    { name : string
+    ; payload : w list
+    }
+
+  let make name payload = { name; payload }
+
+  let pp kind { name; payload } =
+    let kind =
+      match kind with
+      | `Field -> "@"
+      | `Type -> "@@"
+    in
+    Pp.concat [ i kind; i name; Pp.space; Pp.concat ~sep:Pp.space payload ]
+    |> surround `Square
+end
+
 module Type = struct
+  let string = i "string"
+
+  let int = i "int"
+
+  let name = i
+
+  let bool = i "bool"
+
   let gen_decl kw name body =
     Pp.concat [ Pp.textf "%s %s =" kw name; Pp.newline; body ]
 
@@ -61,6 +100,29 @@ module Type = struct
   let decl name body = gen_decl "type" name body
 
   let record fields = Gen.record ~delim:":" fields
+
+  let field_attrs ~field ~attrs =
+    match attrs with
+    | [] -> field
+    | attrs ->
+      let attrs = Pp.concat_map attrs ~sep:Pp.space ~f:(Attr.pp `Field) in
+      Pp.concat [ field; Pp.space; attrs ]
+
+  let var typ = Pp.textf "'%s" typ
+
+  let app typ = function
+    | [] -> assert false
+    | [ x ] -> Pp.concat [ x; Pp.space; typ ]
+    | xs ->
+      let args =
+        let sep = Pp.verbatim "," in
+        Pp.concat [ Pp.verbatim "("; Pp.concat ~sep xs; Pp.verbatim ")" ]
+      in
+      Pp.concat [ args; Pp.space; typ ]
+
+  let tuple fields =
+    let sep = i "*" in
+    i "(" ++ Pp.concat ~sep fields ++ i ")"
 
   let rec_decls xs =
     match xs with
@@ -87,11 +149,27 @@ module Type = struct
 
   let key name = concat [ ident "[@key "; quoted name; ident "]" ]
 
-  let variant_ constrs =
+  let gen_variant ~poly constrs =
     Pp.concat_map constrs ~sep:Pp.newline ~f:(fun (name, arg) ->
+        let name =
+          if poly then
+            "`" ^ name
+          else
+            name
+        in
         match arg with
-        | None -> Pp.concat [ Pp.textf "| %s" name ]
-        | Some a -> Gen.clause ~delim:"of" (ident name) a)
+        | [] -> Pp.concat [ Pp.textf "| %s" name ]
+        | xs ->
+          let xs =
+            match xs with
+            | [ x ] -> x
+            | xs -> tuple xs
+          in
+          Gen.clause ~delim:"of" (ident name) xs)
+
+  let poly constrs = concat [ i "["; gen_variant ~poly:true constrs; i "]" ]
+
+  let variant constrs = gen_variant ~poly:false constrs
 end
 
 let gen_module kw name body =
@@ -112,11 +190,7 @@ module Sig = struct
     let b = Pp.concat ~sep b in
     Pp.concat [ textf "val %s : " name; b; Pp.newline ]
 
-  let tuple fields =
-    let sep = i "," in
-    i "(" ++ Pp.concat ~sep fields ++ i ")"
-
-  let assoc k v = Pp.concat [ tuple [ k; v ]; Pp.space; i "list" ]
+  let assoc k v = Pp.concat [ Type.tuple [ k; v ]; Pp.space; i "list" ]
 
   module Json = struct
     let arr typ = [ i typ; i Json.typ ]

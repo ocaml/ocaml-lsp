@@ -6,37 +6,56 @@ module Expanded = struct
 
       - we don't need to introduce any new types - the types are printed in a
       topological order - module names are decided *)
-  type t =
-    { module_ : string
-    ; defns : Resolved.t list
-    }
+  type binding =
+    | Record of Resolved.field list
+    | Poly_enum of Resolved.typ list
+    | Alias of Resolved.typ
+
+  type t = binding Ml.Module.t
+
+  let new_binding_of_typ (x : Resolved.typ) : binding option =
+    match x with
+    | Record d -> Some (Record d)
+    | Sum c -> Some (Poly_enum c)
+    | _ -> None
 
   class discovered_types =
     object
-      inherit [Resolved.t list] Resolved.fold as super
+      inherit [binding Named.t list] Resolved.fold as super
 
-      (* Every record valued field introduces a new type *)
+      (* Every record valued field introduces a new type TODO handle the case
+         where two fields share a type *)
       method! field f ~init =
-        let init = super#field f ~init in
-        match f.data with
-        | Pattern _ -> init
-        | Single { optional = _; typ } -> (
-          let new_type = { f with data = Resolved.Type typ } in
-          match typ with
-          | Record _ -> new_type :: init
-          | _ -> init )
+        let init =
+          match f.data with
+          | Pattern _ -> init
+          | Single { optional = _; typ } -> (
+            match new_binding_of_typ typ with
+            | None -> init
+            | Some data -> { f with data } :: init )
+        in
+        super#field f ~init
     end
 
-  let of_ts (t : Resolved.t) =
-    let init = [ { t with name = "t" } ] in
-    let module_ = t.name in
-    let defns =
-      match t.data with
-      | Enum_anon _ -> init
+  let of_ts (r : Resolved.t) : t =
+    let t = { r with name = "t" } in
+    let t : binding Named.t =
+      match r.data with
+      | Enum_anon _ -> assert false
+      | Interface i -> { t with data = Record i.fields }
+      | Type typ -> (
+        match new_binding_of_typ typ with
+        | Some data -> { t with data }
+        | None -> { t with data = Alias typ } )
+    in
+    let init = [ t ] in
+    let bindings =
+      match r.data with
+      | Enum_anon _ -> assert false
       | Type typ -> (new discovered_types)#typ typ ~init
       | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
     in
-    { module_; defns }
+    { Ml.Module.name = r.name; bindings }
 end
 
 module Simplify_ts = struct
@@ -60,27 +79,23 @@ module Simplify_ts = struct
    *   | [_] ->
    *     App () *)
 
-  (* let json = Resolved.Ident Any
-   *
-   * let id = Resolved.Ident "Id.t"
-   *
-   * class simplify_sum =
-   *   object (self)
-   *     inherit Resolved.map
-   *
-   *     method! typ (t : Resolved.typ) =
-   *       match t with
-   *       | Sum constrs ->
-   *         if is_same_as_json constrs then
-   *           json
-   *         else if is_same_as_id constrs then
-   *           id
-   *         else
-   *           t
-   *       | _ -> t
-   *   end
-   *
-   * let of_resolved (t : Resolved.t) : Resolved.t = (new simplify_sum)#t t *)
+  let json = Resolved.Ident Any
+
+  class simplify_sum =
+    object
+      inherit Resolved.map
+
+      method! typ (t : Resolved.typ) =
+        match t with
+        | Sum constrs ->
+          if is_same_as_json constrs then
+            json
+          else
+            t
+        | _ -> t
+    end
+
+  let of_resolved (t : Resolved.t) : Resolved.t = (new simplify_sum)#t t
 end
 
 module Json = struct
@@ -89,89 +104,6 @@ module Json = struct
     | String s -> Pp.textf "`String %S" s
     | Int s -> Pp.textf "`Int (%d)" s
     | Float _ -> assert false
-end
-
-module Type = struct
-  type anon =
-    | Named of string
-    | Tuple of anon list
-    | Var of string
-    | App of anon * anon
-
-  and field =
-    { name : string
-    ; typ : anon
-    ; attrs : unit Pp.t list
-    }
-
-  type t =
-    | Anon of anon
-    | Sum of (string * anon option) list
-    | Record of field list
-
-  let of_named (r : _ Named.t) = Named (String.capitalize_ascii r.name ^ ".t")
-
-  let list t = App (Named "list", t)
-
-  let t = Named "t"
-
-  let string = Named "string"
-
-  let int = Named "int"
-
-  let bool = Named "bool"
-
-  let alpha = Anon (Var "a")
-
-  let enum constrs = Sum (List.map constrs ~f:(fun constr -> (constr, None)))
-
-  let json = Named "Json.t"
-
-  let unit = Named "unit"
-
-  let rec pp_anon (a : anon) =
-    match a with
-    | Var v -> Pp.textf "'%s" v
-    | Named v -> Pp.verbatim v
-    | App (f, x) -> Pp.concat [ pp_anon x; Pp.space; pp_anon f ]
-    | Tuple _ -> assert false
-
-  let pp (t : t) =
-    let open W in
-    match t with
-    | Anon a -> pp_anon a
-    | Sum xs ->
-      List.map xs ~f:(fun (constr, arg) ->
-          let arg = Option.map arg ~f:pp_anon in
-          (String.capitalize constr, arg))
-      |> Type.variant_
-    | Record r ->
-      List.map r ~f:(fun { name; attrs; typ } ->
-          let typ = pp_anon typ in
-          let defn = Pp.concat ~sep:Pp.space (typ :: attrs) in
-          (name, defn))
-      |> Type.record
-end
-
-module Type_decl = struct
-  type single =
-    { name : string
-    ; defn : Type.t
-    }
-
-  type t =
-    { decls : single list
-    ; deriving : bool
-    }
-
-  let pp { decls; deriving } =
-    let pp_decls =
-      List.map decls ~f:(fun { name; defn } -> (name, Type.pp defn))
-      |> W.Type.rec_decls
-    in
-    match decls with
-    | _ :: _ when deriving -> W.Type.deriving pp_decls
-    | _ -> pp_decls
 end
 
 module Expr = struct
@@ -238,19 +170,17 @@ module Expr = struct
     | _ -> assert false
 end
 
-module Gen = struct end
-
 module Texpr = struct
-  type t = Expr.t * Type.t
+  type t = Expr.t * Ml.Type.t
 
-  let assert_false = (Expr.Assert_false, Type.alpha)
+  let assert_false = (Expr.Assert_false, Ml.Type.alpha)
 end
 
 module Let = struct
   type t =
     { name : string
-    ; pat : (Expr.pat Expr.arg * Type.anon) list
-    ; body : unit Pp.t * Type.anon
+    ; pat : (Expr.pat Expr.arg * Ml.Type.t) list
+    ; body : unit Pp.t * Ml.Type.t
     }
 
   let pp =
@@ -258,7 +188,7 @@ module Let = struct
       let patterns =
         let open Expr in
         Pp.concat_map pat ~f:(fun (pat, typ) ->
-            let typ = Type.pp (Anon typ) in
+            let typ = Ml.Type.pp typ in
             let typ = Pp.concat [ typ; Pp.space; Pp.verbatim "->"; Pp.space ] in
             match pat with
             | Unnamed _ -> typ
@@ -266,11 +196,7 @@ module Let = struct
             | Optional (name, _) -> Pp.concat [ Pp.textf "?%s:" name; typ ])
       in
       Pp.concat
-        [ Pp.textf "val %s :" name
-        ; Pp.space
-        ; patterns
-        ; Type.pp (Anon (snd body))
-        ]
+        [ Pp.textf "val %s :" name; Pp.space; patterns; Ml.Type.pp (snd body) ]
     in
     let impl { name; pat; body } =
       let pat =
@@ -292,30 +218,39 @@ module Let = struct
         ; Pp.hovbox ~indent:2 body
         ]
     in
-    { Ml_kind.intf; impl }
+    { Ml.Kind.intf; impl }
 end
 
 module Module = struct
-  type t =
-    { name : string
-    ; type_decls : Type_decl.t list
-    ; lets : Let.t list
-    }
+  module Module = Ml.Module
 
-  let empty name = { name; type_decls = []; lets = [] }
+  type t = (Module.sig_ Module.t, Module.impl Module.t) Ml.Kind.pair
 
-  let pp t ~kind =
-    let decls = Pp.concat_map ~sep:Pp.newline ~f:Type_decl.pp t.type_decls in
-    let lets =
-      let f = Ml_kind.get Let.pp kind in
-      Pp.concat_map ~sep:Pp.newline t.lets ~f
+  let empty name =
+    { Ml.Kind.intf = Ml.Module.empty name; impl = Ml.Module.empty name }
+
+  let type_decls name (type_decls : Ml.Type.decl Named.t list) : t =
+    let module_ bindings = { Ml.Module.name; bindings } in
+    let intf : Module.sig_ Module.t =
+      List.map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+          { td with
+            Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
+          })
+      |> module_
     in
-    let body = Pp.concat [ decls; lets ] in
-    match kind with
-    | Intf -> W.Sig.module_ t.name body
-    | Impl -> W.module_ t.name body
+    let impl =
+      List.map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+          { td with Named.data = Ml.Module.Type_decl td.data })
+      |> module_
+    in
+    { Ml.Kind.intf; impl }
 
-  let pp t = { Ml_kind.intf = pp t ~kind:Intf; impl = pp t ~kind:Impl }
+  let pp (t : t) ~kind =
+    match (kind : Ml.Kind.t) with
+    | Intf -> Ml.Module.pp_sig t.intf
+    | Impl -> Ml.Module.pp_impl t.impl
+
+  let pp t = { Ml.Kind.intf = pp t ~kind:Intf; impl = pp t ~kind:Impl }
 end
 
 let pp_file pp ~fname =
@@ -331,7 +266,7 @@ module Enum = struct
   let of_json { Named.name = _; data = constrs } =
     let open Expr in
     let name = "of_yojson" in
-    let pat = [ (Unnamed (Pat (Ident "json")), Type.json) ] in
+    let pat = [ (Unnamed (Pat (Ident "json")), Ml.Type.json) ] in
     let body =
       let body =
         let constrs =
@@ -350,14 +285,14 @@ module Enum = struct
         ; Pp.newline
         ]
       in
-      (Pp.concat body, Type.t)
+      (Pp.concat body, Ml.Type.t)
     in
     { Let.name; pat; body }
 
   let to_json { Named.name = _; data = constrs } =
     let open Expr in
     let name = "to_yojson" in
-    let pat = [ (Unnamed (Pat (Ident "t")), Type.t) ] in
+    let pat = [ (Unnamed (Pat (Ident "t")), Ml.Type.t) ] in
     let body =
       let patterns =
         Pp.concat_map constrs ~f:(fun (constr, literal) ->
@@ -367,70 +302,65 @@ module Enum = struct
               ; Pp.newline
               ])
       in
-      (Pp.concat [ Pp.verbatim "match t with"; Pp.newline; patterns ], Type.json)
+      ( Pp.concat [ Pp.verbatim "match t with"; Pp.newline; patterns ]
+      , Ml.Type.json )
     in
     { Let.name; pat; body }
 
   let module_ ({ Named.name; data = constrs } as t) =
-    let type_decls =
-      let defn = Type.Sum (List.map constrs ~f:(fun (c, _) -> (c, None))) in
-      let decls = [ { Type_decl.name = "t"; defn } ] in
-      [ { Type_decl.decls; deriving = false } ]
-    in
-    let lets =
+    let _lets =
       let to_json = to_json t in
       let of_json = of_json t in
-      [ to_json; of_json ]
+      ignore [ to_json; of_json ];
+      []
     in
-    Some { Module.name; type_decls; lets }
+    let t =
+      let data =
+        Ml.Type.Variant
+          (List.map constrs ~f:(fun (name, _) -> Ml.Type.constr ~name []))
+      in
+      { Named.name = "t"; data }
+    in
+    Module.type_decls name [ t ]
 end
-
-let rename_ident = function
-  | "type" -> "type_"
-  | "method" -> "method_"
-  | "end" -> "end_"
-  | s -> s
 
 module Sum = struct
-  (* Sum types are a bit involved. All special handling is grouped here.
+  (** Sum types are a bit involved. All special handling is grouped here.
 
-     The rules are as follows:
+      The rules are as follows:
 
-     - If the type is only composed of literals it's treated as an enum
+      - If the type is only composed of literals it's treated as an enum
 
-     - If there are only two characters and one of them is null. This is treated
-     as a nullable option
+      - If there are only two characters and one of them is null. This is
+      treated as a nullable option
 
-     - If it's a string | number, it's treated as an Id.
+      - If it's a string | number, it's treated as an Id.
 
-     - string | number | boolean | array | object | null is hard coded to be a
-     json type
+      - string | number | boolean | array | object | null is hard coded to be a
+      json type
 
-     - Anonymous sums in field names are treated as polymoprhic variants. The
-     tags are chosen mechanically based on the arguments
+      - Anonymous sums in field names are treated as polymoprhic variants. The
+      tags are chosen mechanically based on the arguments
 
-     - Anonymous sums of records are hardeset to handle. We compose the various
-     parsers with <|> *)
+      - Anonymous sums of records are hardeset to handle. We compose the various
+      parsers with <|> *)
 end
 
-module Record = struct
+module Mapper = struct
   (* The steps to process a record are:
 
      - extract all inlined types out of a record - every inlined type will be
      named after the field it was used in
 
      Field handling - optional - key handling - default handling *)
-  open Type
+  module Type = Ml.Type
 
-  let rec all_types fields =
-    List.concat_map fields ~f:(fun (f : Resolved.field) ->
-        match f.data with
-        | Resolved.Single { typ; optional = _ } -> (
-          match typ with
-          | Sum _ -> []
-          | Record s -> (f, s) :: all_types s
-          | _ -> [] )
-        | Pattern _ -> [])
+  let is_same_as_json =
+    let constrs =
+      [ Prim.Null; String; Bool; Number; Object; List ]
+      |> List.map ~f:(fun s -> Resolved.Ident s)
+    in
+    fun set -> List.for_all constrs ~f:(List.mem ~set)
 
   let make_typ name t =
     let rec typ (t : Resolved.typ) =
@@ -444,13 +374,16 @@ module Record = struct
       | Ident Self -> Type.t (* XXX wrong *)
       | Ident Null -> assert false
       | Ident List -> assert false
-      | Ident (Resolved r) -> Type.of_named r
+      | Ident (Resolved r) -> Type.module_t r.name
       | List t -> Type.list (typ t)
       | Tuple ts -> Type.Tuple (List.map ~f:typ ts)
       | App _
-      | Sum _
-      | Literal _ ->
+      | Sum _ ->
+        (* if is_same_as_json s then
+         *   Type.json
+         * else *)
         Type.unit
+      | Literal _ -> Type.unit
       | Record _ -> Type.Named name
     in
     typ t
@@ -460,82 +393,44 @@ module Record = struct
     | Pattern _ -> Type.unit
     | Resolved.Single { typ; optional = _ } -> make_typ field.name typ
 
-  let attrs_of_field (field : Resolved.field) =
-    match field.data with
-    | Single s -> (
-      let attrs =
-        if s.optional then
-          [ W.Type.opt_attr ]
-        else
-          []
-      in
-      match String.drop_suffix field.name ~suffix:"_" with
-      | Some s -> W.Type.key s :: attrs
-      | None -> attrs )
-    | Pattern _ -> []
-
   let record_ name fields =
-    let defn =
-      Record
+    let data =
+      Type.Record
         (List.map fields ~f:(fun (field : Resolved.field) ->
-             { name = field.name
-             ; typ = make_field field
-             ; attrs = attrs_of_field field
-             }))
+             let typ = make_field field in
+             Ml.Type.field typ ~name:field.name))
     in
-    { Type_decl.name; defn }
+    { Named.name; data }
 end
 
-module Interface = struct
-  let module_
-      { Named.name; data = { Resolved.extends = _; fields; params = _ } } =
-    let all_types = Record.all_types fields in
+module Gen = struct
+  module Type = Ml.Type
+
+  let type_ { Named.name; data = typ } =
     let main_type =
-      List.map fields ~f:(fun (n : Resolved.field) ->
-          let name = rename_ident n.name in
-          { n with name })
-      |> Record.record_ "t"
+      let typ = Mapper.make_typ name typ in
+      { Named.name; data = Type.Alias typ }
     in
-    let rest_types =
-      List.map all_types ~f:(fun ((t : Resolved.field), subfields) ->
-          Record.record_ t.name subfields)
-    in
-    let type_decl =
-      { Type_decl.deriving = true; decls = main_type :: rest_types }
-    in
-    let lets = [] in
+    [ main_type ]
+
+  let interface { Named.name; data = fields } =
+    let main_type = Mapper.record_ name fields in
     match fields with
-    | [] -> None
-    | _ :: _ -> Some { Module.name; type_decls = [ type_decl ]; lets }
-end
+    | [] -> []
+    | _ :: _ -> [ main_type ]
 
-module Lsp_type = struct
-  let module_ { Named.name; data = typ } =
-    let main_type =
-      let rec defn typ =
-        match (typ : Resolved.typ) with
-        | Ident Number -> Type.int
-        | Ident String -> Type.string
-        | Ident Bool -> Type.bool
-        | Ident Any
-        | Ident Object ->
-          Type.json
-        | Ident Self -> Type.t (* XXX wrong *)
-        | Ident Null -> assert false
-        | Ident List -> assert false
-        | Ident (Resolved r) -> Type.of_named r
-        | List f -> Type.list (defn f)
-        | Tuple ts -> Type.Tuple (List.map ~f:defn ts)
-        | App _
-        | Sum _
-        | Literal _ ->
-          Type.unit
-        | Record _ -> Type.Named name
-      in
-      { Type_decl.name = "t"; defn = Type.Anon (defn typ) }
+  let poly_enum { Named.name; data = _ } : Type.decl Named.t list =
+    [ { Named.name; data = Type.Alias Type.unit } ]
+
+  let module_ { Ml.Module.name; bindings } =
+    let type_decls =
+      List.concat_map bindings ~f:(fun (r : Expanded.binding Named.t) ->
+          match r.data with
+          | Record data -> interface { r with data }
+          | Poly_enum data -> poly_enum { r with data }
+          | Alias data -> type_ { r with data })
     in
-    let type_decl = { Type_decl.deriving = true; decls = [ main_type ] } in
-    Some { Module.name; type_decls = [ type_decl ]; lets = [] }
+    Module.type_decls name type_decls
 end
 
 class idents =
@@ -558,16 +453,17 @@ let of_typescript (ts : Resolved.t list) =
   | Ok ts ->
     List.filter_map ts ~f:(fun (t : Resolved.t) ->
         match t.data with
-        | Enum_anon data -> Enum.module_ { t with data }
-        | Interface data -> Interface.module_ { t with data }
-        | Type data -> Lsp_type.module_ { t with data })
+        | Enum_anon data -> Some (Enum.module_ { t with data })
+        | _ ->
+          let mod_ = Expanded.of_ts t in
+          Some (Gen.module_ mod_))
 
 let mli = name ^ ".mli"
 
 let ml = name ^ ".ml"
 
 let output modules =
-  let open Ml_kind in
+  let open Ml.Kind in
   let intf, impl =
     List.map modules ~f:(fun m ->
         let { intf; impl } = Module.pp m in
@@ -575,13 +471,13 @@ let output modules =
     |> List.unzip
   in
   let def = { intf; impl } in
-  let def = Ml_kind.map def ~f:(Pp.concat ~sep:Pp.newline) in
+  let def = Ml.Kind.Map.map def ~f:(Pp.concat ~sep:Pp.newline) in
   let def =
     let prelude =
       let open W in
       Pp.concat [ opens [ "Import" ]; warnings "-30"; Pp.newline ]
     in
-    Ml_kind.map def ~f:(Pp.seq prelude)
+    Ml.Kind.Map.map def ~f:(Pp.seq prelude)
   in
   let pp = { intf = pp_file ~fname:mli; impl = pp_file ~fname:ml } in
-  Ml_kind.both def pp |> Ml_kind.iter ~f:(fun (def, pp) -> pp def)
+  Ml.Kind.Map.both def pp |> Ml.Kind.Map.iter ~f:(fun (def, pp) -> pp def)

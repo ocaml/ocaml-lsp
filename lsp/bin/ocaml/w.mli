@@ -2,8 +2,12 @@
 
 open Import
 
+type t = unit Pp.t
+
+type w = t
+
 module Json : sig
-  val invalid_pat : string -> 'a Pp.t * 'b Pp.t
+  val invalid_pat : string -> w * w
 
   val typ : string
 
@@ -24,56 +28,78 @@ module Json : sig
   val bool : string -> string
 end
 
+module Attr : sig
+  type t
+
+  val make : string -> unit Pp.t list -> t
+end
+
 module Type : sig
-  val and_ : string -> 'a Pp.t -> 'a Pp.t
+  val string : w
 
-  val decl : string -> 'a Pp.t -> 'a Pp.t
+  val int : w
 
-  val record : (string * 'a Pp.t) list -> 'a Pp.t
+  val bool : w
 
-  val rec_decls : (string * 'a Pp.t) list -> 'a Pp.t
+  val name : string -> w
 
-  val deriving : 'a Pp.t -> 'a Pp.t
+  val and_ : string -> w -> w
 
-  val opt_attr : 'a Pp.t
+  val decl : string -> w -> w
 
-  val opt_field : 'a Pp.t -> 'a Pp.t
+  val record : (string * w) list -> w
 
-  val default : 'a Pp.t -> string -> 'a Pp.t
+  val field_attrs : field:w -> attrs:Attr.t list -> w
 
-  val key : string -> 'a Pp.t
+  val rec_decls : (string * w) list -> w
 
-  val variant_ : (string * 'a Pp.t option) list -> 'a Pp.t
+  val var : string -> w
+
+  val poly : (string * w list) list -> w
+
+  val app : w -> w list -> w
+
+  val tuple : w list -> w
+
+  val deriving : w -> w
+
+  val opt_attr : w
+
+  val opt_field : w -> w
+
+  val default : w -> string -> w
+
+  val key : string -> w
+
+  val variant : (string * w list) list -> w
 end
 
 module Sig : sig
-  val module_ : string -> 'a Pp.t -> 'a Pp.t
+  val module_ : string -> w -> w
 
-  val val_ : string -> 'a Pp.t list -> 'a Pp.t
+  val val_ : string -> w list -> w
 
-  val tuple : 'a Pp.t list -> 'a Pp.t
-
-  val assoc : 'a Pp.t -> 'a Pp.t -> 'a Pp.t
+  val assoc : w -> w -> w
 
   module Json : sig
-    val arr : string -> 'a Pp.t list
+    val arr : string -> w list
 
-    val to_json : string -> 'a Pp.t
+    val to_json : string -> w
 
-    val of_json : string -> 'a Pp.t
+    val of_json : string -> w
   end
 end
 
-val warnings : string -> 'a Pp.t
+val warnings : string -> w
 
-val match_ : string -> ('a Pp.t * 'a Pp.t) list -> 'a Pp.t
+val match_ : string -> (w * w) list -> w
 
-val module_ : string -> 'a Pp.t -> 'a Pp.t
+val module_ : string -> w -> w
 
-val opens : string list -> 'a Pp.t
+val opens : string list -> w
 
-val of_json : string -> 'a Pp.t -> 'a Pp.t
+val of_json : string -> w -> w
 
-val to_json : string -> 'a Pp.t -> 'a Pp.t
+val to_json : string -> w -> w
 
-val record : (string * 'a Pp.t) list -> 'a Pp.t
+val record : (string * w) list -> w

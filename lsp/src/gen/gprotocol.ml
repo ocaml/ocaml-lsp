@@ -4,8 +4,8 @@ open! Import
 
 module DeleteFileOptions = struct
   type t =
-    { recursive : bool option [@yojson.option]
-    ; ignoreIfNotExists : bool option [@yojson.option]
+    { recursive : bool
+    ; ignoreIfNotExists : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -13,16 +13,14 @@ module DeleteFileOptions = struct
 end
 
 module DocumentUri = struct
-  type t = string [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
+  type t = string
 end
 
 module DeleteFile = struct
   type t =
     { kind : unit
     ; uri : DocumentUri.t
-    ; options : DeleteFileOptions.t option [@yojson.option]
+    ; options : DeleteFileOptions.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -31,8 +29,8 @@ end
 
 module RenameFileOptions = struct
   type t =
-    { overwrite : bool option [@yojson.option]
-    ; ignoreIfExists : bool option [@yojson.option]
+    { overwrite : bool
+    ; ignoreIfExists : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -44,7 +42,7 @@ module RenameFile = struct
     { kind : unit
     ; oldUri : DocumentUri.t
     ; newUri : DocumentUri.t
-    ; options : RenameFileOptions.t option [@yojson.option]
+    ; options : RenameFileOptions.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -53,8 +51,8 @@ end
 
 module CreateFileOptions = struct
   type t =
-    { overwrite : bool option [@yojson.option]
-    ; ignoreIfExists : bool option [@yojson.option]
+    { overwrite : bool
+    ; ignoreIfExists : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -65,7 +63,7 @@ module CreateFile = struct
   type t =
     { kind : unit
     ; uri : DocumentUri.t
-    ; options : CreateFileOptions.t option [@yojson.option]
+    ; options : CreateFileOptions.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -110,6 +108,8 @@ module TextDocumentIdentifier = struct
 end
 
 module VersionedTextDocumentIdentifier = struct
+  type version = unit
+
   type t = { version : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -126,19 +126,25 @@ module TextDocumentEdit = struct
 end
 
 module WorkspaceEdit = struct
-  type t =
-    { changes : changes option [@yojson.option]
-    ; documentChanges : unit option [@yojson.option]
-    }
+  type documentChanges = unit
 
-  and changes = { uri : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type changes = { uri : unit }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
+  type t =
+    { changes : changes
+    ; documentChanges : unit
+    }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module ApplyWorkspaceEditParams = struct
   type t =
-    { label : string option [@yojson.option]
+    { label : string
     ; edit : WorkspaceEdit.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -149,7 +155,7 @@ end
 module ApplyWorkspaceEditResponse = struct
   type t =
     { applied : bool
-    ; failureReason : string option [@yojson.option]
+    ; failureReason : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -157,13 +163,15 @@ module ApplyWorkspaceEditResponse = struct
 end
 
 module CancelParams = struct
+  type id = unit
+
   type t = { id : unit } [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module SelectionRangeClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -171,9 +179,9 @@ end
 
 module FoldingRangeClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; rangeLimit : int option [@yojson.option]
-    ; lineFoldingOnly : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; rangeLimit : int
+    ; lineFoldingOnly : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -184,27 +192,19 @@ module DiagnosticTag = struct
   type t =
     | Unnecessary
     | Deprecated
-
-  let to_yojson t =
-    match t with
-    | Unnecessary -> `Int 1
-    | Deprecated -> `Int 2
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Unnecessary
-    | `Int 2 -> Deprecated
-    | _ -> assert false
 end
 
 module PublishDiagnosticsClientCapabilities = struct
-  type t =
-    { relatedInformation : bool option [@yojson.option]
-    ; tagSupport : tagSupport option [@yojson.option]
-    ; versionSupport : bool option [@yojson.option]
-    }
+  type tagSupport = { valueSet : DiagnosticTag.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
-  and tagSupport = { valueSet : DiagnosticTag.t list }
+  [@@@end]
+
+  type t =
+    { relatedInformation : bool
+    ; tagSupport : tagSupport
+    ; versionSupport : bool
+    }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -212,8 +212,8 @@ end
 
 module RenameClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; prepareSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; prepareSupport : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -221,28 +221,28 @@ module RenameClientCapabilities = struct
 end
 
 module DocumentOnTypeFormattingClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DocumentRangeFormattingClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DocumentFormattingClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DocumentColorClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -250,8 +250,8 @@ end
 
 module DocumentLinkClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; tooltipSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; tooltipSupport : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -259,7 +259,7 @@ module DocumentLinkClientCapabilities = struct
 end
 
 module CodeLensClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -275,42 +275,24 @@ module CodeActionKind = struct
     | RefactorRewrite
     | Source
     | SourceOrganizeImports
-
-  let to_yojson t =
-    match t with
-    | Empty -> `String ""
-    | QuickFix -> `String "quickfix"
-    | Refactor -> `String "refactor"
-    | RefactorExtract -> `String "refactor.extract"
-    | RefactorInline -> `String "refactor.inline"
-    | RefactorRewrite -> `String "refactor.rewrite"
-    | Source -> `String "source"
-    | SourceOrganizeImports -> `String "source.organizeImports"
-
-  let of_yojson json =
-    match json with
-    | `String "" -> Empty
-    | `String "quickfix" -> QuickFix
-    | `String "refactor" -> Refactor
-    | `String "refactor.extract" -> RefactorExtract
-    | `String "refactor.inline" -> RefactorInline
-    | `String "refactor.rewrite" -> RefactorRewrite
-    | `String "source" -> Source
-    | `String "source.organizeImports" -> SourceOrganizeImports
-    | _ -> assert false
 end
 
 module CodeActionClientCapabilities = struct
+  type codeActionKind = { valueSet : CodeActionKind.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
+  type codeActionLiteralSupport = { codeActionKind : codeActionKind }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; codeActionLiteralSupport : codeActionLiteralSupport option
-          [@yojson.option]
-    ; isPreferredSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; codeActionLiteralSupport : codeActionLiteralSupport
+    ; isPreferredSupport : bool
     }
-
-  and codeActionLiteralSupport = { codeActionKind : codeActionKind }
-
-  and codeActionKind = { valueSet : CodeActionKind.t list }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -344,89 +326,33 @@ module SymbolKind = struct
     | Event
     | Operator
     | TypeParameter
-
-  let to_yojson t =
-    match t with
-    | File -> `Int 1
-    | Module -> `Int 2
-    | Namespace -> `Int 3
-    | Package -> `Int 4
-    | Class -> `Int 5
-    | Method -> `Int 6
-    | Property -> `Int 7
-    | Field -> `Int 8
-    | Constructor -> `Int 9
-    | Enum -> `Int 10
-    | Interface -> `Int 11
-    | Function -> `Int 12
-    | Variable -> `Int 13
-    | Constant -> `Int 14
-    | String -> `Int 15
-    | Number -> `Int 16
-    | Boolean -> `Int 17
-    | Array -> `Int 18
-    | Object -> `Int 19
-    | Key -> `Int 20
-    | Null -> `Int 21
-    | EnumMember -> `Int 22
-    | Struct -> `Int 23
-    | Event -> `Int 24
-    | Operator -> `Int 25
-    | TypeParameter -> `Int 26
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> File
-    | `Int 2 -> Module
-    | `Int 3 -> Namespace
-    | `Int 4 -> Package
-    | `Int 5 -> Class
-    | `Int 6 -> Method
-    | `Int 7 -> Property
-    | `Int 8 -> Field
-    | `Int 9 -> Constructor
-    | `Int 10 -> Enum
-    | `Int 11 -> Interface
-    | `Int 12 -> Function
-    | `Int 13 -> Variable
-    | `Int 14 -> Constant
-    | `Int 15 -> String
-    | `Int 16 -> Number
-    | `Int 17 -> Boolean
-    | `Int 18 -> Array
-    | `Int 19 -> Object
-    | `Int 20 -> Key
-    | `Int 21 -> Null
-    | `Int 22 -> EnumMember
-    | `Int 23 -> Struct
-    | `Int 24 -> Event
-    | `Int 25 -> Operator
-    | `Int 26 -> TypeParameter
-    | _ -> assert false
 end
 
 module DocumentSymbolClientCapabilities = struct
-  type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; symbolKind : symbolKind option [@yojson.option]
-    ; hierarchicalDocumentSymbolSupport : bool option [@yojson.option]
-    }
+  type symbolKind = { valueSet : SymbolKind.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
-  and symbolKind = { valueSet : SymbolKind.t list option [@yojson.option] }
+  [@@@end]
+
+  type t =
+    { dynamicRegistration : bool
+    ; symbolKind : symbolKind
+    ; hierarchicalDocumentSymbolSupport : bool
+    }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DocumentHighlightClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module ReferenceClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -434,8 +360,8 @@ end
 
 module ImplementationClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; linkSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; linkSupport : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -444,8 +370,8 @@ end
 
 module TypeDefinitionClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; linkSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; linkSupport : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -454,8 +380,8 @@ end
 
 module DefinitionClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; linkSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; linkSupport : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -464,8 +390,8 @@ end
 
 module DeclarationClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; linkSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; linkSupport : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -476,33 +402,27 @@ module MarkupKind = struct
   type t =
     | PlainText
     | Markdown
-
-  let to_yojson t =
-    match t with
-    | PlainText -> `String "plaintext"
-    | Markdown -> `String "markdown"
-
-  let of_yojson json =
-    match json with
-    | `String "plaintext" -> PlainText
-    | `String "markdown" -> Markdown
-    | _ -> assert false
 end
 
 module SignatureHelpClientCapabilities = struct
+  type parameterInformation = { labelOffsetSupport : bool }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
+  type signatureInformation =
+    { documentationFormat : MarkupKind.t list
+    ; parameterInformation : parameterInformation
+    }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; signatureInformation : signatureInformation option [@yojson.option]
-    ; contextSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; signatureInformation : signatureInformation
+    ; contextSupport : bool
     }
-
-  and signatureInformation =
-    { documentationFormat : MarkupKind.t list option [@yojson.option]
-    ; parameterInformation : parameterInformation option [@yojson.option]
-    }
-
-  and parameterInformation =
-    { labelOffsetSupport : bool option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -510,8 +430,8 @@ end
 
 module HoverClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; contentFormat : MarkupKind.t list option [@yojson.option]
+    { dynamicRegistration : bool
+    ; contentFormat : MarkupKind.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -545,99 +465,41 @@ module CompletionItemKind = struct
     | Event
     | Operator
     | TypeParameter
-
-  let to_yojson t =
-    match t with
-    | Text -> `Int 1
-    | Method -> `Int 2
-    | Function -> `Int 3
-    | Constructor -> `Int 4
-    | Field -> `Int 5
-    | Variable -> `Int 6
-    | Class -> `Int 7
-    | Interface -> `Int 8
-    | Module -> `Int 9
-    | Property -> `Int 10
-    | Unit -> `Int 11
-    | Value -> `Int 12
-    | Enum -> `Int 13
-    | Keyword -> `Int 14
-    | Snippet -> `Int 15
-    | Color -> `Int 16
-    | File -> `Int 17
-    | Reference -> `Int 18
-    | Folder -> `Int 19
-    | EnumMember -> `Int 20
-    | Constant -> `Int 21
-    | Struct -> `Int 22
-    | Event -> `Int 23
-    | Operator -> `Int 24
-    | TypeParameter -> `Int 25
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Text
-    | `Int 2 -> Method
-    | `Int 3 -> Function
-    | `Int 4 -> Constructor
-    | `Int 5 -> Field
-    | `Int 6 -> Variable
-    | `Int 7 -> Class
-    | `Int 8 -> Interface
-    | `Int 9 -> Module
-    | `Int 10 -> Property
-    | `Int 11 -> Unit
-    | `Int 12 -> Value
-    | `Int 13 -> Enum
-    | `Int 14 -> Keyword
-    | `Int 15 -> Snippet
-    | `Int 16 -> Color
-    | `Int 17 -> File
-    | `Int 18 -> Reference
-    | `Int 19 -> Folder
-    | `Int 20 -> EnumMember
-    | `Int 21 -> Constant
-    | `Int 22 -> Struct
-    | `Int 23 -> Event
-    | `Int 24 -> Operator
-    | `Int 25 -> TypeParameter
-    | _ -> assert false
 end
 
 module CompletionItemTag = struct
   type t = Deprecated
-
-  let to_yojson t =
-    match t with
-    | Deprecated -> `Int 1
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Deprecated
-    | _ -> assert false
 end
 
 module CompletionClientCapabilities = struct
+  type completionItemKind = { valueSet : CompletionItemKind.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
+  type tagSupport = { valueSet : CompletionItemTag.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
+  type completionItem =
+    { snippetSupport : bool
+    ; commitCharactersSupport : bool
+    ; documentationFormat : MarkupKind.t list
+    ; deprecatedSupport : bool
+    ; preselectSupport : bool
+    ; tagSupport : tagSupport
+    }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; completionItem : completionItem option [@yojson.option]
-    ; completionItemKind : completionItemKind option [@yojson.option]
-    ; contextSupport : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; completionItem : completionItem
+    ; completionItemKind : completionItemKind
+    ; contextSupport : bool
     }
-
-  and completionItem =
-    { snippetSupport : bool option [@yojson.option]
-    ; commitCharactersSupport : bool option [@yojson.option]
-    ; documentationFormat : MarkupKind.t list option [@yojson.option]
-    ; deprecatedSupport : bool option [@yojson.option]
-    ; preselectSupport : bool option [@yojson.option]
-    ; tagSupport : tagSupport option [@yojson.option]
-    }
-
-  and tagSupport = { valueSet : CompletionItemTag.t list }
-
-  and completionItemKind =
-    { valueSet : CompletionItemKind.t list option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -645,10 +507,10 @@ end
 
 module TextDocumentSyncClientCapabilities = struct
   type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; willSave : bool option [@yojson.option]
-    ; willSaveWaitUntil : bool option [@yojson.option]
-    ; didSave : bool option [@yojson.option]
+    { dynamicRegistration : bool
+    ; willSave : bool
+    ; willSaveWaitUntil : bool
+    ; didSave : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -657,38 +519,28 @@ end
 
 module TextDocumentClientCapabilities = struct
   type t =
-    { synchronization : TextDocumentSyncClientCapabilities.t option
-          [@yojson.option]
-    ; completion : CompletionClientCapabilities.t option [@yojson.option]
-    ; hover : HoverClientCapabilities.t option [@yojson.option]
-    ; signatureHelp : SignatureHelpClientCapabilities.t option [@yojson.option]
-    ; declaration : DeclarationClientCapabilities.t option [@yojson.option]
-    ; definition : DefinitionClientCapabilities.t option [@yojson.option]
-    ; typeDefinition : TypeDefinitionClientCapabilities.t option
-          [@yojson.option]
-    ; implementation : ImplementationClientCapabilities.t option
-          [@yojson.option]
-    ; references : ReferenceClientCapabilities.t option [@yojson.option]
-    ; documentHighlight : DocumentHighlightClientCapabilities.t option
-          [@yojson.option]
-    ; documentSymbol : DocumentSymbolClientCapabilities.t option
-          [@yojson.option]
-    ; codeAction : CodeActionClientCapabilities.t option [@yojson.option]
-    ; codeLens : CodeLensClientCapabilities.t option [@yojson.option]
-    ; documentLink : DocumentLinkClientCapabilities.t option [@yojson.option]
-    ; colorProvider : DocumentColorClientCapabilities.t option [@yojson.option]
-    ; formatting : DocumentFormattingClientCapabilities.t option
-          [@yojson.option]
-    ; rangeFormatting : DocumentRangeFormattingClientCapabilities.t option
-          [@yojson.option]
-    ; onTypeFormatting : DocumentOnTypeFormattingClientCapabilities.t option
-          [@yojson.option]
-    ; rename : RenameClientCapabilities.t option [@yojson.option]
-    ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t option
-          [@yojson.option]
-    ; foldingRange : FoldingRangeClientCapabilities.t option [@yojson.option]
-    ; selectionRange : SelectionRangeClientCapabilities.t option
-          [@yojson.option]
+    { synchronization : TextDocumentSyncClientCapabilities.t
+    ; completion : CompletionClientCapabilities.t
+    ; hover : HoverClientCapabilities.t
+    ; signatureHelp : SignatureHelpClientCapabilities.t
+    ; declaration : DeclarationClientCapabilities.t
+    ; definition : DefinitionClientCapabilities.t
+    ; typeDefinition : TypeDefinitionClientCapabilities.t
+    ; implementation : ImplementationClientCapabilities.t
+    ; references : ReferenceClientCapabilities.t
+    ; documentHighlight : DocumentHighlightClientCapabilities.t
+    ; documentSymbol : DocumentSymbolClientCapabilities.t
+    ; codeAction : CodeActionClientCapabilities.t
+    ; codeLens : CodeLensClientCapabilities.t
+    ; documentLink : DocumentLinkClientCapabilities.t
+    ; colorProvider : DocumentColorClientCapabilities.t
+    ; formatting : DocumentFormattingClientCapabilities.t
+    ; rangeFormatting : DocumentRangeFormattingClientCapabilities.t
+    ; onTypeFormatting : DocumentOnTypeFormattingClientCapabilities.t
+    ; rename : RenameClientCapabilities.t
+    ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t
+    ; foldingRange : FoldingRangeClientCapabilities.t
+    ; selectionRange : SelectionRangeClientCapabilities.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -696,33 +548,36 @@ module TextDocumentClientCapabilities = struct
 end
 
 module ExecuteCommandClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module WorkspaceSymbolClientCapabilities = struct
-  type t =
-    { dynamicRegistration : bool option [@yojson.option]
-    ; symbolKind : symbolKind option [@yojson.option]
-    }
+  type symbolKind = { valueSet : SymbolKind.t list }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
-  and symbolKind = { valueSet : SymbolKind.t list option [@yojson.option] }
+  [@@@end]
+
+  type t =
+    { dynamicRegistration : bool
+    ; symbolKind : symbolKind
+    }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidChangeWatchedFilesClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidChangeConfigurationClientCapabilities = struct
-  type t = { dynamicRegistration : bool option [@yojson.option] }
+  type t = { dynamicRegistration : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -734,21 +589,6 @@ module FailureHandlingKind = struct
     | Transactional
     | TextOnlyTransactional
     | Undo
-
-  let to_yojson t =
-    match t with
-    | Abort -> `String "abort"
-    | Transactional -> `String "transactional"
-    | TextOnlyTransactional -> `String "textOnlyTransactional"
-    | Undo -> `String "undo"
-
-  let of_yojson json =
-    match json with
-    | `String "abort" -> Abort
-    | `String "transactional" -> Transactional
-    | `String "textOnlyTransactional" -> TextOnlyTransactional
-    | `String "undo" -> Undo
-    | _ -> assert false
 end
 
 module ResourceOperationKind = struct
@@ -756,26 +596,13 @@ module ResourceOperationKind = struct
     | Create
     | Rename
     | Delete
-
-  let to_yojson t =
-    match t with
-    | Create -> `String "create"
-    | Rename -> `String "rename"
-    | Delete -> `String "delete"
-
-  let of_yojson json =
-    match json with
-    | `String "create" -> Create
-    | `String "rename" -> Rename
-    | `String "delete" -> Delete
-    | _ -> assert false
 end
 
 module WorkspaceEditClientCapabilities = struct
   type t =
-    { documentChanges : bool option [@yojson.option]
-    ; resourceOperations : ResourceOperationKind.t list option [@yojson.option]
-    ; failureHandling : FailureHandlingKind.t option [@yojson.option]
+    { documentChanges : bool
+    ; resourceOperations : ResourceOperationKind.t list
+    ; failureHandling : FailureHandlingKind.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -783,28 +610,31 @@ module WorkspaceEditClientCapabilities = struct
 end
 
 module ClientCapabilities = struct
+  type window = { workDoneProgress : bool }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
+  type workspace =
+    { applyEdit : bool
+    ; workspaceEdit : WorkspaceEditClientCapabilities.t
+    ; didChangeConfiguration : DidChangeConfigurationClientCapabilities.t
+    ; didChangeWatchedFiles : DidChangeWatchedFilesClientCapabilities.t
+    ; symbol : WorkspaceSymbolClientCapabilities.t
+    ; executeCommand : ExecuteCommandClientCapabilities.t
+    ; workspaceFolders : bool
+    ; configuration : bool
+    }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
   type t =
-    { workspace : workspace option [@yojson.option]
-    ; textDocument : TextDocumentClientCapabilities.t option [@yojson.option]
-    ; window : window option [@yojson.option]
-    ; experimental : Json.t option [@yojson.option]
+    { workspace : workspace
+    ; textDocument : TextDocumentClientCapabilities.t
+    ; window : window
+    ; experimental : Json.t
     }
-
-  and workspace =
-    { applyEdit : bool option [@yojson.option]
-    ; workspaceEdit : WorkspaceEditClientCapabilities.t option [@yojson.option]
-    ; didChangeConfiguration : DidChangeConfigurationClientCapabilities.t option
-          [@yojson.option]
-    ; didChangeWatchedFiles : DidChangeWatchedFilesClientCapabilities.t option
-          [@yojson.option]
-    ; symbol : WorkspaceSymbolClientCapabilities.t option [@yojson.option]
-    ; executeCommand : ExecuteCommandClientCapabilities.t option
-          [@yojson.option]
-    ; workspaceFolders : bool option [@yojson.option]
-    ; configuration : bool option [@yojson.option]
-    }
-
-  and window = { workDoneProgress : bool option [@yojson.option] }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -814,7 +644,7 @@ module Command = struct
   type t =
     { title : string
     ; command : string
-    ; arguments : Json.t list option [@yojson.option]
+    ; arguments : Json.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -847,33 +677,19 @@ module DiagnosticSeverity = struct
     | Warning
     | Information
     | Hint
-
-  let to_yojson t =
-    match t with
-    | Error -> `Int 1
-    | Warning -> `Int 2
-    | Information -> `Int 3
-    | Hint -> `Int 4
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Error
-    | `Int 2 -> Warning
-    | `Int 3 -> Information
-    | `Int 4 -> Hint
-    | _ -> assert false
 end
 
 module Diagnostic = struct
+  type code = unit
+
   type t =
     { range : Range.t
-    ; severity : DiagnosticSeverity.t option [@yojson.option]
-    ; code : unit option [@yojson.option]
-    ; source : string option [@yojson.option]
+    ; severity : DiagnosticSeverity.t
+    ; code : unit
+    ; source : string
     ; message : string
-    ; tags : DiagnosticTag.t list option [@yojson.option]
-    ; relatedInformation : DiagnosticRelatedInformation.t list option
-          [@yojson.option]
+    ; tags : DiagnosticTag.t list
+    ; relatedInformation : DiagnosticRelatedInformation.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -883,11 +699,11 @@ end
 module CodeAction = struct
   type t =
     { title : string
-    ; kind : CodeActionKind.t option [@yojson.option]
-    ; diagnostics : Diagnostic.t list option [@yojson.option]
-    ; isPreferred : bool option [@yojson.option]
-    ; edit : WorkspaceEdit.t option [@yojson.option]
-    ; command : Command.t option [@yojson.option]
+    ; kind : CodeActionKind.t
+    ; diagnostics : Diagnostic.t list
+    ; isPreferred : bool
+    ; edit : WorkspaceEdit.t
+    ; command : Command.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -897,7 +713,7 @@ end
 module CodeActionContext = struct
   type t =
     { diagnostics : Diagnostic.t list
-    ; only : CodeActionKind.t list option [@yojson.option]
+    ; only : CodeActionKind.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -905,34 +721,32 @@ module CodeActionContext = struct
 end
 
 module WorkDoneProgressOptions = struct
-  type t = { workDoneProgress : bool option [@yojson.option] }
+  type t = { workDoneProgress : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module CodeActionOptions = struct
-  type t = { codeActionKinds : CodeActionKind.t list option [@yojson.option] }
+  type t = { codeActionKinds : CodeActionKind.t list }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module ProgressToken = struct
-  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
+  type t = unit
 end
 
 module PartialResultParams = struct
-  type t = { partialResultToken : ProgressToken.t option [@yojson.option] }
+  type t = { partialResultToken : ProgressToken.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module WorkDoneProgressParams = struct
-  type t = { workDoneToken : ProgressToken.t option [@yojson.option] }
+  type t = { workDoneToken : ProgressToken.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -951,9 +765,9 @@ end
 
 module DocumentFilter = struct
   type t =
-    { language : string option [@yojson.option]
-    ; scheme : string option [@yojson.option]
-    ; pattern : string option [@yojson.option]
+    { language : string
+    ; scheme : string
+    ; pattern : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -962,23 +776,24 @@ end
 
 module DocumentSelector = struct
   type t = DocumentFilter.t list
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
 end
 
 module TextDocumentRegistrationOptions = struct
+  type documentSelector = unit
+
   type t = { documentSelector : unit }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module CodeActionRegistrationOptions = struct end
+
 module CodeLens = struct
   type t =
     { range : Range.t
-    ; command : Command.t option [@yojson.option]
-    ; data : Json.t option [@yojson.option]
+    ; command : Command.t
+    ; data : Json.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -986,7 +801,7 @@ module CodeLens = struct
 end
 
 module CodeLensOptions = struct
-  type t = { resolveProvider : bool option [@yojson.option] }
+  type t = { resolveProvider : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -998,6 +813,8 @@ module CodeLensParams = struct
 
   [@@@end]
 end
+
+module CodeLensRegistrationOptions = struct end
 
 module Color = struct
   type t =
@@ -1024,8 +841,8 @@ end
 module ColorPresentation = struct
   type t =
     { label : string
-    ; textEdit : TextEdit.t option [@yojson.option]
-    ; additionalTextEdits : TextEdit.t list option [@yojson.option]
+    ; textEdit : TextEdit.t
+    ; additionalTextEdits : TextEdit.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1048,25 +865,12 @@ module CompletionTriggerKind = struct
     | Invoked
     | TriggerCharacter
     | TriggerForIncompleteCompletions
-
-  let to_yojson t =
-    match t with
-    | Invoked -> `Int 1
-    | TriggerCharacter -> `Int 2
-    | TriggerForIncompleteCompletions -> `Int 3
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Invoked
-    | `Int 2 -> TriggerCharacter
-    | `Int 3 -> TriggerForIncompleteCompletions
-    | _ -> assert false
 end
 
 module CompletionContext = struct
   type t =
     { triggerKind : CompletionTriggerKind.t
-    ; triggerCharacter : string option [@yojson.option]
+    ; triggerCharacter : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1077,17 +881,6 @@ module InsertTextFormat = struct
   type t =
     | PlainText
     | Snippet
-
-  let to_yojson t =
-    match t with
-    | PlainText -> `Int 1
-    | Snippet -> `Int 2
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> PlainText
-    | `Int 2 -> Snippet
-    | _ -> assert false
 end
 
 module MarkupContent = struct
@@ -1101,23 +894,25 @@ module MarkupContent = struct
 end
 
 module CompletionItem = struct
+  type documentation = unit
+
   type t =
     { label : string
-    ; kind : int option [@yojson.option]
-    ; tags : CompletionItemTag.t list option [@yojson.option]
-    ; detail : string option [@yojson.option]
-    ; documentation : unit option [@yojson.option]
-    ; deprecated : bool option [@yojson.option]
-    ; preselect : bool option [@yojson.option]
-    ; sortText : string option [@yojson.option]
-    ; filterText : string option [@yojson.option]
-    ; insertText : string option [@yojson.option]
-    ; insertTextFormat : InsertTextFormat.t option [@yojson.option]
-    ; textEdit : TextEdit.t option [@yojson.option]
-    ; additionalTextEdits : TextEdit.t list option [@yojson.option]
-    ; commitCharacters : string list option [@yojson.option]
-    ; command : Command.t option [@yojson.option]
-    ; data : Json.t option [@yojson.option]
+    ; kind : int
+    ; tags : CompletionItemTag.t list
+    ; detail : string
+    ; documentation : unit
+    ; deprecated : bool
+    ; preselect : bool
+    ; sortText : string
+    ; filterText : string
+    ; insertText : string
+    ; insertTextFormat : InsertTextFormat.t
+    ; textEdit : TextEdit.t
+    ; additionalTextEdits : TextEdit.t list
+    ; commitCharacters : string list
+    ; command : Command.t
+    ; data : Json.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1136,9 +931,9 @@ end
 
 module CompletionOptions = struct
   type t =
-    { triggerCharacters : string list option [@yojson.option]
-    ; allCommitCharacters : string list option [@yojson.option]
-    ; resolveProvider : bool option [@yojson.option]
+    { triggerCharacters : string list
+    ; allCommitCharacters : string list
+    ; resolveProvider : bool
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1156,16 +951,18 @@ module TextDocumentPositionParams = struct
 end
 
 module CompletionParams = struct
-  type t = { context : CompletionContext.t option [@yojson.option] }
+  type t = { context : CompletionContext.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module CompletionRegistrationOptions = struct end
+
 module ConfigurationItem = struct
   type t =
-    { scopeUri : DocumentUri.t option [@yojson.option]
-    ; section : string option [@yojson.option]
+    { scopeUri : DocumentUri.t
+    ; section : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1179,12 +976,23 @@ module ConfigurationParams = struct
   [@@@end]
 end
 
+module DeclarationOptions = struct end
+
+module DeclarationParams = struct end
+
 module StaticRegistrationOptions = struct
-  type t = { id : string option [@yojson.option] }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { id : string } [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
+
+module DeclarationRegistrationOptions = struct end
+
+module DefinitionOptions = struct end
+
+module DefinitionParams = struct end
+
+module DefinitionRegistrationOptions = struct end
 
 module DidChangeConfigurationParams = struct
   type t = { settings : Json.t }
@@ -1194,9 +1002,7 @@ module DidChangeConfigurationParams = struct
 end
 
 module TextDocumentContentChangeEvent = struct
-  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
+  type t = unit
 end
 
 module DidChangeTextDocumentParams = struct
@@ -1229,7 +1035,7 @@ end
 module FileSystemWatcher = struct
   type t =
     { globPattern : string
-    ; kind : int option [@yojson.option]
+    ; kind : int
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1299,12 +1105,14 @@ end
 module DidSaveTextDocumentParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
-    ; text : string option [@yojson.option]
+    ; text : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
+
+module DocumentColorOptions = struct end
 
 module DocumentColorParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
@@ -1313,13 +1121,17 @@ module DocumentColorParams = struct
   [@@@end]
 end
 
+module DocumentColorRegistrationOptions = struct end
+
+module DocumentFormattingOptions = struct end
+
 module FormattingOptions = struct
   type t =
     { tabSize : int
     ; insertSpaces : bool
-    ; trimTrailingWhitespace : bool option [@yojson.option]
-    ; insertFinalNewline : bool option [@yojson.option]
-    ; trimFinalNewlines : bool option [@yojson.option]
+    ; trimTrailingWhitespace : bool
+    ; insertFinalNewline : bool
+    ; trimFinalNewlines : bool
     ; key : unit
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -1337,10 +1149,12 @@ module DocumentFormattingParams = struct
   [@@@end]
 end
 
+module DocumentFormattingRegistrationOptions = struct end
+
 module DocumentHighlight = struct
   type t =
     { range : Range.t
-    ; kind : int option [@yojson.option]
+    ; kind : int
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1352,27 +1166,20 @@ module DocumentHighlightKind = struct
     | Text
     | Read
     | Write
-
-  let to_yojson t =
-    match t with
-    | Text -> `Int 1
-    | Read -> `Int 2
-    | Write -> `Int 3
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Text
-    | `Int 2 -> Read
-    | `Int 3 -> Write
-    | _ -> assert false
 end
+
+module DocumentHighlightOptions = struct end
+
+module DocumentHighlightParams = struct end
+
+module DocumentHighlightRegistrationOptions = struct end
 
 module DocumentLink = struct
   type t =
     { range : Range.t
-    ; target : DocumentUri.t option [@yojson.option]
-    ; tooltip : string option [@yojson.option]
-    ; data : Json.t option [@yojson.option]
+    ; target : DocumentUri.t
+    ; tooltip : string
+    ; data : Json.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1380,7 +1187,7 @@ module DocumentLink = struct
 end
 
 module DocumentLinkOptions = struct
-  type t = { resolveProvider : bool option [@yojson.option] }
+  type t = { resolveProvider : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1393,10 +1200,12 @@ module DocumentLinkParams = struct
   [@@@end]
 end
 
+module DocumentLinkRegistrationOptions = struct end
+
 module DocumentOnTypeFormattingOptions = struct
   type t =
     { firstTriggerCharacter : string
-    ; moreTriggerCharacter : string list option [@yojson.option]
+    ; moreTriggerCharacter : string list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1413,6 +1222,10 @@ module DocumentOnTypeFormattingParams = struct
   [@@@end]
 end
 
+module DocumentOnTypeFormattingRegistrationOptions = struct end
+
+module DocumentRangeFormattingOptions = struct end
+
 module DocumentRangeFormattingParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
@@ -1424,20 +1237,24 @@ module DocumentRangeFormattingParams = struct
   [@@@end]
 end
 
+module DocumentRangeFormattingRegistrationOptions = struct end
+
 module DocumentSymbol = struct
   type t =
     { name : string
-    ; detail : string option [@yojson.option]
+    ; detail : string
     ; kind : SymbolKind.t
-    ; deprecated : bool option [@yojson.option]
+    ; deprecated : bool
     ; range : Range.t
     ; selectionRange : Range.t
-    ; children : t list option [@yojson.option]
+    ; children : t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
+
+module DocumentSymbolOptions = struct end
 
 module DocumentSymbolParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
@@ -1445,6 +1262,8 @@ module DocumentSymbolParams = struct
 
   [@@@end]
 end
+
+module DocumentSymbolRegistrationOptions = struct end
 
 module ErrorCodes = struct
   type t =
@@ -1459,35 +1278,6 @@ module ErrorCodes = struct
     | UnknownErrorCode
     | RequestCancelled
     | ContentModified
-
-  let to_yojson t =
-    match t with
-    | ParseError -> `Int (-32700)
-    | InvalidRequest -> `Int (-32600)
-    | MethodNotFound -> `Int (-32601)
-    | InvalidParams -> `Int (-32602)
-    | InternalError -> `Int (-32603)
-    | ServerErrorStart -> `Int (-32099)
-    | ServerErrorEnd -> `Int (-32000)
-    | ServerNotInitialized -> `Int (-32002)
-    | UnknownErrorCode -> `Int (-32001)
-    | RequestCancelled -> `Int (-32800)
-    | ContentModified -> `Int (-32801)
-
-  let of_yojson json =
-    match json with
-    | `Int -32700 -> ParseError
-    | `Int -32600 -> InvalidRequest
-    | `Int -32601 -> MethodNotFound
-    | `Int -32602 -> InvalidParams
-    | `Int -32603 -> InternalError
-    | `Int -32099 -> ServerErrorStart
-    | `Int -32000 -> ServerErrorEnd
-    | `Int -32002 -> ServerNotInitialized
-    | `Int -32001 -> UnknownErrorCode
-    | `Int -32800 -> RequestCancelled
-    | `Int -32801 -> ContentModified
-    | _ -> assert false
 end
 
 module ExecuteCommandOptions = struct
@@ -1500,40 +1290,29 @@ end
 module ExecuteCommandParams = struct
   type t =
     { command : string
-    ; arguments : Json.t list option [@yojson.option]
+    ; arguments : Json.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module ExecuteCommandRegistrationOptions = struct end
+
 module FileChangeType = struct
   type t =
     | Created
     | Changed
     | Deleted
-
-  let to_yojson t =
-    match t with
-    | Created -> `Int 1
-    | Changed -> `Int 2
-    | Deleted -> `Int 3
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Created
-    | `Int 2 -> Changed
-    | `Int 3 -> Deleted
-    | _ -> assert false
 end
 
 module FoldingRange = struct
   type t =
     { startLine : int
-    ; startCharacter : int option [@yojson.option]
+    ; startCharacter : int
     ; endLine : int
-    ; endCharacter : int option [@yojson.option]
-    ; kind : string option [@yojson.option]
+    ; endCharacter : int
+    ; kind : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1545,20 +1324,9 @@ module FoldingRangeKind = struct
     | Comment
     | Imports
     | Region
-
-  let to_yojson t =
-    match t with
-    | Comment -> `String "comment"
-    | Imports -> `String "imports"
-    | Region -> `String "region"
-
-  let of_yojson json =
-    match json with
-    | `String "comment" -> Comment
-    | `String "imports" -> Imports
-    | `String "region" -> Region
-    | _ -> assert false
 end
+
+module FoldingRangeOptions = struct end
 
 module FoldingRangeParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
@@ -1567,50 +1335,68 @@ module FoldingRangeParams = struct
   [@@@end]
 end
 
-module MarkedString = struct
-  type t = unit [@@deriving_inline] [@@yojson.allow_extra_fields]
+module FoldingRangeRegistrationOptions = struct end
 
-  [@@@end]
+module MarkedString = struct
+  type t = unit
 end
 
 module Hover = struct
+  type contents = unit
+
   type t =
     { contents : unit
-    ; range : Range.t option [@yojson.option]
+    ; range : Range.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module HoverOptions = struct end
+
+module HoverParams = struct end
+
+module HoverRegistrationOptions = struct end
+
+module ImplementationOptions = struct end
+
+module ImplementationParams = struct end
+
+module ImplementationRegistrationOptions = struct end
+
 module InitializeError = struct
   type t = UnknownProtocolVersion
-
-  let to_yojson t =
-    match t with
-    | UnknownProtocolVersion -> `Int 1
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> UnknownProtocolVersion
-    | _ -> assert false
 end
 
 module InitializeParams = struct
+  type workspaceFolders = unit
+
+  type trace = unit
+
+  type rootUri = unit
+
+  type rootPath = unit
+
+  type clientInfo =
+    { name : string
+    ; version : string
+    }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
+  type processId = unit
+
   type t =
     { processId : unit
-    ; clientInfo : clientInfo option [@yojson.option]
-    ; rootPath : unit option [@yojson.option]
+    ; clientInfo : clientInfo
+    ; rootPath : unit
     ; rootUri : unit
-    ; initializationOptions : Json.t option [@yojson.option]
+    ; initializationOptions : Json.t
     ; capabilities : ClientCapabilities.t
-    ; trace : unit option [@yojson.option]
-    ; workspaceFolders : unit option [@yojson.option]
-    }
-
-  and clientInfo =
-    { name : string
-    ; version : string option [@yojson.option]
+    ; trace : unit
+    ; workspaceFolders : unit
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1618,26 +1404,38 @@ module InitializeParams = struct
 end
 
 module WorkspaceFoldersServerCapabilities = struct
+  type changeNotifications = unit
+
   type t =
-    { supported : bool option [@yojson.option]
-    ; changeNotifications : unit option [@yojson.option]
+    { supported : bool
+    ; changeNotifications : unit
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module SelectionRangeOptions = struct end
+
+module SelectionRangeRegistrationOptions = struct end
+
 module RenameOptions = struct
-  type t = { prepareProvider : bool option [@yojson.option] }
+  type t = { prepareProvider : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module ReferenceOptions = struct end
+
+module TypeDefinitionOptions = struct end
+
+module TypeDefinitionRegistrationOptions = struct end
+
 module SignatureHelpOptions = struct
   type t =
-    { triggerCharacters : string list option [@yojson.option]
-    ; retriggerCharacters : string list option [@yojson.option]
+    { triggerCharacters : string list
+    ; retriggerCharacters : string list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1645,7 +1443,7 @@ module SignatureHelpOptions = struct
 end
 
 module SaveOptions = struct
-  type t = { includeText : bool option [@yojson.option] }
+  type t = { includeText : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1653,11 +1451,11 @@ end
 
 module TextDocumentSyncOptions = struct
   type t =
-    { openClose : bool option [@yojson.option]
-    ; change : int option [@yojson.option]
-    ; willSave : bool option [@yojson.option]
-    ; willSaveWaitUntil : bool option [@yojson.option]
-    ; save : SaveOptions.t option [@yojson.option]
+    { openClose : bool
+    ; change : int
+    ; willSave : bool
+    ; willSaveWaitUntil : bool
+    ; save : SaveOptions.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1665,39 +1463,69 @@ module TextDocumentSyncOptions = struct
 end
 
 module ServerCapabilities = struct
-  type t =
-    { textDocumentSync : unit option [@yojson.option]
-    ; completionProvider : CompletionOptions.t option [@yojson.option]
-    ; hoverProvider : unit option [@yojson.option]
-    ; signatureHelpProvider : SignatureHelpOptions.t option [@yojson.option]
-    ; declarationProvider : unit option [@yojson.option]
-    ; definitionProvider : unit option [@yojson.option]
-    ; typeDefinitionProvider : unit option [@yojson.option]
-    ; implementationProvider : unit option [@yojson.option]
-    ; referencesProvider : unit option [@yojson.option]
-    ; documentHighlightProvider : unit option [@yojson.option]
-    ; documentSymbolProvider : unit option [@yojson.option]
-    ; codeActionProvider : unit option [@yojson.option]
-    ; codeLensProvider : CodeLensOptions.t option [@yojson.option]
-    ; documentLinkProvider : DocumentLinkOptions.t option [@yojson.option]
-    ; colorProvider : unit option [@yojson.option]
-    ; documentFormattingProvider : unit option [@yojson.option]
-    ; documentRangeFormattingProvider : unit option [@yojson.option]
-    ; documentOnTypeFormattingProvider :
-        DocumentOnTypeFormattingOptions.t option
-          [@yojson.option]
-    ; renameProvider : unit option [@yojson.option]
-    ; foldingRangeProvider : unit option [@yojson.option]
-    ; executeCommandProvider : ExecuteCommandOptions.t option [@yojson.option]
-    ; selectionRangeProvider : unit option [@yojson.option]
-    ; workspaceSymbolProvider : bool option [@yojson.option]
-    ; workspace : workspace option [@yojson.option]
-    ; experimental : Json.t option [@yojson.option]
-    }
+  type workspace = { workspaceFolders : WorkspaceFoldersServerCapabilities.t }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
 
-  and workspace =
-    { workspaceFolders : WorkspaceFoldersServerCapabilities.t option
-          [@yojson.option]
+  [@@@end]
+
+  type selectionRangeProvider = unit
+
+  type foldingRangeProvider = unit
+
+  type renameProvider = unit
+
+  type documentRangeFormattingProvider = unit
+
+  type documentFormattingProvider = unit
+
+  type colorProvider = unit
+
+  type codeActionProvider = unit
+
+  type documentSymbolProvider = unit
+
+  type documentHighlightProvider = unit
+
+  type referencesProvider = unit
+
+  type implementationProvider = unit
+
+  type typeDefinitionProvider = unit
+
+  type definitionProvider = unit
+
+  type declarationProvider = unit
+
+  type hoverProvider = unit
+
+  type textDocumentSync = unit
+
+  type t =
+    { textDocumentSync : unit
+    ; completionProvider : CompletionOptions.t
+    ; hoverProvider : unit
+    ; signatureHelpProvider : SignatureHelpOptions.t
+    ; declarationProvider : unit
+    ; definitionProvider : unit
+    ; typeDefinitionProvider : unit
+    ; implementationProvider : unit
+    ; referencesProvider : unit
+    ; documentHighlightProvider : unit
+    ; documentSymbolProvider : unit
+    ; codeActionProvider : unit
+    ; codeLensProvider : CodeLensOptions.t
+    ; documentLinkProvider : DocumentLinkOptions.t
+    ; colorProvider : unit
+    ; documentFormattingProvider : unit
+    ; documentRangeFormattingProvider : unit
+    ; documentOnTypeFormattingProvider : DocumentOnTypeFormattingOptions.t
+    ; renameProvider : unit
+    ; foldingRangeProvider : unit
+    ; executeCommandProvider : ExecuteCommandOptions.t
+    ; selectionRangeProvider : unit
+    ; workspaceSymbolProvider : bool
+    ; workspace : workspace
+    ; experimental : Json.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1705,23 +1533,28 @@ module ServerCapabilities = struct
 end
 
 module InitializeResult = struct
+  type serverInfo =
+    { name : string
+    ; version : string
+    }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
+
   type t =
     { capabilities : ServerCapabilities.t
-    ; serverInfo : serverInfo option [@yojson.option]
-    }
-
-  and serverInfo =
-    { name : string
-    ; version : string option [@yojson.option]
+    ; serverInfo : serverInfo
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module InitializedParams = struct end
+
 module LocationLink = struct
   type t =
-    { originSelectionRange : Range.t option [@yojson.option]
+    { originSelectionRange : Range.t
     ; targetUri : DocumentUri.t
     ; targetRange : Range.t
     ; targetSelectionRange : Range.t
@@ -1760,27 +1593,14 @@ module MessageType = struct
     | Warning
     | Info
     | Log
-
-  let to_yojson t =
-    match t with
-    | Error -> `Int 1
-    | Warning -> `Int 2
-    | Info -> `Int 3
-    | Log -> `Int 4
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Error
-    | `Int 2 -> Warning
-    | `Int 3 -> Info
-    | `Int 4 -> Log
-    | _ -> assert false
 end
 
 module NotificationMessage = struct
+  type params = unit
+
   type t =
     { method_ : string [@key "method"]
-    ; params : unit option [@yojson.option]
+    ; params : unit
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1788,14 +1608,20 @@ module NotificationMessage = struct
 end
 
 module ParameterInformation = struct
+  type documentation = unit
+
+  type label = unit
+
   type t =
     { label : unit
-    ; documentation : unit option [@yojson.option]
+    ; documentation : unit
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
+
+module PrepareRenameParams = struct end
 
 module ProgressParams = struct
   type t =
@@ -1810,7 +1636,7 @@ end
 module PublishDiagnosticsParams = struct
   type t =
     { uri : DocumentUri.t
-    ; version : int option [@yojson.option]
+    ; version : int
     ; diagnostics : Diagnostic.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -1832,11 +1658,13 @@ module ReferenceParams = struct
   [@@@end]
 end
 
+module ReferenceRegistrationOptions = struct end
+
 module Registration = struct
   type t =
     { id : string
     ; method_ : string [@key "method"]
-    ; registerOptions : Json.t option [@yojson.option]
+    ; registerOptions : Json.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1857,11 +1685,17 @@ module RenameParams = struct
   [@@@end]
 end
 
+module RenameRegistrationOptions = struct end
+
 module RequestMessage = struct
+  type params = unit
+
+  type id = unit
+
   type t =
     { id : unit
     ; method_ : string [@key "method"]
-    ; params : unit option [@yojson.option]
+    ; params : unit
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1869,10 +1703,12 @@ module RequestMessage = struct
 end
 
 module ResponseError = struct
+  type data = unit
+
   type t =
     { code : int
     ; message : string
-    ; data : unit option [@yojson.option]
+    ; data : unit
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1880,10 +1716,14 @@ module ResponseError = struct
 end
 
 module ResponseMessage = struct
+  type result = unit
+
+  type id = unit
+
   type t =
     { id : unit
-    ; result : unit option [@yojson.option]
-    ; error : ResponseError.t option [@yojson.option]
+    ; result : unit
+    ; error : ResponseError.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1893,7 +1733,7 @@ end
 module SelectionRange = struct
   type t =
     { range : Range.t
-    ; parent : t option [@yojson.option]
+    ; parent : t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1924,7 +1764,7 @@ module ShowMessageRequestParams = struct
   type t =
     { type_ : int [@key "type"]
     ; message : string
-    ; actions : MessageActionItem.t list option [@yojson.option]
+    ; actions : MessageActionItem.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1932,10 +1772,12 @@ module ShowMessageRequestParams = struct
 end
 
 module SignatureInformation = struct
+  type documentation = unit
+
   type t =
     { label : string
-    ; documentation : unit option [@yojson.option]
-    ; parameters : ParameterInformation.t list option [@yojson.option]
+    ; documentation : unit
+    ; parameters : ParameterInformation.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1945,8 +1787,8 @@ end
 module SignatureHelp = struct
   type t =
     { signatures : SignatureInformation.t list
-    ; activeSignature : int option [@yojson.option]
-    ; activeParameter : int option [@yojson.option]
+    ; activeSignature : int
+    ; activeParameter : int
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1958,27 +1800,14 @@ module SignatureHelpTriggerKind = struct
     | Invoked
     | TriggerCharacter
     | ContentChange
-
-  let to_yojson t =
-    match t with
-    | Invoked -> `Int 1
-    | TriggerCharacter -> `Int 2
-    | ContentChange -> `Int 3
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Invoked
-    | `Int 2 -> TriggerCharacter
-    | `Int 3 -> ContentChange
-    | _ -> assert false
 end
 
 module SignatureHelpContext = struct
   type t =
     { triggerKind : SignatureHelpTriggerKind.t
-    ; triggerCharacter : string option [@yojson.option]
+    ; triggerCharacter : string
     ; isRetrigger : bool
-    ; activeSignatureHelp : SignatureHelp.t option [@yojson.option]
+    ; activeSignatureHelp : SignatureHelp.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1986,19 +1815,21 @@ module SignatureHelpContext = struct
 end
 
 module SignatureHelpParams = struct
-  type t = { context : SignatureHelpContext.t option [@yojson.option] }
+  type t = { context : SignatureHelpContext.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module SignatureHelpRegistrationOptions = struct end
+
 module SymbolInformation = struct
   type t =
     { name : string
     ; kind : SymbolKind.t
-    ; deprecated : bool option [@yojson.option]
+    ; deprecated : bool
     ; location : Location.t
-    ; containerName : string option [@yojson.option]
+    ; containerName : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -2010,19 +1841,6 @@ module TextDocumentSyncKind = struct
     | None
     | Full
     | Incremental
-
-  let to_yojson t =
-    match t with
-    | None -> `Int 0
-    | Full -> `Int 1
-    | Incremental -> `Int 2
-
-  let of_yojson json =
-    match json with
-    | `Int 0 -> None
-    | `Int 1 -> Full
-    | `Int 2 -> Incremental
-    | _ -> assert false
 end
 
 module TextDocumentChangeRegistrationOptions = struct
@@ -2037,27 +1855,16 @@ module TextDocumentSaveReason = struct
     | Manual
     | AfterDelay
     | FocusOut
-
-  let to_yojson t =
-    match t with
-    | Manual -> `Int 1
-    | AfterDelay -> `Int 2
-    | FocusOut -> `Int 3
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Manual
-    | `Int 2 -> AfterDelay
-    | `Int 3 -> FocusOut
-    | _ -> assert false
 end
 
 module TextDocumentSaveRegistrationOptions = struct
-  type t = { includeText : bool option [@yojson.option] }
+  type t = { includeText : bool }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
+
+module TypeDefinitionParams = struct end
 
 module Unregistration = struct
   type t =
@@ -2081,19 +1888,6 @@ module WatchKind = struct
     | Create
     | Change
     | Delete
-
-  let to_yojson t =
-    match t with
-    | Create -> `Int 1
-    | Change -> `Int 2
-    | Delete -> `Int 4
-
-  let of_yojson json =
-    match json with
-    | `Int 1 -> Create
-    | `Int 2 -> Change
-    | `Int 4 -> Delete
-    | _ -> assert false
 end
 
 module WillSaveTextDocumentParams = struct
@@ -2110,9 +1904,9 @@ module WorkDoneProgressBegin = struct
   type t =
     { kind : unit
     ; title : string
-    ; cancellable : bool option [@yojson.option]
-    ; message : string option [@yojson.option]
-    ; percentage : int option [@yojson.option]
+    ; cancellable : bool
+    ; message : string
+    ; percentage : int
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -2136,7 +1930,7 @@ end
 module WorkDoneProgressEnd = struct
   type t =
     { kind : unit
-    ; message : string option [@yojson.option]
+    ; message : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -2146,17 +1940,21 @@ end
 module WorkDoneProgressReport = struct
   type t =
     { kind : unit
-    ; cancellable : bool option [@yojson.option]
-    ; message : string option [@yojson.option]
-    ; percentage : int option [@yojson.option]
+    ; cancellable : bool
+    ; message : string
+    ; percentage : int
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
+module WorkspaceSymbolOptions = struct end
+
 module WorkspaceSymbolParams = struct
   type t = { query : string } [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
+
+module WorkspaceSymbolRegistrationOptions = struct end
