@@ -58,33 +58,6 @@ module Expanded = struct
     { Ml.Module.name = r.name; bindings }
 end
 
-module Simplify_ts = struct
-  let is_same_as_json =
-    let constrs =
-      [ Prim.Null; String; Bool; Number; Object; List ]
-      |> List.map ~f:(fun s -> Resolved.Ident s)
-    in
-    fun set -> List.for_all constrs ~f:(List.mem ~set)
-
-  let json = Resolved.Ident Any
-
-  class simplify_sum =
-    object
-      inherit Resolved.map
-
-      method! typ (t : Resolved.typ) =
-        match t with
-        | Sum constrs ->
-          if is_same_as_json constrs then
-            json
-          else
-            t
-        | _ -> t
-    end
-
-  let of_resolved (t : Resolved.t) : Resolved.t = (new simplify_sum)#t t
-end
-
 module Json = struct
   let pp_literal (t : Literal.t) =
     match t with
