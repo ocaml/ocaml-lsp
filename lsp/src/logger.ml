@@ -112,7 +112,7 @@ let with_sections sections f =
     | [] -> None
     | sections ->
       let table = String.Table.create (List.length sections) in
-      List.iter sections ~f:(fun section -> String.Table.set table section ());
+      List.iter sections ~f:(fun section -> String.Table.replace table ~key:section ~data:());
       Some table
   in
   let sections0 = !selected_sections in
