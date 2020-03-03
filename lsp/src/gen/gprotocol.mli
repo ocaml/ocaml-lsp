@@ -95,15 +95,12 @@ module WorkspaceEdit : sig
   type t =
     { changes : (DocumentUri.t * TextEdit.t list) list
     ; documentChanges :
-        [ `List of TextDocumentEdit.t list
-        | `List of
-          [ `TextDocumentEdit of TextDocumentEdit.t
-          | `CreateFile of CreateFile.t
-          | `RenameFile of RenameFile.t
-          | `DeleteFile of DeleteFile.t
-          ]
-          list
+        [ `TextDocumentEdit of TextDocumentEdit.t
+        | `CreateFile of CreateFile.t
+        | `RenameFile of RenameFile.t
+        | `DeleteFile of DeleteFile.t
         ]
+        list
     }
 end
 

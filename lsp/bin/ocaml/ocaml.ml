@@ -3,8 +3,6 @@ open! Ts_types
 
 (* TODO
 
-   - Special case documentChanges to ignore the first variant
-
    - Special case a single Sum[Record | Record] case
 
    - Handle the [kind] field everywhere
@@ -379,11 +377,19 @@ module Mapper = struct
         Type.json
       else
         match remove_null s with
-        | `No_null_present ->
+        | `No_null_present -> (
           if is_same_as_id s then
             id
           else
-            poly s
+            (* This gross hack is needed for the documentChanges field. We can
+               ignore the first constructor since it's completely representable
+               with the second one. *)
+            match s with
+            | [ List (Ident (Resolved { Named.name = "TextDocumentEdit"; _ }))
+              ; (List _ as xs)
+              ] ->
+              type_ xs
+            | _ -> poly s )
         | `Null_removed [ s ] -> Type.Optional (type_ s)
         | `Null_removed [] -> assert false
         | `Null_removed cs -> Type.Optional (sum cs)
