@@ -134,7 +134,7 @@ module WorkspaceEdit = struct
   [@@@end]
 
   type t =
-    { changes : changes
+    { changes : (DocumentUri.t * TextEdit.t list) list
     ; documentChanges :
         [ `List of TextDocumentEdit.t list
         | `List of

@@ -56,6 +56,8 @@ module Type : sig
     | Record of field list
     | Variant of constr list
 
+  val assoc_list : key:t -> data:t -> t
+
   val pp_decl : name:string -> kind:Kind.t -> decl -> unit Pp.t
 
   val pp : t -> unit Pp.t

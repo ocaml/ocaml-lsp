@@ -96,6 +96,8 @@ module Type = struct
 
   let list t = List t
 
+  let assoc_list ~key ~data = List (Tuple [ key; data ])
+
   let t = Named "t"
 
   let module_t m = Named (String.capitalize_ascii m ^ ".t")

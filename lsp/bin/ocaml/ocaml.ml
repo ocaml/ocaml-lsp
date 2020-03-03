@@ -1,6 +1,17 @@
 open! Import
 open! Ts_types
 
+(** TODO
+
+    - Handle records with contain a pattern field
+    - Special case documentChanges to ignore the first variant
+    - Special case a single Sum[Record | Record] case
+    - Handle the [kind] field everywhere
+    - Do not extend WorkDoneProgressParams & PartialResultParams
+    - Handle optional fields
+    - Handle a sum of literals
+    - Handle string | [number, number] *)
+
 module Expanded = struct
   (** After this pass, we can assume that:
 
@@ -307,12 +318,6 @@ module Sum = struct
 end
 
 module Mapper = struct
-  (* The steps to process a record are:
-
-     - extract all inlined types out of a record - every inlined type will be
-     named after the field it was used in
-
-     Field handling - optional - key handling - default handling *)
   module Type = Ml.Type
 
   let is_same_as_json =
@@ -344,7 +349,7 @@ module Mapper = struct
     | [ _ ] -> `Null_removed non_nulls
 
   let make_typ name t =
-    let rec typ (t : Resolved.typ) =
+    let rec type_ (t : Resolved.typ) =
       match t with
       | Ident Number -> Type.int
       | Ident String -> Type.string
@@ -356,13 +361,13 @@ module Mapper = struct
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
       | Ident (Resolved r) -> Type.module_t r.name
-      | List t -> Type.list (typ t)
-      | Tuple ts -> Type.Tuple (List.map ~f:typ ts)
+      | List t -> Type.list (type_ t)
+      | Tuple ts -> Type.Tuple (List.map ~f:type_ ts)
       | Sum s -> sum s
       | App _
       | Literal _ ->
         Type.unit
-      | Record _ -> Type.Named name
+      | Record r -> record r
     and sum s =
       if is_same_as_json s then
         Type.json
@@ -373,7 +378,7 @@ module Mapper = struct
             id
           else
             poly s
-        | `Null_removed [ s ] -> Type.Optional (typ s)
+        | `Null_removed [ s ] -> Type.Optional (type_ s)
         | `Null_removed [] -> assert false
         | `Null_removed cs -> Type.Optional (sum cs)
     and poly s : Ml.Type.t =
@@ -398,10 +403,15 @@ module Mapper = struct
         Type.Poly_variant
           (List.map s ~f:(fun t ->
                let name = tag t in
-               Type.constr ~name [ typ t ]))
+               Type.constr ~name [ type_ t ]))
       with Exit -> Type.unit
+    and record fields =
+      match fields with
+      | [ { Named.name = _; data = Pattern { pat; typ } } ] ->
+        Type.assoc_list ~key:(type_ pat) ~data:(type_ typ)
+      | _ -> Type.name name
     in
-    typ t
+    type_ t
 
   let make_field (field : Resolved.field) =
     match field.data with
