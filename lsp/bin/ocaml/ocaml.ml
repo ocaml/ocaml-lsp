@@ -1,16 +1,23 @@
 open! Import
 open! Ts_types
 
-(** TODO
+(* TODO
 
-    - Handle records with contain a pattern field
-    - Special case documentChanges to ignore the first variant
-    - Special case a single Sum[Record | Record] case
-    - Handle the [kind] field everywhere
-    - Do not extend WorkDoneProgressParams & PartialResultParams
-    - Handle optional fields
-    - Handle a sum of literals
-    - Handle string | [number, number] *)
+   - Handle records with contain a pattern field
+
+   - Special case documentChanges to ignore the first variant
+
+   - Special case a single Sum[Record | Record] case
+
+   - Handle the [kind] field everywhere
+
+   - Do not extend WorkDoneProgressParams & PartialResultParams
+
+   - Handle optional fields
+
+   - Handle a sum of literals
+
+   - Handle string | [number, number] *)
 
 module Expanded = struct
   (** After this pass, we can assume that:
@@ -27,6 +34,7 @@ module Expanded = struct
 
   let new_binding_of_typ (x : Resolved.typ) : binding option =
     match x with
+    | Record [ { Named.name = _; data = Pattern _ } ] -> None
     | Record d -> Some (Record d)
     | _ -> None
 
@@ -381,6 +389,17 @@ module Mapper = struct
         | `Null_removed [ s ] -> Type.Optional (type_ s)
         | `Null_removed [] -> assert false
         | `Null_removed cs -> Type.Optional (sum cs)
+    and simplify_record (fields : Resolved.field list) =
+      match fields with
+      | [ { Named.name = _; data = Pattern { pat; typ } } ] ->
+        let key = type_ pat in
+        let data = type_ typ in
+        Some (Type.assoc_list ~key ~data)
+      | _ -> None
+    and record fields =
+      match simplify_record fields with
+      | None -> Type.name name
+      | Some a -> a
     and poly s : Ml.Type.t =
       let tag typ =
         match (typ : Resolved.typ) with
@@ -405,25 +424,29 @@ module Mapper = struct
                let name = tag t in
                Type.constr ~name [ type_ t ]))
       with Exit -> Type.unit
-    and record fields =
-      match fields with
-      | [ { Named.name = _; data = Pattern { pat; typ } } ] ->
-        Type.assoc_list ~key:(type_ pat) ~data:(type_ typ)
-      | _ -> Type.name name
     in
     type_ t
 
   let make_field (field : Resolved.field) =
     match field.data with
-    | Pattern _ -> Type.unit
+    | Pattern { pat; typ } ->
+      let key = make_typ field.name pat in
+      let data = make_typ field.name typ in
+      Type.assoc_list ~key ~data
     | Resolved.Single { typ; optional = _ } -> make_typ field.name typ
 
-  let record_ name fields =
+  let record_ name (fields : Resolved.field list) =
     let data =
-      Type.Record
-        (List.map fields ~f:(fun (field : Resolved.field) ->
-             let typ = make_field field in
-             Ml.Type.field typ ~name:field.name))
+      match fields with
+      | [ { Named.name; data = Pattern { pat; typ } } ] ->
+        let key = make_typ name pat in
+        let data = make_typ name typ in
+        Type.Alias (Type.assoc_list ~key ~data)
+      | _ ->
+        Type.Record
+          (List.map fields ~f:(fun (field : Resolved.field) ->
+               let typ = make_field field in
+               Ml.Type.field typ ~name:field.name))
     in
     { Named.name; data }
 end

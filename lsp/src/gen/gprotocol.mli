@@ -92,8 +92,6 @@ module TextDocumentEdit : sig
 end
 
 module WorkspaceEdit : sig
-  type changes = { uri : unit }
-
   type t =
     { changes : (DocumentUri.t * TextEdit.t list) list
     ; documentChanges :
@@ -913,7 +911,8 @@ module FormattingOptions : sig
     ; trimTrailingWhitespace : bool
     ; insertFinalNewline : bool
     ; trimFinalNewlines : bool
-    ; key : unit
+    ; key :
+        (string * [ `Bool of bool | `Number of int | `String of string ]) list
     }
 end
 

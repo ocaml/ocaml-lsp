@@ -128,11 +128,6 @@ module TextDocumentEdit = struct
 end
 
 module WorkspaceEdit = struct
-  type changes = { uri : unit }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
-
   type t =
     { changes : (DocumentUri.t * TextEdit.t list) list
     ; documentChanges :
@@ -1254,7 +1249,8 @@ module FormattingOptions = struct
     ; trimTrailingWhitespace : bool
     ; insertFinalNewline : bool
     ; trimFinalNewlines : bool
-    ; key : unit
+    ; key :
+        (string * [ `Bool of bool | `Number of int | `String of string ]) list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
