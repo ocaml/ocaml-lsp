@@ -1222,7 +1222,7 @@ module InitializeParams : sig
     ; rootUri : DocumentUri.t option [@yojson.option]
     ; initializationOptions : Json.t
     ; capabilities : ClientCapabilities.t
-    ; trace : unit
+    ; trace : [ `Off | `Messages | `Verbose ]
     ; workspaceFolders : WorkspaceFolder.t list option [@yojson.option]
     }
 end

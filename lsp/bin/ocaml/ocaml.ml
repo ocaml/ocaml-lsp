@@ -9,11 +9,7 @@ open! Ts_types
 
    - Do not extend WorkDoneProgressParams & PartialResultParams
 
-   - Handle optional fields
-
-   - Handle a sum of literals
-
-   *)
+   - Handle optional fields *)
 
 module Expanded = struct
   (** After this pass, we can assume that:
@@ -405,29 +401,30 @@ module Mapper = struct
       | None -> Type.name name
       | Some a -> a
     and poly s : Ml.Type.t =
-      let tag typ =
-        match (typ : Resolved.typ) with
-        | Ident Self
-        | Ident Null ->
-          assert false
-        | Ident String -> "String"
-        | Ident Number -> "Int"
-        | Ident Any
-        | Ident Object ->
-          "Assoc"
-        | Ident Bool -> "Bool"
-        | List _
-        | Ident List ->
-          "List"
-        | Ident (Resolved r) -> r.name
-        | Tuple [ Ident Number; Ident Number ] -> "Offset"
-        | _ -> raise Exit
-      in
       try
         Type.Poly_variant
           (List.map s ~f:(fun t ->
-               let name = tag t in
-               Type.constr ~name [ type_ t ]))
+               let name, constrs =
+                 match (t : Resolved.typ) with
+                 | Ident Self
+                 | Ident Null ->
+                   assert false
+                 | Ident String -> ("String", [ type_ t ])
+                 | Ident Number -> ("Int", [ type_ t ])
+                 | Ident Any
+                 | Ident Object ->
+                   ("Assoc", [ type_ t ])
+                 | Ident Bool -> ("Bool", [ type_ t ])
+                 | List _
+                 | Ident List ->
+                   ("List", [ type_ t ])
+                 | Ident (Resolved r) -> (r.name, [ type_ t ])
+                 | Tuple [ Ident Number; Ident Number ] ->
+                   ("Offset", [ type_ t ])
+                 | Literal (String x) -> (x, [])
+                 | _ -> raise Exit
+               in
+               Type.constr ~name constrs))
       with Exit -> Type.unit
     in
     type_ t
