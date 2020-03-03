@@ -19,7 +19,6 @@ let get store uri =
            (Format.asprintf "no document found with uri: %a" Lsp.Uri.pp uri)
          ())
 
-let remove_document store uri =
-  Table.remove store uri
+let remove_document store uri = Table.remove store uri
 
 let get_size store = Table.length store
