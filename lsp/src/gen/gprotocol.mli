@@ -1421,7 +1421,7 @@ end
 
 module ParameterInformation : sig
   type t =
-    { label : unit
+    { label : [ `String of string | `Offset of int * int ]
     ; documentation : [ `String of string | `MarkupContent of MarkupContent.t ]
     }
 end

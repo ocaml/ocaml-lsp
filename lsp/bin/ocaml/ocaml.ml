@@ -13,7 +13,7 @@ open! Ts_types
 
    - Handle a sum of literals
 
-   - Handle string | [number, number] *)
+   *)
 
 module Expanded = struct
   (** After this pass, we can assume that:
@@ -420,6 +420,7 @@ module Mapper = struct
         | Ident List ->
           "List"
         | Ident (Resolved r) -> r.name
+        | Tuple [ Ident Number; Ident Number ] -> "Offset"
         | _ -> raise Exit
       in
       try
