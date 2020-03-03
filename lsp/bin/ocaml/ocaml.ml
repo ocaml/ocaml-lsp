@@ -3,8 +3,6 @@ open! Ts_types
 
 (* TODO
 
-   - Handle records with contain a pattern field
-
    - Special case documentChanges to ignore the first variant
 
    - Special case a single Sum[Record | Record] case
@@ -407,7 +405,7 @@ module Mapper = struct
         | Ident Null ->
           assert false
         | Ident String -> "String"
-        | Ident Number -> "Number"
+        | Ident Number -> "Int"
         | Ident Any
         | Ident Object ->
           "Assoc"

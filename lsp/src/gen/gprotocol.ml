@@ -1249,8 +1249,7 @@ module FormattingOptions = struct
     ; trimTrailingWhitespace : bool
     ; insertFinalNewline : bool
     ; trimFinalNewlines : bool
-    ; key :
-        (string * [ `Bool of bool | `Number of int | `String of string ]) list
+    ; key : (string * [ `Bool of bool | `Int of int | `String of string ]) list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1782,9 +1781,7 @@ module ServerCapabilities = struct
 
   type t =
     { textDocumentSync :
-        [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
-        | `Number of int
-        ]
+        [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t | `Int of int ]
     ; completionProvider : CompletionOptions.t
     ; hoverProvider : [ `Bool of bool | `HoverOptions of HoverOptions.t ]
     ; signatureHelpProvider : SignatureHelpOptions.t
@@ -2070,11 +2067,7 @@ module ResponseMessage = struct
     { jsonrpc : string
     ; id : Jsonrpc.Id.t option [@yojson.option]
     ; result :
-        [ `String of string
-        | `Number of int
-        | `Bool of bool
-        | `Assoc of Json.t
-        ]
+        [ `String of string | `Int of int | `Bool of bool | `Assoc of Json.t ]
         option
           [@yojson.option]
     ; error : ResponseError.t
