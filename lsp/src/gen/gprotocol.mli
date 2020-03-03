@@ -4,8 +4,8 @@ open! Import
 
 module DeleteFileOptions : sig
   type t =
-    { recursive : bool
-    ; ignoreIfNotExists : bool
+    { recursive : bool option [@yojson.option]
+    ; ignoreIfNotExists : bool option [@yojson.option]
     }
 end
 
@@ -17,14 +17,14 @@ module DeleteFile : sig
   type t =
     { kind : unit
     ; uri : DocumentUri.t
-    ; options : DeleteFileOptions.t
+    ; options : DeleteFileOptions.t option [@yojson.option]
     }
 end
 
 module RenameFileOptions : sig
   type t =
-    { overwrite : bool
-    ; ignoreIfExists : bool
+    { overwrite : bool option [@yojson.option]
+    ; ignoreIfExists : bool option [@yojson.option]
     }
 end
 
@@ -33,14 +33,14 @@ module RenameFile : sig
     { kind : unit
     ; oldUri : DocumentUri.t
     ; newUri : DocumentUri.t
-    ; options : RenameFileOptions.t
+    ; options : RenameFileOptions.t option [@yojson.option]
     }
 end
 
 module CreateFileOptions : sig
   type t =
-    { overwrite : bool
-    ; ignoreIfExists : bool
+    { overwrite : bool option [@yojson.option]
+    ; ignoreIfExists : bool option [@yojson.option]
     }
 end
 
@@ -48,7 +48,7 @@ module CreateFile : sig
   type t =
     { kind : unit
     ; uri : DocumentUri.t
-    ; options : CreateFileOptions.t
+    ; options : CreateFileOptions.t option [@yojson.option]
     }
 end
 
@@ -93,7 +93,7 @@ end
 
 module WorkspaceEdit : sig
   type t =
-    { changes : (DocumentUri.t * TextEdit.t list) list
+    { changes : (DocumentUri.t * TextEdit.t list) list option [@yojson.option]
     ; documentChanges :
         [ `TextDocumentEdit of TextDocumentEdit.t
         | `CreateFile of CreateFile.t
@@ -101,12 +101,14 @@ module WorkspaceEdit : sig
         | `DeleteFile of DeleteFile.t
         ]
         list
+        option
+          [@yojson.option]
     }
 end
 
 module ApplyWorkspaceEditParams : sig
   type t =
-    { label : string
+    { label : string option [@yojson.option]
     ; edit : WorkspaceEdit.t
     }
 end
@@ -114,7 +116,7 @@ end
 module ApplyWorkspaceEditResponse : sig
   type t =
     { applied : bool
-    ; failureReason : string
+    ; failureReason : string option [@yojson.option]
     }
 end
 
@@ -123,14 +125,14 @@ module CancelParams : sig
 end
 
 module SelectionRangeClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module FoldingRangeClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; rangeLimit : int
-    ; lineFoldingOnly : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; rangeLimit : int option [@yojson.option]
+    ; lineFoldingOnly : bool option [@yojson.option]
     }
 end
 
@@ -144,44 +146,44 @@ module PublishDiagnosticsClientCapabilities : sig
   type tagSupport = { valueSet : DiagnosticTag.t list }
 
   type t =
-    { relatedInformation : bool
-    ; tagSupport : tagSupport
-    ; versionSupport : bool
+    { relatedInformation : bool option [@yojson.option]
+    ; tagSupport : tagSupport option [@yojson.option]
+    ; versionSupport : bool option [@yojson.option]
     }
 end
 
 module RenameClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; prepareSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; prepareSupport : bool option [@yojson.option]
     }
 end
 
 module DocumentOnTypeFormattingClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module DocumentRangeFormattingClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module DocumentFormattingClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module DocumentColorClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module DocumentLinkClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; tooltipSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; tooltipSupport : bool option [@yojson.option]
     }
 end
 
 module CodeLensClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module CodeActionKind : sig
@@ -202,9 +204,10 @@ module CodeActionClientCapabilities : sig
   type codeActionLiteralSupport = { codeActionKind : codeActionKind }
 
   type t =
-    { dynamicRegistration : bool
-    ; codeActionLiteralSupport : codeActionLiteralSupport
-    ; isPreferredSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; codeActionLiteralSupport : codeActionLiteralSupport option
+          [@yojson.option]
+    ; isPreferredSupport : bool option [@yojson.option]
     }
 end
 
@@ -239,48 +242,48 @@ module SymbolKind : sig
 end
 
 module DocumentSymbolClientCapabilities : sig
-  type symbolKind = { valueSet : SymbolKind.t list }
+  type symbolKind = { valueSet : SymbolKind.t list option [@yojson.option] }
 
   type t =
-    { dynamicRegistration : bool
-    ; symbolKind : symbolKind
-    ; hierarchicalDocumentSymbolSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; symbolKind : symbolKind option [@yojson.option]
+    ; hierarchicalDocumentSymbolSupport : bool option [@yojson.option]
     }
 end
 
 module DocumentHighlightClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module ReferenceClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module ImplementationClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; linkSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; linkSupport : bool option [@yojson.option]
     }
 end
 
 module TypeDefinitionClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; linkSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; linkSupport : bool option [@yojson.option]
     }
 end
 
 module DefinitionClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; linkSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; linkSupport : bool option [@yojson.option]
     }
 end
 
 module DeclarationClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; linkSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; linkSupport : bool option [@yojson.option]
     }
 end
 
@@ -291,24 +294,25 @@ module MarkupKind : sig
 end
 
 module SignatureHelpClientCapabilities : sig
-  type parameterInformation = { labelOffsetSupport : bool }
+  type parameterInformation =
+    { labelOffsetSupport : bool option [@yojson.option] }
 
   type signatureInformation =
-    { documentationFormat : MarkupKind.t list
-    ; parameterInformation : parameterInformation
+    { documentationFormat : MarkupKind.t list option [@yojson.option]
+    ; parameterInformation : parameterInformation option [@yojson.option]
     }
 
   type t =
-    { dynamicRegistration : bool
-    ; signatureInformation : signatureInformation
-    ; contextSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; signatureInformation : signatureInformation option [@yojson.option]
+    ; contextSupport : bool option [@yojson.option]
     }
 end
 
 module HoverClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; contentFormat : MarkupKind.t list
+    { dynamicRegistration : bool option [@yojson.option]
+    ; contentFormat : MarkupKind.t list option [@yojson.option]
     }
 end
 
@@ -346,82 +350,93 @@ module CompletionItemTag : sig
 end
 
 module CompletionClientCapabilities : sig
-  type completionItemKind = { valueSet : CompletionItemKind.t list }
+  type completionItemKind =
+    { valueSet : CompletionItemKind.t list option [@yojson.option] }
 
   type tagSupport = { valueSet : CompletionItemTag.t list }
 
   type completionItem =
-    { snippetSupport : bool
-    ; commitCharactersSupport : bool
-    ; documentationFormat : MarkupKind.t list
-    ; deprecatedSupport : bool
-    ; preselectSupport : bool
-    ; tagSupport : tagSupport
+    { snippetSupport : bool option [@yojson.option]
+    ; commitCharactersSupport : bool option [@yojson.option]
+    ; documentationFormat : MarkupKind.t list option [@yojson.option]
+    ; deprecatedSupport : bool option [@yojson.option]
+    ; preselectSupport : bool option [@yojson.option]
+    ; tagSupport : tagSupport option [@yojson.option]
     }
 
   type t =
-    { dynamicRegistration : bool
-    ; completionItem : completionItem
-    ; completionItemKind : completionItemKind
-    ; contextSupport : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; completionItem : completionItem option [@yojson.option]
+    ; completionItemKind : completionItemKind option [@yojson.option]
+    ; contextSupport : bool option [@yojson.option]
     }
 end
 
 module TextDocumentSyncClientCapabilities : sig
   type t =
-    { dynamicRegistration : bool
-    ; willSave : bool
-    ; willSaveWaitUntil : bool
-    ; didSave : bool
+    { dynamicRegistration : bool option [@yojson.option]
+    ; willSave : bool option [@yojson.option]
+    ; willSaveWaitUntil : bool option [@yojson.option]
+    ; didSave : bool option [@yojson.option]
     }
 end
 
 module TextDocumentClientCapabilities : sig
   type t =
-    { synchronization : TextDocumentSyncClientCapabilities.t
-    ; completion : CompletionClientCapabilities.t
-    ; hover : HoverClientCapabilities.t
-    ; signatureHelp : SignatureHelpClientCapabilities.t
-    ; declaration : DeclarationClientCapabilities.t
-    ; definition : DefinitionClientCapabilities.t
-    ; typeDefinition : TypeDefinitionClientCapabilities.t
-    ; implementation : ImplementationClientCapabilities.t
-    ; references : ReferenceClientCapabilities.t
-    ; documentHighlight : DocumentHighlightClientCapabilities.t
-    ; documentSymbol : DocumentSymbolClientCapabilities.t
-    ; codeAction : CodeActionClientCapabilities.t
-    ; codeLens : CodeLensClientCapabilities.t
-    ; documentLink : DocumentLinkClientCapabilities.t
-    ; colorProvider : DocumentColorClientCapabilities.t
-    ; formatting : DocumentFormattingClientCapabilities.t
-    ; rangeFormatting : DocumentRangeFormattingClientCapabilities.t
-    ; onTypeFormatting : DocumentOnTypeFormattingClientCapabilities.t
-    ; rename : RenameClientCapabilities.t
-    ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t
-    ; foldingRange : FoldingRangeClientCapabilities.t
-    ; selectionRange : SelectionRangeClientCapabilities.t
+    { synchronization : TextDocumentSyncClientCapabilities.t option
+          [@yojson.option]
+    ; completion : CompletionClientCapabilities.t option [@yojson.option]
+    ; hover : HoverClientCapabilities.t option [@yojson.option]
+    ; signatureHelp : SignatureHelpClientCapabilities.t option [@yojson.option]
+    ; declaration : DeclarationClientCapabilities.t option [@yojson.option]
+    ; definition : DefinitionClientCapabilities.t option [@yojson.option]
+    ; typeDefinition : TypeDefinitionClientCapabilities.t option
+          [@yojson.option]
+    ; implementation : ImplementationClientCapabilities.t option
+          [@yojson.option]
+    ; references : ReferenceClientCapabilities.t option [@yojson.option]
+    ; documentHighlight : DocumentHighlightClientCapabilities.t option
+          [@yojson.option]
+    ; documentSymbol : DocumentSymbolClientCapabilities.t option
+          [@yojson.option]
+    ; codeAction : CodeActionClientCapabilities.t option [@yojson.option]
+    ; codeLens : CodeLensClientCapabilities.t option [@yojson.option]
+    ; documentLink : DocumentLinkClientCapabilities.t option [@yojson.option]
+    ; colorProvider : DocumentColorClientCapabilities.t option [@yojson.option]
+    ; formatting : DocumentFormattingClientCapabilities.t option
+          [@yojson.option]
+    ; rangeFormatting : DocumentRangeFormattingClientCapabilities.t option
+          [@yojson.option]
+    ; onTypeFormatting : DocumentOnTypeFormattingClientCapabilities.t option
+          [@yojson.option]
+    ; rename : RenameClientCapabilities.t option [@yojson.option]
+    ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t option
+          [@yojson.option]
+    ; foldingRange : FoldingRangeClientCapabilities.t option [@yojson.option]
+    ; selectionRange : SelectionRangeClientCapabilities.t option
+          [@yojson.option]
     }
 end
 
 module ExecuteCommandClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module WorkspaceSymbolClientCapabilities : sig
-  type symbolKind = { valueSet : SymbolKind.t list }
+  type symbolKind = { valueSet : SymbolKind.t list option [@yojson.option] }
 
   type t =
-    { dynamicRegistration : bool
-    ; symbolKind : symbolKind
+    { dynamicRegistration : bool option [@yojson.option]
+    ; symbolKind : symbolKind option [@yojson.option]
     }
 end
 
 module DidChangeWatchedFilesClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module DidChangeConfigurationClientCapabilities : sig
-  type t = { dynamicRegistration : bool }
+  type t = { dynamicRegistration : bool option [@yojson.option] }
 end
 
 module FailureHandlingKind : sig
@@ -441,31 +456,34 @@ end
 
 module WorkspaceEditClientCapabilities : sig
   type t =
-    { documentChanges : bool
-    ; resourceOperations : ResourceOperationKind.t list
-    ; failureHandling : FailureHandlingKind.t
+    { documentChanges : bool option [@yojson.option]
+    ; resourceOperations : ResourceOperationKind.t list option [@yojson.option]
+    ; failureHandling : FailureHandlingKind.t option [@yojson.option]
     }
 end
 
 module ClientCapabilities : sig
-  type window = { workDoneProgress : bool }
+  type window = { workDoneProgress : bool option [@yojson.option] }
 
   type workspace =
-    { applyEdit : bool
-    ; workspaceEdit : WorkspaceEditClientCapabilities.t
-    ; didChangeConfiguration : DidChangeConfigurationClientCapabilities.t
-    ; didChangeWatchedFiles : DidChangeWatchedFilesClientCapabilities.t
-    ; symbol : WorkspaceSymbolClientCapabilities.t
-    ; executeCommand : ExecuteCommandClientCapabilities.t
-    ; workspaceFolders : bool
-    ; configuration : bool
+    { applyEdit : bool option [@yojson.option]
+    ; workspaceEdit : WorkspaceEditClientCapabilities.t option [@yojson.option]
+    ; didChangeConfiguration : DidChangeConfigurationClientCapabilities.t option
+          [@yojson.option]
+    ; didChangeWatchedFiles : DidChangeWatchedFilesClientCapabilities.t option
+          [@yojson.option]
+    ; symbol : WorkspaceSymbolClientCapabilities.t option [@yojson.option]
+    ; executeCommand : ExecuteCommandClientCapabilities.t option
+          [@yojson.option]
+    ; workspaceFolders : bool option [@yojson.option]
+    ; configuration : bool option [@yojson.option]
     }
 
   type t =
-    { workspace : workspace
-    ; textDocument : TextDocumentClientCapabilities.t
-    ; window : window
-    ; experimental : Json.t
+    { workspace : workspace option [@yojson.option]
+    ; textDocument : TextDocumentClientCapabilities.t option [@yojson.option]
+    ; window : window option [@yojson.option]
+    ; experimental : Json.t option [@yojson.option]
     }
 end
 
@@ -473,7 +491,7 @@ module Command : sig
   type t =
     { title : string
     ; command : string
-    ; arguments : Json.t list
+    ; arguments : Json.t list option [@yojson.option]
     }
 end
 
@@ -502,41 +520,42 @@ end
 module Diagnostic : sig
   type t =
     { range : Range.t
-    ; severity : DiagnosticSeverity.t
-    ; code : Jsonrpc.Id.t
-    ; source : string
+    ; severity : DiagnosticSeverity.t option [@yojson.option]
+    ; code : Jsonrpc.Id.t option [@yojson.option]
+    ; source : string option [@yojson.option]
     ; message : string
-    ; tags : DiagnosticTag.t list
-    ; relatedInformation : DiagnosticRelatedInformation.t list
+    ; tags : DiagnosticTag.t list option [@yojson.option]
+    ; relatedInformation : DiagnosticRelatedInformation.t list option
+          [@yojson.option]
     }
 end
 
 module CodeAction : sig
   type t =
     { title : string
-    ; kind : CodeActionKind.t
-    ; diagnostics : Diagnostic.t list
-    ; isPreferred : bool
-    ; edit : WorkspaceEdit.t
-    ; command : Command.t
+    ; kind : CodeActionKind.t option [@yojson.option]
+    ; diagnostics : Diagnostic.t list option [@yojson.option]
+    ; isPreferred : bool option [@yojson.option]
+    ; edit : WorkspaceEdit.t option [@yojson.option]
+    ; command : Command.t option [@yojson.option]
     }
 end
 
 module CodeActionContext : sig
   type t =
     { diagnostics : Diagnostic.t list
-    ; only : CodeActionKind.t list
+    ; only : CodeActionKind.t list option [@yojson.option]
     }
 end
 
 module WorkDoneProgressOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module CodeActionOptions : sig
   type t =
-    { workDoneProgress : bool
-    ; codeActionKinds : CodeActionKind.t list
+    { workDoneProgress : bool option [@yojson.option]
+    ; codeActionKinds : CodeActionKind.t list option [@yojson.option]
     }
 end
 
@@ -545,17 +564,17 @@ module ProgressToken : sig
 end
 
 module PartialResultParams : sig
-  type t = { partialResultToken : ProgressToken.t }
+  type t = { partialResultToken : ProgressToken.t option [@yojson.option] }
 end
 
 module WorkDoneProgressParams : sig
-  type t = { workDoneToken : ProgressToken.t }
+  type t = { workDoneToken : ProgressToken.t option [@yojson.option] }
 end
 
 module CodeActionParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; context : CodeActionContext.t
@@ -564,9 +583,9 @@ end
 
 module DocumentFilter : sig
   type t =
-    { language : string
-    ; scheme : string
-    ; pattern : string
+    { language : string option [@yojson.option]
+    ; scheme : string option [@yojson.option]
+    ; pattern : string option [@yojson.option]
     }
 end
 
@@ -581,30 +600,30 @@ end
 module CodeActionRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; codeActionKinds : CodeActionKind.t list
+    ; workDoneProgress : bool option [@yojson.option]
+    ; codeActionKinds : CodeActionKind.t list option [@yojson.option]
     }
 end
 
 module CodeLens : sig
   type t =
     { range : Range.t
-    ; command : Command.t
-    ; data : Json.t
+    ; command : Command.t option [@yojson.option]
+    ; data : Json.t option [@yojson.option]
     }
 end
 
 module CodeLensOptions : sig
   type t =
-    { workDoneProgress : bool
-    ; resolveProvider : bool
+    { workDoneProgress : bool option [@yojson.option]
+    ; resolveProvider : bool option [@yojson.option]
     }
 end
 
 module CodeLensParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     }
 end
@@ -612,8 +631,8 @@ end
 module CodeLensRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; resolveProvider : bool
+    ; workDoneProgress : bool option [@yojson.option]
+    ; resolveProvider : bool option [@yojson.option]
     }
 end
 
@@ -636,15 +655,15 @@ end
 module ColorPresentation : sig
   type t =
     { label : string
-    ; textEdit : TextEdit.t
-    ; additionalTextEdits : TextEdit.t list
+    ; textEdit : TextEdit.t option [@yojson.option]
+    ; additionalTextEdits : TextEdit.t list option [@yojson.option]
     }
 end
 
 module ColorPresentationParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     ; color : Color.t
     ; range : Range.t
@@ -661,7 +680,7 @@ end
 module CompletionContext : sig
   type t =
     { triggerKind : CompletionTriggerKind.t
-    ; triggerCharacter : string
+    ; triggerCharacter : string option [@yojson.option]
     }
 end
 
@@ -681,21 +700,23 @@ end
 module CompletionItem : sig
   type t =
     { label : string
-    ; kind : int
-    ; tags : CompletionItemTag.t list
-    ; detail : string
-    ; documentation : [ `String of string | `MarkupContent of MarkupContent.t ]
-    ; deprecated : bool
-    ; preselect : bool
-    ; sortText : string
-    ; filterText : string
-    ; insertText : string
-    ; insertTextFormat : InsertTextFormat.t
-    ; textEdit : TextEdit.t
-    ; additionalTextEdits : TextEdit.t list
-    ; commitCharacters : string list
-    ; command : Command.t
-    ; data : Json.t
+    ; kind : int option [@yojson.option]
+    ; tags : CompletionItemTag.t list option [@yojson.option]
+    ; detail : string option [@yojson.option]
+    ; documentation :
+        [ `String of string | `MarkupContent of MarkupContent.t ] option
+          [@yojson.option]
+    ; deprecated : bool option [@yojson.option]
+    ; preselect : bool option [@yojson.option]
+    ; sortText : string option [@yojson.option]
+    ; filterText : string option [@yojson.option]
+    ; insertText : string option [@yojson.option]
+    ; insertTextFormat : InsertTextFormat.t option [@yojson.option]
+    ; textEdit : TextEdit.t option [@yojson.option]
+    ; additionalTextEdits : TextEdit.t list option [@yojson.option]
+    ; commitCharacters : string list option [@yojson.option]
+    ; command : Command.t option [@yojson.option]
+    ; data : Json.t option [@yojson.option]
     }
 end
 
@@ -708,10 +729,10 @@ end
 
 module CompletionOptions : sig
   type t =
-    { workDoneProgress : bool
-    ; triggerCharacters : string list
-    ; allCommitCharacters : string list
-    ; resolveProvider : bool
+    { workDoneProgress : bool option [@yojson.option]
+    ; triggerCharacters : string list option [@yojson.option]
+    ; allCommitCharacters : string list option [@yojson.option]
+    ; resolveProvider : bool option [@yojson.option]
     }
 end
 
@@ -726,26 +747,26 @@ module CompletionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
-    ; context : CompletionContext.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
+    ; context : CompletionContext.t option [@yojson.option]
     }
 end
 
 module CompletionRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; triggerCharacters : string list
-    ; allCommitCharacters : string list
-    ; resolveProvider : bool
+    ; workDoneProgress : bool option [@yojson.option]
+    ; triggerCharacters : string list option [@yojson.option]
+    ; allCommitCharacters : string list option [@yojson.option]
+    ; resolveProvider : bool option [@yojson.option]
     }
 end
 
 module ConfigurationItem : sig
   type t =
-    { scopeUri : DocumentUri.t
-    ; section : string
+    { scopeUri : DocumentUri.t option [@yojson.option]
+    ; section : string option [@yojson.option]
     }
 end
 
@@ -754,47 +775,47 @@ module ConfigurationParams : sig
 end
 
 module DeclarationOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module DeclarationParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     }
 end
 
 module StaticRegistrationOptions : sig
-  type t = { id : string }
+  type t = { id : string option [@yojson.option] }
 end
 
 module DeclarationRegistrationOptions : sig
   type t =
-    { workDoneProgress : bool
+    { workDoneProgress : bool option [@yojson.option]
     ; documentSelector : DocumentSelector.t option [@yojson.option]
-    ; id : string
+    ; id : string option [@yojson.option]
     }
 end
 
 module DefinitionOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module DefinitionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     }
 end
 
 module DefinitionRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
@@ -827,7 +848,7 @@ end
 module FileSystemWatcher : sig
   type t =
     { globPattern : string
-    ; kind : int
+    ; kind : int option [@yojson.option]
     }
 end
 
@@ -873,18 +894,18 @@ end
 module DidSaveTextDocumentParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
-    ; text : string
+    ; text : string option [@yojson.option]
     }
 end
 
 module DocumentColorOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module DocumentColorParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     }
 end
@@ -892,29 +913,29 @@ end
 module DocumentColorRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; id : string
-    ; workDoneProgress : bool
+    ; id : string option [@yojson.option]
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
 module DocumentFormattingOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module FormattingOptions : sig
   type t =
     { tabSize : int
     ; insertSpaces : bool
-    ; trimTrailingWhitespace : bool
-    ; insertFinalNewline : bool
-    ; trimFinalNewlines : bool
+    ; trimTrailingWhitespace : bool option [@yojson.option]
+    ; insertFinalNewline : bool option [@yojson.option]
+    ; trimFinalNewlines : bool option [@yojson.option]
     ; key : (string * [ `Bool of bool | `Int of int | `String of string ]) list
     }
 end
 
 module DocumentFormattingParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     ; options : FormattingOptions.t
     }
@@ -923,14 +944,14 @@ end
 module DocumentFormattingRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
 module DocumentHighlight : sig
   type t =
     { range : Range.t
-    ; kind : int
+    ; kind : int option [@yojson.option]
     }
 end
 
@@ -942,45 +963,45 @@ module DocumentHighlightKind : sig
 end
 
 module DocumentHighlightOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module DocumentHighlightParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     }
 end
 
 module DocumentHighlightRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
 module DocumentLink : sig
   type t =
     { range : Range.t
-    ; target : DocumentUri.t
-    ; tooltip : string
-    ; data : Json.t
+    ; target : DocumentUri.t option [@yojson.option]
+    ; tooltip : string option [@yojson.option]
+    ; data : Json.t option [@yojson.option]
     }
 end
 
 module DocumentLinkOptions : sig
   type t =
-    { workDoneProgress : bool
-    ; resolveProvider : bool
+    { workDoneProgress : bool option [@yojson.option]
+    ; resolveProvider : bool option [@yojson.option]
     }
 end
 
 module DocumentLinkParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     }
 end
@@ -988,15 +1009,15 @@ end
 module DocumentLinkRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; resolveProvider : bool
+    ; workDoneProgress : bool option [@yojson.option]
+    ; resolveProvider : bool option [@yojson.option]
     }
 end
 
 module DocumentOnTypeFormattingOptions : sig
   type t =
     { firstTriggerCharacter : string
-    ; moreTriggerCharacter : string list
+    ; moreTriggerCharacter : string list option [@yojson.option]
     }
 end
 
@@ -1013,17 +1034,17 @@ module DocumentOnTypeFormattingRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
     ; firstTriggerCharacter : string
-    ; moreTriggerCharacter : string list
+    ; moreTriggerCharacter : string list option [@yojson.option]
     }
 end
 
 module DocumentRangeFormattingOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module DocumentRangeFormattingParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; options : FormattingOptions.t
@@ -1033,30 +1054,30 @@ end
 module DocumentRangeFormattingRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
 module DocumentSymbol : sig
   type t =
     { name : string
-    ; detail : string
+    ; detail : string option [@yojson.option]
     ; kind : SymbolKind.t
-    ; deprecated : bool
+    ; deprecated : bool option [@yojson.option]
     ; range : Range.t
     ; selectionRange : Range.t
-    ; children : t list
+    ; children : t list option [@yojson.option]
     }
 end
 
 module DocumentSymbolOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module DocumentSymbolParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     }
 end
@@ -1064,7 +1085,7 @@ end
 module DocumentSymbolRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
@@ -1085,22 +1106,22 @@ end
 
 module ExecuteCommandOptions : sig
   type t =
-    { workDoneProgress : bool
+    { workDoneProgress : bool option [@yojson.option]
     ; commands : string list
     }
 end
 
 module ExecuteCommandParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
     ; command : string
-    ; arguments : Json.t list
+    ; arguments : Json.t list option [@yojson.option]
     }
 end
 
 module ExecuteCommandRegistrationOptions : sig
   type t =
-    { workDoneProgress : bool
+    { workDoneProgress : bool option [@yojson.option]
     ; commands : string list
     }
 end
@@ -1115,10 +1136,10 @@ end
 module FoldingRange : sig
   type t =
     { startLine : int
-    ; startCharacter : int
+    ; startCharacter : int option [@yojson.option]
     ; endLine : int
-    ; endCharacter : int
-    ; kind : string
+    ; endCharacter : int option [@yojson.option]
+    ; kind : string option [@yojson.option]
     }
 end
 
@@ -1130,13 +1151,13 @@ module FoldingRangeKind : sig
 end
 
 module FoldingRangeOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module FoldingRangeParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     }
 end
@@ -1144,8 +1165,8 @@ end
 module FoldingRangeRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; id : string
+    ; workDoneProgress : bool option [@yojson.option]
+    ; id : string option [@yojson.option]
     }
 end
 
@@ -1160,47 +1181,47 @@ module Hover : sig
         | `List of MarkedString.t list
         | `MarkupContent of MarkupContent.t
         ]
-    ; range : Range.t
+    ; range : Range.t option [@yojson.option]
     }
 end
 
 module HoverOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module HoverParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
     }
 end
 
 module HoverRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
 module ImplementationOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module ImplementationParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     }
 end
 
 module ImplementationRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; id : string
+    ; workDoneProgress : bool option [@yojson.option]
+    ; id : string option [@yojson.option]
     }
 end
 
@@ -1211,169 +1232,203 @@ end
 module InitializeParams : sig
   type clientInfo =
     { name : string
-    ; version : string
+    ; version : string option [@yojson.option]
     }
 
   type t =
-    { workDoneToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
     ; processId : int option [@yojson.option]
-    ; clientInfo : clientInfo
-    ; rootPath : string option [@yojson.option]
+    ; clientInfo : clientInfo option [@yojson.option]
+    ; rootPath : string option option [@yojson.option]
     ; rootUri : DocumentUri.t option [@yojson.option]
-    ; initializationOptions : Json.t
+    ; initializationOptions : Json.t option [@yojson.option]
     ; capabilities : ClientCapabilities.t
-    ; trace : [ `Off | `Messages | `Verbose ]
-    ; workspaceFolders : WorkspaceFolder.t list option [@yojson.option]
+    ; trace : [ `Off | `Messages | `Verbose ] option [@yojson.option]
+    ; workspaceFolders : WorkspaceFolder.t list option option [@yojson.option]
     }
 end
 
 module WorkspaceFoldersServerCapabilities : sig
   type t =
-    { supported : bool
-    ; changeNotifications : [ `String of string | `Bool of bool ]
+    { supported : bool option [@yojson.option]
+    ; changeNotifications : [ `String of string | `Bool of bool ] option
+          [@yojson.option]
     }
 end
 
 module SelectionRangeOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module SelectionRangeRegistrationOptions : sig
   type t =
-    { workDoneProgress : bool
+    { workDoneProgress : bool option [@yojson.option]
     ; documentSelector : DocumentSelector.t option [@yojson.option]
-    ; id : string
+    ; id : string option [@yojson.option]
     }
 end
 
 module RenameOptions : sig
   type t =
-    { workDoneProgress : bool
-    ; prepareProvider : bool
+    { workDoneProgress : bool option [@yojson.option]
+    ; prepareProvider : bool option [@yojson.option]
     }
 end
 
 module ReferenceOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module TypeDefinitionOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module TypeDefinitionRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; id : string
+    ; workDoneProgress : bool option [@yojson.option]
+    ; id : string option [@yojson.option]
     }
 end
 
 module SignatureHelpOptions : sig
   type t =
-    { workDoneProgress : bool
-    ; triggerCharacters : string list
-    ; retriggerCharacters : string list
+    { workDoneProgress : bool option [@yojson.option]
+    ; triggerCharacters : string list option [@yojson.option]
+    ; retriggerCharacters : string list option [@yojson.option]
     }
 end
 
 module SaveOptions : sig
-  type t = { includeText : bool }
+  type t = { includeText : bool option [@yojson.option] }
 end
 
 module TextDocumentSyncOptions : sig
   type t =
-    { openClose : bool
-    ; change : int
-    ; willSave : bool
-    ; willSaveWaitUntil : bool
-    ; save : SaveOptions.t
+    { openClose : bool option [@yojson.option]
+    ; change : int option [@yojson.option]
+    ; willSave : bool option [@yojson.option]
+    ; willSaveWaitUntil : bool option [@yojson.option]
+    ; save : SaveOptions.t option [@yojson.option]
     }
 end
 
 module ServerCapabilities : sig
-  type workspace = { workspaceFolders : WorkspaceFoldersServerCapabilities.t }
+  type workspace =
+    { workspaceFolders : WorkspaceFoldersServerCapabilities.t option
+          [@yojson.option]
+    }
 
   type t =
     { textDocumentSync :
         [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t | `Int of int ]
-    ; completionProvider : CompletionOptions.t
-    ; hoverProvider : [ `Bool of bool | `HoverOptions of HoverOptions.t ]
-    ; signatureHelpProvider : SignatureHelpOptions.t
+        option
+          [@yojson.option]
+    ; completionProvider : CompletionOptions.t option [@yojson.option]
+    ; hoverProvider : [ `Bool of bool | `HoverOptions of HoverOptions.t ] option
+          [@yojson.option]
+    ; signatureHelpProvider : SignatureHelpOptions.t option [@yojson.option]
     ; declarationProvider :
         [ `Bool of bool
         | `DeclarationOptions of DeclarationOptions.t
         | `DeclarationRegistrationOptions of DeclarationRegistrationOptions.t
         ]
+        option
+          [@yojson.option]
     ; definitionProvider :
-        [ `Bool of bool | `DefinitionOptions of DefinitionOptions.t ]
+        [ `Bool of bool | `DefinitionOptions of DefinitionOptions.t ] option
+          [@yojson.option]
     ; typeDefinitionProvider :
         [ `Bool of bool
         | `TypeDefinitionOptions of TypeDefinitionOptions.t
         | `TypeDefinitionRegistrationOptions of
           TypeDefinitionRegistrationOptions.t
         ]
+        option
+          [@yojson.option]
     ; implementationProvider :
         [ `Bool of bool
         | `ImplementationOptions of ImplementationOptions.t
         | `ImplementationRegistrationOptions of
           ImplementationRegistrationOptions.t
         ]
+        option
+          [@yojson.option]
     ; referencesProvider :
-        [ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ]
+        [ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ] option
+          [@yojson.option]
     ; documentHighlightProvider :
         [ `Bool of bool
         | `DocumentHighlightOptions of DocumentHighlightOptions.t
         ]
+        option
+          [@yojson.option]
     ; documentSymbolProvider :
         [ `Bool of bool | `DocumentSymbolOptions of DocumentSymbolOptions.t ]
+        option
+          [@yojson.option]
     ; codeActionProvider :
-        [ `Bool of bool | `CodeActionOptions of CodeActionOptions.t ]
-    ; codeLensProvider : CodeLensOptions.t
-    ; documentLinkProvider : DocumentLinkOptions.t
+        [ `Bool of bool | `CodeActionOptions of CodeActionOptions.t ] option
+          [@yojson.option]
+    ; codeLensProvider : CodeLensOptions.t option [@yojson.option]
+    ; documentLinkProvider : DocumentLinkOptions.t option [@yojson.option]
     ; colorProvider :
         [ `Bool of bool
         | `DocumentColorOptions of DocumentColorOptions.t
         | `DocumentColorRegistrationOptions of
           DocumentColorRegistrationOptions.t
         ]
+        option
+          [@yojson.option]
     ; documentFormattingProvider :
         [ `Bool of bool
         | `DocumentFormattingOptions of DocumentFormattingOptions.t
         ]
+        option
+          [@yojson.option]
     ; documentRangeFormattingProvider :
         [ `Bool of bool
         | `DocumentRangeFormattingOptions of DocumentRangeFormattingOptions.t
         ]
-    ; documentOnTypeFormattingProvider : DocumentOnTypeFormattingOptions.t
-    ; renameProvider : [ `Bool of bool | `RenameOptions of RenameOptions.t ]
+        option
+          [@yojson.option]
+    ; documentOnTypeFormattingProvider :
+        DocumentOnTypeFormattingOptions.t option
+          [@yojson.option]
+    ; renameProvider :
+        [ `Bool of bool | `RenameOptions of RenameOptions.t ] option
+          [@yojson.option]
     ; foldingRangeProvider :
         [ `Bool of bool
         | `FoldingRangeOptions of FoldingRangeOptions.t
         | `FoldingRangeRegistrationOptions of FoldingRangeRegistrationOptions.t
         ]
-    ; executeCommandProvider : ExecuteCommandOptions.t
+        option
+          [@yojson.option]
+    ; executeCommandProvider : ExecuteCommandOptions.t option [@yojson.option]
     ; selectionRangeProvider :
         [ `Bool of bool
         | `SelectionRangeOptions of SelectionRangeOptions.t
         | `SelectionRangeRegistrationOptions of
           SelectionRangeRegistrationOptions.t
         ]
-    ; workspaceSymbolProvider : bool
-    ; workspace : workspace
-    ; experimental : Json.t
+        option
+          [@yojson.option]
+    ; workspaceSymbolProvider : bool option [@yojson.option]
+    ; workspace : workspace option [@yojson.option]
+    ; experimental : Json.t option [@yojson.option]
     }
 end
 
 module InitializeResult : sig
   type serverInfo =
     { name : string
-    ; version : string
+    ; version : string option [@yojson.option]
     }
 
   type t =
     { capabilities : ServerCapabilities.t
-    ; serverInfo : serverInfo
+    ; serverInfo : serverInfo option [@yojson.option]
     }
 end
 
@@ -1381,7 +1436,7 @@ module InitializedParams : sig end
 
 module LocationLink : sig
   type t =
-    { originSelectionRange : Range.t
+    { originSelectionRange : Range.t option [@yojson.option]
     ; targetUri : DocumentUri.t
     ; targetRange : Range.t
     ; targetSelectionRange : Range.t
@@ -1415,14 +1470,17 @@ module NotificationMessage : sig
   type t =
     { jsonrpc : string
     ; method_ : string [@key "method"]
-    ; params : [ `List of Json.t list | `Assoc of Json.t ]
+    ; params : [ `List of Json.t list | `Assoc of Json.t ] option
+          [@yojson.option]
     }
 end
 
 module ParameterInformation : sig
   type t =
     { label : [ `String of string | `Offset of int * int ]
-    ; documentation : [ `String of string | `MarkupContent of MarkupContent.t ]
+    ; documentation :
+        [ `String of string | `MarkupContent of MarkupContent.t ] option
+          [@yojson.option]
     }
 end
 
@@ -1443,7 +1501,7 @@ end
 module PublishDiagnosticsParams : sig
   type t =
     { uri : DocumentUri.t
-    ; version : int
+    ; version : int option [@yojson.option]
     ; diagnostics : Diagnostic.t list
     }
 end
@@ -1456,8 +1514,8 @@ module ReferenceParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; context : ReferenceContext.t
     }
 end
@@ -1465,7 +1523,7 @@ end
 module ReferenceRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
+    ; workDoneProgress : bool option [@yojson.option]
     }
 end
 
@@ -1473,7 +1531,7 @@ module Registration : sig
   type t =
     { id : string
     ; method_ : string [@key "method"]
-    ; registerOptions : Json.t
+    ; registerOptions : Json.t option [@yojson.option]
     }
 end
 
@@ -1485,7 +1543,7 @@ module RenameParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
     ; newName : string
     }
 end
@@ -1493,8 +1551,8 @@ end
 module RenameRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; prepareProvider : bool
+    ; workDoneProgress : bool option [@yojson.option]
+    ; prepareProvider : bool option [@yojson.option]
     }
 end
 
@@ -1503,7 +1561,8 @@ module RequestMessage : sig
     { jsonrpc : string
     ; id : Jsonrpc.Id.t
     ; method_ : string [@key "method"]
-    ; params : [ `List of Json.t list | `Assoc of Json.t ]
+    ; params : [ `List of Json.t list | `Assoc of Json.t ] option
+          [@yojson.option]
     }
 end
 
@@ -1511,7 +1570,7 @@ module ResponseError : sig
   type t =
     { code : int
     ; message : string
-    ; data : Json.t
+    ; data : Json.t option [@yojson.option]
     }
 end
 
@@ -1522,22 +1581,23 @@ module ResponseMessage : sig
     ; result :
         [ `String of string | `Int of int | `Bool of bool | `Assoc of Json.t ]
         option
+        option
           [@yojson.option]
-    ; error : ResponseError.t
+    ; error : ResponseError.t option [@yojson.option]
     }
 end
 
 module SelectionRange : sig
   type t =
     { range : Range.t
-    ; parent : t
+    ; parent : t option [@yojson.option]
     }
 end
 
 module SelectionRangeParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; textDocument : TextDocumentIdentifier.t
     ; positions : Position.t list
     }
@@ -1554,23 +1614,25 @@ module ShowMessageRequestParams : sig
   type t =
     { type_ : int [@key "type"]
     ; message : string
-    ; actions : MessageActionItem.t list
+    ; actions : MessageActionItem.t list option [@yojson.option]
     }
 end
 
 module SignatureInformation : sig
   type t =
     { label : string
-    ; documentation : [ `String of string | `MarkupContent of MarkupContent.t ]
-    ; parameters : ParameterInformation.t list
+    ; documentation :
+        [ `String of string | `MarkupContent of MarkupContent.t ] option
+          [@yojson.option]
+    ; parameters : ParameterInformation.t list option [@yojson.option]
     }
 end
 
 module SignatureHelp : sig
   type t =
     { signatures : SignatureInformation.t list
-    ; activeSignature : int
-    ; activeParameter : int
+    ; activeSignature : int option [@yojson.option]
+    ; activeParameter : int option [@yojson.option]
     }
 end
 
@@ -1584,9 +1646,9 @@ end
 module SignatureHelpContext : sig
   type t =
     { triggerKind : SignatureHelpTriggerKind.t
-    ; triggerCharacter : string
+    ; triggerCharacter : string option [@yojson.option]
     ; isRetrigger : bool
-    ; activeSignatureHelp : SignatureHelp.t
+    ; activeSignatureHelp : SignatureHelp.t option [@yojson.option]
     }
 end
 
@@ -1594,17 +1656,17 @@ module SignatureHelpParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; context : SignatureHelpContext.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; context : SignatureHelpContext.t option [@yojson.option]
     }
 end
 
 module SignatureHelpRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; workDoneProgress : bool
-    ; triggerCharacters : string list
-    ; retriggerCharacters : string list
+    ; workDoneProgress : bool option [@yojson.option]
+    ; triggerCharacters : string list option [@yojson.option]
+    ; retriggerCharacters : string list option [@yojson.option]
     }
 end
 
@@ -1612,9 +1674,9 @@ module SymbolInformation : sig
   type t =
     { name : string
     ; kind : SymbolKind.t
-    ; deprecated : bool
+    ; deprecated : bool option [@yojson.option]
     ; location : Location.t
-    ; containerName : string
+    ; containerName : string option [@yojson.option]
     }
 end
 
@@ -1642,7 +1704,7 @@ end
 module TextDocumentSaveRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option [@yojson.option]
-    ; includeText : bool
+    ; includeText : bool option [@yojson.option]
     }
 end
 
@@ -1650,8 +1712,8 @@ module TypeDefinitionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    ; workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     }
 end
 
@@ -1684,9 +1746,9 @@ module WorkDoneProgressBegin : sig
   type t =
     { kind : unit
     ; title : string
-    ; cancellable : bool
-    ; message : string
-    ; percentage : int
+    ; cancellable : bool option [@yojson.option]
+    ; message : string option [@yojson.option]
+    ; percentage : int option [@yojson.option]
     }
 end
 
@@ -1701,31 +1763,31 @@ end
 module WorkDoneProgressEnd : sig
   type t =
     { kind : unit
-    ; message : string
+    ; message : string option [@yojson.option]
     }
 end
 
 module WorkDoneProgressReport : sig
   type t =
     { kind : unit
-    ; cancellable : bool
-    ; message : string
-    ; percentage : int
+    ; cancellable : bool option [@yojson.option]
+    ; message : string option [@yojson.option]
+    ; percentage : int option [@yojson.option]
     }
 end
 
 module WorkspaceSymbolOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end
 
 module WorkspaceSymbolParams : sig
   type t =
-    { workDoneToken : ProgressToken.t
-    ; partialResultToken : ProgressToken.t
+    { workDoneToken : ProgressToken.t option [@yojson.option]
+    ; partialResultToken : ProgressToken.t option [@yojson.option]
     ; query : string
     }
 end
 
 module WorkspaceSymbolRegistrationOptions : sig
-  type t = { workDoneProgress : bool }
+  type t = { workDoneProgress : bool option [@yojson.option] }
 end

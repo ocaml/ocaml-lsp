@@ -7,9 +7,7 @@ open! Ts_types
 
    - Handle the [kind] field everywhere
 
-   - Do not extend WorkDoneProgressParams & PartialResultParams
-
-   - Handle optional fields *)
+   - Do not extend WorkDoneProgressParams & PartialResultParams *)
 
 module Expanded = struct
   (** After this pass, we can assume that:
@@ -435,7 +433,12 @@ module Mapper = struct
       let key = make_typ field.name pat in
       let data = make_typ field.name typ in
       Type.assoc_list ~key ~data
-    | Resolved.Single { typ; optional = _ } -> make_typ field.name typ
+    | Resolved.Single { typ; optional } ->
+      let typ = make_typ field.name typ in
+      if optional then
+        Optional typ
+      else
+        typ
 
   let record_ name (fields : Resolved.field list) =
     let data =
