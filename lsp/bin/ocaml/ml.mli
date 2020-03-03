@@ -33,6 +33,8 @@ module Type : sig
 
   type field
 
+  type constr
+
   type prim =
     | Unit
     | String
@@ -48,8 +50,6 @@ module Type : sig
     | List of t
     | Poly_variant of constr list
     | App of t * t list
-
-  and constr
 
   type decl =
     | Alias of t

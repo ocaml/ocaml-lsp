@@ -60,9 +60,7 @@ module Gen = struct
            Pp.concat [ Pp.textf "%s %s " name delim; f ])
     ++ Pp.verbatim "}"
 
-  let clause ~delim l r =
-    Pp.concat
-      [ verbatim "| "; l; Pp.verbatim (sprintf " %s " delim); r; Pp.newline ]
+  let clause ~delim l r = Pp.concat [ l; Pp.verbatim (sprintf " %s " delim); r ]
 end
 
 module Attr = struct
@@ -150,7 +148,8 @@ module Type = struct
   let key name = concat [ ident "[@key "; quoted name; ident "]" ]
 
   let gen_variant ~poly constrs =
-    Pp.concat_map constrs ~sep:Pp.newline ~f:(fun (name, arg) ->
+    let sep = Pp.concat [ Pp.newline; i "| " ] in
+    Pp.concat_map constrs ~sep ~f:(fun (name, arg) ->
         let name =
           if poly then
             "`" ^ name
@@ -158,7 +157,7 @@ module Type = struct
             name
         in
         match arg with
-        | [] -> Pp.concat [ Pp.textf "| %s" name ]
+        | [] -> i name
         | xs ->
           let xs =
             match xs with
@@ -213,7 +212,8 @@ let record fields = Gen.record ~delim:"=" fields
 
 let match_ e clauses =
   let clauses =
-    Pp.concat_map clauses ~f:(fun (l, r) -> Gen.clause ~delim:"->" l r)
+    let sep = Pp.concat [ Pp.newline; i "| " ] in
+    Pp.concat_map ~sep clauses ~f:(fun (l, r) -> Gen.clause ~delim:"->" l r)
   in
   Pp.concat [ Pp.textf "match %s with" e; Pp.newline; clauses ]
 

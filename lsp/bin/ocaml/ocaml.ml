@@ -354,27 +354,52 @@ module Mapper = struct
         Type.json
       | Ident Self -> Type.t (* XXX wrong *)
       | Ident Null -> assert false
-      | Ident List -> assert false
+      | Ident List -> Type.list Type.json
       | Ident (Resolved r) -> Type.module_t r.name
       | List t -> Type.list (typ t)
       | Tuple ts -> Type.Tuple (List.map ~f:typ ts)
-      | Sum s -> (
-        if is_same_as_json s then
-          Type.json
-        else
-          match remove_null s with
-          | `No_null_present ->
-            if is_same_as_id s then
-              id
-            else
-              Type.unit
-          | `Null_removed [ s ] -> Type.Optional (typ s)
-          | `Null_removed [] -> assert false
-          | `Null_removed cs -> Type.Optional (typ (Sum cs)) )
+      | Sum s -> sum s
       | App _
       | Literal _ ->
         Type.unit
       | Record _ -> Type.Named name
+    and sum s =
+      if is_same_as_json s then
+        Type.json
+      else
+        match remove_null s with
+        | `No_null_present ->
+          if is_same_as_id s then
+            id
+          else
+            poly s
+        | `Null_removed [ s ] -> Type.Optional (typ s)
+        | `Null_removed [] -> assert false
+        | `Null_removed cs -> Type.Optional (sum cs)
+    and poly s : Ml.Type.t =
+      let tag typ =
+        match (typ : Resolved.typ) with
+        | Ident Self
+        | Ident Null ->
+          assert false
+        | Ident String -> "String"
+        | Ident Number -> "Number"
+        | Ident Any
+        | Ident Object ->
+          "Assoc"
+        | Ident Bool -> "Bool"
+        | List _
+        | Ident List ->
+          "List"
+        | Ident (Resolved r) -> r.name
+        | _ -> raise Exit
+      in
+      try
+        Type.Poly_variant
+          (List.map s ~f:(fun t ->
+               let name = tag t in
+               Type.constr ~name [ typ t ]))
+      with Exit -> Type.unit
     in
     typ t
 

@@ -96,7 +96,16 @@ module WorkspaceEdit : sig
 
   type t =
     { changes : changes
-    ; documentChanges : unit
+    ; documentChanges :
+        [ `List of TextDocumentEdit.t list
+        | `List of
+          [ `TextDocumentEdit of TextDocumentEdit.t
+          | `CreateFile of CreateFile.t
+          | `RenameFile of RenameFile.t
+          | `DeleteFile of DeleteFile.t
+          ]
+          list
+        ]
     }
 end
 
@@ -680,7 +689,7 @@ module CompletionItem : sig
     ; kind : int
     ; tags : CompletionItemTag.t list
     ; detail : string
-    ; documentation : unit
+    ; documentation : [ `String of string | `MarkupContent of MarkupContent.t ]
     ; deprecated : bool
     ; preselect : bool
     ; sortText : string
@@ -1151,7 +1160,11 @@ end
 
 module Hover : sig
   type t =
-    { contents : unit
+    { contents :
+        [ `MarkedString of MarkedString.t
+        | `List of MarkedString.t list
+        | `MarkupContent of MarkupContent.t
+        ]
     ; range : Range.t
     }
 end
@@ -1222,7 +1235,7 @@ end
 module WorkspaceFoldersServerCapabilities : sig
   type t =
     { supported : bool
-    ; changeNotifications : unit
+    ; changeNotifications : [ `String of string | `Bool of bool ]
     }
 end
 
@@ -1287,28 +1300,72 @@ module ServerCapabilities : sig
   type workspace = { workspaceFolders : WorkspaceFoldersServerCapabilities.t }
 
   type t =
-    { textDocumentSync : unit
+    { textDocumentSync :
+        [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
+        | `Number of int
+        ]
     ; completionProvider : CompletionOptions.t
-    ; hoverProvider : unit
+    ; hoverProvider : [ `Bool of bool | `HoverOptions of HoverOptions.t ]
     ; signatureHelpProvider : SignatureHelpOptions.t
-    ; declarationProvider : unit
-    ; definitionProvider : unit
-    ; typeDefinitionProvider : unit
-    ; implementationProvider : unit
-    ; referencesProvider : unit
-    ; documentHighlightProvider : unit
-    ; documentSymbolProvider : unit
-    ; codeActionProvider : unit
+    ; declarationProvider :
+        [ `Bool of bool
+        | `DeclarationOptions of DeclarationOptions.t
+        | `DeclarationRegistrationOptions of DeclarationRegistrationOptions.t
+        ]
+    ; definitionProvider :
+        [ `Bool of bool | `DefinitionOptions of DefinitionOptions.t ]
+    ; typeDefinitionProvider :
+        [ `Bool of bool
+        | `TypeDefinitionOptions of TypeDefinitionOptions.t
+        | `TypeDefinitionRegistrationOptions of
+          TypeDefinitionRegistrationOptions.t
+        ]
+    ; implementationProvider :
+        [ `Bool of bool
+        | `ImplementationOptions of ImplementationOptions.t
+        | `ImplementationRegistrationOptions of
+          ImplementationRegistrationOptions.t
+        ]
+    ; referencesProvider :
+        [ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ]
+    ; documentHighlightProvider :
+        [ `Bool of bool
+        | `DocumentHighlightOptions of DocumentHighlightOptions.t
+        ]
+    ; documentSymbolProvider :
+        [ `Bool of bool | `DocumentSymbolOptions of DocumentSymbolOptions.t ]
+    ; codeActionProvider :
+        [ `Bool of bool | `CodeActionOptions of CodeActionOptions.t ]
     ; codeLensProvider : CodeLensOptions.t
     ; documentLinkProvider : DocumentLinkOptions.t
-    ; colorProvider : unit
-    ; documentFormattingProvider : unit
-    ; documentRangeFormattingProvider : unit
+    ; colorProvider :
+        [ `Bool of bool
+        | `DocumentColorOptions of DocumentColorOptions.t
+        | `DocumentColorRegistrationOptions of
+          DocumentColorRegistrationOptions.t
+        ]
+    ; documentFormattingProvider :
+        [ `Bool of bool
+        | `DocumentFormattingOptions of DocumentFormattingOptions.t
+        ]
+    ; documentRangeFormattingProvider :
+        [ `Bool of bool
+        | `DocumentRangeFormattingOptions of DocumentRangeFormattingOptions.t
+        ]
     ; documentOnTypeFormattingProvider : DocumentOnTypeFormattingOptions.t
-    ; renameProvider : unit
-    ; foldingRangeProvider : unit
+    ; renameProvider : [ `Bool of bool | `RenameOptions of RenameOptions.t ]
+    ; foldingRangeProvider :
+        [ `Bool of bool
+        | `FoldingRangeOptions of FoldingRangeOptions.t
+        | `FoldingRangeRegistrationOptions of FoldingRangeRegistrationOptions.t
+        ]
     ; executeCommandProvider : ExecuteCommandOptions.t
-    ; selectionRangeProvider : unit
+    ; selectionRangeProvider :
+        [ `Bool of bool
+        | `SelectionRangeOptions of SelectionRangeOptions.t
+        | `SelectionRangeRegistrationOptions of
+          SelectionRangeRegistrationOptions.t
+        ]
     ; workspaceSymbolProvider : bool
     ; workspace : workspace
     ; experimental : Json.t
@@ -1365,14 +1422,14 @@ module NotificationMessage : sig
   type t =
     { jsonrpc : string
     ; method_ : string [@key "method"]
-    ; params : unit
+    ; params : [ `List of Json.t list | `Assoc of Json.t ]
     }
 end
 
 module ParameterInformation : sig
   type t =
     { label : unit
-    ; documentation : unit
+    ; documentation : [ `String of string | `MarkupContent of MarkupContent.t ]
     }
 end
 
@@ -1453,7 +1510,7 @@ module RequestMessage : sig
     { jsonrpc : string
     ; id : Jsonrpc.Id.t
     ; method_ : string [@key "method"]
-    ; params : unit
+    ; params : [ `List of Json.t list | `Assoc of Json.t ]
     }
 end
 
@@ -1469,7 +1526,14 @@ module ResponseMessage : sig
   type t =
     { jsonrpc : string
     ; id : Jsonrpc.Id.t option [@yojson.option]
-    ; result : unit option [@yojson.option]
+    ; result :
+        [ `String of string
+        | `Number of int
+        | `Bool of bool
+        | `Assoc of Json.t
+        ]
+        option
+          [@yojson.option]
     ; error : ResponseError.t
     }
 end
@@ -1508,7 +1572,7 @@ end
 module SignatureInformation : sig
   type t =
     { label : string
-    ; documentation : unit
+    ; documentation : [ `String of string | `MarkupContent of MarkupContent.t ]
     ; parameters : ParameterInformation.t list
     }
 end
