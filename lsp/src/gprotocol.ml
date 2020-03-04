@@ -44,8 +44,7 @@ end
 
 module DeleteFile = struct
   type t =
-    { kind : unit
-    ; uri : DocumentUri.t
+    { uri : DocumentUri.t
     ; options : DeleteFileOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -68,8 +67,7 @@ end
 
 module RenameFile = struct
   type t =
-    { kind : unit
-    ; oldUri : DocumentUri.t
+    { oldUri : DocumentUri.t
     ; newUri : DocumentUri.t
     ; options : RenameFileOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -93,8 +91,7 @@ end
 
 module CreateFile = struct
   type t =
-    { kind : unit
-    ; uri : DocumentUri.t
+    { uri : DocumentUri.t
     ; options : CreateFileOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -2625,8 +2622,7 @@ end
 
 module WorkDoneProgressBegin = struct
   type t =
-    { kind : unit
-    ; title : string
+    { title : string
     ; cancellable : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; message : string Json.Nullable_option.t
@@ -2655,8 +2651,7 @@ end
 
 module WorkDoneProgressEnd = struct
   type t =
-    { kind : unit
-    ; message : string Json.Nullable_option.t
+    { message : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -2666,8 +2661,7 @@ end
 
 module WorkDoneProgressReport = struct
   type t =
-    { kind : unit
-    ; cancellable : bool Json.Nullable_option.t
+    { cancellable : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; message : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]

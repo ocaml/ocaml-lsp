@@ -102,13 +102,13 @@ module Type = struct
 
   let module_t m = Named (String.capitalize_ascii m ^ ".t")
 
-  let string = Named "string"
+  let string = Prim String
 
   let name s = Named s
 
-  let int = Named "int"
+  let int = Prim Int
 
-  let bool = Named "bool"
+  let bool = Prim Bool
 
   let alpha = Var "a"
 
@@ -121,7 +121,7 @@ module Type = struct
 
   let json = Named "Json.t"
 
-  let unit = Named "unit"
+  let unit = Prim Unit
 
   module Type = W.Type
 
@@ -159,7 +159,13 @@ module Type = struct
     | Alias a -> pp ~kind a
     | Record r -> (
       let r =
-        List.map r ~f:(fun { name; typ; attrs } ->
+        List.filter_map r ~f:(fun { name; typ; attrs } ->
+            let open Option.O in
+            let+ () =
+              match (name, typ) with
+              | "kind", Prim Unit -> None
+              | _, _ -> Some ()
+            in
             let def =
               let field = pp ~kind typ in
               let attrs =

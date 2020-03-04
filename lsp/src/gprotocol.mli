@@ -24,8 +24,7 @@ end
 
 module DeleteFile : sig
   type t =
-    { kind : unit
-    ; uri : DocumentUri.t
+    { uri : DocumentUri.t
     ; options : DeleteFileOptions.t option
     }
 end
@@ -39,8 +38,7 @@ end
 
 module RenameFile : sig
   type t =
-    { kind : unit
-    ; oldUri : DocumentUri.t
+    { oldUri : DocumentUri.t
     ; newUri : DocumentUri.t
     ; options : RenameFileOptions.t option
     }
@@ -55,8 +53,7 @@ end
 
 module CreateFile : sig
   type t =
-    { kind : unit
-    ; uri : DocumentUri.t
+    { uri : DocumentUri.t
     ; options : CreateFileOptions.t option
     }
 end
@@ -1619,8 +1616,7 @@ end
 
 module WorkDoneProgressBegin : sig
   type t =
-    { kind : unit
-    ; title : string
+    { title : string
     ; cancellable : bool option
     ; message : string option
     ; percentage : int option
@@ -1636,16 +1632,12 @@ module WorkDoneProgressCreateParams : sig
 end
 
 module WorkDoneProgressEnd : sig
-  type t =
-    { kind : unit
-    ; message : string option
-    }
+  type t = { message : string option }
 end
 
 module WorkDoneProgressReport : sig
   type t =
-    { kind : unit
-    ; cancellable : bool option
+    { cancellable : bool option
     ; message : string option
     ; percentage : int option
     }
