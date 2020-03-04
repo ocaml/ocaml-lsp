@@ -1397,8 +1397,6 @@ module InitializeResult : sig
     }
 end
 
-module InitializedParams : sig end
-
 module LocationLink : sig
   type t =
     { originSelectionRange : Range.t option
@@ -1415,10 +1413,6 @@ module LogMessageParams : sig
     }
 end
 
-module Message : sig
-  type t = { jsonrpc : string }
-end
-
 module MessageActionItem : sig
   type t = { title : string }
 end
@@ -1429,14 +1423,6 @@ module MessageType : sig
     | Warning
     | Info
     | Log
-end
-
-module NotificationMessage : sig
-  type t =
-    { jsonrpc : string
-    ; method_ : string
-    ; params : [ `List of Json.t list | `Assoc of Json.t ] option
-    }
 end
 
 module ParameterInformation : sig
@@ -1516,35 +1502,6 @@ module RenameRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     ; prepareProvider : bool option
-    }
-end
-
-module RequestMessage : sig
-  type t =
-    { jsonrpc : string
-    ; id : Jsonrpc.Id.t
-    ; method_ : string
-    ; params : [ `List of Json.t list | `Assoc of Json.t ] option
-    }
-end
-
-module ResponseError : sig
-  type t =
-    { code : int
-    ; message : string
-    ; data : Json.t option
-    }
-end
-
-module ResponseMessage : sig
-  type t =
-    { jsonrpc : string
-    ; id : Jsonrpc.Id.t option
-    ; result :
-        [ `String of string | `Int of int | `Bool of bool | `Assoc of Json.t ]
-        option
-        option
-    ; error : ResponseError.t option
     }
 end
 

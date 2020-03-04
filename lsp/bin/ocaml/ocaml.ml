@@ -64,7 +64,7 @@ module Expanded = struct
         super#field f ~init
     end
 
-  let of_ts (r : Resolved.t) : t =
+  let bindings (r : Resolved.t) =
     let t = { r with name = "t" } in
     let t : binding Named.t =
       match r.data with
@@ -82,7 +82,18 @@ module Expanded = struct
       | Type typ -> (new discovered_types)#typ typ ~init
       | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
     in
-    { Ml.Module.name = r.name; bindings }
+    bindings
+
+  let of_ts (r : Resolved.t) : t option =
+    match r.name with
+    | "InitializedParams"
+    | "NotificationMessage"
+    | "RequestMessage"
+    | "ResponseError"
+    | "ResponseMessage"
+    | "Message" ->
+      None
+    | _ -> Some { Ml.Module.name = r.name; bindings = bindings r }
 end
 
 module Json = struct
@@ -550,8 +561,9 @@ let of_typescript (ts : Resolved.t list) =
         match t.data with
         | Enum_anon data -> Some (Enum.module_ { t with data })
         | _ ->
-          let mod_ = Expanded.of_ts t in
-          Some (Gen.module_ mod_))
+          let open Option.O in
+          let+ mod_ = Expanded.of_ts t in
+          Gen.module_ mod_)
 
 let mli = name ^ ".mli"
 

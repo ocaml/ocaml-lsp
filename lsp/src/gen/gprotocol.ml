@@ -2306,8 +2306,6 @@ module InitializeResult = struct
   [@@@end]
 end
 
-module InitializedParams = struct end
-
 module LocationLink = struct
   type t =
     { originSelectionRange : Range.t Json.Nullable_option.t
@@ -2331,13 +2329,6 @@ module LogMessageParams = struct
   [@@@end]
 end
 
-module Message = struct
-  type t = { jsonrpc : string }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
-end
-
 module MessageActionItem = struct
   type t = { title : string } [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -2350,19 +2341,6 @@ module MessageType = struct
     | Warning
     | Info
     | Log
-end
-
-module NotificationMessage = struct
-  type t =
-    { jsonrpc : string
-    ; method_ : string [@key "method"]
-    ; params :
-        [ `List of Json.t list | `Assoc of Json.t ] Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
 end
 
 module ParameterInformation = struct
@@ -2483,50 +2461,6 @@ module RenameRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; prepareProvider : bool Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
-end
-
-module RequestMessage = struct
-  type t =
-    { jsonrpc : string
-    ; id : Jsonrpc.Id.t
-    ; method_ : string [@key "method"]
-    ; params :
-        [ `List of Json.t list | `Assoc of Json.t ] Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
-end
-
-module ResponseError = struct
-  type t =
-    { code : int
-    ; message : string
-    ; data : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
-
-  [@@@end]
-end
-
-module ResponseMessage = struct
-  type t =
-    { jsonrpc : string
-    ; id : Jsonrpc.Id.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; result :
-        [ `String of string | `Int of int | `Bool of bool | `Assoc of Json.t ]
-        Json.Nullable_option.t
-        Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; error : ResponseError.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
