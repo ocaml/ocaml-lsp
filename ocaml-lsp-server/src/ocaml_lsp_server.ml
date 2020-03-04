@@ -175,9 +175,8 @@ let code_action store (params : Lsp.CodeAction.Params.t) =
             (code_action_of_case_analysis params.textDocument.uri res)
         ]
       with
-      | Failure _
-      (* TODO: find a better way of catching this, this is a bit dirty *)
-      | Invalid_argument _
+      | Destruct.Wrong_parent _
+      | Query_commands.No_nodes
       | Destruct.Not_allowed _
       | Destruct.Useless_refine
       | Destruct.Nothing_to_do ->
