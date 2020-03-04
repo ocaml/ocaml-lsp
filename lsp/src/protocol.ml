@@ -4745,7 +4745,7 @@ module ApplyWorkspaceEdit = struct
   module Params = struct
     type t =
       { label : string option [@yojson.option]
-      ; edit : WorkspaceEdit.t list
+      ; edit : WorkspaceEdit.t
       }
     [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4773,9 +4773,7 @@ module ApplyWorkspaceEdit = struct
               | "edit" -> (
                 match Ppx_yojson_conv_lib.( ! ) edit_field with
                 | None ->
-                  let fvalue =
-                    list_of_yojson WorkspaceEdit.t_of_yojson _field_yojson
-                  in
+                  let fvalue = WorkspaceEdit.t_of_yojson _field_yojson in
                   edit_field := Some fvalue
                 | Some _ ->
                   duplicates :=
@@ -4824,7 +4822,7 @@ module ApplyWorkspaceEdit = struct
         | { label = v_label; edit = v_edit } ->
           let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
           let bnds =
-            let arg = yojson_of_list WorkspaceEdit.yojson_of_t v_edit in
+            let arg = WorkspaceEdit.yojson_of_t v_edit in
             ("edit", arg) :: bnds
           in
           let bnds =

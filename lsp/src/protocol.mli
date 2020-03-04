@@ -514,7 +514,7 @@ module ApplyWorkspaceEdit : sig
   module Params : sig
     type t =
       { label : string option
-      ; edit : WorkspaceEdit.t list
+      ; edit : WorkspaceEdit.t
       }
 
     include Json.Jsonable.S with type t := t
