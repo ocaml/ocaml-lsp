@@ -2,7 +2,6 @@ open! Import
 open! Ts_types
 
 (* TODO
-   - Use Nullable_option
 
    - Handle the [kind] field everywhere
 
@@ -173,10 +172,11 @@ module Let = struct
 
   let pp =
     let intf { name; pat; body } =
+      let kind = Ml.Kind.Intf in
       let patterns =
         let open Expr in
         Pp.concat_map pat ~f:(fun (pat, typ) ->
-            let typ = Ml.Type.pp typ in
+            let typ = Ml.Type.pp ~kind typ in
             let typ = Pp.concat [ typ; Pp.space; Pp.verbatim "->"; Pp.space ] in
             match pat with
             | Unnamed _ -> typ
@@ -184,7 +184,11 @@ module Let = struct
             | Optional (name, _) -> Pp.concat [ Pp.textf "?%s:" name; typ ])
       in
       Pp.concat
-        [ Pp.textf "val %s :" name; Pp.space; patterns; Ml.Type.pp (snd body) ]
+        [ Pp.textf "val %s :" name
+        ; Pp.space
+        ; patterns
+        ; Ml.Type.pp ~kind (snd body)
+        ]
     in
     let impl { name; pat; body } =
       let pat =

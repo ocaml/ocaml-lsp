@@ -60,7 +60,7 @@ module Type : sig
 
   val pp_decl : name:string -> kind:Kind.t -> decl -> unit Pp.t
 
-  val pp : t -> unit Pp.t
+  val pp : t -> kind:Kind.t -> unit Pp.t
 
   val field : t -> name:string -> field
 

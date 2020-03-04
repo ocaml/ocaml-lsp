@@ -132,31 +132,47 @@ module Type = struct
     | Bool -> Pp.verbatim "bool"
     | Unit -> Pp.verbatim "unit"
 
-  let rec pp (a : t) : W.t =
+  let rec pp (a : t) ~(kind : Kind.t) : W.t =
     match a with
     | Prim p -> pp_prim p
     | Var v -> Type.var v
     | Named v -> Type.name v
-    | App (f, xs) -> Type.app (pp f) (List.map ~f:pp xs)
-    | Tuple t -> Type.tuple (List.map ~f:pp t)
-    | Optional t -> pp (App (Named "option", [ t ]))
-    | List t -> pp (App (Named "list", [ t ]))
+    | App (f, xs) -> Type.app (pp ~kind f) (List.map ~f:(pp ~kind) xs)
+    | Tuple t -> Type.tuple (List.map ~f:(pp ~kind) t)
+    | Optional t ->
+      let name =
+        match kind with
+        | Intf -> "option"
+        | Impl -> "Json.Nullable_option.t"
+      in
+      pp ~kind (App (Named name, [ t ]))
+    | List t -> pp ~kind (App (Named "list", [ t ]))
     | Poly_variant constrs ->
-      List.map constrs ~f:(fun { name; args } -> (name, List.map args ~f:pp))
+      List.map constrs ~f:(fun { name; args } ->
+          (name, List.map args ~f:(pp ~kind)))
       |> Type.poly
 
   let pp_decl' ~(kind : Kind.t) (a : decl) =
     match a with
-    | Alias a -> pp a
+    | Alias a -> pp ~kind a
     | Record r -> (
       let r =
         List.map r ~f:(fun { name; typ; attrs } ->
             let def =
-              let field = pp typ in
+              let field = pp ~kind typ in
               let attrs =
-                List.map attrs ~f:(function
-                  | Option -> W.Attr.make "yojson.option" []
-                  | Key s -> W.Attr.make "key" [ Pp.verbatim (sprintf "%S" s) ])
+                let attrs =
+                  match kind with
+                  | Intf -> []
+                  | Impl -> attrs
+                in
+                List.concat_map attrs ~f:(function
+                  | Option ->
+                    [ W.Attr.make "default" [ Pp.verbatim "None" ]
+                    ; W.Attr.make "yojson_drop_default" [ Pp.verbatim "( = )" ]
+                    ]
+                  | Key s ->
+                    [ W.Attr.make "key" [ Pp.verbatim (sprintf "%S" s) ] ])
               in
               Type.field_attrs ~field ~attrs
             in
@@ -167,7 +183,7 @@ module Type = struct
       | Intf -> r
       | Impl -> W.Type.deriving r )
     | Variant v ->
-      List.map v ~f:(fun { name; args } -> (name, List.map ~f:pp args))
+      List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))
       |> Type.variant
 
   let pp_decl ~name ~kind (a : decl) : W.t =
@@ -199,7 +215,7 @@ module Module = struct
           in
           let rhs =
             match v with
-            | Value t -> Type.pp t
+            | Value t -> Type.pp ~kind:Intf t
             | Type_decl t -> Type.pp_decl' ~kind:Intf t
           in
           Pp.concat [ lhs; Pp.space; rhs ])
