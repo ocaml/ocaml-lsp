@@ -619,12 +619,5 @@ let output modules ~kind out =
   in
   let def = { intf; impl } in
   let def = Ml.Kind.Map.map def ~f:(Pp.concat ~sep:Pp.newline) in
-  let def =
-    let prelude =
-      let open W in
-      Pp.concat [ opens [ "Import" ]; warnings "-30"; Pp.newline ]
-    in
-    Ml.Kind.Map.map def ~f:(Pp.seq prelude)
-  in
   let pp = Ml.Kind.Map.get def kind in
   pp_file pp out

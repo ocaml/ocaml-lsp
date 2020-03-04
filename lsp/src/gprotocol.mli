@@ -1,6 +1,6 @@
-(*$ Lsp_gen.print_mli () *)
-
 open! Import
+
+(*$ Lsp_gen.print_mli () *)
 
 [@@@warning "-30"]
 

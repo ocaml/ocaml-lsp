@@ -1,8 +1,6 @@
-(*$ Lsp_gen.print_ml () *)
-
 open! Import
 
-[@@@warning "-30"]
+(*$ Lsp_gen.print_ml () *)
 
 module DeleteFileOptions = struct
   type t =
