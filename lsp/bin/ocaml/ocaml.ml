@@ -2,8 +2,7 @@ open! Import
 open! Ts_types
 
 (* TODO
-
-   - Special case a single Sum[Record | Record] case
+   - Use Nullable_option
 
    - Handle the [kind] field everywhere
 
@@ -22,10 +21,30 @@ module Expanded = struct
 
   type t = binding Ml.Module.t
 
-  let new_binding_of_typ (x : Resolved.typ) : binding option =
+  let union_fields l1 l2 ~f =
+    let of_map =
+      String.Map.of_list_map_exn ~f:(fun (x : _ Named.t) -> (x.name, x))
+    in
+    String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
+
+  let new_binding_of_typ ~name (x : Resolved.typ) : binding option =
     match x with
     | Record [ { Named.name = _; data = Pattern _ } ] -> None
     | Record d -> Some (Record d)
+    | Sum d ->
+      if name = Some "TextDocumentContentChangeEvent" then
+        match d with
+        | [ Resolved.Record f1; Record f2 ] ->
+          let fields =
+            union_fields f1 f2 ~f:(fun k t1 t2 ->
+                assert (k = "text");
+                assert (t1 = t2);
+                Some t1)
+          in
+          Some (Record fields)
+        | _ -> assert false
+      else
+        None
     | _ -> None
 
   class discovered_types =
@@ -39,7 +58,7 @@ module Expanded = struct
           match f.data with
           | Pattern _ -> init
           | Single { optional = _; typ } -> (
-            match new_binding_of_typ typ with
+            match new_binding_of_typ ~name:None typ with
             | None -> init
             | Some data -> { f with data } :: init )
         in
@@ -53,7 +72,7 @@ module Expanded = struct
       | Enum_anon _ -> assert false
       | Interface i -> { t with data = Interface i }
       | Type typ -> (
-        match new_binding_of_typ typ with
+        match new_binding_of_typ ~name:(Some r.name) typ with
         | Some data -> { t with data }
         | None -> { t with data = Alias typ } )
     in
@@ -481,7 +500,7 @@ module Gen = struct
             | _ -> assert false)
       in
       init @ i.fields
-    and type_ init (i : Resolved.decl) =
+    and type_ init (i : Resolved.decl) : Resolved.field list =
       match i with
       | Enum_anon _ -> assert false
       | Type (Record fields) -> List.rev_append fields init

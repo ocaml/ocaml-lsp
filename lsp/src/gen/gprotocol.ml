@@ -1115,7 +1115,14 @@ module DidChangeConfigurationParams = struct
 end
 
 module TextDocumentContentChangeEvent = struct
-  type t = unit
+  type t =
+    { range : Range.t
+    ; rangeLength : int option [@yojson.option]
+    ; text : string
+    }
+  [@@deriving_inline] [@@yojson.allow_extra_fields]
+
+  [@@@end]
 end
 
 module DidChangeTextDocumentParams = struct

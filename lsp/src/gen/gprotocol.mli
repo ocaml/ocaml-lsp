@@ -824,7 +824,11 @@ module DidChangeConfigurationParams : sig
 end
 
 module TextDocumentContentChangeEvent : sig
-  type t = unit
+  type t =
+    { range : Range.t
+    ; rangeLength : int option [@yojson.option]
+    ; text : string
+    }
 end
 
 module DidChangeTextDocumentParams : sig
