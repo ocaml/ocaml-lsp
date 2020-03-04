@@ -141,9 +141,11 @@ module Type = struct
     | Tuple t -> Type.tuple (List.map ~f:(pp ~kind) t)
     | Optional t ->
       let name =
-        match kind with
-        | Intf -> "option"
-        | Impl -> "Json.Nullable_option.t"
+        match (kind, t) with
+        | Impl, Named "Json.t"
+        | Intf, _ ->
+          "option"
+        | Impl, _ -> "Json.Nullable_option.t"
       in
       pp ~kind (App (Named name, [ t ]))
     | List t -> pp ~kind (App (Named "list", [ t ]))
@@ -168,9 +170,13 @@ module Type = struct
                 in
                 List.concat_map attrs ~f:(function
                   | Option ->
-                    [ W.Attr.make "default" [ Pp.verbatim "None" ]
-                    ; W.Attr.make "yojson_drop_default" [ Pp.verbatim "( = )" ]
-                    ]
+                    if typ = Optional json then
+                      [ W.Attr.make "yojson.option" [] ]
+                    else
+                      [ W.Attr.make "default" [ Pp.verbatim "None" ]
+                      ; W.Attr.make "yojson_drop_default"
+                          [ Pp.verbatim "( = )" ]
+                      ]
                   | Key s ->
                     [ W.Attr.make "key" [ Pp.verbatim (sprintf "%S" s) ] ])
               in

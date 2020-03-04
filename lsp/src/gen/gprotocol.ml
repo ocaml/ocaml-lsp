@@ -786,8 +786,7 @@ module ClientCapabilities = struct
           [@default None] [@yojson_drop_default ( = )]
     ; window : window Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; experimental : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+    ; experimental : Json.t option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -989,8 +988,7 @@ module CodeLens = struct
     { range : Range.t
     ; command : Command.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; data : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+    ; data : Json.t option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1143,8 +1141,7 @@ module CompletionItem = struct
           [@default None] [@yojson_drop_default ( = )]
     ; command : Command.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; data : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+    ; data : Json.t option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1577,8 +1574,7 @@ module DocumentLink = struct
           [@default None] [@yojson_drop_default ( = )]
     ; tooltip : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; data : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+    ; data : Json.t option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1951,8 +1947,7 @@ module InitializeParams = struct
           [@default None] [@yojson_drop_default ( = )]
     ; rootUri : DocumentUri.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; initializationOptions : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+    ; initializationOptions : Json.t option [@yojson.option]
     ; capabilities : ClientCapabilities.t
     ; trace : [ `Off | `Messages | `Verbose ] Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -2210,8 +2205,7 @@ module ServerCapabilities = struct
           [@default None] [@yojson_drop_default ( = )]
     ; workspace : workspace Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; experimental : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+    ; experimental : Json.t option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -2354,8 +2348,7 @@ module Registration = struct
   type t =
     { id : string
     ; method_ : string [@key "method"]
-    ; registerOptions : Json.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+    ; registerOptions : Json.t option [@yojson.option]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
