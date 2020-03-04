@@ -1,11 +1,95 @@
 open! Import
 open! Ts_types
 
-(* TODO
+(* TODO - Handle the [kind] field everywhere *)
 
-   - Handle the [kind] field everywhere
+let preprocess =
+  let union_fields l1 l2 ~f =
+    let of_map =
+      String.Map.of_list_map_exn ~f:(fun (x : _ Named.t) -> (x.name, x))
+    in
+    String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
+  in
+  let module M = struct
+    exception Skip
+  end in
+  let open M in
+  let traverse =
+    object (self)
+      inherit Resolved.map as super
 
-   - Do not extend WorkDoneProgressParams & PartialResultParams *)
+      val mutable current_name = None
+
+      method name =
+        match current_name with
+        | None -> assert false
+        | Some n -> n
+
+      method! field x =
+        if x.name <> "documentChanges" then
+          super#field x
+        else
+          (* This gross hack is needed for the documentChanges field. We can
+             ignore the first constructor since it's completely representable
+             with the second one. *)
+          match x.data with
+          | Single
+              { typ =
+                  Sum
+                    [ Resolved.List
+                        (Ident
+                          (Resolved { Named.name = "TextDocumentEdit"; _ }))
+                    ; (List _ as typ)
+                    ]
+              ; optional
+              } ->
+            let data = Resolved.Single { typ; optional } in
+            super#field { x with data }
+          | _ -> super#field x
+
+      method! typ x =
+        match x with
+        | Sum [ Resolved.Record f1; Record f2 ]
+          when self#name = "TextDocumentContentChangeEvent" ->
+          let t =
+            Resolved.Record
+              (union_fields f1 f2 ~f:(fun k t1 t2 ->
+                   assert (k = "text");
+                   assert (t1 = t2);
+                   Some t1))
+          in
+          super#typ t
+        | t -> super#typ t
+
+      method! t x =
+        match x.name with
+        | "InitializedParams"
+        | "NotificationMessage"
+        | "RequestMessage"
+        | "ResponseError"
+        | "ResponseMessage"
+        | "Message" ->
+          raise_notrace Skip
+        | name ->
+          current_name <- Some name;
+          super#t x
+
+      method! interface i =
+        let extends =
+          List.filter i.extends ~f:(fun x ->
+              match x with
+              | Prim.Resolved r -> (
+                match r.name with
+                | "WorkDoneProgressParams"
+                | "PartialResultParams" ->
+                  false
+                | _ -> true )
+              | _ -> true)
+        in
+        super#interface { i with extends }
+    end
+  in
+  fun i -> try Some (traverse#t i) with Skip -> None
 
 module Expanded = struct
   (** After this pass, we can assume that:
@@ -27,23 +111,10 @@ module Expanded = struct
     String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
 
   let new_binding_of_typ ~name (x : Resolved.typ) : binding option =
+    ignore name;
     match x with
     | Record [ { Named.name = _; data = Pattern _ } ] -> None
     | Record d -> Some (Record d)
-    | Sum d ->
-      if name = Some "TextDocumentContentChangeEvent" then
-        match d with
-        | [ Resolved.Record f1; Record f2 ] ->
-          let fields =
-            union_fields f1 f2 ~f:(fun k t1 t2 ->
-                assert (k = "text");
-                assert (t1 = t2);
-                Some t1)
-          in
-          Some (Record fields)
-        | _ -> assert false
-      else
-        None
     | _ -> None
 
   class discovered_types =
@@ -76,24 +147,13 @@ module Expanded = struct
         | None -> { t with data = Alias typ } )
     in
     let init = [ t ] in
-    let bindings =
-      match r.data with
-      | Enum_anon _ -> assert false
-      | Type typ -> (new discovered_types)#typ typ ~init
-      | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
-    in
-    bindings
+    match r.data with
+    | Enum_anon _ -> assert false
+    | Type typ -> (new discovered_types)#typ typ ~init
+    | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
 
-  let of_ts (r : Resolved.t) : t option =
-    match r.name with
-    | "InitializedParams"
-    | "NotificationMessage"
-    | "RequestMessage"
-    | "ResponseError"
-    | "ResponseMessage"
-    | "Message" ->
-      None
-    | _ -> Some { Ml.Module.name = r.name; bindings = bindings r }
+  let of_ts (r : Resolved.t) : t =
+    { Ml.Module.name = r.name; bindings = bindings r }
 end
 
 module Json = struct
@@ -405,19 +465,11 @@ module Mapper = struct
         Type.json
       else
         match remove_null s with
-        | `No_null_present -> (
+        | `No_null_present ->
           if is_same_as_id s then
             id
           else
-            (* This gross hack is needed for the documentChanges field. We can
-               ignore the first constructor since it's completely representable
-               with the second one. *)
-            match s with
-            | [ List (Ident (Resolved { Named.name = "TextDocumentEdit"; _ }))
-              ; (List _ as xs)
-              ] ->
-              type_ xs
-            | _ -> poly s )
+            poly s
         | `Null_removed [ s ] -> Type.Optional (type_ s)
         | `Null_removed [] -> assert false
         | `Null_removed cs -> Type.Optional (sum cs)
@@ -562,7 +614,8 @@ let of_typescript (ts : Resolved.t list) =
         | Enum_anon data -> Some (Enum.module_ { t with data })
         | _ ->
           let open Option.O in
-          let+ mod_ = Expanded.of_ts t in
+          let+ pped = preprocess t in
+          let mod_ = Expanded.of_ts pped in
           Gen.module_ mod_)
 
 let mli = name ^ ".mli"

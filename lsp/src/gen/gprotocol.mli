@@ -555,9 +555,7 @@ end
 
 module CodeActionParams : sig
   type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; context : CodeActionContext.t
     }
@@ -603,11 +601,7 @@ module CodeLensOptions : sig
 end
 
 module CodeLensParams : sig
-  type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
 end
 
 module CodeLensRegistrationOptions : sig
@@ -644,9 +638,7 @@ end
 
 module ColorPresentationParams : sig
   type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; color : Color.t
     ; range : Range.t
     }
@@ -728,8 +720,6 @@ module CompletionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
     ; context : CompletionContext.t option
     }
 end
@@ -763,8 +753,6 @@ module DeclarationParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
     }
 end
 
@@ -788,8 +776,6 @@ module DefinitionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
     }
 end
 
@@ -888,11 +874,7 @@ module DocumentColorOptions : sig
 end
 
 module DocumentColorParams : sig
-  type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
 end
 
 module DocumentColorRegistrationOptions : sig
@@ -920,8 +902,7 @@ end
 
 module DocumentFormattingParams : sig
   type t =
-    { workDoneToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; options : FormattingOptions.t
     }
 end
@@ -955,8 +936,6 @@ module DocumentHighlightParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
     }
 end
 
@@ -984,11 +963,7 @@ module DocumentLinkOptions : sig
 end
 
 module DocumentLinkParams : sig
-  type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
 end
 
 module DocumentLinkRegistrationOptions : sig
@@ -1029,8 +1004,7 @@ end
 
 module DocumentRangeFormattingParams : sig
   type t =
-    { workDoneToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; options : FormattingOptions.t
     }
@@ -1060,11 +1034,7 @@ module DocumentSymbolOptions : sig
 end
 
 module DocumentSymbolParams : sig
-  type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
 end
 
 module DocumentSymbolRegistrationOptions : sig
@@ -1098,8 +1068,7 @@ end
 
 module ExecuteCommandParams : sig
   type t =
-    { workDoneToken : ProgressToken.t option
-    ; command : string
+    { command : string
     ; arguments : Json.t list option
     }
 end
@@ -1140,11 +1109,7 @@ module FoldingRangeOptions : sig
 end
 
 module FoldingRangeParams : sig
-  type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
 end
 
 module FoldingRangeRegistrationOptions : sig
@@ -1178,7 +1143,6 @@ module HoverParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
     }
 end
 
@@ -1197,8 +1161,6 @@ module ImplementationParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
     }
 end
 
@@ -1221,8 +1183,7 @@ module InitializeParams : sig
     }
 
   type t =
-    { workDoneToken : ProgressToken.t option
-    ; processId : int option
+    { processId : int option
     ; clientInfo : clientInfo option
     ; rootPath : string option option
     ; rootUri : DocumentUri.t option
@@ -1463,8 +1424,6 @@ module ReferenceParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
     ; context : ReferenceContext.t
     }
 end
@@ -1492,7 +1451,6 @@ module RenameParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
     ; newName : string
     }
 end
@@ -1514,9 +1472,7 @@ end
 
 module SelectionRangeParams : sig
   type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; positions : Position.t list
     }
 end
@@ -1573,7 +1529,6 @@ module SignatureHelpParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
     ; context : SignatureHelpContext.t option
     }
 end
@@ -1629,8 +1584,6 @@ module TypeDefinitionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
     }
 end
 
@@ -1698,11 +1651,7 @@ module WorkspaceSymbolOptions : sig
 end
 
 module WorkspaceSymbolParams : sig
-  type t =
-    { workDoneToken : ProgressToken.t option
-    ; partialResultToken : ProgressToken.t option
-    ; query : string
-    }
+  type t = { query : string }
 end
 
 module WorkspaceSymbolRegistrationOptions : sig

@@ -933,11 +933,7 @@ end
 
 module CodeActionParams = struct
   type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; context : CodeActionContext.t
     }
@@ -1014,13 +1010,7 @@ module CodeLensOptions = struct
 end
 
 module CodeLensParams = struct
-  type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1077,11 +1067,7 @@ end
 
 module ColorPresentationParams = struct
   type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; color : Color.t
     ; range : Range.t
     }
@@ -1205,10 +1191,6 @@ module CompletionParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; context : CompletionContext.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -1268,10 +1250,6 @@ module DeclarationParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1316,10 +1294,6 @@ module DefinitionParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1477,13 +1451,7 @@ module DocumentColorOptions = struct
 end
 
 module DocumentColorParams = struct
-  type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1532,9 +1500,7 @@ end
 
 module DocumentFormattingParams = struct
   type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; options : FormattingOptions.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -1586,10 +1552,6 @@ module DocumentHighlightParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1636,13 +1598,7 @@ module DocumentLinkOptions = struct
 end
 
 module DocumentLinkParams = struct
-  type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1710,9 +1666,7 @@ end
 
 module DocumentRangeFormattingParams = struct
   type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; options : FormattingOptions.t
     }
@@ -1762,13 +1716,7 @@ module DocumentSymbolOptions = struct
 end
 
 module DocumentSymbolParams = struct
-  type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1814,9 +1762,7 @@ end
 
 module ExecuteCommandParams = struct
   type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; command : string
+    { command : string
     ; arguments : Json.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -1877,13 +1823,7 @@ module FoldingRangeOptions = struct
 end
 
 module FoldingRangeParams = struct
-  type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
-    }
+  type t = { textDocument : TextDocumentIdentifier.t }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
@@ -1936,8 +1876,6 @@ module HoverParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -1970,10 +1908,6 @@ module ImplementationParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -2009,9 +1943,7 @@ module InitializeParams = struct
   [@@@end]
 
   type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; processId : int Json.Nullable_option.t
+    { processId : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; clientInfo : clientInfo Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -2399,10 +2331,6 @@ module ReferenceParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; context : ReferenceContext.t
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -2445,8 +2373,6 @@ module RenameParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; newName : string
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -2481,11 +2407,7 @@ end
 
 module SelectionRangeParams = struct
   type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; textDocument : TextDocumentIdentifier.t
+    { textDocument : TextDocumentIdentifier.t
     ; positions : Position.t list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -2568,8 +2490,6 @@ module SignatureHelpParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; context : SignatureHelpContext.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -2650,10 +2570,6 @@ module TypeDefinitionParams = struct
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
-    ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
@@ -2761,14 +2677,7 @@ module WorkspaceSymbolOptions = struct
 end
 
 module WorkspaceSymbolParams = struct
-  type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    ; query : string
-    }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { query : string } [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
