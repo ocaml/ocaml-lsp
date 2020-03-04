@@ -110,8 +110,7 @@ module Expanded = struct
     in
     String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
 
-  let new_binding_of_typ ~name (x : Resolved.typ) : binding option =
-    ignore name;
+  let new_binding_of_typ (x : Resolved.typ) : binding option =
     match x with
     | Record [ { Named.name = _; data = Pattern _ } ] -> None
     | Record d -> Some (Record d)
@@ -128,7 +127,7 @@ module Expanded = struct
           match f.data with
           | Pattern _ -> init
           | Single { optional = _; typ } -> (
-            match new_binding_of_typ ~name:None typ with
+            match new_binding_of_typ typ with
             | None -> init
             | Some data -> { f with data } :: init )
         in
@@ -142,7 +141,7 @@ module Expanded = struct
       | Enum_anon _ -> assert false
       | Interface i -> { t with data = Interface i }
       | Type typ -> (
-        match new_binding_of_typ ~name:(Some r.name) typ with
+        match new_binding_of_typ typ with
         | Some data -> { t with data }
         | None -> { t with data = Alias typ } )
     in
