@@ -92,10 +92,8 @@ let preprocess =
   fun i -> try Some (traverse#t i) with Skip -> None
 
 module Expanded = struct
-  (** After this pass, we can assume that:
+  [@@@ocaml.warning "-37"]
 
-      - we don't need to introduce any new types - the types are printed in a
-      topological order - module names are decided *)
   type binding =
     | Record of Resolved.field list
     | Interface of Resolved.interface
@@ -103,12 +101,6 @@ module Expanded = struct
     | Alias of Resolved.typ
 
   type t = binding Ml.Module.t
-
-  let union_fields l1 l2 ~f =
-    let of_map =
-      String.Map.of_list_map_exn ~f:(fun (x : _ Named.t) -> (x.name, x))
-    in
-    String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
 
   let new_binding_of_typ (x : Resolved.typ) : binding option =
     match x with
@@ -164,7 +156,7 @@ module Json = struct
 end
 
 module Expr = struct
-  [@@@warning "-30"]
+  [@@@ocaml.warning "-30-32-37"]
 
   type expr =
     | Ident of string
@@ -228,12 +220,16 @@ module Expr = struct
 end
 
 module Texpr = struct
+  [@@@ocaml.warning "-34-32-37"]
+
   type t = Expr.t * Ml.Type.t
 
   let assert_false = (Expr.Assert_false, Ml.Type.alpha)
 end
 
 module Let = struct
+  [@@@ocaml.warning "-32-37"]
+
   type t =
     { name : string
     ; pat : (Expr.pat Expr.arg * Ml.Type.t) list
@@ -288,7 +284,7 @@ module Module = struct
 
   type t = (Module.sig_ Module.t, Module.impl Module.t) Ml.Kind.pair
 
-  let empty name =
+  let _empty name =
     { Ml.Kind.intf = Ml.Module.empty name; impl = Ml.Module.empty name }
 
   let type_decls name (type_decls : Ml.Type.decl Named.t list) : t =
@@ -315,14 +311,10 @@ module Module = struct
   let pp t = { Ml.Kind.intf = pp t ~kind:Intf; impl = pp t ~kind:Impl }
 end
 
-let pp_file pp ~fname =
-  let buf = Buffer.create 1024 in
-  let fmt = Format.formatter_of_buffer buf in
+let pp_file pp ch =
+  let fmt = Format.formatter_of_out_channel ch in
   Pp.render_ignore_tags fmt pp;
-  Format.pp_print_flush fmt ();
-  Io.String_path.write_file fname (Buffer.contents buf)
-
-let name = "gprotocol"
+  Format.pp_print_flush fmt ()
 
 module Enum = struct
   let of_json { Named.name = _; data = constrs } =
@@ -617,11 +609,7 @@ let of_typescript (ts : Resolved.t list) =
           let mod_ = Expanded.of_ts pped in
           Gen.module_ mod_)
 
-let mli = name ^ ".mli"
-
-let ml = name ^ ".ml"
-
-let output modules =
+let output modules ~kind out =
   let open Ml.Kind in
   let intf, impl =
     List.map modules ~f:(fun m ->
@@ -638,5 +626,5 @@ let output modules =
     in
     Ml.Kind.Map.map def ~f:(Pp.seq prelude)
   in
-  let pp = { intf = pp_file ~fname:mli; impl = pp_file ~fname:ml } in
-  Ml.Kind.Map.both def pp |> Ml.Kind.Map.iter ~f:(fun (def, pp) -> pp def)
+  let pp = Ml.Kind.Map.get def kind in
+  pp_file pp out

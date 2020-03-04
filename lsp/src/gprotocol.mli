@@ -1,3 +1,5 @@
+(*$ Lsp_gen.print_mli () *)
+
 open! Import
 
 [@@@warning "-30"]
@@ -1657,3 +1659,5 @@ end
 module WorkspaceSymbolRegistrationOptions : sig
   type t = { workDoneProgress : bool option }
 end
+
+(*$*)

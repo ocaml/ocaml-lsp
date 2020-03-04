@@ -119,9 +119,9 @@ let type_decl :=
     { Named.make ~name typ }
 
 let definition :=
-  | i = interface; { { i with data = Interface i.Named.data } }
-  | i = enum; { { i with data = Enum_anon i.Named.data } }
-  | i = type_decl; { { i with data = Type i.Named.data } }
+  | i = interface; { { i with Named.data = Interface i.Named.data } }
+  | i = enum; { { i with Named.data = Enum_anon i.Named.data } }
+  | i = type_decl; { { i with Named.data = Type i.Named.data } }
 
 let main :=
   | defs = definition*; Eof; { defs }

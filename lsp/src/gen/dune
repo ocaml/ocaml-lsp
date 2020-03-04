@@ -1,6 +1,0 @@
-(rule
- (mode promote)
- (deps ../../bin/specifications/specification-3-15.md)
- (targets gprotocol.ml gprotocol.mli)
- (action
-  (run ../../bin/gen.exe --md %{deps} --out ocaml)))

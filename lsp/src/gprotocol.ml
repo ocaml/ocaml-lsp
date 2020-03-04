@@ -1,3 +1,5 @@
+(*$ Lsp_gen.print_ml () *)
+
 open! Import
 
 [@@@warning "-30"]
@@ -2684,3 +2686,5 @@ module WorkspaceSymbolRegistrationOptions = struct
 
   [@@@end]
 end
+
+(*$*)

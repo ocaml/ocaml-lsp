@@ -1,4 +1,5 @@
-open Import
+open Stdune
+open Lsp_gen
 
 module Output = struct
   type t =
@@ -45,12 +46,8 @@ let () =
   let ch = open_in md_file in
   let lexing = Lexing.from_channel ch in
   let typescript = Markdown.read_typescript lexing in
-  let asts = Typescript.of_snippets typescript in
   match Lazy.force out with
   | Test ->
     let tests = Typescript.test_snippets typescript in
     Format.printf "%a%!" Typescript.pp_results tests
-  | Ocaml ->
-    let asts = Typescript.resolve_all asts in
-    let ocaml = Ocaml.of_typescript asts in
-    Ocaml.output ocaml
+  | Ocaml -> failwith "not supported anymore"
