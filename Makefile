@@ -9,6 +9,11 @@ fmt:
 	cd $(TEST_E2E_DIR) && yarn fmt
 .PHONY: fmt
 
+gen:
+	dune build @cinaps --auto-promote
+	dune build @fmt --auto-promote
+.PHONY: gen
+
 fmt-check:
 	dune build @fmt
 	cd $(TEST_E2E_DIR) && yarn fmt-check

@@ -68,7 +68,8 @@ let preprocess =
         | "RequestMessage"
         | "ResponseError"
         | "ResponseMessage"
-        | "Message" ->
+        | "Message"
+        | "MarkedString" ->
           raise_notrace Skip
         | name ->
           current_name <- Some name;

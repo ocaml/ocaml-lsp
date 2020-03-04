@@ -1,8 +1,15 @@
 open! Import
 
-(*$ Lsp_gen.print_mli () *)
+module MarkedString : sig
+  type t =
+    { value : string
+    ; language : string option
+    }
 
-[@@@warning "-30"]
+  include Json.Jsonable.S with type t := t
+end
+
+(*$ Lsp_gen.print_mli () *)
 
 module DeleteFileOptions : sig
   type t =
@@ -1120,10 +1127,6 @@ module FoldingRangeRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; id : string option
     }
-end
-
-module MarkedString : sig
-  type t = unit
 end
 
 module Hover : sig

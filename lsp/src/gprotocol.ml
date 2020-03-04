@@ -1,5 +1,29 @@
 open! Import
 
+module MarkedString = struct
+  type t =
+    { value : string
+    ; language : string option
+    }
+
+  let yojson_of_t { value; language } =
+    match language with
+    | None -> `String value
+    | Some language ->
+      `Assoc [ ("value", `String value); ("language", `String language) ]
+
+  let t_of_yojson json =
+    match json with
+    | `String value -> { value; language = None }
+    | `Assoc fields ->
+      let value = Json.field_exn fields "value" Yojson_conv.string_of_yojson in
+      let language =
+        Json.field_exn fields "language" Yojson_conv.string_of_yojson
+      in
+      { value; language = Some language }
+    | _ -> Json.error "invalid MarkedString" json
+end
+
 (*$ Lsp_gen.print_ml () *)
 
 module DeleteFileOptions = struct
@@ -1837,10 +1861,6 @@ module FoldingRangeRegistrationOptions = struct
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
   [@@@end]
-end
-
-module MarkedString = struct
-  type t = unit
 end
 
 module Hover = struct
