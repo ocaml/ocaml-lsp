@@ -272,6 +272,14 @@ module DidOpen : sig
   val yojson_of_didOpenTextDocumentParams : params -> Json.t
 end
 
+module DidCloseTextDocumentParams : sig
+  type t = { textDocument : TextDocumentIdentifier.t }
+
+  val t_of_yojson : Json.t -> t
+
+  val yojson_of_t : t -> Json.t
+end
+
 module TextDocumentContentChangeEvent : sig
   type t =
     { range : Range.t option
@@ -506,7 +514,7 @@ module ApplyWorkspaceEdit : sig
   module Params : sig
     type t =
       { label : string option
-      ; edit : WorkspaceEdit.t list
+      ; edit : WorkspaceEdit.t
       }
 
     include Json.Jsonable.S with type t := t
