@@ -1,4 +1,5 @@
 open Import
+open Base_formatter
 
 module File_type : sig
   type t =
@@ -29,10 +30,6 @@ type 'result command =
   | Format_file : Input.t * 'result Output.t -> 'result command
   | Format_files_in_place : string list -> unit command
   | Check : Input.t -> bool command
-
-type error =
-  | Missing_binary
-  | Message of string
 
 val exec : 'result command -> Options.t -> ('result, error) Result.t
 
