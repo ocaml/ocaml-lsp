@@ -67,11 +67,12 @@ The server supports the following queries:
 - [x] `textDocument/references`
 - [ ] `textDocument/documentColor`
 - [ ] `textDocument/colorPresentation`
-- [ ] `textDocument/formatting`
+- [x] `textDocument/formatting`
 - [ ] `textDocument/rangeFormatting`
 - [ ] `textDocument/onTypeFormatting`
 - [ ] `textDocument/prepareRename`
 - [x] `textDocument/foldingRange`
+- [ ] `textDocument/selectionRange`
 - [ ] `workspace/symbol`
 
 Note that degrees of support for each LSP request are varying.

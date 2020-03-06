@@ -10,15 +10,8 @@ module Id = struct
   let t_of_yojson = function
     | `String s -> Either.Left s
     | `Int i -> Right i
-    | j -> yojson_error "Id.t" j
+    | json -> Json.error "Id.t" json
 end
-
-let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
-
-let field_exn fields name conv =
-  match field fields name conv with
-  | None -> yojson_error "Jsonrpc.Result.t: missing field" (`Assoc fields)
-  | Some f -> f
 
 module Constant = struct
   let jsonrpc = "jsonrpc"
@@ -40,11 +33,17 @@ module Request = struct
   type t =
     { id : Id.t option [@yojson.option]
     ; method_ : string [@key "method"]
-    ; params : json option [@yojson.option]
+    ; params : Json.t option [@yojson.option]
     }
 
+  let create ?id ?params ~method_ () = { id; method_; params }
+
   let yojson_of_t { id; method_; params } =
-    let json = [ (Constant.method_, `String method_) ] in
+    let json =
+      [ (Constant.method_, `String method_)
+      ; (Constant.jsonrpc, `String Constant.jsonrpcv)
+      ]
+    in
     let json =
       match params with
       | None -> json
@@ -61,18 +60,34 @@ module Request = struct
     match json with
     | `Assoc fields ->
       let method_ =
-        field_exn fields Constant.method_ Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.method_ Yojson_conv.string_of_yojson
       in
-      let params = field fields Constant.params json_of_yojson in
-      let id = field fields Constant.id Id.t_of_yojson in
+      let params = Json.field fields Constant.params (fun x -> x) in
+      let id = Json.field fields Constant.id Id.t_of_yojson in
       let jsonrpc =
-        field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
       in
       if jsonrpc = Constant.jsonrpcv then
         { method_; params; id }
       else
-        yojson_error "invalid version" json
-    | _ -> yojson_error "invalid request" json
+        Json.error "invalid version" json
+    | _ -> Json.error "invalid request" json
+
+  let read_json_params f v =
+    match f v with
+    | r -> Ok r
+    | exception Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _)
+      ->
+      Error msg
+
+  let require_params json =
+    match json with
+    | None -> Error "params are required"
+    | Some params -> Ok params
+
+  let params t f =
+    let open Result.O in
+    require_params t.params >>= read_json_params f
 end
 
 module Response = struct
@@ -122,9 +137,9 @@ module Response = struct
         match json with
         | `Int i -> (
           match of_int i with
-          | None -> yojson_error "unknown code" json
+          | None -> Json.error "unknown code" json
           | Some i -> i )
-        | _ -> yojson_error "invalid code" json
+        | _ -> Json.error "invalid code" json
 
       let yojson_of_t t = `Int (to_int t)
     end
@@ -132,7 +147,7 @@ module Response = struct
     type t =
       { code : Code.t
       ; message : string
-      ; data : json option [@yojson.option]
+      ; data : Json.t option [@yojson.option]
       }
     [@@deriving_inline yojson]
 
@@ -169,7 +184,7 @@ module Response = struct
               | "data" -> (
                 match Ppx_yojson_conv_lib.( ! ) data_field with
                 | None ->
-                  let fvalue = json_of_yojson _field_yojson in
+                  let fvalue = Json.t_of_yojson _field_yojson in
                   data_field := Some fvalue
                 | Some _ ->
                   duplicates :=
@@ -236,7 +251,7 @@ module Response = struct
             match v_data with
             | None -> bnds
             | Some v ->
-              let arg = yojson_of_json v in
+              let arg = Json.yojson_of_t v in
               let bnd = ("data", arg) in
               bnd :: bnds
           in
@@ -256,11 +271,15 @@ module Response = struct
     [@@@end]
 
     let make ?data ~code ~message () = { data; code; message }
+
+    let of_exn exn =
+      let message = Printexc.to_string exn in
+      make ~code:InternalError ~message ()
   end
 
   type t =
     { id : Id.t
-    ; result : (json, Error.t) Result.t
+    ; result : (Json.t, Error.t) Result.t
     }
 
   let yojson_of_t { id; result } =
@@ -278,21 +297,21 @@ module Response = struct
   let t_of_yojson json =
     match json with
     | `Assoc fields -> (
-      let id = field_exn fields Constant.id Id.t_of_yojson in
+      let id = Json.field_exn fields Constant.id Id.t_of_yojson in
       let jsonrpc =
-        field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
       in
       if jsonrpc <> Constant.jsonrpcv then
-        yojson_error "Invalid response" json
+        Json.error "Invalid response" json
       else
-        match field fields Constant.result json_of_yojson with
+        match Json.field fields Constant.result (fun x -> x) with
         | Some res -> { id; result = Ok res }
         | None ->
           let result =
-            Error (field_exn fields Constant.error Error.t_of_yojson)
+            Error (Json.field_exn fields Constant.error Error.t_of_yojson)
           in
           { id; result } )
-    | _ -> yojson_error "Jsonrpc.Result.t" json
+    | _ -> Json.error "Jsonrpc.Result.t" json
 
   let make ~id ~result = { id; result }
 

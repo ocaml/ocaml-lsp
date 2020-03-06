@@ -25,18 +25,23 @@ Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 ")
  (depends
+  stdlib-shims
   yojson
   ppx_yojson_conv_lib
+  (cppo :dev)
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
 
 (package
  (name ocaml-lsp-server)
  (synopsis "LSP Server for OCaml")
- (description " An LSP server for OCaml.")
+ (description "An LSP server for OCaml.")
  (depends
   yojson
+  stdlib-shims
+  menhir
   ppx_yojson_conv_lib
+  (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
   (dune (>= 1.11))))

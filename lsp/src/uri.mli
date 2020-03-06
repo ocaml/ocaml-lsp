@@ -1,6 +1,12 @@
-open Import
+open! Import
 
-include Yojsonable.S
+include Json.Jsonable.S
+
+val equal : t -> t -> bool
+
+val to_dyn : t -> Dyn.t
+
+val hash : t -> int
 
 val to_path : t -> string
 

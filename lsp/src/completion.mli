@@ -1,6 +1,12 @@
 open Import
 open Protocol
 
+module ItemTag : sig
+  type t = Deprecated
+
+  include Json.Jsonable.S with type t := t
+end
+
 type completionTriggerKind =
   | Invoked
   | TriggerCharacter
@@ -42,6 +48,8 @@ type completionItem =
   ; kind : completionItemKind option
   ; detail : string option
   ; documentation : string option
+  ; deprecated : bool
+  ; preselect : bool option
   ; sortText : string option
   ; filterText : string option
   ; insertText : string option
@@ -49,7 +57,8 @@ type completionItem =
   ; textEdit : TextEdit.t option
   ; additionalTextEdits : TextEdit.t list
   ; commitCharacters : string list
-  ; data : json option
+  ; tags : ItemTag.t list
+  ; data : Json.t option
   }
 
 type completionContext =
@@ -72,12 +81,12 @@ type result = completionList
 
 type params = completionParams
 
-val params_of_yojson : json -> params
+val params_of_yojson : Json.t -> params
 
-val result_of_yojson : json -> result
+val result_of_yojson : Json.t -> result
 
-val yojson_of_params : params -> json
+val yojson_of_params : params -> Json.t
 
-val yojson_of_result : result -> json
+val yojson_of_result : result -> Json.t
 
-val yojson_of_completionItem : completionItem -> json
+val yojson_of_completionItem : completionItem -> Json.t

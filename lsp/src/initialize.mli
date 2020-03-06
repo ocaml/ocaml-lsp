@@ -6,11 +6,11 @@ module SignatureHelpOptions : sig
 end
 
 module CodeActionOptions : sig
-  type t = { codeActionsKinds : CodeActionKind.t list }
+  type t = { codeActionKinds : CodeAction.Kind.t list }
 end
 
 module CodeActionLiteralSupport : sig
-  type codeActionKind = { valueSet : CodeActionKind.t list }
+  type codeActionKind = { valueSet : CodeAction.Kind.t list }
 
   type t = { codeActionKind : codeActionKind }
 end
@@ -38,7 +38,18 @@ module Synchronization : sig
 end
 
 module CompletionItem : sig
-  type t = { snippetSupport : bool }
+  module TagSupport : sig
+    type t = { valueSet : Completion.ItemTag.t list }
+  end
+
+  type t =
+    { snippetSupport : bool
+    ; commitCharactersSupport : bool
+    ; documentationFormat : MarkupKind.t list
+    ; deprecatedSupport : bool
+    ; preselectSupport : bool
+    ; tagSupport : TagSupport.t
+    }
 
   val empty : t
 end
@@ -71,6 +82,42 @@ module DocumentSymbol : sig
   val empty : t
 end
 
+module PublishDiagnosticsClientCapabilities : sig
+  type tagSupport = { valueSet : Diagnostics.Tag.t list }
+
+  type t =
+    { relatedInformation : bool
+    ; tagSupport : tagSupport option
+    ; versionSupport : bool
+    }
+end
+
+module FoldingRangeClientCapabilities : sig
+  type t =
+    { rangeLimit : int option
+    ; lineFoldingOnly : bool
+    }
+
+  val empty : t
+end
+
+module SignatureHelpClientCapabilities : sig
+  type parameterInformation = { labelOffsetSupport : bool }
+
+  type signatureInformation =
+    { documentationFormat : MarkupKind.t list
+    ; parameterInformation : parameterInformation
+    }
+
+  type t =
+    { dynamicRegistration : bool
+    ; signatureInformation : signatureInformation
+    ; contextSupport : bool
+    }
+
+  val empty : t
+end
+
 module TextDocumentClientCapabilities : sig
   type t =
     { synchronization : Synchronization.t
@@ -78,6 +125,9 @@ module TextDocumentClientCapabilities : sig
     ; documentSymbol : DocumentSymbol.t
     ; hover : Hover.t
     ; codeAction : CodeAction.t
+    ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t
+    ; foldingRange : FoldingRangeClientCapabilities.t
+    ; signatureHelp : SignatureHelpClientCapabilities.t
     }
 
   val empty : t
@@ -122,23 +172,20 @@ module WorkspaceClientCapabilities : sig
     }
 end
 
-module FoldingRangeClientCapabilities : sig
+module ClientCapabilities : sig
   type t =
-    { rangeLimit : int option
-    ; lineFoldingOnly : bool
+    { workspace : WorkspaceClientCapabilities.t
+    ; textDocument : TextDocumentClientCapabilities.t
     }
 
   val empty : t
 end
 
-module ClientCapabilities : sig
+module Info : sig
   type t =
-    { workspace : WorkspaceClientCapabilities.t
-    ; textDocument : TextDocumentClientCapabilities.t
-    ; foldingRange : FoldingRangeClientCapabilities.t
+    { name : string
+    ; version : string option
     }
-
-  val empty : t
 end
 
 module Params : sig
@@ -149,10 +196,23 @@ module Params : sig
     ; capabilities : ClientCapabilities.t
     ; trace : Trace.t
     ; workspaceFolders : WorkspaceFolder.t list
-    ; initializationOptions : json option
+    ; initializationOptions : Json.t option
+    ; clientInfo : Info.t option
     }
 
-  include Yojsonable.S with type t := t
+  val create :
+       ?processId:int
+    -> ?rootPath:string
+    -> ?rootUri:documentUri
+    -> ?capabilities:ClientCapabilities.t
+    -> ?trace:Trace.t
+    -> ?workspaceFolders:WorkspaceFolder.t list
+    -> ?initializationOptions:Json.t
+    -> ?clientInfo:Info.t
+    -> unit
+    -> t
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentSyncOptions : sig
@@ -163,7 +223,7 @@ module TextDocumentSyncOptions : sig
     ; change : TextDocumentSyncKind.t
     ; willSave : bool
     ; willSaveWaitUntil : bool
-    ; didSave : saveOptions option
+    ; save : saveOptions option
     }
 end
 
@@ -222,7 +282,10 @@ module ServerCapabilities : sig
 end
 
 module Result : sig
-  type t = { capabilities : ServerCapabilities.t }
+  type t =
+    { capabilities : ServerCapabilities.t
+    ; serverInfo : Info.t option
+    }
 
-  include Yojsonable.S with type t := t
+  include Json.Jsonable.S with type t := t
 end
