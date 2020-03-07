@@ -159,135 +159,32 @@ module Expanded = struct
 end
 
 module Json = struct
-  let pp_literal (t : Literal.t) =
-    match t with
-    | String s -> Pp.textf "`String %S" s
-    | Int s -> Pp.textf "`Int (%d)" s
-    | Float _ -> assert false
-end
-
-module Expr = struct
-  [@@@ocaml.warning "-30-32-37"]
-
-  type expr =
-    | Ident of string
-    | Let of pat * expr * expr
-    | Match of expr * (pat * expr) list
-    | Fun of pat arg list * expr
-    | App of expr * expr arg list
-    | Create of expr prim
-    | Assert_false
-
-  and 'e prim =
-    | Unit
-    | String of string
-    | Ident of string
-    | Cons of 'e * 'e prim
-    | List of 'e list
-    | Tuple of 'e list
-    | Record of 'e record_
-    | Constr of 'e constr
-
-  and 'e arg =
-    | Unnamed of 'e
-    | Labeled of string * 'e
-    | Optional of string * 'e
-
-  and pat =
-    | Wildcard
-    | Pat of pat prim
-
-  and 'e record_ = (string * 'e) list
-
-  and 'e constr =
-    { tag : string
-    ; poly : bool
-    ; args : 'e option
-    }
-
-  type t = expr
-
-  let constr ?(poly = false) ?args tag = { poly; args; tag }
-
-  let rec pp = function
-    | Ident s -> Pp.verbatim s
-    | Assert_false -> Pp.verbatim "assert false"
-    | Match (expr, patterns) ->
-      let with_ =
-        Pp.concat
-          [ Pp.verbatim "match"
-          ; Pp.space
-          ; pp expr
-          ; Pp.space
-          ; Pp.verbatim "with"
-          ]
-      in
-      let clauses =
-        ignore patterns;
-        assert false
-      in
-      Pp.concat [ with_; Pp.newline; clauses ]
-    | _ -> assert false
-end
-
-module Texpr = struct
-  [@@@ocaml.warning "-34-32-37"]
-
-  type t = Expr.t * Ml.Type.t
-
-  let assert_false = (Expr.Assert_false, Ml.Type.alpha)
-end
-
-module Let = struct
-  [@@@ocaml.warning "-32-37"]
-
-  type t =
-    { name : string
-    ; pat : (Expr.pat Expr.arg * Ml.Type.t) list
-    ; body : unit Pp.t * Ml.Type.t
-    }
-
-  let pp =
-    let intf { name; pat; body } =
-      let kind = Ml.Kind.Intf in
-      let patterns =
-        let open Expr in
-        Pp.concat_map pat ~f:(fun (pat, typ) ->
-            let typ = Ml.Type.pp ~kind typ in
-            let typ = Pp.concat [ typ; Pp.space; Pp.verbatim "->"; Pp.space ] in
-            match pat with
-            | Unnamed _ -> typ
-            | Labeled (name, _) -> Pp.concat [ Pp.textf "%s:" name; typ ]
-            | Optional (name, _) -> Pp.concat [ Pp.textf "?%s:" name; typ ])
-      in
-      Pp.concat
-        [ Pp.textf "val %s :" name
-        ; Pp.space
-        ; patterns
-        ; Ml.Type.pp ~kind (snd body)
-        ]
+  let pat_of_literal (t : Literal.t) : Ml.Expr.pat =
+    let open Ml.Expr in
+    let tag, args =
+      match t with
+      | Literal.String s -> ("String", Pat (Ml.Expr.String s))
+      | Int i -> ("Int", Pat (Ml.Expr.Int i))
+      | Float _ -> assert false
     in
-    let impl { name; pat; body } =
-      let pat =
-        Pp.concat_map pat ~sep:Pp.space ~f:(fun (pat, _typ) ->
-            match pat with
-            | Unnamed (Pat (Ident s)) -> Pp.verbatim s
-            | Labeled (name, Pat (Ident e)) -> Pp.textf "~%s:%s" name e
-            | Optional (name, Pat (Ident e)) -> Pp.textf "?%s:%s" name e
-            | _ -> assert false)
-      in
-      let body = fst body in
-      Pp.concat
-        [ Pp.textf "let %s" name
-        ; Pp.space
-        ; Pp.hovbox pat
-        ; Pp.space
-        ; Pp.text "="
-        ; Pp.newline
-        ; Pp.hovbox ~indent:2 body
-        ]
+    Pat (Constr { poly = true; tag; args = Some args })
+
+  let constr_of_literal (t : Literal.t) : Ml.Expr.t =
+    let open Ml.Expr in
+    let tag, args =
+      match t with
+      | Literal.String s -> ("String", Create (Ml.Expr.String s))
+      | Int i -> ("Int", Create (Ml.Expr.Int i))
+      | Float _ -> assert false
     in
-    { Ml.Kind.intf; impl }
+    Create (Constr { poly = true; tag; args = Some args })
+
+  let json_error_pat name =
+    let open Ml.Expr in
+    ( Wildcard
+    , App
+        ( Ident "Json.error"
+        , [ Unnamed (Create (String name)); Unnamed (Ident "json") ] ) )
 end
 
 module Module = struct
@@ -314,6 +211,14 @@ module Module = struct
     in
     { Ml.Kind.intf; impl }
 
+  let add_private_values (t : t) bindings : t =
+    let bindings =
+      List.map bindings ~f:(fun (v : _ Named.t) ->
+          { v with Named.data = Ml.Module.Value v.data })
+    in
+    let impl = { t.impl with bindings = t.impl.bindings @ bindings } in
+    { t with impl }
+
   let pp (t : t) ~kind =
     match (kind : Ml.Kind.t) with
     | Intf -> Ml.Module.pp_sig t.intf
@@ -328,56 +233,44 @@ let pp_file pp ch =
   Format.pp_print_flush fmt ()
 
 module Enum = struct
-  let of_json { Named.name = _; data = constrs } =
-    let open Expr in
-    let name = "of_yojson" in
-    let pat = [ (Unnamed (Pat (Ident "json")), Ml.Type.json) ] in
+  let of_json { Named.name; data = constrs } =
+    let open Ml.Expr in
+    let pat = [ (Unnamed "json", Ml.Type.json) ] in
     let body =
-      let body =
-        let constrs =
-          Pp.concat_map constrs ~f:(fun (constr, literal) ->
-              Pp.concat
-                [ Pp.textf "| "
-                ; Json.pp_literal literal
-                ; Pp.textf "-> %s" (String.capitalize constr)
-                ; Pp.newline
-                ])
-        in
-        [ Pp.textf "match json with"
-        ; Pp.newline
-        ; constrs
-        ; Pp.text "| _ -> assert false"
-        ; Pp.newline
-        ]
+      let clauses =
+        List.map constrs ~f:(fun (constr, literal) ->
+            let pat = Json.pat_of_literal literal in
+            let tag = constr in
+            (pat, Create (Constr { tag; poly = false; args = None })))
       in
-      (Pp.concat body, Ml.Type.t)
+      Match (Ident "json", clauses @ [ Json.json_error_pat name ])
     in
-    { Let.name; pat; body }
+    let name = "t_of_yojson" in
+    let data = { Ml.Expr.pat; type_ = Ml.Type.t; body } in
+    { Named.name; data }
 
   let to_json { Named.name = _; data = constrs } =
-    let open Expr in
-    let name = "to_yojson" in
-    let pat = [ (Unnamed (Pat (Ident "t")), Ml.Type.t) ] in
+    let open Ml.Expr in
+    let pat = [ (Unnamed "t", Ml.Type.t) ] in
     let body =
-      let patterns =
-        Pp.concat_map constrs ~f:(fun (constr, literal) ->
-            Pp.concat
-              [ Pp.textf "| %s -> " (String.capitalize constr)
-              ; Json.pp_literal literal
-              ; Pp.newline
-              ])
+      let clauses =
+        List.map constrs ~f:(fun (constr, literal) ->
+            let pat =
+              Pat (Constr { tag = constr; poly = false; args = None })
+            in
+            (pat, Json.constr_of_literal literal))
       in
-      ( Pp.concat [ Pp.verbatim "match t with"; Pp.newline; patterns ]
-      , Ml.Type.json )
+      Match (Ident "t", clauses)
     in
-    { Let.name; pat; body }
+    let name = "yojson_of_t" in
+    let data = { Ml.Expr.pat; type_ = Ml.Type.json; body } in
+    { Named.name; data }
 
   let module_ ({ Named.name; data = constrs } as t) =
-    let _lets =
+    let json_bindings =
       let to_json = to_json t in
       let of_json = of_json t in
-      ignore [ to_json; of_json ];
-      []
+      [ to_json; of_json ]
     in
     let t =
       let data =
@@ -386,7 +279,8 @@ module Enum = struct
       in
       { Named.name = "t"; data }
     in
-    Module.type_decls name [ t ]
+    let module_ = Module.type_decls name [ t ] in
+    Module.add_private_values module_ json_bindings
 end
 
 module Mapper = struct

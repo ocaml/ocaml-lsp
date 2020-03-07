@@ -95,6 +95,58 @@ module Type : sig
   val unit : t
 end
 
+module Expr : sig
+  [@@@warning "-30"]
+
+  type expr =
+    | Ident of string
+    | Let of pat * expr * expr
+    | Match of expr * (pat * expr) list
+    | Fun of pat arg list * expr
+    | App of expr * expr arg list
+    | Create of expr prim
+    | Assert_false
+
+  and 'e prim =
+    | Unit
+    | Bool of bool
+    | Int of int
+    | String of string
+    | Ident of string
+    | Cons of 'e * 'e prim
+    | List of 'e list
+    | Tuple of 'e list
+    | Record of 'e record_
+    | Constr of 'e constr
+
+  and 'e arg =
+    | Unnamed of 'e
+    | Labeled of string * 'e
+    | Optional of string * 'e
+
+  and pat =
+    | Wildcard
+    | Pat of pat prim
+
+  and 'e record_ = (string * 'e) list
+
+  and 'e constr =
+    { tag : string
+    ; poly : bool
+    ; args : 'e option
+    }
+
+  type t = expr
+
+  val assert_false_clause : pat * expr
+
+  type toplevel =
+    { pat : (string arg * Type.t) list
+    ; type_ : Type.t
+    ; body : t
+    }
+end
+
 module Module : sig
   type 'a t =
     { name : string
@@ -107,7 +159,9 @@ module Module : sig
     | Value of Type.t
     | Type_decl of Type.decl
 
-  type impl = Type_decl of Type.decl
+  type impl =
+    | Type_decl of Type.decl
+    | Value of Expr.toplevel
 
   val pp_sig : sig_ t -> unit Pp.t
 

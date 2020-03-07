@@ -6,6 +6,8 @@ type t = unit Pp.t
 
 type w = t
 
+val surround : [ `Curly | `Paren | `Square ] -> 'a Pp.t -> 'a Pp.t
+
 module Json : sig
   val invalid_pat : string -> w * w
 

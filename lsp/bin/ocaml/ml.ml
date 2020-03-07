@@ -208,6 +208,175 @@ module Type = struct
     Type.decl name body
 end
 
+module Expr = struct
+  [@@@ocaml.warning "-30-32-37"]
+
+  type expr =
+    | Ident of string
+    | Let of pat * expr * expr
+    | Match of expr * (pat * expr) list
+    | Fun of pat arg list * expr
+    | App of expr * expr arg list
+    | Create of expr prim
+    | Assert_false
+
+  and 'e prim =
+    | Unit
+    | Bool of bool
+    | Int of int
+    | String of string
+    | Ident of string
+    | Cons of 'e * 'e prim
+    | List of 'e list
+    | Tuple of 'e list
+    | Record of 'e record_
+    | Constr of 'e constr
+
+  and 'e arg =
+    | Unnamed of 'e
+    | Labeled of string * 'e
+    | Optional of string * 'e
+
+  and pat =
+    | Wildcard
+    | Pat of pat prim
+
+  and 'e record_ = (string * 'e) list
+
+  and 'e constr =
+    { tag : string
+    ; poly : bool
+    ; args : 'e option
+    }
+
+  type t = expr
+
+  let assert_false_clause = (Wildcard, Assert_false)
+
+  type toplevel =
+    { pat : (string arg * Type.t) list
+    ; type_ : Type.t
+    ; body : t
+    }
+
+  let constr ?(poly = false) ?args tag = { poly; args; tag }
+
+  let pp_constr f { tag; poly; args } =
+    let tag =
+      let tag = String.capitalize tag in
+      Pp.verbatim
+        ( if poly then
+          "`" ^ tag
+        else
+          tag )
+    in
+    match args with
+    | None -> tag
+    | Some args -> Pp.concat [ tag; Pp.space; f args ]
+
+  let rec pp_pat = function
+    | Wildcard -> Pp.verbatim "_"
+    | Pat pat -> (
+      match pat with
+      | Unit -> Pp.verbatim "()"
+      | Bool b -> Pp.textf "%b" b
+      | Int i -> Pp.textf "%i" i
+      | String s -> Pp.textf "%S" s
+      | Ident s -> Pp.verbatim s
+      | Cons _ -> assert false
+      | List _ -> assert false
+      | Tuple _ -> assert false
+      | Record _ -> assert false
+      | Constr c -> pp_constr pp_pat c )
+
+  let rec pp_create : expr prim -> _ Pp.t = function
+    | Unit -> Pp.verbatim "()"
+    | Bool b -> Pp.textf "%b" b
+    | Int i ->
+      let pp = Pp.textf "%i" i in
+      if i < 0 then
+        W.surround `Paren pp
+      else
+        pp
+    | String s -> Pp.textf "%S" s
+    | Ident s -> Pp.verbatim s
+    | Cons _ -> assert false
+    | List _ -> assert false
+    | Tuple _ -> assert false
+    | Record _ -> assert false
+    | Constr c -> pp_constr pp c
+
+  and pp = function
+    | Ident s -> Pp.verbatim s
+    | Assert_false -> Pp.verbatim "assert false"
+    | Match (expr, patterns) ->
+      let with_ =
+        Pp.concat
+          [ Pp.verbatim "match"
+          ; Pp.space
+          ; pp expr
+          ; Pp.space
+          ; Pp.verbatim "with"
+          ]
+      in
+      let clauses =
+        Pp.concat_map patterns ~f:(fun (pat, expr) ->
+            Pp.concat
+              [ Pp.verbatim "| "
+              ; pp_pat pat
+              ; Pp.space
+              ; Pp.verbatim "->"
+              ; Pp.space
+              ; Pp.verbatim "("
+              ; pp expr
+              ; Pp.verbatim ")"
+              ])
+      in
+      Pp.concat [ with_; Pp.newline; clauses ]
+    | Create c -> pp_create c
+    | App (x, args) ->
+      let args =
+        Pp.concat_map args ~sep:Pp.space ~f:(fun arg ->
+            match arg with
+            | Unnamed e -> pp e
+            | _ -> assert false)
+      in
+      Pp.concat [ pp x; Pp.space; args ]
+    | _ -> assert false
+
+  let pp_toplevel ~kind name { pat; type_; body } =
+    let pat =
+      Pp.concat_map pat ~f:(fun (pat, typ) ->
+          let typ = Type.pp ~kind typ in
+          match pat with
+          | Unnamed s ->
+            Pp.concat
+              [ Pp.verbatim "("
+              ; Pp.verbatim s
+              ; Pp.verbatim " : "
+              ; typ
+              ; Pp.verbatim ")"
+              ]
+          | Labeled (l, r) ->
+            if l = r then
+              Pp.concat [ Pp.textf "~(%s :" l; typ; Pp.verbatim ")" ]
+            else
+              assert false
+          | Optional (_, _) -> assert false)
+    in
+    let body = pp body in
+    let type_ = Type.pp type_ ~kind in
+    Pp.concat
+      [ Pp.textf "let %s" name
+      ; pat
+      ; Pp.textf " : "
+      ; type_
+      ; Pp.textf "="
+      ; Pp.newline
+      ; body
+      ]
+end
+
 module Module = struct
   type 'a t =
     { name : string
@@ -220,13 +389,15 @@ module Module = struct
     | Value of Type.t
     | Type_decl of Type.decl
 
-  type impl = Type_decl of Type.decl
+  type impl =
+    | Type_decl of Type.decl
+    | Value of Expr.toplevel
 
   let pp_sig { name; bindings } =
     let bindings =
       Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data = v } ->
           let lhs =
-            match v with
+            match (v : sig_) with
             | Value _ -> Pp.textf "val %s :" name
             | Type_decl _ -> Pp.textf "type %s =" name
           in
@@ -246,7 +417,8 @@ module Module = struct
           | Type_decl t ->
             let lhs = Pp.textf "type %s =" name in
             let rhs = Type.pp_decl' ~kind:Impl t in
-            Pp.concat [ lhs; Pp.space; rhs ])
+            Pp.concat [ lhs; Pp.space; rhs ]
+          | Value decl -> Expr.pp_toplevel ~kind:Impl name decl)
     in
     W.module_ name bindings
 end
