@@ -57,6 +57,7 @@ module Type = struct
     | Optional of t
     | List of t
     | Poly_variant of constr list
+    | Assoc of t * t
     | App of t * t list
 
   and constr =
@@ -96,7 +97,7 @@ module Type = struct
 
   let list t = List t
 
-  let assoc_list ~key ~data = List (Tuple [ key; data ])
+  let assoc_list ~key ~data = Assoc (key, data)
 
   let t = Named "t"
 
@@ -153,6 +154,10 @@ module Type = struct
       List.map constrs ~f:(fun { name; args } ->
           (name, List.map args ~f:(pp ~kind)))
       |> Type.poly
+    | Assoc (k, v) -> (
+      match kind with
+      | Intf -> pp (List (Tuple [ k; v ])) ~kind
+      | Impl -> pp (App (Named "Json.Assoc.t", [ k; v ])) ~kind )
 
   let pp_decl' ~(kind : Kind.t) (a : decl) =
     match a with

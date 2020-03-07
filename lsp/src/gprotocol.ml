@@ -160,7 +160,8 @@ end
 
 module WorkspaceEdit = struct
   type t =
-    { changes : (DocumentUri.t * TextEdit.t list) list Json.Nullable_option.t
+    { changes :
+        (DocumentUri.t, TextEdit.t list) Json.Assoc.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentChanges :
         [ `TextDocumentEdit of TextDocumentEdit.t

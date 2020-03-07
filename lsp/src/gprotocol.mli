@@ -902,7 +902,6 @@ module FormattingOptions : sig
     ; trimTrailingWhitespace : bool option
     ; insertFinalNewline : bool option
     ; trimFinalNewlines : bool option
-    ; key : (string * [ `Bool of bool | `Int of int | `String of string ]) list
     }
 end
 

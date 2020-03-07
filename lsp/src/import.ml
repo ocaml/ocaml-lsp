@@ -149,6 +149,17 @@ module Json = struct
       | Some s -> f s
   end
 
+  module Assoc = struct
+    type ('a, 'b) t = ('a * 'b) list constraint 'a = string
+
+    let yojson_of_t f xs = `Assoc (List.map xs ~f:(fun (k, v) -> (k, f v)))
+
+    let t_of_yojson f json =
+      match json with
+      | `Assoc xs -> List.map xs ~f:(fun (k, v) -> (k, f v))
+      | _ -> error "Json.Assoc.t_of_yojson: not an object" json
+  end
+
   module Void = struct
     type t
 

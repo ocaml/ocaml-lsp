@@ -49,6 +49,7 @@ module Type : sig
     | Optional of t
     | List of t
     | Poly_variant of constr list
+    | Assoc of t * t
     | App of t * t list
 
   type decl =
@@ -56,6 +57,7 @@ module Type : sig
     | Record of field list
     | Variant of constr list
 
+  (* This is for lists where the keys are equal to strings *)
   val assoc_list : key:t -> data:t -> t
 
   val pp_decl : name:string -> kind:Kind.t -> decl -> unit Pp.t
