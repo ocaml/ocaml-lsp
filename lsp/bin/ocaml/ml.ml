@@ -237,15 +237,11 @@ module Module = struct
   let pp_impl { name; bindings } =
     let bindings =
       Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data = v } ->
-          let lhs =
-            match v with
-            | Type_decl _ -> Pp.textf "type %s =" name
-          in
-          let rhs =
-            match v with
-            | Type_decl t -> Type.pp_decl' ~kind:Impl t
-          in
-          Pp.concat [ lhs; Pp.space; rhs ])
+          match v with
+          | Type_decl t ->
+            let lhs = Pp.textf "type %s =" name in
+            let rhs = Type.pp_decl' ~kind:Impl t in
+            Pp.concat [ lhs; Pp.space; rhs ])
     in
     W.module_ name bindings
 end
