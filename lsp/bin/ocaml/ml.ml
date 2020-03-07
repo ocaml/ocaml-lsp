@@ -388,6 +388,7 @@ module Module = struct
   type sig_ =
     | Value of Type.t
     | Type_decl of Type.decl
+    | Json_conv_sig
 
   type impl =
     | Type_decl of Type.decl
@@ -395,18 +396,19 @@ module Module = struct
 
   let pp_sig { name; bindings } =
     let bindings =
-      Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data = v } ->
-          let lhs =
-            match (v : sig_) with
-            | Value _ -> Pp.textf "val %s :" name
-            | Type_decl _ -> Pp.textf "type %s =" name
-          in
-          let rhs =
-            match v with
-            | Value t -> Type.pp ~kind:Intf t
-            | Type_decl t -> Type.pp_decl' ~kind:Intf t
-          in
-          Pp.concat [ lhs; Pp.space; rhs ])
+      Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data } ->
+          match (data : sig_) with
+          | Value t ->
+            Pp.concat
+              [ Pp.textf "val %s :" name; Pp.space; Type.pp ~kind:Intf t ]
+          | Type_decl t ->
+            Pp.concat
+              [ Pp.textf "type %s =" name
+              ; Pp.space
+              ; Type.pp_decl' ~kind:Intf t
+              ]
+          | Json_conv_sig ->
+            Pp.textf "include Json.Jsonable.S with type t := %s" name)
     in
     W.Sig.module_ name bindings
 

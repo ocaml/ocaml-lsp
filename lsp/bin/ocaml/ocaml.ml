@@ -219,6 +219,11 @@ module Module = struct
     let impl = { t.impl with bindings = t.impl.bindings @ bindings } in
     { t with impl }
 
+  let add_json_conv_for_t (t : t) =
+    let conv_t = { Named.name = "t"; data = Module.Json_conv_sig } in
+    let intf = { t.intf with bindings = t.intf.bindings @ [ conv_t ] } in
+    { t with intf }
+
   let pp (t : t) ~kind =
     match (kind : Ml.Kind.t) with
     | Intf -> Ml.Module.pp_sig t.intf
@@ -281,6 +286,7 @@ module Enum = struct
     in
     let module_ = Module.type_decls name [ t ] in
     Module.add_private_values module_ json_bindings
+    |> Module.add_json_conv_for_t
 end
 
 module Mapper = struct

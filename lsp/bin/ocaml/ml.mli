@@ -158,6 +158,7 @@ module Module : sig
   type sig_ =
     | Value of Type.t
     | Type_decl of Type.decl
+    | Json_conv_sig
 
   type impl =
     | Type_decl of Type.decl

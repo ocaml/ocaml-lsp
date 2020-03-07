@@ -145,6 +145,8 @@ module DiagnosticTag : sig
   type t =
     | Unnecessary
     | Deprecated
+
+  include Json.Jsonable.S with type t := t
 end
 
 module PublishDiagnosticsClientCapabilities : sig
@@ -201,6 +203,8 @@ module CodeActionKind : sig
     | RefactorRewrite
     | Source
     | SourceOrganizeImports
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeActionClientCapabilities : sig
@@ -243,6 +247,8 @@ module SymbolKind : sig
     | Event
     | Operator
     | TypeParameter
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentSymbolClientCapabilities : sig
@@ -295,6 +301,8 @@ module MarkupKind : sig
   type t =
     | PlainText
     | Markdown
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureHelpClientCapabilities : sig
@@ -346,10 +354,14 @@ module CompletionItemKind : sig
     | Event
     | Operator
     | TypeParameter
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionItemTag : sig
   type t = Deprecated
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionClientCapabilities : sig
@@ -437,6 +449,8 @@ module FailureHandlingKind : sig
     | Transactional
     | TextOnlyTransactional
     | Undo
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ResourceOperationKind : sig
@@ -444,6 +458,8 @@ module ResourceOperationKind : sig
     | Create
     | Rename
     | Delete
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceEditClientCapabilities : sig
@@ -504,6 +520,8 @@ module DiagnosticSeverity : sig
     | Warning
     | Information
     | Hint
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Diagnostic : sig
@@ -655,6 +673,8 @@ module CompletionTriggerKind : sig
     | Invoked
     | TriggerCharacter
     | TriggerForIncompleteCompletions
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionContext : sig
@@ -668,6 +688,8 @@ module InsertTextFormat : sig
   type t =
     | PlainText
     | Snippet
+
+  include Json.Jsonable.S with type t := t
 end
 
 module MarkupContent : sig
@@ -931,6 +953,8 @@ module DocumentHighlightKind : sig
     | Text
     | Read
     | Write
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentHighlightOptions : sig
@@ -1062,6 +1086,8 @@ module ErrorCodes : sig
     | UnknownErrorCode
     | RequestCancelled
     | ContentModified
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ExecuteCommandOptions : sig
@@ -1090,6 +1116,8 @@ module FileChangeType : sig
     | Created
     | Changed
     | Deleted
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FoldingRange : sig
@@ -1107,6 +1135,8 @@ module FoldingRangeKind : sig
     | Comment
     | Imports
     | Region
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FoldingRangeOptions : sig
@@ -1175,6 +1205,8 @@ end
 
 module InitializeError : sig
   type t = UnknownProtocolVersion
+
+  include Json.Jsonable.S with type t := t
 end
 
 module InitializeParams : sig
@@ -1385,6 +1417,8 @@ module MessageType : sig
     | Warning
     | Info
     | Log
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ParameterInformation : sig
@@ -1515,6 +1549,8 @@ module SignatureHelpTriggerKind : sig
     | Invoked
     | TriggerCharacter
     | ContentChange
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureHelpContext : sig
@@ -1558,6 +1594,8 @@ module TextDocumentSyncKind : sig
     | None
     | Full
     | Incremental
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentChangeRegistrationOptions : sig
@@ -1572,6 +1610,8 @@ module TextDocumentSaveReason : sig
     | Manual
     | AfterDelay
     | FocusOut
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentSaveRegistrationOptions : sig
@@ -1604,6 +1644,8 @@ module WatchKind : sig
     | Create
     | Change
     | Delete
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WillSaveTextDocumentParams : sig
