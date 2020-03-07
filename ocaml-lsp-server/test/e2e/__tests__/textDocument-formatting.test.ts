@@ -32,8 +32,6 @@ function setupOcamlFormat(ocamlFormat: string) {
   return tmpdir;
 }
 
-const newline = process.platform == 'win32' ? "\r\n" : "\n";
-
 describe("textDocument/formatting", () => {
   let languageServer = null;
 
@@ -75,13 +73,13 @@ describe("textDocument/formatting", () => {
     let result = await query(name);
     expect(result).toMatchObject([
       {
-        newText: [
-          "let rec gcd a b =",
-          "  match (a, b) with",
-          "  | 0, n",
-          "  | n, 0 ->",
-          "    n",
-          "  | _, _ -> gcd a (b mod a)", ""].join(newline),
+        newText:
+          "let rec gcd a b =\n" +
+          "  match (a, b) with\n" +
+          "  | 0, n\n" +
+          "  | n, 0 ->\n" +
+          "    n\n" +
+          "  | _, _ -> gcd a (b mod a)\n",
       },
     ]);
   });
@@ -109,12 +107,7 @@ describe("textDocument/formatting", () => {
     expect(result).toMatchObject([
       {
         newText:
-          ["module Test : sig",
-            "  type t =",
-            "    | Foo",
-            "    | Bar",
-            "    | Baz",
-            "end", ""].join(newline)
+          "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
       },
     ]);
   });

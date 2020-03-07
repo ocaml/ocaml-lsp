@@ -22,16 +22,15 @@ let to_dyn = String.to_dyn
 
 let to_string uri = uri
 
-let proto = "file://"
+let proto =
+  match Sys.win32 with
+  | true -> "file:///"
+  | false -> "file://"
 
 let to_path (uri : t) =
   let path =
     match String.drop_prefix ~prefix:proto uri with
-    | Some path -> 
-        if Sys.win32 && (Str.string_match (Str.regexp "$/[cC]:/") path 0) then
-          String.sub path ~pos: 1 ~len: (String.length path - 1)
-        else
-          path
+    | Some path -> path
     | None -> uri
   in
   path
