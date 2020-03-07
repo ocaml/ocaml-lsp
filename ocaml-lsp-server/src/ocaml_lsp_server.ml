@@ -685,40 +685,49 @@ let on_request :
       Ok (store, [ change ]) )
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
   | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
-    let selection_range_of_shapes (shapes : Query_protocol.shape list) :
+    let selection_range_of_shapes (cursor_position : Lsp.Protocol.Position.t)
+        (shapes : Query_protocol.shape list) :
         Lsp.Protocol.SelectionRange.t option =
-      match shapes with
-      | [] -> None
-      | h :: t ->
-        let merge_range r1 r2 =
-          let start_ =
-            min r1.Lsp.Protocol.Range.start_ r2.Lsp.Protocol.Range.start_
-          in
-          let end_ =
-            max r1.Lsp.Protocol.Range.end_ r2.Lsp.Protocol.Range.end_
-          in
-          { Lsp.Protocol.Range.start_; end_ }
-        in
-        let rec ranges_of_shape s =
-          range_of_loc s.Query_protocol.shape_loc
-          :: List.concat_map s.Query_protocol.shape_sub ~f:ranges_of_shape
-        in
-        let range =
-          List.fold_left
-            (List.append
-               (List.concat_map h.Query_protocol.shape_sub ~f:ranges_of_shape)
-               (List.concat_map t ~f:ranges_of_shape))
-            ~init:(range_of_loc h.Query_protocol.shape_loc)
-            ~f:merge_range
-        in
-        Some { Lsp.Protocol.SelectionRange.range; parent = None }
+      let rec ranges_of_shape parent s =
+        let range = range_of_loc s.Query_protocol.shape_loc in
+        let selectionRange = { Lsp.Protocol.SelectionRange.range; parent } in
+        match s.Query_protocol.shape_sub with
+        | [] -> [ selectionRange ]
+        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
+      in
+      let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
+      (* note: `Inside whatever < `Outside whatever *)
+      let range_includes_pos r p =
+        let rs = r.Lsp.Protocol.Range.start_ in
+        let re = r.end_ in
+        if p < rs then
+          `Outside (abs (rs.line - p.line), abs (rs.character - p.character))
+        else if p > re then
+          `Outside (abs (re.line - p.line), abs (re.character - p.character))
+        else
+          `Inside
+            ( abs (rs.line - p.line) + abs (re.line - p.line)
+            , abs (rs.character - p.character) + abs (re.character - p.character)
+            )
+      in
+      (* try to find the nearest range inside first, then outside *)
+      let nearest_range =
+        List.map ranges ~f:(fun r ->
+            ( r
+            , range_includes_pos r.Lsp.Protocol.SelectionRange.range
+                cursor_position ))
+        |> List.sort ~compare:(fun r1 r2 ->
+               compare (snd r1) (snd r2) |> Ordering.of_int)
+        |> List.map ~f:fst |> List.hd_opt
+      in
+      nearest_range
     in
     Document_store.get store uri >>= fun doc ->
     let results =
       List.filter_map positions ~f:(fun x ->
           let command = Query_protocol.Shape (logical_of_position x) in
           let shapes = dispatch_in_doc doc command in
-          selection_range_of_shapes shapes)
+          selection_range_of_shapes x shapes)
     in
     Ok (store, results)
   | Lsp.Client_request.UnknownRequest _ ->
