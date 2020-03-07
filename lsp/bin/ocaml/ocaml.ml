@@ -87,7 +87,17 @@ let preprocess =
                 | _ -> true )
               | _ -> true)
         in
-        super#interface { i with extends }
+        let fields =
+          (* We ignore this field until we switch to our own code gen. *)
+          if self#name = "FormattingOptions" then
+            List.filter i.fields ~f:(fun (f : Resolved.field) ->
+                match f.data with
+                | Pattern _ when f.name = "key" -> false
+                | _ -> true)
+          else
+            i.fields
+        in
+        super#interface { i with extends; fields }
     end
   in
   fun i -> try Some (traverse#t i) with Skip -> None
@@ -377,28 +387,6 @@ module Enum = struct
       { Named.name = "t"; data }
     in
     Module.type_decls name [ t ]
-end
-
-module Sum = struct
-  (** Sum types are a bit involved. All special handling is grouped here.
-
-      The rules are as follows:
-
-      - If the type is only composed of literals it's treated as an enum
-
-      - If there are only two characters and one of them is null. This is
-      treated as a nullable option
-
-      - If it's a string | number, it's treated as an Id.
-
-      - string | number | boolean | array | object | null is hard coded to be a
-      json type
-
-      - Anonymous sums in field names are treated as polymoprhic variants. The
-      tags are chosen mechanically based on the arguments
-
-      - Anonymous sums of records are hardeset to handle. We compose the various
-      parsers with <|> *)
 end
 
 module Mapper = struct

@@ -1509,7 +1509,6 @@ module FormattingOptions = struct
           [@default None] [@yojson_drop_default ( = )]
     ; trimFinalNewlines : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; key : (string * [ `Bool of bool | `Int of int | `String of string ]) list
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
 
