@@ -159,18 +159,18 @@ module TextDocumentEdit = struct
 end
 
 module WorkspaceEdit = struct
+  type documentChanges =
+    [ `TextDocumentEdit of TextDocumentEdit.t
+    | `CreateFile of CreateFile.t
+    | `RenameFile of RenameFile.t
+    | `DeleteFile of DeleteFile.t
+    ]
+
   type t =
     { changes :
         (DocumentUri.t, TextEdit.t list) Json.Assoc.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; documentChanges :
-        [ `TextDocumentEdit of TextDocumentEdit.t
-        | `CreateFile of CreateFile.t
-        | `RenameFile of RenameFile.t
-        | `DeleteFile of DeleteFile.t
-        ]
-        list
-        Json.Nullable_option.t
+    ; documentChanges : documentChanges list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -245,7 +245,7 @@ module DiagnosticTag = struct
     match json with
     | `Int 1 -> Unnecessary
     | `Int 2 -> Deprecated
-    | _ -> Json.error "DiagnosticTag" json
+    | _ -> Json.error "t" json
 end
 
 module PublishDiagnosticsClientCapabilities = struct
@@ -373,7 +373,7 @@ module CodeActionKind = struct
     | `String "refactor.rewrite" -> RefactorRewrite
     | `String "source" -> Source
     | `String "source.organizeImports" -> SourceOrganizeImports
-    | _ -> Json.error "CodeActionKind" json
+    | _ -> Json.error "t" json
 end
 
 module CodeActionClientCapabilities = struct
@@ -486,7 +486,7 @@ module SymbolKind = struct
     | `Int 24 -> Event
     | `Int 25 -> Operator
     | `Int 26 -> TypeParameter
-    | _ -> Json.error "SymbolKind" json
+    | _ -> Json.error "t" json
 end
 
 module DocumentSymbolClientCapabilities = struct
@@ -593,7 +593,7 @@ module MarkupKind = struct
     match json with
     | `String "plaintext" -> PlainText
     | `String "markdown" -> Markdown
-    | _ -> Json.error "MarkupKind" json
+    | _ -> Json.error "t" json
 end
 
 module SignatureHelpClientCapabilities = struct
@@ -723,7 +723,7 @@ module CompletionItemKind = struct
     | `Int 23 -> Event
     | `Int 24 -> Operator
     | `Int 25 -> TypeParameter
-    | _ -> Json.error "CompletionItemKind" json
+    | _ -> Json.error "t" json
 end
 
 module CompletionItemTag = struct
@@ -736,7 +736,7 @@ module CompletionItemTag = struct
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `Int 1 -> Deprecated
-    | _ -> Json.error "CompletionItemTag" json
+    | _ -> Json.error "t" json
 end
 
 module CompletionClientCapabilities = struct
@@ -929,7 +929,7 @@ module FailureHandlingKind = struct
     | `String "transactional" -> Transactional
     | `String "textOnlyTransactional" -> TextOnlyTransactional
     | `String "undo" -> Undo
-    | _ -> Json.error "FailureHandlingKind" json
+    | _ -> Json.error "t" json
 end
 
 module ResourceOperationKind = struct
@@ -949,7 +949,7 @@ module ResourceOperationKind = struct
     | `String "create" -> Create
     | `String "rename" -> Rename
     | `String "delete" -> Delete
-    | _ -> Json.error "ResourceOperationKind" json
+    | _ -> Json.error "t" json
 end
 
 module WorkspaceEditClientCapabilities = struct
@@ -1065,7 +1065,7 @@ module DiagnosticSeverity = struct
     | `Int 2 -> Warning
     | `Int 3 -> Information
     | `Int 4 -> Hint
-    | _ -> Json.error "DiagnosticSeverity" json
+    | _ -> Json.error "t" json
 end
 
 module Diagnostic = struct
@@ -1326,7 +1326,7 @@ module CompletionTriggerKind = struct
     | `Int 1 -> Invoked
     | `Int 2 -> TriggerCharacter
     | `Int 3 -> TriggerForIncompleteCompletions
-    | _ -> Json.error "CompletionTriggerKind" json
+    | _ -> Json.error "t" json
 end
 
 module CompletionContext = struct
@@ -1354,7 +1354,7 @@ module InsertTextFormat = struct
     match json with
     | `Int 1 -> PlainText
     | `Int 2 -> Snippet
-    | _ -> Json.error "InsertTextFormat" json
+    | _ -> Json.error "t" json
 end
 
 module MarkupContent = struct
@@ -1368,6 +1368,11 @@ module MarkupContent = struct
 end
 
 module CompletionItem = struct
+  type documentation =
+    [ `String of string
+    | `MarkupContent of MarkupContent.t
+    ]
+
   type t =
     { label : string
     ; kind : int Json.Nullable_option.t
@@ -1376,9 +1381,7 @@ module CompletionItem = struct
           [@default None] [@yojson_drop_default ( = )]
     ; detail : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; documentation :
-        [ `String of string | `MarkupContent of MarkupContent.t ]
-        Json.Nullable_option.t
+    ; documentation : documentation Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; deprecated : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -1803,7 +1806,7 @@ module DocumentHighlightKind = struct
     | `Int 1 -> Text
     | `Int 2 -> Read
     | `Int 3 -> Write
-    | _ -> Json.error "DocumentHighlightKind" json
+    | _ -> Json.error "t" json
 end
 
 module DocumentHighlightOptions = struct
@@ -2042,7 +2045,7 @@ module ErrorCodes = struct
     | `Int -32001 -> UnknownErrorCode
     | `Int -32800 -> RequestCancelled
     | `Int -32801 -> ContentModified
-    | _ -> Json.error "ErrorCodes" json
+    | _ -> Json.error "t" json
 end
 
 module ExecuteCommandOptions = struct
@@ -2095,7 +2098,7 @@ module FileChangeType = struct
     | `Int 1 -> Created
     | `Int 2 -> Changed
     | `Int 3 -> Deleted
-    | _ -> Json.error "FileChangeType" json
+    | _ -> Json.error "t" json
 end
 
 module FoldingRange = struct
@@ -2131,7 +2134,7 @@ module FoldingRangeKind = struct
     | `String "comment" -> Comment
     | `String "imports" -> Imports
     | `String "region" -> Region
-    | _ -> Json.error "FoldingRangeKind" json
+    | _ -> Json.error "t" json
 end
 
 module FoldingRangeOptions = struct
@@ -2166,12 +2169,14 @@ module FoldingRangeRegistrationOptions = struct
 end
 
 module Hover = struct
+  type contents =
+    [ `MarkedString of MarkedString.t
+    | `List of MarkedString.t list
+    | `MarkupContent of MarkupContent.t
+    ]
+
   type t =
-    { contents :
-        [ `MarkedString of MarkedString.t
-        | `List of MarkedString.t list
-        | `MarkupContent of MarkupContent.t
-        ]
+    { contents : contents
     ; range : Range.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -2256,7 +2261,7 @@ module InitializeError = struct
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `Int 1 -> UnknownProtocolVersion
-    | _ -> Json.error "InitializeError" json
+    | _ -> Json.error "t" json
 end
 
 module InitializeParams = struct
@@ -2269,6 +2274,25 @@ module InitializeParams = struct
 
   [@@@end]
 
+  type trace =
+    [ `Off
+    | `Messages
+    | `Verbose
+    ]
+
+  let yojson_of_trace (trace : trace) : Json.t =
+    match trace with
+    | `Off -> `String "off"
+    | `Messages -> `String "messages"
+    | `Verbose -> `String "verbose"
+
+  let trace_of_yojson (json : Json.t) : trace =
+    match json with
+    | `String "off" -> `Off
+    | `String "messages" -> `Messages
+    | `String "verbose" -> `Verbose
+    | _ -> Json.error "trace" json
+
   type t =
     { processId : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -2280,7 +2304,7 @@ module InitializeParams = struct
           [@default None] [@yojson_drop_default ( = )]
     ; initializationOptions : Json.t option [@yojson.option]
     ; capabilities : ClientCapabilities.t
-    ; trace : [ `Off | `Messages | `Verbose ] Json.Nullable_option.t
+    ; trace : trace Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workspaceFolders :
         WorkspaceFolder.t list Json.Nullable_option.t Json.Nullable_option.t
@@ -2292,11 +2316,15 @@ module InitializeParams = struct
 end
 
 module WorkspaceFoldersServerCapabilities = struct
+  type changeNotifications =
+    [ `String of string
+    | `Bool of bool
+    ]
+
   type t =
     { supported : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; changeNotifications :
-        [ `String of string | `Bool of bool ] Json.Nullable_option.t
+    ; changeNotifications : changeNotifications Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -2426,111 +2454,140 @@ module ServerCapabilities = struct
 
   [@@@end]
 
+  type textDocumentSync =
+    [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
+    | `Int of int
+    ]
+
+  type hoverProvider =
+    [ `Bool of bool
+    | `HoverOptions of HoverOptions.t
+    ]
+
+  type declarationProvider =
+    [ `Bool of bool
+    | `DeclarationOptions of DeclarationOptions.t
+    | `DeclarationRegistrationOptions of DeclarationRegistrationOptions.t
+    ]
+
+  type definitionProvider =
+    [ `Bool of bool
+    | `DefinitionOptions of DefinitionOptions.t
+    ]
+
+  type typeDefinitionProvider =
+    [ `Bool of bool
+    | `TypeDefinitionOptions of TypeDefinitionOptions.t
+    | `TypeDefinitionRegistrationOptions of TypeDefinitionRegistrationOptions.t
+    ]
+
+  type implementationProvider =
+    [ `Bool of bool
+    | `ImplementationOptions of ImplementationOptions.t
+    | `ImplementationRegistrationOptions of ImplementationRegistrationOptions.t
+    ]
+
+  type referencesProvider =
+    [ `Bool of bool
+    | `ReferenceOptions of ReferenceOptions.t
+    ]
+
+  type documentHighlightProvider =
+    [ `Bool of bool
+    | `DocumentHighlightOptions of DocumentHighlightOptions.t
+    ]
+
+  type documentSymbolProvider =
+    [ `Bool of bool
+    | `DocumentSymbolOptions of DocumentSymbolOptions.t
+    ]
+
+  type codeActionProvider =
+    [ `Bool of bool
+    | `CodeActionOptions of CodeActionOptions.t
+    ]
+
+  type colorProvider =
+    [ `Bool of bool
+    | `DocumentColorOptions of DocumentColorOptions.t
+    | `DocumentColorRegistrationOptions of DocumentColorRegistrationOptions.t
+    ]
+
+  type documentFormattingProvider =
+    [ `Bool of bool
+    | `DocumentFormattingOptions of DocumentFormattingOptions.t
+    ]
+
+  type documentRangeFormattingProvider =
+    [ `Bool of bool
+    | `DocumentRangeFormattingOptions of DocumentRangeFormattingOptions.t
+    ]
+
+  type renameProvider =
+    [ `Bool of bool
+    | `RenameOptions of RenameOptions.t
+    ]
+
+  type foldingRangeProvider =
+    [ `Bool of bool
+    | `FoldingRangeOptions of FoldingRangeOptions.t
+    | `FoldingRangeRegistrationOptions of FoldingRangeRegistrationOptions.t
+    ]
+
+  type selectionRangeProvider =
+    [ `Bool of bool
+    | `SelectionRangeOptions of SelectionRangeOptions.t
+    | `SelectionRangeRegistrationOptions of SelectionRangeRegistrationOptions.t
+    ]
+
   type t =
-    { textDocumentSync :
-        [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t | `Int of int ]
-        Json.Nullable_option.t
+    { textDocumentSync : textDocumentSync Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; completionProvider : CompletionOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; hoverProvider :
-        [ `Bool of bool | `HoverOptions of HoverOptions.t ]
-        Json.Nullable_option.t
+    ; hoverProvider : hoverProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; signatureHelpProvider : SignatureHelpOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; declarationProvider :
-        [ `Bool of bool
-        | `DeclarationOptions of DeclarationOptions.t
-        | `DeclarationRegistrationOptions of DeclarationRegistrationOptions.t
-        ]
-        Json.Nullable_option.t
+    ; declarationProvider : declarationProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; definitionProvider :
-        [ `Bool of bool | `DefinitionOptions of DefinitionOptions.t ]
-        Json.Nullable_option.t
+    ; definitionProvider : definitionProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; typeDefinitionProvider :
-        [ `Bool of bool
-        | `TypeDefinitionOptions of TypeDefinitionOptions.t
-        | `TypeDefinitionRegistrationOptions of
-          TypeDefinitionRegistrationOptions.t
-        ]
-        Json.Nullable_option.t
+    ; typeDefinitionProvider : typeDefinitionProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; implementationProvider :
-        [ `Bool of bool
-        | `ImplementationOptions of ImplementationOptions.t
-        | `ImplementationRegistrationOptions of
-          ImplementationRegistrationOptions.t
-        ]
-        Json.Nullable_option.t
+    ; implementationProvider : implementationProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; referencesProvider :
-        [ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ]
-        Json.Nullable_option.t
+    ; referencesProvider : referencesProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentHighlightProvider :
-        [ `Bool of bool
-        | `DocumentHighlightOptions of DocumentHighlightOptions.t
-        ]
-        Json.Nullable_option.t
+        documentHighlightProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; documentSymbolProvider :
-        [ `Bool of bool | `DocumentSymbolOptions of DocumentSymbolOptions.t ]
-        Json.Nullable_option.t
+    ; documentSymbolProvider : documentSymbolProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; codeActionProvider :
-        [ `Bool of bool | `CodeActionOptions of CodeActionOptions.t ]
-        Json.Nullable_option.t
+    ; codeActionProvider : codeActionProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; codeLensProvider : CodeLensOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentLinkProvider : DocumentLinkOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; colorProvider :
-        [ `Bool of bool
-        | `DocumentColorOptions of DocumentColorOptions.t
-        | `DocumentColorRegistrationOptions of
-          DocumentColorRegistrationOptions.t
-        ]
-        Json.Nullable_option.t
+    ; colorProvider : colorProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentFormattingProvider :
-        [ `Bool of bool
-        | `DocumentFormattingOptions of DocumentFormattingOptions.t
-        ]
-        Json.Nullable_option.t
+        documentFormattingProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentRangeFormattingProvider :
-        [ `Bool of bool
-        | `DocumentRangeFormattingOptions of DocumentRangeFormattingOptions.t
-        ]
-        Json.Nullable_option.t
+        documentRangeFormattingProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentOnTypeFormattingProvider :
         DocumentOnTypeFormattingOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; renameProvider :
-        [ `Bool of bool | `RenameOptions of RenameOptions.t ]
-        Json.Nullable_option.t
+    ; renameProvider : renameProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; foldingRangeProvider :
-        [ `Bool of bool
-        | `FoldingRangeOptions of FoldingRangeOptions.t
-        | `FoldingRangeRegistrationOptions of FoldingRangeRegistrationOptions.t
-        ]
-        Json.Nullable_option.t
+    ; foldingRangeProvider : foldingRangeProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; executeCommandProvider : ExecuteCommandOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; selectionRangeProvider :
-        [ `Bool of bool
-        | `SelectionRangeOptions of SelectionRangeOptions.t
-        | `SelectionRangeRegistrationOptions of
-          SelectionRangeRegistrationOptions.t
-        ]
-        Json.Nullable_option.t
+    ; selectionRangeProvider : selectionRangeProvider Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workspaceSymbolProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -2612,15 +2669,23 @@ module MessageType = struct
     | `Int 2 -> Warning
     | `Int 3 -> Info
     | `Int 4 -> Log
-    | _ -> Json.error "MessageType" json
+    | _ -> Json.error "t" json
 end
 
 module ParameterInformation = struct
+  type label =
+    [ `String of string
+    | `Offset of int * int
+    ]
+
+  type documentation =
+    [ `String of string
+    | `MarkupContent of MarkupContent.t
+    ]
+
   type t =
-    { label : [ `String of string | `Offset of int * int ]
-    ; documentation :
-        [ `String of string | `MarkupContent of MarkupContent.t ]
-        Json.Nullable_option.t
+    { label : label
+    ; documentation : documentation Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline] [@@yojson.allow_extra_fields]
@@ -2777,11 +2842,14 @@ module ShowMessageRequestParams = struct
 end
 
 module SignatureInformation = struct
+  type documentation =
+    [ `String of string
+    | `MarkupContent of MarkupContent.t
+    ]
+
   type t =
     { label : string
-    ; documentation :
-        [ `String of string | `MarkupContent of MarkupContent.t ]
-        Json.Nullable_option.t
+    ; documentation : documentation Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; parameters : ParameterInformation.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -2821,7 +2889,7 @@ module SignatureHelpTriggerKind = struct
     | `Int 1 -> Invoked
     | `Int 2 -> TriggerCharacter
     | `Int 3 -> ContentChange
-    | _ -> Json.error "SignatureHelpTriggerKind" json
+    | _ -> Json.error "t" json
 end
 
 module SignatureHelpContext = struct
@@ -2898,7 +2966,7 @@ module TextDocumentSyncKind = struct
     | `Int 0 -> None
     | `Int 1 -> Full
     | `Int 2 -> Incremental
-    | _ -> Json.error "TextDocumentSyncKind" json
+    | _ -> Json.error "t" json
 end
 
 module TextDocumentChangeRegistrationOptions = struct
@@ -2929,7 +2997,7 @@ module TextDocumentSaveReason = struct
     | `Int 1 -> Manual
     | `Int 2 -> AfterDelay
     | `Int 3 -> FocusOut
-    | _ -> Json.error "TextDocumentSaveReason" json
+    | _ -> Json.error "t" json
 end
 
 module TextDocumentSaveRegistrationOptions = struct
@@ -2988,7 +3056,7 @@ module WatchKind = struct
     | `Int 1 -> Create
     | `Int 2 -> Change
     | `Int 4 -> Delete
-    | _ -> Json.error "WatchKind" json
+    | _ -> Json.error "t" json
 end
 
 module WillSaveTextDocumentParams = struct

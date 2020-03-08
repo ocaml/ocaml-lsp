@@ -151,6 +151,7 @@ module Type = struct
     let sep = Pp.concat [ Pp.newline; i "| " ] in
     Pp.concat_map constrs ~sep ~f:(fun (name, arg) ->
         let name =
+          let name = String.capitalize_ascii name in
           if poly then
             "`" ^ name
           else

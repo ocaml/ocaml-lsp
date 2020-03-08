@@ -31,9 +31,7 @@ end
 module Type : sig
   [@@@warning "-30"]
 
-  type field
-
-  type constr
+  type attr
 
   type prim =
     | Unit
@@ -51,6 +49,17 @@ module Type : sig
     | Poly_variant of constr list
     | Assoc of t * t
     | App of t * t list
+
+  and field =
+    { name : string
+    ; typ : t
+    ; attrs : attr list
+    }
+
+  and constr =
+    { name : string
+    ; args : t list
+    }
 
   type decl =
     | Alias of t
@@ -93,6 +102,48 @@ module Type : sig
   val json : t
 
   val unit : t
+
+  class virtual ['env, 'm] mapreduce :
+    object ('self)
+      method virtual empty : 'm
+
+      method virtual plus : 'm -> 'm -> 'm
+
+      method private fold_left_map :
+        'a. f:('a -> 'a * 'm) -> 'a list -> 'a list * 'm
+
+      method alias : 'env -> t -> decl * 'm
+
+      method app : 'env -> t -> t list -> t * 'm
+
+      method assoc : 'env -> t -> t -> t * 'm
+
+      method constr : 'env -> constr -> constr * 'm
+
+      method field : 'env -> field -> field * 'm
+
+      method list : 'env -> t -> t * 'm
+
+      method named : 'env -> string -> t * 'm
+
+      method optional : 'env -> t -> t * 'm
+
+      method poly_variant : 'env -> constr list -> t * 'm
+
+      method prim : 'env -> prim -> t * 'm
+
+      method record : 'env -> field list -> decl * 'm
+
+      method t : 'env -> t -> t * 'm
+
+      method decl : 'env -> decl -> decl * 'm
+
+      method tuple : 'env -> t list -> t * 'm
+
+      method var : 'env -> string -> t * 'm
+
+      method variant : 'env -> constr list -> decl * 'm
+    end
 end
 
 module Expr : sig

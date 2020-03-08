@@ -194,17 +194,18 @@ module Module = struct
   let _empty name =
     { Ml.Kind.intf = Ml.Module.empty name; impl = Ml.Module.empty name }
 
-  let type_decls name (type_decls : Ml.Type.decl Named.t list) : t =
+  let type_decls name (type_decls : Ml.Type.decl Named.t list Ml.Kind.Map.t) : t
+      =
     let module_ bindings = { Ml.Module.name; bindings } in
     let intf : Module.sig_ Module.t =
-      List.map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+      List.map type_decls.intf ~f:(fun (td : Ml.Type.decl Named.t) ->
           { td with
             Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
           })
       |> module_
     in
     let impl =
-      List.map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+      List.map type_decls.impl ~f:(fun (td : Ml.Type.decl Named.t) ->
           { td with Named.data = Ml.Module.Type_decl td.data })
       |> module_
     in
@@ -237,7 +238,7 @@ let pp_file pp ch =
   Format.pp_print_flush fmt ()
 
 module Enum = struct
-  let of_json { Named.name; data = constrs } =
+  let of_json ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
     let pat = [ (Unnamed "json", Ml.Type.json) ] in
     let body =
@@ -245,35 +246,36 @@ module Enum = struct
         List.map constrs ~f:(fun (constr, literal) ->
             let pat = Json.pat_of_literal literal in
             let tag = constr in
-            (pat, Create (Constr { tag; poly = false; args = [] })))
+            (pat, Create (Constr { tag; poly; args = [] })))
       in
       Match (Ident "json", clauses @ [ Json.json_error_pat name ])
     in
-    let name = "t_of_yojson" in
-    let data = { Ml.Expr.pat; type_ = Ml.Type.t; body } in
+    let data = { Ml.Expr.pat; type_ = Ml.Type.name name; body } in
+    let name = sprintf "%s_of_yojson" name in
     { Named.name; data }
 
-  let to_json { Named.name = _; data = constrs } =
+  let to_json ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
-    let pat = [ (Unnamed "t", Ml.Type.t) ] in
+    let pat = [ (Unnamed name, Ml.Type.name name) ] in
     let body =
       let clauses =
         List.map constrs ~f:(fun (constr, literal) ->
-            let pat = Pat (Constr { tag = constr; poly = false; args = [] }) in
+            let pat = Pat (Constr { tag = constr; poly; args = [] }) in
             (pat, Json.constr_of_literal literal))
       in
-      Match (Ident "t", clauses)
+      Match (Ident name, clauses)
     in
-    let name = "yojson_of_t" in
+    let name = sprintf "yojson_of_%s" name in
     let data = { Ml.Expr.pat; type_ = Ml.Type.json; body } in
     { Named.name; data }
 
+  let conv ~poly t =
+    let to_json = to_json ~poly t in
+    let of_json = of_json ~poly t in
+    [ to_json; of_json ]
+
   let module_ ({ Named.name; data = constrs } as t) =
-    let json_bindings =
-      let to_json = to_json t in
-      let of_json = of_json t in
-      [ to_json; of_json ]
-    in
+    let json_bindings = conv ~poly:false { t with name = "t" } in
     let t =
       let data =
         Ml.Type.Variant
@@ -281,7 +283,8 @@ module Enum = struct
       in
       { Named.name = "t"; data }
     in
-    let module_ = Module.type_decls name [ t ] in
+    let type_decls = Ml.Kind.Map.make_both [ t ] in
+    let module_ = Module.type_decls name type_decls in
     Module.add_private_values module_ json_bindings
     |> Module.add_json_conv_for_t
 end
@@ -417,6 +420,30 @@ module Mapper = struct
                Ml.Type.field typ ~name:field.name))
     in
     { Named.name; data }
+
+  let extract_poly_vars s =
+    let extract =
+      object (self)
+        inherit
+          [string option, Ml.Type.constr list Named.t list] Ml.Type.mapreduce as super
+
+        method empty = []
+
+        (* TODO grossly slow *)
+        method plus x y = x @ y
+
+        method! field _ (f : Ml.Type.field) =
+          let env = Some f.name in
+          super#field env f
+
+        method! poly_variant env constrs =
+          let name = Option.value_exn env in
+          let replacement = Ml.Type.name name in
+          let constrs, m = self#fold_left_map ~f:(self#constr env) constrs in
+          (replacement, self#plus m [ { Named.name; data = constrs } ])
+      end
+    in
+    extract#decl None s
 end
 
 module Gen = struct
@@ -456,7 +483,16 @@ module Gen = struct
   let poly_enum { Named.name; data = _ } : Type.decl Named.t list =
     [ { Named.name; data = Type.Alias Type.unit } ]
 
-  let module_ { Ml.Module.name; bindings } =
+  let poly_enum_conv (t : _ Named.t) =
+    if List.for_all t.data ~f:(fun (c : Ml.Type.constr) -> List.is_empty c.args)
+    then
+      List.map t.data ~f:(fun (c : Ml.Type.constr) ->
+          (c.name, Literal.String c.name))
+      |> Named.set_data t |> Enum.conv ~poly:true
+    else
+      []
+
+  let module_ { Ml.Module.name; bindings } : Module.t =
     let type_decls =
       List.concat_map bindings ~f:(fun (r : Expanded.binding Named.t) ->
           match r.data with
@@ -465,7 +501,32 @@ module Gen = struct
           | Poly_enum data -> poly_enum { r with data }
           | Alias data -> type_ { r with data })
     in
-    Module.type_decls name type_decls
+    let intf : Ml.Module.sig_ Named.t list =
+      List.map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+          { td with
+            Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
+          })
+    in
+    let impl : Ml.Module.impl Named.t list =
+      (* TODO we should make sure to handle duplicate variants extracted *)
+      List.concat_map type_decls ~f:(fun d ->
+          let typ_, poly_vars = Mapper.extract_poly_vars (Named.data d) in
+          let poly_vars_and_convs =
+            List.concat_map poly_vars ~f:(fun pv ->
+                let decl =
+                  Named.map pv ~f:(fun decl ->
+                      Ml.Module.Type_decl (Alias (Poly_variant decl)))
+                in
+                let json_conv =
+                  poly_enum_conv pv
+                  |> List.map ~f:(Named.map ~f:(fun v -> Ml.Module.Value v))
+                in
+                decl :: json_conv)
+          in
+          poly_vars_and_convs @ [ { d with data = Ml.Module.Type_decl typ_ } ])
+    in
+    let module_ bindings = { Ml.Module.name; bindings } in
+    { Ml.Kind.intf = module_ intf; impl = module_ impl }
 end
 
 class idents =

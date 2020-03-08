@@ -76,6 +76,97 @@ module Type = struct
     | Record of field list
     | Variant of constr list
 
+  class virtual ['env, 'm] mapreduce =
+    object (self : 'self)
+      method virtual empty : 'm
+
+      method virtual plus : 'm -> 'm -> 'm
+
+      method poly_variant env constrs =
+        let r, s = self#fold_left_map constrs ~f:(fun c -> self#constr env c) in
+        (Poly_variant r, s)
+
+      method tuple (env : 'env) t =
+        let (r : t list), s =
+          self#fold_left_map t ~f:(fun (t : t) -> self#t env t)
+        in
+        (Tuple r, s)
+
+      method named _ n = (Named n, self#empty)
+
+      method var _ n = (Var n, self#empty)
+
+      method prim _ p = (Prim p, self#empty)
+
+      method optional env p =
+        let t, s = self#t env p in
+        (Optional t, s)
+
+      method list env t =
+        let t, s = self#t env t in
+        (List t, s)
+
+      method assoc env k v =
+        let k, s1 = self#t env k in
+        let v, s2 = self#t env v in
+        (Assoc (k, v), self#plus s1 s2)
+
+      method app env f xs =
+        let f, s1 = self#t env f in
+        let xs, s2 = self#fold_left_map xs ~f:(fun x -> self#t env x) in
+        (App (f, xs), self#plus s1 s2)
+
+      method t env this =
+        match (this : t) with
+        | Named n -> self#named env n
+        | Var v -> self#var env v
+        | Prim p -> self#prim env p
+        | Tuple t -> self#tuple env t
+        | Optional t -> self#optional env t
+        | List t -> self#list env t
+        | Poly_variant t -> self#poly_variant env t
+        | Assoc (k, v) -> self#assoc env k v
+        | App (f, xs) -> self#app env f xs
+
+      method alias env t =
+        let r0, s0 = self#t env t in
+        (Alias r0, s0)
+
+      method constr env (constr : constr) =
+        let args, s =
+          self#fold_left_map constr.args ~f:(fun t -> self#t env t)
+        in
+        ({ constr with args }, s)
+
+      method private fold_left_map
+          : 'a. f:('a -> 'a * 'm) -> 'a list -> 'a list * 'm =
+        fun ~f xs ->
+          let accf, accm =
+            List.fold_left xs ~init:([], self#empty) ~f:(fun (accf, accm) x ->
+                let r, s = f x in
+                (r :: accf, self#plus accm s))
+          in
+          (List.rev accf, accm)
+
+      method field env f =
+        let typ, s = self#t env f.typ in
+        ({ f with typ }, s)
+
+      method record env fields =
+        let r, s = self#fold_left_map fields ~f:(fun f -> self#field env f) in
+        (Record r, s)
+
+      method variant env constrs =
+        let v, s = self#fold_left_map constrs ~f:(fun f -> self#constr env f) in
+        (Variant v, s)
+
+      method decl env decl =
+        match decl with
+        | Alias a -> self#alias env a
+        | Record fs -> self#record env fs
+        | Variant v -> self#variant env v
+    end
+
   let field typ ~name =
     let ident = ident name in
     let attrs =
@@ -91,9 +182,7 @@ module Type = struct
     in
     { name = ident; typ; attrs }
 
-  let constr args ~name =
-    let name = String.capitalize_ascii name in
-    { name; args }
+  let constr args ~name = { name; args }
 
   let list t = List t
 
