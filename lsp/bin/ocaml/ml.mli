@@ -133,7 +133,7 @@ module Expr : sig
   and 'e constr =
     { tag : string
     ; poly : bool
-    ; args : 'e option
+    ; args : 'e list
     }
 
   type t = expr

@@ -1,8 +1,6 @@
 open! Import
 open! Ts_types
 
-(* TODO - Handle the [kind] field everywhere *)
-
 let preprocess =
   let union_fields l1 l2 ~f =
     let of_map =
@@ -123,8 +121,9 @@ module Expanded = struct
     object
       inherit [binding Named.t list] Resolved.fold as super
 
-      (* Every record valued field introduces a new type TODO handle the case
-         where two fields share a type *)
+      (** Every record valued field introduces a new type
+
+          TODO handle the case where two fields share a type *)
       method! field f ~init =
         let init =
           match f.data with
@@ -167,7 +166,7 @@ module Json = struct
       | Int i -> ("Int", Pat (Ml.Expr.Int i))
       | Float _ -> assert false
     in
-    Pat (Constr { poly = true; tag; args = Some args })
+    Pat (Constr { poly = true; tag; args = [ args ] })
 
   let constr_of_literal (t : Literal.t) : Ml.Expr.t =
     let open Ml.Expr in
@@ -177,7 +176,7 @@ module Json = struct
       | Int i -> ("Int", Create (Ml.Expr.Int i))
       | Float _ -> assert false
     in
-    Create (Constr { poly = true; tag; args = Some args })
+    Create (Constr { poly = true; tag; args = [ args ] })
 
   let json_error_pat name =
     let open Ml.Expr in
@@ -246,7 +245,7 @@ module Enum = struct
         List.map constrs ~f:(fun (constr, literal) ->
             let pat = Json.pat_of_literal literal in
             let tag = constr in
-            (pat, Create (Constr { tag; poly = false; args = None })))
+            (pat, Create (Constr { tag; poly = false; args = [] })))
       in
       Match (Ident "json", clauses @ [ Json.json_error_pat name ])
     in
@@ -260,9 +259,7 @@ module Enum = struct
     let body =
       let clauses =
         List.map constrs ~f:(fun (constr, literal) ->
-            let pat =
-              Pat (Constr { tag = constr; poly = false; args = None })
-            in
+            let pat = Pat (Constr { tag = constr; poly = false; args = [] }) in
             (pat, Json.constr_of_literal literal))
       in
       Match (Ident "t", clauses)

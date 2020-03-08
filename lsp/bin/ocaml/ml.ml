@@ -246,7 +246,7 @@ module Expr = struct
   and 'e constr =
     { tag : string
     ; poly : bool
-    ; args : 'e option
+    ; args : 'e list
     }
 
   type t = expr
@@ -259,7 +259,7 @@ module Expr = struct
     ; body : t
     }
 
-  let constr ?(poly = false) ?args tag = { poly; args; tag }
+  let constr ?(poly = false) ?(args = []) tag = { poly; args; tag }
 
   let pp_constr f { tag; poly; args } =
     let tag =
@@ -271,8 +271,11 @@ module Expr = struct
           tag )
     in
     match args with
-    | None -> tag
-    | Some args -> Pp.concat [ tag; Pp.space; f args ]
+    | [] -> tag
+    | args ->
+      let sep = Pp.verbatim "," in
+      let args = W.surround `Paren (Pp.concat_map ~sep ~f args) in
+      Pp.concat [ tag; Pp.space; args ]
 
   let rec pp_pat = function
     | Wildcard -> Pp.verbatim "_"
