@@ -137,6 +137,25 @@ module Json = struct
     | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
     | Some f -> f
 
+  module Of = struct
+    let list = Ppx_yojson_conv_lib.Yojson_conv.list_of_yojson
+
+    let pair f g json =
+      match json with
+      | `List [ x; y ] -> (f x, g y)
+      | json -> error "pair" json
+
+    let untagged_union (type a) name (xs : (t -> a) list) (json : t) : a =
+      match
+        List.find_map xs ~f:(fun conv ->
+            try Some (conv json)
+            with Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (_, _) ->
+              None)
+      with
+      | None -> error name json
+      | Some x -> x
+  end
+
   module Nullable_option = struct
     type 'a t = 'a option
 

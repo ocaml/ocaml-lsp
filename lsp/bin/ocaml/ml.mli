@@ -150,7 +150,6 @@ module Expr : sig
   [@@@warning "-30"]
 
   type expr =
-    | Ident of string
     | Let of pat * expr * expr
     | Match of expr * (pat * expr) list
     | Fun of pat arg list * expr

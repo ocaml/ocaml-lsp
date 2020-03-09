@@ -301,7 +301,6 @@ module Expr = struct
   [@@@ocaml.warning "-30-32-37"]
 
   type expr =
-    | Ident of string
     | Let of pat * expr * expr
     | Match of expr * (pat * expr) list
     | Fun of pat arg list * expr
@@ -393,13 +392,14 @@ module Expr = struct
     | String s -> Pp.textf "%S" s
     | Ident s -> Pp.verbatim s
     | Cons _ -> assert false
-    | List _ -> assert false
+    | List xs ->
+      let xs = Pp.concat_map xs ~sep:(Pp.verbatim ";") ~f:pp in
+      W.surround `Square xs
     | Tuple _ -> assert false
     | Record _ -> assert false
     | Constr c -> pp_constr pp c
 
   and pp = function
-    | Ident s -> Pp.verbatim s
     | Assert_false -> Pp.verbatim "assert false"
     | Match (expr, patterns) ->
       let with_ =
@@ -434,6 +434,19 @@ module Expr = struct
             | _ -> assert false)
       in
       Pp.concat [ pp x; Pp.space; args ]
+    | Fun (pats, expr) ->
+      W.surround `Paren
+        (Pp.concat
+           [ Pp.verbatim "fun"
+           ; Pp.space
+           ; Pp.concat_map pats ~sep:Pp.space ~f:(fun arg ->
+                 match arg with
+                 | Unnamed e -> pp_pat e
+                 | _ -> assert false)
+           ; Pp.space
+           ; Pp.verbatim "->"
+           ; pp expr
+           ])
     | _ -> assert false
 
   let pp_toplevel ~kind name { pat; type_; body } =

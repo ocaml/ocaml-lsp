@@ -182,8 +182,32 @@ module Json = struct
     let open Ml.Expr in
     ( Wildcard
     , App
-        ( Ident "Json.error"
-        , [ Unnamed (Create (String name)); Unnamed (Ident "json") ] ) )
+        ( Create (Ident "Json.error")
+        , [ Unnamed (Create (String name)); Unnamed (Create (Ident "json")) ] )
+    )
+
+  let is_json_constr (constr : Ml.Type.constr) =
+    List.mem constr.name ~set:[ "String"; "Int"; "Bool" ]
+
+  module Name = struct
+    let of_ = sprintf "%s_of_yojson"
+
+    let to_ = sprintf "yojson_of_%s"
+  end
+
+  let of_json ~name expr =
+    let open Ml.Expr in
+    let pat = [ (Unnamed "json", Ml.Type.json) ] in
+    let data = { Ml.Expr.pat; type_ = Ml.Type.name name; body = expr } in
+    let name = Name.of_ name in
+    { Named.name; data }
+
+  let to_json ~name expr =
+    let open Ml.Expr in
+    let pat = [ (Unnamed name, Ml.Type.name name) ] in
+    let data = { Ml.Expr.pat; type_ = Ml.Type.json; body = expr } in
+    let name = Name.to_ name in
+    { Named.name; data }
 end
 
 module Module = struct
@@ -240,7 +264,6 @@ let pp_file pp ch =
 module Enum = struct
   let of_json ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
-    let pat = [ (Unnamed "json", Ml.Type.json) ] in
     let body =
       let clauses =
         List.map constrs ~f:(fun (constr, literal) ->
@@ -248,26 +271,21 @@ module Enum = struct
             let tag = constr in
             (pat, Create (Constr { tag; poly; args = [] })))
       in
-      Match (Ident "json", clauses @ [ Json.json_error_pat name ])
+      Match (Create (Ident "json"), clauses @ [ Json.json_error_pat name ])
     in
-    let data = { Ml.Expr.pat; type_ = Ml.Type.name name; body } in
-    let name = sprintf "%s_of_yojson" name in
-    { Named.name; data }
+    Json.of_json ~name body
 
   let to_json ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
-    let pat = [ (Unnamed name, Ml.Type.name name) ] in
     let body =
       let clauses =
         List.map constrs ~f:(fun (constr, literal) ->
             let pat = Pat (Constr { tag = constr; poly; args = [] }) in
             (pat, Json.constr_of_literal literal))
       in
-      Match (Ident name, clauses)
+      Match (Create (Ident name), clauses)
     in
-    let name = sprintf "yojson_of_%s" name in
-    let data = { Ml.Expr.pat; type_ = Ml.Type.json; body } in
-    { Named.name; data }
+    Json.to_json ~name body
 
   let conv ~poly t =
     let to_json = to_json ~poly t in
@@ -287,6 +305,80 @@ module Enum = struct
     let module_ = Module.type_decls name type_decls in
     Module.add_private_values module_ json_bindings
     |> Module.add_json_conv_for_t
+end
+
+module Poly_variant = struct
+  let of_json { Named.name; data = constrs } =
+    let json_constrs, untagged_constrs =
+      List.partition_map constrs ~f:(fun x ->
+          if Json.is_json_constr x then
+            Left x
+          else
+            Right x)
+    in
+    let open Ml.Expr in
+    let clauses =
+      List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
+          let constr arg =
+            Constr { tag = c.name; poly = true; args = [ arg ] }
+          in
+          let pat = Pat (constr (Pat (Ident "j"))) in
+          let expr : t = Create (constr (Create (Ident "j"))) in
+          (pat, expr))
+    in
+    let untagged =
+      let args =
+        let constrs =
+          List.map untagged_constrs ~f:(fun (utc : Ml.Type.constr) ->
+              let create =
+                let of_json =
+                  let conv name =
+                    match String.rsplit2 ~on:'.' name with
+                    | None -> Json.Name.of_ name
+                    | Some (module_, name) ->
+                      sprintf "%s.%s" module_ (Json.Name.of_ name)
+                  in
+                  let f =
+                    let conv t = Create (Ident (conv t)) in
+                    match (utc.args : Ml.Type.t list) with
+                    | [ Named t ] -> conv t
+                    | [ List (Named t) ] ->
+                      App (Create (Ident "Json.Of.list"), [ Unnamed (conv t) ])
+                    | [ Tuple [ Prim Int; Prim Int ] ] ->
+                      App
+                        ( Create (Ident "Json.Of.int_pair")
+                        , [ Unnamed (Create (Ident "json")) ] )
+                    | [] -> assert false
+                    | _ ->
+                      Code_error.raise "untagged"
+                        [ ("utc.name", Dyn.Encoder.string utc.name) ]
+                  in
+                  App (f, [ Unnamed (Create (Ident "json")) ])
+                in
+                Create
+                  (Constr { tag = utc.name; poly = true; args = [ of_json ] })
+              in
+              Fun ([ Unnamed (Pat (Ident "json")) ], create))
+        in
+        Create (List constrs)
+      in
+      App
+        ( Create (Ident "Json.Of.untagged_union")
+        , [ Unnamed (Create (String name))
+          ; Unnamed args
+          ; Unnamed (Create (Ident "json"))
+          ] )
+    in
+    let expr =
+      match (json_constrs, untagged_constrs) with
+      | [], [] -> assert false
+      | [], _ -> untagged
+      | _, [] ->
+        Match (Create (Ident "json"), clauses @ [ Json.json_error_pat name ])
+      | _ :: _, _ :: _ ->
+        Match (Create (Ident "json"), clauses @ [ (Wildcard, untagged) ])
+    in
+    Json.of_json ~name expr
 end
 
 module Mapper = struct
@@ -486,11 +578,14 @@ module Gen = struct
   let poly_enum_conv (t : _ Named.t) =
     if List.for_all t.data ~f:(fun (c : Ml.Type.constr) -> List.is_empty c.args)
     then
+      (* This is equivalent to an enum *)
       List.map t.data ~f:(fun (c : Ml.Type.constr) ->
           (c.name, Literal.String c.name))
       |> Named.set_data t |> Enum.conv ~poly:true
     else
-      []
+      [ Poly_variant.of_json t ]
+
+  (* This is the more complex case *)
 
   let module_ { Ml.Module.name; bindings } : Module.t =
     let type_decls =
