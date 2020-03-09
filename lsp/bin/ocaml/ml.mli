@@ -75,6 +75,10 @@ module Type : sig
 
   val field : t -> name:string -> field
 
+  val kind_field : literal:string -> field
+
+  val get_kind : field -> string option
+
   val constr : t list -> name:string -> constr
 
   (** Simplified sum types*)

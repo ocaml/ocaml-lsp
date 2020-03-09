@@ -520,13 +520,24 @@ module Mapper = struct
     | Pattern { pat; typ } ->
       let key = make_typ field.name pat in
       let data = make_typ field.name typ in
-      Type.assoc_list ~key ~data
+      let typ = Type.assoc_list ~key ~data in
+      Ml.Type.field typ ~name:field.name
+    | Resolved.Single { typ = Literal s; optional = false } ->
+      let literal =
+        match s with
+        | String s -> s
+        | _ -> assert false
+      in
+      Type.kind_field ~literal
     | Resolved.Single { typ; optional } ->
       let typ = make_typ field.name typ in
-      if optional then
-        Optional typ
-      else
-        typ
+      let typ =
+        if optional then
+          Type.Optional typ
+        else
+          typ
+      in
+      Ml.Type.field typ ~name:field.name
 
   let record_ name (fields : Resolved.field list) =
     let data =
@@ -535,11 +546,7 @@ module Mapper = struct
         let key = make_typ name pat in
         let data = make_typ name typ in
         Type.Alias (Type.assoc_list ~key ~data)
-      | _ ->
-        Type.Record
-          (List.map fields ~f:(fun (field : Resolved.field) ->
-               let typ = make_field field in
-               Ml.Type.field typ ~name:field.name))
+      | _ -> Type.Record (List.map fields ~f:make_field)
     in
     { Named.name; data }
 
@@ -615,6 +622,45 @@ module Gen = struct
     else
       [ Poly_variant.of_json t; Poly_variant.to_json t ]
 
+  let literal_wrapper { Named.name; data = typ_ } =
+    match (typ_ : Ml.Type.decl) with
+    | Record fs -> (
+      match
+        List.filter_map fs ~f:(fun f ->
+            match Ml.Type.get_kind f with
+            | None -> None
+            | Some lit -> Some (f, lit))
+      with
+      | [] -> []
+      | [ (field, lit) ] ->
+        let open Ml.Expr in
+        let args = List.map ~f:(fun x -> Unnamed (Create x)) in
+        let to_ =
+          let a =
+            [ String field.name
+            ; String lit
+            ; Ident (Json.Name.to_ name)
+            ; Ident name
+            ]
+          in
+          App (Create (Ident "Json.To.literal_field"), args a)
+        in
+        let of_ =
+          let a =
+            [ String name
+            ; String field.name
+            ; String lit
+            ; Ident (Json.Name.of_ name)
+            ; Ident "json"
+            ]
+          in
+          App (Create (Ident "Json.Of.literal_field"), args a)
+        in
+        [ Json.to_json ~name to_; Json.of_json ~name of_ ]
+        |> List.map ~f:(Named.map ~f:(fun v -> Ml.Module.Value v))
+      | _ -> assert false )
+    | _ -> []
+
   (* This is the more complex case *)
 
   let module_ { Ml.Module.name; bindings } : Module.t =
@@ -627,10 +673,12 @@ module Gen = struct
           | Alias data -> type_ { r with data })
     in
     let intf : Ml.Module.sig_ Named.t list =
-      List.map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
-          { td with
-            Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
-          })
+      List.concat_map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+          [ { td with
+              Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
+            }
+          ; { td with data = Json_conv_sig }
+          ])
     in
     let impl : Ml.Module.impl Named.t list =
       (* TODO we should make sure to handle duplicate variants extracted *)
@@ -648,7 +696,7 @@ module Gen = struct
                 in
                 decl :: json_conv)
           in
-          let literal_wrapper = [] in
+          let literal_wrapper = literal_wrapper { d with data = typ_ } in
           poly_vars_and_convs
           @ [ { d with data = Ml.Module.Type_decl typ_ } ]
           @ literal_wrapper)

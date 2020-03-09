@@ -48,6 +48,7 @@ module Type = struct
   type attr =
     | Option
     | Key of string
+    | Omitted of string
 
   type t =
     | Named of string
@@ -215,6 +216,14 @@ module Type = struct
 
   let void = Named "Json.Void.t"
 
+  let kind_field ~literal =
+    { name = "kind"; typ = void; attrs = [ Omitted literal ] }
+
+  let get_kind f =
+    match f.attrs with
+    | [ Omitted l ] -> Some l
+    | _ -> None
+
   module Type = W.Type
 
   let pp_prim (p : prim) : W.t =
@@ -254,18 +263,17 @@ module Type = struct
     match a with
     | Alias a -> (
       let pp = pp ~kind a in
-      match a with
-      | Prim _ -> W.Type.deriving ~record:false pp
-      | _ -> pp )
+      match (a, kind) with
+      | (List _ | Named _ | Prim _), Impl -> W.Type.deriving ~record:false pp
+      | _, _ -> pp )
     | Record r -> (
       let r =
         List.filter_map r ~f:(fun { name; typ; attrs } ->
             let open Option.O in
-            let+ () =
-              if name = "kind" && typ = void then
-                None
-              else
-                Some ()
+            let+ attrs =
+              match attrs with
+              | [ Omitted _ ] -> None
+              | a -> Some a
             in
             let def =
               let field = pp ~kind typ in
@@ -276,6 +284,7 @@ module Type = struct
                   | Impl -> attrs
                 in
                 List.concat_map attrs ~f:(function
+                  | Omitted _ -> assert false
                   | Option ->
                     if typ = Optional json then
                       [ W.Attr.make "yojson.option" [] ]

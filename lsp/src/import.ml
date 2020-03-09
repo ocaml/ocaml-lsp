@@ -146,6 +146,10 @@ module Json = struct
       | `List [ x; y ] -> (f x, g y)
       | json -> error "pair" json
 
+    let int_pair =
+      let int = Ppx_yojson_conv_lib.Yojson_conv.int_of_yojson in
+      pair int int
+
     let untagged_union (type a) name (xs : (t -> a) list) (json : t) : a =
       match
         List.find_map xs ~f:(fun conv ->
@@ -156,7 +160,8 @@ module Json = struct
       | None -> error name json
       | Some x -> x
 
-    let literal_field name k v f (json : t) =
+    let literal_field (type a) (name : string) (k : string) (v : string)
+        (f : t -> a) (json : t) : a =
       match json with
       | `Assoc xs -> (
         let ks, xs =
@@ -167,17 +172,20 @@ module Json = struct
                 else
                   error (sprintf "%s: incorrect key %s" name k) json
               else
-                Right v')
+                Right (k', v'))
         in
         match ks with
         | [] -> error (sprintf "%s: key %s not found" name k) json
-        | [ _ ] -> `Assoc (f xs)
+        | [ _ ] -> f (`Assoc xs)
         | _ :: _ -> error (sprintf "%s: multiple keys %s" name k) json )
       | _ -> error (sprintf "%s: not a record (key: %s)" name k) json
   end
 
   module To = struct
-    let literal_field k v f t =
+    let list f xs = `List (List.map ~f xs)
+
+    let literal_field (type a) (k : string) (v : string) (f : a -> t) (t : a) :
+        t =
       match f t with
       | `Assoc xs -> `Assoc ((k, `String v) :: xs)
       | _ -> Code_error.raise "To.literal_field" []

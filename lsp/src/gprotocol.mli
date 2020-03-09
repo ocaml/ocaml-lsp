@@ -16,10 +16,14 @@ module DeleteFileOptions : sig
     { recursive : bool option
     ; ignoreIfNotExists : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentUri : sig
   type t = string
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DeleteFile : sig
@@ -27,6 +31,8 @@ module DeleteFile : sig
     { uri : DocumentUri.t
     ; options : DeleteFileOptions.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module RenameFileOptions : sig
@@ -34,6 +40,8 @@ module RenameFileOptions : sig
     { overwrite : bool option
     ; ignoreIfExists : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module RenameFile : sig
@@ -42,6 +50,8 @@ module RenameFile : sig
     ; newUri : DocumentUri.t
     ; options : RenameFileOptions.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CreateFileOptions : sig
@@ -49,6 +59,8 @@ module CreateFileOptions : sig
     { overwrite : bool option
     ; ignoreIfExists : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CreateFile : sig
@@ -56,6 +68,8 @@ module CreateFile : sig
     { uri : DocumentUri.t
     ; options : CreateFileOptions.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Position : sig
@@ -63,6 +77,8 @@ module Position : sig
     { line : int
     ; character : int
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Range : sig
@@ -70,6 +86,8 @@ module Range : sig
     { start : Position.t
     ; end_ : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextEdit : sig
@@ -77,10 +95,14 @@ module TextEdit : sig
     { range : Range.t
     ; newText : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentIdentifier : sig
   type t = { uri : DocumentUri.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module VersionedTextDocumentIdentifier : sig
@@ -88,6 +110,8 @@ module VersionedTextDocumentIdentifier : sig
     { uri : DocumentUri.t
     ; version : int option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentEdit : sig
@@ -95,6 +119,8 @@ module TextDocumentEdit : sig
     { textDocument : VersionedTextDocumentIdentifier.t
     ; edits : TextEdit.t list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceEdit : sig
@@ -109,6 +135,8 @@ module WorkspaceEdit : sig
         list
         option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ApplyWorkspaceEditParams : sig
@@ -116,6 +144,8 @@ module ApplyWorkspaceEditParams : sig
     { label : string option
     ; edit : WorkspaceEdit.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ApplyWorkspaceEditResponse : sig
@@ -123,14 +153,20 @@ module ApplyWorkspaceEditResponse : sig
     { applied : bool
     ; failureReason : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CancelParams : sig
   type t = { id : Jsonrpc.Id.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SelectionRangeClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FoldingRangeClientCapabilities : sig
@@ -139,6 +175,8 @@ module FoldingRangeClientCapabilities : sig
     ; rangeLimit : int option
     ; lineFoldingOnly : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DiagnosticTag : sig
@@ -152,11 +190,15 @@ end
 module PublishDiagnosticsClientCapabilities : sig
   type tagSupport = { valueSet : DiagnosticTag.t list }
 
+  include Json.Jsonable.S with type t := tagSupport
+
   type t =
     { relatedInformation : bool option
     ; tagSupport : tagSupport option
     ; versionSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module RenameClientCapabilities : sig
@@ -164,22 +206,32 @@ module RenameClientCapabilities : sig
     { dynamicRegistration : bool option
     ; prepareSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentOnTypeFormattingClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentRangeFormattingClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentFormattingClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentColorClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentLinkClientCapabilities : sig
@@ -187,10 +239,14 @@ module DocumentLinkClientCapabilities : sig
     { dynamicRegistration : bool option
     ; tooltipSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeLensClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeActionKind : sig
@@ -210,13 +266,19 @@ end
 module CodeActionClientCapabilities : sig
   type codeActionKind = { valueSet : CodeActionKind.t list }
 
+  include Json.Jsonable.S with type t := codeActionKind
+
   type codeActionLiteralSupport = { codeActionKind : codeActionKind }
+
+  include Json.Jsonable.S with type t := codeActionLiteralSupport
 
   type t =
     { dynamicRegistration : bool option
     ; codeActionLiteralSupport : codeActionLiteralSupport option
     ; isPreferredSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SymbolKind : sig
@@ -254,19 +316,27 @@ end
 module DocumentSymbolClientCapabilities : sig
   type symbolKind = { valueSet : SymbolKind.t list option }
 
+  include Json.Jsonable.S with type t := symbolKind
+
   type t =
     { dynamicRegistration : bool option
     ; symbolKind : symbolKind option
     ; hierarchicalDocumentSymbolSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentHighlightClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ReferenceClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ImplementationClientCapabilities : sig
@@ -274,6 +344,8 @@ module ImplementationClientCapabilities : sig
     { dynamicRegistration : bool option
     ; linkSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TypeDefinitionClientCapabilities : sig
@@ -281,6 +353,8 @@ module TypeDefinitionClientCapabilities : sig
     { dynamicRegistration : bool option
     ; linkSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DefinitionClientCapabilities : sig
@@ -288,6 +362,8 @@ module DefinitionClientCapabilities : sig
     { dynamicRegistration : bool option
     ; linkSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DeclarationClientCapabilities : sig
@@ -295,6 +371,8 @@ module DeclarationClientCapabilities : sig
     { dynamicRegistration : bool option
     ; linkSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module MarkupKind : sig
@@ -308,16 +386,22 @@ end
 module SignatureHelpClientCapabilities : sig
   type parameterInformation = { labelOffsetSupport : bool option }
 
+  include Json.Jsonable.S with type t := parameterInformation
+
   type signatureInformation =
     { documentationFormat : MarkupKind.t list option
     ; parameterInformation : parameterInformation option
     }
+
+  include Json.Jsonable.S with type t := signatureInformation
 
   type t =
     { dynamicRegistration : bool option
     ; signatureInformation : signatureInformation option
     ; contextSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module HoverClientCapabilities : sig
@@ -325,6 +409,8 @@ module HoverClientCapabilities : sig
     { dynamicRegistration : bool option
     ; contentFormat : MarkupKind.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionItemKind : sig
@@ -367,7 +453,11 @@ end
 module CompletionClientCapabilities : sig
   type completionItemKind = { valueSet : CompletionItemKind.t list option }
 
+  include Json.Jsonable.S with type t := completionItemKind
+
   type tagSupport = { valueSet : CompletionItemTag.t list }
+
+  include Json.Jsonable.S with type t := tagSupport
 
   type completionItem =
     { snippetSupport : bool option
@@ -378,12 +468,16 @@ module CompletionClientCapabilities : sig
     ; tagSupport : tagSupport option
     }
 
+  include Json.Jsonable.S with type t := completionItem
+
   type t =
     { dynamicRegistration : bool option
     ; completionItem : completionItem option
     ; completionItemKind : completionItemKind option
     ; contextSupport : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentSyncClientCapabilities : sig
@@ -393,6 +487,8 @@ module TextDocumentSyncClientCapabilities : sig
     ; willSaveWaitUntil : bool option
     ; didSave : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentClientCapabilities : sig
@@ -420,27 +516,39 @@ module TextDocumentClientCapabilities : sig
     ; foldingRange : FoldingRangeClientCapabilities.t option
     ; selectionRange : SelectionRangeClientCapabilities.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ExecuteCommandClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceSymbolClientCapabilities : sig
   type symbolKind = { valueSet : SymbolKind.t list option }
 
+  include Json.Jsonable.S with type t := symbolKind
+
   type t =
     { dynamicRegistration : bool option
     ; symbolKind : symbolKind option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidChangeWatchedFilesClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidChangeConfigurationClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FailureHandlingKind : sig
@@ -468,10 +576,14 @@ module WorkspaceEditClientCapabilities : sig
     ; resourceOperations : ResourceOperationKind.t list option
     ; failureHandling : FailureHandlingKind.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ClientCapabilities : sig
   type window = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := window
 
   type workspace =
     { applyEdit : bool option
@@ -484,12 +596,16 @@ module ClientCapabilities : sig
     ; configuration : bool option
     }
 
+  include Json.Jsonable.S with type t := workspace
+
   type t =
     { workspace : workspace option
     ; textDocument : TextDocumentClientCapabilities.t option
     ; window : window option
     ; experimental : Json.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Command : sig
@@ -498,6 +614,8 @@ module Command : sig
     ; command : string
     ; arguments : Json.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Location : sig
@@ -505,6 +623,8 @@ module Location : sig
     { uri : DocumentUri.t
     ; range : Range.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DiagnosticRelatedInformation : sig
@@ -512,6 +632,8 @@ module DiagnosticRelatedInformation : sig
     { location : Location.t
     ; message : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DiagnosticSeverity : sig
@@ -534,6 +656,8 @@ module Diagnostic : sig
     ; tags : DiagnosticTag.t list option
     ; relatedInformation : DiagnosticRelatedInformation.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeAction : sig
@@ -545,6 +669,8 @@ module CodeAction : sig
     ; edit : WorkspaceEdit.t option
     ; command : Command.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeActionContext : sig
@@ -552,10 +678,14 @@ module CodeActionContext : sig
     { diagnostics : Diagnostic.t list
     ; only : CodeActionKind.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkDoneProgressOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeActionOptions : sig
@@ -563,18 +693,26 @@ module CodeActionOptions : sig
     { workDoneProgress : bool option
     ; codeActionKinds : CodeActionKind.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ProgressToken : sig
   type t = Jsonrpc.Id.t
+
+  include Json.Jsonable.S with type t := t
 end
 
 module PartialResultParams : sig
   type t = { partialResultToken : ProgressToken.t option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkDoneProgressParams : sig
   type t = { workDoneToken : ProgressToken.t option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeActionParams : sig
@@ -583,6 +721,8 @@ module CodeActionParams : sig
     ; range : Range.t
     ; context : CodeActionContext.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentFilter : sig
@@ -591,14 +731,20 @@ module DocumentFilter : sig
     ; scheme : string option
     ; pattern : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentSelector : sig
   type t = DocumentFilter.t list
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentRegistrationOptions : sig
   type t = { documentSelector : DocumentSelector.t option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeActionRegistrationOptions : sig
@@ -607,6 +753,8 @@ module CodeActionRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; codeActionKinds : CodeActionKind.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeLens : sig
@@ -615,6 +763,8 @@ module CodeLens : sig
     ; command : Command.t option
     ; data : Json.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeLensOptions : sig
@@ -622,10 +772,14 @@ module CodeLensOptions : sig
     { workDoneProgress : bool option
     ; resolveProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeLensParams : sig
   type t = { textDocument : TextDocumentIdentifier.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CodeLensRegistrationOptions : sig
@@ -634,6 +788,8 @@ module CodeLensRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; resolveProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Color : sig
@@ -643,6 +799,8 @@ module Color : sig
     ; blue : int
     ; alpha : int
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ColorInformation : sig
@@ -650,6 +808,8 @@ module ColorInformation : sig
     { range : Range.t
     ; color : Color.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ColorPresentation : sig
@@ -658,6 +818,8 @@ module ColorPresentation : sig
     ; textEdit : TextEdit.t option
     ; additionalTextEdits : TextEdit.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ColorPresentationParams : sig
@@ -666,6 +828,8 @@ module ColorPresentationParams : sig
     ; color : Color.t
     ; range : Range.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionTriggerKind : sig
@@ -682,6 +846,8 @@ module CompletionContext : sig
     { triggerKind : CompletionTriggerKind.t
     ; triggerCharacter : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module InsertTextFormat : sig
@@ -697,6 +863,8 @@ module MarkupContent : sig
     { kind : MarkupKind.t
     ; value : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionItem : sig
@@ -719,6 +887,8 @@ module CompletionItem : sig
     ; command : Command.t option
     ; data : Json.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionList : sig
@@ -726,6 +896,8 @@ module CompletionList : sig
     { isIncomplete : bool
     ; items : CompletionItem.t list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionOptions : sig
@@ -735,6 +907,8 @@ module CompletionOptions : sig
     ; allCommitCharacters : string list option
     ; resolveProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentPositionParams : sig
@@ -742,6 +916,8 @@ module TextDocumentPositionParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionParams : sig
@@ -750,6 +926,8 @@ module CompletionParams : sig
     ; position : Position.t
     ; context : CompletionContext.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module CompletionRegistrationOptions : sig
@@ -760,6 +938,8 @@ module CompletionRegistrationOptions : sig
     ; allCommitCharacters : string list option
     ; resolveProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ConfigurationItem : sig
@@ -767,14 +947,20 @@ module ConfigurationItem : sig
     { scopeUri : DocumentUri.t option
     ; section : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ConfigurationParams : sig
   type t = { items : ConfigurationItem.t list }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DeclarationOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DeclarationParams : sig
@@ -782,10 +968,14 @@ module DeclarationParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module StaticRegistrationOptions : sig
   type t = { id : string option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DeclarationRegistrationOptions : sig
@@ -794,10 +984,14 @@ module DeclarationRegistrationOptions : sig
     ; documentSelector : DocumentSelector.t option
     ; id : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DefinitionOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DefinitionParams : sig
@@ -805,6 +999,8 @@ module DefinitionParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DefinitionRegistrationOptions : sig
@@ -812,10 +1008,14 @@ module DefinitionRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidChangeConfigurationParams : sig
   type t = { settings : Json.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentContentChangeEvent : sig
@@ -824,6 +1024,8 @@ module TextDocumentContentChangeEvent : sig
     ; rangeLength : int option
     ; text : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidChangeTextDocumentParams : sig
@@ -831,6 +1033,8 @@ module DidChangeTextDocumentParams : sig
     { textDocument : VersionedTextDocumentIdentifier.t
     ; contentChanges : TextDocumentContentChangeEvent.t list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FileEvent : sig
@@ -838,10 +1042,14 @@ module FileEvent : sig
     { uri : DocumentUri.t
     ; type_ : int
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidChangeWatchedFilesParams : sig
   type t = { changes : FileEvent.t list }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FileSystemWatcher : sig
@@ -849,10 +1057,14 @@ module FileSystemWatcher : sig
     { globPattern : string
     ; kind : int option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidChangeWatchedFilesRegistrationOptions : sig
   type t = { watchers : FileSystemWatcher.t list }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceFolder : sig
@@ -860,6 +1072,8 @@ module WorkspaceFolder : sig
     { uri : DocumentUri.t
     ; name : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceFoldersChangeEvent : sig
@@ -867,14 +1081,20 @@ module WorkspaceFoldersChangeEvent : sig
     { added : WorkspaceFolder.t list
     ; removed : WorkspaceFolder.t list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidChangeWorkspaceFoldersParams : sig
   type t = { event : WorkspaceFoldersChangeEvent.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidCloseTextDocumentParams : sig
   type t = { textDocument : TextDocumentIdentifier.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentItem : sig
@@ -884,10 +1104,14 @@ module TextDocumentItem : sig
     ; version : int
     ; text : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidOpenTextDocumentParams : sig
   type t = { textDocument : TextDocumentItem.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DidSaveTextDocumentParams : sig
@@ -895,14 +1119,20 @@ module DidSaveTextDocumentParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; text : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentColorOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentColorParams : sig
   type t = { textDocument : TextDocumentIdentifier.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentColorRegistrationOptions : sig
@@ -911,10 +1141,14 @@ module DocumentColorRegistrationOptions : sig
     ; id : string option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentFormattingOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FormattingOptions : sig
@@ -925,6 +1159,8 @@ module FormattingOptions : sig
     ; insertFinalNewline : bool option
     ; trimFinalNewlines : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentFormattingParams : sig
@@ -932,6 +1168,8 @@ module DocumentFormattingParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; options : FormattingOptions.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentFormattingRegistrationOptions : sig
@@ -939,6 +1177,8 @@ module DocumentFormattingRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentHighlight : sig
@@ -946,6 +1186,8 @@ module DocumentHighlight : sig
     { range : Range.t
     ; kind : int option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentHighlightKind : sig
@@ -959,6 +1201,8 @@ end
 
 module DocumentHighlightOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentHighlightParams : sig
@@ -966,6 +1210,8 @@ module DocumentHighlightParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentHighlightRegistrationOptions : sig
@@ -973,6 +1219,8 @@ module DocumentHighlightRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentLink : sig
@@ -982,6 +1230,8 @@ module DocumentLink : sig
     ; tooltip : string option
     ; data : Json.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentLinkOptions : sig
@@ -989,10 +1239,14 @@ module DocumentLinkOptions : sig
     { workDoneProgress : bool option
     ; resolveProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentLinkParams : sig
   type t = { textDocument : TextDocumentIdentifier.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentLinkRegistrationOptions : sig
@@ -1001,6 +1255,8 @@ module DocumentLinkRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; resolveProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentOnTypeFormattingOptions : sig
@@ -1008,6 +1264,8 @@ module DocumentOnTypeFormattingOptions : sig
     { firstTriggerCharacter : string
     ; moreTriggerCharacter : string list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentOnTypeFormattingParams : sig
@@ -1017,6 +1275,8 @@ module DocumentOnTypeFormattingParams : sig
     ; ch : string
     ; options : FormattingOptions.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentOnTypeFormattingRegistrationOptions : sig
@@ -1025,10 +1285,14 @@ module DocumentOnTypeFormattingRegistrationOptions : sig
     ; firstTriggerCharacter : string
     ; moreTriggerCharacter : string list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentRangeFormattingOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentRangeFormattingParams : sig
@@ -1037,6 +1301,8 @@ module DocumentRangeFormattingParams : sig
     ; range : Range.t
     ; options : FormattingOptions.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentRangeFormattingRegistrationOptions : sig
@@ -1044,6 +1310,8 @@ module DocumentRangeFormattingRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentSymbol : sig
@@ -1056,14 +1324,20 @@ module DocumentSymbol : sig
     ; selectionRange : Range.t
     ; children : t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentSymbolOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentSymbolParams : sig
   type t = { textDocument : TextDocumentIdentifier.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module DocumentSymbolRegistrationOptions : sig
@@ -1071,6 +1345,8 @@ module DocumentSymbolRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ErrorCodes : sig
@@ -1095,6 +1371,8 @@ module ExecuteCommandOptions : sig
     { workDoneProgress : bool option
     ; commands : string list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ExecuteCommandParams : sig
@@ -1102,6 +1380,8 @@ module ExecuteCommandParams : sig
     { command : string
     ; arguments : Json.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ExecuteCommandRegistrationOptions : sig
@@ -1109,6 +1389,8 @@ module ExecuteCommandRegistrationOptions : sig
     { workDoneProgress : bool option
     ; commands : string list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FileChangeType : sig
@@ -1128,6 +1410,8 @@ module FoldingRange : sig
     ; endCharacter : int option
     ; kind : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FoldingRangeKind : sig
@@ -1141,10 +1425,14 @@ end
 
 module FoldingRangeOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FoldingRangeParams : sig
   type t = { textDocument : TextDocumentIdentifier.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module FoldingRangeRegistrationOptions : sig
@@ -1153,6 +1441,8 @@ module FoldingRangeRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; id : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Hover : sig
@@ -1164,10 +1454,14 @@ module Hover : sig
         ]
     ; range : Range.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module HoverOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module HoverParams : sig
@@ -1175,6 +1469,8 @@ module HoverParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module HoverRegistrationOptions : sig
@@ -1182,10 +1478,14 @@ module HoverRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ImplementationOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ImplementationParams : sig
@@ -1193,6 +1493,8 @@ module ImplementationParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ImplementationRegistrationOptions : sig
@@ -1201,6 +1503,8 @@ module ImplementationRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; id : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module InitializeError : sig
@@ -1215,6 +1519,8 @@ module InitializeParams : sig
     ; version : string option
     }
 
+  include Json.Jsonable.S with type t := clientInfo
+
   type t =
     { processId : int option
     ; clientInfo : clientInfo option
@@ -1225,6 +1531,8 @@ module InitializeParams : sig
     ; trace : [ `Off | `Messages | `Verbose ] option
     ; workspaceFolders : WorkspaceFolder.t list option option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceFoldersServerCapabilities : sig
@@ -1232,10 +1540,14 @@ module WorkspaceFoldersServerCapabilities : sig
     { supported : bool option
     ; changeNotifications : [ `String of string | `Bool of bool ] option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SelectionRangeOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SelectionRangeRegistrationOptions : sig
@@ -1244,6 +1556,8 @@ module SelectionRangeRegistrationOptions : sig
     ; documentSelector : DocumentSelector.t option
     ; id : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module RenameOptions : sig
@@ -1251,14 +1565,20 @@ module RenameOptions : sig
     { workDoneProgress : bool option
     ; prepareProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ReferenceOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TypeDefinitionOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TypeDefinitionRegistrationOptions : sig
@@ -1267,6 +1587,8 @@ module TypeDefinitionRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; id : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureHelpOptions : sig
@@ -1275,10 +1597,14 @@ module SignatureHelpOptions : sig
     ; triggerCharacters : string list option
     ; retriggerCharacters : string list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SaveOptions : sig
   type t = { includeText : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentSyncOptions : sig
@@ -1289,11 +1615,15 @@ module TextDocumentSyncOptions : sig
     ; willSaveWaitUntil : bool option
     ; save : SaveOptions.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ServerCapabilities : sig
   type workspace =
     { workspaceFolders : WorkspaceFoldersServerCapabilities.t option }
+
+  include Json.Jsonable.S with type t := workspace
 
   type t =
     { textDocumentSync :
@@ -1377,6 +1707,8 @@ module ServerCapabilities : sig
     ; workspace : workspace option
     ; experimental : Json.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module InitializeResult : sig
@@ -1385,10 +1717,14 @@ module InitializeResult : sig
     ; version : string option
     }
 
+  include Json.Jsonable.S with type t := serverInfo
+
   type t =
     { capabilities : ServerCapabilities.t
     ; serverInfo : serverInfo option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module LocationLink : sig
@@ -1398,6 +1734,8 @@ module LocationLink : sig
     ; targetRange : Range.t
     ; targetSelectionRange : Range.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module LogMessageParams : sig
@@ -1405,10 +1743,14 @@ module LogMessageParams : sig
     { type_ : int
     ; message : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module MessageActionItem : sig
   type t = { title : string }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module MessageType : sig
@@ -1427,6 +1769,8 @@ module ParameterInformation : sig
     ; documentation :
         [ `String of string | `MarkupContent of MarkupContent.t ] option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module PrepareRenameParams : sig
@@ -1434,6 +1778,8 @@ module PrepareRenameParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ProgressParams : sig
@@ -1441,6 +1787,8 @@ module ProgressParams : sig
     { token : ProgressToken.t
     ; value : Json.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module PublishDiagnosticsParams : sig
@@ -1449,10 +1797,14 @@ module PublishDiagnosticsParams : sig
     ; version : int option
     ; diagnostics : Diagnostic.t list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ReferenceContext : sig
   type t = { includeDeclaration : bool }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ReferenceParams : sig
@@ -1461,6 +1813,8 @@ module ReferenceParams : sig
     ; position : Position.t
     ; context : ReferenceContext.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ReferenceRegistrationOptions : sig
@@ -1468,6 +1822,8 @@ module ReferenceRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Registration : sig
@@ -1476,10 +1832,14 @@ module Registration : sig
     ; method_ : string
     ; registerOptions : Json.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module RegistrationParams : sig
   type t = { registrations : Registration.t list }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module RenameParams : sig
@@ -1488,6 +1848,8 @@ module RenameParams : sig
     ; position : Position.t
     ; newName : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module RenameRegistrationOptions : sig
@@ -1496,6 +1858,8 @@ module RenameRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; prepareProvider : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SelectionRange : sig
@@ -1503,6 +1867,8 @@ module SelectionRange : sig
     { range : Range.t
     ; parent : t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SelectionRangeParams : sig
@@ -1510,6 +1876,8 @@ module SelectionRangeParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; positions : Position.t list
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ShowMessageParams : sig
@@ -1517,6 +1885,8 @@ module ShowMessageParams : sig
     { type_ : int
     ; message : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module ShowMessageRequestParams : sig
@@ -1525,6 +1895,8 @@ module ShowMessageRequestParams : sig
     ; message : string
     ; actions : MessageActionItem.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureInformation : sig
@@ -1534,6 +1906,8 @@ module SignatureInformation : sig
         [ `String of string | `MarkupContent of MarkupContent.t ] option
     ; parameters : ParameterInformation.t list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureHelp : sig
@@ -1542,6 +1916,8 @@ module SignatureHelp : sig
     ; activeSignature : int option
     ; activeParameter : int option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureHelpTriggerKind : sig
@@ -1560,6 +1936,8 @@ module SignatureHelpContext : sig
     ; isRetrigger : bool
     ; activeSignatureHelp : SignatureHelp.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureHelpParams : sig
@@ -1568,6 +1946,8 @@ module SignatureHelpParams : sig
     ; position : Position.t
     ; context : SignatureHelpContext.t option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SignatureHelpRegistrationOptions : sig
@@ -1577,6 +1957,8 @@ module SignatureHelpRegistrationOptions : sig
     ; triggerCharacters : string list option
     ; retriggerCharacters : string list option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module SymbolInformation : sig
@@ -1587,6 +1969,8 @@ module SymbolInformation : sig
     ; location : Location.t
     ; containerName : string option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentSyncKind : sig
@@ -1603,6 +1987,8 @@ module TextDocumentChangeRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; syncKind : TextDocumentSyncKind.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TextDocumentSaveReason : sig
@@ -1619,6 +2005,8 @@ module TextDocumentSaveRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; includeText : bool option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module TypeDefinitionParams : sig
@@ -1626,6 +2014,8 @@ module TypeDefinitionParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module Unregistration : sig
@@ -1633,10 +2023,14 @@ module Unregistration : sig
     { id : string
     ; method_ : string
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module UnregistrationParams : sig
   type t = { unregisterations : Unregistration.t list }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WatchKind : sig
@@ -1653,6 +2047,8 @@ module WillSaveTextDocumentParams : sig
     { textDocument : TextDocumentIdentifier.t
     ; reason : int
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkDoneProgressBegin : sig
@@ -1662,18 +2058,26 @@ module WorkDoneProgressBegin : sig
     ; message : string option
     ; percentage : int option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkDoneProgressCancelParams : sig
   type t = { token : ProgressToken.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkDoneProgressCreateParams : sig
   type t = { token : ProgressToken.t }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkDoneProgressEnd : sig
   type t = { message : string option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkDoneProgressReport : sig
@@ -1682,18 +2086,26 @@ module WorkDoneProgressReport : sig
     ; message : string option
     ; percentage : int option
     }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceSymbolOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceSymbolParams : sig
   type t = { query : string }
+
+  include Json.Jsonable.S with type t := t
 end
 
 module WorkspaceSymbolRegistrationOptions : sig
   type t = { workDoneProgress : bool option }
+
+  include Json.Jsonable.S with type t := t
 end
 
 (*$*)
