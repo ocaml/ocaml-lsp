@@ -349,18 +349,18 @@ module Poly_variant = struct
     | _ ->
       Code_error.raise "untagged" [ ("utc.name", Dyn.Encoder.string utc.name) ]
 
+  let json_clauses json_constrs =
+    List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
+        let open Ml.Expr in
+        let constr arg = Constr { tag = c.name; poly = true; args = [ arg ] } in
+        let pat = Pat (constr (Pat (Ident "j"))) in
+        let expr : t = Create (constr (Create (Ident "j"))) in
+        (pat, expr))
+
   let to_json { Named.name; data = constrs } =
     let { json_constrs; untagged_constrs } = split_clauses constrs in
     let open Ml.Expr in
-    let json_clauses =
-      List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
-          let constr arg =
-            Constr { tag = c.name; poly = true; args = [ arg ] }
-          in
-          let pat = Pat (constr (Pat (Ident "j"))) in
-          let expr : t = Create (constr (Create (Ident "j"))) in
-          (pat, expr))
-    in
+    let json_clauses = json_clauses json_constrs in
     let untagged_clauses =
       List.map untagged_constrs ~f:(fun (utc : Ml.Type.constr) ->
           let constr arg =
@@ -378,15 +378,7 @@ module Poly_variant = struct
   let of_json { Named.name; data = constrs } =
     let { json_constrs; untagged_constrs } = split_clauses constrs in
     let open Ml.Expr in
-    let clauses =
-      List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
-          let constr arg =
-            Constr { tag = c.name; poly = true; args = [ arg ] }
-          in
-          let pat = Pat (constr (Pat (Ident "j"))) in
-          let expr : t = Create (constr (Create (Ident "j"))) in
-          (pat, expr))
-    in
+    let clauses = json_clauses json_constrs in
     let untagged =
       let args =
         let constrs =
