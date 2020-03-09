@@ -134,7 +134,7 @@ module Type = struct
     Pp.concat
       [ td
       ; Pp.newline
-      ; Pp.text "[@@deriving_inline] [@@yojson.allow_extra_fields]"
+      ; Pp.text "[@@deriving_inline yojson] [@@yojson.allow_extra_fields]"
       ; Pp.newline
       ; Pp.text "[@@@end]"
       ]

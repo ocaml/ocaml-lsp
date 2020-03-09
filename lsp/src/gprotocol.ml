@@ -33,7 +33,7 @@ module DeleteFileOptions = struct
     ; ignoreIfNotExists : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -48,7 +48,7 @@ module DeleteFile = struct
     ; options : DeleteFileOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -60,7 +60,7 @@ module RenameFileOptions = struct
     ; ignoreIfExists : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -72,7 +72,7 @@ module RenameFile = struct
     ; options : RenameFileOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -84,7 +84,7 @@ module CreateFileOptions = struct
     ; ignoreIfExists : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -95,7 +95,7 @@ module CreateFile = struct
     ; options : CreateFileOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -105,7 +105,7 @@ module Position = struct
     { line : int
     ; character : int
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -115,7 +115,7 @@ module Range = struct
     { start : Position.t
     ; end_ : Position.t [@key "end"]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -125,14 +125,14 @@ module TextEdit = struct
     { range : Range.t
     ; newText : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module TextDocumentIdentifier = struct
   type t = { uri : DocumentUri.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -143,7 +143,7 @@ module VersionedTextDocumentIdentifier = struct
     ; version : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -153,7 +153,7 @@ module TextDocumentEdit = struct
     { textDocument : VersionedTextDocumentIdentifier.t
     ; edits : TextEdit.t list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -182,7 +182,7 @@ module WorkspaceEdit = struct
     ; documentChanges : documentChanges list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -193,7 +193,7 @@ module ApplyWorkspaceEditParams = struct
           [@default None] [@yojson_drop_default ( = )]
     ; edit : WorkspaceEdit.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -204,14 +204,14 @@ module ApplyWorkspaceEditResponse = struct
     ; failureReason : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module CancelParams = struct
   type t = { id : Jsonrpc.Id.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -221,7 +221,7 @@ module SelectionRangeClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -235,7 +235,7 @@ module FoldingRangeClientCapabilities = struct
     ; lineFoldingOnly : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -259,7 +259,7 @@ end
 
 module PublishDiagnosticsClientCapabilities = struct
   type tagSupport = { valueSet : DiagnosticTag.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -271,7 +271,7 @@ module PublishDiagnosticsClientCapabilities = struct
     ; versionSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -283,7 +283,7 @@ module RenameClientCapabilities = struct
     ; prepareSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -293,7 +293,7 @@ module DocumentOnTypeFormattingClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -303,7 +303,7 @@ module DocumentRangeFormattingClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -313,7 +313,7 @@ module DocumentFormattingClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -323,7 +323,7 @@ module DocumentColorClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -335,7 +335,7 @@ module DocumentLinkClientCapabilities = struct
     ; tooltipSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -345,7 +345,7 @@ module CodeLensClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -387,12 +387,12 @@ end
 
 module CodeActionClientCapabilities = struct
   type codeActionKind = { valueSet : CodeActionKind.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
   type codeActionLiteralSupport = { codeActionKind : codeActionKind }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -404,7 +404,7 @@ module CodeActionClientCapabilities = struct
     ; isPreferredSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -503,7 +503,7 @@ module DocumentSymbolClientCapabilities = struct
     { valueSet : SymbolKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -515,7 +515,7 @@ module DocumentSymbolClientCapabilities = struct
     ; hierarchicalDocumentSymbolSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -525,7 +525,7 @@ module DocumentHighlightClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -535,7 +535,7 @@ module ReferenceClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -547,7 +547,7 @@ module ImplementationClientCapabilities = struct
     ; linkSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -559,7 +559,7 @@ module TypeDefinitionClientCapabilities = struct
     ; linkSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -571,7 +571,7 @@ module DefinitionClientCapabilities = struct
     ; linkSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -583,7 +583,7 @@ module DeclarationClientCapabilities = struct
     ; linkSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -610,7 +610,7 @@ module SignatureHelpClientCapabilities = struct
     { labelOffsetSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -620,7 +620,7 @@ module SignatureHelpClientCapabilities = struct
     ; parameterInformation : parameterInformation Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -632,7 +632,7 @@ module SignatureHelpClientCapabilities = struct
     ; contextSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -644,7 +644,7 @@ module HoverClientCapabilities = struct
     ; contentFormat : MarkupKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -753,12 +753,12 @@ module CompletionClientCapabilities = struct
     { valueSet : CompletionItemKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
   type tagSupport = { valueSet : CompletionItemTag.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -776,7 +776,7 @@ module CompletionClientCapabilities = struct
     ; tagSupport : tagSupport Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -790,7 +790,7 @@ module CompletionClientCapabilities = struct
     ; contextSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -806,7 +806,7 @@ module TextDocumentSyncClientCapabilities = struct
     ; didSave : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -863,7 +863,7 @@ module TextDocumentClientCapabilities = struct
     ; selectionRange : SelectionRangeClientCapabilities.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -873,7 +873,7 @@ module ExecuteCommandClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -883,7 +883,7 @@ module WorkspaceSymbolClientCapabilities = struct
     { valueSet : SymbolKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -893,7 +893,7 @@ module WorkspaceSymbolClientCapabilities = struct
     ; symbolKind : symbolKind Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -903,7 +903,7 @@ module DidChangeWatchedFilesClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -913,7 +913,7 @@ module DidChangeConfigurationClientCapabilities = struct
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -970,7 +970,7 @@ module WorkspaceEditClientCapabilities = struct
     ; failureHandling : FailureHandlingKind.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -980,7 +980,7 @@ module ClientCapabilities = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -1004,7 +1004,7 @@ module ClientCapabilities = struct
     ; configuration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -1017,7 +1017,7 @@ module ClientCapabilities = struct
           [@default None] [@yojson_drop_default ( = )]
     ; experimental : Json.t option [@yojson.option]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1029,7 +1029,7 @@ module Command = struct
     ; arguments : Json.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1039,7 +1039,7 @@ module Location = struct
     { uri : DocumentUri.t
     ; range : Range.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1049,7 +1049,7 @@ module DiagnosticRelatedInformation = struct
     { location : Location.t
     ; message : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1093,7 +1093,7 @@ module Diagnostic = struct
         DiagnosticRelatedInformation.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1112,7 +1112,7 @@ module CodeAction = struct
     ; command : Command.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1123,7 +1123,7 @@ module CodeActionContext = struct
     ; only : CodeActionKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1133,7 +1133,7 @@ module WorkDoneProgressOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1145,7 +1145,7 @@ module CodeActionOptions = struct
     ; codeActionKinds : CodeActionKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1159,7 +1159,7 @@ module PartialResultParams = struct
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1169,7 +1169,7 @@ module WorkDoneProgressParams = struct
     { workDoneToken : ProgressToken.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1180,7 +1180,7 @@ module CodeActionParams = struct
     ; range : Range.t
     ; context : CodeActionContext.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1194,7 +1194,7 @@ module DocumentFilter = struct
     ; pattern : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1208,7 +1208,7 @@ module TextDocumentRegistrationOptions = struct
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1222,7 +1222,7 @@ module CodeActionRegistrationOptions = struct
     ; codeActionKinds : CodeActionKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1234,7 +1234,7 @@ module CodeLens = struct
           [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1246,14 +1246,14 @@ module CodeLensOptions = struct
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module CodeLensParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1267,7 +1267,7 @@ module CodeLensRegistrationOptions = struct
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1279,7 +1279,7 @@ module Color = struct
     ; blue : int
     ; alpha : int
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1289,7 +1289,7 @@ module ColorInformation = struct
     { range : Range.t
     ; color : Color.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1302,7 +1302,7 @@ module ColorPresentation = struct
     ; additionalTextEdits : TextEdit.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1313,7 +1313,7 @@ module ColorPresentationParams = struct
     ; color : Color.t
     ; range : Range.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1344,7 +1344,7 @@ module CompletionContext = struct
     ; triggerCharacter : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1371,7 +1371,7 @@ module MarkupContent = struct
     { kind : MarkupKind.t
     ; value : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1422,7 +1422,7 @@ module CompletionItem = struct
           [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1432,7 +1432,7 @@ module CompletionList = struct
     { isIncomplete : bool
     ; items : CompletionItem.t list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1448,7 +1448,7 @@ module CompletionOptions = struct
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1458,7 +1458,7 @@ module TextDocumentPositionParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1470,7 +1470,7 @@ module CompletionParams = struct
     ; context : CompletionContext.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1488,7 +1488,7 @@ module CompletionRegistrationOptions = struct
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1500,14 +1500,14 @@ module ConfigurationItem = struct
     ; section : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module ConfigurationParams = struct
   type t = { items : ConfigurationItem.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1517,7 +1517,7 @@ module DeclarationOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1527,7 +1527,7 @@ module DeclarationParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1537,7 +1537,7 @@ module StaticRegistrationOptions = struct
     { id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1551,7 +1551,7 @@ module DeclarationRegistrationOptions = struct
     ; id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1561,7 +1561,7 @@ module DefinitionOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1571,7 +1571,7 @@ module DefinitionParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1583,14 +1583,14 @@ module DefinitionRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidChangeConfigurationParams = struct
   type t = { settings : Json.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1602,7 +1602,7 @@ module TextDocumentContentChangeEvent = struct
           [@default None] [@yojson_drop_default ( = )]
     ; text : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1612,7 +1612,7 @@ module DidChangeTextDocumentParams = struct
     { textDocument : VersionedTextDocumentIdentifier.t
     ; contentChanges : TextDocumentContentChangeEvent.t list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1622,14 +1622,14 @@ module FileEvent = struct
     { uri : DocumentUri.t
     ; type_ : int [@key "type"]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidChangeWatchedFilesParams = struct
   type t = { changes : FileEvent.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1640,14 +1640,14 @@ module FileSystemWatcher = struct
     ; kind : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidChangeWatchedFilesRegistrationOptions = struct
   type t = { watchers : FileSystemWatcher.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1657,7 +1657,7 @@ module WorkspaceFolder = struct
     { uri : DocumentUri.t
     ; name : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1667,21 +1667,21 @@ module WorkspaceFoldersChangeEvent = struct
     { added : WorkspaceFolder.t list
     ; removed : WorkspaceFolder.t list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidChangeWorkspaceFoldersParams = struct
   type t = { event : WorkspaceFoldersChangeEvent.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidCloseTextDocumentParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1693,14 +1693,14 @@ module TextDocumentItem = struct
     ; version : int
     ; text : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DidOpenTextDocumentParams = struct
   type t = { textDocument : TextDocumentItem.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1711,7 +1711,7 @@ module DidSaveTextDocumentParams = struct
     ; text : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1721,14 +1721,14 @@ module DocumentColorOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DocumentColorParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1742,7 +1742,7 @@ module DocumentColorRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1752,7 +1752,7 @@ module DocumentFormattingOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1768,7 +1768,7 @@ module FormattingOptions = struct
     ; trimFinalNewlines : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1778,7 +1778,7 @@ module DocumentFormattingParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; options : FormattingOptions.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1790,7 +1790,7 @@ module DocumentFormattingRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1801,7 +1801,7 @@ module DocumentHighlight = struct
     ; kind : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1831,7 +1831,7 @@ module DocumentHighlightOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1841,7 +1841,7 @@ module DocumentHighlightParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1853,7 +1853,7 @@ module DocumentHighlightRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1867,7 +1867,7 @@ module DocumentLink = struct
           [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1879,14 +1879,14 @@ module DocumentLinkOptions = struct
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DocumentLinkParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1900,7 +1900,7 @@ module DocumentLinkRegistrationOptions = struct
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1911,7 +1911,7 @@ module DocumentOnTypeFormattingOptions = struct
     ; moreTriggerCharacter : string list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1923,7 +1923,7 @@ module DocumentOnTypeFormattingParams = struct
     ; ch : string
     ; options : FormattingOptions.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1936,7 +1936,7 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
     ; moreTriggerCharacter : string list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1946,7 +1946,7 @@ module DocumentRangeFormattingOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1957,7 +1957,7 @@ module DocumentRangeFormattingParams = struct
     ; range : Range.t
     ; options : FormattingOptions.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1969,7 +1969,7 @@ module DocumentRangeFormattingRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1987,7 +1987,7 @@ module DocumentSymbol = struct
     ; children : t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -1997,14 +1997,14 @@ module DocumentSymbolOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module DocumentSymbolParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2016,7 +2016,7 @@ module DocumentSymbolRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2071,7 +2071,7 @@ module ExecuteCommandOptions = struct
           [@default None] [@yojson_drop_default ( = )]
     ; commands : string list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2082,7 +2082,7 @@ module ExecuteCommandParams = struct
     ; arguments : Json.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2093,7 +2093,7 @@ module ExecuteCommandRegistrationOptions = struct
           [@default None] [@yojson_drop_default ( = )]
     ; commands : string list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2129,7 +2129,7 @@ module FoldingRange = struct
     ; kind : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2159,14 +2159,14 @@ module FoldingRangeOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module FoldingRangeParams = struct
   type t = { textDocument : TextDocumentIdentifier.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2180,7 +2180,7 @@ module FoldingRangeRegistrationOptions = struct
     ; id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2205,7 +2205,7 @@ module Hover = struct
     ; range : Range.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2215,7 +2215,7 @@ module HoverOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2225,7 +2225,7 @@ module HoverParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2237,7 +2237,7 @@ module HoverRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2247,7 +2247,7 @@ module ImplementationOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2257,7 +2257,7 @@ module ImplementationParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2271,7 +2271,7 @@ module ImplementationRegistrationOptions = struct
     ; id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2295,7 +2295,7 @@ module InitializeParams = struct
     ; version : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -2335,7 +2335,7 @@ module InitializeParams = struct
         WorkspaceFolder.t list Json.Nullable_option.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2358,7 +2358,7 @@ module WorkspaceFoldersServerCapabilities = struct
     ; changeNotifications : changeNotifications Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2368,7 +2368,7 @@ module SelectionRangeOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2382,7 +2382,7 @@ module SelectionRangeRegistrationOptions = struct
     ; id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2394,7 +2394,7 @@ module RenameOptions = struct
     ; prepareProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2404,7 +2404,7 @@ module ReferenceOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2414,7 +2414,7 @@ module TypeDefinitionOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2428,7 +2428,7 @@ module TypeDefinitionRegistrationOptions = struct
     ; id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2442,7 +2442,7 @@ module SignatureHelpOptions = struct
     ; retriggerCharacters : string list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2452,7 +2452,7 @@ module SaveOptions = struct
     { includeText : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2470,7 +2470,7 @@ module TextDocumentSyncOptions = struct
     ; save : SaveOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2481,7 +2481,7 @@ module ServerCapabilities = struct
         WorkspaceFoldersServerCapabilities.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -2806,7 +2806,7 @@ module ServerCapabilities = struct
           [@default None] [@yojson_drop_default ( = )]
     ; experimental : Json.t option [@yojson.option]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2817,7 +2817,7 @@ module InitializeResult = struct
     ; version : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 
@@ -2826,7 +2826,7 @@ module InitializeResult = struct
     ; serverInfo : serverInfo Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2839,7 +2839,7 @@ module LocationLink = struct
     ; targetRange : Range.t
     ; targetSelectionRange : Range.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2849,13 +2849,14 @@ module LogMessageParams = struct
     { type_ : int [@key "type"]
     ; message : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module MessageActionItem = struct
-  type t = { title : string } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { title : string }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2915,7 +2916,7 @@ module ParameterInformation = struct
     ; documentation : documentation Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2925,7 +2926,7 @@ module PrepareRenameParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2935,7 +2936,7 @@ module ProgressParams = struct
     { token : ProgressToken.t
     ; value : Json.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2947,14 +2948,14 @@ module PublishDiagnosticsParams = struct
           [@default None] [@yojson_drop_default ( = )]
     ; diagnostics : Diagnostic.t list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module ReferenceContext = struct
   type t = { includeDeclaration : bool }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2965,7 +2966,7 @@ module ReferenceParams = struct
     ; position : Position.t
     ; context : ReferenceContext.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2977,7 +2978,7 @@ module ReferenceRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -2988,14 +2989,14 @@ module Registration = struct
     ; method_ : string [@key "method"]
     ; registerOptions : Json.t option [@yojson.option]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module RegistrationParams = struct
   type t = { registrations : Registration.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3006,7 +3007,7 @@ module RenameParams = struct
     ; position : Position.t
     ; newName : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3020,7 +3021,7 @@ module RenameRegistrationOptions = struct
     ; prepareProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3031,7 +3032,7 @@ module SelectionRange = struct
     ; parent : t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3041,7 +3042,7 @@ module SelectionRangeParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; positions : Position.t list
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3051,7 +3052,7 @@ module ShowMessageParams = struct
     { type_ : int [@key "type"]
     ; message : string
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3063,7 +3064,7 @@ module ShowMessageRequestParams = struct
     ; actions : MessageActionItem.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3089,7 +3090,7 @@ module SignatureInformation = struct
     ; parameters : ParameterInformation.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3102,7 +3103,7 @@ module SignatureHelp = struct
     ; activeParameter : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3136,7 +3137,7 @@ module SignatureHelpContext = struct
     ; activeSignatureHelp : SignatureHelp.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3148,7 +3149,7 @@ module SignatureHelpParams = struct
     ; context : SignatureHelpContext.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3164,7 +3165,7 @@ module SignatureHelpRegistrationOptions = struct
     ; retriggerCharacters : string list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3179,7 +3180,7 @@ module SymbolInformation = struct
     ; containerName : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3210,7 +3211,7 @@ module TextDocumentChangeRegistrationOptions = struct
           [@default None] [@yojson_drop_default ( = )]
     ; syncKind : TextDocumentSyncKind.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3242,7 +3243,7 @@ module TextDocumentSaveRegistrationOptions = struct
     ; includeText : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3252,7 +3253,7 @@ module TypeDefinitionParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3262,14 +3263,14 @@ module Unregistration = struct
     { id : string
     ; method_ : string [@key "method"]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module UnregistrationParams = struct
   type t = { unregisterations : Unregistration.t list }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3299,7 +3300,7 @@ module WillSaveTextDocumentParams = struct
     { textDocument : TextDocumentIdentifier.t
     ; reason : int
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3314,21 +3315,21 @@ module WorkDoneProgressBegin = struct
     ; percentage : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module WorkDoneProgressCancelParams = struct
   type t = { token : ProgressToken.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module WorkDoneProgressCreateParams = struct
   type t = { token : ProgressToken.t }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3338,7 +3339,7 @@ module WorkDoneProgressEnd = struct
     { message : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3352,7 +3353,7 @@ module WorkDoneProgressReport = struct
     ; percentage : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3362,13 +3363,14 @@ module WorkspaceSymbolOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
 
 module WorkspaceSymbolParams = struct
-  type t = { query : string } [@@deriving_inline] [@@yojson.allow_extra_fields]
+  type t = { query : string }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
@@ -3378,7 +3380,7 @@ module WorkspaceSymbolRegistrationOptions = struct
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
-  [@@deriving_inline] [@@yojson.allow_extra_fields]
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   [@@@end]
 end
