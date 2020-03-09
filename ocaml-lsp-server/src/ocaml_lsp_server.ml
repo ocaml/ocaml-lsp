@@ -136,7 +136,25 @@ let send_diagnostics rpc doc =
 
   Lsp.Rpc.send_notification rpc notif
 
-let on_initialize _rpc state _params = Ok (state, initializeInfo)
+let on_initialize rpc state _params =
+  let log_consumer (section, title, text) =
+    if title <> Logger.Title.LocalDebug then
+      let type_, text =
+        match title with
+        | Error -> (Lsp.Protocol.Message.Type.Error, text)
+        | Warning -> (Warning, text)
+        | Info -> (Info, text)
+        | Debug -> (Log, Printf.sprintf "debug: %s" text)
+        | Notify -> (Log, Printf.sprintf "notify: %s" text)
+        | Custom s -> (Log, Printf.sprintf "%s: %s" s text)
+        | LocalDebug -> failwith "impossible"
+      in
+      let message = Printf.sprintf "[%s] %s" section text in
+      let notif = Lsp.Server_notification.LogMessage { message; type_ } in
+      Lsp.Rpc.send_notification rpc notif
+  in
+  Logger.register_consumer log_consumer;
+  Ok (state, initializeInfo)
 
 let code_action_of_case_analysis uri (loc, newText) =
   let edit : Lsp.Protocol.WorkspaceEdit.t =
@@ -410,7 +428,7 @@ let on_request :
         | _ -> None
       in
       List.filter_map path ~f:(fun (env, node) ->
-          log ~title:"debug" "inspecting node: %s"
+          log ~title:Logger.Title.Debug "inspecting node: %s"
             (Browse_raw.string_of_node node);
           match node with
           | Browse_raw.Expression { exp_type = ty; _ }
@@ -422,7 +440,7 @@ let on_request :
     in
     let locs =
       List.filter_map path ~f:(fun (env, path) ->
-          log ~title:"debug" "found type: %s" (Path.name path);
+          log ~title:Logger.Title.Debug "found type: %s" (Path.name path);
           let local_defs = Mtyper.get_typedtree typer in
           match
             Locate.from_string
@@ -548,7 +566,7 @@ let on_request :
 
     Document_store.get store uri >>= fun doc ->
     let prefix = prefix_of_position (Document.source doc) position in
-    log ~title:"debug" "completion prefix: |%s|" prefix;
+    log ~title:Logger.Title.Debug "completion prefix: |%s|" prefix;
 
     Document.with_pipeline doc @@ fun pipeline ->
     let completion =
@@ -726,9 +744,11 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
     | "$/cancelRequest" -> Ok store
     | _ ->
       ( match req.params with
-      | None -> log ~title:"warn" "unknown notification: %s" req.method_
+      | None ->
+        log ~title:Logger.Title.Warning "unknown notification: %s" req.method_
       | Some json ->
-        log ~title:"warn" "unknown notification: %s %a" req.method_
+        log ~title:Logger.Title.Warning "unknown notification: %s %a"
+          req.method_
           (fun () -> Yojson.Safe.pretty_to_string ~std:false)
           json );
       Ok store )
@@ -759,7 +779,7 @@ let start () =
     on_request rpc state caps req
   in
   Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout;
-  log ~title:"info" "exiting"
+  log ~title:Logger.Title.Info "exiting"
 
 let main () =
   (* Setup env for extensions *)

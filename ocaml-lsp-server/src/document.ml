@@ -51,7 +51,7 @@ let make ?(version = 0) ~uri ~text () =
 let update_text ?version change doc =
   let tdoc = Lsp.Text_document.apply_content_change ?version change doc.tdoc in
   let text = Lsp.Text_document.text tdoc in
-  log ~title:"debug" "TEXT\n%s" text;
+  log ~title:Logger.Title.Debug "TEXT\n%s" text;
   let config = make_config (Lsp.Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
