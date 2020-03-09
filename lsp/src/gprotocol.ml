@@ -2897,7 +2897,7 @@ module ParameterInformation = struct
     | `String j -> `String j
     | _ ->
       Json.Of.untagged_union "label"
-        [ (fun json -> `Offset (Json.Of.int_pair json json)) ]
+        [ (fun json -> `Offset (Json.Of.int_pair json)) ]
         json
 
   type documentation =

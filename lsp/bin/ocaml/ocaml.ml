@@ -193,6 +193,10 @@ module Json = struct
     let of_ = sprintf "%s_of_yojson"
 
     let to_ = sprintf "yojson_of_%s"
+
+    let conv = function
+      | `To -> to_
+      | `Of -> of_
   end
 
   let of_json ~name expr =
@@ -308,7 +312,12 @@ module Enum = struct
 end
 
 module Poly_variant = struct
-  let of_json { Named.name; data = constrs } =
+  type constrs =
+    { json_constrs : Ml.Type.constr list
+    ; untagged_constrs : Ml.Type.constr list
+    }
+
+  let split_clauses constrs =
     let json_constrs, untagged_constrs =
       List.partition_map constrs ~f:(fun x ->
           if Json.is_json_constr x then
@@ -316,6 +325,31 @@ module Poly_variant = struct
           else
             Right x)
     in
+    { json_constrs; untagged_constrs }
+
+  let conv target (utc : Ml.Type.constr) =
+    let conv (name : string) =
+      let conv name = Json.Name.conv target name in
+      match String.rsplit2 ~on:'.' name with
+      | None -> conv name
+      | Some (module_, name) -> sprintf "%s.%s" module_ (conv name)
+    in
+    let open Ml.Expr in
+    let json_mod n =
+      match target with
+      | `To -> Ident ("Json.To." ^ n)
+      | `Of -> Ident ("Json.Of." ^ n)
+    in
+    let conv t = Create (Ident (conv t)) in
+    match (utc.args : Ml.Type.t list) with
+    | [ Named t ] -> conv t
+    | [ List (Named t) ] -> App (Create (json_mod "list"), [ Unnamed (conv t) ])
+    | [ Tuple [ Prim Int; Prim Int ] ] -> Create (json_mod "int_pair")
+    | [] -> assert false
+    | _ ->
+      Code_error.raise "untagged" [ ("utc.name", Dyn.Encoder.string utc.name) ]
+  let of_json { Named.name; data = constrs } =
+    let { json_constrs; untagged_constrs } = split_clauses constrs in
     let open Ml.Expr in
     let clauses =
       List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
@@ -332,28 +366,7 @@ module Poly_variant = struct
           List.map untagged_constrs ~f:(fun (utc : Ml.Type.constr) ->
               let create =
                 let of_json =
-                  let conv name =
-                    match String.rsplit2 ~on:'.' name with
-                    | None -> Json.Name.of_ name
-                    | Some (module_, name) ->
-                      sprintf "%s.%s" module_ (Json.Name.of_ name)
-                  in
-                  let f =
-                    let conv t = Create (Ident (conv t)) in
-                    match (utc.args : Ml.Type.t list) with
-                    | [ Named t ] -> conv t
-                    | [ List (Named t) ] ->
-                      App (Create (Ident "Json.Of.list"), [ Unnamed (conv t) ])
-                    | [ Tuple [ Prim Int; Prim Int ] ] ->
-                      App
-                        ( Create (Ident "Json.Of.int_pair")
-                        , [ Unnamed (Create (Ident "json")) ] )
-                    | [] -> assert false
-                    | _ ->
-                      Code_error.raise "untagged"
-                        [ ("utc.name", Dyn.Encoder.string utc.name) ]
-                  in
-                  App (f, [ Unnamed (Create (Ident "json")) ])
+                  App (conv `Of utc, [ Unnamed (Create (Ident "json")) ])
                 in
                 Create
                   (Constr { tag = utc.name; poly = true; args = [ of_json ] })
