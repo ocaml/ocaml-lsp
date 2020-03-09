@@ -171,11 +171,18 @@ module Json = struct
   module Assoc = struct
     type ('a, 'b) t = ('a * 'b) list constraint 'a = string
 
-    let yojson_of_t f xs = `Assoc (List.map xs ~f:(fun (k, v) -> (k, f v)))
+    let yojson_of_t f g xs =
+      let f k =
+        match f k with
+        | `String s -> s
+        | json -> error "Json.Assoc.yojson_of_t not a string key" json
+      in
+      `Assoc (List.map xs ~f:(fun (k, v) -> (f k, g v)))
 
-    let t_of_yojson f json =
+    let t_of_yojson f g json =
+      let f s = f (`String s) in
       match json with
-      | `Assoc xs -> List.map xs ~f:(fun (k, v) -> (k, f v))
+      | `Assoc xs -> List.map xs ~f:(fun (k, v) -> (f k, g v))
       | _ -> error "Json.Assoc.t_of_yojson: not an object" json
   end
 
