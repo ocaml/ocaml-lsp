@@ -250,7 +250,11 @@ module Type = struct
 
   let pp_decl' ~(kind : Kind.t) (a : decl) =
     match a with
-    | Alias a -> pp ~kind a
+    | Alias a -> (
+      let pp = pp ~kind a in
+      match a with
+      | Prim _ -> W.Type.deriving ~record:false pp
+      | _ -> pp )
     | Record r -> (
       let r =
         List.filter_map r ~f:(fun { name; typ; attrs } ->
@@ -287,7 +291,7 @@ module Type = struct
       in
       match kind with
       | Intf -> r
-      | Impl -> W.Type.deriving r )
+      | Impl -> W.Type.deriving r ~record:true )
     | Variant v ->
       List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))
       |> Type.variant

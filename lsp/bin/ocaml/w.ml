@@ -130,12 +130,19 @@ module Type = struct
       ++ Pp.concat_map xs ~sep:Pp.newline ~f:(fun (name, body) ->
              and_ name body)
 
-  let deriving td =
+  let deriving td ~record =
+    let fields =
+      if record then
+        space ++ i "[@@yojson.allow_extra_fields]"
+      else
+        space
+    in
     Pp.concat
       [ td
       ; Pp.newline
-      ; Pp.text "[@@deriving_inline yojson] [@@yojson.allow_extra_fields]"
-      ; Pp.newline
+      ; Pp.text "[@@deriving_inline yojson]"
+      ; fields
+      ; space
       ; Pp.text "[@@@end]"
       ]
 

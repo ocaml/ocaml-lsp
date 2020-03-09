@@ -39,7 +39,9 @@ module DeleteFileOptions = struct
 end
 
 module DocumentUri = struct
-  type t = string
+  type t = string [@@deriving_inline yojson]
+
+  [@@@end]
 end
 
 module DeleteFile = struct

@@ -63,7 +63,7 @@ module Type : sig
 
   val tuple : w list -> w
 
-  val deriving : w -> w
+  val deriving : w -> record:bool -> w
 
   val opt_attr : w
 
