@@ -7,6 +7,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
+import { execSync } from 'child_process';
+
 const ocamlFormat = `
 break-cases=all
 break-separators=before
@@ -37,34 +39,52 @@ function setupRefmt() {
   return tmpdir;
 }
 
-describe("textDocument/formatting", () => {
-  let languageServer = null;
-
-  async function openDocument(source, name) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(name, "txt", 0, source),
-    });
-  }
-
-  async function query(name) {
-    return await languageServer.sendRequest("textDocument/formatting", {
-      textDocument: Types.TextDocumentIdentifier.create(name),
-      options: Types.FormattingOptions.create(2, true),
-    });
-  }
-
-  afterEach(async () => {
-    await LanguageServer.exit(languageServer);
-    languageServer = null;
+async function openDocument(languageServer, source, name) {
+  await languageServer.sendNotification("textDocument/didOpen", {
+    textDocument: Types.TextDocumentItem.create(name, "txt", 0, source),
   });
+}
 
-  it("can format an ocaml impl file", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+async function query(languageServer, name) {
+  return await languageServer.sendRequest("textDocument/formatting", {
+    textDocument: Types.TextDocumentIdentifier.create(name),
+    options: Types.FormattingOptions.create(2, true),
+  });
+}
 
-    let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
 
-    await openDocument(
-      outdent`
+function link() {
+  execSync("yarn link");
+}
+
+function unlink() {
+  execSync("yarn unlink")
+}
+
+describe("textDocument/formatting", () => {
+  describe("reformatter binary present", () => {
+    let languageServer = null;
+
+    beforeAll(() => {
+      link()
+    })
+
+    afterAll(() => {
+      unlink()
+    })
+
+    afterEach(async () => {
+      await LanguageServer.exit(languageServer);
+      languageServer = null;
+    });
+
+    it("can format an ocaml impl file", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
+
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
+
+      await openDocument(languageServer,
+        outdent`
       let rec gcd a b =
         begin match a, b with
           | 0, n | n, 0 -> n
@@ -72,30 +92,30 @@ describe("textDocument/formatting", () => {
             gcd a (b mod a)
         end
     `,
-      name,
-    );
+        name,
+      );
 
-    let result = await query(name);
-    expect(result).toMatchObject([
-      {
-        newText:
-          "let rec gcd a b =\n" +
-          "  match (a, b) with\n" +
-          "  | 0, n\n" +
-          "  | n, 0 ->\n" +
-          "    n\n" +
-          "  | _, _ -> gcd a (b mod a)\n",
-      },
-    ]);
-  });
+      let result = await query(languageServer, name);
+      expect(result).toMatchObject([
+        {
+          newText:
+            "let rec gcd a b =\n" +
+            "  match (a, b) with\n" +
+            "  | 0, n\n" +
+            "  | n, 0 ->\n" +
+            "    n\n" +
+            "  | _, _ -> gcd a (b mod a)\n",
+        },
+      ]);
+    });
 
-  it("can format an ocaml intf file", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+    it("can format an ocaml intf file", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
 
-    let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
 
-    await openDocument(
-      outdent`
+      await openDocument(languageServer,
+        outdent`
       module Test:
         sig
           type t =
@@ -104,26 +124,26 @@ describe("textDocument/formatting", () => {
           | Baz
         end
     `,
-      name,
-    );
+        name,
+      );
 
-    let result = await query(name);
+      let result = await query(languageServer, name);
 
-    expect(result).toMatchObject([
-      {
-        newText:
-          "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
-      },
-    ]);
-  });
+      expect(result).toMatchObject([
+        {
+          newText:
+            "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
+        },
+      ]);
+    });
 
-  it("can format a reason impl file", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+    it("can format a reason impl file", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
 
-    let name = path.join(setupOcamlFormat(ocamlFormat), "test.re");
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.re");
 
-    await openDocument(
-      outdent`
+      await openDocument(languageServer,
+        outdent`
       let rec gcd = (a, b) =>
         switch (a, b){
           | (0, n) | (n, 0) => n
@@ -131,30 +151,30 @@ describe("textDocument/formatting", () => {
             gcd(a, (b mod a))
         };
     `,
-      name,
-    );
+        name,
+      );
 
-    let result = await query(name);
-    expect(result).toMatchObject([
-      {
-        newText:
-          "let rec gcd = (a, b) =>\n" +
-          "  switch (a, b) {\n" +
-          "  | (0, n)\n" +
-          "  | (n, 0) => n\n" +
-          "  | (_, _) => gcd(a, b mod a)\n" +
-          "  };\n",
-      },
-    ]);
-  });
+      let result = await query(languageServer, name);
+      expect(result).toMatchObject([
+        {
+          newText:
+            "let rec gcd = (a, b) =>\n" +
+            "  switch (a, b) {\n" +
+            "  | (0, n)\n" +
+            "  | (n, 0) => n\n" +
+            "  | (_, _) => gcd(a, b mod a)\n" +
+            "  };\n",
+        },
+      ]);
+    });
 
-  it("can format a reason intf file", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+    it("can format a reason intf file", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
 
-    let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
 
-    await openDocument(
-      outdent`
+      await openDocument(languageServer,
+        outdent`
       module Test:
         {
           type t =
@@ -163,21 +183,58 @@ describe("textDocument/formatting", () => {
           | Baz
         };
     `,
-      name,
-    );
+        name,
+      );
 
-    let result = await query(name);
+      let result = await query(languageServer, name);
 
-    expect(result).toMatchObject([
-      {
-        newText:
-          "module Test: {\n" +
-          "  type t =\n" +
-          "    | Foo\n" +
-          "    | Bar\n" +
-          "    | Baz;\n" +
-          "};\n",
-      },
-    ]);
+      expect(result).toMatchObject([
+        {
+          newText:
+            "module Test: {\n" +
+            "  type t =\n" +
+            "    | Foo\n" +
+            "    | Bar\n" +
+            "    | Baz;\n" +
+            "};\n",
+        },
+      ]);
+    });
   });
+
+  describe("refmt absent", () => {
+    let languageServer = null;
+
+    afterEach(async () => {
+      await LanguageServer.exit(languageServer);
+      languageServer = null;
+    });
+
+    it("formatting a reason file throws an InvalidRequest error", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
+
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
+
+      await openDocument(languageServer,
+        outdent`
+      module Test:
+        {
+          type t =
+            Foo
+          | Bar
+          | Baz
+        };
+    `,
+        name,
+      );
+      
+      try {
+        await query(languageServer, name);
+      } catch (e){
+        expect(e.code).toEqual(Protocol.ErrorCodes.InvalidRequest);
+        expect(e.message).toBe("Unable to find refmt binary");
+      }
+    });
+  })
+
 });
