@@ -213,6 +213,8 @@ module Type = struct
 
   let unit = Prim Unit
 
+  let void = Named "Json.Void.t"
+
   module Type = W.Type
 
   let pp_prim (p : prim) : W.t =
@@ -260,9 +262,10 @@ module Type = struct
         List.filter_map r ~f:(fun { name; typ; attrs } ->
             let open Option.O in
             let+ () =
-              match (name, typ) with
-              | "kind", Prim Unit -> None
-              | _, _ -> Some ()
+              if name = "kind" && typ = void then
+                None
+              else
+                Some ()
             in
             let def =
               let field = pp ~kind typ in

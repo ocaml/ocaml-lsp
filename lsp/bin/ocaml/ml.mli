@@ -103,6 +103,8 @@ module Type : sig
 
   val unit : t
 
+  val void : t
+
   class virtual ['env, 'm] mapreduce :
     object ('self)
       method virtual empty : 'm

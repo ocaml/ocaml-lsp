@@ -219,9 +219,6 @@ module Module = struct
 
   type t = (Module.sig_ Module.t, Module.impl Module.t) Ml.Kind.pair
 
-  let _empty name =
-    { Ml.Kind.intf = Ml.Module.empty name; impl = Ml.Module.empty name }
-
   let type_decls name (type_decls : Ml.Type.decl Named.t list Ml.Kind.Map.t) : t
       =
     let module_ bindings = { Ml.Module.name; bindings } in
@@ -463,7 +460,7 @@ module Mapper = struct
       | Sum s -> sum s
       | App _
       | Literal _ ->
-        Type.unit
+        Type.void
       | Record r -> record r
     and sum s =
       if is_same_as_json s then
@@ -651,7 +648,10 @@ module Gen = struct
                 in
                 decl :: json_conv)
           in
-          poly_vars_and_convs @ [ { d with data = Ml.Module.Type_decl typ_ } ])
+          let literal_wrapper = [] in
+          poly_vars_and_convs
+          @ [ { d with data = Ml.Module.Type_decl typ_ } ]
+          @ literal_wrapper)
     in
     let module_ bindings = { Ml.Module.name; bindings } in
     { Ml.Kind.intf = module_ intf; impl = module_ impl }
