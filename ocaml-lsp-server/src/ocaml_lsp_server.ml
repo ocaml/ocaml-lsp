@@ -696,28 +696,37 @@ let on_request :
         | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
       in
       let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
-      (* note: `Inside whatever < `Outside whatever *)
-      let range_includes_pos r p =
-        let rs = r.Lsp.Protocol.Range.start_ in
-        let re = r.end_ in
-        if p < rs then
-          `Outside (abs (rs.line - p.line), abs (rs.character - p.character))
-        else if p > re then
-          `Outside (abs (re.line - p.line), abs (re.character - p.character))
-        else
-          `Inside
-            ( abs (rs.line - p.line) + abs (re.line - p.line)
-            , abs (rs.character - p.character) + abs (re.character - p.character)
-            )
-      in
       (* try to find the nearest range inside first, then outside *)
       let nearest_range =
+        let range_includes_pos r p =
+          let rs = r.Lsp.Protocol.Range.start_ in
+          let re = r.end_ in
+          if p < rs then
+            `Outside (abs (rs.line - p.line), abs (rs.character - p.character))
+          else if p > re then
+            `Outside (abs (re.line - p.line), abs (re.character - p.character))
+          else
+            `Inside
+              ( abs (rs.line - p.line) + abs (re.line - p.line)
+              , abs (rs.character - p.character)
+                + abs (re.character - p.character) )
+        in
+        let compare_inclusion x y =
+          match (x, y) with
+          | `Inside _, `Outside _ -> Ordering.Lt
+          | `Outside _, `Inside _ -> Ordering.Gt
+          | `Inside (l1, c1), `Inside (l2, c2)
+          | `Outside (l1, c1), `Outside (l2, c2) ->
+            if l1 = l2 then
+              Ordering.of_int (c1 - c2)
+            else
+              Ordering.of_int (l1 - l2)
+        in
         List.map ranges ~f:(fun r ->
             ( r
             , range_includes_pos r.Lsp.Protocol.SelectionRange.range
                 cursor_position ))
-        |> List.sort ~compare:(fun r1 r2 ->
-               compare (snd r1) (snd r2) |> Ordering.of_int)
+        |> List.sort ~compare:(fun r1 r2 -> compare_inclusion (snd r1) (snd r2))
         |> List.map ~f:fst |> List.hd_opt
       in
       nearest_range
