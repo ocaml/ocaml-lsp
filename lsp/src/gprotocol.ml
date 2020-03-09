@@ -177,6 +177,13 @@ module WorkspaceEdit = struct
       ]
       json
 
+  let yojson_of_documentChanges (documentChanges : documentChanges) : Json.t =
+    match documentChanges with
+    | `TextDocumentEdit s -> TextDocumentEdit.yojson_of_t s
+    | `CreateFile s -> CreateFile.yojson_of_t s
+    | `RenameFile s -> RenameFile.yojson_of_t s
+    | `DeleteFile s -> DeleteFile.yojson_of_t s
+
   type t =
     { changes :
         (DocumentUri.t, TextEdit.t list) Json.Assoc.t Json.Nullable_option.t
@@ -1392,6 +1399,11 @@ module CompletionItem = struct
         [ (fun json -> `MarkupContent (MarkupContent.t_of_yojson json)) ]
         json
 
+  let yojson_of_documentation (documentation : documentation) : Json.t =
+    match documentation with
+    | `String j -> `String j
+    | `MarkupContent s -> MarkupContent.yojson_of_t s
+
   type t =
     { label : string
     ; kind : int Json.Nullable_option.t
@@ -2202,6 +2214,12 @@ module Hover = struct
       ]
       json
 
+  let yojson_of_contents (contents : contents) : Json.t =
+    match contents with
+    | `MarkedString s -> MarkedString.yojson_of_t s
+    | `List s -> Json.To.list MarkedString.yojson_of_t s
+    | `MarkupContent s -> MarkupContent.yojson_of_t s
+
   type t =
     { contents : contents
     ; range : Range.t Json.Nullable_option.t
@@ -2354,6 +2372,12 @@ module WorkspaceFoldersServerCapabilities = struct
     | `Bool j -> `Bool j
     | _ -> Json.error "changeNotifications" json
 
+  let yojson_of_changeNotifications (changeNotifications : changeNotifications)
+      : Json.t =
+    match changeNotifications with
+    | `String j -> `String j
+    | `Bool j -> `Bool j
+
   type t =
     { supported : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -2502,6 +2526,12 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_textDocumentSync (textDocumentSync : textDocumentSync) : Json.t
+      =
+    match textDocumentSync with
+    | `Int j -> `Int j
+    | `TextDocumentSyncOptions s -> TextDocumentSyncOptions.yojson_of_t s
+
   type hoverProvider =
     [ `Bool of bool
     | `HoverOptions of HoverOptions.t
@@ -2514,6 +2544,11 @@ module ServerCapabilities = struct
       Json.Of.untagged_union "hoverProvider"
         [ (fun json -> `HoverOptions (HoverOptions.t_of_yojson json)) ]
         json
+
+  let yojson_of_hoverProvider (hoverProvider : hoverProvider) : Json.t =
+    match hoverProvider with
+    | `Bool j -> `Bool j
+    | `HoverOptions s -> HoverOptions.yojson_of_t s
 
   type declarationProvider =
     [ `Bool of bool
@@ -2534,6 +2569,14 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_declarationProvider (declarationProvider : declarationProvider)
+      : Json.t =
+    match declarationProvider with
+    | `Bool j -> `Bool j
+    | `DeclarationOptions s -> DeclarationOptions.yojson_of_t s
+    | `DeclarationRegistrationOptions s ->
+      DeclarationRegistrationOptions.yojson_of_t s
+
   type definitionProvider =
     [ `Bool of bool
     | `DefinitionOptions of DefinitionOptions.t
@@ -2547,6 +2590,12 @@ module ServerCapabilities = struct
         [ (fun json -> `DefinitionOptions (DefinitionOptions.t_of_yojson json))
         ]
         json
+
+  let yojson_of_definitionProvider (definitionProvider : definitionProvider) :
+      Json.t =
+    match definitionProvider with
+    | `Bool j -> `Bool j
+    | `DefinitionOptions s -> DefinitionOptions.yojson_of_t s
 
   type typeDefinitionProvider =
     [ `Bool of bool
@@ -2568,6 +2617,14 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_typeDefinitionProvider
+      (typeDefinitionProvider : typeDefinitionProvider) : Json.t =
+    match typeDefinitionProvider with
+    | `Bool j -> `Bool j
+    | `TypeDefinitionOptions s -> TypeDefinitionOptions.yojson_of_t s
+    | `TypeDefinitionRegistrationOptions s ->
+      TypeDefinitionRegistrationOptions.yojson_of_t s
+
   type implementationProvider =
     [ `Bool of bool
     | `ImplementationOptions of ImplementationOptions.t
@@ -2588,6 +2645,14 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_implementationProvider
+      (implementationProvider : implementationProvider) : Json.t =
+    match implementationProvider with
+    | `Bool j -> `Bool j
+    | `ImplementationOptions s -> ImplementationOptions.yojson_of_t s
+    | `ImplementationRegistrationOptions s ->
+      ImplementationRegistrationOptions.yojson_of_t s
+
   type referencesProvider =
     [ `Bool of bool
     | `ReferenceOptions of ReferenceOptions.t
@@ -2600,6 +2665,12 @@ module ServerCapabilities = struct
       Json.Of.untagged_union "referencesProvider"
         [ (fun json -> `ReferenceOptions (ReferenceOptions.t_of_yojson json)) ]
         json
+
+  let yojson_of_referencesProvider (referencesProvider : referencesProvider) :
+      Json.t =
+    match referencesProvider with
+    | `Bool j -> `Bool j
+    | `ReferenceOptions s -> ReferenceOptions.yojson_of_t s
 
   type documentHighlightProvider =
     [ `Bool of bool
@@ -2618,6 +2689,12 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_documentHighlightProvider
+      (documentHighlightProvider : documentHighlightProvider) : Json.t =
+    match documentHighlightProvider with
+    | `Bool j -> `Bool j
+    | `DocumentHighlightOptions s -> DocumentHighlightOptions.yojson_of_t s
+
   type documentSymbolProvider =
     [ `Bool of bool
     | `DocumentSymbolOptions of DocumentSymbolOptions.t
@@ -2634,6 +2711,12 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_documentSymbolProvider
+      (documentSymbolProvider : documentSymbolProvider) : Json.t =
+    match documentSymbolProvider with
+    | `Bool j -> `Bool j
+    | `DocumentSymbolOptions s -> DocumentSymbolOptions.yojson_of_t s
+
   type codeActionProvider =
     [ `Bool of bool
     | `CodeActionOptions of CodeActionOptions.t
@@ -2647,6 +2730,12 @@ module ServerCapabilities = struct
         [ (fun json -> `CodeActionOptions (CodeActionOptions.t_of_yojson json))
         ]
         json
+
+  let yojson_of_codeActionProvider (codeActionProvider : codeActionProvider) :
+      Json.t =
+    match codeActionProvider with
+    | `Bool j -> `Bool j
+    | `CodeActionOptions s -> CodeActionOptions.yojson_of_t s
 
   type colorProvider =
     [ `Bool of bool
@@ -2667,6 +2756,13 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_colorProvider (colorProvider : colorProvider) : Json.t =
+    match colorProvider with
+    | `Bool j -> `Bool j
+    | `DocumentColorOptions s -> DocumentColorOptions.yojson_of_t s
+    | `DocumentColorRegistrationOptions s ->
+      DocumentColorRegistrationOptions.yojson_of_t s
+
   type documentFormattingProvider =
     [ `Bool of bool
     | `DocumentFormattingOptions of DocumentFormattingOptions.t
@@ -2683,6 +2779,12 @@ module ServerCapabilities = struct
               (DocumentFormattingOptions.t_of_yojson json))
         ]
         json
+
+  let yojson_of_documentFormattingProvider
+      (documentFormattingProvider : documentFormattingProvider) : Json.t =
+    match documentFormattingProvider with
+    | `Bool j -> `Bool j
+    | `DocumentFormattingOptions s -> DocumentFormattingOptions.yojson_of_t s
 
   type documentRangeFormattingProvider =
     [ `Bool of bool
@@ -2701,6 +2803,14 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_documentRangeFormattingProvider
+      (documentRangeFormattingProvider : documentRangeFormattingProvider) :
+      Json.t =
+    match documentRangeFormattingProvider with
+    | `Bool j -> `Bool j
+    | `DocumentRangeFormattingOptions s ->
+      DocumentRangeFormattingOptions.yojson_of_t s
+
   type renameProvider =
     [ `Bool of bool
     | `RenameOptions of RenameOptions.t
@@ -2713,6 +2823,11 @@ module ServerCapabilities = struct
       Json.Of.untagged_union "renameProvider"
         [ (fun json -> `RenameOptions (RenameOptions.t_of_yojson json)) ]
         json
+
+  let yojson_of_renameProvider (renameProvider : renameProvider) : Json.t =
+    match renameProvider with
+    | `Bool j -> `Bool j
+    | `RenameOptions s -> RenameOptions.yojson_of_t s
 
   type foldingRangeProvider =
     [ `Bool of bool
@@ -2733,6 +2848,14 @@ module ServerCapabilities = struct
         ]
         json
 
+  let yojson_of_foldingRangeProvider
+      (foldingRangeProvider : foldingRangeProvider) : Json.t =
+    match foldingRangeProvider with
+    | `Bool j -> `Bool j
+    | `FoldingRangeOptions s -> FoldingRangeOptions.yojson_of_t s
+    | `FoldingRangeRegistrationOptions s ->
+      FoldingRangeRegistrationOptions.yojson_of_t s
+
   type selectionRangeProvider =
     [ `Bool of bool
     | `SelectionRangeOptions of SelectionRangeOptions.t
@@ -2752,6 +2875,14 @@ module ServerCapabilities = struct
               (SelectionRangeRegistrationOptions.t_of_yojson json))
         ]
         json
+
+  let yojson_of_selectionRangeProvider
+      (selectionRangeProvider : selectionRangeProvider) : Json.t =
+    match selectionRangeProvider with
+    | `Bool j -> `Bool j
+    | `SelectionRangeOptions s -> SelectionRangeOptions.yojson_of_t s
+    | `SelectionRangeRegistrationOptions s ->
+      SelectionRangeRegistrationOptions.yojson_of_t s
 
   type t =
     { textDocumentSync : textDocumentSync Json.Nullable_option.t
@@ -2900,6 +3031,11 @@ module ParameterInformation = struct
         [ (fun json -> `Offset (Json.Of.int_pair json)) ]
         json
 
+  let yojson_of_label (label : label) : Json.t =
+    match label with
+    | `String j -> `String j
+    | `Offset s -> Json.To.int_pair s
+
   type documentation =
     [ `String of string
     | `MarkupContent of MarkupContent.t
@@ -2912,6 +3048,11 @@ module ParameterInformation = struct
       Json.Of.untagged_union "documentation"
         [ (fun json -> `MarkupContent (MarkupContent.t_of_yojson json)) ]
         json
+
+  let yojson_of_documentation (documentation : documentation) : Json.t =
+    match documentation with
+    | `String j -> `String j
+    | `MarkupContent s -> MarkupContent.yojson_of_t s
 
   type t =
     { label : label
@@ -3084,6 +3225,11 @@ module SignatureInformation = struct
       Json.Of.untagged_union "documentation"
         [ (fun json -> `MarkupContent (MarkupContent.t_of_yojson json)) ]
         json
+
+  let yojson_of_documentation (documentation : documentation) : Json.t =
+    match documentation with
+    | `String j -> `String j
+    | `MarkupContent s -> MarkupContent.yojson_of_t s
 
   type t =
     { label : string

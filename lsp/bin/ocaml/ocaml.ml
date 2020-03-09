@@ -327,7 +327,7 @@ module Poly_variant = struct
     in
     { json_constrs; untagged_constrs }
 
-  let conv target (utc : Ml.Type.constr) =
+  let conv_of_constr target (utc : Ml.Type.constr) =
     let conv (name : string) =
       let conv name = Json.Name.conv target name in
       match String.rsplit2 ~on:'.' name with
@@ -348,6 +348,33 @@ module Poly_variant = struct
     | [] -> assert false
     | _ ->
       Code_error.raise "untagged" [ ("utc.name", Dyn.Encoder.string utc.name) ]
+
+  let to_json { Named.name; data = constrs } =
+    let { json_constrs; untagged_constrs } = split_clauses constrs in
+    let open Ml.Expr in
+    let json_clauses =
+      List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
+          let constr arg =
+            Constr { tag = c.name; poly = true; args = [ arg ] }
+          in
+          let pat = Pat (constr (Pat (Ident "j"))) in
+          let expr : t = Create (constr (Create (Ident "j"))) in
+          (pat, expr))
+    in
+    let untagged_clauses =
+      List.map untagged_constrs ~f:(fun (utc : Ml.Type.constr) ->
+          let constr arg =
+            Constr { tag = utc.name; poly = true; args = [ arg ] }
+          in
+          let pat = Pat (constr (Pat (Ident "s"))) in
+          let expr =
+            App (conv_of_constr `To utc, [ Unnamed (Create (Ident "s")) ])
+          in
+          (pat, expr))
+    in
+    let expr = Match (Create (Ident name), json_clauses @ untagged_clauses) in
+    Json.to_json ~name expr
+
   let of_json { Named.name; data = constrs } =
     let { json_constrs; untagged_constrs } = split_clauses constrs in
     let open Ml.Expr in
@@ -366,7 +393,8 @@ module Poly_variant = struct
           List.map untagged_constrs ~f:(fun (utc : Ml.Type.constr) ->
               let create =
                 let of_json =
-                  App (conv `Of utc, [ Unnamed (Create (Ident "json")) ])
+                  App
+                    (conv_of_constr `Of utc, [ Unnamed (Create (Ident "json")) ])
                 in
                 Create
                   (Constr { tag = utc.name; poly = true; args = [ of_json ] })
@@ -596,7 +624,7 @@ module Gen = struct
           (c.name, Literal.String c.name))
       |> Named.set_data t |> Enum.conv ~poly:true
     else
-      [ Poly_variant.of_json t ]
+      [ Poly_variant.of_json t; Poly_variant.to_json t ]
 
   (* This is the more complex case *)
 

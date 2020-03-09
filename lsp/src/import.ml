@@ -1,3 +1,4 @@
+open Stdune
 module List = Stdune.List
 module Hashtbl = Stdune.Hashtbl
 module Option = Stdune.Option
@@ -154,6 +155,34 @@ module Json = struct
       with
       | None -> error name json
       | Some x -> x
+
+    let literal_field name k v f (json : t) =
+      match json with
+      | `Assoc xs -> (
+        let ks, xs =
+          List.partition_map xs ~f:(fun (k', v') ->
+              if k = k' then
+                if `String v = v' then
+                  Left k
+                else
+                  error (sprintf "%s: incorrect key %s" name k) json
+              else
+                Right v')
+        in
+        match ks with
+        | [] -> error (sprintf "%s: key %s not found" name k) json
+        | [ _ ] -> `Assoc (f xs)
+        | _ :: _ -> error (sprintf "%s: multiple keys %s" name k) json )
+      | _ -> error (sprintf "%s: not a record (key: %s)" name k) json
+  end
+
+  module To = struct
+    let literal_field k v f t =
+      match f t with
+      | `Assoc xs -> `Assoc ((k, `String v) :: xs)
+      | _ -> Code_error.raise "To.literal_field" []
+
+    let int_pair (x, y) = `List [ `Int x; `Int y ]
   end
 
   module Nullable_option = struct
