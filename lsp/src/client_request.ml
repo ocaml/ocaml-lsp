@@ -11,11 +11,13 @@ module DocumentColorParams = Gprotocol.DocumentColorParams
 module ColorInformation = Gprotocol.ColorInformation
 module CodeLensParams = Gprotocol.CodeLensParams
 module CodeLens = Gprotocol.CodeLens
+module HoverParams = Gprotocol.HoverParams
+module Hover = Gprotocol.Hover
 
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
-  | TextDocumentHover : Hover.params -> Hover.result t
+  | TextDocumentHover : HoverParams.t -> Hover.t option t
   | TextDocumentDefinition : Definition.params -> Definition.result t
   | TextDocumentDeclaration :
       TextDocumentPositionParams.t
@@ -73,7 +75,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | Initialize _, result -> Some (InitializeResult.yojson_of_t result)
   | TextDocumentDeclaration _, result ->
     Some (yojson_of_option Locations.yojson_of_t result)
-  | TextDocumentHover _, result -> Some (Hover.yojson_of_result result)
+  | TextDocumentHover _, result ->
+    Some (Json.Option.yojson_of_t Hover.yojson_of_t result)
   | TextDocumentDefinition _, result ->
     Some (Definition.yojson_of_result result)
   | TextDocumentTypeDefinition _, result ->
@@ -136,7 +139,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse TextDocumentDocumentSymbol.params_of_yojson >>| fun params ->
     E (DocumentSymbol params)
   | "textDocument/hover" ->
-    parse Hover.params_of_yojson >>| fun params -> E (TextDocumentHover params)
+    parse HoverParams.t_of_yojson >>| fun params -> E (TextDocumentHover params)
   | "textDocument/definition" ->
     parse Definition.params_of_yojson >>| fun params ->
     E (TextDocumentDefinition params)

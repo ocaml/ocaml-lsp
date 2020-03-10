@@ -11,11 +11,13 @@ module DocumentColorParams = Gprotocol.DocumentColorParams
 module ColorInformation = Gprotocol.ColorInformation
 module CodeLensParams = Gprotocol.CodeLensParams
 module CodeLens = Gprotocol.CodeLens
+module HoverParams = Gprotocol.HoverParams
+module Hover = Gprotocol.Hover
 
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
-  | TextDocumentHover : Hover.params -> Hover.result t
+  | TextDocumentHover : HoverParams.t -> Hover.t option t
   | TextDocumentDefinition : Definition.params -> Definition.result t
   | TextDocumentDeclaration :
       TextDocumentPositionParams.t

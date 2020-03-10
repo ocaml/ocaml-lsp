@@ -138,6 +138,18 @@ module Json = struct
     | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
     | Some f -> f
 
+  module Option = struct
+    type 'a t = 'a option
+
+    let yojson_of_t f = function
+      | None -> `Null
+      | Some x -> f x
+
+    let t_of_yojson f = function
+      | `Null -> None
+      | json -> Some (f json)
+  end
+
   module Of = struct
     let list = Ppx_yojson_conv_lib.Yojson_conv.list_of_yojson
 

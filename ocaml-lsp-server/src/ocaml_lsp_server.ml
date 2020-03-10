@@ -48,6 +48,10 @@ module Range = Lsp.Gprotocol.Range
 module Position = Lsp.Gprotocol.Position
 module CodeLens = Lsp.Gprotocol.CodeLens
 module Command = Lsp.Gprotocol.Command
+module MarkupContent = Lsp.Gprotocol.MarkupContent
+module MarkupKind = Lsp.Gprotocol.MarkupKind
+module Hover = Lsp.Gprotocol.Hover
+module HoverParams = Lsp.Gprotocol.HoverParams
 
 let initializeInfo : InitializeResult.t =
   let open Lsp.Gprotocol in
@@ -259,19 +263,20 @@ let on_request :
         | None -> ""
         | Some s -> Printf.sprintf "\n(** %s *)" s
       in
-      if as_markdown then
-        { Lsp.Protocol.MarkupContent.value =
-            Printf.sprintf "```ocaml\n%s%s\n```" typ doc
-        ; kind = Lsp.Protocol.MarkupKind.Markdown
-        }
-      else
-        { Lsp.Protocol.MarkupContent.value = Printf.sprintf "%s%s" typ doc
-        ; kind = Lsp.Protocol.MarkupKind.Plaintext
-        }
+      `MarkupContent
+        ( if as_markdown then
+          { MarkupContent.value = Printf.sprintf "```ocaml\n%s%s\n```" typ doc
+          ; kind = MarkupKind.Markdown
+          }
+        else
+          { MarkupContent.value = Printf.sprintf "%s%s" typ doc
+          ; kind = MarkupKind.PlainText
+          } )
     in
 
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
-    let pos = logical_of_position position in
+    let pos = logical_of_position' position in
     match query_type doc pos with
     | None -> Ok (store, None)
     | Some (loc, typ) ->
@@ -285,8 +290,8 @@ let on_request :
         | _ -> false
       in
       let contents = format_contents ~as_markdown ~typ ~doc in
-      let range = Some (range_of_loc loc) in
-      let resp = { Lsp.Protocol.Hover.contents; range } in
+      let range = range_of_loc' loc in
+      let resp = Hover.create ~contents ~range () in
       Ok (store, Some resp) )
   | Lsp.Client_request.TextDocumentReferences
       { textDocument = { uri }; position; context = _ } ->
