@@ -353,7 +353,7 @@ let on_request :
         locs
     in
     Ok (store, lsp_locs)
-  | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, [])
+  | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
     let range item = range_of_loc item.Query_protocol.location in
 

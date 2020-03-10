@@ -13,6 +13,8 @@ module CodeLensParams = Gprotocol.CodeLensParams
 module CodeLens = Gprotocol.CodeLens
 module HoverParams = Gprotocol.HoverParams
 module Hover = Gprotocol.Hover
+module WorkspaceSymbolParams = Gprotocol.WorkspaceSymbolParams
+module SymbolInformation = Gprotocol.SymbolInformation
 
 type _ t =
   | Shutdown : unit t
@@ -37,7 +39,9 @@ type _ t =
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
       -> TextDocumentDocumentSymbol.result t
-  | WorkspaceSymbol : WorkspaceSymbol.Params.t -> WorkspaceSymbol.Result.t t
+  | WorkspaceSymbol :
+      WorkspaceSymbolParams.t
+      -> SymbolInformation.t list option t
   | DebugEcho : DebugEcho.params -> DebugEcho.result t
   | DebugTextDocumentGet :
       DebugTextDocumentGet.params

@@ -13,6 +13,8 @@ module CodeLensParams = Gprotocol.CodeLensParams
 module CodeLens = Gprotocol.CodeLens
 module HoverParams = Gprotocol.HoverParams
 module Hover = Gprotocol.Hover
+module WorkspaceSymbolParams = Gprotocol.WorkspaceSymbolParams
+module SymbolInformation = Gprotocol.SymbolInformation
 
 type _ t =
   | Shutdown : unit t
@@ -37,7 +39,9 @@ type _ t =
   | DocumentSymbol :
       TextDocumentDocumentSymbol.params
       -> TextDocumentDocumentSymbol.result t
-  | WorkspaceSymbol : WorkspaceSymbol.Params.t -> WorkspaceSymbol.Result.t t
+  | WorkspaceSymbol :
+      WorkspaceSymbolParams.t
+      -> SymbolInformation.t list option t
   | DebugEcho : DebugEcho.params -> DebugEcho.result t
   | DebugTextDocumentGet :
       DebugTextDocumentGet.params
@@ -113,7 +117,10 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentLink _, result -> Some (DocumentLink.Result.yojson_of_t result)
   | TextDocumentLinkResolve _, result -> Some (DocumentLink.yojson_of_t result)
   | WorkspaceSymbol _, result ->
-    Some (WorkspaceSymbol.Result.yojson_of_t result)
+    Some
+      (Json.Option.yojson_of_t
+         (Json.To.list SymbolInformation.yojson_of_t)
+         result)
   | TextDocumentColorPresentation _, result ->
     Some (ColorPresentation.Result.yojson_of_t result)
   | TextDocumentColor _, result ->
@@ -181,7 +188,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse DocumentLink.t_of_yojson >>| fun params ->
     E (TextDocumentLinkResolve params)
   | "workspace/symbol" ->
-    parse WorkspaceSymbol.Params.t_of_yojson >>| fun params ->
+    parse WorkspaceSymbolParams.t_of_yojson >>| fun params ->
     E (WorkspaceSymbol params)
   | "textDocument/colorPresentation" ->
     parse ColorPresentation.Params.t_of_yojson >>| fun params ->
