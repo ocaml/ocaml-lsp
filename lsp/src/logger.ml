@@ -27,6 +27,26 @@
 
 open Import
 
+module Title = struct
+  type t =
+    | Error
+    | Warning
+    | Info
+    | Debug
+    | LocalDebug
+    | Notify
+    | Custom of string
+
+  let to_string = function
+    | Error -> "error"
+    | Warning -> "warn"
+    | Info -> "info"
+    | Debug -> "debug"
+    | LocalDebug -> "debug (local)"
+    | Notify -> "notify"
+    | Custom s -> s
+end
+
 let time = ref 0.0
 
 let delta_time () = Sys.time () -. !time
@@ -41,14 +61,26 @@ let is_section_enabled section =
   | Some sections -> String.Table.mem sections section
 
 let output_section oc section title =
-  Printf.fprintf oc "# %2.2f %s - %s\n" (delta_time ()) section title
+  Printf.fprintf oc "# %2.2f %s - %s\n" (delta_time ()) section
+    (Title.to_string title)
 
 let log_flush () =
   match !destination with
   | None -> ()
   | Some oc -> flush oc
 
-open Logger_helper
+let consumer : (string * Title.t * string -> unit) option ref = ref None
+
+let consumer_buffer : (string * Title.t * string) list ref = ref []
+
+let push_to_consumer ~section ~title text =
+  match !consumer with
+  | None -> consumer_buffer := (section, title, text) :: !consumer_buffer
+  | Some f ->
+    List.rev !consumer_buffer |> List.iter ~f;
+    f (section, title, text)
+
+let register_consumer f = consumer := Some f
 
 let log ~section ~title fmt =
   match !destination with
@@ -58,13 +90,16 @@ let log ~section ~title fmt =
         output_section oc section title;
         if str <> "" then (
           output_string oc str;
+          push_to_consumer ~section ~title str;
           if str.[String.length str - 1] <> '\n' then output_char oc '\n'
         );
         flush oc)
       fmt
   | None
   | Some _ ->
-    ifprintf () fmt
+    Printf.ksprintf
+      (fun str -> if str <> "" then push_to_consumer ~section ~title str)
+      fmt
 
 let fmt_buffer = Buffer.create 128
 
@@ -97,7 +132,7 @@ let notifications : notification list ref option ref = ref None
 
 let notify ~section =
   let tell msg =
-    log ~section ~title:"notify" "%s" msg;
+    log ~section ~title:Title.Notify "%s" msg;
     match !notifications with
     | None -> ()
     | Some r -> r := { section; msg } :: !r
@@ -158,7 +193,7 @@ let with_log_file file ?(sections = []) f =
       release ();
       Exn.reraise exn )
 
-type 'a printf = title:string -> ('a, unit, string, unit) format4 -> 'a
+type 'a printf = title:Title.t -> ('a, unit, string, unit) format4 -> 'a
 
 type logger = { log : 'a. 'a printf }
 

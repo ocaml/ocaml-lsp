@@ -29,8 +29,23 @@
     according to a * section and a verbosity level. * * 2. Allow to setup a
     destination for these log messages. * **)
 
+module Title : sig
+  type t =
+    | Error
+    | Warning
+    | Info
+    | Debug
+    | LocalDebug
+    | Notify
+    | Custom of string
+
+  val to_string : t -> string
+end
+
+val register_consumer : (string * Title.t * string -> unit) -> unit
+
 val log :
-  section:string -> title:string -> ('b, unit, string, unit) format4 -> 'b
+  section:string -> title:Title.t -> ('b, unit, string, unit) format4 -> 'b
 
 val fmt : unit -> (Format.formatter -> unit) -> string
 
@@ -51,7 +66,7 @@ val with_notifications : notification list ref -> (unit -> 'a) -> 'a
 
 val with_log_file : string option -> ?sections:string list -> (unit -> 'a) -> 'a
 
-type 'a printf = title:string -> ('a, unit, string, unit) format4 -> 'a
+type 'a printf = title:Title.t -> ('a, unit, string, unit) format4 -> 'a
 
 type logger = { log : 'a. 'a printf }
 

@@ -15,7 +15,7 @@ and state =
 let { Logger.log } = Logger.for_section "lsp"
 
 let send rpc json =
-  log ~title:"debug" "send: %a"
+  log ~title:Logger.Title.LocalDebug "send: %a"
     (fun () -> Yojson.Safe.pretty_to_string ~std:false)
     json;
   let data = Yojson.Safe.to_string json in
@@ -44,7 +44,7 @@ let read rpc =
   let parse_json content =
     match Yojson.Safe.from_string content with
     | json ->
-      log ~title:"debug" "recv: %a"
+      log ~title:Logger.Title.LocalDebug "recv: %a"
         (fun () -> Yojson.Safe.pretty_to_string ~std:false)
         json;
       Ok json
@@ -101,11 +101,12 @@ let start init_state handler ic oc =
     let start = Unix.gettimeofday () in
     let next_state = f () in
     let ellapsed = (Unix.gettimeofday () -. start) /. 1000.0 in
-    log ~title:"debug" "time elapsed processing message: %fs" ellapsed;
+    log ~title:Logger.Title.LocalDebug "time elapsed processing message: %fs"
+      ellapsed;
     match next_state with
     | Ok next_state -> next_state
     | Error msg ->
-      log ~title:"error" "%s" msg;
+      log ~title:Logger.Title.Error "%s" msg;
       prev_state
   in
 
