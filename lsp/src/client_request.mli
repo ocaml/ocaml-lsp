@@ -4,6 +4,7 @@ module InitializeParams = Gprotocol.InitializeParams
 module InitializeResult = Gprotocol.InitializeResult
 module CodeActionParams = Gprotocol.CodeActionParams
 module CodeActionResult = Gprotocol.CodeActionResult
+module ExecuteCommandParams = Gprotocol.ExecuteCommandParams
 
 type _ t =
   | Shutdown : unit t
@@ -55,7 +56,7 @@ type _ t =
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColor.Params.t -> DocumentColor.Result.t t
   | SelectionRange : SelectionRange.Params.t -> SelectionRange.t list t
-  | ExecuteCommand : ExecuteCommand.Params.t -> ExecuteCommand.Result.t t
+  | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | UnknownRequest : string * Json.t option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> Json.t option
