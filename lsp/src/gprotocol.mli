@@ -2993,3 +2993,9 @@ module WorkspaceSymbolRegistrationOptions : sig
 end
 
 (*$*)
+
+module CodeActionResult : sig
+  type t = [ `Command of Command.t | `CodeAction of CodeAction.t ] list option
+
+  include Json.Jsonable.S with type t := t
+end

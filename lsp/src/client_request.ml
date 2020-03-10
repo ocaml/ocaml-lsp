@@ -2,6 +2,8 @@ open! Import
 open Protocol
 module InitializeParams = Gprotocol.InitializeParams
 module InitializeResult = Gprotocol.InitializeResult
+module CodeActionResult = Gprotocol.CodeActionResult
+module CodeActionParams = Gprotocol.CodeActionParams
 
 type _ t =
   | Shutdown : unit t
@@ -37,7 +39,7 @@ type _ t =
       -> TextDocumentHighlight.result t
   | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
-  | CodeAction : CodeAction.Params.t -> CodeAction.result t
+  | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t
@@ -88,7 +90,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentFoldingRange _, result ->
     Some (FoldingRange.yojson_of_result result)
   | SignatureHelp _, result -> Some (SignatureHelp.yojson_of_t result)
-  | CodeAction _, result -> Some (CodeAction.yojson_of_result result)
+  | CodeAction _, result -> Some (CodeActionResult.yojson_of_t result)
   | CompletionItemResolve _, result ->
     Some (Completion.yojson_of_completionItem result)
   | WillSaveWaitUntilTextDocument _, result ->
@@ -149,7 +151,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse FoldingRange.params_of_yojson >>| fun params ->
     E (TextDocumentFoldingRange params)
   | "textDocument/codeAction" ->
-    parse CodeAction.Params.t_of_yojson >>| fun params -> E (CodeAction params)
+    parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
   | "debug/echo" ->
     parse DebugEcho.params_of_yojson >>| fun params -> E (DebugEcho params)
   | "debug/textDocument/get" ->

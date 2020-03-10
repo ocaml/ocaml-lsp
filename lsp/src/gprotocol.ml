@@ -27452,3 +27452,30 @@ module WorkspaceSymbolRegistrationOptions = struct
 end
 
 (*$*)
+
+module CodeActionResult = struct
+  type t = [ `Command of Command.t | `CodeAction of CodeAction.t ] list option
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | None -> `Null
+    | Some xs ->
+      Json.To.list
+        (function
+          | `Command c -> Command.yojson_of_t c
+          | `CodeAction a -> CodeAction.yojson_of_t a)
+        xs
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Null -> None
+    | `List _ ->
+      Some
+        (Json.Of.list
+           (Json.Of.untagged_union "CodeActionResult"
+              [ (fun j -> `Command (Command.t_of_yojson j))
+              ; (fun j -> `CodeAction (CodeAction.t_of_yojson j))
+              ])
+           json)
+    | _ -> Json.error "CodeActionResult" json
+end

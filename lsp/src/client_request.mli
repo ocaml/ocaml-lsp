@@ -2,6 +2,8 @@ open! Import
 open Protocol
 module InitializeParams = Gprotocol.InitializeParams
 module InitializeResult = Gprotocol.InitializeResult
+module CodeActionParams = Gprotocol.CodeActionParams
+module CodeActionResult = Gprotocol.CodeActionResult
 
 type _ t =
   | Shutdown : unit t
@@ -37,7 +39,7 @@ type _ t =
       -> TextDocumentHighlight.result t
   | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
-  | CodeAction : CodeAction.Params.t -> CodeAction.result t
+  | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CompletionItemResolve :
       Completion.completionItem
       -> Completion.completionItem t

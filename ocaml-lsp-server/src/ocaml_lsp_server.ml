@@ -38,6 +38,14 @@ let outline_kind kind : Lsp.Protocol.SymbolKind.t =
 
 module InitializeResult = Lsp.Gprotocol.InitializeResult
 module ClientCapabilities = Lsp.Gprotocol.ClientCapabilities
+module CodeActionKind = Lsp.Gprotocol.CodeActionKind
+module CodeActionParams = Lsp.Gprotocol.CodeActionParams
+module CodeAction = Lsp.Gprotocol.CodeAction
+module CodeActionResult = Lsp.Gprotocol.CodeActionResult
+module WorkspaceEdit = Lsp.Gprotocol.WorkspaceEdit
+module TextEdit = Lsp.Gprotocol.TextEdit
+module Range = Lsp.Gprotocol.Range
+module Position = Lsp.Gprotocol.Position
 
 let initializeInfo : InitializeResult.t =
   let open Lsp.Gprotocol in
@@ -79,14 +87,29 @@ let logical_of_position (position : Lsp.Protocol.Position.t) =
   let col = position.character in
   `Logical (line, col)
 
+let logical_of_position' (position : Position.t) =
+  let line = position.line + 1 in
+  let col = position.character in
+  `Logical (line, col)
+
 let position_of_lexical_position (lex_position : Lexing.position) =
   let line = lex_position.pos_lnum - 1 in
   let character = lex_position.pos_cnum - lex_position.pos_bol in
   { Lsp.Protocol.Position.line; character }
 
+let position_of_lexical_position' (lex_position : Lexing.position) =
+  let line = lex_position.pos_lnum - 1 in
+  let character = lex_position.pos_cnum - lex_position.pos_bol in
+  { Position.line; character }
+
 let range_of_loc (loc : Location.t) : Lsp.Protocol.Range.t =
   { start_ = position_of_lexical_position loc.loc_start
   ; end_ = position_of_lexical_position loc.loc_end
+  }
+
+let range_of_loc' (loc : Location.t) : Range.t =
+  { start = position_of_lexical_position' loc.loc_start
+  ; end_ = position_of_lexical_position' loc.loc_end
   }
 
 let send_diagnostics rpc doc =
@@ -151,48 +174,40 @@ let on_initialize rpc state _params =
   Ok (state, initializeInfo)
 
 let code_action_of_case_analysis uri (loc, newText) =
-  let edit : Lsp.Protocol.WorkspaceEdit.t =
-    let textedit : Lsp.Protocol.TextEdit.t =
-      { range = range_of_loc loc; newText }
-    in
-    { changes = [ (uri, [ textedit ]) ]; documentChanges = [] }
+  let edit : WorkspaceEdit.t =
+    let textedit : TextEdit.t = { range = range_of_loc' loc; newText } in
+    let uri = Lsp.Uri.to_string uri in
+    WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
   let title = String.capitalize_ascii Action.destruct in
-  { Lsp.CodeAction.title
-  ; kind = Some (Lsp.CodeAction.Kind.Other Action.destruct)
-  ; diagnostics = []
-  ; edit = Some edit
-  ; command = None
-  ; isPreferred = false
-  }
+  CodeAction.create ~title ~kind:(CodeActionKind.Other Action.destruct) ~edit
+    ~isPreferred:false ()
 
-let code_action store (params : Lsp.CodeAction.Params.t) =
+let code_action store (params : CodeActionParams.t) =
   let open Lsp.Import.Result.O in
   match params.context.only with
-  | Only set
-    when not (List.mem (Lsp.CodeAction.Kind.Other Action.destruct) ~set) ->
-    Ok (store, [])
-  | Only _
-  | All ->
-    Document_store.get store params.textDocument.uri >>= fun doc ->
+  | Some set when not (List.mem (CodeActionKind.Other Action.destruct) ~set) ->
+    Ok (store, None)
+  | Some _
+  | None ->
+    let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
+    Document_store.get store uri >>= fun doc ->
     let command =
-      let start = logical_of_position params.range.start_ in
-      let finish = logical_of_position params.range.end_ in
+      let start = logical_of_position' params.range.start in
+      let finish = logical_of_position' params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
-    let result : Lsp.CodeAction.result =
+    let result : CodeActionResult.t =
       try
         let res = dispatch_in_doc doc command in
-        [ Either.Right
-            (code_action_of_case_analysis params.textDocument.uri res)
-        ]
+        Some [ `CodeAction (code_action_of_case_analysis uri res) ]
       with
       | Destruct.Wrong_parent _
       | Query_commands.No_nodes
       | Destruct.Not_allowed _
       | Destruct.Useless_refine
       | Destruct.Nothing_to_do ->
-        []
+        Some []
     in
     Ok (store, result)
 
