@@ -9,6 +9,8 @@ module SelectionRangeParams = Gprotocol.SelectionRangeParams
 module SelectionRange = Gprotocol.SelectionRange
 module DocumentColorParams = Gprotocol.DocumentColorParams
 module ColorInformation = Gprotocol.ColorInformation
+module CodeLensParams = Gprotocol.CodeLensParams
+module CodeLens = Gprotocol.CodeLens
 
 type _ t =
   | Shutdown : unit t
@@ -22,7 +24,7 @@ type _ t =
       TypeDefinition.params
       -> TypeDefinition.result t
   | TextDocumentCompletion : Completion.params -> Completion.result t
-  | TextDocumentCodeLens : CodeLens.Params.t -> CodeLens.Result.t t
+  | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename :
       TextDocumentPositionParams.t
@@ -78,7 +80,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (TypeDefinition.yojson_of_result result)
   | TextDocumentCompletion _, result ->
     Some (Completion.yojson_of_result result)
-  | TextDocumentCodeLens _, result -> Some (CodeLens.Result.yojson_of_t result)
+  | TextDocumentCodeLens _, result ->
+    Some (Json.To.list CodeLens.yojson_of_t result)
   | TextDocumentCodeLensResolve _, result -> Some (CodeLens.yojson_of_t result)
   | TextDocumentPrepareRename _, result ->
     Some (PrepareRename.Result.yojson_of_t result)
@@ -144,7 +147,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse References.params_of_yojson >>| fun params ->
     E (TextDocumentReferences params)
   | "textDocument/codeLens" ->
-    parse CodeLens.Params.t_of_yojson >>| fun params ->
+    parse CodeLensParams.t_of_yojson >>| fun params ->
     E (TextDocumentCodeLens params)
   | "textDocument/rename" ->
     parse Rename.params_of_yojson >>| fun params ->

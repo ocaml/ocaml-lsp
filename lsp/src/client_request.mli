@@ -9,6 +9,8 @@ module SelectionRangeParams = Gprotocol.SelectionRangeParams
 module SelectionRange = Gprotocol.SelectionRange
 module DocumentColorParams = Gprotocol.DocumentColorParams
 module ColorInformation = Gprotocol.ColorInformation
+module CodeLensParams = Gprotocol.CodeLensParams
+module CodeLens = Gprotocol.CodeLens
 
 type _ t =
   | Shutdown : unit t
@@ -22,7 +24,7 @@ type _ t =
       TypeDefinition.params
       -> TypeDefinition.result t
   | TextDocumentCompletion : Completion.params -> Completion.result t
-  | TextDocumentCodeLens : CodeLens.Params.t -> CodeLens.Result.t t
+  | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename :
       TextDocumentPositionParams.t

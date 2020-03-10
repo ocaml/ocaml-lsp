@@ -46,6 +46,8 @@ module WorkspaceEdit = Lsp.Gprotocol.WorkspaceEdit
 module TextEdit = Lsp.Gprotocol.TextEdit
 module Range = Lsp.Gprotocol.Range
 module Position = Lsp.Gprotocol.Position
+module CodeLens = Lsp.Gprotocol.CodeLens
+module Command = Lsp.Gprotocol.Command
 
 let initializeInfo : InitializeResult.t =
   let open Lsp.Gprotocol in
@@ -305,6 +307,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
     Ok (store, codeLens)
   | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
@@ -319,15 +322,9 @@ let on_request :
         | Some typ ->
           let loc = item.Query_protocol.location in
           let info =
-            { Lsp.Protocol.CodeLens.range = range_of_loc loc
-            ; data = None
-            ; command =
-                Some
-                  { Lsp.Protocol.Command.title = typ
-                  ; command = ""
-                  ; arguments = None
-                  }
-            }
+            let range = range_of_loc' loc in
+            let command = Command.create ~title:typ ~command:"" () in
+            CodeLens.create ~range ~command ()
           in
           info :: children
       in
