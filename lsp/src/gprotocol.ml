@@ -136,6 +136,10 @@ module DeleteFileOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(recursive : bool option) ?(ignoreIfNotExists : bool option)
+      (() : unit) : t =
+    { recursive; ignoreIfNotExists }
 end
 
 module DocumentUri = struct
@@ -263,6 +267,10 @@ module DeleteFile = struct
 
   [@@@end]
 
+  let create ~(uri : DocumentUri.t) ?(options : DeleteFileOptions.t option)
+      (() : unit) : t =
+    { uri; options }
+
   let yojson_of_t (t : t) : Json.t =
     Json.To.literal_field "kind" "delete" yojson_of_t t
 
@@ -379,6 +387,10 @@ module RenameFileOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(overwrite : bool option) ?(ignoreIfExists : bool option)
+      (() : unit) : t =
+    { overwrite; ignoreIfExists }
 end
 
 module RenameFile = struct
@@ -510,6 +522,10 @@ module RenameFile = struct
 
   [@@@end]
 
+  let create ~(oldUri : DocumentUri.t) ~(newUri : DocumentUri.t)
+      ?(options : RenameFileOptions.t option) (() : unit) : t =
+    { oldUri; newUri; options }
+
   let yojson_of_t (t : t) : Json.t =
     Json.To.literal_field "kind" "rename" yojson_of_t t
 
@@ -626,6 +642,10 @@ module CreateFileOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(overwrite : bool option) ?(ignoreIfExists : bool option)
+      (() : unit) : t =
+    { overwrite; ignoreIfExists }
 end
 
 module CreateFile = struct
@@ -737,6 +757,10 @@ module CreateFile = struct
 
   [@@@end]
 
+  let create ~(uri : DocumentUri.t) ?(options : CreateFileOptions.t option)
+      (() : unit) : t =
+    { uri; options }
+
   let yojson_of_t (t : t) : Json.t =
     Json.To.literal_field "kind" "create" yojson_of_t t
 
@@ -840,6 +864,8 @@ module Position = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(line : int) ~(character : int) : t = { line; character }
 end
 
 module Range = struct
@@ -938,6 +964,8 @@ module Range = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(start : Position.t) ~(end_ : Position.t) : t = { start; end_ }
 end
 
 module TextEdit = struct
@@ -1036,6 +1064,8 @@ module TextEdit = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ~(newText : string) : t = { range; newText }
 end
 
 module TextDocumentIdentifier = struct
@@ -1110,6 +1140,8 @@ module TextDocumentIdentifier = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(uri : DocumentUri.t) : t = { uri }
 end
 
 module VersionedTextDocumentIdentifier = struct
@@ -1218,6 +1250,9 @@ module VersionedTextDocumentIdentifier = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(uri : DocumentUri.t) ?(version : int option) (() : unit) : t =
+    { uri; version }
 end
 
 module TextDocumentEdit = struct
@@ -1322,6 +1357,10 @@ module TextDocumentEdit = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : VersionedTextDocumentIdentifier.t)
+      ~(edits : TextEdit.t list) : t =
+    { textDocument; edits }
 end
 
 module WorkspaceEdit = struct
@@ -1467,6 +1506,10 @@ module WorkspaceEdit = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(changes : (DocumentUri.t, TextEdit.t list) Json.Assoc.t option)
+      ?(documentChanges : documentChanges list option) (() : unit) : t =
+    { changes; documentChanges }
 end
 
 module ApplyWorkspaceEditParams = struct
@@ -1576,6 +1619,10 @@ module ApplyWorkspaceEditParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(label : string option) ~(edit : WorkspaceEdit.t) (() : unit) : t
+      =
+    { label; edit }
 end
 
 module ApplyWorkspaceEditResponse = struct
@@ -1686,6 +1733,10 @@ module ApplyWorkspaceEditResponse = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(applied : bool) ?(failureReason : string option) (() : unit) : t
+      =
+    { applied; failureReason }
 end
 
 module CancelParams = struct
@@ -1760,6 +1811,8 @@ module CancelParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(id : Jsonrpc.Id.t) : t = { id }
 end
 
 module SelectionRangeClientCapabilities = struct
@@ -1844,6 +1897,9 @@ module SelectionRangeClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module FoldingRangeClientCapabilities = struct
@@ -1990,6 +2046,10 @@ module FoldingRangeClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) ?(rangeLimit : int option)
+      ?(lineFoldingOnly : bool option) (() : unit) : t =
+    { dynamicRegistration; rangeLimit; lineFoldingOnly }
 end
 
 module DiagnosticTag = struct
@@ -2085,6 +2145,9 @@ module PublishDiagnosticsClientCapabilities = struct
   let _ = yojson_of_tagSupport
 
   [@@@end]
+
+  let create_tagSupport ~(valueSet : DiagnosticTag.t list) : tagSupport =
+    { valueSet }
 
   type t =
     { relatedInformation : bool Json.Nullable_option.t
@@ -2231,6 +2294,11 @@ module PublishDiagnosticsClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(relatedInformation : bool option)
+      ?(tagSupport : tagSupport option) ?(versionSupport : bool option)
+      (() : unit) : t =
+    { relatedInformation; tagSupport; versionSupport }
 end
 
 module RenameClientCapabilities = struct
@@ -2345,6 +2413,10 @@ module RenameClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(prepareSupport : bool option) (() : unit) : t =
+    { dynamicRegistration; prepareSupport }
 end
 
 module DocumentOnTypeFormattingClientCapabilities = struct
@@ -2431,6 +2503,9 @@ module DocumentOnTypeFormattingClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module DocumentRangeFormattingClientCapabilities = struct
@@ -2517,6 +2592,9 @@ module DocumentRangeFormattingClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module DocumentFormattingClientCapabilities = struct
@@ -2603,6 +2681,9 @@ module DocumentFormattingClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module DocumentColorClientCapabilities = struct
@@ -2687,6 +2768,9 @@ module DocumentColorClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module DocumentLinkClientCapabilities = struct
@@ -2801,6 +2885,10 @@ module DocumentLinkClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(tooltipSupport : bool option) (() : unit) : t =
+    { dynamicRegistration; tooltipSupport }
 end
 
 module CodeLensClientCapabilities = struct
@@ -2885,6 +2973,9 @@ module CodeLensClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module CodeActionKind = struct
@@ -3002,6 +3093,10 @@ module CodeActionClientCapabilities = struct
 
   [@@@end]
 
+  let create_codeActionKind ~(valueSet : CodeActionKind.t list) : codeActionKind
+      =
+    { valueSet }
+
   type codeActionLiteralSupport = { codeActionKind : codeActionKind }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3076,6 +3171,10 @@ module CodeActionClientCapabilities = struct
   let _ = yojson_of_codeActionLiteralSupport
 
   [@@@end]
+
+  let create_codeActionLiteralSupport ~(codeActionKind : codeActionKind) :
+      codeActionLiteralSupport =
+    { codeActionKind }
 
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
@@ -3225,6 +3324,11 @@ module CodeActionClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(codeActionLiteralSupport : codeActionLiteralSupport option)
+      ?(isPreferredSupport : bool option) (() : unit) : t =
+    { dynamicRegistration; codeActionLiteralSupport; isPreferredSupport }
 end
 
 module SymbolKind = struct
@@ -3402,6 +3506,10 @@ module DocumentSymbolClientCapabilities = struct
 
   [@@@end]
 
+  let create_symbolKind ?(valueSet : SymbolKind.t list option) (() : unit) :
+      symbolKind =
+    { valueSet }
+
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -3552,6 +3660,11 @@ module DocumentSymbolClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(symbolKind : symbolKind option)
+      ?(hierarchicalDocumentSymbolSupport : bool option) (() : unit) : t =
+    { dynamicRegistration; symbolKind; hierarchicalDocumentSymbolSupport }
 end
 
 module DocumentHighlightClientCapabilities = struct
@@ -3638,6 +3751,9 @@ module DocumentHighlightClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module ReferenceClientCapabilities = struct
@@ -3722,6 +3838,9 @@ module ReferenceClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module ImplementationClientCapabilities = struct
@@ -3836,6 +3955,10 @@ module ImplementationClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) ?(linkSupport : bool option)
+      (() : unit) : t =
+    { dynamicRegistration; linkSupport }
 end
 
 module TypeDefinitionClientCapabilities = struct
@@ -3950,6 +4073,10 @@ module TypeDefinitionClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) ?(linkSupport : bool option)
+      (() : unit) : t =
+    { dynamicRegistration; linkSupport }
 end
 
 module DefinitionClientCapabilities = struct
@@ -4064,6 +4191,10 @@ module DefinitionClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) ?(linkSupport : bool option)
+      (() : unit) : t =
+    { dynamicRegistration; linkSupport }
 end
 
 module DeclarationClientCapabilities = struct
@@ -4178,6 +4309,10 @@ module DeclarationClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) ?(linkSupport : bool option)
+      (() : unit) : t =
+    { dynamicRegistration; linkSupport }
 end
 
 module MarkupKind = struct
@@ -4281,6 +4416,10 @@ module SignatureHelpClientCapabilities = struct
   let _ = yojson_of_parameterInformation
 
   [@@@end]
+
+  let create_parameterInformation ?(labelOffsetSupport : bool option)
+      (() : unit) : parameterInformation =
+    { labelOffsetSupport }
 
   type signatureInformation =
     { documentationFormat : MarkupKind.t list Json.Nullable_option.t
@@ -4400,6 +4539,12 @@ module SignatureHelpClientCapabilities = struct
   let _ = yojson_of_signatureInformation
 
   [@@@end]
+
+  let create_signatureInformation
+      ?(documentationFormat : MarkupKind.t list option)
+      ?(parameterInformation : parameterInformation option) (() : unit) :
+      signatureInformation =
+    { documentationFormat; parameterInformation }
 
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
@@ -4545,6 +4690,11 @@ module SignatureHelpClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(signatureInformation : signatureInformation option)
+      ?(contextSupport : bool option) (() : unit) : t =
+    { dynamicRegistration; signatureInformation; contextSupport }
 end
 
 module HoverClientCapabilities = struct
@@ -4663,6 +4813,10 @@ module HoverClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(contentFormat : MarkupKind.t list option) (() : unit) : t =
+    { dynamicRegistration; contentFormat }
 end
 
 module CompletionItemKind = struct
@@ -4850,6 +5004,10 @@ module CompletionClientCapabilities = struct
 
   [@@@end]
 
+  let create_completionItemKind ?(valueSet : CompletionItemKind.t list option)
+      (() : unit) : completionItemKind =
+    { valueSet }
+
   type tagSupport = { valueSet : CompletionItemTag.t list }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4925,6 +5083,9 @@ module CompletionClientCapabilities = struct
   let _ = yojson_of_tagSupport
 
   [@@@end]
+
+  let create_tagSupport ~(valueSet : CompletionItemTag.t list) : tagSupport =
+    { valueSet }
 
   type completionItem =
     { snippetSupport : bool Json.Nullable_option.t
@@ -5169,6 +5330,19 @@ module CompletionClientCapabilities = struct
 
   [@@@end]
 
+  let create_completionItem ?(snippetSupport : bool option)
+      ?(commitCharactersSupport : bool option)
+      ?(documentationFormat : MarkupKind.t list option)
+      ?(deprecatedSupport : bool option) ?(preselectSupport : bool option)
+      ?(tagSupport : tagSupport option) (() : unit) : completionItem =
+    { snippetSupport
+    ; commitCharactersSupport
+    ; documentationFormat
+    ; deprecatedSupport
+    ; preselectSupport
+    ; tagSupport
+    }
+
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -5345,6 +5519,12 @@ module CompletionClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(completionItem : completionItem option)
+      ?(completionItemKind : completionItemKind option)
+      ?(contextSupport : bool option) (() : unit) : t =
+    { dynamicRegistration; completionItem; completionItemKind; contextSupport }
 end
 
 module TextDocumentSyncClientCapabilities = struct
@@ -5523,6 +5703,11 @@ module TextDocumentSyncClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) ?(willSave : bool option)
+      ?(willSaveWaitUntil : bool option) ?(didSave : bool option) (() : unit) :
+      t =
+    { dynamicRegistration; willSave; willSaveWaitUntil; didSave }
 end
 
 module TextDocumentClientCapabilities = struct
@@ -6313,6 +6498,53 @@ module TextDocumentClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(synchronization : TextDocumentSyncClientCapabilities.t option)
+      ?(completion : CompletionClientCapabilities.t option)
+      ?(hover : HoverClientCapabilities.t option)
+      ?(signatureHelp : SignatureHelpClientCapabilities.t option)
+      ?(declaration : DeclarationClientCapabilities.t option)
+      ?(definition : DefinitionClientCapabilities.t option)
+      ?(typeDefinition : TypeDefinitionClientCapabilities.t option)
+      ?(implementation : ImplementationClientCapabilities.t option)
+      ?(references : ReferenceClientCapabilities.t option)
+      ?(documentHighlight : DocumentHighlightClientCapabilities.t option)
+      ?(documentSymbol : DocumentSymbolClientCapabilities.t option)
+      ?(codeAction : CodeActionClientCapabilities.t option)
+      ?(codeLens : CodeLensClientCapabilities.t option)
+      ?(documentLink : DocumentLinkClientCapabilities.t option)
+      ?(colorProvider : DocumentColorClientCapabilities.t option)
+      ?(formatting : DocumentFormattingClientCapabilities.t option)
+      ?(rangeFormatting : DocumentRangeFormattingClientCapabilities.t option)
+      ?(onTypeFormatting : DocumentOnTypeFormattingClientCapabilities.t option)
+      ?(rename : RenameClientCapabilities.t option)
+      ?(publishDiagnostics : PublishDiagnosticsClientCapabilities.t option)
+      ?(foldingRange : FoldingRangeClientCapabilities.t option)
+      ?(selectionRange : SelectionRangeClientCapabilities.t option) (() : unit)
+      : t =
+    { synchronization
+    ; completion
+    ; hover
+    ; signatureHelp
+    ; declaration
+    ; definition
+    ; typeDefinition
+    ; implementation
+    ; references
+    ; documentHighlight
+    ; documentSymbol
+    ; codeAction
+    ; codeLens
+    ; documentLink
+    ; colorProvider
+    ; formatting
+    ; rangeFormatting
+    ; onTypeFormatting
+    ; rename
+    ; publishDiagnostics
+    ; foldingRange
+    ; selectionRange
+    }
 end
 
 module ExecuteCommandClientCapabilities = struct
@@ -6397,6 +6629,9 @@ module ExecuteCommandClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module WorkspaceSymbolClientCapabilities = struct
@@ -6484,6 +6719,10 @@ module WorkspaceSymbolClientCapabilities = struct
   let _ = yojson_of_symbolKind
 
   [@@@end]
+
+  let create_symbolKind ?(valueSet : SymbolKind.t list option) (() : unit) :
+      symbolKind =
+    { valueSet }
 
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
@@ -6598,6 +6837,10 @@ module WorkspaceSymbolClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option)
+      ?(symbolKind : symbolKind option) (() : unit) : t =
+    { dynamicRegistration; symbolKind }
 end
 
 module DidChangeWatchedFilesClientCapabilities = struct
@@ -6684,6 +6927,9 @@ module DidChangeWatchedFilesClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module DidChangeConfigurationClientCapabilities = struct
@@ -6770,6 +7016,9 @@ module DidChangeConfigurationClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(dynamicRegistration : bool option) (() : unit) : t =
+    { dynamicRegistration }
 end
 
 module FailureHandlingKind = struct
@@ -6964,6 +7213,11 @@ module WorkspaceEditClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentChanges : bool option)
+      ?(resourceOperations : ResourceOperationKind.t list option)
+      ?(failureHandling : FailureHandlingKind.t option) (() : unit) : t =
+    { documentChanges; resourceOperations; failureHandling }
 end
 
 module ClientCapabilities = struct
@@ -7048,6 +7302,9 @@ module ClientCapabilities = struct
   let _ = yojson_of_window
 
   [@@@end]
+
+  let create_window ?(workDoneProgress : bool option) (() : unit) : window =
+    { workDoneProgress }
 
   type workspace =
     { applyEdit : bool Json.Nullable_option.t
@@ -7361,6 +7618,26 @@ module ClientCapabilities = struct
 
   [@@@end]
 
+  let create_workspace ?(applyEdit : bool option)
+      ?(workspaceEdit : WorkspaceEditClientCapabilities.t option)
+      ?(didChangeConfiguration :
+         DidChangeConfigurationClientCapabilities.t option)
+      ?(didChangeWatchedFiles :
+         DidChangeWatchedFilesClientCapabilities.t option)
+      ?(symbol : WorkspaceSymbolClientCapabilities.t option)
+      ?(executeCommand : ExecuteCommandClientCapabilities.t option)
+      ?(workspaceFolders : bool option) ?(configuration : bool option)
+      (() : unit) : workspace =
+    { applyEdit
+    ; workspaceEdit
+    ; didChangeConfiguration
+    ; didChangeWatchedFiles
+    ; symbol
+    ; executeCommand
+    ; workspaceFolders
+    ; configuration
+    }
+
   type t =
     { workspace : workspace Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -7529,6 +7806,12 @@ module ClientCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workspace : workspace option)
+      ?(textDocument : TextDocumentClientCapabilities.t option)
+      ?(window : window option) ?(experimental : Json.t option) (() : unit) : t
+      =
+    { workspace; textDocument; window; experimental }
 end
 
 module Command = struct
@@ -7661,6 +7944,10 @@ module Command = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(title : string) ~(command : string)
+      ?(arguments : Json.t list option) (() : unit) : t =
+    { title; command; arguments }
 end
 
 module Location = struct
@@ -7759,6 +8046,8 @@ module Location = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(uri : DocumentUri.t) ~(range : Range.t) : t = { uri; range }
 end
 
 module DiagnosticRelatedInformation = struct
@@ -7857,6 +8146,9 @@ module DiagnosticRelatedInformation = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(location : Location.t) ~(message : string) : t =
+    { location; message }
 end
 
 module DiagnosticSeverity = struct
@@ -8146,6 +8438,13 @@ module Diagnostic = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ?(severity : DiagnosticSeverity.t option)
+      ?(code : Jsonrpc.Id.t option) ?(source : string option)
+      ~(message : string) ?(tags : DiagnosticTag.t list option)
+      ?(relatedInformation : DiagnosticRelatedInformation.t list option)
+      (() : unit) : t =
+    { range; severity; code; source; message; tags; relatedInformation }
 end
 
 module CodeAction = struct
@@ -8386,6 +8685,12 @@ module CodeAction = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(title : string) ?(kind : CodeActionKind.t option)
+      ?(diagnostics : Diagnostic.t list option) ?(isPreferred : bool option)
+      ?(edit : WorkspaceEdit.t option) ?(command : Command.t option) (() : unit)
+      : t =
+    { title; kind; diagnostics; isPreferred; edit; command }
 end
 
 module CodeActionContext = struct
@@ -8500,6 +8805,10 @@ module CodeActionContext = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(diagnostics : Diagnostic.t list)
+      ?(only : CodeActionKind.t list option) (() : unit) : t =
+    { diagnostics; only }
 end
 
 module WorkDoneProgressOptions = struct
@@ -8584,6 +8893,9 @@ module WorkDoneProgressOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module CodeActionOptions = struct
@@ -8702,6 +9014,10 @@ module CodeActionOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option)
+      ?(codeActionKinds : CodeActionKind.t list option) (() : unit) : t =
+    { workDoneProgress; codeActionKinds }
 end
 
 module ProgressToken = struct
@@ -8805,6 +9121,9 @@ module PartialResultParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(partialResultToken : ProgressToken.t option) (() : unit) : t =
+    { partialResultToken }
 end
 
 module WorkDoneProgressParams = struct
@@ -8890,6 +9209,9 @@ module WorkDoneProgressParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneToken : ProgressToken.t option) (() : unit) : t =
+    { workDoneToken }
 end
 
 module CodeActionParams = struct
@@ -9011,6 +9333,10 @@ module CodeActionParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(range : Range.t)
+      ~(context : CodeActionContext.t) : t =
+    { textDocument; range; context }
 end
 
 module DocumentFilter = struct
@@ -9153,6 +9479,10 @@ module DocumentFilter = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(language : string option) ?(scheme : string option)
+      ?(pattern : string option) (() : unit) : t =
+    { language; scheme; pattern }
 end
 
 module DocumentSelector = struct
@@ -9259,6 +9589,9 @@ module TextDocumentRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option) (() : unit) : t =
+    { documentSelector }
 end
 
 module CodeActionRegistrationOptions = struct
@@ -9410,6 +9743,11 @@ module CodeActionRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option)
+      ?(codeActionKinds : CodeActionKind.t list option) (() : unit) : t =
+    { documentSelector; workDoneProgress; codeActionKinds }
 end
 
 module CodeLens = struct
@@ -9539,6 +9877,10 @@ module CodeLens = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ?(command : Command.t option)
+      ?(data : Json.t option) (() : unit) : t =
+    { range; command; data }
 end
 
 module CodeLensOptions = struct
@@ -9654,6 +9996,10 @@ module CodeLensOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) ?(resolveProvider : bool option)
+      (() : unit) : t =
+    { workDoneProgress; resolveProvider }
 end
 
 module CodeLensParams = struct
@@ -9728,6 +10074,8 @@ module CodeLensParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) : t = { textDocument }
 end
 
 module CodeLensRegistrationOptions = struct
@@ -9876,6 +10224,11 @@ module CodeLensRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) ?(resolveProvider : bool option)
+      (() : unit) : t =
+    { documentSelector; workDoneProgress; resolveProvider }
 end
 
 module Color = struct
@@ -10019,6 +10372,9 @@ module Color = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(red : int) ~(green : int) ~(blue : int) ~(alpha : int) : t =
+    { red; green; blue; alpha }
 end
 
 module ColorInformation = struct
@@ -10117,6 +10473,8 @@ module ColorInformation = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ~(color : Color.t) : t = { range; color }
 end
 
 module ColorPresentation = struct
@@ -10261,6 +10619,10 @@ module ColorPresentation = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(label : string) ?(textEdit : TextEdit.t option)
+      ?(additionalTextEdits : TextEdit.t list option) (() : unit) : t =
+    { label; textEdit; additionalTextEdits }
 end
 
 module ColorPresentationParams = struct
@@ -10381,6 +10743,10 @@ module ColorPresentationParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(color : Color.t)
+      ~(range : Range.t) : t =
+    { textDocument; color; range }
 end
 
 module CompletionTriggerKind = struct
@@ -10512,6 +10878,10 @@ module CompletionContext = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(triggerKind : CompletionTriggerKind.t)
+      ?(triggerCharacter : string option) (() : unit) : t =
+    { triggerKind; triggerCharacter }
 end
 
 module InsertTextFormat = struct
@@ -10627,6 +10997,8 @@ module MarkupContent = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(kind : MarkupKind.t) ~(value : string) : t = { kind; value }
 end
 
 module CompletionItem = struct
@@ -11188,6 +11560,34 @@ module CompletionItem = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(label : string) ?(kind : int option)
+      ?(tags : CompletionItemTag.t list option) ?(detail : string option)
+      ?(documentation : documentation option) ?(deprecated : bool option)
+      ?(preselect : bool option) ?(sortText : string option)
+      ?(filterText : string option) ?(insertText : string option)
+      ?(insertTextFormat : InsertTextFormat.t option)
+      ?(textEdit : TextEdit.t option)
+      ?(additionalTextEdits : TextEdit.t list option)
+      ?(commitCharacters : string list option) ?(command : Command.t option)
+      ?(data : Json.t option) (() : unit) : t =
+    { label
+    ; kind
+    ; tags
+    ; detail
+    ; documentation
+    ; deprecated
+    ; preselect
+    ; sortText
+    ; filterText
+    ; insertText
+    ; insertTextFormat
+    ; textEdit
+    ; additionalTextEdits
+    ; commitCharacters
+    ; command
+    ; data
+    }
 end
 
 module CompletionList = struct
@@ -11288,6 +11688,9 @@ module CompletionList = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(isIncomplete : bool) ~(items : CompletionItem.t list) : t =
+    { isIncomplete; items }
 end
 
 module CompletionOptions = struct
@@ -11472,6 +11875,16 @@ module CompletionOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option)
+      ?(triggerCharacters : string list option)
+      ?(allCommitCharacters : string list option)
+      ?(resolveProvider : bool option) (() : unit) : t =
+    { workDoneProgress
+    ; triggerCharacters
+    ; allCommitCharacters
+    ; resolveProvider
+    }
 end
 
 module TextDocumentPositionParams = struct
@@ -11570,6 +11983,10 @@ module TextDocumentPositionParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module CompletionParams = struct
@@ -11703,6 +12120,10 @@ module CompletionParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      ?(context : CompletionContext.t option) (() : unit) : t =
+    { textDocument; position; context }
 end
 
 module CompletionRegistrationOptions = struct
@@ -11919,6 +12340,18 @@ module CompletionRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option)
+      ?(triggerCharacters : string list option)
+      ?(allCommitCharacters : string list option)
+      ?(resolveProvider : bool option) (() : unit) : t =
+    { documentSelector
+    ; workDoneProgress
+    ; triggerCharacters
+    ; allCommitCharacters
+    ; resolveProvider
+    }
 end
 
 module ConfigurationItem = struct
@@ -12033,6 +12466,10 @@ module ConfigurationItem = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(scopeUri : DocumentUri.t option) ?(section : string option)
+      (() : unit) : t =
+    { scopeUri; section }
 end
 
 module ConfigurationParams = struct
@@ -12109,6 +12546,8 @@ module ConfigurationParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(items : ConfigurationItem.t list) : t = { items }
 end
 
 module DeclarationOptions = struct
@@ -12193,6 +12632,9 @@ module DeclarationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module DeclarationParams = struct
@@ -12291,6 +12733,10 @@ module DeclarationParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module StaticRegistrationOptions = struct
@@ -12373,6 +12819,8 @@ module StaticRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(id : string option) (() : unit) : t = { id }
 end
 
 module DeclarationRegistrationOptions = struct
@@ -12519,6 +12967,11 @@ module DeclarationRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option)
+      ?(documentSelector : DocumentSelector.t option) ?(id : string option)
+      (() : unit) : t =
+    { workDoneProgress; documentSelector; id }
 end
 
 module DefinitionOptions = struct
@@ -12603,6 +13056,9 @@ module DefinitionOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module DefinitionParams = struct
@@ -12701,6 +13157,10 @@ module DefinitionParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module DefinitionRegistrationOptions = struct
@@ -12817,6 +13277,10 @@ module DefinitionRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; workDoneProgress }
 end
 
 module DidChangeConfigurationParams = struct
@@ -12891,6 +13355,8 @@ module DidChangeConfigurationParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(settings : Json.t) : t = { settings }
 end
 
 module TextDocumentContentChangeEvent = struct
@@ -13019,6 +13485,10 @@ module TextDocumentContentChangeEvent = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ?(rangeLength : int option) ~(text : string)
+      (() : unit) : t =
+    { range; rangeLength; text }
 end
 
 module DidChangeTextDocumentParams = struct
@@ -13129,6 +13599,10 @@ module DidChangeTextDocumentParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : VersionedTextDocumentIdentifier.t)
+      ~(contentChanges : TextDocumentContentChangeEvent.t list) : t =
+    { textDocument; contentChanges }
 end
 
 module FileEvent = struct
@@ -13227,6 +13701,8 @@ module FileEvent = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(uri : DocumentUri.t) ~(type_ : int) : t = { uri; type_ }
 end
 
 module DidChangeWatchedFilesParams = struct
@@ -13303,6 +13779,8 @@ module DidChangeWatchedFilesParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(changes : FileEvent.t list) : t = { changes }
 end
 
 module FileSystemWatcher = struct
@@ -13409,6 +13887,9 @@ module FileSystemWatcher = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(globPattern : string) ?(kind : int option) (() : unit) : t =
+    { globPattern; kind }
 end
 
 module DidChangeWatchedFilesRegistrationOptions = struct
@@ -13487,6 +13968,8 @@ module DidChangeWatchedFilesRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(watchers : FileSystemWatcher.t list) : t = { watchers }
 end
 
 module WorkspaceFolder = struct
@@ -13585,6 +14068,8 @@ module WorkspaceFolder = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(uri : DocumentUri.t) ~(name : string) : t = { uri; name }
 end
 
 module WorkspaceFoldersChangeEvent = struct
@@ -13687,6 +14172,10 @@ module WorkspaceFoldersChangeEvent = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(added : WorkspaceFolder.t list)
+      ~(removed : WorkspaceFolder.t list) : t =
+    { added; removed }
 end
 
 module DidChangeWorkspaceFoldersParams = struct
@@ -13763,6 +14252,8 @@ module DidChangeWorkspaceFoldersParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(event : WorkspaceFoldersChangeEvent.t) : t = { event }
 end
 
 module DidCloseTextDocumentParams = struct
@@ -13837,6 +14328,8 @@ module DidCloseTextDocumentParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) : t = { textDocument }
 end
 
 module TextDocumentItem = struct
@@ -13984,6 +14477,10 @@ module TextDocumentItem = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(uri : DocumentUri.t) ~(languageId : string) ~(version : int)
+      ~(text : string) : t =
+    { uri; languageId; version; text }
 end
 
 module DidOpenTextDocumentParams = struct
@@ -14058,6 +14555,8 @@ module DidOpenTextDocumentParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentItem.t) : t = { textDocument }
 end
 
 module DidSaveTextDocumentParams = struct
@@ -14167,6 +14666,10 @@ module DidSaveTextDocumentParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ?(text : string option)
+      (() : unit) : t =
+    { textDocument; text }
 end
 
 module DocumentColorOptions = struct
@@ -14251,6 +14754,9 @@ module DocumentColorOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module DocumentColorParams = struct
@@ -14325,6 +14831,8 @@ module DocumentColorParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) : t = { textDocument }
 end
 
 module DocumentColorRegistrationOptions = struct
@@ -14471,6 +14979,10 @@ module DocumentColorRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(id : string option) ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; id; workDoneProgress }
 end
 
 module DocumentFormattingOptions = struct
@@ -14555,6 +15067,9 @@ module DocumentFormattingOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module FormattingOptions = struct
@@ -14751,6 +15266,17 @@ module FormattingOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(tabSize : int) ~(insertSpaces : bool)
+      ?(trimTrailingWhitespace : bool option)
+      ?(insertFinalNewline : bool option) ?(trimFinalNewlines : bool option)
+      (() : unit) : t =
+    { tabSize
+    ; insertSpaces
+    ; trimTrailingWhitespace
+    ; insertFinalNewline
+    ; trimFinalNewlines
+    }
 end
 
 module DocumentFormattingParams = struct
@@ -14849,6 +15375,10 @@ module DocumentFormattingParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t)
+      ~(options : FormattingOptions.t) : t =
+    { textDocument; options }
 end
 
 module DocumentFormattingRegistrationOptions = struct
@@ -14967,6 +15497,10 @@ module DocumentFormattingRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; workDoneProgress }
 end
 
 module DocumentHighlight = struct
@@ -15073,6 +15607,9 @@ module DocumentHighlight = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ?(kind : int option) (() : unit) : t =
+    { range; kind }
 end
 
 module DocumentHighlightKind = struct
@@ -15177,6 +15714,9 @@ module DocumentHighlightOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module DocumentHighlightParams = struct
@@ -15275,6 +15815,10 @@ module DocumentHighlightParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module DocumentHighlightRegistrationOptions = struct
@@ -15393,6 +15937,10 @@ module DocumentHighlightRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; workDoneProgress }
 end
 
 module DocumentLink = struct
@@ -15556,6 +16104,10 @@ module DocumentLink = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ?(target : DocumentUri.t option)
+      ?(tooltip : string option) ?(data : Json.t option) (() : unit) : t =
+    { range; target; tooltip; data }
 end
 
 module DocumentLinkOptions = struct
@@ -15671,6 +16223,10 @@ module DocumentLinkOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) ?(resolveProvider : bool option)
+      (() : unit) : t =
+    { workDoneProgress; resolveProvider }
 end
 
 module DocumentLinkParams = struct
@@ -15745,6 +16301,8 @@ module DocumentLinkParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) : t = { textDocument }
 end
 
 module DocumentLinkRegistrationOptions = struct
@@ -15893,6 +16451,11 @@ module DocumentLinkRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) ?(resolveProvider : bool option)
+      (() : unit) : t =
+    { documentSelector; workDoneProgress; resolveProvider }
 end
 
 module DocumentOnTypeFormattingOptions = struct
@@ -16007,6 +16570,10 @@ module DocumentOnTypeFormattingOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(firstTriggerCharacter : string)
+      ?(moreTriggerCharacter : string list option) (() : unit) : t =
+    { firstTriggerCharacter; moreTriggerCharacter }
 end
 
 module DocumentOnTypeFormattingParams = struct
@@ -16154,6 +16721,10 @@ module DocumentOnTypeFormattingParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      ~(ch : string) ~(options : FormattingOptions.t) : t =
+    { textDocument; position; ch; options }
 end
 
 module DocumentOnTypeFormattingRegistrationOptions = struct
@@ -16303,6 +16874,11 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ~(firstTriggerCharacter : string)
+      ?(moreTriggerCharacter : string list option) (() : unit) : t =
+    { documentSelector; firstTriggerCharacter; moreTriggerCharacter }
 end
 
 module DocumentRangeFormattingOptions = struct
@@ -16387,6 +16963,9 @@ module DocumentRangeFormattingOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module DocumentRangeFormattingParams = struct
@@ -16508,6 +17087,10 @@ module DocumentRangeFormattingParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(range : Range.t)
+      ~(options : FormattingOptions.t) : t =
+    { textDocument; range; options }
 end
 
 module DocumentRangeFormattingRegistrationOptions = struct
@@ -16626,6 +17209,10 @@ module DocumentRangeFormattingRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; workDoneProgress }
 end
 
 module DocumentSymbol = struct
@@ -16867,6 +17454,11 @@ module DocumentSymbol = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(name : string) ?(detail : string option) ~(kind : SymbolKind.t)
+      ?(deprecated : bool option) ~(range : Range.t) ~(selectionRange : Range.t)
+      ?(children : t list option) (() : unit) : t =
+    { name; detail; kind; deprecated; range; selectionRange; children }
 end
 
 module DocumentSymbolOptions = struct
@@ -16951,6 +17543,9 @@ module DocumentSymbolOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module DocumentSymbolParams = struct
@@ -17025,6 +17620,8 @@ module DocumentSymbolParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) : t = { textDocument }
 end
 
 module DocumentSymbolRegistrationOptions = struct
@@ -17141,6 +17738,10 @@ module DocumentSymbolRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; workDoneProgress }
 end
 
 module ErrorCodes = struct
@@ -17294,6 +17895,10 @@ module ExecuteCommandOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) ~(commands : string list)
+      (() : unit) : t =
+    { workDoneProgress; commands }
 end
 
 module ExecuteCommandParams = struct
@@ -17406,6 +18011,10 @@ module ExecuteCommandParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(command : string) ?(arguments : Json.t list option) (() : unit) :
+      t =
+    { command; arguments }
 end
 
 module ExecuteCommandRegistrationOptions = struct
@@ -17515,6 +18124,10 @@ module ExecuteCommandRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) ~(commands : string list)
+      (() : unit) : t =
+    { workDoneProgress; commands }
 end
 
 module FileChangeType = struct
@@ -17729,6 +18342,10 @@ module FoldingRange = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(startLine : int) ?(startCharacter : int option) ~(endLine : int)
+      ?(endCharacter : int option) ?(kind : string option) (() : unit) : t =
+    { startLine; startCharacter; endLine; endCharacter; kind }
 end
 
 module FoldingRangeKind = struct
@@ -17833,6 +18450,9 @@ module FoldingRangeOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module FoldingRangeParams = struct
@@ -17907,6 +18527,8 @@ module FoldingRangeParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) : t = { textDocument }
 end
 
 module FoldingRangeRegistrationOptions = struct
@@ -18053,6 +18675,10 @@ module FoldingRangeRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) ?(id : string option) (() : unit) : t =
+    { documentSelector; workDoneProgress; id }
 end
 
 module Hover = struct
@@ -18182,6 +18808,9 @@ module Hover = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(contents : contents) ?(range : Range.t option) (() : unit) : t =
+    { contents; range }
 end
 
 module HoverOptions = struct
@@ -18266,6 +18895,9 @@ module HoverOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module HoverParams = struct
@@ -18364,6 +18996,10 @@ module HoverParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module HoverRegistrationOptions = struct
@@ -18480,6 +19116,10 @@ module HoverRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; workDoneProgress }
 end
 
 module ImplementationOptions = struct
@@ -18564,6 +19204,9 @@ module ImplementationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module ImplementationParams = struct
@@ -18662,6 +19305,10 @@ module ImplementationParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module ImplementationRegistrationOptions = struct
@@ -18808,6 +19455,10 @@ module ImplementationRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) ?(id : string option) (() : unit) : t =
+    { documentSelector; workDoneProgress; id }
 end
 
 module InitializeError = struct
@@ -18930,6 +19581,10 @@ module InitializeParams = struct
   let _ = yojson_of_clientInfo
 
   [@@@end]
+
+  let create_clientInfo ~(name : string) ?(version : string option) (() : unit)
+      : clientInfo =
+    { name; version }
 
   type trace =
     [ `Off
@@ -19245,6 +19900,22 @@ module InitializeParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(processId : int option) ?(clientInfo : clientInfo option)
+      ?(rootPath : string Json.Nullable_option.t option)
+      ?(rootUri : DocumentUri.t option) ?(initializationOptions : Json.t option)
+      ~(capabilities : ClientCapabilities.t) ?(trace : trace option)
+      ?(workspaceFolders : WorkspaceFolder.t list Json.Nullable_option.t option)
+      (() : unit) : t =
+    { processId
+    ; clientInfo
+    ; rootPath
+    ; rootUri
+    ; initializationOptions
+    ; capabilities
+    ; trace
+    ; workspaceFolders
+    }
 end
 
 module WorkspaceFoldersServerCapabilities = struct
@@ -19378,6 +20049,10 @@ module WorkspaceFoldersServerCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(supported : bool option)
+      ?(changeNotifications : changeNotifications option) (() : unit) : t =
+    { supported; changeNotifications }
 end
 
 module SelectionRangeOptions = struct
@@ -19462,6 +20137,9 @@ module SelectionRangeOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module SelectionRangeRegistrationOptions = struct
@@ -19608,6 +20286,11 @@ module SelectionRangeRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option)
+      ?(documentSelector : DocumentSelector.t option) ?(id : string option)
+      (() : unit) : t =
+    { workDoneProgress; documentSelector; id }
 end
 
 module RenameOptions = struct
@@ -19723,6 +20406,10 @@ module RenameOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) ?(prepareProvider : bool option)
+      (() : unit) : t =
+    { workDoneProgress; prepareProvider }
 end
 
 module ReferenceOptions = struct
@@ -19807,6 +20494,9 @@ module ReferenceOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module TypeDefinitionOptions = struct
@@ -19891,6 +20581,9 @@ module TypeDefinitionOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module TypeDefinitionRegistrationOptions = struct
@@ -20037,6 +20730,10 @@ module TypeDefinitionRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) ?(id : string option) (() : unit) : t =
+    { documentSelector; workDoneProgress; id }
 end
 
 module SignatureHelpOptions = struct
@@ -20190,6 +20887,11 @@ module SignatureHelpOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option)
+      ?(triggerCharacters : string list option)
+      ?(retriggerCharacters : string list option) (() : unit) : t =
+    { workDoneProgress; triggerCharacters; retriggerCharacters }
 end
 
 module SaveOptions = struct
@@ -20273,6 +20975,8 @@ module SaveOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(includeText : bool option) (() : unit) : t = { includeText }
 end
 
 module TextDocumentSyncKind = struct
@@ -20502,6 +21206,12 @@ module TextDocumentSyncOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(openClose : bool option)
+      ?(change : TextDocumentSyncKind.t option) ?(willSave : bool option)
+      ?(willSaveWaitUntil : bool option) ?(save : SaveOptions.t option)
+      (() : unit) : t =
+    { openClose; change; willSave; willSaveWaitUntil; save }
 end
 
 module ServerCapabilities = struct
@@ -20589,6 +21299,11 @@ module ServerCapabilities = struct
   let _ = yojson_of_workspace
 
   [@@@end]
+
+  let create_workspace
+      ?(workspaceFolders : WorkspaceFoldersServerCapabilities.t option)
+      (() : unit) : workspace =
+    { workspaceFolders }
 
   type textDocumentSync =
     [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
@@ -21824,6 +22539,59 @@ module ServerCapabilities = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(textDocumentSync : textDocumentSync option)
+      ?(completionProvider : CompletionOptions.t option)
+      ?(hoverProvider : hoverProvider option)
+      ?(signatureHelpProvider : SignatureHelpOptions.t option)
+      ?(declarationProvider : declarationProvider option)
+      ?(definitionProvider : definitionProvider option)
+      ?(typeDefinitionProvider : typeDefinitionProvider option)
+      ?(implementationProvider : implementationProvider option)
+      ?(referencesProvider : referencesProvider option)
+      ?(documentHighlightProvider : documentHighlightProvider option)
+      ?(documentSymbolProvider : documentSymbolProvider option)
+      ?(codeActionProvider : codeActionProvider option)
+      ?(codeLensProvider : CodeLensOptions.t option)
+      ?(documentLinkProvider : DocumentLinkOptions.t option)
+      ?(colorProvider : colorProvider option)
+      ?(documentFormattingProvider : documentFormattingProvider option)
+      ?(documentRangeFormattingProvider :
+         documentRangeFormattingProvider option)
+      ?(documentOnTypeFormattingProvider :
+         DocumentOnTypeFormattingOptions.t option)
+      ?(renameProvider : renameProvider option)
+      ?(foldingRangeProvider : foldingRangeProvider option)
+      ?(executeCommandProvider : ExecuteCommandOptions.t option)
+      ?(selectionRangeProvider : selectionRangeProvider option)
+      ?(workspaceSymbolProvider : bool option) ?(workspace : workspace option)
+      ?(experimental : Json.t option) (() : unit) : t =
+    { textDocumentSync
+    ; completionProvider
+    ; hoverProvider
+    ; signatureHelpProvider
+    ; declarationProvider
+    ; definitionProvider
+    ; typeDefinitionProvider
+    ; implementationProvider
+    ; referencesProvider
+    ; documentHighlightProvider
+    ; documentSymbolProvider
+    ; codeActionProvider
+    ; codeLensProvider
+    ; documentLinkProvider
+    ; colorProvider
+    ; documentFormattingProvider
+    ; documentRangeFormattingProvider
+    ; documentOnTypeFormattingProvider
+    ; renameProvider
+    ; foldingRangeProvider
+    ; executeCommandProvider
+    ; selectionRangeProvider
+    ; workspaceSymbolProvider
+    ; workspace
+    ; experimental
+    }
 end
 
 module InitializeResult = struct
@@ -21934,6 +22702,10 @@ module InitializeResult = struct
 
   [@@@end]
 
+  let create_serverInfo ~(name : string) ?(version : string option) (() : unit)
+      : serverInfo =
+    { name; version }
+
   type t =
     { capabilities : ServerCapabilities.t
     ; serverInfo : serverInfo Json.Nullable_option.t
@@ -22041,6 +22813,10 @@ module InitializeResult = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(capabilities : ServerCapabilities.t)
+      ?(serverInfo : serverInfo option) (() : unit) : t =
+    { capabilities; serverInfo }
 end
 
 module LocationLink = struct
@@ -22198,6 +22974,11 @@ module LocationLink = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(originSelectionRange : Range.t option)
+      ~(targetUri : DocumentUri.t) ~(targetRange : Range.t)
+      ~(targetSelectionRange : Range.t) (() : unit) : t =
+    { originSelectionRange; targetUri; targetRange; targetSelectionRange }
 end
 
 module LogMessageParams = struct
@@ -22296,6 +23077,8 @@ module LogMessageParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(type_ : int) ~(message : string) : t = { type_; message }
 end
 
 module MessageActionItem = struct
@@ -22370,6 +23153,8 @@ module MessageActionItem = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(title : string) : t = { title }
 end
 
 module MessageType = struct
@@ -22539,6 +23324,10 @@ module ParameterInformation = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(label : label) ?(documentation : documentation option)
+      (() : unit) : t =
+    { label; documentation }
 end
 
 module PrepareRenameParams = struct
@@ -22637,6 +23426,10 @@ module PrepareRenameParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module ProgressParams = struct
@@ -22735,6 +23528,8 @@ module ProgressParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(token : ProgressToken.t) ~(value : Json.t) : t = { token; value }
 end
 
 module PublishDiagnosticsParams = struct
@@ -22865,6 +23660,10 @@ module PublishDiagnosticsParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(uri : DocumentUri.t) ?(version : int option)
+      ~(diagnostics : Diagnostic.t list) (() : unit) : t =
+    { uri; version; diagnostics }
 end
 
 module ReferenceContext = struct
@@ -22940,6 +23739,8 @@ module ReferenceContext = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(includeDeclaration : bool) : t = { includeDeclaration }
 end
 
 module ReferenceParams = struct
@@ -23064,6 +23865,10 @@ module ReferenceParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      ~(context : ReferenceContext.t) : t =
+    { textDocument; position; context }
 end
 
 module ReferenceRegistrationOptions = struct
@@ -23180,6 +23985,10 @@ module ReferenceRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) (() : unit) : t =
+    { documentSelector; workDoneProgress }
 end
 
 module Registration = struct
@@ -23301,6 +24110,10 @@ module Registration = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(id : string) ~(method_ : string)
+      ?(registerOptions : Json.t option) (() : unit) : t =
+    { id; method_; registerOptions }
 end
 
 module RegistrationParams = struct
@@ -23378,6 +24191,8 @@ module RegistrationParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(registrations : Registration.t list) : t = { registrations }
 end
 
 module RenameParams = struct
@@ -23502,6 +24317,10 @@ module RenameParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      ~(newName : string) : t =
+    { textDocument; position; newName }
 end
 
 module RenameRegistrationOptions = struct
@@ -23650,6 +24469,11 @@ module RenameRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option) ?(prepareProvider : bool option)
+      (() : unit) : t =
+    { documentSelector; workDoneProgress; prepareProvider }
 end
 
 module SelectionRange = struct
@@ -23756,6 +24580,9 @@ module SelectionRange = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(range : Range.t) ?(parent : t option) (() : unit) : t =
+    { range; parent }
 end
 
 module SelectionRangeParams = struct
@@ -23856,6 +24683,10 @@ module SelectionRangeParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t)
+      ~(positions : Position.t list) : t =
+    { textDocument; positions }
 end
 
 module ShowMessageParams = struct
@@ -23954,6 +24785,8 @@ module ShowMessageParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(type_ : int) ~(message : string) : t = { type_; message }
 end
 
 module ShowMessageRequestParams = struct
@@ -24086,6 +24919,10 @@ module ShowMessageRequestParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(type_ : int) ~(message : string)
+      ?(actions : MessageActionItem.t list option) (() : unit) : t =
+    { type_; message; actions }
 end
 
 module SignatureInformation = struct
@@ -24249,6 +25086,10 @@ module SignatureInformation = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(label : string) ?(documentation : documentation option)
+      ?(parameters : ParameterInformation.t list option) (() : unit) : t =
+    { label; documentation; parameters }
 end
 
 module SignatureHelp = struct
@@ -24394,6 +25235,11 @@ module SignatureHelp = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(signatures : SignatureInformation.t list)
+      ?(activeSignature : int option) ?(activeParameter : int option)
+      (() : unit) : t =
+    { signatures; activeSignature; activeParameter }
 end
 
 module SignatureHelpTriggerKind = struct
@@ -24583,6 +25429,11 @@ module SignatureHelpContext = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(triggerKind : SignatureHelpTriggerKind.t)
+      ?(triggerCharacter : string option) ~(isRetrigger : bool)
+      ?(activeSignatureHelp : SignatureHelp.t option) (() : unit) : t =
+    { triggerKind; triggerCharacter; isRetrigger; activeSignatureHelp }
 end
 
 module SignatureHelpParams = struct
@@ -24717,6 +25568,10 @@ module SignatureHelpParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      ?(context : SignatureHelpContext.t option) (() : unit) : t =
+    { textDocument; position; context }
 end
 
 module SignatureHelpRegistrationOptions = struct
@@ -24902,6 +25757,16 @@ module SignatureHelpRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(workDoneProgress : bool option)
+      ?(triggerCharacters : string list option)
+      ?(retriggerCharacters : string list option) (() : unit) : t =
+    { documentSelector
+    ; workDoneProgress
+    ; triggerCharacters
+    ; retriggerCharacters
+    }
 end
 
 module SymbolInformation = struct
@@ -25089,6 +25954,11 @@ module SymbolInformation = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(name : string) ~(kind : SymbolKind.t) ?(deprecated : bool option)
+      ~(location : Location.t) ?(containerName : string option) (() : unit) : t
+      =
+    { name; kind; deprecated; location; containerName }
 end
 
 module TextDocumentChangeRegistrationOptions = struct
@@ -25201,6 +26071,10 @@ module TextDocumentChangeRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ~(syncKind : TextDocumentSyncKind.t) (() : unit) : t =
+    { documentSelector; syncKind }
 end
 
 module TextDocumentSaveReason = struct
@@ -25337,6 +26211,10 @@ module TextDocumentSaveRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(documentSelector : DocumentSelector.t option)
+      ?(includeText : bool option) (() : unit) : t =
+    { documentSelector; includeText }
 end
 
 module TypeDefinitionParams = struct
@@ -25435,6 +26313,10 @@ module TypeDefinitionParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
+      : t =
+    { textDocument; position }
 end
 
 module Unregistration = struct
@@ -25533,6 +26415,8 @@ module Unregistration = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(id : string) ~(method_ : string) : t = { id; method_ }
 end
 
 module UnregistrationParams = struct
@@ -25612,6 +26496,9 @@ module UnregistrationParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(unregisterations : Unregistration.t list) : t =
+    { unregisterations }
 end
 
 module WatchKind = struct
@@ -25730,6 +26617,9 @@ module WillSaveTextDocumentParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(textDocument : TextDocumentIdentifier.t) ~(reason : int) : t =
+    { textDocument; reason }
 end
 
 module WorkDoneProgressBegin = struct
@@ -25903,6 +26793,10 @@ module WorkDoneProgressBegin = struct
 
   [@@@end]
 
+  let create ~(title : string) ?(cancellable : bool option)
+      ?(message : string option) ?(percentage : int option) (() : unit) : t =
+    { title; cancellable; message; percentage }
+
   let yojson_of_t (t : t) : Json.t =
     Json.To.literal_field "kind" "begin" yojson_of_t t
 
@@ -25982,6 +26876,8 @@ module WorkDoneProgressCancelParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(token : ProgressToken.t) : t = { token }
 end
 
 module WorkDoneProgressCreateParams = struct
@@ -26056,6 +26952,8 @@ module WorkDoneProgressCreateParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(token : ProgressToken.t) : t = { token }
 end
 
 module WorkDoneProgressEnd = struct
@@ -26138,6 +27036,8 @@ module WorkDoneProgressEnd = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(message : string option) (() : unit) : t = { message }
 
   let yojson_of_t (t : t) : Json.t =
     Json.To.literal_field "kind" "end" yojson_of_t t
@@ -26288,6 +27188,10 @@ module WorkDoneProgressReport = struct
 
   [@@@end]
 
+  let create ?(cancellable : bool option) ?(message : string option)
+      ?(percentage : int option) (() : unit) : t =
+    { cancellable; message; percentage }
+
   let yojson_of_t (t : t) : Json.t =
     Json.To.literal_field "kind" "report" yojson_of_t t
 
@@ -26377,6 +27281,9 @@ module WorkspaceSymbolOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 module WorkspaceSymbolParams = struct
@@ -26451,6 +27358,8 @@ module WorkspaceSymbolParams = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ~(query : string) : t = { query }
 end
 
 module WorkspaceSymbolRegistrationOptions = struct
@@ -26537,6 +27446,9 @@ module WorkspaceSymbolRegistrationOptions = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?(workDoneProgress : bool option) (() : unit) : t =
+    { workDoneProgress }
 end
 
 (*$*)

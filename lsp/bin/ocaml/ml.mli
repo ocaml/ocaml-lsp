@@ -28,6 +28,13 @@ module Kind : sig
   with type kind := t
 end
 
+module Arg : sig
+  type 'e t =
+    | Unnamed of 'e
+    | Labeled of string * 'e
+    | Optional of string * 'e
+end
+
 module Type : sig
   [@@@warning "-30"]
 
@@ -49,6 +56,7 @@ module Type : sig
     | Poly_variant of constr list
     | Assoc of t * t
     | App of t * t list
+    | Fun of t Arg.t * t
 
   and field =
     { name : string
@@ -65,6 +73,8 @@ module Type : sig
     | Alias of t
     | Record of field list
     | Variant of constr list
+
+  val fun_ : t Arg.t list -> t -> t
 
   (* This is for lists where the keys are equal to strings *)
   val assoc_list : key:t -> data:t -> t

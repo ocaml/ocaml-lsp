@@ -262,6 +262,84 @@ let pp_file pp ch =
   Pp.render_ignore_tags fmt pp;
   Format.pp_print_flush fmt ()
 
+module Create = struct
+  let f_name name =
+    if name = "t" then
+      "create"
+    else
+      sprintf "create_%s" name
+
+  let need_unit =
+    List.exists ~f:(fun (f : Ml.Type.field) ->
+        match f.typ with
+        | Ml.Type.Optional _ -> true
+        | _ -> false)
+
+  let intf { Named.name; data = fields } =
+    let type_ =
+      let need_unit = need_unit fields in
+      let fields : Ml.Type.t Ml.Arg.t list =
+        List.map fields ~f:(fun (field : Ml.Type.field) ->
+            match field.typ with
+            | Optional t -> Ml.Arg.Optional (field.name, t)
+            | t -> Labeled (field.name, t))
+      in
+      let args : Ml.Type.t Ml.Arg.t list =
+        if need_unit then
+          (* Gross hack because I was too lazy to allow patterns in toplevel
+             exprs *)
+          fields @ [ Ml.Arg.Unnamed Ml.Type.unit ]
+        else
+          fields
+      in
+      Ml.Type.fun_ args (Ml.Type.name name)
+    in
+    let f_name = f_name name in
+    { Named.name = f_name; data = type_ }
+
+  let impl { Named.name; data = fields } =
+    let make =
+      let fields =
+        List.map fields ~f:(fun (field : Ml.Type.field) ->
+            let open Ml.Expr in
+            (field.name, Create (Ident field.name)))
+      in
+      Ml.Expr.Create (Record fields)
+    in
+    let pat =
+      let need_unit = need_unit fields in
+      let fields =
+        List.map fields ~f:(fun (field : Ml.Type.field) ->
+            let open Ml.Expr in
+            match field.typ with
+            | Optional t -> (Optional (field.name, field.name), t)
+            | t -> (Labeled (field.name, field.name), t))
+      in
+      if need_unit then
+        (* Gross hack because I was too lazy to allow patterns in toplevel exprs *)
+        fields @ [ (Unnamed "()", Ml.Type.unit) ]
+      else
+        fields
+    in
+    let body = { Ml.Expr.pat; type_ = Ml.Type.name name; body = make } in
+    let f_name = f_name name in
+    { Named.name = f_name; data = body }
+
+  let impl_of_type (t : Ml.Type.decl Named.t) =
+    match (t.data : Ml.Type.decl) with
+    | Record fields ->
+      let create = impl { t with data = fields } in
+      [ { create with data = Ml.Module.Value create.data } ]
+    | _ -> []
+
+  let intf_of_type (t : Ml.Type.decl Named.t) : Ml.Module.sig_ Named.t list =
+    match (t.data : Ml.Type.decl) with
+    | Record fields ->
+      let create = intf { t with data = fields } in
+      [ { create with data = Ml.Module.Value create.data } ]
+    | _ -> []
+end
+
 module Enum = struct
   let of_json ~allow_other ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
@@ -661,44 +739,47 @@ module Gen = struct
     else
       [ Poly_variant.of_json t; Poly_variant.to_json t ]
 
-  let literal_wrapper { Named.name; data = typ_ } =
+  let literal_field { Named.name; data = typ_ } =
     match (typ_ : Ml.Type.decl) with
     | Record fs -> (
       match
-        List.filter_map fs ~f:(fun f ->
+        List.partition_map fs ~f:(fun f ->
             match Ml.Type.get_kind f with
-            | None -> None
-            | Some lit -> Some (f, lit))
+            | None -> Right f
+            | Some lit -> Left (f, lit))
       with
-      | [] -> []
-      | [ (field, lit) ] ->
-        let open Ml.Expr in
-        let args = List.map ~f:(fun x -> Unnamed (Create x)) in
-        let to_ =
-          let a =
-            [ String field.name
-            ; String lit
-            ; Ident (Json.Name.to_ name)
-            ; Ident name
-            ]
-          in
-          App (Create (Ident "Json.To.literal_field"), args a)
-        in
-        let of_ =
-          let a =
-            [ String name
-            ; String field.name
-            ; String lit
-            ; Ident (Json.Name.of_ name)
-            ; Ident "json"
-            ]
-          in
-          App (Create (Ident "Json.Of.literal_field"), args a)
-        in
-        [ Json.to_json ~name to_; Json.of_json ~name of_ ]
-        |> List.map ~f:(Named.map ~f:(fun v -> Ml.Module.Value v))
+      | [], _ -> None
+      | [ (field, lit) ], normal_fields ->
+        Some ((field, lit), { Named.name; data = Ml.Type.Record normal_fields })
       | _ -> assert false )
-    | _ -> []
+    | _ -> None
+
+  let literal_wrapper ((field : Ml.Type.field), lit) name =
+    let open Ml.Expr in
+    let args = List.map ~f:(fun x -> Unnamed (Create x)) in
+    let to_ =
+      let a =
+        [ String field.name
+        ; String lit
+        ; Ident (Json.Name.to_ name)
+        ; Ident name
+        ]
+      in
+      App (Create (Ident "Json.To.literal_field"), args a)
+    in
+    let of_ =
+      let a =
+        [ String name
+        ; String field.name
+        ; String lit
+        ; Ident (Json.Name.of_ name)
+        ; Ident "json"
+        ]
+      in
+      App (Create (Ident "Json.Of.literal_field"), args a)
+    in
+    [ Json.to_json ~name to_; Json.of_json ~name of_ ]
+    |> List.map ~f:(Named.map ~f:(fun v -> Ml.Module.Value v))
 
   (* This is the more complex case *)
 
@@ -713,11 +794,18 @@ module Gen = struct
     in
     let intf : Ml.Module.sig_ Named.t list =
       List.concat_map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+          let type_ =
+            match literal_field td with
+            | None -> td
+            | Some (_, typ_) -> typ_
+          in
+
           [ { td with
               Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
             }
           ; { td with data = Json_conv_sig }
-          ])
+          ]
+          @ Create.intf_of_type type_)
     in
     let impl : Ml.Module.impl Named.t list =
       (* TODO we should make sure to handle duplicate variants extracted *)
@@ -735,10 +823,15 @@ module Gen = struct
                 in
                 decl :: json_conv)
           in
-          let literal_wrapper = literal_wrapper { d with data = typ_ } in
+          let typ_, literal_wrapper =
+            let typ_ = { d with data = typ_ } in
+            match literal_field typ_ with
+            | None -> (typ_, [])
+            | Some (f, typ_) -> (typ_, literal_wrapper f d.name)
+          in
           poly_vars_and_convs
-          @ [ { d with data = Ml.Module.Type_decl typ_ } ]
-          @ literal_wrapper)
+          @ [ { typ_ with data = Ml.Module.Type_decl typ_.data } ]
+          @ Create.impl_of_type typ_ @ literal_wrapper)
     in
     let module_ bindings = { Ml.Module.name; bindings } in
     { Ml.Kind.intf = module_ intf; impl = module_ impl }

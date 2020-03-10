@@ -30,6 +30,13 @@ module Kind = struct
   end
 end
 
+module Arg = struct
+  type 'e t =
+    | Unnamed of 'e
+    | Labeled of string * 'e
+    | Optional of string * 'e
+end
+
 module Type = struct
   [@@@warning "-30"]
 
@@ -60,6 +67,7 @@ module Type = struct
     | Poly_variant of constr list
     | Assoc of t * t
     | App of t * t list
+    | Fun of t Arg.t * t
 
   and constr =
     { name : string
@@ -128,6 +136,7 @@ module Type = struct
         | Poly_variant t -> self#poly_variant env t
         | Assoc (k, v) -> self#assoc env k v
         | App (f, xs) -> self#app env f xs
+        | Fun (_, _) -> assert false
 
       method alias env t =
         let r0, s0 = self#t env t in
@@ -182,6 +191,9 @@ module Type = struct
       | _ -> attrs
     in
     { name = ident; typ; attrs }
+
+  let fun_ args t =
+    List.fold_right args ~init:t ~f:(fun arg acc -> Fun (arg, acc))
 
   let constr args ~name = { name; args }
 
@@ -254,6 +266,29 @@ module Type = struct
       List.map constrs ~f:(fun { name; args } ->
           (name, List.map args ~f:(pp ~kind)))
       |> Type.poly
+    | Fun (a, r) -> (
+      match a with
+      | Arg.Unnamed t ->
+        Pp.concat
+          [ pp t ~kind; Pp.space; Pp.verbatim "->"; Pp.space; pp ~kind r ]
+      | Arg.Labeled (l, t) ->
+        Pp.concat
+          [ Pp.textf "%s:" l
+          ; pp t ~kind
+          ; Pp.space
+          ; Pp.verbatim "->"
+          ; Pp.space
+          ; pp ~kind r
+          ]
+      | Arg.Optional (l, t) ->
+        Pp.concat
+          [ Pp.textf "?%s:" l
+          ; pp t ~kind
+          ; Pp.space
+          ; Pp.verbatim "->"
+          ; Pp.space
+          ; pp ~kind r
+          ] )
     | Assoc (k, v) -> (
       match kind with
       | Intf -> pp (List (Tuple [ k; v ])) ~kind
@@ -412,7 +447,18 @@ module Expr = struct
       let xs = Pp.concat_map xs ~sep:(Pp.verbatim ";") ~f:pp in
       W.surround `Square xs
     | Tuple _ -> assert false
-    | Record _ -> assert false
+    | Record fields ->
+      let record =
+        let open Pp.O in
+        Pp.concat_map fields
+          ~sep:(Pp.verbatim ";" ++ Pp.space)
+          ~f:(fun (name, expr) ->
+            if expr = Create (Ident name) then
+              pp expr
+            else
+              Pp.verbatim name ++ Pp.space ++ Pp.verbatim "=" ++ pp expr)
+      in
+      W.surround `Curly record
     | Constr c -> pp_constr pp c
 
   and pp = function
@@ -483,7 +529,12 @@ module Expr = struct
               Pp.concat [ Pp.textf "~(%s :" l; typ; Pp.verbatim ")" ]
             else
               assert false
-          | Optional (_, _) -> assert false)
+          | Optional (l, r) ->
+            if l = r then
+              Pp.concat
+                [ Pp.textf "?(%s :" l; typ; Pp.space; Pp.verbatim "option)" ]
+            else
+              assert false)
     in
     let body = pp body in
     let type_ = Type.pp type_ ~kind in
