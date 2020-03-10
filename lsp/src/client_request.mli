@@ -5,6 +5,10 @@ module InitializeResult = Gprotocol.InitializeResult
 module CodeActionParams = Gprotocol.CodeActionParams
 module CodeActionResult = Gprotocol.CodeActionResult
 module ExecuteCommandParams = Gprotocol.ExecuteCommandParams
+module SelectionRangeParams = Gprotocol.SelectionRangeParams
+module SelectionRange = Gprotocol.SelectionRange
+module DocumentColorParams = Gprotocol.DocumentColorParams
+module ColorInformation = Gprotocol.ColorInformation
 
 type _ t =
   | Shutdown : unit t
@@ -54,8 +58,8 @@ type _ t =
   | TextDocumentColorPresentation :
       ColorPresentation.Params.t
       -> ColorPresentation.t list t
-  | TextDocumentColor : DocumentColor.Params.t -> DocumentColor.Result.t t
-  | SelectionRange : SelectionRange.Params.t -> SelectionRange.t list t
+  | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
+  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | UnknownRequest : string * Json.t option -> unit t
 

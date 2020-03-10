@@ -5,6 +5,10 @@ module InitializeResult = Gprotocol.InitializeResult
 module CodeActionResult = Gprotocol.CodeActionResult
 module CodeActionParams = Gprotocol.CodeActionParams
 module ExecuteCommandParams = Gprotocol.ExecuteCommandParams
+module SelectionRangeParams = Gprotocol.SelectionRangeParams
+module SelectionRange = Gprotocol.SelectionRange
+module DocumentColorParams = Gprotocol.DocumentColorParams
+module ColorInformation = Gprotocol.ColorInformation
 
 type _ t =
   | Shutdown : unit t
@@ -56,8 +60,8 @@ type _ t =
   | TextDocumentColorPresentation :
       ColorPresentation.Params.t
       -> ColorPresentation.t list t
-  | TextDocumentColor : DocumentColor.Params.t -> DocumentColor.Result.t t
-  | SelectionRange : SelectionRange.Params.t -> SelectionRange.t list t
+  | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
+  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | UnknownRequest : string * Json.t option -> unit t
 
@@ -107,7 +111,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentColorPresentation _, result ->
     Some (ColorPresentation.Result.yojson_of_t result)
   | TextDocumentColor _, result ->
-    Some (DocumentColor.Result.yojson_of_t result)
+    Some (Json.To.list ColorInformation.yojson_of_t result)
   | SelectionRange _, result ->
     Some (Json.yojson_of_list SelectionRange.yojson_of_t result)
   | ExecuteCommand _, result -> Some result
@@ -177,13 +181,13 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse ColorPresentation.Params.t_of_yojson >>| fun params ->
     E (TextDocumentColorPresentation params)
   | "textDocument/documentColor" ->
-    parse DocumentColor.Params.t_of_yojson >>| fun params ->
+    parse DocumentColorParams.t_of_yojson >>| fun params ->
     E (TextDocumentColor params)
   | "textDocument/declaration" ->
     parse TextDocumentPositionParams.t_of_yojson >>| fun params ->
     E (TextDocumentDeclaration params)
   | "textDocument/selectionRange" ->
-    parse SelectionRange.Params.t_of_yojson >>| fun params ->
+    parse SelectionRangeParams.t_of_yojson >>| fun params ->
     E (SelectionRange params)
   | "workspace/executeCommand" ->
     parse ExecuteCommandParams.t_of_yojson >>| fun params ->
