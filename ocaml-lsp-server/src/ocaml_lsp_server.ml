@@ -41,59 +41,34 @@ module ClientCapabilities = Lsp.Gprotocol.ClientCapabilities
 
 let initializeInfo : InitializeResult.t =
   let open Lsp.Gprotocol in
-  let codeActionProvider : CodeActionOptions.t =
-    { codeActionKinds = Some [ Other Action.destruct ]
-    ; workDoneProgress = None
-    }
+  let codeActionProvider =
+    `CodeActionOptions
+      (CodeActionOptions.create ~codeActionKinds:[ Other Action.destruct ] ())
   in
-  (* TODO use actual version *)
-  let serverInfo = None in
-  { serverInfo
-  ; capabilities =
-      { textDocumentSync =
-          Some
-            (`TextDocumentSyncOptions
-              { TextDocumentSyncOptions.openClose = Some true
-              ; change = Some TextDocumentSyncKind.Incremental
-              ; willSave = Some false
-              ; willSaveWaitUntil = Some false
-              ; save = None
-              })
-      ; hoverProvider = Some (`Bool true)
-      ; definitionProvider = Some (`Bool true)
-      ; typeDefinitionProvider = Some (`Bool true)
-      ; completionProvider =
-          (* TODO even if this re-enabled in general, it should stay disabled
-             for emacs. It makes completion too slow *)
-          Some
-            { resolveProvider = Some false
-            ; triggerCharacters = Some [ "." ]
-            ; workDoneProgress = None
-            ; allCommitCharacters = None
-            }
-      ; referencesProvider = Some (`Bool true)
-      ; documentHighlightProvider = Some (`Bool true)
-      ; documentSymbolProvider = Some (`Bool true)
-      ; workspaceSymbolProvider = Some false
-      ; codeActionProvider = Some (`CodeActionOptions codeActionProvider)
-      ; codeLensProvider =
-          Some { resolveProvider = Some false; workDoneProgress = None }
-      ; documentFormattingProvider = Some (`Bool true)
-      ; documentRangeFormattingProvider = Some (`Bool false)
-      ; documentOnTypeFormattingProvider = None
-      ; renameProvider = Some (`Bool true)
-      ; documentLinkProvider = None
-      ; executeCommandProvider = None
-      ; foldingRangeProvider = Some (`Bool true)
-      ; signatureHelpProvider = None
-      ; experimental = None
-      ; selectionRangeProvider = None
-      ; implementationProvider = None
-      ; colorProvider = None
-      ; workspace = None
-      ; declarationProvider = None
-      }
-  }
+  let textDocumentSync =
+    `TextDocumentSyncOptions
+      (TextDocumentSyncOptions.create ~openClose:true
+         ~change:TextDocumentSyncKind.Incremental ~willSave:false
+         ~willSaveWaitUntil:false ())
+  in
+  let completionProvider =
+    (* TODO even if this re-enabled in general, it should stay disabled for
+       emacs. It makes completion too slow *)
+    CompletionOptions.create ~triggerCharacters:[ "." ] ~resolveProvider:false
+      ()
+  in
+  let capabilities =
+    ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
+      ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
+      ~completionProvider ~codeActionProvider ~referencesProvider:(`Bool true)
+      ~documentHighlightProvider:(`Bool true)
+      ~documentSymbolProvider:(`Bool true) ~renameProvider:(`Bool true) ()
+  in
+  let serverInfo =
+    (* TODO use actual version *)
+    InitializeResult.create_serverInfo ~name:"ocamllsp" ()
+  in
+  InitializeResult.create ~capabilities ~serverInfo ()
 
 let dispatch_in_doc doc command =
   Document.with_pipeline doc (fun pipeline ->
