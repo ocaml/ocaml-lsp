@@ -36,43 +36,62 @@ let outline_kind kind : Lsp.Protocol.SymbolKind.t =
   | `Class -> Class
   | `Method -> Method
 
-let initializeInfo : Lsp.Initialize.Result.t =
-  let codeActionProvider : Lsp.Initialize.CodeActionOptions.t =
-    { codeActionKinds = [ Other Action.destruct ] }
+module InitializeResult = Lsp.Gprotocol.InitializeResult
+module ClientCapabilities = Lsp.Gprotocol.ClientCapabilities
+
+let initializeInfo : InitializeResult.t =
+  let open Lsp.Gprotocol in
+  let codeActionProvider : CodeActionOptions.t =
+    { codeActionKinds = Some [ Other Action.destruct ]
+    ; workDoneProgress = None
+    }
   in
   (* TODO use actual version *)
   let serverInfo = None in
   { serverInfo
   ; capabilities =
       { textDocumentSync =
-          { openClose = true
-          ; change = IncrementalSync
-          ; willSave = false
-          ; willSaveWaitUntil = false
-          ; save = None
-          }
-      ; hoverProvider = true
-      ; definitionProvider = true
-      ; typeDefinitionProvider = true
+          Some
+            (`TextDocumentSyncOptions
+              { TextDocumentSyncOptions.openClose = Some true
+              ; change = Some TextDocumentSyncKind.Incremental
+              ; willSave = Some false
+              ; willSaveWaitUntil = Some false
+              ; save = None
+              })
+      ; hoverProvider = Some (`Bool true)
+      ; definitionProvider = Some (`Bool true)
+      ; typeDefinitionProvider = Some (`Bool true)
       ; completionProvider =
           (* TODO even if this re-enabled in general, it should stay disabled
              for emacs. It makes completion too slow *)
-          Some { resolveProvider = false; triggerCharacters = [ "." ] }
-      ; referencesProvider = true
-      ; documentHighlightProvider = true
-      ; documentSymbolProvider = true
-      ; workspaceSymbolProvider = false
-      ; codeActionProvider = Value codeActionProvider
-      ; codeLensProvider = Some { resolveProvider = false }
-      ; documentFormattingProvider = true
-      ; documentRangeFormattingProvider = false
+          Some
+            { resolveProvider = Some false
+            ; triggerCharacters = Some [ "." ]
+            ; workDoneProgress = None
+            ; allCommitCharacters = None
+            }
+      ; referencesProvider = Some (`Bool true)
+      ; documentHighlightProvider = Some (`Bool true)
+      ; documentSymbolProvider = Some (`Bool true)
+      ; workspaceSymbolProvider = Some false
+      ; codeActionProvider = Some (`CodeActionOptions codeActionProvider)
+      ; codeLensProvider =
+          Some { resolveProvider = Some false; workDoneProgress = None }
+      ; documentFormattingProvider = Some (`Bool true)
+      ; documentRangeFormattingProvider = Some (`Bool false)
       ; documentOnTypeFormattingProvider = None
-      ; renameProvider = true
+      ; renameProvider = Some (`Bool true)
       ; documentLinkProvider = None
       ; executeCommandProvider = None
-      ; typeCoverageProvider = false
-      ; foldingRangeProvider = Bool true
+      ; foldingRangeProvider = Some (`Bool true)
       ; signatureHelpProvider = None
+      ; experimental = None
+      ; selectionRangeProvider = None
+      ; implementationProvider = None
+      ; colorProvider = None
+      ; workspace = None
+      ; declarationProvider = None
       }
   }
 
@@ -206,7 +225,7 @@ let on_request :
     type resp.
        Lsp.Rpc.t
     -> Document_store.t
-    -> Lsp.Initialize.ClientCapabilities.t
+    -> ClientCapabilities.t
     -> resp Lsp.Client_request.t
     -> (Document_store.t * resp, Lsp.Jsonrpc.Response.Error.t) result =
  fun rpc store client_capabilities req ->
@@ -266,8 +285,12 @@ let on_request :
     | Some (loc, typ) ->
       let doc = query_doc doc pos in
       let as_markdown =
-        List.mem Lsp.Protocol.MarkupKind.Markdown
-          ~set:client_capabilities.textDocument.hover.contentFormat
+        match client_capabilities.textDocument with
+        | None -> false
+        | Some { hover = Some { contentFormat; _ }; _ } ->
+          List.mem Lsp.Gprotocol.MarkupKind.Markdown
+            ~set:(Option.value contentFormat ~default:[ Markdown ])
+        | _ -> false
       in
       let contents = format_contents ~as_markdown ~typ ~doc in
       let range = Some (range_of_loc loc) in
@@ -375,8 +398,17 @@ let on_request :
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let symbols =
-      let caps = client_capabilities.textDocument.documentSymbol in
-      match caps.hierarchicalDocumentSymbolSupport with
+      let hierarchicalDocumentSymbolSupport =
+        let open Lsp.Gprotocol in
+        let open Option.O in
+        Option.value
+          ( client_capabilities.textDocument
+          >>= fun (textDocument : TextDocumentClientCapabilities.t) ->
+            textDocument.documentSymbol >>= fun ds ->
+            ds.hierarchicalDocumentSymbolSupport )
+          ~default:false
+      in
+      match hierarchicalDocumentSymbolSupport with
       | true ->
         let symbols = List.map outline ~f:symbol in
         Lsp.Protocol.TextDocumentDocumentSymbol.DocumentSymbol symbols
@@ -625,7 +657,10 @@ let on_request :
     in
     let workspace_edits =
       let documentChanges =
-        client_capabilities.workspace.workspaceEdit.documentChanges
+        let open Option.O in
+        Option.value ~default:false
+          ( client_capabilities.workspace >>= fun workspace ->
+            workspace.workspaceEdit >>= fun edit -> edit.documentChanges )
       in
       Lsp.Protocol.WorkspaceEdit.make ~documentChanges ~uri ~version ~edits
     in

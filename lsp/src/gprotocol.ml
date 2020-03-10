@@ -2897,6 +2897,7 @@ module CodeActionKind = struct
     | RefactorRewrite
     | Source
     | SourceOrganizeImports
+    | Other of string
 
   let yojson_of_t (t : t) : Json.t =
     match t with
@@ -2908,6 +2909,7 @@ module CodeActionKind = struct
     | RefactorRewrite -> `String "refactor.rewrite"
     | Source -> `String "source"
     | SourceOrganizeImports -> `String "source.organizeImports"
+    | Other s -> `String s
 
   let t_of_yojson (json : Json.t) : t =
     match json with
@@ -2919,6 +2921,7 @@ module CodeActionKind = struct
     | `String "refactor.rewrite" -> RefactorRewrite
     | `String "source" -> Source
     | `String "source.organizeImports" -> SourceOrganizeImports
+    | `String s -> Other s
     | _ -> Json.error "t" json
 end
 
@@ -20272,11 +20275,31 @@ module SaveOptions = struct
   [@@@end]
 end
 
+module TextDocumentSyncKind = struct
+  type t =
+    | None
+    | Full
+    | Incremental
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | None -> `Int 0
+    | Full -> `Int 1
+    | Incremental -> `Int 2
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 0 -> None
+    | `Int 1 -> Full
+    | `Int 2 -> Incremental
+    | _ -> Json.error "t" json
+end
+
 module TextDocumentSyncOptions = struct
   type t =
     { openClose : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; change : int Json.Nullable_option.t
+    ; change : TextDocumentSyncKind.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; willSave : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -20317,7 +20340,8 @@ module TextDocumentSyncOptions = struct
               match Ppx_yojson_conv_lib.( ! ) change_field with
               | None ->
                 let fvalue =
-                  Json.Nullable_option.t_of_yojson int_of_yojson _field_yojson
+                  Json.Nullable_option.t_of_yojson
+                    TextDocumentSyncKind.t_of_yojson _field_yojson
                 in
                 change_field := Some fvalue
               | Some _ ->
@@ -20455,7 +20479,9 @@ module TextDocumentSyncOptions = struct
             bnds
           else
             let arg =
-              (Json.Nullable_option.yojson_of_t yojson_of_int) v_change
+              (Json.Nullable_option.yojson_of_t
+                 TextDocumentSyncKind.yojson_of_t)
+                v_change
             in
             let bnd = ("change", arg) in
             bnd :: bnds
@@ -25063,26 +25089,6 @@ module SymbolInformation = struct
   let _ = yojson_of_t
 
   [@@@end]
-end
-
-module TextDocumentSyncKind = struct
-  type t =
-    | None
-    | Full
-    | Incremental
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | None -> `Int 0
-    | Full -> `Int 1
-    | Incremental -> `Int 2
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 0 -> None
-    | `Int 1 -> Full
-    | `Int 2 -> Incremental
-    | _ -> Json.error "t" json
 end
 
 module TextDocumentChangeRegistrationOptions = struct

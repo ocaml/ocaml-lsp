@@ -259,6 +259,7 @@ module CodeActionKind : sig
     | RefactorRewrite
     | Source
     | SourceOrganizeImports
+    | Other of string
 
   include Json.Jsonable.S with type t := t
 end
@@ -1607,10 +1608,19 @@ module SaveOptions : sig
   include Json.Jsonable.S with type t := t
 end
 
+module TextDocumentSyncKind : sig
+  type t =
+    | None
+    | Full
+    | Incremental
+
+  include Json.Jsonable.S with type t := t
+end
+
 module TextDocumentSyncOptions : sig
   type t =
     { openClose : bool option
-    ; change : int option
+    ; change : TextDocumentSyncKind.t option
     ; willSave : bool option
     ; willSaveWaitUntil : bool option
     ; save : SaveOptions.t option
@@ -1969,15 +1979,6 @@ module SymbolInformation : sig
     ; location : Location.t
     ; containerName : string option
     }
-
-  include Json.Jsonable.S with type t := t
-end
-
-module TextDocumentSyncKind : sig
-  type t =
-    | None
-    | Full
-    | Incremental
 
   include Json.Jsonable.S with type t := t
 end

@@ -1,9 +1,11 @@
 open! Import
 open Protocol
+module InitializeParams = Gprotocol.InitializeParams
+module InitializeResult = Gprotocol.InitializeResult
 
 type _ t =
   | Shutdown : unit t
-  | Initialize : Initialize.Params.t -> Initialize.Result.t t
+  | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : Hover.params -> Hover.result t
   | TextDocumentDefinition : Definition.params -> Definition.result t
   | TextDocumentDeclaration :

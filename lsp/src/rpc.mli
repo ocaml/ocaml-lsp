@@ -1,4 +1,5 @@
 open! Import
+open Gprotocol
 
 (** * This encodes LSP RPC state machine. *)
 
@@ -8,11 +9,10 @@ type 'state handler =
   { on_initialize :
          t
       -> 'state
-      -> Initialize.Params.t
-      -> ('state * Initialize.Result.t, string) result
+      -> InitializeParams.t
+      -> ('state * InitializeResult.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Initialize.ClientCapabilities.t
-      -> 'res Client_request.t
+      'res.    t -> 'state -> ClientCapabilities.t -> 'res Client_request.t
       -> ('state * 'res, Jsonrpc.Response.Error.t) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result

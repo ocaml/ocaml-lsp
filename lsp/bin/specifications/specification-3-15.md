@@ -3008,7 +3008,7 @@ export interface TextDocumentSyncOptions {
 	 * Change notifications are sent to the server. See TextDocumentSyncKind.None, TextDocumentSyncKind.Full
 	 * and TextDocumentSyncKind.Incremental. If omitted it defaults to TextDocumentSyncKind.None.
 	 */
-	change?: number;
+	change?: TextDocumentSyncKind;
 	/**
 	 * If present will save notifications are sent to the server. If omitted the notification should not be
 	 * sent.

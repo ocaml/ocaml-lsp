@@ -24,9 +24,7 @@ let preprocess =
         | Some n -> n
 
       method! field x =
-        if x.name <> "documentChanges" then
-          super#field x
-        else
+        if x.name = "documentChanges" then
           (* This gross hack is needed for the documentChanges field. We can
              ignore the first constructor since it's completely representable
              with the second one. *)
@@ -44,6 +42,8 @@ let preprocess =
             let data = Resolved.Single { typ; optional } in
             super#field { x with data }
           | _ -> super#field x
+        else
+          super#field x
 
       method! typ x =
         match x with
@@ -263,7 +263,7 @@ let pp_file pp ch =
   Format.pp_print_flush fmt ()
 
 module Enum = struct
-  let of_json ~poly { Named.name; data = constrs } =
+  let of_json ~allow_other ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
     let body =
       let clauses =
@@ -272,11 +272,26 @@ module Enum = struct
             let tag = constr in
             (pat, Create (Constr { tag; poly; args = [] })))
       in
+      let clauses =
+        if allow_other then
+          let pat =
+            Pat
+              (Constr
+                 { tag = "String"; poly = true; args = [ Pat (Ident "s") ] })
+          in
+          let make =
+            Create
+              (Constr { tag = "Other"; poly; args = [ Create (Ident "s") ] })
+          in
+          clauses @ [ (pat, make) ]
+        else
+          clauses
+      in
       Match (Create (Ident "json"), clauses @ [ Json.json_error_pat name ])
     in
     Json.of_json ~name body
 
-  let to_json ~poly { Named.name; data = constrs } =
+  let to_json ~allow_other ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
     let body =
       let clauses =
@@ -284,21 +299,44 @@ module Enum = struct
             let pat = Pat (Constr { tag = constr; poly; args = [] }) in
             (pat, Json.constr_of_literal literal))
       in
+      let clauses =
+        if allow_other then
+          let pat =
+            Pat (Constr { tag = "Other"; poly; args = [ Pat (Ident "s") ] })
+          in
+          let make =
+            Create
+              (Constr
+                 { tag = "String"; poly = true; args = [ Create (Ident "s") ] })
+          in
+          clauses @ [ (pat, make) ]
+        else
+          clauses
+      in
       Match (Create (Ident name), clauses)
     in
     Json.to_json ~name body
 
-  let conv ~poly t =
-    let to_json = to_json ~poly t in
-    let of_json = of_json ~poly t in
+  let conv ~allow_other ~poly t =
+    let to_json = to_json ~allow_other ~poly t in
+    let of_json = of_json ~allow_other ~poly t in
     [ to_json; of_json ]
 
-  let module_ ({ Named.name; data = constrs } as t) =
-    let json_bindings = conv ~poly:false { t with name = "t" } in
+  let module_ ~allow_other ({ Named.name; data = constrs } as t) =
+    let json_bindings = conv ~allow_other ~poly:false { t with name = "t" } in
     let t =
       let data =
-        Ml.Type.Variant
-          (List.map constrs ~f:(fun (name, _) -> Ml.Type.constr ~name []))
+        let constrs =
+          List.map constrs ~f:(fun (name, _) -> Ml.Type.constr ~name [])
+        in
+        let constrs =
+          if allow_other then
+            (* [String] is a hack but it doesn't matter *)
+            constrs @ [ Ml.Type.constr ~name:"Other" [ Ml.Type.Prim String ] ]
+          else
+            constrs
+        in
+        Ml.Type.Variant constrs
       in
       { Named.name = "t"; data }
     in
@@ -618,7 +656,8 @@ module Gen = struct
       (* This is equivalent to an enum *)
       List.map t.data ~f:(fun (c : Ml.Type.constr) ->
           (c.name, Literal.String c.name))
-      |> Named.set_data t |> Enum.conv ~poly:true
+      |> Named.set_data t
+      |> Enum.conv ~allow_other:false ~poly:true
     else
       [ Poly_variant.of_json t; Poly_variant.to_json t ]
 
@@ -725,7 +764,9 @@ let of_typescript (ts : Resolved.t list) =
   | Ok ts ->
     List.filter_map ts ~f:(fun (t : Resolved.t) ->
         match t.data with
-        | Enum_anon data -> Some (Enum.module_ { t with data })
+        | Enum_anon data ->
+          let allow_other = t.name = "CodeActionKind" in
+          Some (Enum.module_ ~allow_other { t with data })
         | _ ->
           let open Option.O in
           let+ pped = preprocess t in

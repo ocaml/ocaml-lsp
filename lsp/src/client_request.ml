@@ -1,9 +1,11 @@
 open! Import
 open Protocol
+module InitializeParams = Gprotocol.InitializeParams
+module InitializeResult = Gprotocol.InitializeResult
 
 type _ t =
   | Shutdown : unit t
-  | Initialize : Initialize.Params.t -> Initialize.Result.t t
+  | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : Hover.params -> Hover.result t
   | TextDocumentDefinition : Definition.params -> Definition.result t
   | TextDocumentDeclaration :
@@ -59,7 +61,7 @@ type _ t =
 let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with
   | Shutdown, () -> None
-  | Initialize _, result -> Some (Initialize.Result.yojson_of_t result)
+  | Initialize _, result -> Some (InitializeResult.yojson_of_t result)
   | TextDocumentDeclaration _, result ->
     Some (yojson_of_option Locations.yojson_of_t result)
   | TextDocumentHover _, result -> Some (Hover.yojson_of_result result)
@@ -115,7 +117,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   let parse f = Jsonrpc.Request.params r f in
   match r.method_ with
   | "initialize" ->
-    parse Initialize.Params.t_of_yojson >>| fun params -> E (Initialize params)
+    parse InitializeParams.t_of_yojson >>| fun params -> E (Initialize params)
   | "shutdown" -> Ok (E Shutdown)
   | "textDocument/completion" ->
     parse Completion.params_of_yojson >>| fun params ->
