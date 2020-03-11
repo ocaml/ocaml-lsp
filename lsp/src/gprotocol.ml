@@ -27479,3 +27479,27 @@ module CodeActionResult = struct
            json)
     | _ -> Json.error "CodeActionResult" json
 end
+
+module Locations = struct
+  type t =
+    [ `Location of Location.t list
+    | `LocationLink of LocationLink.t list
+    ]
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | `Location [ l ] -> Location.yojson_of_t l
+    | `Location xs -> `List (List.map ~f:Location.yojson_of_t xs)
+    | `LocationLink l -> `List (List.map ~f:LocationLink.yojson_of_t l)
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Assoc _ -> `Location [ Location.t_of_yojson json ]
+    | `List [] -> `Location []
+    | `List (x :: xs) -> (
+      match Location.t_of_yojson x with
+      | loc -> `Location (loc :: List.map ~f:Location.t_of_yojson xs)
+      | exception Of_yojson_error (_, _) ->
+        `LocationLink (List.map ~f:LocationLink.t_of_yojson (x :: xs)) )
+    | _ -> Json.error "Locations.t" json
+end

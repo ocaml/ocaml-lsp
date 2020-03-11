@@ -20,6 +20,7 @@ module DocumentSymbol = Gprotocol.DocumentSymbol
 module PrepareRenameParams = Gprotocol.PrepareRenameParams
 module RenameParams = Gprotocol.RenameParams
 module WorkspaceEdit = Gprotocol.WorkspaceEdit
+module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
 
 type _ t =
   | Shutdown : unit t
@@ -65,7 +66,7 @@ type _ t =
       -> Completion.completionItem t
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
-      -> WillSaveWaitUntilTextDocument.Result.t t
+      -> TextEdit.t list option t
   | TextDocumentFormatting : DocumentFormattingParams.t -> TextEdit.t list t
   | TextDocumentOnTypeFormatting :
       DocumentOnTypeFormattingParams.t

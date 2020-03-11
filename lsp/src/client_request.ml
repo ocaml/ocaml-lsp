@@ -20,6 +20,7 @@ module DocumentSymbol = Gprotocol.DocumentSymbol
 module PrepareRenameParams = Gprotocol.PrepareRenameParams
 module RenameParams = Gprotocol.RenameParams
 module WorkspaceEdit = Gprotocol.WorkspaceEdit
+module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
 
 type _ t =
   | Shutdown : unit t
@@ -65,7 +66,7 @@ type _ t =
       -> Completion.completionItem t
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
-      -> WillSaveWaitUntilTextDocument.Result.t t
+      -> TextEdit.t list option t
   | TextDocumentFormatting :
       DocumentFormattingParams.t
       -> TextDocumentFormatting.Result.t t
@@ -122,7 +123,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | CompletionItemResolve _, result ->
     Some (Completion.yojson_of_completionItem result)
   | WillSaveWaitUntilTextDocument _, result ->
-    Some (WillSaveWaitUntilTextDocument.Result.yojson_of_t result)
+    Some (Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result)
   | TextDocumentOnTypeFormatting _, result ->
     Some (TextDocumentOnTypeFormatting.Result.yojson_of_t result)
   | TextDocumentFormatting _, result ->
