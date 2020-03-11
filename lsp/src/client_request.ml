@@ -28,13 +28,17 @@ module TextDocumentPositionParams = Gprotocol.TextDocumentPositionParams
 module Range = Gprotocol.Range
 module DocumentLinkParams = Gprotocol.DocumentLinkParams
 module DocumentLink = Gprotocol.DocumentLink
+module ReferenceParams = Gprotocol.ReferenceParams
+module Location = Gprotocol.Location
 
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : HoverParams.t -> Hover.t option t
   | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
-  | TextDocumentDeclaration : TextDocumentPositionParams.t -> Locations.t option t
+  | TextDocumentDeclaration :
+      TextDocumentPositionParams.t
+      -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
@@ -57,7 +61,7 @@ type _ t =
   | DebugTextDocumentGet :
       DebugTextDocumentGet.params
       -> DebugTextDocumentGet.result t
-  | TextDocumentReferences : References.params -> References.result t
+  | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight :
       TextDocumentHighlight.params
       -> TextDocumentHighlight.result t
@@ -116,7 +120,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | DebugTextDocumentGet _, result ->
     Some (DebugTextDocumentGet.yojson_of_result result)
   | TextDocumentReferences _, result ->
-    Some (References.yojson_of_result result)
+    Some (Json.Option.yojson_of_t (Json.To.list Location.yojson_of_t) result)
   | TextDocumentHighlight _, result ->
     Some (TextDocumentHighlight.yojson_of_result result)
   | TextDocumentFoldingRange _, result ->
@@ -132,7 +136,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentFormatting _, result ->
     Some (TextDocumentFormatting.Result.yojson_of_t result)
   | TextDocumentLink _, result ->
-    Some (Json.Option.yojson_of_t (Json.To.list DocumentLink.yojson_of_t) result)
+    Some
+      (Json.Option.yojson_of_t (Json.To.list DocumentLink.yojson_of_t) result)
   | TextDocumentLinkResolve _, result -> Some (DocumentLink.yojson_of_t result)
   | WorkspaceSymbol _, result ->
     Some
@@ -172,7 +177,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse TypeDefinitionParams.t_of_yojson >>| fun params ->
     E (TextDocumentTypeDefinition params)
   | "textDocument/references" ->
-    parse References.params_of_yojson >>| fun params ->
+    parse ReferenceParams.t_of_yojson >>| fun params ->
     E (TextDocumentReferences params)
   | "textDocument/codeLens" ->
     parse CodeLensParams.t_of_yojson >>| fun params ->

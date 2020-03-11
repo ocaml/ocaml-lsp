@@ -302,20 +302,20 @@ let on_request :
       Ok (store, Some resp) )
   | Lsp.Client_request.TextDocumentReferences
       { textDocument = { uri }; position; context = _ } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position position))
+      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
     let locs : Location.t list = dispatch_in_doc doc command in
     let lsp_locs =
-      List.map
-        ~f:(fun loc ->
-          let range = range_of_loc loc in
+      List.map locs ~f:(fun loc ->
+          let range = range_of_loc' loc in
           (* using original uri because merlin is looking only in local file *)
-          { Lsp.Protocol.Location.uri; range })
-        locs
+          let uri = Lsp.Uri.to_string uri in
+          { Lsp.Gprotocol.Location.uri; range })
     in
-    Ok (store, lsp_locs)
+    Ok (store, Some lsp_locs)
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
     Ok (store, codeLens)
   | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } ->
@@ -369,8 +369,8 @@ let on_request :
       let range : Range.t = range item in
       let kind = outline_kind item.outline_kind in
       DocumentSymbol.create ~name:item.Query_protocol.outline_name ~kind
-        ?detail:item.Query_protocol.outline_type
-        ~deprecated:false ~range ~selectionRange:range ~children ()
+        ?detail:item.Query_protocol.outline_type ~deprecated:false ~range
+        ~selectionRange:range ~children ()
     in
 
     let rec symbol_info ?containerName item =
@@ -413,7 +413,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
-      let uri = Lsp.Uri.t_of_yojson (`String uri) in
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let position = logical_of_position' position in
     let command = Query_protocol.Locate (None, `ML, position) in
@@ -426,7 +426,9 @@ let on_request :
         | None -> uri
         | Some path -> Lsp.Uri.of_path path
       in
-      let locs = [{ Lsp.Gprotocol.Location.uri = Lsp.Uri.to_string uri; range }] in
+      let locs =
+        [ { Lsp.Gprotocol.Location.uri = Lsp.Uri.to_string uri; range } ]
+      in
       Ok (store, Some (`Location locs))
     | `At_origin
     | `Builtin _

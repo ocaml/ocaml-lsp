@@ -28,13 +28,17 @@ module TextDocumentPositionParams = Gprotocol.TextDocumentPositionParams
 module Range = Gprotocol.Range
 module DocumentLinkParams = Gprotocol.DocumentLinkParams
 module DocumentLink = Gprotocol.DocumentLink
+module ReferenceParams = Gprotocol.ReferenceParams
+module Location = Gprotocol.Location
 
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : HoverParams.t -> Hover.t option t
   | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
-  | TextDocumentDeclaration : TextDocumentPositionParams.t -> Locations.t option t
+  | TextDocumentDeclaration :
+      TextDocumentPositionParams.t
+      -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
@@ -57,7 +61,7 @@ type _ t =
   | DebugTextDocumentGet :
       DebugTextDocumentGet.params
       -> DebugTextDocumentGet.result t
-  | TextDocumentReferences : References.params -> References.result t
+  | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight :
       TextDocumentHighlight.params
       -> TextDocumentHighlight.result t
