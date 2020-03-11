@@ -37,7 +37,6 @@ end
 
 type 'result command =
   | Format_file : Input.t * 'result Output.t -> 'result command
-  | Format_files_in_place : string list -> unit command
   | Check : Input.t -> bool command
 
 let build_args : type r. r command -> Options.t -> string list * string option =
@@ -49,7 +48,6 @@ let build_args : type r. r command -> Options.t -> string list * string option =
     | Input.File f -> (args @ output @ [ f ], None)
     | Input.Stdin (v, f) ->
       (args @ output @ File_type.to_cmdline_args f @ [ "-" ], Some v) )
-  | Format_files_in_place fs -> (args @ ("--inplace" :: fs), None)
   | Check i -> (
     match i with
     | Input.File f -> (args @ [ f ], None)
@@ -73,17 +71,12 @@ let exec : type r. r command -> Options.t -> (r, error) Result.t =
       | Format_file (_, o) -> (
         match o with
         | Output.File _ -> Result.Ok ()
-        | Output.Stdout -> Result.Ok res.stdout )
-      | Format_files_in_place _ -> Result.Ok () )
+        | Output.Stdout -> Result.Ok res.stdout ) )
     | _ -> Result.Error (Message res.stderr) )
 
 let format_file :
     type r. Input.t -> r Output.t -> Options.t -> (r, error) Result.t =
  fun input output args -> exec (Format_file (input, output)) args
-
-let format_files_in_place (files : string list) (options : Options.t) :
-    (unit, error) Result.t =
-  exec (Format_files_in_place files) options
 
 let check (input : Input.t) (options : Options.t) : (bool, error) Result.t =
   exec (Check input) options

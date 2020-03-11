@@ -23,12 +23,8 @@ module Options : sig
   val default : t
 end
 
-type 'result command =
-  | Format_file : Input.t -> string command
-  | Format_files_in_place : string list -> unit command
+type 'result command = Format_file : Input.t -> string command
 
 val exec : 'result command -> Options.t -> ('result, error) Result.t
 
 val format_file : Input.t -> Options.t -> (string, error) Result.t
-
-val format_files_in_place : string list -> Options.t -> (unit, error) Result.t
