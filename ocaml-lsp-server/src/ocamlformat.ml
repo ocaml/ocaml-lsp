@@ -37,7 +37,6 @@ end
 
 type 'result command =
   | Format_file : Input.t * 'result Output.t -> 'result command
-  | Check : Input.t -> bool command
 
 let build_args : type r. r command -> Options.t -> string list * string option =
  fun cmd args ->
@@ -48,11 +47,6 @@ let build_args : type r. r command -> Options.t -> string list * string option =
     | Input.File f -> (args @ output @ [ f ], None)
     | Input.Stdin (v, f) ->
       (args @ output @ File_type.to_cmdline_args f @ [ "-" ], Some v) )
-  | Check i -> (
-    match i with
-    | Input.File f -> (args @ [ f ], None)
-    | Input.Stdin (v, f) ->
-      (args @ File_type.to_cmdline_args f @ [ "-" ], Some v) )
 
 let exec : type r. r command -> Options.t -> (r, error) Result.t =
  fun cmd args ->
@@ -66,7 +60,6 @@ let exec : type r. r command -> Options.t -> (r, error) Result.t =
     match res.status with
     | Unix.WEXITED i -> (
       match cmd with
-      | Check _ -> Result.Ok (i = 0)
       | _ when i <> 0 -> Result.Error (Message res.stderr)
       | Format_file (_, o) -> (
         match o with
@@ -77,6 +70,3 @@ let exec : type r. r command -> Options.t -> (r, error) Result.t =
 let format_file :
     type r. Input.t -> r Output.t -> Options.t -> (r, error) Result.t =
  fun input output args -> exec (Format_file (input, output)) args
-
-let check (input : Input.t) (options : Options.t) : (bool, error) Result.t =
-  exec (Check input) options
