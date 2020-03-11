@@ -32,6 +32,8 @@ module ReferenceParams = Gprotocol.ReferenceParams
 module Location = Gprotocol.Location
 module DocumentHighlightParams = Gprotocol.DocumentHighlightParams
 module DocumentHighlight = Gprotocol.DocumentHighlight
+module FoldingRangeParams = Gprotocol.FoldingRangeParams
+module FoldingRange = Gprotocol.FoldingRange
 
 type _ t =
   | Shutdown : unit t
@@ -67,7 +69,9 @@ type _ t =
   | TextDocumentHighlight :
       DocumentHighlightParams.t
       -> DocumentHighlight.t list option t
-  | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
+  | TextDocumentFoldingRange :
+      FoldingRangeParams.t
+      -> FoldingRange.t list option t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CompletionItemResolve :
@@ -129,7 +133,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
          (Json.To.list DocumentHighlight.yojson_of_t)
          result)
   | TextDocumentFoldingRange _, result ->
-    Some (FoldingRange.yojson_of_result result)
+    Some
+      (Json.Option.yojson_of_t (Json.To.list FoldingRange.yojson_of_t) result)
   | SignatureHelp _, result -> Some (SignatureHelp.yojson_of_t result)
   | CodeAction _, result -> Some (CodeActionResult.yojson_of_t result)
   | CompletionItemResolve _, result ->
@@ -194,7 +199,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse DocumentHighlightParams.t_of_yojson >>| fun params ->
     E (TextDocumentHighlight params)
   | "textDocument/foldingRange" ->
-    parse FoldingRange.params_of_yojson >>| fun params ->
+    parse FoldingRangeParams.t_of_yojson >>| fun params ->
     E (TextDocumentFoldingRange params)
   | "textDocument/codeAction" ->
     parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)

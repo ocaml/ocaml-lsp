@@ -32,6 +32,8 @@ module ReferenceParams = Gprotocol.ReferenceParams
 module Location = Gprotocol.Location
 module DocumentHighlightParams = Gprotocol.DocumentHighlightParams
 module DocumentHighlight = Gprotocol.DocumentHighlight
+module FoldingRangeParams = Gprotocol.FoldingRangeParams
+module FoldingRange = Gprotocol.FoldingRange
 
 type _ t =
   | Shutdown : unit t
@@ -67,7 +69,9 @@ type _ t =
   | TextDocumentHighlight :
       DocumentHighlightParams.t
       -> DocumentHighlight.t list option t
-  | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
+  | TextDocumentFoldingRange :
+      FoldingRangeParams.t
+      -> FoldingRange.t list option t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CompletionItemResolve :

@@ -5540,7 +5540,7 @@ export interface FoldingRange {
 	 * is used to categorize folding ranges and used by commands like 'Fold all comments'. See
 	 * [FoldingRangeKind](#FoldingRangeKind) for an enumeration of standardized kinds.
 	 */
-	kind?: string;
+	kind?: FoldingRangeKind;
 }
 ```
 

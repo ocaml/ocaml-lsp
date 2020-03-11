@@ -18156,6 +18156,26 @@ module FileChangeType = struct
     | _ -> Json.error "t" json
 end
 
+module FoldingRangeKind = struct
+  type t =
+    | Comment
+    | Imports
+    | Region
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Comment -> `String "comment"
+    | Imports -> `String "imports"
+    | Region -> `String "region"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "comment" -> Comment
+    | `String "imports" -> Imports
+    | `String "region" -> Region
+    | _ -> Json.error "t" json
+end
+
 module FoldingRange = struct
   type t =
     { startLine : int
@@ -18164,7 +18184,7 @@ module FoldingRange = struct
     ; endLine : int
     ; endCharacter : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; kind : string Json.Nullable_option.t
+    ; kind : FoldingRangeKind.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -18225,7 +18245,7 @@ module FoldingRange = struct
               match Ppx_yojson_conv_lib.( ! ) kind_field with
               | None ->
                 let fvalue =
-                  Json.Nullable_option.t_of_yojson string_of_yojson
+                  Json.Nullable_option.t_of_yojson FoldingRangeKind.t_of_yojson
                     _field_yojson
                 in
                 kind_field := Some fvalue
@@ -18309,7 +18329,8 @@ module FoldingRange = struct
             bnds
           else
             let arg =
-              (Json.Nullable_option.yojson_of_t yojson_of_string) v_kind
+              (Json.Nullable_option.yojson_of_t FoldingRangeKind.yojson_of_t)
+                v_kind
             in
             let bnd = ("kind", arg) in
             bnd :: bnds
@@ -18350,28 +18371,9 @@ module FoldingRange = struct
   [@@@end]
 
   let create ~(startLine : int) ?(startCharacter : int option) ~(endLine : int)
-      ?(endCharacter : int option) ?(kind : string option) (() : unit) : t =
+      ?(endCharacter : int option) ?(kind : FoldingRangeKind.t option)
+      (() : unit) : t =
     { startLine; startCharacter; endLine; endCharacter; kind }
-end
-
-module FoldingRangeKind = struct
-  type t =
-    | Comment
-    | Imports
-    | Region
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Comment -> `String "comment"
-    | Imports -> `String "imports"
-    | Region -> `String "region"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "comment" -> Comment
-    | `String "imports" -> Imports
-    | `String "region" -> Region
-    | _ -> Json.error "t" json
 end
 
 module FoldingRangeOptions = struct

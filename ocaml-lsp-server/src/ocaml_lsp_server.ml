@@ -49,6 +49,8 @@ module VersionedTextDocumentIdentifier =
   Lsp.Gprotocol.VersionedTextDocumentIdentifier
 module DocumentHighlight = Lsp.Gprotocol.DocumentHighlight
 module DocumentHighlightKind = Lsp.Gprotocol.DocumentHighlightKind
+module FoldingRange = Lsp.Gprotocol.FoldingRange
+module FoldingRangeParams = Lsp.Gprotocol.FoldingRangeParams
 
 let outline_kind kind : SymbolKind.t =
   match kind with
@@ -673,24 +675,22 @@ let on_request :
     in
     Ok (store, workspace_edits)
   | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
-    let folds : Lsp.Protocol.FoldingRange.result =
-      let folding_range (range : Lsp.Protocol.Range.t) =
-        { Lsp.Protocol.FoldingRange.startLine = range.start_.line
-        ; endLine = range.end_.line
-        ; startCharacter = Some range.start_.character
-        ; endCharacter = Some range.end_.character
-        ; kind = Some Region
-        }
+    let folds : FoldingRange.t list =
+      let folding_range (range : Range.t) =
+        FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
+          ~startCharacter:range.start.character
+          ~endCharacter:range.end_.character ~kind:Region ()
       in
       let rec loop acc (items : Query_protocol.item list) =
         match items with
         | [] -> acc
         | item :: items ->
-          let range = range_of_loc item.location in
-          if range.end_.line - range.start_.line < 2 then
+          let range = range_of_loc' item.location in
+          if range.end_.line - range.start.line < 2 then
             loop acc items
           else
             let items = item.children @ items in
@@ -700,7 +700,7 @@ let on_request :
       loop [] outline
       |> List.sort ~compare:(fun x y -> Ordering.of_int (compare x y))
     in
-    Ok (store, folds)
+    Ok (store, Some folds)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
   | Lsp.Client_request.ExecuteCommand _ -> not_supported ()
   | Lsp.Client_request.TextDocumentLinkResolve l -> Ok (store, l)

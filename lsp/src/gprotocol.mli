@@ -1941,13 +1941,22 @@ module FileChangeType : sig
   include Json.Jsonable.S with type t := t
 end
 
+module FoldingRangeKind : sig
+  type t =
+    | Comment
+    | Imports
+    | Region
+
+  include Json.Jsonable.S with type t := t
+end
+
 module FoldingRange : sig
   type t =
     { startLine : int
     ; startCharacter : int option
     ; endLine : int
     ; endCharacter : int option
-    ; kind : string option
+    ; kind : FoldingRangeKind.t option
     }
 
   include Json.Jsonable.S with type t := t
@@ -1957,18 +1966,9 @@ module FoldingRange : sig
     -> ?startCharacter:int
     -> endLine:int
     -> ?endCharacter:int
-    -> ?kind:string
+    -> ?kind:FoldingRangeKind.t
     -> unit
     -> t
-end
-
-module FoldingRangeKind : sig
-  type t =
-    | Comment
-    | Imports
-    | Region
-
-  include Json.Jsonable.S with type t := t
 end
 
 module FoldingRangeOptions : sig
