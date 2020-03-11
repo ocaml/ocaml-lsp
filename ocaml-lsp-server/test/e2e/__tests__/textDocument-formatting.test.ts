@@ -143,14 +143,12 @@ describe("textDocument/formatting", () => {
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.re");
 
       await openDocument(languageServer,
-        outdent`
-      let rec gcd = (a, b) =>
-        switch (a, b){
-          | (0, n) | (n, 0) => n
-          | (_, _) =>
-            gcd(a, (b mod a))
-        };
-    `,
+        "let rec gcd = (a, b) =>\n" +
+        "  switch (a, b) {\n" +
+        "  | (0, n)\n" +
+        "  | (n, 0) => n\n" +
+        "  | (_, _) => gcd(a, b mod a)\n" +
+        "  };\n",
         name,
       );
 
@@ -174,15 +172,12 @@ describe("textDocument/formatting", () => {
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
 
       await openDocument(languageServer,
-        outdent`
-      module Test:
-        {
-          type t =
-            Foo
-          | Bar
-          | Baz
-        };
-    `,
+        "module Test: {\n" +
+        "  type t =\n" +
+        "    | Foo\n" +
+        "    | Bar\n" +
+        "    | Baz;\n" +
+        "};\n",
         name,
       );
 
@@ -216,21 +211,19 @@ describe("textDocument/formatting", () => {
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
 
       await openDocument(languageServer,
-        outdent`
-      module Test:
-        {
-          type t =
-            Foo
-          | Bar
-          | Baz
-        };
-    `,
+        "module Test: {\n" +
+        "  type t =\n" +
+        "    | Foo\n" +
+        "    | Bar\n" +
+        "    | Baz;\n" +
+        "};\n",
         name,
       );
-      
+
       try {
         await query(languageServer, name);
-      } catch (e){
+        fail("should throw an error the line before");
+      } catch (e) {
         expect(e.code).toEqual(Protocol.ErrorCodes.InvalidRequest);
         expect(e.message).toBe("Unable to find refmt binary");
       }

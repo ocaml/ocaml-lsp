@@ -8,7 +8,7 @@
     "promote": "jest --updateSnapshot"
   },
   "bin": {
-    "refmt": "./src/Refmt.ts"
+    "refmt": "./src/Refmt.js"
   },
   "dependencies": {
     "jest-cli": "24.9.0",
