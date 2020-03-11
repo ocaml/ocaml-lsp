@@ -84,14 +84,12 @@ describe("textDocument/formatting", () => {
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
 
       await openDocument(languageServer,
-        outdent`
-      let rec gcd a b =
-        begin match a, b with
-          | 0, n | n, 0 -> n
-          | _, _ ->
-            gcd a (b mod a)
-        end
-    `,
+        "let rec gcd a b =\n" +
+        "  match (a, b) with\n" +
+        "  | 0, n\n" +
+        "  | n, 0 ->\n" +
+        "    n\n" +
+        "  | _, _ -> gcd a (b mod a)\n",
         name,
       );
 
@@ -115,15 +113,7 @@ describe("textDocument/formatting", () => {
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
 
       await openDocument(languageServer,
-        outdent`
-      module Test:
-        sig
-          type t =
-            Foo
-          | Bar
-          | Baz
-        end
-    `,
+        "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
         name,
       );
 
@@ -197,12 +187,39 @@ describe("textDocument/formatting", () => {
     });
   });
 
-  describe("refmt absent", () => {
+  describe("reformatter binary absent", () => {
     let languageServer = null;
 
     afterEach(async () => {
       await LanguageServer.exit(languageServer);
       languageServer = null;
+    });
+
+    it("formatting an ocaml file throws an InvalidRequest error", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
+
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
+
+      await openDocument(languageServer,
+        outdent`
+      module Test:
+        sig
+          type t =
+            Foo
+          | Bar
+          | Baz
+        end
+    `,
+        name,
+      );
+
+      try {
+        await query(languageServer, name);
+        fail("should throw an error the line before");
+      } catch (e) {
+        expect(e.code).toEqual(Protocol.ErrorCodes.InvalidRequest);
+        expect(e.message).toBe("Unable to find ocamlformat binary");
+      }
     });
 
     it("formatting a reason file throws an InvalidRequest error", async () => {

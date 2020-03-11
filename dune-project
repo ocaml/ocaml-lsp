@@ -41,7 +41,6 @@ possible and does not make any assumptions about IO.
   stdlib-shims
   menhir
   ppx_yojson_conv_lib
-  (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
