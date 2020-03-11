@@ -23,12 +23,13 @@ module WorkspaceEdit = Gprotocol.WorkspaceEdit
 module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
 module TypeDefinitionParams = Gprotocol.TypeDefinitionParams
 module Locations = Gprotocol.Locations
+module DefinitionParams = Gprotocol.DefinitionParams
 
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : HoverParams.t -> Hover.t option t
-  | TextDocumentDefinition : Definition.params -> Definition.result t
+  | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
   | TextDocumentDeclaration :
       TextDocumentPositionParams.t
       -> Locations.t option t

@@ -23,12 +23,13 @@ module WorkspaceEdit = Gprotocol.WorkspaceEdit
 module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
 module TypeDefinitionParams = Gprotocol.TypeDefinitionParams
 module Locations = Gprotocol.Locations
+module DefinitionParams = Gprotocol.DefinitionParams
 
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : HoverParams.t -> Hover.t option t
-  | TextDocumentDefinition : Definition.params -> Definition.result t
+  | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
   | TextDocumentDeclaration :
       TextDocumentPositionParams.t
       -> Locations.t option t
@@ -97,7 +98,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentHover _, result ->
     Some (Json.Option.yojson_of_t Hover.yojson_of_t result)
   | TextDocumentDefinition _, result ->
-    Some (Definition.yojson_of_result result)
+    Some (yojson_of_option Locations.yojson_of_t result)
   | TextDocumentTypeDefinition _, result ->
     Some (yojson_of_option Locations.yojson_of_t result)
   | TextDocumentCompletion _, result ->
@@ -162,7 +163,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/hover" ->
     parse HoverParams.t_of_yojson >>| fun params -> E (TextDocumentHover params)
   | "textDocument/definition" ->
-    parse Definition.params_of_yojson >>| fun params ->
+    parse DefinitionParams.t_of_yojson >>| fun params ->
     E (TextDocumentDefinition params)
   | "textDocument/typeDefinition" ->
     parse TypeDefinitionParams.t_of_yojson >>| fun params ->

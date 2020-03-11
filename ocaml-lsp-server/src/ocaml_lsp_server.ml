@@ -413,22 +413,21 @@ let on_request :
   | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
+      let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
-    let position = logical_of_position position in
+    let position = logical_of_position' position in
     let command = Query_protocol.Locate (None, `ML, position) in
     match dispatch_in_doc doc command with
     | `Found (path, lex_position) ->
-      let position = position_of_lexical_position lex_position in
-      let range = { Lsp.Protocol.Range.start_ = position; end_ = position } in
+      let position = position_of_lexical_position' lex_position in
+      let range = { Range.start = position; end_ = position } in
       let uri =
         match path with
         | None -> uri
         | Some path -> Lsp.Uri.of_path path
       in
-      let locs =
-        Lsp.Protocol.Locations.Location { Lsp.Protocol.Location.uri; range }
-      in
-      Ok (store, Some locs)
+      let locs = [{ Lsp.Gprotocol.Location.uri = Lsp.Uri.to_string uri; range }] in
+      Ok (store, Some (`Location locs))
     | `At_origin
     | `Builtin _
     | `File_not_found _
