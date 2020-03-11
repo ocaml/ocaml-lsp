@@ -137,3 +137,5 @@ module Json = struct
     | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
     | Some f -> f
 end
+
+let sprintf = Stdune.sprintf

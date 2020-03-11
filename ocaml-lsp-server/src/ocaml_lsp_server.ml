@@ -203,40 +203,26 @@ let code_action store (params : Lsp.CodeAction.Params.t) =
     Ok (store, result)
 
 module Formatter = struct
-  type command =
-    | Ocamlformat of string
-    | Refmt of Refmt.File_type.t
-
-  let call rpc store doc src command =
-    let result =
-      match command with
-      | Ocamlformat file_name ->
-        Ocamlformat.format_file
-          (Ocamlformat.Input.Stdin (src, Ocamlformat.File_type.Name file_name))
-          Ocamlformat.Output.Stdout Ocamlformat.Options.default
-      | Refmt file_type ->
-        Refmt.format_file
-          (Refmt.Input.Stdin (src, file_type))
-          Refmt.Options.default
+  let jsonrpc_error (e : Fmt.error) =
+    let message = Fmt.message e in
+    let code : Lsp.Jsonrpc.Response.Error.Code.t =
+      match e with
+      | Missing_binary _ -> InvalidRequest
+      | Unexpected_result _ -> InternalError
+      | Unknown_extension _ -> InvalidRequest
     in
-    match result with
-    | Result.Error Missing_binary ->
-      let formatter_name =
-        match command with
-        | Ocamlformat _ -> "ocamlformat"
-        | Refmt _ -> "refmt"
-      in
-      let message = Printf.sprintf "Unable to find %s binary" formatter_name in
+    make_error ~code ~message ()
+
+  let run rpc store doc =
+    let src = Document.source doc |> Msource.text in
+    let fname = Document.uri doc |> Lsp.Uri.to_path in
+    match Fmt.run ~contents:src ~fname with
+    | Result.Error e ->
+      let message = Fmt.message e in
+      let error = jsonrpc_error e in
       let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
       Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      let err = make_error ~code:InvalidRequest ~message () in
-      Error err
-    | Result.Error (Message e) ->
-      let message = Printf.sprintf "failed to format: %s e" e in
-      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
-      Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      let err = make_error ~code:InternalError ~message () in
-      Error err
+      Error error
     | Result.Ok result ->
       let pos line col = { Lsp.Protocol.Position.character = col; line } in
       let range =
@@ -715,27 +701,8 @@ let on_request :
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting
-      { textDocument = { uri }; options = _ } -> (
-    Document_store.get store uri >>= fun doc ->
-    let src = Document.source doc |> Msource.text in
-    let file_name = Document.uri doc |> Lsp.Uri.to_path in
-    let ext = file_name |> Filename.extension in
-    match ext with
-    | ".ml"
-    | ".mli" ->
-      Formatter.call rpc store doc src (Formatter.Ocamlformat file_name)
-    | ".re" ->
-      Formatter.call rpc store doc src (Formatter.Refmt Refmt.File_type.Impl)
-    | ".rei" ->
-      Formatter.call rpc store doc src (Formatter.Refmt Refmt.File_type.Intf)
-    | ext ->
-      let message =
-        Printf.sprintf "Unable to format: unknown file extension %s" ext
-      in
-      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
-      Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      let err = make_error ~code:InvalidRequest ~message () in
-      Error err )
+      { textDocument = { uri }; options = _ } ->
+    Document_store.get store uri >>= Formatter.run rpc store
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
   | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
   | Lsp.Client_request.UnknownRequest _ ->
