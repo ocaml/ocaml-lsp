@@ -15,6 +15,8 @@ module HoverParams = Gprotocol.HoverParams
 module Hover = Gprotocol.Hover
 module WorkspaceSymbolParams = Gprotocol.WorkspaceSymbolParams
 module SymbolInformation = Gprotocol.SymbolInformation
+module DocumentSymbolParams = Gprotocol.DocumentSymbolParams
+module DocumentSymbol = Gprotocol.DocumentSymbol
 
 type _ t =
   | Shutdown : unit t
@@ -37,8 +39,12 @@ type _ t =
   | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
-      TextDocumentDocumentSymbol.params
-      -> TextDocumentDocumentSymbol.result t
+      DocumentSymbolParams.t
+      -> [ `DocumentSymbol of DocumentSymbol.t list
+         | `SymbolInformation of SymbolInformation.t list
+         ]
+         option
+         t
   | WorkspaceSymbol :
       WorkspaceSymbolParams.t
       -> SymbolInformation.t list option t

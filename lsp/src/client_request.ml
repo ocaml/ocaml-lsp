@@ -15,6 +15,8 @@ module HoverParams = Gprotocol.HoverParams
 module Hover = Gprotocol.Hover
 module WorkspaceSymbolParams = Gprotocol.WorkspaceSymbolParams
 module SymbolInformation = Gprotocol.SymbolInformation
+module DocumentSymbolParams = Gprotocol.DocumentSymbolParams
+module DocumentSymbol = Gprotocol.DocumentSymbol
 
 type _ t =
   | Shutdown : unit t
@@ -37,8 +39,12 @@ type _ t =
   | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
-      TextDocumentDocumentSymbol.params
-      -> TextDocumentDocumentSymbol.result t
+      DocumentSymbolParams.t
+      -> [ `DocumentSymbol of DocumentSymbol.t list
+         | `SymbolInformation of SymbolInformation.t list
+         ]
+         option
+         t
   | WorkspaceSymbol :
       WorkspaceSymbolParams.t
       -> SymbolInformation.t list option t
@@ -73,6 +79,13 @@ type _ t =
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | UnknownRequest : string * Json.t option -> unit t
 
+let yojson_of_DocumentSymbol ds : Json.t =
+  Json.Option.yojson_of_t
+    (function
+      | `DocumentSymbol ds -> Json.To.list DocumentSymbol.yojson_of_t ds
+      | `SymbolInformation si -> Json.To.list SymbolInformation.yojson_of_t si)
+    ds
+
 let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with
   | Shutdown, () -> None
@@ -93,8 +106,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentPrepareRename _, result ->
     Some (PrepareRename.Result.yojson_of_t result)
   | TextDocumentRename _, result -> Some (Rename.yojson_of_result result)
-  | DocumentSymbol _, result ->
-    Some (TextDocumentDocumentSymbol.yojson_of_result result)
+  | DocumentSymbol _, result -> Some (yojson_of_DocumentSymbol result)
   | DebugEcho _, result -> Some (DebugEcho.yojson_of_result result)
   | DebugTextDocumentGet _, result ->
     Some (DebugTextDocumentGet.yojson_of_result result)
@@ -143,7 +155,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse Completion.params_of_yojson >>| fun params ->
     E (TextDocumentCompletion params)
   | "textDocument/documentSymbol" ->
-    parse TextDocumentDocumentSymbol.params_of_yojson >>| fun params ->
+    parse DocumentSymbolParams.t_of_yojson >>| fun params ->
     E (DocumentSymbol params)
   | "textDocument/hover" ->
     parse HoverParams.t_of_yojson >>| fun params -> E (TextDocumentHover params)

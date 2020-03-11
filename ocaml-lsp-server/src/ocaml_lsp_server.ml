@@ -24,18 +24,6 @@ let completion_kind kind : Lsp.Completion.completionItemKind option =
   | `Type -> Some TypeParameter
   | `MethodCall -> Some Method
 
-let outline_kind kind : Lsp.Protocol.SymbolKind.t =
-  match kind with
-  | `Value -> Function
-  | `Constructor -> Constructor
-  | `Label -> Property
-  | `Module -> Module
-  | `Modtype -> Module
-  | `Type -> String
-  | `Exn -> Constructor
-  | `Class -> Class
-  | `Method -> Method
-
 module InitializeResult = Lsp.Gprotocol.InitializeResult
 module ClientCapabilities = Lsp.Gprotocol.ClientCapabilities
 module CodeActionKind = Lsp.Gprotocol.CodeActionKind
@@ -52,6 +40,22 @@ module MarkupContent = Lsp.Gprotocol.MarkupContent
 module MarkupKind = Lsp.Gprotocol.MarkupKind
 module Hover = Lsp.Gprotocol.Hover
 module HoverParams = Lsp.Gprotocol.HoverParams
+module DocumentSymbolParams = Lsp.Gprotocol.DocumentSymbolParams
+module DocumentSymbol = Lsp.Gprotocol.DocumentSymbol
+module SymbolKind = Lsp.Gprotocol.SymbolKind
+module SymbolInformation = Lsp.Gprotocol.SymbolInformation
+
+let outline_kind kind : SymbolKind.t =
+  match kind with
+  | `Value -> Function
+  | `Constructor -> Constructor
+  | `Label -> Property
+  | `Module -> Module
+  | `Modtype -> Module
+  | `Type -> String
+  | `Exn -> Constructor
+  | `Class -> Class
+  | `Method -> Method
 
 let initializeInfo : InitializeResult.t =
   let open Lsp.Gprotocol in
@@ -355,30 +359,22 @@ let on_request :
     Ok (store, lsp_locs)
   | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
-    let range item = range_of_loc item.Query_protocol.location in
+    let range item = range_of_loc' item.Query_protocol.location in
 
     let rec symbol item =
       let children = List.map item.Query_protocol.children ~f:symbol in
-      let range : Lsp.Protocol.Range.t = range item in
-      { Lsp.Protocol.DocumentSymbol.name = item.Query_protocol.outline_name
-      ; detail = item.Query_protocol.outline_type
-      ; kind = outline_kind item.outline_kind
-      ; deprecated = false
-      ; range
-      ; selectionRange = range
-      ; children
-      }
+      let range : Range.t = range item in
+      let kind = outline_kind item.outline_kind in
+      DocumentSymbol.create ~name:item.Query_protocol.outline_name ~kind
+        ~deprecated:false ~range ~selectionRange:range ~children ()
     in
 
     let rec symbol_info ?containerName item =
-      let location = { Lsp.Protocol.Location.uri; range = range item } in
+      let location = { Lsp.Gprotocol.Location.uri; range = range item } in
       let info =
-        { Lsp.Protocol.SymbolInformation.name = item.Query_protocol.outline_name
-        ; kind = outline_kind item.outline_kind
-        ; deprecated = Some false
-        ; location
-        ; containerName
-        }
+        let kind = outline_kind item.outline_kind in
+        SymbolInformation.create ~name:item.Query_protocol.outline_name ~kind
+          ~deprecated:false ~location ?containerName ()
       in
       let children =
         List.concat_map item.children ~f:(symbol_info ~containerName:info.name)
@@ -386,6 +382,7 @@ let on_request :
       info :: children
     in
 
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
@@ -403,12 +400,12 @@ let on_request :
       match hierarchicalDocumentSymbolSupport with
       | true ->
         let symbols = List.map outline ~f:symbol in
-        Lsp.Protocol.TextDocumentDocumentSymbol.DocumentSymbol symbols
+        `DocumentSymbol symbols
       | false ->
         let symbols = List.concat_map ~f:symbol_info outline in
-        Lsp.Protocol.TextDocumentDocumentSymbol.SymbolInformation symbols
+        `SymbolInformation symbols
     in
-    Ok (store, symbols)
+    Ok (store, Some symbols)
   | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
