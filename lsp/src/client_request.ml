@@ -17,6 +17,9 @@ module WorkspaceSymbolParams = Gprotocol.WorkspaceSymbolParams
 module SymbolInformation = Gprotocol.SymbolInformation
 module DocumentSymbolParams = Gprotocol.DocumentSymbolParams
 module DocumentSymbol = Gprotocol.DocumentSymbol
+module PrepareRenameParams = Gprotocol.PrepareRenameParams
+module RenameParams = Gprotocol.RenameParams
+module WorkspaceEdit = Gprotocol.WorkspaceEdit
 
 type _ t =
   | Shutdown : unit t
@@ -32,10 +35,8 @@ type _ t =
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
-  | TextDocumentPrepareRename :
-      TextDocumentPositionParams.t
-      -> PrepareRename.Result.t t
-  | TextDocumentRename : Rename.params -> Rename.result t
+  | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
+  | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
   | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
@@ -104,8 +105,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (Json.To.list CodeLens.yojson_of_t result)
   | TextDocumentCodeLensResolve _, result -> Some (CodeLens.yojson_of_t result)
   | TextDocumentPrepareRename _, result ->
-    Some (PrepareRename.Result.yojson_of_t result)
-  | TextDocumentRename _, result -> Some (Rename.yojson_of_result result)
+    Some (Json.Option.yojson_of_t Range.yojson_of_t result)
+  | TextDocumentRename _, result -> Some (WorkspaceEdit.yojson_of_t result)
   | DocumentSymbol _, result -> Some (yojson_of_DocumentSymbol result)
   | DebugEcho _, result -> Some (DebugEcho.yojson_of_result result)
   | DebugTextDocumentGet _, result ->
@@ -172,7 +173,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse CodeLensParams.t_of_yojson >>| fun params ->
     E (TextDocumentCodeLens params)
   | "textDocument/rename" ->
-    parse Rename.params_of_yojson >>| fun params ->
+    parse RenameParams.t_of_yojson >>| fun params ->
     E (TextDocumentRename params)
   | "textDocument/documentHighlight" ->
     parse TextDocumentHighlight.params_of_yojson >>| fun params ->

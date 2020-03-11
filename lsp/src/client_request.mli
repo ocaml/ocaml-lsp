@@ -17,6 +17,9 @@ module WorkspaceSymbolParams = Gprotocol.WorkspaceSymbolParams
 module SymbolInformation = Gprotocol.SymbolInformation
 module DocumentSymbolParams = Gprotocol.DocumentSymbolParams
 module DocumentSymbol = Gprotocol.DocumentSymbol
+module PrepareRenameParams = Gprotocol.PrepareRenameParams
+module RenameParams = Gprotocol.RenameParams
+module WorkspaceEdit = Gprotocol.WorkspaceEdit
 
 type _ t =
   | Shutdown : unit t
@@ -32,10 +35,8 @@ type _ t =
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
-  | TextDocumentPrepareRename :
-      TextDocumentPositionParams.t
-      -> PrepareRename.Result.t t
-  | TextDocumentRename : Rename.params -> Rename.result t
+  | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
+  | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
   | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :

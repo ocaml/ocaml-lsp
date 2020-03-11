@@ -44,6 +44,9 @@ module DocumentSymbolParams = Lsp.Gprotocol.DocumentSymbolParams
 module DocumentSymbol = Lsp.Gprotocol.DocumentSymbol
 module SymbolKind = Lsp.Gprotocol.SymbolKind
 module SymbolInformation = Lsp.Gprotocol.SymbolInformation
+module TextDocumentEdit = Lsp.Gprotocol.TextDocumentEdit
+module VersionedTextDocumentIdentifier =
+  Lsp.Gprotocol.VersionedTextDocumentIdentifier
 
 let outline_kind kind : SymbolKind.t =
   match kind with
@@ -631,17 +634,18 @@ let on_request :
   | Lsp.Client_request.TextDocumentPrepareRename _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position position))
+      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
     let locs : Location.t list = dispatch_in_doc doc command in
     let version = Document.version doc in
     let edits =
       List.map
         ~f:(fun loc ->
-          let range = range_of_loc loc in
-          { Lsp.Protocol.TextEdit.newText = newName; range })
+          let range = range_of_loc' loc in
+          { TextEdit.newText = newName; range })
         locs
     in
     let workspace_edits =
@@ -651,7 +655,17 @@ let on_request :
           ( client_capabilities.workspace >>= fun workspace ->
             workspace.workspaceEdit >>= fun edit -> edit.documentChanges )
       in
-      Lsp.Protocol.WorkspaceEdit.make ~documentChanges ~uri ~version ~edits
+      let uri = Lsp.Uri.to_string uri in
+      if documentChanges then
+        WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
+      else
+        let textDocument =
+          VersionedTextDocumentIdentifier.create ~uri ~version ()
+        in
+        WorkspaceEdit.create
+          ~documentChanges:
+            [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
+          ()
     in
     Ok (store, workspace_edits)
   | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->
