@@ -1,3 +1,5 @@
+open Stdune
+
 val read_to_end : in_channel -> string
 
 type command_result =
@@ -8,7 +10,7 @@ type command_result =
 
 val run_command : string -> ?stdin_value:string -> string list -> command_result
 
-val _PATH : Stdune__.Path.t list lazy_t
+val _PATH : Path.t list lazy_t
 
 type error =
   | Missing_binary
