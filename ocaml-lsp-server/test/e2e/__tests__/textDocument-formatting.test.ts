@@ -7,7 +7,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-import { execSync } from 'child_process';
+import { execSync } from "child_process";
 
 const ocamlFormat = `
 break-cases=all
@@ -52,13 +52,12 @@ async function query(languageServer, name) {
   });
 }
 
-
 function link() {
   execSync("yarn link");
 }
 
 function unlink() {
-  execSync("yarn unlink")
+  execSync("yarn unlink");
 }
 
 describe("textDocument/formatting", () => {
@@ -66,12 +65,12 @@ describe("textDocument/formatting", () => {
     let languageServer = null;
 
     beforeAll(() => {
-      link()
-    })
+      link();
+    });
 
     afterAll(() => {
-      unlink()
-    })
+      unlink();
+    });
 
     afterEach(async () => {
       await LanguageServer.exit(languageServer);
@@ -83,13 +82,14 @@ describe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
 
-      await openDocument(languageServer,
+      await openDocument(
+        languageServer,
         "let rec gcd a b =\n" +
-        "  match (a, b) with\n" +
-        "  | 0, n\n" +
-        "  | n, 0 ->\n" +
-        "    n\n" +
-        "  | _, _ -> gcd a (b mod a)\n",
+          "  match (a, b) with\n" +
+          "  | 0, n\n" +
+          "  | n, 0 ->\n" +
+          "    n\n" +
+          "  | _, _ -> gcd a (b mod a)\n",
         name,
       );
 
@@ -112,7 +112,8 @@ describe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
 
-      await openDocument(languageServer,
+      await openDocument(
+        languageServer,
         "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
         name,
       );
@@ -132,13 +133,14 @@ describe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.re");
 
-      await openDocument(languageServer,
+      await openDocument(
+        languageServer,
         "let rec gcd = (a, b) =>\n" +
-        "  switch (a, b) {\n" +
-        "  | (0, n)\n" +
-        "  | (n, 0) => n\n" +
-        "  | (_, _) => gcd(a, b mod a)\n" +
-        "  };\n",
+          "  switch (a, b) {\n" +
+          "  | (0, n)\n" +
+          "  | (n, 0) => n\n" +
+          "  | (_, _) => gcd(a, b mod a)\n" +
+          "  };\n",
         name,
       );
 
@@ -161,13 +163,14 @@ describe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
 
-      await openDocument(languageServer,
+      await openDocument(
+        languageServer,
         "module Test: {\n" +
-        "  type t =\n" +
-        "    | Foo\n" +
-        "    | Bar\n" +
-        "    | Baz;\n" +
-        "};\n",
+          "  type t =\n" +
+          "    | Foo\n" +
+          "    | Bar\n" +
+          "    | Baz;\n" +
+          "};\n",
         name,
       );
 
@@ -200,7 +203,8 @@ describe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
 
-      await openDocument(languageServer,
+      await openDocument(
+        languageServer,
         outdent`
       module Test:
         sig
@@ -227,13 +231,14 @@ describe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.rei");
 
-      await openDocument(languageServer,
+      await openDocument(
+        languageServer,
         "module Test: {\n" +
-        "  type t =\n" +
-        "    | Foo\n" +
-        "    | Bar\n" +
-        "    | Baz;\n" +
-        "};\n",
+          "  type t =\n" +
+          "    | Foo\n" +
+          "    | Bar\n" +
+          "    | Baz;\n" +
+          "};\n",
         name,
       );
 
@@ -245,6 +250,5 @@ describe("textDocument/formatting", () => {
         expect(e.message).toBe("Unable to find refmt binary");
       }
     });
-  })
-
+  });
 });
