@@ -30,6 +30,8 @@ module DocumentLinkParams = Gprotocol.DocumentLinkParams
 module DocumentLink = Gprotocol.DocumentLink
 module ReferenceParams = Gprotocol.ReferenceParams
 module Location = Gprotocol.Location
+module DocumentHighlightParams = Gprotocol.DocumentHighlightParams
+module DocumentHighlight = Gprotocol.DocumentHighlight
 
 type _ t =
   | Shutdown : unit t
@@ -63,8 +65,8 @@ type _ t =
       -> DebugTextDocumentGet.result t
   | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight :
-      TextDocumentHighlight.params
-      -> TextDocumentHighlight.result t
+      DocumentHighlightParams.t
+      -> DocumentHighlight.t list option t
   | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
   | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t

@@ -47,6 +47,8 @@ module SymbolInformation = Lsp.Gprotocol.SymbolInformation
 module TextDocumentEdit = Lsp.Gprotocol.TextDocumentEdit
 module VersionedTextDocumentIdentifier =
   Lsp.Gprotocol.VersionedTextDocumentIdentifier
+module DocumentHighlight = Lsp.Gprotocol.DocumentHighlight
+module DocumentHighlightKind = Lsp.Gprotocol.DocumentHighlightKind
 
 let outline_kind kind : SymbolKind.t =
   match kind with
@@ -345,21 +347,20 @@ let on_request :
     Ok (store, symbol_infos)
   | Lsp.Client_request.TextDocumentHighlight
       { textDocument = { uri }; position } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position position))
+      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
     let locs : Location.t list = dispatch_in_doc doc command in
     let lsp_locs =
-      List.map
-        ~f:(fun loc ->
-          let range = range_of_loc loc in
+      List.map locs ~f:(fun loc ->
+          let range = range_of_loc' loc in
           (* using the default kind as we are lacking info to make a difference
              between assignment and usage. *)
-          { Lsp.Protocol.DocumentHighlight.kind = Some Text; range })
-        locs
+          DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
     in
-    Ok (store, lsp_locs)
+    Ok (store, Some lsp_locs)
   | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
     let range item = range_of_loc' item.Query_protocol.location in

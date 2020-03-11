@@ -4278,7 +4278,7 @@ export interface DocumentHighlight {
 	/**
 	 * The highlight kind, default is DocumentHighlightKind.Text.
 	 */
-	kind?: number;
+	kind?: DocumentHighlightKind;
 }
 
 /**

@@ -1637,17 +1637,6 @@ module DocumentFormattingRegistrationOptions : sig
     ?documentSelector:DocumentSelector.t -> ?workDoneProgress:bool -> unit -> t
 end
 
-module DocumentHighlight : sig
-  type t =
-    { range : Range.t
-    ; kind : int option
-    }
-
-  include Json.Jsonable.S with type t := t
-
-  val create : range:Range.t -> ?kind:int -> unit -> t
-end
-
 module DocumentHighlightKind : sig
   type t =
     | Text
@@ -1655,6 +1644,17 @@ module DocumentHighlightKind : sig
     | Write
 
   include Json.Jsonable.S with type t := t
+end
+
+module DocumentHighlight : sig
+  type t =
+    { range : Range.t
+    ; kind : DocumentHighlightKind.t option
+    }
+
+  include Json.Jsonable.S with type t := t
+
+  val create : range:Range.t -> ?kind:DocumentHighlightKind.t -> unit -> t
 end
 
 module DocumentHighlightOptions : sig

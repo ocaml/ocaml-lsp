@@ -15503,10 +15503,30 @@ module DocumentFormattingRegistrationOptions = struct
     { documentSelector; workDoneProgress }
 end
 
+module DocumentHighlightKind = struct
+  type t =
+    | Text
+    | Read
+    | Write
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Text -> `Int 1
+    | Read -> `Int 2
+    | Write -> `Int 3
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Text
+    | `Int 2 -> Read
+    | `Int 3 -> Write
+    | _ -> Json.error "t" json
+end
+
 module DocumentHighlight = struct
   type t =
     { range : Range.t
-    ; kind : int Json.Nullable_option.t
+    ; kind : DocumentHighlightKind.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -15536,7 +15556,8 @@ module DocumentHighlight = struct
               match Ppx_yojson_conv_lib.( ! ) kind_field with
               | None ->
                 let fvalue =
-                  Json.Nullable_option.t_of_yojson int_of_yojson _field_yojson
+                  Json.Nullable_option.t_of_yojson
+                    DocumentHighlightKind.t_of_yojson _field_yojson
                 in
                 kind_field := Some fvalue
               | Some _ ->
@@ -15593,7 +15614,11 @@ module DocumentHighlight = struct
           if None = v_kind then
             bnds
           else
-            let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_kind in
+            let arg =
+              (Json.Nullable_option.yojson_of_t
+                 DocumentHighlightKind.yojson_of_t)
+                v_kind
+            in
             let bnd = ("kind", arg) in
             bnd :: bnds
         in
@@ -15608,28 +15633,9 @@ module DocumentHighlight = struct
 
   [@@@end]
 
-  let create ~(range : Range.t) ?(kind : int option) (() : unit) : t =
+  let create ~(range : Range.t) ?(kind : DocumentHighlightKind.t option)
+      (() : unit) : t =
     { range; kind }
-end
-
-module DocumentHighlightKind = struct
-  type t =
-    | Text
-    | Read
-    | Write
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Text -> `Int 1
-    | Read -> `Int 2
-    | Write -> `Int 3
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Text
-    | `Int 2 -> Read
-    | `Int 3 -> Write
-    | _ -> Json.error "t" json
 end
 
 module DocumentHighlightOptions = struct
