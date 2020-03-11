@@ -21,6 +21,8 @@ module PrepareRenameParams = Gprotocol.PrepareRenameParams
 module RenameParams = Gprotocol.RenameParams
 module WorkspaceEdit = Gprotocol.WorkspaceEdit
 module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
+module TypeDefinitionParams = Gprotocol.TypeDefinitionParams
+module Locations = Gprotocol.Locations
 
 type _ t =
   | Shutdown : unit t
@@ -30,9 +32,7 @@ type _ t =
   | TextDocumentDeclaration :
       TextDocumentPositionParams.t
       -> Locations.t option t
-  | TextDocumentTypeDefinition :
-      TypeDefinition.params
-      -> TypeDefinition.result t
+  | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
@@ -99,7 +99,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentDefinition _, result ->
     Some (Definition.yojson_of_result result)
   | TextDocumentTypeDefinition _, result ->
-    Some (TypeDefinition.yojson_of_result result)
+    Some (yojson_of_option Locations.yojson_of_t result)
   | TextDocumentCompletion _, result ->
     Some (Completion.yojson_of_result result)
   | TextDocumentCodeLens _, result ->
@@ -165,7 +165,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse Definition.params_of_yojson >>| fun params ->
     E (TextDocumentDefinition params)
   | "textDocument/typeDefinition" ->
-    parse TypeDefinition.params_of_yojson >>| fun params ->
+    parse TypeDefinitionParams.t_of_yojson >>| fun params ->
     E (TextDocumentTypeDefinition params)
   | "textDocument/references" ->
     parse References.params_of_yojson >>| fun params ->

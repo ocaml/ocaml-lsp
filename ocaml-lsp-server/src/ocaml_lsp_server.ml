@@ -369,6 +369,7 @@ let on_request :
       let range : Range.t = range item in
       let kind = outline_kind item.outline_kind in
       DocumentSymbol.create ~name:item.Query_protocol.outline_name ~kind
+        ?detail:item.Query_protocol.outline_type
         ~deprecated:false ~range ~selectionRange:range ~children ()
     in
 
@@ -437,8 +438,9 @@ let on_request :
       Ok (store, None) )
   | Lsp.Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
-    let position = logical_of_position position in
+    let position = logical_of_position' position in
     Document.with_pipeline doc @@ fun pipeline ->
     let typer = Mpipeline.typer_result pipeline in
     let structures = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
@@ -475,16 +477,16 @@ let on_request :
           with
           | exception Env.Error _ -> None
           | `Found (path, lex_position) ->
-            let position = position_of_lexical_position lex_position in
-            let range =
-              { Lsp.Protocol.Range.start_ = position; end_ = position }
-            in
+            let position = position_of_lexical_position' lex_position in
+            let range = { Range.start = position; end_ = position } in
             let uri =
               match path with
               | None -> uri
               | Some path -> Lsp.Uri.of_path path
             in
-            let loc = { Lsp.Protocol.Location.uri; range } in
+            let loc =
+              { Lsp.Gprotocol.Location.uri = Lsp.Uri.to_string uri; range }
+            in
             Some loc
           | `At_origin
           | `Builtin _
@@ -495,7 +497,7 @@ let on_request :
           | `Not_in_env _ ->
             None)
     in
-    Ok (store, locs)
+    Ok (store, Some (`Location locs))
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let lsp_position = position in
@@ -657,8 +659,6 @@ let on_request :
       in
       let uri = Lsp.Uri.to_string uri in
       if documentChanges then
-        WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
-      else
         let textDocument =
           VersionedTextDocumentIdentifier.create ~uri ~version ()
         in
@@ -666,6 +666,8 @@ let on_request :
           ~documentChanges:
             [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
           ()
+      else
+        WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
     in
     Ok (store, workspace_edits)
   | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->

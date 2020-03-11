@@ -27488,7 +27488,6 @@ module Locations = struct
 
   let yojson_of_t (t : t) : Json.t =
     match t with
-    | `Location [ l ] -> Location.yojson_of_t l
     | `Location xs -> `List (List.map ~f:Location.yojson_of_t xs)
     | `LocationLink l -> `List (List.map ~f:LocationLink.yojson_of_t l)
 

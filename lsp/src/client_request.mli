@@ -21,6 +21,8 @@ module PrepareRenameParams = Gprotocol.PrepareRenameParams
 module RenameParams = Gprotocol.RenameParams
 module WorkspaceEdit = Gprotocol.WorkspaceEdit
 module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
+module TypeDefinitionParams = Gprotocol.TypeDefinitionParams
+module Locations = Gprotocol.Locations
 
 type _ t =
   | Shutdown : unit t
@@ -30,9 +32,7 @@ type _ t =
   | TextDocumentDeclaration :
       TextDocumentPositionParams.t
       -> Locations.t option t
-  | TextDocumentTypeDefinition :
-      TypeDefinition.params
-      -> TypeDefinition.result t
+  | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
