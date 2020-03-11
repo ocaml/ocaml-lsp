@@ -26,6 +26,8 @@ module Locations = Gprotocol.Locations
 module DefinitionParams = Gprotocol.DefinitionParams
 module TextDocumentPositionParams = Gprotocol.TextDocumentPositionParams
 module Range = Gprotocol.Range
+module DocumentLinkParams = Gprotocol.DocumentLinkParams
+module DocumentLink = Gprotocol.DocumentLink
 
 type _ t =
   | Shutdown : unit t
@@ -39,7 +41,7 @@ type _ t =
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
   | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
-  | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
+  | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
       DocumentSymbolParams.t

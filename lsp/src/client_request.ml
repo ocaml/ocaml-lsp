@@ -26,6 +26,8 @@ module Locations = Gprotocol.Locations
 module DefinitionParams = Gprotocol.DefinitionParams
 module TextDocumentPositionParams = Gprotocol.TextDocumentPositionParams
 module Range = Gprotocol.Range
+module DocumentLinkParams = Gprotocol.DocumentLinkParams
+module DocumentLink = Gprotocol.DocumentLink
 
 type _ t =
   | Shutdown : unit t
@@ -39,7 +41,7 @@ type _ t =
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
   | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
-  | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
+  | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
       DocumentSymbolParams.t
@@ -129,7 +131,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (TextDocumentOnTypeFormatting.Result.yojson_of_t result)
   | TextDocumentFormatting _, result ->
     Some (TextDocumentFormatting.Result.yojson_of_t result)
-  | TextDocumentLink _, result -> Some (DocumentLink.Result.yojson_of_t result)
+  | TextDocumentLink _, result ->
+    Some (Json.Option.yojson_of_t (Json.To.list DocumentLink.yojson_of_t) result)
   | TextDocumentLinkResolve _, result -> Some (DocumentLink.yojson_of_t result)
   | WorkspaceSymbol _, result ->
     Some
@@ -197,7 +200,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse DocumentFormattingParams.t_of_yojson >>| fun params ->
     E (TextDocumentFormatting params)
   | "textDocument/documentLink" ->
-    parse DocumentLink.Params.t_of_yojson >>| fun params ->
+    parse DocumentLinkParams.t_of_yojson >>| fun params ->
     E (TextDocumentLink params)
   | "textDocument/resolve" ->
     parse DocumentLink.t_of_yojson >>| fun params ->
