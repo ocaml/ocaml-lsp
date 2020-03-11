@@ -24,15 +24,15 @@ module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
 module TypeDefinitionParams = Gprotocol.TypeDefinitionParams
 module Locations = Gprotocol.Locations
 module DefinitionParams = Gprotocol.DefinitionParams
+module TextDocumentPositionParams = Gprotocol.TextDocumentPositionParams
+module Range = Gprotocol.Range
 
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : HoverParams.t -> Hover.t option t
   | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
-  | TextDocumentDeclaration :
-      TextDocumentPositionParams.t
-      -> Locations.t option t
+  | TextDocumentDeclaration : TextDocumentPositionParams.t -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
   | TextDocumentCompletion : Completion.params -> Completion.result t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
