@@ -168,8 +168,8 @@ module Expr : sig
   type expr =
     | Let of pat * expr * expr
     | Match of expr * (pat * expr) list
-    | Fun of pat arg list * expr
-    | App of expr * expr arg list
+    | Fun of pat Arg.t list * expr
+    | App of expr * expr Arg.t list
     | Create of expr prim
     | Assert_false
 
@@ -184,11 +184,6 @@ module Expr : sig
     | Tuple of 'e list
     | Record of 'e record_
     | Constr of 'e constr
-
-  and 'e arg =
-    | Unnamed of 'e
-    | Labeled of string * 'e
-    | Optional of string * 'e
 
   and pat =
     | Wildcard
@@ -207,7 +202,7 @@ module Expr : sig
   val assert_false_clause : pat * expr
 
   type toplevel =
-    { pat : (string arg * Type.t) list
+    { pat : (string Arg.t * Type.t) list
     ; type_ : Type.t
     ; body : t
     }

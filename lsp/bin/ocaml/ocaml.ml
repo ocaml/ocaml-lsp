@@ -199,15 +199,15 @@ module Json = struct
       | `Of -> of_
   end
 
+  open Ml.Arg
+
   let of_json ~name expr =
-    let open Ml.Expr in
     let pat = [ (Unnamed "json", Ml.Type.json) ] in
     let data = { Ml.Expr.pat; type_ = Ml.Type.name name; body = expr } in
     let name = Name.of_ name in
     { Named.name; data }
 
   let to_json ~name expr =
-    let open Ml.Expr in
     let pat = [ (Unnamed name, Ml.Type.name name) ] in
     let data = { Ml.Expr.pat; type_ = Ml.Type.json; body = expr } in
     let name = Name.to_ name in
@@ -310,10 +310,9 @@ module Create = struct
       let need_unit = need_unit fields in
       let fields =
         List.map fields ~f:(fun (field : Ml.Type.field) ->
-            let open Ml.Expr in
             match field.typ with
-            | Optional t -> (Optional (field.name, field.name), t)
-            | t -> (Labeled (field.name, field.name), t))
+            | Optional t -> (Ml.Arg.Optional (field.name, field.name), t)
+            | t -> (Ml.Arg.Labeled (field.name, field.name), t))
       in
       if need_unit then
         (* Gross hack because I was too lazy to allow patterns in toplevel exprs *)
@@ -352,14 +351,12 @@ module Enum = struct
       in
       let clauses =
         if allow_other then
+          let s = Ident "s" in
           let pat =
-            Pat
-              (Constr
-                 { tag = "String"; poly = true; args = [ Pat (Ident "s") ] })
+            Pat (Constr { tag = "String"; poly = true; args = [ Pat s ] })
           in
           let make =
-            Create
-              (Constr { tag = "Other"; poly; args = [ Create (Ident "s") ] })
+            Create (Constr { tag = "Other"; poly; args = [ Create s ] })
           in
           clauses @ [ (pat, make) ]
         else
@@ -379,13 +376,10 @@ module Enum = struct
       in
       let clauses =
         if allow_other then
-          let pat =
-            Pat (Constr { tag = "Other"; poly; args = [ Pat (Ident "s") ] })
-          in
+          let s = Ident "s" in
+          let pat = Pat (Constr { tag = "Other"; poly; args = [ Pat s ] }) in
           let make =
-            Create
-              (Constr
-                 { tag = "String"; poly = true; args = [ Create (Ident "s") ] })
+            Create (Constr { tag = "String"; poly = true; args = [ Create s ] })
           in
           clauses @ [ (pat, make) ]
         else
@@ -756,7 +750,7 @@ module Gen = struct
 
   let literal_wrapper ((field : Ml.Type.field), lit) name =
     let open Ml.Expr in
-    let args = List.map ~f:(fun x -> Unnamed (Create x)) in
+    let args = List.map ~f:(fun x -> Ml.Arg.Unnamed (Create x)) in
     let to_ =
       let a =
         [ String field.name
