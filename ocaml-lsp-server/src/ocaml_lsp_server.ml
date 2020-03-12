@@ -12,6 +12,45 @@ module Action = struct
   let destruct = "destruct"
 end
 
+module Position = struct
+  type t = Lsp.Protocol.Position.t
+
+  let ( - ) { Lsp.Protocol.Position.line; character } (t : t) : t =
+    { line = line - t.line; character = character - t.character }
+
+  let abs { Lsp.Protocol.Position.line; character } : t =
+    { line = abs line; character = abs character }
+
+  let compare { Lsp.Protocol.Position.line; character } (t : t) : Ordering.t =
+    Stdune.Tuple.T2.compare Int.compare Int.compare (line, character)
+      (t.line, t.character)
+
+  let compare_inclusion (t : t) (r : Lsp.Protocol.Range.t) =
+    match (compare t r.start_, compare t r.end_) with
+    | Lt, Lt -> `Outside (abs (r.start_ - t))
+    | Gt, Gt -> `Outside (abs (r.end_ - t))
+    | Eq, Lt
+    | Gt, Eq
+    | Eq, Eq
+    | Gt, Lt ->
+      `Inside
+    | Eq, Gt
+    | Lt, Eq
+    | Lt, Gt ->
+      assert false
+end
+
+module Range = struct
+  type t = Lsp.Protocol.Range.t
+
+  (* Compares ranges by their lengths*)
+  let compare_size (x : t) (y : t) =
+    let dx = Position.(x.end_ - x.start_) in
+    let dy = Position.(y.end_ - y.start_) in
+    Stdune.Tuple.T2.compare Int.compare Int.compare (dx.line, dy.line)
+      (dx.character, dy.character)
+end
+
 let completion_kind kind : Lsp.Completion.completionItemKind option =
   match kind with
   | `Value -> Some Value
@@ -698,46 +737,24 @@ let on_request :
       let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
       (* try to find the nearest range inside first, then outside *)
       let nearest_range =
-        let range_includes_pos r p =
-          let rs = r.Lsp.Protocol.Range.start_ in
-          let re = r.end_ in
-          if p < rs then
-            `Outside (abs (rs.line - p.line), abs (rs.character - p.character))
-          else if p > re then
-            `Outside (abs (re.line - p.line), abs (re.character - p.character))
-          else
-            `Inside
-              ( abs (rs.line - p.line) + abs (re.line - p.line)
-              , abs (rs.character - p.character)
-                + abs (re.character - p.character) )
-        in
-        let compare_inclusion x y =
-          match (x, y) with
-          | `Inside _, `Outside _ -> Ordering.Lt
-          | `Outside _, `Inside _ -> Ordering.Gt
-          | `Inside (l1, c1), `Inside (l2, c2)
-          | `Outside (l1, c1), `Outside (l2, c2) ->
-            if l1 = l2 then
-              Ordering.of_int (c1 - c2)
-            else
-              Ordering.of_int (l1 - l2)
-        in
         let min_by_opt xs ~f =
-          List.fold_left xs ~init:None ~f:(
-            fun state x ->
+          List.fold_left xs ~init:None ~f:(fun state x ->
               match state with
               | None -> Some x
-              | Some y ->
+              | Some y -> (
                 match f x y with
                 | Ordering.Lt -> Some x
-                | _ -> Some y
-          )
+                | _ -> Some y ))
         in
-        min_by_opt ranges ~f:(fun r1 r2 -> 
-          compare_inclusion
-            (range_includes_pos r1.range cursor_position)
-            (range_includes_pos r2.range cursor_position)
-        )
+        min_by_opt ranges ~f:(fun r1 r2 ->
+            let inc (r : Lsp.Protocol.SelectionRange.t) =
+              Position.compare_inclusion cursor_position r.range
+            in
+            match (inc r1, inc r2) with
+            | `Outside x, `Outside y -> Position.compare x y
+            | `Outside _, `Inside -> Gt
+            | `Inside, `Outside _ -> Lt
+            | `Inside, `Inside -> Range.compare_size r1.range r2.range)
       in
       nearest_range
     in
