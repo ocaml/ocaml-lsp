@@ -21,13 +21,11 @@ type command_result =
   }
 
 let run_command command stdin_value args : command_result =
-  let command =
-    match args with
-    | [] -> command
-    | _ -> Printf.sprintf "%s %s" command (String.concat ~sep:" " args)
-  in
+  let args = Array.of_list (command :: args) in
   let env = Unix.environment () in
-  let in_chan, out_chan, err_chan = Unix.open_process_full command env in
+  let in_chan, out_chan, err_chan =
+    Unix.open_process_args_full command args env
+  in
   output_string out_chan stdin_value;
   flush out_chan;
   close_out out_chan;
