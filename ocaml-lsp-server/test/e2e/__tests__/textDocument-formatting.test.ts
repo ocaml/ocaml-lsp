@@ -193,6 +193,14 @@ describe("textDocument/formatting", () => {
   describe("reformatter binary absent", () => {
     let languageServer = null;
 
+    beforeAll(() => {
+      link();
+    });
+
+    afterAll(() => {
+      unlink();
+    });
+
     afterEach(async () => {
       await LanguageServer.exit(languageServer);
       languageServer = null;
@@ -205,15 +213,7 @@ describe("textDocument/formatting", () => {
 
       await openDocument(
         languageServer,
-        outdent`
-      module Test:
-        sig
-          type t =
-            Foo
-          | Bar
-          | Baz
-        end
-    `,
+        outdent`special string`,
         name,
       );
 
@@ -221,8 +221,8 @@ describe("textDocument/formatting", () => {
         await query(languageServer, name);
         fail("should throw an error the line before");
       } catch (e) {
-        expect(e.code).toEqual(Protocol.ErrorCodes.InvalidRequest);
-        expect(e.message).toBe("Unable to find ocamlformat binary");
+        expect(e.code).toEqual(Protocol.ErrorCodes.InternalError);
+        expect(e.message).toBe("special string passed");
       }
     });
 
@@ -233,12 +233,7 @@ describe("textDocument/formatting", () => {
 
       await openDocument(
         languageServer,
-        "module Test: {\n" +
-          "  type t =\n" +
-          "    | Foo\n" +
-          "    | Bar\n" +
-          "    | Baz;\n" +
-          "};\n",
+        "special string",
         name,
       );
 
@@ -246,8 +241,8 @@ describe("textDocument/formatting", () => {
         await query(languageServer, name);
         fail("should throw an error the line before");
       } catch (e) {
-        expect(e.code).toEqual(Protocol.ErrorCodes.InvalidRequest);
-        expect(e.message).toBe("Unable to find refmt binary");
+        expect(e.code).toEqual(Protocol.ErrorCodes.InternalError);
+        expect(e.message).toBe("special string passed");
       }
     });
   });
