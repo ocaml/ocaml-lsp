@@ -722,12 +722,22 @@ let on_request :
             else
               Ordering.of_int (l1 - l2)
         in
-        List.map ranges ~f:(fun r ->
-            ( r
-            , range_includes_pos r.Lsp.Protocol.SelectionRange.range
-                cursor_position ))
-        |> List.sort ~compare:(fun r1 r2 -> compare_inclusion (snd r1) (snd r2))
-        |> List.map ~f:fst |> List.hd_opt
+        let min_by_opt xs ~f =
+          List.fold_left xs ~init:None ~f:(
+            fun state x ->
+              match state with
+              | None -> Some x
+              | Some y ->
+                match f x y with
+                | Ordering.Lt -> Some x
+                | _ -> Some y
+          )
+        in
+        min_by_opt ranges ~f:(fun r1 r2 -> 
+          compare_inclusion
+            (range_includes_pos r1.range cursor_position)
+            (range_includes_pos r2.range cursor_position)
+        )
       in
       nearest_range
     in
