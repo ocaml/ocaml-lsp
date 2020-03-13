@@ -1,14 +1,16 @@
 open Import
-open Protocol
+open Types
 
 type _ t =
   | WorkspaceApplyEdit :
-      ApplyWorkspaceEdit.Params.t
-      -> ApplyWorkspaceEdit.Response.t t
+      ApplyWorkspaceEditParams.t
+      -> ApplyWorkspaceEditResponse.t t
   | WorkspaceFolders : WorkspaceFolder.t list t
-  | WorkspaceConfiguration : Configuration.Params.t -> Json.t list t
-  | ClientRegisterCapability : Registration.Params.t -> unit t
-  | ClientUnregisterCapability : Unregistration.Params.t -> unit t
-  | ShowMessageRequest : ShowMessage.Request.t -> Message.ActionItem.t option t
+  | WorkspaceConfiguration : ConfigurationParams.t -> Json.t list t
+  | ClientRegisterCapability : RegistrationParams.t -> unit t
+  | ClientUnregisterCapability : UnregistrationParams.t -> unit t
+  | ShowMessageRequest :
+      ShowMessageRequestParams.t
+      -> MessageActionItem.t option t
 
 val to_jsonrpc_request : _ t -> id:Jsonrpc.Id.t -> Jsonrpc.Request.t

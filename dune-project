@@ -1,5 +1,6 @@
-(lang dune 1.11)
-(using fmt 1.2)
+(lang dune 2.0)
+(using menhir 2.0)
+(using cinaps 1.0)
 (name lsp)
 
 (implicit_transitive_deps false)
@@ -29,6 +30,7 @@ possible and does not make any assumptions about IO.
   yojson
   ppx_yojson_conv_lib
   (cppo :dev)
+  menhir
   (ocaml (>= 4.06))
   (dune (>= 1.11))))
 

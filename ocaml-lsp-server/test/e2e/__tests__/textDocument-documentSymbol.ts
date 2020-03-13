@@ -159,7 +159,6 @@ describe("textDocument/documentSymbol", () => {
           },
         ],
         deprecated: false,
-        detail: null,
         kind: 2,
         name: "M",
         range: {

@@ -12,21 +12,17 @@ let is_non_empty = function
   | [] -> false
   | _ -> true
 
-let rec filter_map l ~f =
-  match l with
-  | [] -> []
-  | x :: l -> (
-    match f x with
-    | None -> filter_map l ~f
-    | Some x -> x :: filter_map l ~f )
+let filter_map l ~f =
+  let rec loop acc = function
+    | [] -> rev acc
+    | x :: xs -> (
+      match f x with
+      | None -> loop acc xs
+      | Some x -> loop (x :: acc) xs )
+  in
+  loop [] l
 
-let rec filter_opt l =
-  match l with
-  | [] -> []
-  | x :: l -> (
-    match x with
-    | None -> filter_opt l
-    | Some x -> x :: filter_opt l )
+let filter_opt l = filter_map ~f:(fun x -> x) l
 
 let filteri l ~f =
   let rec filteri l i =

@@ -1,7 +1,7 @@
-open Protocol
+open Types
 
 type t =
-  { documentUri : documentUri
+  { documentUri : Uri.t
   ; version : int
   ; text : string
   }

@@ -1,15 +1,17 @@
 open Import
-open Protocol
+open Types
 
 type _ t =
   | WorkspaceApplyEdit :
-      ApplyWorkspaceEdit.Params.t
-      -> ApplyWorkspaceEdit.Response.t t
+      ApplyWorkspaceEditParams.t
+      -> ApplyWorkspaceEditResponse.t t
   | WorkspaceFolders : WorkspaceFolder.t list t
-  | WorkspaceConfiguration : Configuration.Params.t -> Json.t list t
-  | ClientRegisterCapability : Registration.Params.t -> unit t
-  | ClientUnregisterCapability : Unregistration.Params.t -> unit t
-  | ShowMessageRequest : ShowMessage.Request.t -> Message.ActionItem.t option t
+  | WorkspaceConfiguration : ConfigurationParams.t -> Json.t list t
+  | ClientRegisterCapability : RegistrationParams.t -> unit t
+  | ClientUnregisterCapability : UnregistrationParams.t -> unit t
+  | ShowMessageRequest :
+      ShowMessageRequestParams.t
+      -> MessageActionItem.t option t
 
 let method_ (type a) (t : a t) =
   match t with
@@ -22,13 +24,12 @@ let method_ (type a) (t : a t) =
 
 let params (type a) (t : a t) =
   match t with
-  | WorkspaceApplyEdit params -> ApplyWorkspaceEdit.Params.yojson_of_t params
+  | WorkspaceApplyEdit params -> ApplyWorkspaceEditParams.yojson_of_t params
   | WorkspaceFolders -> `Null
-  | WorkspaceConfiguration params -> Configuration.Params.yojson_of_t params
-  | ClientRegisterCapability params -> Registration.Params.yojson_of_t params
-  | ClientUnregisterCapability params ->
-    Unregistration.Params.yojson_of_t params
-  | ShowMessageRequest params -> ShowMessage.Request.yojson_of_t params
+  | WorkspaceConfiguration params -> ConfigurationParams.yojson_of_t params
+  | ClientRegisterCapability params -> RegistrationParams.yojson_of_t params
+  | ClientUnregisterCapability params -> UnregistrationParams.yojson_of_t params
+  | ShowMessageRequest params -> ShowMessageRequestParams.yojson_of_t params
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in

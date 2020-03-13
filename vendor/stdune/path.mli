@@ -20,8 +20,8 @@
     containing the path separator character ('/').
 
     Such a path can be rooted at the source tree root, the build directory or an
-    unspecified root. All these paths are represented by values of type ['a
-    Path.Local_gen.t] where ['a] denotes the root of the path.
+    unspecified root. All these paths are represented by values of type
+    ['a Path.Local_gen.t] where ['a] denotes the root of the path.
 
     {2 External paths}
 
@@ -235,8 +235,10 @@ val extract_build_dir_first_component : t -> (string * Local.t) option
 
 (** Same as [extract_build_context] but return the build context as a path:
 
-    {[ extract_build_context "_build/blah/foo/bar" = Some ("_build/blah",
-    "foo/bar") ]} *)
+    {[
+      extract_build_context "_build/blah/foo/bar"
+      = Some ("_build/blah", "foo/bar")
+    ]} *)
 val extract_build_context_dir : t -> (t * Source.t) option
 
 val extract_build_context_dir_maybe_sandboxed : t -> (t * Source.t) option
@@ -269,7 +271,7 @@ val build_dir : t
 (** [is_in_build_dir t = is_descendant t ~of:build_dir] *)
 val is_in_build_dir : t -> bool
 
-(** [is_in_build_dir t = is_managed t && not (is_in_build_dir t)] *)
+(** [is_in_source_tree t = is_managed t && not (is_in_build_dir t)] *)
 val is_in_source_tree : t -> bool
 
 val as_in_source_tree : t -> Source.t option
@@ -308,7 +310,7 @@ val unlink_no_err : t -> unit
 
 val link : t -> t -> unit
 
-val rm_rf : t -> unit
+val rm_rf : ?allow_external:bool -> t -> unit
 
 val mkdir_p : ?perms:int -> t -> unit
 
@@ -350,3 +352,21 @@ val stat : t -> Unix.stats
 val set_of_source_paths : Source.Set.t -> Set.t
 
 val set_of_build_paths_list : Build.t list -> Set.t
+
+val string_of_file_kind : Unix.file_kind -> string
+
+(** temp_dir prefix suffix returns the name of a fresh temporary directory in
+    the temporary directory. The base name of the temporary directory is formed
+    by concatenating prefix, then a suitably chosen integer number, then suffix.
+    The optional argument temp_dir indicates the temporary directory to use,
+    defaulting to the current result of Filename.get_temp_dir_name. The
+    temporary directory is created with permissions [mode], defaulting to 0700.
+    The directory is guaranteed to be different from any other directory that
+    existed when temp_dir was called. *)
+val temp_dir : ?temp_dir:t -> ?mode:int -> string -> string -> t
+
+(** Rename a file. rename oldpath newpath renames the file called oldpath,
+    giving it newpath as its new name, moving it between directories if needed.
+    If newpath already exists, its contents will be replaced with those of
+    oldpath. *)
+val rename : t -> t -> unit

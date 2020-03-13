@@ -1,57 +1,68 @@
 open! Import
-open Protocol
+open Types
+open Extension
 
 type _ t =
   | Shutdown : unit t
-  | Initialize : Initialize.Params.t -> Initialize.Result.t t
-  | TextDocumentHover : Hover.params -> Hover.result t
-  | TextDocumentDefinition : Definition.params -> Definition.result t
+  | Initialize : InitializeParams.t -> InitializeResult.t t
+  | TextDocumentHover : HoverParams.t -> Hover.t option t
+  | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
   | TextDocumentDeclaration :
       TextDocumentPositionParams.t
       -> Locations.t option t
-  | TextDocumentTypeDefinition :
-      TypeDefinition.params
-      -> TypeDefinition.result t
-  | TextDocumentCompletion : Completion.params -> Completion.result t
-  | TextDocumentCodeLens : CodeLens.Params.t -> CodeLens.Result.t t
+  | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
+  | TextDocumentCompletion :
+      CompletionParams.t
+      -> [ `CompletionList of CompletionList.t
+         | `List of CompletionItem.t list
+         ]
+         option
+         t
+  | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
-  | TextDocumentPrepareRename :
-      TextDocumentPositionParams.t
-      -> PrepareRename.Result.t t
-  | TextDocumentRename : Rename.params -> Rename.result t
-  | TextDocumentLink : DocumentLink.Params.t -> DocumentLink.Result.t t
+  | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
+  | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
+  | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | DocumentSymbol :
-      TextDocumentDocumentSymbol.params
-      -> TextDocumentDocumentSymbol.result t
-  | WorkspaceSymbol : WorkspaceSymbol.Params.t -> WorkspaceSymbol.Result.t t
-  | DebugEcho : DebugEcho.params -> DebugEcho.result t
+      DocumentSymbolParams.t
+      -> [ `DocumentSymbol of DocumentSymbol.t list
+         | `SymbolInformation of SymbolInformation.t list
+         ]
+         option
+         t
+  | WorkspaceSymbol :
+      WorkspaceSymbolParams.t
+      -> SymbolInformation.t list option t
+  | DebugEcho : DebugEcho.Params.t -> DebugEcho.Result.t t
   | DebugTextDocumentGet :
-      DebugTextDocumentGet.params
-      -> DebugTextDocumentGet.result t
-  | TextDocumentReferences : References.params -> References.result t
+      DebugTextDocumentGet.Params.t
+      -> DebugTextDocumentGet.Result.t t
+  | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight :
-      TextDocumentHighlight.params
-      -> TextDocumentHighlight.result t
-  | TextDocumentFoldingRange : FoldingRange.params -> FoldingRange.result t
-  | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
-  | CodeAction : CodeAction.Params.t -> CodeAction.result t
-  | CompletionItemResolve :
-      Completion.completionItem
-      -> Completion.completionItem t
+      DocumentHighlightParams.t
+      -> DocumentHighlight.t list option t
+  | TextDocumentFoldingRange :
+      FoldingRangeParams.t
+      -> FoldingRange.t list option t
+  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
+  | CodeAction : CodeActionParams.t -> CodeActionResult.t t
+  | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
-      -> WillSaveWaitUntilTextDocument.Result.t t
-  | TextDocumentFormatting : DocumentFormattingParams.t -> TextEdit.t list t
+      -> TextEdit.t list option t
+  | TextDocumentFormatting :
+      DocumentFormattingParams.t
+      -> TextEdit.t list option t
   | TextDocumentOnTypeFormatting :
       DocumentOnTypeFormattingParams.t
-      -> TextDocumentOnTypeFormatting.Result.t t
+      -> TextEdit.t list option t
   | TextDocumentColorPresentation :
-      ColorPresentation.Params.t
+      ColorPresentationParams.t
       -> ColorPresentation.t list t
-  | TextDocumentColor : DocumentColor.Params.t -> DocumentColor.Result.t t
-  | SelectionRange : SelectionRange.Params.t -> SelectionRange.t list t
-  | ExecuteCommand : ExecuteCommand.Params.t -> ExecuteCommand.Result.t t
+  | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
+  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
+  | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | UnknownRequest : string * Json.t option -> unit t
 
 val yojson_of_result : 'a t -> 'a -> Json.t option

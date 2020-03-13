@@ -1,4 +1,5 @@
 open Import
+open Types
 
 type t =
   { ic : in_channel
@@ -9,7 +10,7 @@ type t =
 
 and state =
   | Ready
-  | Initialized of Initialize.ClientCapabilities.t
+  | Initialized of ClientCapabilities.t
   | Closed
 
 let { Logger.log } = Logger.for_section "lsp"
@@ -79,15 +80,16 @@ module Message = struct
     | Some id -> Client_request.of_jsonrpc packet >>| fun r -> Request (id, r)
 end
 
+open Types
+
 type 'state handler =
   { on_initialize :
          t
       -> 'state
-      -> Initialize.Params.t
-      -> ('state * Initialize.Result.t, string) result
+      -> InitializeParams.t
+      -> ('state * InitializeResult.t, string) result
   ; on_request :
-      'res.    t -> 'state -> Initialize.ClientCapabilities.t
-      -> 'res Client_request.t
+      'res.    t -> 'state -> ClientCapabilities.t -> 'res Client_request.t
       -> ('state * 'res, Jsonrpc.Response.Error.t) result
   ; on_notification :
       t -> 'state -> Client_notification.t -> ('state, string) result
@@ -121,7 +123,7 @@ let start init_state handler ic oc =
             | Message.Request (id, E (Initialize params)) ->
               handler.on_initialize rpc state params
               >>= fun (next_state, result) ->
-              let json = Initialize.Result.yojson_of_t result in
+              let json = InitializeResult.yojson_of_t result in
               let response = Jsonrpc.Response.ok id json in
               rpc.state <- Initialized params.capabilities;
               send_response rpc response;

@@ -1,3 +1,5 @@
+(include_subdirs unqualified)
+
 (library
  (name lsp)
  (public_name lsp)
@@ -30,3 +32,7 @@
    %{targets}
    (echo
      "let ifprintf oc (CamlinternalFormatBasics.Format (fmt, _)) =\nCamlinternalFormat.make_printf (fun _ _ -> ()) oc End_of_acc fmt"))))
+
+(cinaps
+ (files types.mli types.ml)
+ (libraries lsp_gen))

@@ -44,12 +44,14 @@ describe("textDocument/definition", () => {
 
     let result = await queryDefinition(Types.Position.create(3, 12));
 
-    expect(result).toMatchObject({
-      range: {
-        end: { character: 4, line: 0 },
-        start: { character: 4, line: 0 },
+    expect(result).toMatchObject([
+      {
+        range: {
+          end: { character: 4, line: 0 },
+          start: { character: 4, line: 0 },
+        },
+        uri: "file://test.ml",
       },
-      uri: "file://test.ml",
-    });
+    ]);
   });
 });
