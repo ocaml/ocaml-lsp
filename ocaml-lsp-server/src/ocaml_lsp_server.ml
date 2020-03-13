@@ -300,6 +300,7 @@ let on_request :
   | Lsp.Client_request.Shutdown -> Ok (store, ())
   | Lsp.Client_request.DebugTextDocumentGet
       { textDocument = { uri }; position = _ } -> (
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     match Document_store.get_opt store uri with
     | None -> Ok (store, None)
     | Some doc -> Ok (store, Some (Msource.text (Document.source doc))) )

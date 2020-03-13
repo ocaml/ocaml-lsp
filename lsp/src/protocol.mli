@@ -870,32 +870,6 @@ module Rename : sig
   val yojson_of_result : result -> Json.t
 end
 
-module DebugEcho : sig
-  type params = { message : string }
-
-  and result = params
-
-  val params_of_yojson : Json.t -> result
-
-  val result_of_yojson : Json.t -> result
-
-  val yojson_of_params : result -> Json.t
-
-  val yojson_of_result : result -> Json.t
-end
-
-module DebugTextDocumentGet : sig
-  type params = TextDocumentPositionParams.t
-
-  val params_of_yojson : Json.t -> params
-
-  val yojson_of_params : params -> Json.t
-
-  type result = string option
-
-  val yojson_of_result : result -> Json.t
-end
-
 module FoldingRange : sig
   module Kind : sig
     type t =

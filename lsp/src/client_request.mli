@@ -1,5 +1,6 @@
 open! Import
 open Protocol
+open Extension
 module InitializeParams = Gprotocol.InitializeParams
 module InitializeResult = Gprotocol.InitializeResult
 module CodeActionParams = Gprotocol.CodeActionParams
@@ -61,10 +62,10 @@ type _ t =
   | WorkspaceSymbol :
       WorkspaceSymbolParams.t
       -> SymbolInformation.t list option t
-  | DebugEcho : DebugEcho.params -> DebugEcho.result t
+  | DebugEcho : DebugEcho.Params.t -> DebugEcho.Result.t t
   | DebugTextDocumentGet :
-      DebugTextDocumentGet.params
-      -> DebugTextDocumentGet.result t
+      DebugTextDocumentGet.Params.t
+      -> DebugTextDocumentGet.Result.t t
   | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight :
       DocumentHighlightParams.t

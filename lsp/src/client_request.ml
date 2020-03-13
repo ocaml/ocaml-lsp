@@ -1,5 +1,6 @@
 open! Import
 open Protocol
+open Extension
 module InitializeParams = Gprotocol.InitializeParams
 module InitializeResult = Gprotocol.InitializeResult
 module CodeActionResult = Gprotocol.CodeActionResult
@@ -61,10 +62,10 @@ type _ t =
   | WorkspaceSymbol :
       WorkspaceSymbolParams.t
       -> SymbolInformation.t list option t
-  | DebugEcho : DebugEcho.params -> DebugEcho.result t
+  | DebugEcho : DebugEcho.Params.t -> DebugEcho.Result.t t
   | DebugTextDocumentGet :
-      DebugTextDocumentGet.params
-      -> DebugTextDocumentGet.result t
+      DebugTextDocumentGet.Params.t
+      -> DebugTextDocumentGet.Result.t t
   | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight :
       DocumentHighlightParams.t
@@ -122,9 +123,9 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (Json.Option.yojson_of_t Range.yojson_of_t result)
   | TextDocumentRename _, result -> Some (WorkspaceEdit.yojson_of_t result)
   | DocumentSymbol _, result -> Some (yojson_of_DocumentSymbol result)
-  | DebugEcho _, result -> Some (DebugEcho.yojson_of_result result)
+  | DebugEcho _, result -> Some (DebugEcho.Result.yojson_of_t result)
   | DebugTextDocumentGet _, result ->
-    Some (DebugTextDocumentGet.yojson_of_result result)
+    Some (DebugTextDocumentGet.Result.yojson_of_t result)
   | TextDocumentReferences _, result ->
     Some (Json.Option.yojson_of_t (Json.To.list Location.yojson_of_t) result)
   | TextDocumentHighlight _, result ->
@@ -204,9 +205,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/codeAction" ->
     parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
   | "debug/echo" ->
-    parse DebugEcho.params_of_yojson >>| fun params -> E (DebugEcho params)
+    parse DebugEcho.Params.t_of_yojson >>| fun params -> E (DebugEcho params)
   | "debug/textDocument/get" ->
-    parse DebugTextDocumentGet.params_of_yojson >>| fun params ->
+    parse DebugTextDocumentGet.Params.t_of_yojson >>| fun params ->
     E (DebugTextDocumentGet params)
   | "textDocument/onTypeFormatting" ->
     parse DocumentOnTypeFormattingParams.t_of_yojson >>| fun params ->
