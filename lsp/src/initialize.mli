@@ -276,6 +276,7 @@ module ServerCapabilities : sig
     ; executeCommandProvider : ExecuteCommandOptions.t option
     ; typeCoverageProvider : bool
     ; foldingRangeProvider : Void.t Or_bool.t
+    ; selectionRangeProvider : Void.t Or_bool.t
     }
 
   val default : t
