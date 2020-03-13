@@ -242,6 +242,40 @@ let code_action store (params : Lsp.CodeAction.Params.t) =
     in
     Ok (store, result)
 
+module Formatter = struct
+  let jsonrpc_error (e : Fmt.error) =
+    let message = Fmt.message e in
+    let code : Lsp.Jsonrpc.Response.Error.Code.t =
+      match e with
+      | Missing_binary _ -> InvalidRequest
+      | Unexpected_result _ -> InternalError
+      | Unknown_extension _ -> InvalidRequest
+    in
+    make_error ~code ~message ()
+
+  let run rpc store doc =
+    let src = Document.source doc |> Msource.text in
+    let fname = Document.uri doc |> Lsp.Uri.to_path in
+    match Fmt.run ~contents:src ~fname with
+    | Result.Error e ->
+      let message = Fmt.message e in
+      let error = jsonrpc_error e in
+      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
+      Lsp.Rpc.send_notification rpc (ShowMessage msg);
+      Error error
+    | Result.Ok result ->
+      let pos line col = { Lsp.Protocol.Position.character = col; line } in
+      let range =
+        let start_pos = pos 0 0 in
+        match Msource.get_logical (Document.source doc) `End with
+        | `Logical (l, c) ->
+          let end_pos = pos l c in
+          { Lsp.Protocol.Range.start_ = start_pos; end_ = end_pos }
+      in
+      let change = { Lsp.Protocol.TextEdit.newText = result; range } in
+      Ok (store, [ change ])
+end
+
 let on_request :
     type resp.
        Lsp.Rpc.t
@@ -707,39 +741,8 @@ let on_request :
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting
-      { textDocument = { uri }; options = _ } -> (
-    Document_store.get store uri >>= fun doc ->
-    let src = Document.source doc |> Msource.text in
-    let file_name = Document.uri doc |> Lsp.Uri.to_path in
-    let result =
-      Ocamlformat.format_file
-        (Ocamlformat.Input.Stdin (src, Ocamlformat.File_type.Name file_name))
-        Ocamlformat.Output.Stdout Ocamlformat.Options.default
-    in
-    match result with
-    | Result.Error Missing_binary ->
-      let message = "Unable to find ocamlformat binary" in
-      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
-      Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      let err = make_error ~code:InvalidRequest ~message () in
-      Error err
-    | Result.Error (Message e) ->
-      let message = Printf.sprintf "failed to format: %s e" e in
-      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
-      Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      let err = make_error ~code:InternalError ~message () in
-      Error err
-    | Result.Ok result ->
-      let pos line col = { Lsp.Protocol.Position.character = col; line } in
-      let range =
-        let start_pos = pos 0 0 in
-        match Msource.get_logical (Document.source doc) `End with
-        | `Logical (l, c) ->
-          let end_pos = pos l c in
-          { Lsp.Protocol.Range.start_ = start_pos; end_ = end_pos }
-      in
-      let change = { Lsp.Protocol.TextEdit.newText = result; range } in
-      Ok (store, [ change ]) )
+      { textDocument = { uri }; options = _ } ->
+    Document_store.get store uri >>= Formatter.run rpc store
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
   | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
     let selection_range_of_shapes (cursor_position : Lsp.Protocol.Position.t)
