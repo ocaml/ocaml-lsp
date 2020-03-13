@@ -32,83 +32,82 @@ function setupOcamlFormat(ocamlFormat: string) {
   return tmpdir;
 }
 
-describe("textDocument/formatting", () => {
-  let languageServer = null;
+function setupRefmt() {
+  let tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), "ocamllsp-test-"));
+  return tmpdir;
+}
 
-  async function openDocument(source, name) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(name, "txt", 0, source),
-    });
-  }
-
-  async function query(name) {
-    return await languageServer.sendRequest("textDocument/formatting", {
-      textDocument: Types.TextDocumentIdentifier.create(name),
-      options: Types.FormattingOptions.create(2, true),
-    });
-  }
-
-  afterEach(async () => {
-    await LanguageServer.exit(languageServer);
-    languageServer = null;
+async function openDocument(languageServer, source, name) {
+  await languageServer.sendNotification("textDocument/didOpen", {
+    textDocument: Types.TextDocumentItem.create(name, "txt", 0, source),
   });
+}
 
-  it("can format an ocaml impl file", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+async function query(languageServer, name) {
+  return await languageServer.sendRequest("textDocument/formatting", {
+    textDocument: Types.TextDocumentIdentifier.create(name),
+    options: Types.FormattingOptions.create(2, true),
+  });
+}
 
-    let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
+describe("textDocument/formatting", () => {
+  describe("reformatter binary present", () => {
+    let languageServer = null;
 
-    await openDocument(
-      outdent`
-      let rec gcd a b =
-        begin match a, b with
-          | 0, n | n, 0 -> n
-          | _, _ ->
-            gcd a (b mod a)
-        end
-    `,
-      name,
-    );
+    afterEach(async () => {
+      await LanguageServer.exit(languageServer);
+      languageServer = null;
+    });
 
-    let result = await query(name);
-    expect(result).toMatchObject([
-      {
-        newText:
-          "let rec gcd a b =\n" +
+    it("can format an ocaml impl file", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
+
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
+
+      await openDocument(
+        languageServer,
+        "let rec gcd a b =\n" +
           "  match (a, b) with\n" +
           "  | 0, n\n" +
           "  | n, 0 ->\n" +
           "    n\n" +
           "  | _, _ -> gcd a (b mod a)\n",
-      },
-    ]);
-  });
+        name,
+      );
 
-  it("can format an ocaml intf file", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+      let result = await query(languageServer, name);
+      expect(result).toMatchObject([
+        {
+          newText:
+            "let rec gcd a b =\n" +
+            "  match (a, b) with\n" +
+            "  | 0, n\n" +
+            "  | n, 0 ->\n" +
+            "    n\n" +
+            "  | _, _ -> gcd a (b mod a)\n",
+        },
+      ]);
+    });
 
-    let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
+    it("can format an ocaml intf file", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
 
-    await openDocument(
-      outdent`
-      module Test:
-        sig
-          type t =
-            Foo
-          | Bar
-          | Baz
-        end
-    `,
-      name,
-    );
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
 
-    let result = await query(name);
+      await openDocument(
+        languageServer,
+        "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
+        name,
+      );
 
-    expect(result).toMatchObject([
-      {
-        newText:
-          "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
-      },
-    ]);
+      let result = await query(languageServer, name);
+
+      expect(result).toMatchObject([
+        {
+          newText:
+            "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
+        },
+      ]);
+    });
   });
 });

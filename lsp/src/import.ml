@@ -243,3 +243,5 @@ module Json = struct
     let yojson_of_t (_ : t) = assert false
   end
 end
+
+let sprintf = Stdune.sprintf

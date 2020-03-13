@@ -12,6 +12,45 @@ module Action = struct
   let destruct = "destruct"
 end
 
+module Position = struct
+  include Lsp.Gprotocol.Position
+
+  let ( - ) ({ line; character } : t) (t : t) : t =
+    { line = line - t.line; character = character - t.character }
+
+  let abs ({ line; character } : t) : t =
+    { line = abs line; character = abs character }
+
+  let compare ({ line; character } : t) (t : t) : Ordering.t =
+    Stdune.Tuple.T2.compare Int.compare Int.compare (line, character)
+      (t.line, t.character)
+
+  let compare_inclusion (t : t) (r : Lsp.Gprotocol.Range.t) =
+    match (compare t r.start, compare t r.end_) with
+    | Lt, Lt -> `Outside (abs (r.start - t))
+    | Gt, Gt -> `Outside (abs (r.end_ - t))
+    | Eq, Lt
+    | Gt, Eq
+    | Eq, Eq
+    | Gt, Lt ->
+      `Inside
+    | Eq, Gt
+    | Lt, Eq
+    | Lt, Gt ->
+      assert false
+end
+
+module Range = struct
+  include Lsp.Gprotocol.Range
+
+  (* Compares ranges by their lengths*)
+  let compare_size (x : t) (y : t) =
+    let dx = Position.(x.end_ - x.start) in
+    let dy = Position.(y.end_ - y.start) in
+    Stdune.Tuple.T2.compare Int.compare Int.compare (dx.line, dy.line)
+      (dx.character, dy.character)
+end
+
 let completion_kind kind : Lsp.Completion.completionItemKind option =
   match kind with
   | `Value -> Some Value
@@ -32,8 +71,6 @@ module CodeAction = Lsp.Gprotocol.CodeAction
 module CodeActionResult = Lsp.Gprotocol.CodeActionResult
 module WorkspaceEdit = Lsp.Gprotocol.WorkspaceEdit
 module TextEdit = Lsp.Gprotocol.TextEdit
-module Range = Lsp.Gprotocol.Range
-module Position = Lsp.Gprotocol.Position
 module CodeLens = Lsp.Gprotocol.CodeLens
 module Command = Lsp.Gprotocol.Command
 module MarkupContent = Lsp.Gprotocol.MarkupContent
@@ -51,6 +88,7 @@ module DocumentHighlight = Lsp.Gprotocol.DocumentHighlight
 module DocumentHighlightKind = Lsp.Gprotocol.DocumentHighlightKind
 module FoldingRange = Lsp.Gprotocol.FoldingRange
 module FoldingRangeParams = Lsp.Gprotocol.FoldingRangeParams
+module SelectionRange = Lsp.Gprotocol.SelectionRange
 
 let outline_kind kind : SymbolKind.t =
   match kind with
@@ -87,7 +125,8 @@ let initializeInfo : InitializeResult.t =
       ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
       ~completionProvider ~codeActionProvider ~referencesProvider:(`Bool true)
       ~documentHighlightProvider:(`Bool true)
-      ~documentSymbolProvider:(`Bool true) ~renameProvider:(`Bool true) ()
+      ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
+      ~renameProvider:(`Bool true) ()
   in
   let serverInfo =
     (* TODO use actual version *)
@@ -227,6 +266,40 @@ let code_action store (params : CodeActionParams.t) =
         Some []
     in
     Ok (store, result)
+
+module Formatter = struct
+  let jsonrpc_error (e : Fmt.error) =
+    let message = Fmt.message e in
+    let code : Lsp.Jsonrpc.Response.Error.Code.t =
+      match e with
+      | Missing_binary _ -> InvalidRequest
+      | Unexpected_result _ -> InternalError
+      | Unknown_extension _ -> InvalidRequest
+    in
+    make_error ~code ~message ()
+
+  let run rpc store doc =
+    let src = Document.source doc |> Msource.text in
+    let fname = Document.uri doc |> Lsp.Uri.to_path in
+    match Fmt.run ~contents:src ~fname with
+    | Result.Error e ->
+      let message = Fmt.message e in
+      let error = jsonrpc_error e in
+      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
+      Lsp.Rpc.send_notification rpc (ShowMessage msg);
+      Error error
+    | Result.Ok result ->
+      let pos line col = { Lsp.Protocol.Position.character = col; line } in
+      let range =
+        let start_pos = pos 0 0 in
+        match Msource.get_logical (Document.source doc) `End with
+        | `Logical (l, c) ->
+          let end_pos = pos l c in
+          { Lsp.Protocol.Range.start_ = start_pos; end_ = end_pos }
+      in
+      let change = { Lsp.Protocol.TextEdit.newText = result; range } in
+      Ok (store, [ change ])
+end
 
 let on_request :
     type resp.
@@ -709,41 +782,52 @@ let on_request :
   | Lsp.Client_request.CodeAction params -> code_action store params
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting
-      { textDocument = { uri }; options = _ } -> (
-    Document_store.get store uri >>= fun doc ->
-    let src = Document.source doc |> Msource.text in
-    let file_name = Document.uri doc |> Lsp.Uri.to_path in
-    let result =
-      Ocamlformat.format_file
-        (Ocamlformat.Input.Stdin (src, Ocamlformat.File_type.Name file_name))
-        Ocamlformat.Output.Stdout Ocamlformat.Options.default
-    in
-    match result with
-    | Result.Error Missing_binary ->
-      let message = "Unable to find ocamlformat binary" in
-      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
-      Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      let err = make_error ~code:InvalidRequest ~message () in
-      Error err
-    | Result.Error (Message e) ->
-      let message = Printf.sprintf "failed to format: %s e" e in
-      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
-      Lsp.Rpc.send_notification rpc (ShowMessage msg);
-      let err = make_error ~code:InternalError ~message () in
-      Error err
-    | Result.Ok result ->
-      let pos line col = { Lsp.Protocol.Position.character = col; line } in
-      let range =
-        let start_pos = pos 0 0 in
-        match Msource.get_logical (Document.source doc) `End with
-        | `Logical (l, c) ->
-          let end_pos = pos l c in
-          { Lsp.Protocol.Range.start_ = start_pos; end_ = end_pos }
-      in
-      let change = { Lsp.Protocol.TextEdit.newText = result; range } in
-      Ok (store, [ change ]) )
+      { textDocument = { uri }; options = _ } ->
+    Document_store.get store uri >>= Formatter.run rpc store
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
-  | Lsp.Client_request.SelectionRange _ -> Ok (store, [])
+  | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
+    let selection_range_of_shapes (cursor_position : Position.t)
+        (shapes : Query_protocol.shape list) : SelectionRange.t option =
+      let rec ranges_of_shape parent s =
+        let range = range_of_loc' s.Query_protocol.shape_loc in
+        let selectionRange = { SelectionRange.range; parent } in
+        match s.Query_protocol.shape_sub with
+        | [] -> [ selectionRange ]
+        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
+      in
+      let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
+      (* try to find the nearest range inside first, then outside *)
+      let nearest_range =
+        let min_by_opt xs ~f =
+          List.fold_left xs ~init:None ~f:(fun state x ->
+              match state with
+              | None -> Some x
+              | Some y -> (
+                match f x y with
+                | Ordering.Lt -> Some x
+                | _ -> Some y ))
+        in
+        min_by_opt ranges ~f:(fun r1 r2 ->
+            let inc (r : SelectionRange.t) =
+              Position.compare_inclusion cursor_position r.range
+            in
+            match (inc r1, inc r2) with
+            | `Outside x, `Outside y -> Position.compare x y
+            | `Outside _, `Inside -> Gt
+            | `Inside, `Outside _ -> Lt
+            | `Inside, `Inside -> Range.compare_size r1.range r2.range)
+      in
+      nearest_range
+    in
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
+    Document_store.get store uri >>= fun doc ->
+    let results =
+      List.filter_map positions ~f:(fun x ->
+          let command = Query_protocol.Shape (logical_of_position' x) in
+          let shapes = dispatch_in_doc doc command in
+          selection_range_of_shapes x shapes)
+    in
+    Ok (store, results)
   | Lsp.Client_request.UnknownRequest _ ->
     Error (make_error ~code:InvalidRequest ~message:"Got unkown request" ())
 
