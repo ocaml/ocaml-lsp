@@ -836,21 +836,23 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let doc =
-      Document.make ~uri:params.textDocument.uri ~text:params.textDocument.text
-        ()
+      let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
+      Document.make ~uri ~text:params.textDocument.text ()
     in
     Document_store.put store doc;
     send_diagnostics rpc doc;
     Ok store
   | TextDocumentDidClose { textDocument = { uri } } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.remove_document store uri;
     Ok store
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
     -> (
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     match Document_store.get store uri with
     | Ok prev_doc ->
       let doc =
-        let f doc change = Document.update_text ~version change doc in
+        let f doc change = Document.update_text ?version change doc in
         List.fold_left ~f ~init:prev_doc contentChanges
       in
       Document_store.put store doc;

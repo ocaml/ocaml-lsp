@@ -1,14 +1,14 @@
 open Import
-open Protocol
+open Gprotocol
 
 type t =
-  | TextDocumentDidOpen of DidOpen.params
+  | TextDocumentDidOpen of DidOpenTextDocumentParams.t
   | TextDocumentDidClose of DidCloseTextDocumentParams.t
   | TextDocumentDidChange of DidChangeTextDocumentParams.t
   | DidSaveTextDocument of DidSaveTextDocumentParams.t
   | WillSaveTextDocument of WillSaveTextDocumentParams.t
-  | ChangeWorkspaceFolders of DidChangeWorkspaceFolders.Params.t
-  | ChangeConfiguration of DidChangeConfiguration.Params.t
+  | ChangeWorkspaceFolders of DidChangeWorkspaceFoldersParams.t
+  | ChangeConfiguration of DidChangeConfigurationParams.t
   | Initialized
   | Exit
   | Unknown_notification of Jsonrpc.Request.t

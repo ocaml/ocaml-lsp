@@ -1416,14 +1416,14 @@ end
 
 module TextDocumentContentChangeEvent : sig
   type t =
-    { range : Range.t
+    { range : Range.t option
     ; rangeLength : int option
     ; text : string
     }
 
   include Json.Jsonable.S with type t := t
 
-  val create : range:Range.t -> ?rangeLength:int -> text:string -> unit -> t
+  val create : ?range:Range.t -> ?rangeLength:int -> text:string -> unit -> t
 end
 
 module DidChangeTextDocumentParams : sig

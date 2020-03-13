@@ -1,10 +1,10 @@
-open Protocol
+open Gprotocol
 
 type t
 
-val make : ?version:int -> documentUri -> string -> t
+val make : ?version:int -> Uri.t -> string -> t
 
-val documentUri : t -> documentUri
+val documentUri : t -> Uri.t
 
 val version : t -> int
 

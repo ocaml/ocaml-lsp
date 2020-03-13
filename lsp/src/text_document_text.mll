@@ -1,12 +1,13 @@
 {
+  open Gprotocol
 
-  let position_in_range (pos : Protocol.Position.t) (range : Protocol.Range.t) =
-    if pos.line < range.start_.line || pos.line > range.end_.line
+  let position_in_range (pos : Position.t) (range : Range.t) =
+    if pos.line < range.start.line || pos.line > range.end_.line
     then false
     else
       let rel_start =
-        if pos.line = range.start_.line
-        then pos.character >= range.start_.character
+        if pos.line = range.start.line
+        then pos.character >= range.start.character
         else true
       in
       let rel_end =
@@ -16,8 +17,8 @@
       in
       rel_start && rel_end
 
-  let maybe_apply_change_with process (pos : Protocol.Position.t) buf range change =
-    if pos.line = range.Protocol.Range.start_.line && pos.character = range.start_.character then
+  let maybe_apply_change_with process (pos : Position.t) buf range change =
+    if pos.line = range.Range.start.line && pos.character = range.start.character then
     let c_lexbuf = Lexing.from_string change in
     let c_buf = Buffer.create (String.length change) in
     let () = process c_buf c_lexbuf in
@@ -52,7 +53,7 @@ rule normalize_line_endlings_rule buf = parse
           pos buf range change
       in
       if not (position_in_range pos range) then Buffer.add_char buf '\n';
-      let pos = { Protocol.Position. line = pos.line + 1; character = 0;} in
+      let pos = { Position. line = pos.line + 1; character = 0;} in
       apply_change_rule pos buf range change lexbuf
     }
   | _ as c {
@@ -77,7 +78,7 @@ rule normalize_line_endlings_rule buf = parse
   let apply_change text range change =
     let lexbuf = Lexing.from_string text in
     let buf = Buffer.create (String.length text) in
-    let pos = { Protocol.Position. line = 0; character = 0;} in
+    let pos = { Position. line = 0; character = 0;} in
     let () = apply_change_rule pos buf range change lexbuf in
     Buffer.contents buf
 

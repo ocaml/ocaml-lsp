@@ -13361,7 +13361,8 @@ end
 
 module TextDocumentContentChangeEvent = struct
   type t =
-    { range : Range.t
+    { range : Range.t Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
     ; rangeLength : int Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; text : string
@@ -13385,7 +13386,10 @@ module TextDocumentContentChangeEvent = struct
             | "range" -> (
               match Ppx_yojson_conv_lib.( ! ) range_field with
               | None ->
-                let fvalue = Range.t_of_yojson _field_yojson in
+                let fvalue =
+                  Json.Nullable_option.t_of_yojson Range.t_of_yojson
+                    _field_yojson
+                in
                 range_field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -13430,8 +13434,11 @@ module TextDocumentContentChangeEvent = struct
               , Ppx_yojson_conv_lib.( ! ) rangeLength_field
               , Ppx_yojson_conv_lib.( ! ) text_field )
             with
-            | Some range_value, rangeLength_value, Some text_value ->
-              { range = range_value
+            | range_value, rangeLength_value, Some text_value ->
+              { range =
+                  ( match range_value with
+                  | None -> None
+                  | Some v -> v )
               ; rangeLength =
                   ( match rangeLength_value with
                   | None -> None
@@ -13442,10 +13449,6 @@ module TextDocumentContentChangeEvent = struct
               Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                 _tp_loc yojson
                 [ ( Ppx_yojson_conv_lib.poly_equal
-                      (Ppx_yojson_conv_lib.( ! ) range_field)
-                      None
-                  , "range" )
-                ; ( Ppx_yojson_conv_lib.poly_equal
                       (Ppx_yojson_conv_lib.( ! ) text_field)
                       None
                   , "text" )
@@ -13476,8 +13479,14 @@ module TextDocumentContentChangeEvent = struct
             bnd :: bnds
         in
         let bnds =
-          let arg = Range.yojson_of_t v_range in
-          ("range", arg) :: bnds
+          if None = v_range then
+            bnds
+          else
+            let arg =
+              (Json.Nullable_option.yojson_of_t Range.yojson_of_t) v_range
+            in
+            let bnd = ("range", arg) in
+            bnd :: bnds
         in
         `Assoc bnds
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t )
@@ -13486,8 +13495,8 @@ module TextDocumentContentChangeEvent = struct
 
   [@@@end]
 
-  let create ~(range : Range.t) ?(rangeLength : int option) ~(text : string)
-      (() : unit) : t =
+  let create ?(range : Range.t option) ?(rangeLength : int option)
+      ~(text : string) (() : unit) : t =
     { range; rangeLength; text }
 end
 
