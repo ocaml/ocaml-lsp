@@ -2680,13 +2680,13 @@ end
 
 module ShowMessageParams : sig
   type t =
-    { type_ : int
+    { type_ : MessageType.t
     ; message : string
     }
 
   include Json.Jsonable.S with type t := t
 
-  val create : type_:int -> message:string -> t
+  val create : type_:MessageType.t -> message:string -> t
 end
 
 module ShowMessageRequestParams : sig

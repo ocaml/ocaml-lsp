@@ -1872,7 +1872,7 @@ interface ShowMessageParams {
 	/**
 	 * The message type. See {@link MessageType}.
 	 */
-	type: number;
+	type: MessageType;
 
 	/**
 	 * The actual message.

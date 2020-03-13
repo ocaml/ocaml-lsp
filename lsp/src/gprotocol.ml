@@ -24708,7 +24708,7 @@ end
 
 module ShowMessageParams = struct
   type t =
-    { type_ : int [@key "type"]
+    { type_ : MessageType.t [@key "type"]
     ; message : string
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -24729,7 +24729,7 @@ module ShowMessageParams = struct
             | "type" -> (
               match Ppx_yojson_conv_lib.( ! ) type__field with
               | None ->
-                let fvalue = int_of_yojson _field_yojson in
+                let fvalue = MessageType.t_of_yojson _field_yojson in
                 type__field := Some fvalue
               | Some _ ->
                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
@@ -24793,7 +24793,7 @@ module ShowMessageParams = struct
           ("message", arg) :: bnds
         in
         let bnds =
-          let arg = yojson_of_int v_type_ in
+          let arg = MessageType.yojson_of_t v_type_ in
           ("type", arg) :: bnds
         in
         `Assoc bnds
@@ -24803,7 +24803,8 @@ module ShowMessageParams = struct
 
   [@@@end]
 
-  let create ~(type_ : int) ~(message : string) : t = { type_; message }
+  let create ~(type_ : MessageType.t) ~(message : string) : t =
+    { type_; message }
 end
 
 module ShowMessageRequestParams = struct

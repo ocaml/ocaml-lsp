@@ -1,10 +1,10 @@
 open! Import
-open Protocol
+open Gprotocol
 
 type t =
-  | PublishDiagnostics of PublishDiagnostics.params
-  | ShowMessage of ShowMessage.Params.t
-  | LogMessage of ShowMessage.Params.t
+  | PublishDiagnostics of PublishDiagnosticsParams.t
+  | ShowMessage of ShowMessageParams.t
+  | LogMessage of ShowMessageParams.t
   | TelemetryNotification of Json.t
 
 let method_ = function
@@ -16,8 +16,8 @@ let method_ = function
 let yojson_of_t = function
   | LogMessage params
   | ShowMessage params ->
-    ShowMessage.Params.yojson_of_t params
-  | PublishDiagnostics params -> PublishDiagnostics.yojson_of_params params
+    ShowMessageParams.yojson_of_t params
+  | PublishDiagnostics params -> PublishDiagnosticsParams.yojson_of_t params
   | TelemetryNotification params -> params
 
 let to_jsonrpc_request t =

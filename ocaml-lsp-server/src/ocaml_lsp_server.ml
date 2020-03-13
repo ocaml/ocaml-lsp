@@ -89,6 +89,11 @@ module DocumentHighlightKind = Lsp.Gprotocol.DocumentHighlightKind
 module FoldingRange = Lsp.Gprotocol.FoldingRange
 module FoldingRangeParams = Lsp.Gprotocol.FoldingRangeParams
 module SelectionRange = Lsp.Gprotocol.SelectionRange
+module PublishDiagnosticsParams = Lsp.Gprotocol.PublishDiagnosticsParams
+module Diganostic = Lsp.Gprotocol.Diagnostic
+module DiganosticSeverity = Lsp.Gprotocol.DiagnosticSeverity
+module MessageType = Lsp.Gprotocol.MessageType
+module ShowMessageParams = Lsp.Gprotocol.ShowMessageParams
 
 let outline_kind kind : SymbolKind.t =
   match kind with
@@ -151,21 +156,11 @@ let logical_of_position' (position : Position.t) =
 let position_of_lexical_position (lex_position : Lexing.position) =
   let line = lex_position.pos_lnum - 1 in
   let character = lex_position.pos_cnum - lex_position.pos_bol in
-  { Lsp.Protocol.Position.line; character }
-
-let position_of_lexical_position' (lex_position : Lexing.position) =
-  let line = lex_position.pos_lnum - 1 in
-  let character = lex_position.pos_cnum - lex_position.pos_bol in
   { Position.line; character }
 
-let range_of_loc (loc : Location.t) : Lsp.Protocol.Range.t =
-  { start_ = position_of_lexical_position loc.loc_start
+let range_of_loc (loc : Location.t) : Range.t =
+  { start = position_of_lexical_position loc.loc_start
   ; end_ = position_of_lexical_position loc.loc_end
-  }
-
-let range_of_loc' (loc : Location.t) : Range.t =
-  { start = position_of_lexical_position' loc.loc_start
-  ; end_ = position_of_lexical_position' loc.loc_end
   }
 
 let send_diagnostics rpc doc =
@@ -175,36 +170,26 @@ let send_diagnostics rpc doc =
   Document.with_pipeline doc @@ fun pipeline ->
   let errors = Query_commands.dispatch pipeline command in
   let diagnostics =
-    List.map
-      ~f:(fun (error : Location.error) ->
+    List.map errors ~f:(fun (error : Location.error) ->
         let loc = Location.loc_of_report error in
         let range = range_of_loc loc in
         let severity =
           match error.source with
-          | Warning -> Some Lsp.Protocol.PublishDiagnostics.Warning
-          | _ -> Some Lsp.Protocol.PublishDiagnostics.Error
+          | Warning -> DiganosticSeverity.Warning
+          | _ -> DiganosticSeverity.Error
         in
         let message =
           Location.print_main Format.str_formatter error;
           String.trim (Format.flush_str_formatter ())
         in
-        let diagnostic : Lsp.Protocol.PublishDiagnostics.diagnostic =
-          { Lsp.Protocol.PublishDiagnostics.message
-          ; severity
-          ; range
-          ; relatedInformation = []
-          ; code = NoCode
-          ; source = None
-          ; tags = []
-          }
-        in
-        diagnostic)
-      errors
+        Diganostic.create ~range ~message ~severity ~relatedInformation:[]
+          ~tags:[] ())
   in
 
   let notif =
+    let uri = Document.uri doc |> Lsp.Uri.to_string in
     Lsp.Server_notification.PublishDiagnostics
-      { uri = Document.uri doc; diagnostics; version = None }
+      (PublishDiagnosticsParams.create ~uri ~diagnostics ())
   in
 
   Lsp.Rpc.send_notification rpc notif
@@ -214,7 +199,7 @@ let on_initialize rpc state _params =
     if title <> Logger.Title.LocalDebug then
       let type_, text =
         match title with
-        | Error -> (Lsp.Protocol.Message.Type.Error, text)
+        | Error -> (MessageType.Error, text)
         | Warning -> (Warning, text)
         | Info -> (Info, text)
         | Debug -> (Log, Printf.sprintf "debug: %s" text)
@@ -231,7 +216,7 @@ let on_initialize rpc state _params =
 
 let code_action_of_case_analysis uri (loc, newText) =
   let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = range_of_loc' loc; newText } in
+    let textedit : TextEdit.t = { range = range_of_loc loc; newText } in
     let uri = Lsp.Uri.to_string uri in
     WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
@@ -285,7 +270,7 @@ module Formatter = struct
     | Result.Error e ->
       let message = Fmt.message e in
       let error = jsonrpc_error e in
-      let msg = { Lsp.Protocol.ShowMessage.Params.message; type_ = Error } in
+      let msg = ShowMessageParams.create ~message ~type_:Error in
       Lsp.Rpc.send_notification rpc (ShowMessage msg);
       Error error
     | Result.Ok result ->
@@ -374,7 +359,7 @@ let on_request :
         | _ -> false
       in
       let contents = format_contents ~as_markdown ~typ ~doc in
-      let range = range_of_loc' loc in
+      let range = range_of_loc loc in
       let resp = Hover.create ~contents ~range () in
       Ok (store, Some resp) )
   | Lsp.Client_request.TextDocumentReferences
@@ -387,7 +372,7 @@ let on_request :
     let locs : Location.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc' loc in
+          let range = range_of_loc loc in
           (* using original uri because merlin is looking only in local file *)
           let uri = Lsp.Uri.to_string uri in
           { Lsp.Gprotocol.Location.uri; range })
@@ -411,7 +396,7 @@ let on_request :
         | Some typ ->
           let loc = item.Query_protocol.location in
           let info =
-            let range = range_of_loc' loc in
+            let range = range_of_loc loc in
             let command = Command.create ~title:typ ~command:"" () in
             CodeLens.create ~range ~command ()
           in
@@ -430,7 +415,7 @@ let on_request :
     let locs : Location.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc' loc in
+          let range = range_of_loc loc in
           (* using the default kind as we are lacking info to make a difference
              between assignment and usage. *)
           DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
@@ -438,7 +423,7 @@ let on_request :
     Ok (store, Some lsp_locs)
   | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
-    let range item = range_of_loc' item.Query_protocol.location in
+    let range item = range_of_loc item.Query_protocol.location in
 
     let rec symbol item =
       let children = List.map item.Query_protocol.children ~f:symbol in
@@ -495,7 +480,7 @@ let on_request :
     let command = Query_protocol.Locate (None, `ML, position) in
     match dispatch_in_doc doc command with
     | `Found (path, lex_position) ->
-      let position = position_of_lexical_position' lex_position in
+      let position = position_of_lexical_position lex_position in
       let range = { Range.start = position; end_ = position } in
       let uri =
         match path with
@@ -554,7 +539,7 @@ let on_request :
           with
           | exception Env.Error _ -> None
           | `Found (path, lex_position) ->
-            let position = position_of_lexical_position' lex_position in
+            let position = position_of_lexical_position lex_position in
             let range = { Range.start = position; end_ = position } in
             let uri =
               match path with
@@ -723,7 +708,7 @@ let on_request :
     let edits =
       List.map
         ~f:(fun loc ->
-          let range = range_of_loc' loc in
+          let range = range_of_loc loc in
           { TextEdit.newText = newName; range })
         locs
     in
@@ -762,7 +747,7 @@ let on_request :
         match items with
         | [] -> acc
         | item :: items ->
-          let range = range_of_loc' item.location in
+          let range = range_of_loc item.location in
           if range.end_.line - range.start.line < 2 then
             loop acc items
           else
@@ -789,7 +774,7 @@ let on_request :
     let selection_range_of_shapes (cursor_position : Position.t)
         (shapes : Query_protocol.shape list) : SelectionRange.t option =
       let rec ranges_of_shape parent s =
-        let range = range_of_loc' s.Query_protocol.shape_loc in
+        let range = range_of_loc s.Query_protocol.shape_loc in
         let selectionRange = { SelectionRange.range; parent } in
         match s.Query_protocol.shape_sub with
         | [] -> [ selectionRange ]
