@@ -12,8 +12,12 @@ module Action = struct
   let destruct = "destruct"
 end
 
+module Loc = Location
+
+open Lsp.Gprotocol
+
 module Position = struct
-  include Lsp.Gprotocol.Position
+  include Position
 
   let ( - ) ({ line; character } : t) (t : t) : t =
     { line = line - t.line; character = character - t.character }
@@ -25,7 +29,7 @@ module Position = struct
     Stdune.Tuple.T2.compare Int.compare Int.compare (line, character)
       (t.line, t.character)
 
-  let compare_inclusion (t : t) (r : Lsp.Gprotocol.Range.t) =
+  let compare_inclusion (t : t) (r : Range.t) =
     match (compare t r.start, compare t r.end_) with
     | Lt, Lt -> `Outside (abs (r.start - t))
     | Gt, Gt -> `Outside (abs (r.end_ - t))
@@ -41,7 +45,7 @@ module Position = struct
 end
 
 module Range = struct
-  include Lsp.Gprotocol.Range
+  include Range
 
   (* Compares ranges by their lengths*)
   let compare_size (x : t) (y : t) =
@@ -50,41 +54,6 @@ module Range = struct
     Stdune.Tuple.T2.compare Int.compare Int.compare (dx.line, dy.line)
       (dx.character, dy.character)
 end
-
-module InitializeResult = Lsp.Gprotocol.InitializeResult
-module ClientCapabilities = Lsp.Gprotocol.ClientCapabilities
-module CodeActionKind = Lsp.Gprotocol.CodeActionKind
-module CodeActionParams = Lsp.Gprotocol.CodeActionParams
-module CodeAction = Lsp.Gprotocol.CodeAction
-module CodeActionResult = Lsp.Gprotocol.CodeActionResult
-module WorkspaceEdit = Lsp.Gprotocol.WorkspaceEdit
-module TextEdit = Lsp.Gprotocol.TextEdit
-module CodeLens = Lsp.Gprotocol.CodeLens
-module Command = Lsp.Gprotocol.Command
-module MarkupContent = Lsp.Gprotocol.MarkupContent
-module MarkupKind = Lsp.Gprotocol.MarkupKind
-module Hover = Lsp.Gprotocol.Hover
-module HoverParams = Lsp.Gprotocol.HoverParams
-module DocumentSymbolParams = Lsp.Gprotocol.DocumentSymbolParams
-module DocumentSymbol = Lsp.Gprotocol.DocumentSymbol
-module SymbolKind = Lsp.Gprotocol.SymbolKind
-module SymbolInformation = Lsp.Gprotocol.SymbolInformation
-module TextDocumentEdit = Lsp.Gprotocol.TextDocumentEdit
-module VersionedTextDocumentIdentifier =
-  Lsp.Gprotocol.VersionedTextDocumentIdentifier
-module DocumentHighlight = Lsp.Gprotocol.DocumentHighlight
-module DocumentHighlightKind = Lsp.Gprotocol.DocumentHighlightKind
-module FoldingRange = Lsp.Gprotocol.FoldingRange
-module FoldingRangeParams = Lsp.Gprotocol.FoldingRangeParams
-module SelectionRange = Lsp.Gprotocol.SelectionRange
-module PublishDiagnosticsParams = Lsp.Gprotocol.PublishDiagnosticsParams
-module Diganostic = Lsp.Gprotocol.Diagnostic
-module DiganosticSeverity = Lsp.Gprotocol.DiagnosticSeverity
-module MessageType = Lsp.Gprotocol.MessageType
-module ShowMessageParams = Lsp.Gprotocol.ShowMessageParams
-module CompletionItem = Lsp.Gprotocol.CompletionItem
-module CompletionList = Lsp.Gprotocol.CompletionList
-module CompletionItemKind = Lsp.Gprotocol.CompletionItemKind
 
 let completion_kind kind : CompletionItemKind.t option =
   match kind with
@@ -111,7 +80,6 @@ let outline_kind kind : SymbolKind.t =
   | `Method -> Method
 
 let initializeInfo : InitializeResult.t =
-  let open Lsp.Gprotocol in
   let codeActionProvider =
     `CodeActionOptions
       (CodeActionOptions.create ~codeActionKinds:[ Other Action.destruct ] ())
@@ -156,7 +124,7 @@ let position_of_lexical_position (lex_position : Lexing.position) =
   let character = lex_position.pos_cnum - lex_position.pos_bol in
   { Position.line; character }
 
-let range_of_loc (loc : Location.t) : Range.t =
+let range_of_loc (loc : Loc.t) : Range.t =
   { start = position_of_lexical_position loc.loc_start
   ; end_ = position_of_lexical_position loc.loc_end
   }
@@ -168,19 +136,19 @@ let send_diagnostics rpc doc =
   Document.with_pipeline doc @@ fun pipeline ->
   let errors = Query_commands.dispatch pipeline command in
   let diagnostics =
-    List.map errors ~f:(fun (error : Location.error) ->
-        let loc = Location.loc_of_report error in
+    List.map errors ~f:(fun (error : Loc.error) ->
+        let loc = Loc.loc_of_report error in
         let range = range_of_loc loc in
         let severity =
           match error.source with
-          | Warning -> DiganosticSeverity.Warning
-          | _ -> DiganosticSeverity.Error
+          | Warning -> DiagnosticSeverity.Warning
+          | _ -> DiagnosticSeverity.Error
         in
         let message =
-          Location.print_main Format.str_formatter error;
+          Loc.print_main Format.str_formatter error;
           String.trim (Format.flush_str_formatter ())
         in
-        Diganostic.create ~range ~message ~severity ~relatedInformation:[]
+        Diagnostic.create ~range ~message ~severity ~relatedInformation:[]
           ~tags:[] ())
   in
 
@@ -353,7 +321,7 @@ let on_request :
         match client_capabilities.textDocument with
         | None -> false
         | Some { hover = Some { contentFormat; _ }; _ } ->
-          List.mem Lsp.Gprotocol.MarkupKind.Markdown
+          List.mem MarkupKind.Markdown
             ~set:(Option.value contentFormat ~default:[ Markdown ])
         | _ -> false
       in
@@ -368,13 +336,13 @@ let on_request :
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
-    let locs : Location.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
           let range = range_of_loc loc in
           (* using original uri because merlin is looking only in local file *)
           let uri = Lsp.Uri.to_string uri in
-          { Lsp.Gprotocol.Location.uri; range })
+          { Location.uri; range })
     in
     Ok (store, Some lsp_locs)
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
@@ -411,7 +379,7 @@ let on_request :
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
-    let locs : Location.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
           let range = range_of_loc loc in
@@ -434,7 +402,7 @@ let on_request :
     in
 
     let rec symbol_info ?containerName item =
-      let location = { Lsp.Gprotocol.Location.uri; range = range item } in
+      let location = { Location.uri; range = range item } in
       let info =
         let kind = outline_kind item.outline_kind in
         SymbolInformation.create ~name:item.Query_protocol.outline_name ~kind
@@ -452,7 +420,6 @@ let on_request :
     let outline = dispatch_in_doc doc command in
     let symbols =
       let hierarchicalDocumentSymbolSupport =
-        let open Lsp.Gprotocol in
         let open Option.O in
         Option.value
           ( client_capabilities.textDocument
@@ -487,7 +454,7 @@ let on_request :
         | Some path -> Lsp.Uri.of_path path
       in
       let locs =
-        [ { Lsp.Gprotocol.Location.uri = Lsp.Uri.to_string uri; range } ]
+        [ { Location.uri = Lsp.Uri.to_string uri; range } ]
       in
       Ok (store, Some (`Location locs))
     | `At_origin
@@ -546,7 +513,7 @@ let on_request :
               | Some path -> Lsp.Uri.of_path path
             in
             let loc =
-              { Lsp.Gprotocol.Location.uri = Lsp.Uri.to_string uri; range }
+              { Location.uri = Lsp.Uri.to_string uri; range }
             in
             Some loc
           | `At_origin
@@ -691,14 +658,13 @@ let on_request :
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
-    let locs : Location.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = dispatch_in_doc doc command in
     let version = Document.version doc in
     let edits =
-      List.map
+      List.map locs
         ~f:(fun loc ->
           let range = range_of_loc loc in
           { TextEdit.newText = newName; range })
-        locs
     in
     let workspace_edits =
       let documentChanges =
