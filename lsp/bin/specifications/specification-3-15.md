@@ -3361,7 +3361,7 @@ export interface CompletionItem {
 	 * an icon is chosen by the editor. The standardized set
 	 * of available values is defined in `CompletionItemKind`.
 	 */
-	kind?: number;
+	kind?: CompletionItemKind;
 
 	/**
 	 * Tags for this completion item.

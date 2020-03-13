@@ -11022,7 +11022,7 @@ module CompletionItem = struct
 
   type t =
     { label : string
-    ; kind : int Json.Nullable_option.t
+    ; kind : CompletionItemKind.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; tags : CompletionItemTag.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -11093,7 +11093,8 @@ module CompletionItem = struct
               match Ppx_yojson_conv_lib.( ! ) kind_field with
               | None ->
                 let fvalue =
-                  Json.Nullable_option.t_of_yojson int_of_yojson _field_yojson
+                  Json.Nullable_option.t_of_yojson
+                    CompletionItemKind.t_of_yojson _field_yojson
                 in
                 kind_field := Some fvalue
               | Some _ ->
@@ -11546,7 +11547,10 @@ module CompletionItem = struct
           if None = v_kind then
             bnds
           else
-            let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_kind in
+            let arg =
+              (Json.Nullable_option.yojson_of_t CompletionItemKind.yojson_of_t)
+                v_kind
+            in
             let bnd = ("kind", arg) in
             bnd :: bnds
         in
@@ -11561,7 +11565,7 @@ module CompletionItem = struct
 
   [@@@end]
 
-  let create ~(label : string) ?(kind : int option)
+  let create ~(label : string) ?(kind : CompletionItemKind.t option)
       ?(tags : CompletionItemTag.t list option) ?(detail : string option)
       ?(documentation : documentation option) ?(deprecated : bool option)
       ?(preselect : bool option) ?(sortText : string option)

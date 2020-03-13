@@ -1,5 +1,5 @@
 open! Import
-open Protocol
+open Gprotocol
 open Extension
 module InitializeParams = Gprotocol.InitializeParams
 module InitializeResult = Gprotocol.InitializeResult
@@ -37,6 +37,7 @@ module FoldingRangeParams = Gprotocol.FoldingRangeParams
 module FoldingRange = Gprotocol.FoldingRange
 module SignatureHelp = Gprotocol.SignatureHelp
 module SignatureHelpParams = Gprotocol.SignatureHelpParams
+module TextEdit = Gprotocol.TextEdit
 
 type _ t =
   | Shutdown : unit t
@@ -47,7 +48,13 @@ type _ t =
       TextDocumentPositionParams.t
       -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
-  | TextDocumentCompletion : Completion.params -> Completion.result t
+  | TextDocumentCompletion :
+      CompletionParams.t
+      -> [ `CompletionList of CompletionList.t
+         | `List of CompletionItem.t list
+         ]
+         option
+         t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
@@ -77,20 +84,18 @@ type _ t =
       -> FoldingRange.t list option t
   | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
-  | CompletionItemResolve :
-      Completion.completionItem
-      -> Completion.completionItem t
+  | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
       -> TextEdit.t list option t
   | TextDocumentFormatting :
       DocumentFormattingParams.t
-      -> TextDocumentFormatting.Result.t t
+      -> TextEdit.t list option t
   | TextDocumentOnTypeFormatting :
       DocumentOnTypeFormattingParams.t
-      -> TextDocumentOnTypeFormatting.Result.t t
+      -> TextEdit.t list option t
   | TextDocumentColorPresentation :
-      ColorPresentation.Params.t
+      ColorPresentationParams.t
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
@@ -102,6 +107,13 @@ let yojson_of_DocumentSymbol ds : Json.t =
     (function
       | `DocumentSymbol ds -> Json.To.list DocumentSymbol.yojson_of_t ds
       | `SymbolInformation si -> Json.To.list SymbolInformation.yojson_of_t si)
+    ds
+
+let yojson_of_Completion ds : Json.t =
+  Json.Option.yojson_of_t
+    (function
+      | `CompletionList cs -> CompletionList.yojson_of_t cs
+      | `List xs -> `List (List.map xs ~f:CompletionItem.yojson_of_t))
     ds
 
 let yojson_of_result (type a) (req : a t) (result : a) =
@@ -116,8 +128,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Some (yojson_of_option Locations.yojson_of_t result)
   | TextDocumentTypeDefinition _, result ->
     Some (yojson_of_option Locations.yojson_of_t result)
-  | TextDocumentCompletion _, result ->
-    Some (Completion.yojson_of_result result)
+  | TextDocumentCompletion _, result -> Some (yojson_of_Completion result)
   | TextDocumentCodeLens _, result ->
     Some (Json.To.list CodeLens.yojson_of_t result)
   | TextDocumentCodeLensResolve _, result -> Some (CodeLens.yojson_of_t result)
@@ -140,14 +151,13 @@ let yojson_of_result (type a) (req : a t) (result : a) =
       (Json.Option.yojson_of_t (Json.To.list FoldingRange.yojson_of_t) result)
   | SignatureHelp _, result -> Some (SignatureHelp.yojson_of_t result)
   | CodeAction _, result -> Some (CodeActionResult.yojson_of_t result)
-  | CompletionItemResolve _, result ->
-    Some (Completion.yojson_of_completionItem result)
+  | CompletionItemResolve _, result -> Some (CompletionItem.yojson_of_t result)
   | WillSaveWaitUntilTextDocument _, result ->
     Some (Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result)
   | TextDocumentOnTypeFormatting _, result ->
-    Some (TextDocumentOnTypeFormatting.Result.yojson_of_t result)
+    Some (Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result)
   | TextDocumentFormatting _, result ->
-    Some (TextDocumentFormatting.Result.yojson_of_t result)
+    Some (Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result)
   | TextDocumentLink _, result ->
     Some
       (Json.Option.yojson_of_t (Json.To.list DocumentLink.yojson_of_t) result)
@@ -158,7 +168,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
          (Json.To.list SymbolInformation.yojson_of_t)
          result)
   | TextDocumentColorPresentation _, result ->
-    Some (ColorPresentation.Result.yojson_of_t result)
+    Some (Json.To.list ColorPresentation.yojson_of_t result)
   | TextDocumentColor _, result ->
     Some (Json.To.list ColorInformation.yojson_of_t result)
   | SelectionRange _, result ->
@@ -176,7 +186,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse InitializeParams.t_of_yojson >>| fun params -> E (Initialize params)
   | "shutdown" -> Ok (E Shutdown)
   | "textDocument/completion" ->
-    parse Completion.params_of_yojson >>| fun params ->
+    parse CompletionParams.t_of_yojson >>| fun params ->
     E (TextDocumentCompletion params)
   | "textDocument/documentSymbol" ->
     parse DocumentSymbolParams.t_of_yojson >>| fun params ->
@@ -227,7 +237,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     parse WorkspaceSymbolParams.t_of_yojson >>| fun params ->
     E (WorkspaceSymbol params)
   | "textDocument/colorPresentation" ->
-    parse ColorPresentation.Params.t_of_yojson >>| fun params ->
+    parse ColorPresentationParams.t_of_yojson >>| fun params ->
     E (TextDocumentColorPresentation params)
   | "textDocument/documentColor" ->
     parse DocumentColorParams.t_of_yojson >>| fun params ->

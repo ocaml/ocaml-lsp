@@ -51,18 +51,6 @@ module Range = struct
       (dx.character, dy.character)
 end
 
-let completion_kind kind : Lsp.Completion.completionItemKind option =
-  match kind with
-  | `Value -> Some Value
-  | `Constructor -> Some Constructor
-  | `Variant -> None
-  | `Label -> Some Property
-  | `Module
-  | `Modtype ->
-    Some Module
-  | `Type -> Some TypeParameter
-  | `MethodCall -> Some Method
-
 module InitializeResult = Lsp.Gprotocol.InitializeResult
 module ClientCapabilities = Lsp.Gprotocol.ClientCapabilities
 module CodeActionKind = Lsp.Gprotocol.CodeActionKind
@@ -94,6 +82,21 @@ module Diganostic = Lsp.Gprotocol.Diagnostic
 module DiganosticSeverity = Lsp.Gprotocol.DiagnosticSeverity
 module MessageType = Lsp.Gprotocol.MessageType
 module ShowMessageParams = Lsp.Gprotocol.ShowMessageParams
+module CompletionItem = Lsp.Gprotocol.CompletionItem
+module CompletionList = Lsp.Gprotocol.CompletionList
+module CompletionItemKind = Lsp.Gprotocol.CompletionItemKind
+
+let completion_kind kind : CompletionItemKind.t option =
+  match kind with
+  | `Value -> Some Value
+  | `Constructor -> Some Constructor
+  | `Variant -> None
+  | `Label -> Some Property
+  | `Module
+  | `Modtype ->
+    Some Module
+  | `Type -> Some TypeParameter
+  | `MethodCall -> Some Method
 
 let outline_kind kind : SymbolKind.t =
   match kind with
@@ -142,11 +145,6 @@ let initializeInfo : InitializeResult.t =
 let dispatch_in_doc doc command =
   Document.with_pipeline doc (fun pipeline ->
       Query_commands.dispatch pipeline command)
-
-let logical_of_position (position : Lsp.Protocol.Position.t) =
-  let line = position.line + 1 in
-  let col = position.character in
-  `Logical (line, col)
 
 let logical_of_position' (position : Position.t) =
   let line = position.line + 1 in
@@ -274,16 +272,16 @@ module Formatter = struct
       Lsp.Rpc.send_notification rpc (ShowMessage msg);
       Error error
     | Result.Ok result ->
-      let pos line col = { Lsp.Protocol.Position.character = col; line } in
+      let pos line col = { Position.character = col; line } in
       let range =
         let start_pos = pos 0 0 in
         match Msource.get_logical (Document.source doc) `End with
         | `Logical (l, c) ->
           let end_pos = pos l c in
-          { Lsp.Protocol.Range.start_ = start_pos; end_ = end_pos }
+          { Range.start = start_pos; end_ = end_pos }
       in
-      let change = { Lsp.Protocol.TextEdit.newText = result; range } in
-      Ok (store, [ change ])
+      let change = { TextEdit.newText = result; range } in
+      Ok (store, Some [ change ])
 end
 
 let on_request :
@@ -564,7 +562,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let lsp_position = position in
-    let position = logical_of_position position in
+    let position = logical_of_position' position in
 
     let make_string chars =
       let chars = Array.of_list chars in
@@ -600,13 +598,13 @@ let on_request :
         find [] (index - 1)
     in
 
-    let range_prefix prefix =
-      let start_ =
+    let range_prefix prefix : Range.t =
+      let start =
         let len = String.length prefix in
         let character = lsp_position.character - len in
         { lsp_position with character }
       in
-      { Lsp.Protocol.Range.start_; end_ = lsp_position }
+      { Range.start; end_ = lsp_position }
     in
 
     let item index entry =
@@ -619,27 +617,15 @@ let on_request :
       let textEdit =
         match prefix with
         | `Keep -> None
-        | `Replace range ->
-          Some { Lsp.Protocol.TextEdit.range; newText = entry.name }
+        | `Replace range -> Some { TextEdit.range; newText = entry.name }
       in
-      { Lsp.Completion.label = entry.name
-      ; kind
-      ; detail = Some entry.desc
-      ; documentation = Some entry.info
-      ; deprecated = entry.deprecated
-      ; preselect = None
-      ; (* Without this field the client is not forced to respect the order
-           provided by merlin. *)
-        sortText = Some (Printf.sprintf "%04d" index)
-      ; filterText = None
-      ; insertText = None
-      ; insertTextFormat = None
-      ; textEdit
-      ; additionalTextEdits = []
-      ; commitCharacters = []
-      ; data = None
-      ; tags = []
-      }
+      CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
+        ~deprecated:
+          entry.deprecated
+          (* Without this field the client is not forced to respect the order
+             provided by merlin. *)
+        ~sortText:(Printf.sprintf "%04d" index)
+        ?textEdit ()
     in
 
     let completion_kinds =
@@ -653,6 +639,7 @@ let on_request :
       ]
     in
 
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= fun doc ->
     let prefix = prefix_of_position (Document.source doc) position in
     log ~title:Logger.Title.Debug "completion prefix: |%s|" prefix;
@@ -694,8 +681,8 @@ let on_request :
         List.map ~f:(fun entry -> `Replace (range, entry)) entries
     in
     let items = List.mapi ~f:item items in
-    let resp = { Lsp.Completion.isIncomplete = false; items } in
-    Ok (store, resp)
+    let resp = `CompletionList { CompletionList.isIncomplete = false; items } in
+    Ok (store, Some resp)
   | Lsp.Client_request.TextDocumentPrepareRename _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
@@ -769,8 +756,9 @@ let on_request :
   | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
   | Lsp.Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.get store uri >>= Formatter.run rpc store
-  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, [])
+  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, None)
   | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
     let selection_range_of_shapes (cursor_position : Position.t)
         (shapes : Query_protocol.shape list) : SelectionRange.t option =

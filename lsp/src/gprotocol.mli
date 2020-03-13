@@ -1192,7 +1192,7 @@ end
 module CompletionItem : sig
   type t =
     { label : string
-    ; kind : int option
+    ; kind : CompletionItemKind.t option
     ; tags : CompletionItemTag.t list option
     ; detail : string option
     ; documentation :
@@ -1214,7 +1214,7 @@ module CompletionItem : sig
 
   val create :
        label:string
-    -> ?kind:int
+    -> ?kind:CompletionItemKind.t
     -> ?tags:CompletionItemTag.t list
     -> ?detail:string
     -> ?documentation:[ `String of string | `MarkupContent of MarkupContent.t ]

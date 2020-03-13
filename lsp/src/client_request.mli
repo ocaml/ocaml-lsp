@@ -1,5 +1,5 @@
 open! Import
-open Protocol
+open Gprotocol
 open Extension
 module InitializeParams = Gprotocol.InitializeParams
 module InitializeResult = Gprotocol.InitializeResult
@@ -37,6 +37,7 @@ module FoldingRangeParams = Gprotocol.FoldingRangeParams
 module FoldingRange = Gprotocol.FoldingRange
 module SignatureHelp = Gprotocol.SignatureHelp
 module SignatureHelpParams = Gprotocol.SignatureHelpParams
+module TextEdit = Gprotocol.TextEdit
 
 type _ t =
   | Shutdown : unit t
@@ -47,7 +48,13 @@ type _ t =
       TextDocumentPositionParams.t
       -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
-  | TextDocumentCompletion : Completion.params -> Completion.result t
+  | TextDocumentCompletion :
+      CompletionParams.t
+      -> [ `CompletionList of CompletionList.t
+         | `List of CompletionItem.t list
+         ]
+         option
+         t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
@@ -77,18 +84,18 @@ type _ t =
       -> FoldingRange.t list option t
   | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
-  | CompletionItemResolve :
-      Completion.completionItem
-      -> Completion.completionItem t
+  | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
       -> TextEdit.t list option t
-  | TextDocumentFormatting : DocumentFormattingParams.t -> TextEdit.t list t
+  | TextDocumentFormatting :
+      DocumentFormattingParams.t
+      -> TextEdit.t list option t
   | TextDocumentOnTypeFormatting :
       DocumentOnTypeFormattingParams.t
-      -> TextDocumentOnTypeFormatting.Result.t t
+      -> TextEdit.t list option t
   | TextDocumentColorPresentation :
-      ColorPresentation.Params.t
+      ColorPresentationParams.t
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
