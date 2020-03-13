@@ -1,5 +1,5 @@
 open Import
-open Gprotocol
+open Types
 
 type t =
   { ic : in_channel
@@ -80,7 +80,7 @@ module Message = struct
     | Some id -> Client_request.of_jsonrpc packet >>| fun r -> Request (id, r)
 end
 
-open Gprotocol
+open Types
 
 type 'state handler =
   { on_initialize :

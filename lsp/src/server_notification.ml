@@ -1,5 +1,5 @@
 open! Import
-open Gprotocol
+open Types
 
 type t =
   | PublishDiagnostics of PublishDiagnosticsParams.t

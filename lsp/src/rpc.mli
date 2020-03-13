@@ -1,5 +1,5 @@
 open! Import
-open Gprotocol
+open Types
 
 (** * This encodes LSP RPC state machine. *)
 

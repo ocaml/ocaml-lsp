@@ -34,5 +34,5 @@
      "let ifprintf oc (CamlinternalFormatBasics.Format (fmt, _)) =\nCamlinternalFormat.make_printf (fun _ _ -> ()) oc End_of_acc fmt"))))
 
 (cinaps
- (files gprotocol.mli gprotocol.ml)
+ (files types.mli types.ml)
  (libraries lsp_gen))

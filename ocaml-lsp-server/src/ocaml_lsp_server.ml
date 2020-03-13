@@ -13,8 +13,7 @@ module Action = struct
 end
 
 module Loc = Location
-
-open Lsp.Gprotocol
+open Lsp.Types
 
 module Position = struct
   include Position
@@ -453,9 +452,7 @@ let on_request :
         | None -> uri
         | Some path -> Lsp.Uri.of_path path
       in
-      let locs =
-        [ { Location.uri = Lsp.Uri.to_string uri; range } ]
-      in
+      let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
       Ok (store, Some (`Location locs))
     | `At_origin
     | `Builtin _
@@ -512,9 +509,7 @@ let on_request :
               | None -> uri
               | Some path -> Lsp.Uri.of_path path
             in
-            let loc =
-              { Location.uri = Lsp.Uri.to_string uri; range }
-            in
+            let loc = { Location.uri = Lsp.Uri.to_string uri; range } in
             Some loc
           | `At_origin
           | `Builtin _
@@ -661,8 +656,7 @@ let on_request :
     let locs : Loc.t list = dispatch_in_doc doc command in
     let version = Document.version doc in
     let edits =
-      List.map locs
-        ~f:(fun loc ->
+      List.map locs ~f:(fun loc ->
           let range = range_of_loc loc in
           { TextEdit.newText = newName; range })
     in

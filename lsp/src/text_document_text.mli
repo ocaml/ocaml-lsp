@@ -1,4 +1,4 @@
-open Gprotocol
+open Types
 
 val normalize_line_endings : string -> string
 

@@ -1,4 +1,4 @@
-open Gprotocol
+open Types
 
 type t =
   { documentUri : Uri.t

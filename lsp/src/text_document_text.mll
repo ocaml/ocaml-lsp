@@ -1,5 +1,5 @@
 {
-  open Gprotocol
+  open Types
 
   let position_in_range (pos : Position.t) (range : Range.t) =
     if pos.line < range.start.line || pos.line > range.end_.line

@@ -18,7 +18,7 @@ end
 
 module DebugTextDocumentGet : sig
   module Params : sig
-    include module type of Gprotocol.TextDocumentPositionParams
+    include module type of Types.TextDocumentPositionParams
   end
 
   module Result : sig

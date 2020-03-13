@@ -1,5 +1,5 @@
 open! Import
-open Gprotocol
+open Types
 open Extension
 
 type _ t =

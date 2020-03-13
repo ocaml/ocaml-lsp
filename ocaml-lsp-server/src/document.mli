@@ -1,4 +1,4 @@
-open Lsp.Gprotocol
+open Lsp.Types
 
 type t
 

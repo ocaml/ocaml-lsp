@@ -87,7 +87,7 @@ module DebugEcho = struct
 end
 
 module DebugTextDocumentGet = struct
-  module Params = Gprotocol.TextDocumentPositionParams
+  module Params = Types.TextDocumentPositionParams
 
   module Result = struct
     type t = string option
