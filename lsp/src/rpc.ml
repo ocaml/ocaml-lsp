@@ -53,7 +53,7 @@ let read rpc =
       Result.errorf "error parsing json: %s" msg
   in
 
-  read_content rpc >>= parse_json >>= fun parsed ->
+  let* parsed = read_content rpc >>= parse_json in
   match Jsonrpc.Request.t_of_yojson parsed with
   | r -> Ok r
   | exception _exn -> Error "Unexpected packet"
@@ -121,8 +121,9 @@ let start init_state handler ic oc =
             let open Client_request in
             read_message rpc >>= function
             | Message.Request (id, E (Initialize params)) ->
-              handler.on_initialize rpc state params
-              >>= fun (next_state, result) ->
+              let* next_state, result =
+                handler.on_initialize rpc state params
+              in
               let json = InitializeResult.yojson_of_t result in
               let response = Jsonrpc.Response.ok id json in
               rpc.state <- Initialized params.capabilities;
