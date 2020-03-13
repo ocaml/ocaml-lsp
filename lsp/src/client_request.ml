@@ -1,43 +1,6 @@
 open! Import
 open Gprotocol
 open Extension
-module InitializeParams = Gprotocol.InitializeParams
-module InitializeResult = Gprotocol.InitializeResult
-module CodeActionResult = Gprotocol.CodeActionResult
-module CodeActionParams = Gprotocol.CodeActionParams
-module ExecuteCommandParams = Gprotocol.ExecuteCommandParams
-module SelectionRangeParams = Gprotocol.SelectionRangeParams
-module SelectionRange = Gprotocol.SelectionRange
-module DocumentColorParams = Gprotocol.DocumentColorParams
-module ColorInformation = Gprotocol.ColorInformation
-module CodeLensParams = Gprotocol.CodeLensParams
-module CodeLens = Gprotocol.CodeLens
-module HoverParams = Gprotocol.HoverParams
-module Hover = Gprotocol.Hover
-module WorkspaceSymbolParams = Gprotocol.WorkspaceSymbolParams
-module SymbolInformation = Gprotocol.SymbolInformation
-module DocumentSymbolParams = Gprotocol.DocumentSymbolParams
-module DocumentSymbol = Gprotocol.DocumentSymbol
-module PrepareRenameParams = Gprotocol.PrepareRenameParams
-module RenameParams = Gprotocol.RenameParams
-module WorkspaceEdit = Gprotocol.WorkspaceEdit
-module WillSaveTextDocumentParams = Gprotocol.WillSaveTextDocumentParams
-module TypeDefinitionParams = Gprotocol.TypeDefinitionParams
-module Locations = Gprotocol.Locations
-module DefinitionParams = Gprotocol.DefinitionParams
-module TextDocumentPositionParams = Gprotocol.TextDocumentPositionParams
-module Range = Gprotocol.Range
-module DocumentLinkParams = Gprotocol.DocumentLinkParams
-module DocumentLink = Gprotocol.DocumentLink
-module ReferenceParams = Gprotocol.ReferenceParams
-module Location = Gprotocol.Location
-module DocumentHighlightParams = Gprotocol.DocumentHighlightParams
-module DocumentHighlight = Gprotocol.DocumentHighlight
-module FoldingRangeParams = Gprotocol.FoldingRangeParams
-module FoldingRange = Gprotocol.FoldingRange
-module SignatureHelp = Gprotocol.SignatureHelp
-module SignatureHelpParams = Gprotocol.SignatureHelpParams
-module TextEdit = Gprotocol.TextEdit
 
 type _ t =
   | Shutdown : unit t
