@@ -35,6 +35,8 @@ module DocumentHighlightParams = Gprotocol.DocumentHighlightParams
 module DocumentHighlight = Gprotocol.DocumentHighlight
 module FoldingRangeParams = Gprotocol.FoldingRangeParams
 module FoldingRange = Gprotocol.FoldingRange
+module SignatureHelp = Gprotocol.SignatureHelp
+module SignatureHelpParams = Gprotocol.SignatureHelpParams
 
 type _ t =
   | Shutdown : unit t
@@ -73,7 +75,7 @@ type _ t =
   | TextDocumentFoldingRange :
       FoldingRangeParams.t
       -> FoldingRange.t list option t
-  | SignatureHelp : TextDocumentPositionParams.t -> SignatureHelp.t t
+  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CompletionItemResolve :
       Completion.completionItem
