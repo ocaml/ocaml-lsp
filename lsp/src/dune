@@ -4,6 +4,7 @@
  (name lsp)
  (public_name lsp)
  (libraries stdune yojson threads.posix ppx_yojson_conv_lib)
+ (preprocess future_syntax)
  (flags :standard "-open" "Ppx_yojson_conv_lib" "-open" "Yojson_conv")
  (lint
   (pps ppx_yojson_conv)))

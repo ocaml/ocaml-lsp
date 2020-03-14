@@ -197,7 +197,7 @@ let code_action store (params : CodeActionParams.t) =
   | Some _
   | None ->
     let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let command =
       let start = logical_of_position' params.range.start in
       let finish = logical_of_position' params.range.end_ in
@@ -310,7 +310,7 @@ let on_request :
     in
 
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let pos = logical_of_position' position in
     match query_type doc pos with
     | None -> Ok (store, None)
@@ -331,7 +331,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentReferences
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
@@ -348,7 +348,7 @@ let on_request :
     Ok (store, codeLens)
   | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let symbol_infos =
@@ -374,7 +374,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentHighlight
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
@@ -414,17 +414,16 @@ let on_request :
     in
 
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let symbols =
       let hierarchicalDocumentSymbolSupport =
         let open Option.O in
         Option.value
-          ( client_capabilities.textDocument
-          >>= fun (textDocument : TextDocumentClientCapabilities.t) ->
-            textDocument.documentSymbol >>= fun ds ->
-            ds.hierarchicalDocumentSymbolSupport )
+          (let* textDocument = client_capabilities.textDocument in
+           let* ds = textDocument.documentSymbol in
+           ds.hierarchicalDocumentSymbolSupport)
           ~default:false
       in
       match hierarchicalDocumentSymbolSupport with
@@ -440,7 +439,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let position = logical_of_position' position in
     let command = Query_protocol.Locate (None, `ML, position) in
     match dispatch_in_doc doc command with
@@ -464,7 +463,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let position = logical_of_position' position in
     Document.with_pipeline doc @@ fun pipeline ->
     let typer = Mpipeline.typer_result pipeline in
@@ -602,7 +601,7 @@ let on_request :
     in
 
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let prefix = prefix_of_position (Document.source doc) position in
     log ~title:Logger.Title.Debug "completion prefix: |%s|" prefix;
 
@@ -649,7 +648,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let command =
       Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
     in
@@ -664,8 +663,9 @@ let on_request :
       let documentChanges =
         let open Option.O in
         Option.value ~default:false
-          ( client_capabilities.workspace >>= fun workspace ->
-            workspace.workspaceEdit >>= fun edit -> edit.documentChanges )
+          (let* workspace = client_capabilities.workspace in
+           let* edit = workspace.workspaceEdit in
+           edit.documentChanges)
       in
       let uri = Lsp.Uri.to_string uri in
       if documentChanges then
@@ -682,7 +682,7 @@ let on_request :
     Ok (store, workspace_edits)
   | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let command = Query_protocol.Outline in
     let outline = dispatch_in_doc doc command in
     let folds : FoldingRange.t list =
@@ -717,7 +717,8 @@ let on_request :
   | Lsp.Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= Formatter.run rpc store
+    let* doc = Document_store.get store uri in
+    Formatter.run rpc store doc
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, None)
   | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
     let selection_range_of_shapes (cursor_position : Position.t)
@@ -754,7 +755,7 @@ let on_request :
       nearest_range
     in
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    Document_store.get store uri >>= fun doc ->
+    let* doc = Document_store.get store uri in
     let results =
       List.filter_map positions ~f:(fun x ->
           let command = Query_protocol.Shape (logical_of_position' x) in
