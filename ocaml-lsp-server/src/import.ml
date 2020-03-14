@@ -3,7 +3,6 @@ module Logger = Lsp.Logger
 
 module Loc = Location
 open Lsp.Types
-module Position = Position
 module Range = Range
 module CompletionItemKind = CompletionItemKind
 module SymbolKind = SymbolKind
