@@ -9,3 +9,5 @@ val ( - ) : t -> t -> t
 val compare : t -> t -> Ordering.t
 
 val logical : t -> [> `Logical of int * int ]
+
+val of_lexical_position : Lexing.position -> t

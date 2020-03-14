@@ -1,6 +1,11 @@
 open Import
 include Lsp.Types.Position
 
+let of_lexical_position (lex_position : Lexing.position) : t =
+  let line = lex_position.pos_lnum - 1 in
+  let character = lex_position.pos_cnum - lex_position.pos_bol in
+  { line; character }
+
 let ( - ) ({ line; character } : t) (t : t) : t =
   { line = line - t.line; character = character - t.character }
 

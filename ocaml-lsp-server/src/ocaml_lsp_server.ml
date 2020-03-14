@@ -58,16 +58,6 @@ let dispatch_in_doc doc command =
   Document.with_pipeline doc (fun pipeline ->
       Query_commands.dispatch pipeline command)
 
-let position_of_lexical_position (lex_position : Lexing.position) =
-  let line = lex_position.pos_lnum - 1 in
-  let character = lex_position.pos_cnum - lex_position.pos_bol in
-  { Position.line; character }
-
-let range_of_loc (loc : Loc.t) : Range.t =
-  { start = position_of_lexical_position loc.loc_start
-  ; end_ = position_of_lexical_position loc.loc_end
-  }
-
 let send_diagnostics rpc doc =
   let command =
     Query_protocol.Errors { lexing = true; parsing = true; typing = true }
@@ -77,7 +67,7 @@ let send_diagnostics rpc doc =
   let diagnostics =
     List.map errors ~f:(fun (error : Loc.error) ->
         let loc = Loc.loc_of_report error in
-        let range = range_of_loc loc in
+        let range = Range.of_loc loc in
         let severity =
           match error.source with
           | Warning -> DiagnosticSeverity.Warning
@@ -121,7 +111,7 @@ let on_initialize rpc state _params =
 
 let code_action_of_case_analysis uri (loc, newText) =
   let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = range_of_loc loc; newText } in
+    let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
     let uri = Lsp.Uri.to_string uri in
     WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
@@ -265,7 +255,7 @@ let on_request :
         | _ -> false
       in
       let contents = format_contents ~as_markdown ~typ ~doc in
-      let range = range_of_loc loc in
+      let range = Range.of_loc loc in
       let resp = Hover.create ~contents ~range () in
       Ok (store, Some resp) )
   | Lsp.Client_request.TextDocumentReferences
@@ -278,7 +268,7 @@ let on_request :
     let locs : Loc.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc loc in
+          let range = Range.of_loc loc in
           (* using original uri because merlin is looking only in local file *)
           let uri = Lsp.Uri.to_string uri in
           { Location.uri; range })
@@ -302,7 +292,7 @@ let on_request :
         | Some typ ->
           let loc = item.Query_protocol.location in
           let info =
-            let range = range_of_loc loc in
+            let range = Range.of_loc loc in
             let command = Command.create ~title:typ ~command:"" () in
             CodeLens.create ~range ~command ()
           in
@@ -321,7 +311,7 @@ let on_request :
     let locs : Loc.t list = dispatch_in_doc doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc loc in
+          let range = Range.of_loc loc in
           (* using the default kind as we are lacking info to make a difference
              between assignment and usage. *)
           DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
@@ -329,7 +319,7 @@ let on_request :
     Ok (store, Some lsp_locs)
   | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
-    let range item = range_of_loc item.Query_protocol.location in
+    let range item = Range.of_loc item.Query_protocol.location in
 
     let rec symbol item =
       let children = List.map item.Query_protocol.children ~f:symbol in
@@ -384,7 +374,7 @@ let on_request :
     let command = Query_protocol.Locate (None, `ML, position) in
     match dispatch_in_doc doc command with
     | `Found (path, lex_position) ->
-      let position = position_of_lexical_position lex_position in
+      let position = Position.of_lexical_position lex_position in
       let range = { Range.start = position; end_ = position } in
       let uri =
         match path with
@@ -441,7 +431,7 @@ let on_request :
           with
           | exception Env.Error _ -> None
           | `Found (path, lex_position) ->
-            let position = position_of_lexical_position lex_position in
+            let position = Position.of_lexical_position lex_position in
             let range = { Range.start = position; end_ = position } in
             let uri =
               match path with
@@ -478,7 +468,7 @@ let on_request :
     let version = Document.version doc in
     let edits =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc loc in
+          let range = Range.of_loc loc in
           { TextEdit.newText = newName; range })
     in
     let workspace_edits =
@@ -517,7 +507,7 @@ let on_request :
         match items with
         | [] -> acc
         | item :: items ->
-          let range = range_of_loc item.location in
+          let range = Range.of_loc item.location in
           if range.end_.line - range.start.line < 2 then
             loop acc items
           else
@@ -546,7 +536,7 @@ let on_request :
     let selection_range_of_shapes (cursor_position : Position.t)
         (shapes : Query_protocol.shape list) : SelectionRange.t option =
       let rec ranges_of_shape parent s =
-        let range = range_of_loc s.Query_protocol.shape_loc in
+        let range = Range.of_loc s.Query_protocol.shape_loc in
         let selectionRange = { SelectionRange.range; parent } in
         match s.Query_protocol.shape_sub with
         | [] -> [ selectionRange ]
