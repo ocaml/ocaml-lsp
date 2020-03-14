@@ -12,9 +12,6 @@ module Action = struct
   let destruct = "destruct"
 end
 
-module Loc = Location
-open Lsp.Types
-
 module Position = struct
   include Position
 
