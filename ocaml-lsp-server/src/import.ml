@@ -39,3 +39,5 @@ module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
 module TextDocumentEdit = TextDocumentEdit
 module FoldingRange = FoldingRange
 module SelectionRange = SelectionRange
+
+let { Logger.log } = Logger.for_section "ocaml-lsp-server"
