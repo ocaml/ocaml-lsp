@@ -83,11 +83,6 @@ let dispatch_in_doc doc command =
   Document.with_pipeline doc (fun pipeline ->
       Query_commands.dispatch pipeline command)
 
-let logical_of_position' (position : Position.t) =
-  let line = position.line + 1 in
-  let col = position.character in
-  `Logical (line, col)
-
 let position_of_lexical_position (lex_position : Lexing.position) =
   let line = lex_position.pos_lnum - 1 in
   let character = lex_position.pos_cnum - lex_position.pos_bol in
@@ -169,8 +164,8 @@ let code_action store (params : CodeActionParams.t) =
     let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
     let* doc = Document_store.get store uri in
     let command =
-      let start = logical_of_position' params.range.start in
-      let finish = logical_of_position' params.range.end_ in
+      let start = Position.logical params.range.start in
+      let finish = Position.logical params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
     let result : CodeActionResult.t =
@@ -281,7 +276,7 @@ let on_request :
 
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let pos = logical_of_position' position in
+    let pos = Position.logical position in
     match query_type doc pos with
     | None -> Ok (store, None)
     | Some (loc, typ) ->
@@ -303,7 +298,7 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
     let locs : Loc.t list = dispatch_in_doc doc command in
     let lsp_locs =
@@ -346,7 +341,7 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
     let locs : Loc.t list = dispatch_in_doc doc command in
     let lsp_locs =
@@ -410,7 +405,7 @@ let on_request :
       { textDocument = { uri }; position } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let position = logical_of_position' position in
+    let position = Position.logical position in
     let command = Query_protocol.Locate (None, `ML, position) in
     match dispatch_in_doc doc command with
     | `Found (path, lex_position) ->
@@ -434,7 +429,7 @@ let on_request :
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let position = logical_of_position' position in
+    let position = Position.logical position in
     Document.with_pipeline doc @@ fun pipeline ->
     let typer = Mpipeline.typer_result pipeline in
     let structures = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
@@ -493,7 +488,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let lsp_position = position in
-    let position = logical_of_position' position in
+    let position = Position.logical position in
 
     let make_string chars =
       let chars = Array.of_list chars in
@@ -620,7 +615,7 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
     let locs : Loc.t list = dispatch_in_doc doc command in
     let version = Document.version doc in
@@ -728,7 +723,7 @@ let on_request :
     let* doc = Document_store.get store uri in
     let results =
       List.filter_map positions ~f:(fun x ->
-          let command = Query_protocol.Shape (logical_of_position' x) in
+          let command = Query_protocol.Shape (Position.logical x) in
           let shapes = dispatch_in_doc doc command in
           selection_range_of_shapes x shapes)
     in

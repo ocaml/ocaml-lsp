@@ -1,6 +1,5 @@
 include Lsp.Import
 module Logger = Lsp.Logger
-
 module Loc = Location
 open Lsp.Types
 module Range = Range

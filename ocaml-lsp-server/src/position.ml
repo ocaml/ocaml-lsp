@@ -1,5 +1,4 @@
 open Import
-
 include Lsp.Types.Position
 
 let ( - ) ({ line; character } : t) (t : t) : t =
@@ -25,3 +24,8 @@ let compare_inclusion (t : t) (r : Range.t) =
   | Lt, Eq
   | Lt, Gt ->
     assert false
+
+let logical position =
+  let line = position.line + 1 in
+  let col = position.character in
+  `Logical (line, col)
