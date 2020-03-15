@@ -16,7 +16,7 @@ let compare ({ line; character } : t) (t : t) : Ordering.t =
   Stdune.Tuple.T2.compare Int.compare Int.compare (line, character)
     (t.line, t.character)
 
-let compare_inclusion (t : t) (r : Range.t) =
+let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
   match (compare t r.start, compare t r.end_) with
   | Lt, Lt -> `Outside (abs (r.start - t))
   | Gt, Gt -> `Outside (abs (r.end_ - t))
