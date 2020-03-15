@@ -6,6 +6,7 @@ module CompletionItemKind = CompletionItemKind
 module SymbolKind = SymbolKind
 module InitializeResult = InitializeResult
 module CodeActionOptions = CodeActionOptions
+module CodeLensOptions = CodeLensOptions
 module TextDocumentSyncOptions = TextDocumentSyncOptions
 module TextDocumentSyncKind = TextDocumentSyncKind
 module CompletionOptions = CompletionOptions
