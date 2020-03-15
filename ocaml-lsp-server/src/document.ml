@@ -56,3 +56,6 @@ let update_text ?version change doc =
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
   { tdoc; config; source; pipeline }
+
+let dispatch doc command =
+  with_pipeline doc (fun pipeline -> Query_commands.dispatch pipeline command)

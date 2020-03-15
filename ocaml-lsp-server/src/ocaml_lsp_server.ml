@@ -10,18 +10,6 @@ module Action = struct
   let destruct = "destruct"
 end
 
-let outline_kind kind : SymbolKind.t =
-  match kind with
-  | `Value -> Function
-  | `Constructor -> Constructor
-  | `Label -> Property
-  | `Module -> Module
-  | `Modtype -> Module
-  | `Type -> String
-  | `Exn -> Constructor
-  | `Class -> Class
-  | `Method -> Method
-
 let initializeInfo : InitializeResult.t =
   let codeActionProvider =
     `CodeActionOptions
@@ -53,10 +41,6 @@ let initializeInfo : InitializeResult.t =
     InitializeResult.create_serverInfo ~name:"ocamllsp" ()
   in
   InitializeResult.create ~capabilities ~serverInfo ()
-
-let dispatch_in_doc doc command =
-  Document.with_pipeline doc (fun pipeline ->
-      Query_commands.dispatch pipeline command)
 
 let send_diagnostics rpc doc =
   let command =
@@ -135,7 +119,7 @@ let code_action store (params : CodeActionParams.t) =
     in
     let result : CodeActionResult.t =
       try
-        let res = dispatch_in_doc doc command in
+        let res = Document.dispatch doc command in
         Some [ `CodeAction (code_action_of_case_analysis uri res) ]
       with
       | Destruct.Wrong_parent _
@@ -206,7 +190,7 @@ let on_request :
     -> (
     let query_type doc pos =
       let command = Query_protocol.Type_enclosing (None, pos, None) in
-      match dispatch_in_doc doc command with
+      match Document.dispatch doc command with
       | []
       | (_, `Index _, _) :: _ ->
         None
@@ -215,7 +199,7 @@ let on_request :
 
     let query_doc doc pos =
       let command = Query_protocol.Document (None, pos) in
-      match dispatch_in_doc doc command with
+      match Document.dispatch doc command with
       | `Found s
       | `Builtin s ->
         Some s
@@ -265,7 +249,7 @@ let on_request :
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = Document.dispatch doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
           let range = Range.of_loc loc in
@@ -280,7 +264,7 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command = Query_protocol.Outline in
-    let outline = dispatch_in_doc doc command in
+    let outline = Document.dispatch doc command in
     let symbol_infos =
       let rec symbol_info_of_outline_item item =
         let children =
@@ -308,7 +292,7 @@ let on_request :
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = Document.dispatch doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
           let range = Range.of_loc loc in
@@ -319,51 +303,9 @@ let on_request :
     Ok (store, Some lsp_locs)
   | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
-    let range item = Range.of_loc item.Query_protocol.location in
-
-    let rec symbol item =
-      let children = List.map item.Query_protocol.children ~f:symbol in
-      let range : Range.t = range item in
-      let kind = outline_kind item.outline_kind in
-      DocumentSymbol.create ~name:item.Query_protocol.outline_name ~kind
-        ?detail:item.Query_protocol.outline_type ~deprecated:false ~range
-        ~selectionRange:range ~children ()
-    in
-
-    let rec symbol_info ?containerName item =
-      let location = { Location.uri; range = range item } in
-      let info =
-        let kind = outline_kind item.outline_kind in
-        SymbolInformation.create ~name:item.Query_protocol.outline_name ~kind
-          ~deprecated:false ~location ?containerName ()
-      in
-      let children =
-        List.concat_map item.children ~f:(symbol_info ~containerName:info.name)
-      in
-      info :: children
-    in
-
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let command = Query_protocol.Outline in
-    let outline = dispatch_in_doc doc command in
-    let symbols =
-      let hierarchicalDocumentSymbolSupport =
-        let open Option.O in
-        Option.value
-          (let* textDocument = client_capabilities.textDocument in
-           let* ds = textDocument.documentSymbol in
-           ds.hierarchicalDocumentSymbolSupport)
-          ~default:false
-      in
-      match hierarchicalDocumentSymbolSupport with
-      | true ->
-        let symbols = List.map outline ~f:symbol in
-        `DocumentSymbol symbols
-      | false ->
-        let symbols = List.concat_map ~f:symbol_info outline in
-        `SymbolInformation symbols
-    in
+    let symbols = Document_symbol.run client_capabilities doc uri in
     Ok (store, Some symbols)
   | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
@@ -372,7 +314,7 @@ let on_request :
     let* doc = Document_store.get store uri in
     let position = Position.logical position in
     let command = Query_protocol.Locate (None, `ML, position) in
-    match dispatch_in_doc doc command with
+    match Document.dispatch doc command with
     | `Found (path, lex_position) ->
       let position = Position.of_lexical_position lex_position in
       let range = { Range.start = position; end_ = position } in
@@ -464,7 +406,7 @@ let on_request :
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = Document.dispatch doc command in
     let version = Document.version doc in
     let edits =
       List.map locs ~f:(fun loc ->
@@ -496,7 +438,7 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command = Query_protocol.Outline in
-    let outline = dispatch_in_doc doc command in
+    let outline = Document.dispatch doc command in
     let folds : FoldingRange.t list =
       let folding_range (range : Range.t) =
         FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
@@ -571,7 +513,7 @@ let on_request :
     let results =
       List.filter_map positions ~f:(fun x ->
           let command = Query_protocol.Shape (Position.logical x) in
-          let shapes = dispatch_in_doc doc command in
+          let shapes = Document.dispatch doc command in
           selection_range_of_shapes x shapes)
     in
     Ok (store, results)

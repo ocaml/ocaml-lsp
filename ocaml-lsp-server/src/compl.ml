@@ -88,6 +88,7 @@ let complete doc position =
       Query_protocol.Complete_prefix
         (prefix, position, completion_kinds, true, true)
     in
+    (* TODO use Document.dispatch *)
     Query_commands.dispatch pipeline complete
   in
   let items = completion.entries |> List.map ~f:(fun entry -> `Keep entry) in
