@@ -100,6 +100,7 @@ let initializeInfo : InitializeResult.t =
       ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
       ~completionProvider ~codeActionProvider ~referencesProvider:(`Bool true)
       ~documentHighlightProvider:(`Bool true)
+      ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
       ~renameProvider:(`Bool true) ()
   in
