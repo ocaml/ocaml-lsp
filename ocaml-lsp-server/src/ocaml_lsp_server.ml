@@ -1,7 +1,5 @@
 open Import
 
-let { Logger.log } = Logger.for_section "ocaml-lsp-server"
-
 let make_error = Lsp.Jsonrpc.Response.Error.make
 
 let not_supported () =
@@ -11,72 +9,6 @@ let not_supported () =
 module Action = struct
   let destruct = "destruct"
 end
-
-module Loc = Location
-open Lsp.Types
-
-module Position = struct
-  include Position
-
-  let ( - ) ({ line; character } : t) (t : t) : t =
-    { line = line - t.line; character = character - t.character }
-
-  let abs ({ line; character } : t) : t =
-    { line = abs line; character = abs character }
-
-  let compare ({ line; character } : t) (t : t) : Ordering.t =
-    Stdune.Tuple.T2.compare Int.compare Int.compare (line, character)
-      (t.line, t.character)
-
-  let compare_inclusion (t : t) (r : Range.t) =
-    match (compare t r.start, compare t r.end_) with
-    | Lt, Lt -> `Outside (abs (r.start - t))
-    | Gt, Gt -> `Outside (abs (r.end_ - t))
-    | Eq, Lt
-    | Gt, Eq
-    | Eq, Eq
-    | Gt, Lt ->
-      `Inside
-    | Eq, Gt
-    | Lt, Eq
-    | Lt, Gt ->
-      assert false
-end
-
-module Range = struct
-  include Range
-
-  (* Compares ranges by their lengths*)
-  let compare_size (x : t) (y : t) =
-    let dx = Position.(x.end_ - x.start) in
-    let dy = Position.(y.end_ - y.start) in
-    Stdune.Tuple.T2.compare Int.compare Int.compare (dx.line, dy.line)
-      (dx.character, dy.character)
-end
-
-let completion_kind kind : CompletionItemKind.t option =
-  match kind with
-  | `Value -> Some Value
-  | `Constructor -> Some Constructor
-  | `Variant -> None
-  | `Label -> Some Property
-  | `Module
-  | `Modtype ->
-    Some Module
-  | `Type -> Some TypeParameter
-  | `MethodCall -> Some Method
-
-let outline_kind kind : SymbolKind.t =
-  match kind with
-  | `Value -> Function
-  | `Constructor -> Constructor
-  | `Label -> Property
-  | `Module -> Module
-  | `Modtype -> Module
-  | `Type -> String
-  | `Exn -> Constructor
-  | `Class -> Class
-  | `Method -> Method
 
 let initializeInfo : InitializeResult.t =
   let codeActionProvider =
@@ -110,25 +42,6 @@ let initializeInfo : InitializeResult.t =
   in
   InitializeResult.create ~capabilities ~serverInfo ()
 
-let dispatch_in_doc doc command =
-  Document.with_pipeline doc (fun pipeline ->
-      Query_commands.dispatch pipeline command)
-
-let logical_of_position' (position : Position.t) =
-  let line = position.line + 1 in
-  let col = position.character in
-  `Logical (line, col)
-
-let position_of_lexical_position (lex_position : Lexing.position) =
-  let line = lex_position.pos_lnum - 1 in
-  let character = lex_position.pos_cnum - lex_position.pos_bol in
-  { Position.line; character }
-
-let range_of_loc (loc : Loc.t) : Range.t =
-  { start = position_of_lexical_position loc.loc_start
-  ; end_ = position_of_lexical_position loc.loc_end
-  }
-
 let send_diagnostics rpc doc =
   let command =
     Query_protocol.Errors { lexing = true; parsing = true; typing = true }
@@ -138,7 +51,7 @@ let send_diagnostics rpc doc =
   let diagnostics =
     List.map errors ~f:(fun (error : Loc.error) ->
         let loc = Loc.loc_of_report error in
-        let range = range_of_loc loc in
+        let range = Range.of_loc loc in
         let severity =
           match error.source with
           | Warning -> DiagnosticSeverity.Warning
@@ -182,7 +95,7 @@ let on_initialize rpc state _params =
 
 let code_action_of_case_analysis uri (loc, newText) =
   let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = range_of_loc loc; newText } in
+    let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
     let uri = Lsp.Uri.to_string uri in
     WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
@@ -200,13 +113,13 @@ let code_action store (params : CodeActionParams.t) =
     let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
     let* doc = Document_store.get store uri in
     let command =
-      let start = logical_of_position' params.range.start in
-      let finish = logical_of_position' params.range.end_ in
+      let start = Position.logical params.range.start in
+      let finish = Position.logical params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
     let result : CodeActionResult.t =
       try
-        let res = dispatch_in_doc doc command in
+        let res = Document.dispatch doc command in
         Some [ `CodeAction (code_action_of_case_analysis uri res) ]
       with
       | Destruct.Wrong_parent _
@@ -277,7 +190,7 @@ let on_request :
     -> (
     let query_type doc pos =
       let command = Query_protocol.Type_enclosing (None, pos, None) in
-      match dispatch_in_doc doc command with
+      match Document.dispatch doc command with
       | []
       | (_, `Index _, _) :: _ ->
         None
@@ -286,7 +199,7 @@ let on_request :
 
     let query_doc doc pos =
       let command = Query_protocol.Document (None, pos) in
-      match dispatch_in_doc doc command with
+      match Document.dispatch doc command with
       | `Found s
       | `Builtin s ->
         Some s
@@ -312,7 +225,7 @@ let on_request :
 
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let pos = logical_of_position' position in
+    let pos = Position.logical position in
     match query_type doc pos with
     | None -> Ok (store, None)
     | Some (loc, typ) ->
@@ -326,7 +239,7 @@ let on_request :
         | _ -> false
       in
       let contents = format_contents ~as_markdown ~typ ~doc in
-      let range = range_of_loc loc in
+      let range = Range.of_loc loc in
       let resp = Hover.create ~contents ~range () in
       Ok (store, Some resp) )
   | Lsp.Client_request.TextDocumentReferences
@@ -334,12 +247,12 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = Document.dispatch doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc loc in
+          let range = Range.of_loc loc in
           (* using original uri because merlin is looking only in local file *)
           let uri = Lsp.Uri.to_string uri in
           { Location.uri; range })
@@ -351,7 +264,7 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command = Query_protocol.Outline in
-    let outline = dispatch_in_doc doc command in
+    let outline = Document.dispatch doc command in
     let symbol_infos =
       let rec symbol_info_of_outline_item item =
         let children =
@@ -363,7 +276,7 @@ let on_request :
         | Some typ ->
           let loc = item.Query_protocol.location in
           let info =
-            let range = range_of_loc loc in
+            let range = Range.of_loc loc in
             let command = Command.create ~title:typ ~command:"" () in
             CodeLens.create ~range ~command ()
           in
@@ -377,12 +290,12 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = Document.dispatch doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc loc in
+          let range = Range.of_loc loc in
           (* using the default kind as we are lacking info to make a difference
              between assignment and usage. *)
           DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
@@ -390,62 +303,20 @@ let on_request :
     Ok (store, Some lsp_locs)
   | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
-    let range item = range_of_loc item.Query_protocol.location in
-
-    let rec symbol item =
-      let children = List.map item.Query_protocol.children ~f:symbol in
-      let range : Range.t = range item in
-      let kind = outline_kind item.outline_kind in
-      DocumentSymbol.create ~name:item.Query_protocol.outline_name ~kind
-        ?detail:item.Query_protocol.outline_type ~deprecated:false ~range
-        ~selectionRange:range ~children ()
-    in
-
-    let rec symbol_info ?containerName item =
-      let location = { Location.uri; range = range item } in
-      let info =
-        let kind = outline_kind item.outline_kind in
-        SymbolInformation.create ~name:item.Query_protocol.outline_name ~kind
-          ~deprecated:false ~location ?containerName ()
-      in
-      let children =
-        List.concat_map item.children ~f:(symbol_info ~containerName:info.name)
-      in
-      info :: children
-    in
-
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let command = Query_protocol.Outline in
-    let outline = dispatch_in_doc doc command in
-    let symbols =
-      let hierarchicalDocumentSymbolSupport =
-        let open Option.O in
-        Option.value
-          (let* textDocument = client_capabilities.textDocument in
-           let* ds = textDocument.documentSymbol in
-           ds.hierarchicalDocumentSymbolSupport)
-          ~default:false
-      in
-      match hierarchicalDocumentSymbolSupport with
-      | true ->
-        let symbols = List.map outline ~f:symbol in
-        `DocumentSymbol symbols
-      | false ->
-        let symbols = List.concat_map ~f:symbol_info outline in
-        `SymbolInformation symbols
-    in
+    let symbols = Document_symbol.run client_capabilities doc uri in
     Ok (store, Some symbols)
   | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let position = logical_of_position' position in
+    let position = Position.logical position in
     let command = Query_protocol.Locate (None, `ML, position) in
-    match dispatch_in_doc doc command with
+    match Document.dispatch doc command with
     | `Found (path, lex_position) ->
-      let position = position_of_lexical_position lex_position in
+      let position = Position.of_lexical_position lex_position in
       let range = { Range.start = position; end_ = position } in
       let uri =
         match path with
@@ -465,7 +336,7 @@ let on_request :
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let position = logical_of_position' position in
+    let position = Position.logical position in
     Document.with_pipeline doc @@ fun pipeline ->
     let typer = Mpipeline.typer_result pipeline in
     let structures = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
@@ -502,7 +373,7 @@ let on_request :
           with
           | exception Env.Error _ -> None
           | `Found (path, lex_position) ->
-            let position = position_of_lexical_position lex_position in
+            let position = Position.of_lexical_position lex_position in
             let range = { Range.start = position; end_ = position } in
             let uri =
               match path with
@@ -523,141 +394,23 @@ let on_request :
     Ok (store, Some (`Location locs))
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
-    let lsp_position = position in
-    let position = logical_of_position' position in
-
-    let make_string chars =
-      let chars = Array.of_list chars in
-      String.init (Array.length chars) ~f:(Array.get chars)
-    in
-
-    let prefix_of_position source position =
-      match Msource.text source with
-      | "" -> ""
-      | text ->
-        let len = String.length text in
-
-        let rec find prefix i =
-          if i < 0 then
-            make_string prefix
-          else if i >= len then
-            find prefix (i - 1)
-          else
-            let ch = text.[i] in
-            (* The characters for an infix function are missing *)
-            match ch with
-            | 'a' .. 'z'
-            | 'A' .. 'Z'
-            | '0' .. '9'
-            | '.'
-            | '\''
-            | '_' ->
-              find (ch :: prefix) (i - 1)
-            | _ -> make_string prefix
-        in
-
-        let (`Offset index) = Msource.get_offset source position in
-        find [] (index - 1)
-    in
-
-    let range_prefix prefix : Range.t =
-      let start =
-        let len = String.length prefix in
-        let character = lsp_position.character - len in
-        { lsp_position with character }
-      in
-      { Range.start; end_ = lsp_position }
-    in
-
-    let item index entry =
-      let prefix, (entry : Query_protocol.Compl.entry) =
-        match entry with
-        | `Keep entry -> (`Keep, entry)
-        | `Replace (range, entry) -> (`Replace range, entry)
-      in
-      let kind = completion_kind entry.kind in
-      let textEdit =
-        match prefix with
-        | `Keep -> None
-        | `Replace range -> Some { TextEdit.range; newText = entry.name }
-      in
-      CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
-        ~deprecated:
-          entry.deprecated
-          (* Without this field the client is not forced to respect the order
-             provided by merlin. *)
-        ~sortText:(Printf.sprintf "%04d" index)
-        ?textEdit ()
-    in
-
-    let completion_kinds =
-      [ `Constructor
-      ; `Labels
-      ; `Modules
-      ; `Modules_type
-      ; `Types
-      ; `Values
-      ; `Variants
-      ]
-    in
-
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let prefix = prefix_of_position (Document.source doc) position in
-    log ~title:Logger.Title.Debug "completion prefix: |%s|" prefix;
-
-    Document.with_pipeline doc @@ fun pipeline ->
-    let completion =
-      let complete =
-        Query_protocol.Complete_prefix
-          (prefix, position, completion_kinds, true, true)
-      in
-      Query_commands.dispatch pipeline complete
-    in
-    let items = completion.entries |> List.map ~f:(fun entry -> `Keep entry) in
-    let items =
-      match completion.context with
-      | `Unknown -> items
-      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
-        items
-        @ List.map labels ~f:(fun (name, typ) ->
-              `Keep
-                { Query_protocol.Compl.name
-                ; kind = `Label
-                ; desc = typ
-                ; info = ""
-                ; deprecated = false (* TODO this is wrong *)
-                })
-    in
-    let items =
-      match items with
-      | _ :: _ -> items
-      | [] ->
-        let expand =
-          Query_protocol.Expand_prefix (prefix, position, completion_kinds, true)
-        in
-        let { Query_protocol.Compl.entries; context = _ } =
-          Query_commands.dispatch pipeline expand
-        in
-        let range = range_prefix prefix in
-        List.map ~f:(fun entry -> `Replace (range, entry)) entries
-    in
-    let items = List.mapi ~f:item items in
-    let resp = `CompletionList { CompletionList.isIncomplete = false; items } in
-    Ok (store, Some resp)
+    let+ resp = Compl.complete doc position in
+    (store, Some resp)
   | Lsp.Client_request.TextDocumentPrepareRename _ -> Ok (store, None)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command =
-      Query_protocol.Occurrences (`Ident_at (logical_of_position' position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = dispatch_in_doc doc command in
+    let locs : Loc.t list = Document.dispatch doc command in
     let version = Document.version doc in
     let edits =
       List.map locs ~f:(fun loc ->
-          let range = range_of_loc loc in
+          let range = Range.of_loc loc in
           { TextEdit.newText = newName; range })
     in
     let workspace_edits =
@@ -685,7 +438,7 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let command = Query_protocol.Outline in
-    let outline = dispatch_in_doc doc command in
+    let outline = Document.dispatch doc command in
     let folds : FoldingRange.t list =
       let folding_range (range : Range.t) =
         FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
@@ -696,7 +449,7 @@ let on_request :
         match items with
         | [] -> acc
         | item :: items ->
-          let range = range_of_loc item.location in
+          let range = Range.of_loc item.location in
           if range.end_.line - range.start.line < 2 then
             loop acc items
           else
@@ -725,7 +478,7 @@ let on_request :
     let selection_range_of_shapes (cursor_position : Position.t)
         (shapes : Query_protocol.shape list) : SelectionRange.t option =
       let rec ranges_of_shape parent s =
-        let range = range_of_loc s.Query_protocol.shape_loc in
+        let range = Range.of_loc s.Query_protocol.shape_loc in
         let selectionRange = { SelectionRange.range; parent } in
         match s.Query_protocol.shape_sub with
         | [] -> [ selectionRange ]
@@ -759,8 +512,8 @@ let on_request :
     let* doc = Document_store.get store uri in
     let results =
       List.filter_map positions ~f:(fun x ->
-          let command = Query_protocol.Shape (logical_of_position' x) in
-          let shapes = dispatch_in_doc doc command in
+          let command = Query_protocol.Shape (Position.logical x) in
+          let shapes = Document.dispatch doc command in
           selection_range_of_shapes x shapes)
     in
     Ok (store, results)
@@ -845,30 +598,6 @@ let start () =
   Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout;
   log ~title:Logger.Title.Info "exiting"
 
-let main () =
-  (* Setup env for extensions *)
+let run ~log_file =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  start ()
-
-let () =
-  let open Cmdliner in
-  Printexc.record_backtrace true;
-
-  let lsp_server log_file =
-    Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file main
-  in
-
-  let log_file =
-    let open Arg in
-    let doc = "Enable logging to file (pass `-' for logging to stderr)" in
-    let env = env_var "OCAML_LSP_SERVER_LOG" in
-    value & opt (some string) None & info [ "log-file" ] ~docv:"FILE" ~doc ~env
-  in
-
-  let cmd =
-    let doc = "Start OCaml LSP server (only stdio transport is supported)" in
-    ( Term.(const lsp_server $ log_file)
-    , Term.info "ocamllsp" ~doc ~exits:Term.default_exits )
-  in
-
-  Term.(exit @@ eval cmd)
+  Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file start

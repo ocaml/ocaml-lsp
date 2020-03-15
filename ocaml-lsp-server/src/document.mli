@@ -13,3 +13,5 @@ val with_pipeline : t -> (Mpipeline.t -> 'a) -> 'a
 val version : t -> int
 
 val update_text : ?version:int -> TextDocumentContentChangeEvent.t -> t -> t
+
+val dispatch : t -> 'a Query_protocol.t -> 'a
