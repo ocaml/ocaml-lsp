@@ -21,6 +21,7 @@ let initializeInfo : InitializeResult.t =
          ~change:TextDocumentSyncKind.Incremental ~willSave:false
          ~willSaveWaitUntil:false ())
   in
+  let codeLensProvider = CodeLensOptions.create ~resolveProvider:false () in
   let completionProvider =
     (* TODO even if this re-enabled in general, it should stay disabled for
        emacs. It makes completion too slow *)
@@ -30,8 +31,8 @@ let initializeInfo : InitializeResult.t =
   let capabilities =
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
-      ~completionProvider ~codeActionProvider ~referencesProvider:(`Bool true)
-      ~documentHighlightProvider:(`Bool true)
+      ~completionProvider ~codeActionProvider ~codeLensProvider
+      ~referencesProvider:(`Bool true) ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
       ~renameProvider:(`Bool true) ()
