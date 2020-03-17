@@ -399,7 +399,20 @@ let on_request :
     let* doc = Document_store.get store uri in
     let+ resp = Compl.complete doc position in
     (store, Some resp)
-  | Lsp.Client_request.TextDocumentPrepareRename _ -> Ok (store, None)
+  | Lsp.Client_request.TextDocumentPrepareRename
+      { textDocument = { uri }; position } ->
+    let uri = Lsp.Uri.t_of_yojson (`String uri) in
+    let* doc = Document_store.get store uri in
+    let command =
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+    in
+    let locs : Loc.t list = Document.dispatch doc command in
+    let loc =
+      List.find_opt locs ~f:(fun loc ->
+          let range = Range.of_loc loc in
+          Position.compare_inclusion position range = `Inside)
+    in
+    Ok (store, Option.map loc ~f:Range.of_loc)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -519,7 +532,7 @@ let on_request :
     in
     Ok (store, results)
   | Lsp.Client_request.UnknownRequest _ ->
-    Error (make_error ~code:InvalidRequest ~message:"Got unkown request" ())
+    Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
 let on_notification rpc store (notification : Lsp.Client_notification.t) :
     (Document_store.t, string) result =

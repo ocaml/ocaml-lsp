@@ -70,7 +70,7 @@ The server supports the following queries:
 - [x] `textDocument/formatting`
 - [ ] `textDocument/rangeFormatting`
 - [ ] `textDocument/onTypeFormatting`
-- [ ] `textDocument/prepareRename`
+- [x] `textDocument/prepareRename`
 - [x] `textDocument/foldingRange`
 - [x] `textDocument/selectionRange`
 - [ ] `workspace/symbol`

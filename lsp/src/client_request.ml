@@ -168,6 +168,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/codeLens" ->
     parse CodeLensParams.t_of_yojson >>| fun params ->
     E (TextDocumentCodeLens params)
+  | "textDocument/prepareRename" ->
+    parse PrepareRenameParams.t_of_yojson >>| fun params ->
+    E (TextDocumentPrepareRename params)
   | "textDocument/rename" ->
     parse RenameParams.t_of_yojson >>| fun params ->
     E (TextDocumentRename params)

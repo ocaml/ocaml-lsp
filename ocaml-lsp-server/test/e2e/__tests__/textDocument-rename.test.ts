@@ -26,9 +26,49 @@ describe("textDocument/rename", () => {
     });
   }
 
+  async function query_prepare(position) {
+    return await languageServer.sendRequest("textDocument/prepareRename", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position,
+    });
+  }
+
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
     languageServer = null;
+  });
+
+  it("can reject invalid rename request", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      workspace: { workspaceEdit: { documentChanges: false } },
+    });
+
+    await openDocument(outdent`
+      let num = 42
+      let num = num + 13
+      let num2 = num
+    `);
+
+    let result = await query_prepare(Types.Position.create(0, 1));
+    expect(result).toBeNull();
+  });
+
+  it("allows valid rename request", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      workspace: { workspaceEdit: { documentChanges: false } },
+    });
+
+    await openDocument(outdent`
+      let num = 42
+      let num = num + 13
+      let num2 = num
+    `);
+
+    let result = await query_prepare(Types.Position.create(0, 4));
+    expect(result).toMatchObject({
+      start: { line: 0, character: 4 },
+      end: { line: 0, character: 7 },
+    });
   });
 
   it("rename value in a file without documentChanges capability", async () => {
