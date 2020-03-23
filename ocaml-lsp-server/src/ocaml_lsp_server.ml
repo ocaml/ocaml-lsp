@@ -28,6 +28,9 @@ let initializeInfo : InitializeResult.t =
     CompletionOptions.create ~triggerCharacters:[ "." ] ~resolveProvider:false
       ()
   in
+  let renameProvider =
+    `RenameOptions (Lsp.Types.RenameOptions.create ~prepareProvider:true ())
+  in
   let capabilities =
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
@@ -35,7 +38,7 @@ let initializeInfo : InitializeResult.t =
       ~referencesProvider:(`Bool true) ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
-      ~renameProvider:(`Bool true) ()
+      ~renameProvider ()
   in
   let serverInfo =
     (* TODO use actual version *)
