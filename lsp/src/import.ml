@@ -10,6 +10,7 @@ module Exn = Stdune.Exn
 module Bin = Stdune.Bin
 module Unix_env = Stdune.Env
 module Fpath = Stdune.Path
+module Code_error = Code_error
 
 module String = struct
   include Stdune.String
