@@ -11,6 +11,7 @@ let completion_kind kind : CompletionItemKind.t option =
     Some Module
   | `Type -> Some TypeParameter
   | `MethodCall -> Some Method
+  | `Snippet -> Some Snippet
 
 let make_string chars =
   let chars = Array.of_list chars in
@@ -53,15 +54,16 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   { Range.start; end_ = lsp_position }
 
 let item index entry =
-  let prefix, (entry : Query_protocol.Compl.entry) =
+  let prefix, (entry : Query_protocol.Compl.entry), insertText, insertTextFormat =
     match entry with
-    | `Keep entry -> (`Keep, entry)
-    | `Replace (range, entry) -> (`Replace range, entry)
+    | `Keep entry -> (`Keep, entry, None, None)
+    | `Replace (range, entry) -> (`Replace range, entry, None, None)
+    | `Insert (entry, text, format) -> (`Insert, entry, Some text, Some format)
   in
   let kind = completion_kind entry.kind in
   let textEdit =
     match prefix with
-    | `Keep -> None
+    | `Keep | `Insert -> None
     | `Replace range -> Some { TextEdit.range; newText = entry.name }
   in
   CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
@@ -70,10 +72,11 @@ let item index entry =
       (* Without this field the client is not forced to respect the order
          provided by merlin. *)
     ~sortText:(Printf.sprintf "%04d" index)
+    ?insertText ?insertTextFormat
     ?textEdit ()
 
 let completion_kinds =
-  [ `Constructor; `Labels; `Modules; `Modules_type; `Types; `Values; `Variants ]
+  [ `Constructor; `Labels; `Modules; `Modules_type; `Types; `Values; `Variants; ]
 
 let complete doc position =
   let lsp_position = position in
@@ -95,16 +98,51 @@ let complete doc position =
   let items =
     match completion.context with
     | `Unknown -> items
-    | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
-      items
-      @ List.map labels ~f:(fun (name, typ) ->
-            `Keep
-              { Query_protocol.Compl.name
-              ; kind = `Label
-              ; desc = typ
-              ; info = ""
-              ; deprecated = false (* TODO this is wrong *)
-              })
+    | `Application { Query_protocol.Compl.labels; argument_type } ->
+      log ~title:Logger.Title.Debug "app. labels=[ %s ], argtype='%s'"
+        (labels |> List.map ~f:(fun (a, b) -> sprintf "%s=%s" a b) |> String.concat ~sep:", ")
+        argument_type;
+      let all_labels_item =
+        match labels with
+        | [] -> []
+        | labels ->
+          let entry =
+            { Query_protocol.Compl.name = "complete all labels"
+            ; kind = `Snippet
+            ; desc = (labels |> List.map ~f:fst |> String.concat ~sep:", ")
+            ; info = ""
+            ; deprecated = false
+            }
+          in
+          let conv i (label, _) =
+            let t x = Lsp.Snippet.to_string x in
+            let open Lsp.Snippet.Grammar in
+            let f, name, i =
+              match String.drop_prefix ~prefix:"~" label, String.drop_prefix ~prefix:"?" label with
+              | Some name, None -> text label, name, i
+              | None, Some name -> choice i ["~"^name; "?"^name], name, i+1
+              | _ -> failwith (Printf.sprintf "invalid label '%s" label)
+            in
+            let x, i =
+              placeholder i (text (Printf.sprintf ":%s" name)), i+1
+            in
+            i, Printf.sprintf "%s%s" (t f) (t x)
+          in
+          let snippet =
+            labels |> List.fold_map ~init:1 ~f:conv |> snd |> String.concat ~sep:" "
+          in
+          [ `Insert (entry, snippet, Lsp.Types.InsertTextFormat.Snippet) ]
+      in
+      let label_items =
+        List.map labels ~f:(fun (name, typ) ->
+          `Keep
+            { Query_protocol.Compl.name
+            ; kind = `Label
+            ; desc = typ
+            ; info = ""
+            ; deprecated = false (* TODO this is wrong *)
+            }) in
+      all_labels_item @ label_items @ items
   in
   let items =
     match items with
