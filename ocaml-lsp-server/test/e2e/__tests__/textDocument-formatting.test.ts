@@ -50,8 +50,10 @@ async function query(languageServer, name) {
   });
 }
 
-describe("textDocument/formatting", () => {
-  describe("reformatter binary present", () => {
+const maybeDescribe = os.type() === "Windows_NT" ? describe.skip : describe
+
+maybeDescribe("textDocument/formatting", () => {
+  maybeDescribe("reformatter binary present", () => {
     let languageServer = null;
 
     afterEach(async () => {
