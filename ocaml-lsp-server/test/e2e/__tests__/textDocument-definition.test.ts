@@ -1,6 +1,6 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
-
+import * as os from "os";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
@@ -50,7 +50,7 @@ describe("textDocument/definition", () => {
           end: { character: 4, line: 0 },
           start: { character: 4, line: 0 },
         },
-        uri: "file://test.ml",
+        uri: os.type() === "Windows_NT" ? "file:///test.ml" : "file://test.ml"
       },
     ]);
   });
