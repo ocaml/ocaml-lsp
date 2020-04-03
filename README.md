@@ -27,9 +27,6 @@ project's `package.json`:
 
 ```
   "devDependencies": {
-    "@opam/ocaml-lsp-server": "*"
-  },
-  "resolutions": {
     "@opam/ocaml-lsp-server": "github:ocaml/ocaml-lsp:ocaml-lsp-server.opam#<git-commit-sha>"
   }
 ```
