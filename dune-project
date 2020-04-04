@@ -33,7 +33,7 @@ possible and does not make any assumptions about IO.
   (cppo :dev)
   menhir
   (ocaml (>= 4.06))
-  (dune (>= 1.11))))
+  (dune (>= 2.0))))
 
 (package
  (name ocaml-lsp-server)
@@ -48,4 +48,4 @@ possible and does not make any assumptions about IO.
   (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
-  (dune (>= 1.11))))
+  (dune (>= 2.0))))
