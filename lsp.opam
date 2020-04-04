@@ -21,6 +21,7 @@ depends: [
   "stdlib-shims"
   "yojson"
   "ppx_yojson_conv_lib"
+  "ocaml-syntax-shims"
   "cppo" {dev}
   "menhir"
   "ocaml" {>= "4.06"}

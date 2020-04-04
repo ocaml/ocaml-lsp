@@ -17,6 +17,7 @@ depends: [
   "yojson"
   "stdlib-shims"
   "menhir"
+  "ocaml-syntax-shims"
   "ppx_yojson_conv_lib"
   "ocamlformat" {with-test}
   "ocamlfind" {>= "1.5.2"}
