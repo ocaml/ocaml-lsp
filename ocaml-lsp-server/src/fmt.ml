@@ -48,7 +48,7 @@ type error =
   | Unknown_extension of { name : string }
 
 let message = function
-  | Missing_binary { binary } -> sprintf "Unable to find %s binary" binary
+  | Missing_binary { binary } -> sprintf "Unable to find %s binary. You need to install %s manually to use the formatting feature." binary binary
   | Unknown_extension { name } ->
     Printf.sprintf "Unable to format. File %s has an unknown extension" name
   | Unexpected_result { message } -> message
