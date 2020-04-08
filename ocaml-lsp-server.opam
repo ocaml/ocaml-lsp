@@ -17,11 +17,12 @@ depends: [
   "yojson"
   "stdlib-shims"
   "menhir"
+  "ocaml-syntax-shims"
   "ppx_yojson_conv_lib"
   "ocamlformat" {with-test}
   "ocamlfind" {>= "1.5.2"}
   "ocaml" {>= "4.06"}
-  "dune" {>= "1.11"}
+  "dune" {>= "2.0"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [

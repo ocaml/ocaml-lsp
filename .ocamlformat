@@ -1,8 +1,7 @@
-version=0.13.0
+version=0.14.0
 break-separators=before
 dock-collection-brackets=false
 break-sequences=true
-doc-comments=before
 field-space=loose
 let-and=sparse
 sequence-style=terminator

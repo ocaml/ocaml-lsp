@@ -21,10 +21,11 @@ depends: [
   "stdlib-shims"
   "yojson"
   "ppx_yojson_conv_lib"
+  "ocaml-syntax-shims"
   "cppo" {dev}
   "menhir"
   "ocaml" {>= "4.06"}
-  "dune" {>= "1.11"}
+  "dune" {>= "2.0"}
 ]
 build: [
   ["dune" "subst"] {pinned}
