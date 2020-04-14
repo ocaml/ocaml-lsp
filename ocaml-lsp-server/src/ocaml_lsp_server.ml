@@ -601,18 +601,22 @@ let start () =
     Logger.with_notifications (ref []) @@ fun () -> File_id.with_cache @@ f
   in
   let on_initialize rpc state params =
-    prepare_and_run Printexc.to_string @@ fun () ->
-    on_initialize rpc state params
+    Fiber.return
+      ( prepare_and_run Printexc.to_string @@ fun () ->
+        on_initialize rpc state params )
   in
   let on_notification rpc state notif =
-    prepare_and_run Printexc.to_string @@ fun () ->
-    on_notification rpc state notif
+    Fiber.return
+      ( prepare_and_run Printexc.to_string @@ fun () ->
+        on_notification rpc state notif )
   in
   let on_request rpc state caps req =
-    prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
-    on_request rpc state caps req
+    Fiber.return
+      ( prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
+        on_request rpc state caps req )
   in
-  Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout;
+  Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout
+  |> Fiber.run;
   log ~title:Logger.Title.Info "exiting"
 
 let run ~log_file =

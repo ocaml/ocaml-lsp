@@ -6,4 +6,4 @@
  (libraries stdune merlin.specific merlin.analysis merlin.kernel
    merlin.merlin_utils merlin.parsing merlin.query_protocol lsp merlin.typing
    merlin.utils merlin.query_commands result yojson ppx_yojson_conv_lib
-   cmdliner))
+   cmdliner fiber))
