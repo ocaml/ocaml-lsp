@@ -18,7 +18,8 @@ type 'state handler =
       t -> 'state -> Client_notification.t -> ('state, string) result
   }
 
-val start : 'state -> 'state handler -> in_channel -> out_channel -> unit
+val start :
+  'state -> 'state handler -> in_channel -> out_channel -> unit Fiber.t
 
 val stop : t -> unit
 

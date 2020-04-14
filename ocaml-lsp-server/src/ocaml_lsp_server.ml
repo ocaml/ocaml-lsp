@@ -612,7 +612,8 @@ let start () =
     prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
     on_request rpc state caps req
   in
-  Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout;
+  Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout
+  |> Fiber.run;
   log ~title:Logger.Title.Info "exiting"
 
 let run ~log_file =

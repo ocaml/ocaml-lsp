@@ -15,6 +15,28 @@ and state =
 
 let { Logger.log } = Logger.for_section "lsp"
 
+let threaded f x =
+  let open Fiber.O in
+  let mutex = Mutex.create () in
+  let var = ref None in
+  Thread.create
+    (fun x ->
+      Mutex.lock mutex;
+      var := Some (f x);
+      Mutex.unlock mutex)
+    x
+  |> ignore;
+
+  let rec loop () =
+    Mutex.lock mutex;
+    let v = !var in
+    Mutex.unlock mutex;
+    match v with
+    | Some v -> Fiber.return v
+    | None -> Fiber.yield () >>= fun () -> loop ()
+  in
+  loop ()
+
 let send rpc json =
   log ~title:Logger.Title.LocalDebug "send: %a"
     (fun () -> Yojson.Safe.pretty_to_string ~std:false)
@@ -58,6 +80,8 @@ let read rpc =
   | r -> Ok r
   | exception _exn -> Error "Unexpected packet"
 
+let read rpc = threaded read rpc
+
 let send_response rpc (response : Jsonrpc.Response.t) =
   let json = Jsonrpc.Response.yojson_of_t response in
   send rpc json
@@ -97,11 +121,14 @@ type 'state handler =
 
 let start init_state handler ic oc =
   let open Result.O in
-  let read_message rpc = read rpc >>= Message.of_jsonrpc in
+  let read_message rpc =
+    Fiber.map (read rpc) ~f:(fun m -> m >>= Message.of_jsonrpc)
+  in
 
   let handle_message prev_state f =
+    let open Fiber.O in
     let start = Unix.gettimeofday () in
-    let next_state = f () in
+    let+ next_state = f () in
     let ellapsed = (Unix.gettimeofday () -. start) /. 1000.0 in
     log ~title:Logger.Title.LocalDebug "time elapsed processing message: %fs"
       ellapsed;
@@ -113,13 +140,16 @@ let start init_state handler ic oc =
   in
 
   let rec loop rpc state =
+    let open Fiber.O in
     match rpc.state with
-    | Closed -> ()
+    | Closed -> Fiber.return ()
     | Ready ->
-      let next_state =
+      let* next_state =
         handle_message state (fun () ->
+            let+ msg = read_message rpc in
             let open Client_request in
-            read_message rpc >>= function
+            let open Result.O in
+            msg >>= function
             | Message.Request (id, E (Initialize params)) ->
               let* next_state, result =
                 handler.on_initialize rpc state params
@@ -150,10 +180,12 @@ let start init_state handler ic oc =
       Logger.log_flush ();
       loop rpc next_state
     | Initialized client_capabilities ->
-      let next_state =
+      let* next_state =
         handle_message state (fun () ->
+            let+ msg = read_message rpc in
             let open Client_request in
-            read_message rpc >>= function
+            let open Result.O in
+            msg >>= function
             | Message.Request (_id, E (Initialize _)) ->
               Error "received another initialize request"
             | Message.Client_notification (Exit as notif) ->
