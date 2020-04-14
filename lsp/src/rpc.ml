@@ -17,20 +17,10 @@ let { Logger.log } = Logger.for_section "lsp"
 
 let threaded f x =
   let open Fiber.O in
-  let mutex = Mutex.create () in
   let var = ref None in
-  Thread.create
-    (fun x ->
-      Mutex.lock mutex;
-      var := Some (f x);
-      Mutex.unlock mutex)
-    x
-  |> ignore;
-
+  Thread.create (fun x -> var := Some (f x)) x |> ignore;
   let rec loop () =
-    Mutex.lock mutex;
     let v = !var in
-    Mutex.unlock mutex;
     match v with
     | Some v -> Fiber.return v
     | None -> Fiber.yield () >>= fun () -> loop ()
