@@ -77,6 +77,23 @@ let send_diagnostics rpc doc =
 
   Lsp.Rpc.send_notification rpc notif
 
+let schedule_diagnostics store uri rpc =
+  let scheduled_time = Unix.time () in
+  let rec loop () =
+    let open Fiber.O in
+    Fiber.yield () >>= fun () ->
+    match Document_store.get_full_opt store uri with
+    | Some (doc, update_time) ->
+      if update_time > scheduled_time then
+        Fiber.return ()
+      else if Unix.time () -. update_time > 2.0 then
+        Fiber.return @@ send_diagnostics rpc doc
+      else
+        loop ()
+    | None -> loop ()
+  in
+  loop ()
+
 let on_initialize rpc state _params =
   let log_consumer (section, title, text) =
     if title <> Logger.Title.LocalDebug then
@@ -538,20 +555,19 @@ let on_request :
     Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
 let on_notification rpc store (notification : Lsp.Client_notification.t) :
-    (Document_store.t, string) result =
+    (Document_store.t, string) result Fiber.t =
+  let open Fiber.O in
   match notification with
   | TextDocumentDidOpen params ->
-    let doc =
-      let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
-      Document.make ~uri ~text:params.textDocument.text ()
-    in
+    let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
+    let doc = Document.make ~uri ~text:params.textDocument.text () in
     Document_store.put store doc;
-    send_diagnostics rpc doc;
+    let+ _ = Fiber.fork (fun () -> schedule_diagnostics store uri rpc) in
     Ok store
   | TextDocumentDidClose { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.remove_document store uri;
-    Ok store
+    Fiber.return @@ Ok store
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
     -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -562,17 +578,19 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
         List.fold_left ~f ~init:prev_doc contentChanges
       in
       Document_store.put store doc;
-      send_diagnostics rpc doc;
+      let+ _ = Fiber.fork (fun () -> schedule_diagnostics store uri rpc) in
       Ok store
-    | Error e -> Error e.message )
+    | Error e -> Fiber.return @@ Error e.message )
   | DidSaveTextDocument _
   | WillSaveTextDocument _
   | ChangeConfiguration _
   | ChangeWorkspaceFolders _
   | Initialized
   | Exit ->
-    Ok store
+    Fiber.return @@ Ok store
   | Unknown_notification req -> (
+    Fiber.return
+    @@
     match req.method_ with
     | "$/setTraceNotification" -> Ok store
     | "$/cancelRequest" -> Ok store
@@ -591,10 +609,12 @@ let start () =
   let docs = Document_store.make () in
   let prepare_and_run prep_exn f =
     let f () =
-      match f () with
-      | Ok s -> Ok s
-      | Error e -> Error e
-      | exception exn -> Error (prep_exn exn)
+      let open Fiber.O in
+      try
+        f () >>| function
+        | Ok s -> Ok s
+        | Error e -> Error e
+      with exn -> Fiber.return @@ Error (prep_exn exn)
     in
     (* TODO: what to do with merlin notifications? *)
     let _notifications = ref [] in
@@ -602,7 +622,7 @@ let start () =
   in
   let on_initialize rpc state params =
     prepare_and_run Printexc.to_string @@ fun () ->
-    on_initialize rpc state params
+    Fiber.return @@ on_initialize rpc state params
   in
   let on_notification rpc state notif =
     prepare_and_run Printexc.to_string @@ fun () ->
@@ -610,7 +630,7 @@ let start () =
   in
   let on_request rpc state caps req =
     prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
-    on_request rpc state caps req
+    Fiber.return @@ on_request rpc state caps req
   in
   Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout
   |> Fiber.run;

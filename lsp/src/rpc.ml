@@ -111,12 +111,12 @@ type 'state handler =
          t
       -> 'state
       -> InitializeParams.t
-      -> ('state * InitializeResult.t, string) result
+      -> ('state * InitializeResult.t, string) result Fiber.t
   ; on_request :
       'res.    t -> 'state -> ClientCapabilities.t -> 'res Client_request.t
-      -> ('state * 'res, Jsonrpc.Response.Error.t) result
+      -> ('state * 'res, Jsonrpc.Response.Error.t) result Fiber.t
   ; on_notification :
-      t -> 'state -> Client_notification.t -> ('state, string) result
+      t -> 'state -> Client_notification.t -> ('state, string) result Fiber.t
   }
 
 let start init_state handler ic oc =
@@ -140,79 +140,81 @@ let start init_state handler ic oc =
   in
 
   let rec loop rpc state =
-    let open Fiber.O in
+    let open Result.O in
+    let ( let*: ) = Fiber.O.( let* ) in
+    let ( let+: ) = Fiber.O.( let+ ) in
     match rpc.state with
     | Closed -> Fiber.return ()
     | Ready ->
-      let* next_state =
-        handle_message state (fun () ->
-            let+ msg = read_message rpc in
-            let open Client_request in
-            let open Result.O in
-            msg >>= function
-            | Message.Request (id, E (Initialize params)) ->
-              let* next_state, result =
-                handler.on_initialize rpc state params
-              in
-              let json = InitializeResult.yojson_of_t result in
-              let response = Jsonrpc.Response.ok id json in
-              rpc.state <- Initialized params.capabilities;
-              send_response rpc response;
-              Ok next_state
-            | Message.Client_notification Exit ->
-              rpc.state <- Closed;
-              Ok state
-            | Message.Client_notification _ ->
-              (* we drop all notifications per protocol before we initialized *)
-              Ok state
-            | Message.Request (id, _) ->
-              (* we response with -32002 per protocol before we initialized *)
-              let response =
-                let error =
-                  Jsonrpc.Response.Error.make ~code:ServerNotInitialized
-                    ~message:"not initialized" ()
-                in
-                Jsonrpc.Response.error id error
-              in
-              send_response rpc response;
-              Ok state)
+      let*: next_state =
+        handle_message state @@ fun () ->
+        let*: msg = read_message rpc in
+        let open Client_request in
+        match msg with
+        | Ok (Message.Request (id, E (Initialize params))) ->
+          let+: init = handler.on_initialize rpc state params in
+          let* next_state, result = init in
+          let json = InitializeResult.yojson_of_t result in
+          let response = Jsonrpc.Response.ok id json in
+          rpc.state <- Initialized params.capabilities;
+          send_response rpc response;
+          Ok next_state
+        | Ok (Message.Client_notification Exit) ->
+          rpc.state <- Closed;
+          Fiber.return @@ Ok state
+        | Ok (Message.Client_notification _) ->
+          (* we drop all notifications per protocol before we initialized *)
+          Fiber.return @@ Ok state
+        | Ok (Message.Request (id, _)) ->
+          (* we response with -32002 per protocol before we initialized *)
+          let response =
+            let error =
+              Jsonrpc.Response.Error.make ~code:ServerNotInitialized
+                ~message:"not initialized" ()
+            in
+            Jsonrpc.Response.error id error
+          in
+          send_response rpc response;
+          Fiber.return @@ Ok state
+        | Error err -> Fiber.return (Error err)
       in
       Logger.log_flush ();
       loop rpc next_state
     | Initialized client_capabilities ->
-      let* next_state =
-        handle_message state (fun () ->
-            let+ msg = read_message rpc in
-            let open Client_request in
-            let open Result.O in
-            msg >>= function
-            | Message.Request (_id, E (Initialize _)) ->
-              Error "received another initialize request"
-            | Message.Client_notification (Exit as notif) ->
-              rpc.state <- Closed;
-              handler.on_notification rpc state notif
-            | Message.Client_notification notif -> (
-              try handler.on_notification rpc state notif
-              with exn -> Error (Printexc.to_string exn) )
-            | Message.Request (id, E req) -> (
-              let handled =
-                try handler.on_request rpc state client_capabilities req
-                with exn -> Error (Jsonrpc.Response.Error.of_exn exn)
-              in
-              match handled with
-              | Ok (next_state, result) ->
-                let yojson_result =
-                  match Client_request.yojson_of_result req result with
-                  | None -> `Null
-                  | Some res -> res
-                in
-                let response = Jsonrpc.Response.ok id yojson_result in
-                send_response rpc response;
-                Ok next_state
-              | Error e ->
-                let response = Jsonrpc.Response.error id e in
-                send_response rpc response;
-                Error e.message ))
+      let*: next_state =
+        handle_message state @@ fun () ->
+        let*: msg = read_message rpc in
+        let open Client_request in
+        match msg with
+        | Ok (Message.Request (_id, E (Initialize _))) ->
+          Fiber.return @@ Error "received another initialize request"
+        | Ok (Message.Client_notification (Exit as notif)) ->
+          rpc.state <- Closed;
+          handler.on_notification rpc state notif
+        | Ok (Message.Client_notification notif) -> (
+          try handler.on_notification rpc state notif
+          with exn -> Fiber.return @@ Error (Printexc.to_string exn) )
+        | Ok (Message.Request (id, E req)) -> (
+          let+: handled =
+            try handler.on_request rpc state client_capabilities req
+            with exn ->
+              Fiber.return @@ Error (Jsonrpc.Response.Error.of_exn exn)
+          in
+          match handled with
+          | Ok (next_state, result) ->
+            let yojson_result =
+              match Client_request.yojson_of_result req result with
+              | None -> `Null
+              | Some res -> res
+            in
+            let response = Jsonrpc.Response.ok id yojson_result in
+            send_response rpc response;
+            Ok next_state
+          | Error e ->
+            let response = Jsonrpc.Response.error id e in
+            send_response rpc response;
+            Error e.message )
+        | Error err -> Fiber.return @@ Error err
       in
       Logger.log_flush ();
       loop rpc next_state

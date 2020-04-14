@@ -10,12 +10,12 @@ type 'state handler =
          t
       -> 'state
       -> InitializeParams.t
-      -> ('state * InitializeResult.t, string) result
+      -> ('state * InitializeResult.t, string) result Fiber.t
   ; on_request :
       'res.    t -> 'state -> ClientCapabilities.t -> 'res Client_request.t
-      -> ('state * 'res, Jsonrpc.Response.Error.t) result
+      -> ('state * 'res, Jsonrpc.Response.Error.t) result Fiber.t
   ; on_notification :
-      t -> 'state -> Client_notification.t -> ('state, string) result
+      t -> 'state -> Client_notification.t -> ('state, string) result Fiber.t
   }
 
 val start :
