@@ -1,7 +1,6 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
 
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 import * as fs from "fs";
 import * as path from "path";
@@ -50,7 +49,7 @@ async function query(languageServer, name) {
   });
 }
 
-const maybeDescribe = os.type() === "Windows_NT" ? describe.skip : describe
+const maybeDescribe = os.type() === "Windows_NT" ? describe.skip : describe;
 
 maybeDescribe("textDocument/formatting", () => {
   maybeDescribe("reformatter binary present", () => {

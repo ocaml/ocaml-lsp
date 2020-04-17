@@ -1,5 +1,3 @@
-import * as path from "path";
-
 import * as Protocol from "vscode-languageserver-protocol";
 
 import * as LanguageServer from "./../src/LanguageServer";

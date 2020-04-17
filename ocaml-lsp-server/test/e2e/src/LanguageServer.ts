@@ -87,6 +87,6 @@ export const exit = async languageServer => {
   return ret;
 };
 
-export const testUri = (uri : string) => {
-  return "file://" + (os.type () === "Windows_NT" ? "/" : "") + uri;
+export const testUri = (uri: string) => {
+  return "file://" + (os.type() === "Windows_NT" ? "/" : "") + uri;
 };

@@ -1,13 +1,12 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
 
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/rename", () => {
   let languageServer = null;
 
-  async function openDocument(source) {
+  async function openDocument(source: string) {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
@@ -18,7 +17,7 @@ describe("textDocument/rename", () => {
     });
   }
 
-  async function query(position) {
+  async function query(position: Types.Position) {
     return await languageServer.sendRequest("textDocument/rename", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
@@ -26,7 +25,7 @@ describe("textDocument/rename", () => {
     });
   }
 
-  async function query_prepare(position) {
+  async function query_prepare(position: Types.Position) {
     return await languageServer.sendRequest("textDocument/prepareRename", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,

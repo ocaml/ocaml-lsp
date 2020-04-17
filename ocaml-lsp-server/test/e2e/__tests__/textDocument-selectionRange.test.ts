@@ -1,7 +1,6 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
 
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/selectionRange", () => {
@@ -16,7 +15,7 @@ describe("textDocument/selectionRange", () => {
     languageServer = null;
   });
 
-  async function openDocument(source) {
+  async function openDocument(source: string) {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
@@ -27,7 +26,7 @@ describe("textDocument/selectionRange", () => {
     });
   }
 
-  async function selectionRange(positions) {
+  async function selectionRange(positions: Types.Position[]) {
     return await languageServer.sendRequest("textDocument/selectionRange", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       positions: positions,

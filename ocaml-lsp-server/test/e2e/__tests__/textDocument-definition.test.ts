@@ -1,6 +1,5 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 import { testUri } from "./../src/LanguageServer";
 
@@ -50,7 +49,7 @@ describe("textDocument/definition", () => {
           end: { character: 4, line: 0 },
           start: { character: 4, line: 0 },
         },
-        uri: testUri("test.ml")
+        uri: testUri("test.ml"),
       },
     ]);
   });

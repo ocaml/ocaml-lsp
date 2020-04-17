@@ -1,13 +1,12 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 import { testUri } from "./../src/LanguageServer";
 
 describe("textDocument/definition", () => {
   let languageServer = null;
 
-  async function openDocument(source) {
+  async function openDocument(source: string) {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
@@ -18,7 +17,7 @@ describe("textDocument/definition", () => {
     });
   }
 
-  async function queryDefinition(position) {
+  async function queryDefinition(position: Types.Position) {
     return await languageServer.sendRequest("textDocument/typeDefinition", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
@@ -50,7 +49,7 @@ describe("textDocument/definition", () => {
           end: { character: 0, line: 1 },
           start: { character: 0, line: 1 },
         },
-        uri: testUri("test.ml")
+        uri: testUri("test.ml"),
       },
     ]);
   });
@@ -72,7 +71,7 @@ describe("textDocument/definition", () => {
           end: { character: 0, line: 1 },
           start: { character: 0, line: 1 },
         },
-        uri: testUri("test.ml")
+        uri: testUri("test.ml"),
       },
     ]);
   });
@@ -93,7 +92,7 @@ describe("textDocument/definition", () => {
           end: { character: 0, line: 1 },
           start: { character: 0, line: 1 },
         },
-        uri: testUri("test.ml")
+        uri: testUri("test.ml"),
       },
     ]);
   });

@@ -1,13 +1,12 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
 
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/documentSymbol", () => {
   let languageServer = null;
 
-  async function openDocument(source) {
+  async function openDocument(source: string) {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
