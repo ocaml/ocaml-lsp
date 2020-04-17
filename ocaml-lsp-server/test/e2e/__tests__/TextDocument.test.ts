@@ -1,6 +1,5 @@
 import * as LanguageServer from "./../src/LanguageServer";
 
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("TextDocument: incremental sync", () => {
@@ -16,7 +15,7 @@ describe("TextDocument: incremental sync", () => {
 
   it("updates in the middle of the line", async () => {
     let languageServer = await LanguageServer.startAndInitialize();
-    await languageServer.sendNotification("textDocument/didOpen", {
+    languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
         "txt",
@@ -27,7 +26,7 @@ describe("TextDocument: incremental sync", () => {
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
 
-    await languageServer.sendNotification("textDocument/didChange", {
+    languageServer.sendNotification("textDocument/didChange", {
       textDocument: Types.VersionedTextDocumentIdentifier.create(
         "file:///test-document.txt",
         1,
@@ -46,7 +45,7 @@ describe("TextDocument: incremental sync", () => {
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y1 = 2;");
 
-    await languageServer.sendNotification("textDocument/didChange", {
+    languageServer.sendNotification("textDocument/didChange", {
       textDocument: Types.VersionedTextDocumentIdentifier.create(
         "file:///test-document.txt",
         1,
@@ -70,7 +69,7 @@ describe("TextDocument: incremental sync", () => {
   it("updates in at the start of the line", async () => {
     let languageServer = await LanguageServer.startAndInitialize();
 
-    await languageServer.sendNotification("textDocument/didOpen", {
+    languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
         "txt",
@@ -81,7 +80,7 @@ describe("TextDocument: incremental sync", () => {
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
 
-    await languageServer.sendNotification("textDocument/didChange", {
+    languageServer.sendNotification("textDocument/didChange", {
       textDocument: Types.VersionedTextDocumentIdentifier.create(
         "file:///test-document.txt",
         1,
@@ -105,7 +104,7 @@ describe("TextDocument: incremental sync", () => {
   it("update when inserting a line", async () => {
     let languageServer = await LanguageServer.startAndInitialize();
 
-    await languageServer.sendNotification("textDocument/didOpen", {
+    languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
         "txt",
@@ -116,7 +115,7 @@ describe("TextDocument: incremental sync", () => {
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
 
-    await languageServer.sendNotification("textDocument/didChange", {
+    languageServer.sendNotification("textDocument/didChange", {
       textDocument: Types.VersionedTextDocumentIdentifier.create(
         "file:///test-document.txt",
         1,
@@ -142,7 +141,7 @@ describe("TextDocument: incremental sync", () => {
   it("update when inserting a line at the end of the doc", async () => {
     let languageServer = await LanguageServer.startAndInitialize();
 
-    await languageServer.sendNotification("textDocument/didOpen", {
+    languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
         "txt",
@@ -153,7 +152,7 @@ describe("TextDocument: incremental sync", () => {
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
 
-    await languageServer.sendNotification("textDocument/didChange", {
+    languageServer.sendNotification("textDocument/didChange", {
       textDocument: Types.VersionedTextDocumentIdentifier.create(
         "file:///test-document.txt",
         1,
@@ -179,7 +178,7 @@ describe("TextDocument: incremental sync", () => {
   it("update when deleting a line", async () => {
     let languageServer = await LanguageServer.startAndInitialize();
 
-    await languageServer.sendNotification("textDocument/didOpen", {
+    languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
         "txt",
@@ -190,7 +189,7 @@ describe("TextDocument: incremental sync", () => {
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
 
-    await languageServer.sendNotification("textDocument/didChange", {
+    languageServer.sendNotification("textDocument/didChange", {
       textDocument: Types.VersionedTextDocumentIdentifier.create(
         "file:///test-document.txt",
         1,
@@ -216,7 +215,7 @@ describe("TextDocument", () => {
   describe("didOpen", () => {
     it("stores text document", async () => {
       let languageServer = await LanguageServer.startAndInitialize();
-      await languageServer.sendNotification("textDocument/didOpen", {
+      languageServer.sendNotification("textDocument/didOpen", {
         textDocument: Types.TextDocumentItem.create(
           "file:///test-document.txt",
           "txt",
@@ -240,7 +239,7 @@ describe("TextDocument", () => {
   describe("didChange", () => {
     it("updates text document", async () => {
       let languageServer = await LanguageServer.startAndInitialize();
-      await languageServer.sendNotification("textDocument/didOpen", {
+      languageServer.sendNotification("textDocument/didOpen", {
         textDocument: Types.TextDocumentItem.create(
           "file:///test-document.txt",
           "txt",
@@ -249,7 +248,7 @@ describe("TextDocument", () => {
         ),
       });
 
-      await languageServer.sendNotification("textDocument/didChange", {
+      languageServer.sendNotification("textDocument/didChange", {
         textDocument: Types.VersionedTextDocumentIdentifier.create(
           "file:///test-document.txt",
           1,

@@ -1,13 +1,12 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
 
-import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/references", () => {
   let languageServer = null;
 
-  async function openDocument(source) {
+  async function openDocument(source: string) {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
@@ -18,7 +17,7 @@ describe("textDocument/references", () => {
     });
   }
 
-  async function query(position) {
+  async function query(position: Types.Position) {
     return await languageServer.sendRequest("textDocument/references", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
