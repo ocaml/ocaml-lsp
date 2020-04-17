@@ -19,7 +19,7 @@ jobs:
       with:
         submodules: true
     - run: opam pin add lsp.dev -n .
-    - run: opam pin add ocaml-lsp-server.dev.dev -n .
+    - run: opam pin add ocaml-lsp-server.dev -n .
     - run: opam depext -yt lsp
     - run: opam depext -yt ocaml-lsp-server
     - run: opam install -t . --deps-only
