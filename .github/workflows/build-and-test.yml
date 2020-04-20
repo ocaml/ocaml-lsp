@@ -1,0 +1,51 @@
+name: Build and Test
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build-and-test:
+    name: Build and Test
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+        ocaml-version:
+          - 4.09.1
+          - 4.08.1
+          - 4.06.1
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Use latest LTS Node.js release
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v1.0
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - run: opam pin -n .
+
+      - run: opam install -t . --deps-only
+
+      - run: opam exec -- make
+
+      - run: yarn --frozen-lockfile
+        working-directory: ocaml-lsp-server/test/e2e
+
+      - run: opam exec -- yarn test
+        working-directory: ocaml-lsp-server/test/e2e
