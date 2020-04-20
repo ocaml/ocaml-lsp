@@ -24,17 +24,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2.1.0
+        uses: actions/checkout@v2
         with:
           submodules: true
 
       - name: Use latest LTS Node.js release
-        uses: actions/setup-node@v1.4.1
+        uses: actions/setup-node@v1
         with:
           node-version: 12.x
 
       - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1.0
+        uses: avsm/setup-ocaml@v1
         with:
           ocaml-version: ${{ matrix.ocaml-version }}
 
