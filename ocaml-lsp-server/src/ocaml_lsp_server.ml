@@ -77,7 +77,7 @@ let send_diagnostics rpc doc =
 
   Lsp.Rpc.send_notification rpc notif
 
-let schedule_diagnostics store uri rpc =
+let schedule_diagnostics ~delay store uri rpc =
   let scheduled_time = Unix.time () in
   let rec loop () =
     let open Fiber.O in
@@ -86,7 +86,7 @@ let schedule_diagnostics store uri rpc =
     | Some (doc, update_time) ->
       if update_time > scheduled_time then
         Fiber.return ()
-      else if Unix.time () -. update_time > 2.0 then
+      else if Unix.time () -. update_time > delay then
         Fiber.return @@ send_diagnostics rpc doc
       else
         loop ()
@@ -554,15 +554,15 @@ let on_request :
   | Lsp.Client_request.UnknownRequest _ ->
     Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
-let on_notification rpc store (notification : Lsp.Client_notification.t) :
-    (Document_store.t, string) result Fiber.t =
+let on_notification ~delay rpc store (notification : Lsp.Client_notification.t)
+    : (Document_store.t, string) result Fiber.t =
   let open Fiber.O in
   match notification with
   | TextDocumentDidOpen params ->
     let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
     let doc = Document.make ~uri ~text:params.textDocument.text () in
     Document_store.put store doc;
-    let+ _ = Fiber.fork (fun () -> schedule_diagnostics store uri rpc) in
+    let+ _ = Fiber.fork (fun () -> schedule_diagnostics ~delay store uri rpc) in
     Ok store
   | TextDocumentDidClose { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -578,7 +578,9 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
         List.fold_left ~f ~init:prev_doc contentChanges
       in
       Document_store.put store doc;
-      let+ _ = Fiber.fork (fun () -> schedule_diagnostics store uri rpc) in
+      let+ _ =
+        Fiber.fork (fun () -> schedule_diagnostics ~delay store uri rpc)
+      in
       Ok store
     | Error e -> Fiber.return @@ Error e.message )
   | DidSaveTextDocument _
@@ -605,7 +607,7 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
           json );
       Ok store )
 
-let start () =
+let start ~delay () =
   let docs = Document_store.make () in
   let prepare_and_run prep_exn f =
     let f () =
@@ -626,7 +628,7 @@ let start () =
   in
   let on_notification rpc state notif =
     prepare_and_run Printexc.to_string @@ fun () ->
-    on_notification rpc state notif
+    on_notification ~delay rpc state notif
   in
   let on_request rpc state caps req =
     prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
@@ -636,6 +638,7 @@ let start () =
   |> Fiber.run;
   log ~title:Logger.Title.Info "exiting"
 
-let run ~log_file =
+let run ~log_file ~delay =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file start
+  Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file
+  @@ start ~delay
