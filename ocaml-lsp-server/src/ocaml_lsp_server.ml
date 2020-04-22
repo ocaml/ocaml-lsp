@@ -46,36 +46,61 @@ let initializeInfo : InitializeResult.t =
   in
   InitializeResult.create ~capabilities ~serverInfo ()
 
+let ocamlmerlin_reason = "ocamlmerlin-reason"
+
 let send_diagnostics rpc doc =
-  let command =
-    Query_protocol.Errors { lexing = true; parsing = true; typing = true }
+  let reason_merlin_available =
+    match Document.syntax doc with
+    | Ocaml -> true
+    | Reason -> Option.is_some (Bin.which ocamlmerlin_reason)
   in
-  Document.with_pipeline doc @@ fun pipeline ->
-  let errors = Query_commands.dispatch pipeline command in
-  let diagnostics =
-    List.map errors ~f:(fun (error : Loc.error) ->
-        let loc = Loc.loc_of_report error in
-        let range = Range.of_loc loc in
-        let severity =
-          match error.source with
-          | Warning -> DiagnosticSeverity.Warning
-          | _ -> DiagnosticSeverity.Error
-        in
+  let uri = Document.uri doc |> Lsp.Uri.to_string in
+  match reason_merlin_available with
+  | false ->
+    let notif =
+      let diagnostics =
         let message =
-          Loc.print_main Format.str_formatter error;
-          String.trim (Format.flush_str_formatter ())
+          sprintf "Could not detect %s. Please install reason"
+            ocamlmerlin_reason
         in
-        Diagnostic.create ~range ~message ~severity ~relatedInformation:[]
-          ~tags:[] ())
-  in
+        let range =
+          let pos = Position.create ~line:1 ~character:1 in
+          Range.create ~start:pos ~end_:pos
+        in
+        [ Diagnostic.create ~range ~message () ]
+      in
+      Lsp.Server_notification.PublishDiagnostics
+        (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+    in
+    Lsp.Rpc.send_notification rpc notif
+  | true ->
+    let command =
+      Query_protocol.Errors { lexing = true; parsing = true; typing = true }
+    in
+    Document.with_pipeline doc @@ fun pipeline ->
+    let errors = Query_commands.dispatch pipeline command in
+    let diagnostics =
+      List.map errors ~f:(fun (error : Loc.error) ->
+          let loc = Loc.loc_of_report error in
+          let range = Range.of_loc loc in
+          let severity =
+            match error.source with
+            | Warning -> DiagnosticSeverity.Warning
+            | _ -> DiagnosticSeverity.Error
+          in
+          let message =
+            Loc.print_main Format.str_formatter error;
+            String.trim (Format.flush_str_formatter ())
+          in
+          Diagnostic.create ~range ~message ~severity ())
+    in
 
-  let notif =
-    let uri = Document.uri doc |> Lsp.Uri.to_string in
-    Lsp.Server_notification.PublishDiagnostics
-      (PublishDiagnosticsParams.create ~uri ~diagnostics ())
-  in
+    let notif =
+      Lsp.Server_notification.PublishDiagnostics
+        (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+    in
 
-  Lsp.Rpc.send_notification rpc notif
+    Lsp.Rpc.send_notification rpc notif
 
 let on_initialize rpc state _params =
   let log_consumer (section, title, text) =

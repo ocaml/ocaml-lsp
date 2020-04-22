@@ -37,11 +37,6 @@ let run_command command stdin_value args : command_result =
   let status = Unix.close_process_full (in_chan, out_chan, err_chan) in
   { stdout; stderr; status }
 
-let _PATH =
-  lazy
-    (Bin.parse_path
-       (Option.value ~default:"" (Unix_env.get Unix_env.initial "PATH")))
-
 type error =
   | Missing_binary of { binary : string }
   | Unexpected_result of { message : string }
@@ -77,7 +72,7 @@ let binary_name t =
 
 let binary t =
   let name = binary_name t in
-  match Bin.which ~path:(Lazy.force _PATH) name with
+  match Bin.which name with
   | None -> Result.Error (Missing_binary { binary = name })
   | Some b -> Ok b
 
