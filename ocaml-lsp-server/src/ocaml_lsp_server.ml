@@ -147,9 +147,7 @@ module Formatter = struct
     make_error ~code ~message ()
 
   let run rpc store doc =
-    let src = Document.source doc |> Msource.text in
-    let fname = Document.uri doc |> Lsp.Uri.to_path in
-    match Fmt.run ~contents:src ~fname with
+    match Fmt.run doc with
     | Result.Error e ->
       let message = Fmt.message e in
       let error = jsonrpc_error e in

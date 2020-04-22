@@ -2,6 +2,22 @@ open Lsp.Types
 
 type t
 
+module Syntax : sig
+  type t =
+    | Ocaml
+    | Reason
+end
+
+module Kind : sig
+  type t =
+    | Intf
+    | Impl
+end
+
+val kind : t -> Kind.t
+
+val syntax : t -> Syntax.t
+
 val make : ?version:int -> uri:Lsp.Uri.t -> text:string -> unit -> t
 
 val uri : t -> Lsp.Uri.t

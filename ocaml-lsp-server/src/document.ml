@@ -1,5 +1,37 @@
 open Import
 
+module Kind = struct
+  type t =
+    | Intf
+    | Impl
+
+  let of_fname p =
+    match Filename.extension p with
+    | ".ml"
+    | ".re" ->
+      Impl
+    | ".mli"
+    | ".rei" ->
+      Intf
+    | ext -> failwith ("Unknown extension " ^ ext)
+end
+
+module Syntax = struct
+  type t =
+    | Ocaml
+    | Reason
+
+  let of_fname p =
+    match Filename.extension p with
+    | ".ml"
+    | ".mli" ->
+      Ocaml
+    | ".re"
+    | ".rei" ->
+      Reason
+    | ext -> failwith ("Unknown extension " ^ ext)
+end
+
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"
 
 type t =
@@ -14,6 +46,10 @@ let normalize_line_endings text =
   text
 
 let uri doc = Lsp.Text_document.documentUri doc.tdoc
+
+let kind t = Kind.of_fname (Lsp.Uri.to_path (uri t))
+
+let syntax t = Syntax.of_fname (Lsp.Uri.to_path (uri t))
 
 let source doc = doc.source
 
