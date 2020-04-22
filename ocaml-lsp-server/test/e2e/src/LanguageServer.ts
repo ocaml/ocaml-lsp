@@ -26,7 +26,7 @@ export type LanguageServer = Rpc.MessageConnection;
 
 let prefix = process.platform === "win32" ? "file:///" : "file://";
 
-export const toURI = s => {
+export const toURI = (s) => {
   return prefix + s;
 };
 
@@ -41,7 +41,7 @@ export const start = (opts?: cp.SpawnOptions) => {
     new rpc.StreamMessageWriter(childProcess.stdin),
   );
 
-  childProcess.stderr.on("data", d => {
+  childProcess.stderr.on("data", (d) => {
     if (process.env.OCAMLLSP_TEST_DEBUG) {
       console.log("Received data: " + d);
     }
@@ -73,7 +73,7 @@ export const startAndInitialize = async (
   return languageServer;
 };
 
-export const exit = async languageServer => {
+export const exit = async (languageServer) => {
   let ret = new Promise((resolve, reject) => {
     languageServer.onClose(() => {
       languageServer.dispose();

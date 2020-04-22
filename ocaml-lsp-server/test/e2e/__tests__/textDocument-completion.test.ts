@@ -22,7 +22,7 @@ xdescribe("textDocument/completion", () => {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
     });
-    return result.items.map(item => {
+    return result.items.map((item) => {
       return {
         label: item.label,
         textEdit: item.textEdit,
