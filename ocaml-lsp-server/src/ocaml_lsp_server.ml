@@ -114,7 +114,7 @@ module Diagnostics = struct
               None
             ) else (
               ( match !next_time with
-              | Some t -> next_time := Some (Float.min t scheduled)
+              | Some t -> next_time := Some (min t scheduled)
               | None -> next_time := Some scheduled );
               Some scheduled
             ));
