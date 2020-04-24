@@ -265,7 +265,7 @@ let start init_state handler ic oc =
   set_binary_mode_in ic true;
   set_binary_mode_out oc true;
   let fd = Unix.descr_of_in_channel stdin in
-  let rpc = { ic; oc; fd; state = Ready; queue = Event_queue.create 1000 } in
+  let rpc = { ic; oc; fd; state = Ready; queue = Event_queue.create 100 } in
   reader_thread rpc |> ignore;
   loop rpc init_state
 

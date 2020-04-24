@@ -51,11 +51,17 @@ module Diagnostics = struct
 
   type t =
     { mutex : Mutex.t
+    ; full : Condition.t
     ; store : Document_store.t
     ; timers : float Table.t
     }
 
-  let create store = { mutex = Mutex.create (); timers = Table.create 0; store }
+  let create store =
+    { mutex = Mutex.create ()
+    ; full = Condition.create ()
+    ; timers = Table.create 0
+    ; store
+    }
 
   let send rpc doc =
     let command =
@@ -91,9 +97,15 @@ module Diagnostics = struct
     Thread.create @@ fun (state, rpc) ->
     let rec loop () =
       if not (Lsp.Rpc.is_stopped rpc) then (
+        (* Sleep until there's a timer in the table. *)
         Mutex.lock state.mutex;
-        let time = Unix.time () in
-        let next_time = ref time in
+        while Table.length state.timers = 0 do
+          Condition.wait state.full state.mutex
+        done;
+
+        (* Run all scheduled updates, removing them from the timers table. *)
+        let time = Unix.gettimeofday () in
+        let next_time = ref None in
         Table.filter_map_inplace state.timers
           ~f:(fun ~key:uri ~data:scheduled ->
             if scheduled < time then (
@@ -101,14 +113,18 @@ module Diagnostics = struct
               |> Option.iter ~f:(send rpc);
               None
             ) else (
-              next_time := Float.min !next_time scheduled;
+              ( match !next_time with
+              | Some t -> next_time := Some (Float.min t scheduled)
+              | None -> next_time := Some scheduled );
               Some scheduled
             ));
+
+        (* Unlock the timers table. *)
         Mutex.unlock state.mutex;
 
-        Thread.delay 0.1;
-        let sleep_time = !next_time -. Unix.time () in
-        if sleep_time > 0.1 then Thread.delay sleep_time;
+        (* Sleep until the next timer is due. *)
+        Option.iter !next_time ~f:(fun t ->
+            Thread.delay (t -. Unix.gettimeofday ()));
         loop ()
       )
     in
@@ -116,24 +132,10 @@ module Diagnostics = struct
 
   let schedule ~delay state uri =
     Mutex.lock state.mutex;
-    let time = Unix.time () in
-    let scheduled_time = time +. delay in
+    let scheduled_time = Unix.gettimeofday () +. delay in
     Table.set state.timers uri scheduled_time;
+    Condition.signal state.full;
     Mutex.unlock state.mutex
-
-  (* let rec loop () =
-   *   Fiber.yield () >>= fun () ->
-   *   match Document_store.get_full_opt store uri with
-   *   | Some (doc, update_time) ->
-   *     if update_time > scheduled_time then
-   *       Fiber.return ()
-   *     else if Unix.time () -. update_time > delay then
-   *       Fiber.return @@ send rpc doc
-   *     else
-   *       loop ()
-   *   | None -> loop ()
-   * in
-   * loop () *)
 end
 
 type state =
