@@ -41,10 +41,6 @@ type t =
   ; config : Mconfig.t
   }
 
-let normalize_line_endings text =
-  let text = String.replace_all ~pattern:"\r\n" ~with_:"\n" text in
-  text
-
 let uri doc = Lsp.Text_document.documentUri doc.tdoc
 
 let kind t = Kind.of_fname (Lsp.Uri.to_path (uri t))
@@ -75,11 +71,11 @@ let make_config uri =
          Filename.concat directory base)
       ]
 
-let make ?(version = 0) ~uri ~text () =
-  let tdoc = Lsp.Text_document.make ~version uri text in
+let make tdoc =
+  let tdoc = Lsp.Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
-  let text = normalize_line_endings text in
-  let config = make_config uri in
+  let text = Lsp.Text_document.text tdoc in
+  let config = make_config (Lsp.Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
   { tdoc; source; config; pipeline }

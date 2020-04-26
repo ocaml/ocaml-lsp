@@ -49,7 +49,8 @@ let message = function
        formatting feature."
       binary binary
   | Unknown_extension uri ->
-    Printf.sprintf "Unable to format. File %s has an unknown extension" (Lsp.Uri.to_path uri)
+    Printf.sprintf "Unable to format. File %s has an unknown extension"
+      (Lsp.Uri.to_path uri)
   | Unexpected_result { message } -> message
 
 type formatter =
@@ -78,8 +79,7 @@ let binary t =
 
 let formatter doc =
   match Document.syntax doc with
-  | Ocaml ->
-    Ok (Ocaml (Document.uri doc))
+  | Ocaml -> Ok (Ocaml (Document.uri doc))
   | Reason -> Ok (Reason (Document.kind doc))
 
 let exec bin args stdin =

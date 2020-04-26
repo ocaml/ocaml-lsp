@@ -564,10 +564,7 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
     (Document_store.t, string) result =
   match notification with
   | TextDocumentDidOpen params ->
-    let doc =
-      let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
-      Document.make ~uri ~text:params.textDocument.text ()
-    in
+    let doc = Document.make params in
     Document_store.put store doc;
     send_diagnostics rpc doc;
     Ok store

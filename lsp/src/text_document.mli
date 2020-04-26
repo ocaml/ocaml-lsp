@@ -2,7 +2,7 @@ open Types
 
 type t
 
-val make : ?version:int -> Uri.t -> string -> t
+val make : DidOpenTextDocumentParams.t -> t
 
 val documentUri : t -> Uri.t
 

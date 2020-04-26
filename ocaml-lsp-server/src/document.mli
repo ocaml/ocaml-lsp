@@ -18,7 +18,7 @@ val kind : t -> Kind.t
 
 val syntax : t -> Syntax.t
 
-val make : ?version:int -> uri:Lsp.Uri.t -> text:string -> unit -> t
+val make : DidOpenTextDocumentParams.t -> t
 
 val uri : t -> Lsp.Uri.t
 
