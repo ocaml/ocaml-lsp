@@ -18,7 +18,7 @@ describe("TextDocument: incremental sync", () => {
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
-        "txt",
+        "ocaml",
         0,
         "let x = 1;\n\nlet y = 2;",
       ),
@@ -72,7 +72,7 @@ describe("TextDocument: incremental sync", () => {
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
-        "txt",
+        "ocaml",
         0,
         "let x = 1;\n\nlet y = 2;",
       ),
@@ -107,7 +107,7 @@ describe("TextDocument: incremental sync", () => {
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
-        "txt",
+        "ocaml",
         0,
         "let x = 1;\n\nlet y = 2;",
       ),
@@ -144,7 +144,7 @@ describe("TextDocument: incremental sync", () => {
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
-        "txt",
+        "ocaml",
         0,
         "let x = 1;\n\nlet y = 2;",
       ),
@@ -181,7 +181,7 @@ describe("TextDocument: incremental sync", () => {
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
-        "txt",
+        "ocaml",
         0,
         "let x = 1;\n\nlet y = 2;",
       ),
@@ -218,7 +218,7 @@ describe("TextDocument", () => {
       languageServer.sendNotification("textDocument/didOpen", {
         textDocument: Types.TextDocumentItem.create(
           "file:///test-document.txt",
-          "txt",
+          "ocaml",
           0,
           "Hello, World!",
         ),
@@ -242,7 +242,7 @@ describe("TextDocument", () => {
       languageServer.sendNotification("textDocument/didOpen", {
         textDocument: Types.TextDocumentItem.create(
           "file:///test-document.txt",
-          "txt",
+          "ocaml",
           0,
           "Hello, World!",
         ),

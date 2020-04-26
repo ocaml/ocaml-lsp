@@ -38,7 +38,7 @@ function setupRefmt() {
 
 async function openDocument(languageServer, source, name) {
   await languageServer.sendNotification("textDocument/didOpen", {
-    textDocument: Types.TextDocumentItem.create(name, "txt", 0, source),
+    textDocument: Types.TextDocumentItem.create(name, "ocaml", 0, source),
   });
 }
 

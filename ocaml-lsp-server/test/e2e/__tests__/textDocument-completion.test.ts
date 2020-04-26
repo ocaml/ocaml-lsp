@@ -10,7 +10,7 @@ xdescribe("textDocument/completion", () => {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
-        "txt",
+        "ocaml",
         0,
         source,
       ),
