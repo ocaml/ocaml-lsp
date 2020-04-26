@@ -25,3 +25,5 @@ let apply_content_change ?version (change : TextDocumentContentChangeEvent.t)
     | Some range -> Text_document_text.apply_change doc.text range change.text
   in
   { doc with version; text }
+
+let languageId (t : t) = t.languageId

@@ -21,15 +21,10 @@ module Syntax = struct
     | Ocaml
     | Reason
 
-  let of_fname p =
-    match Filename.extension p with
-    | ".ml"
-    | ".mli" ->
-      Ocaml
-    | ".re"
-    | ".rei" ->
-      Reason
-    | ext -> failwith ("Unknown extension " ^ ext)
+  let of_language_id = function
+    | "ocaml" -> Ocaml
+    | "reason" -> Reason
+    | id -> failwith ("Unexpected language id " ^ id)
 end
 
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"
@@ -45,7 +40,7 @@ let uri doc = Lsp.Text_document.documentUri doc.tdoc
 
 let kind t = Kind.of_fname (Lsp.Uri.to_path (uri t))
 
-let syntax t = Syntax.of_fname (Lsp.Uri.to_path (uri t))
+let syntax t = Syntax.of_language_id (Lsp.Text_document.languageId t.tdoc)
 
 let source doc = doc.source
 
