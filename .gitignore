@@ -1,8 +1,9 @@
-.DS_Store
-.idea
-*.log
-tmp/
+_build/
+.idea/
 .log/
+.vscode/
+tmp/
+.DS_Store
 .merlin
 *.install
-_build
+*.log
