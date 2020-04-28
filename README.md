@@ -31,9 +31,6 @@ project's `package.json`:
   }
 ```
 
-Note that you need to specify a specific git commit sha from this repository
-instead of `<git-commit-sha>` placeholder above.
-
 ### Source
 
 This project uses submodules to handle dependencies. This is done so that users
