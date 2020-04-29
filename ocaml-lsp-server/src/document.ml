@@ -1,5 +1,32 @@
 open Import
 
+module Kind = struct
+  type t =
+    | Intf
+    | Impl
+
+  let of_fname p =
+    match Filename.extension p with
+    | ".ml"
+    | ".re" ->
+      Impl
+    | ".mli"
+    | ".rei" ->
+      Intf
+    | ext -> failwith ("Unknown extension " ^ ext)
+end
+
+module Syntax = struct
+  type t =
+    | Ocaml
+    | Reason
+
+  let of_language_id = function
+    | "ocaml" -> Ocaml
+    | "reason" -> Reason
+    | id -> failwith ("Unexpected language id " ^ id)
+end
+
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"
 
 type t =
@@ -9,11 +36,11 @@ type t =
   ; config : Mconfig.t
   }
 
-let normalize_line_endings text =
-  let text = String.replace_all ~pattern:"\r\n" ~with_:"\n" text in
-  text
-
 let uri doc = Lsp.Text_document.documentUri doc.tdoc
+
+let kind t = Kind.of_fname (Lsp.Uri.to_path (uri t))
+
+let syntax t = Syntax.of_language_id (Lsp.Text_document.languageId t.tdoc)
 
 let source doc = doc.source
 
@@ -39,11 +66,11 @@ let make_config uri =
          Filename.concat directory base)
       ]
 
-let make ?(version = 0) ~uri ~text () =
-  let tdoc = Lsp.Text_document.make ~version uri text in
+let make tdoc =
+  let tdoc = Lsp.Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
-  let text = normalize_line_endings text in
-  let config = make_config uri in
+  let text = Lsp.Text_document.text tdoc in
+  let config = make_config (Lsp.Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
   { tdoc; source; config; pipeline }

@@ -2,7 +2,23 @@ open Lsp.Types
 
 type t
 
-val make : ?version:int -> uri:Lsp.Uri.t -> text:string -> unit -> t
+module Syntax : sig
+  type t =
+    | Ocaml
+    | Reason
+end
+
+module Kind : sig
+  type t =
+    | Intf
+    | Impl
+end
+
+val kind : t -> Kind.t
+
+val syntax : t -> Syntax.t
+
+val make : DidOpenTextDocumentParams.t -> t
 
 val uri : t -> Lsp.Uri.t
 

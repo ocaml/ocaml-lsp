@@ -1,23 +1,19 @@
 open Types
 
-type t =
-  { documentUri : Uri.t
-  ; version : int
-  ; text : string
-  }
+type t = TextDocumentItem.t
 
-let make ?(version = 0) documentUri text =
-  let text = Text_document_text.normalize_line_endings text in
-  { documentUri; version; text }
+let make (t : DidOpenTextDocumentParams.t) =
+  let text = Text_document_text.normalize_line_endings t.textDocument.text in
+  { t.textDocument with text }
 
-let documentUri doc = doc.documentUri
+let documentUri (doc : t) = Uri.t_of_yojson (`String doc.uri)
 
-let version doc = doc.version
+let version (t : t) = t.version
 
-let text doc = doc.text
+let text (t : t) = t.text
 
 let apply_content_change ?version (change : TextDocumentContentChangeEvent.t)
-    doc =
+    (doc : t) =
   let version =
     match version with
     | None -> doc.version + 1
@@ -29,3 +25,5 @@ let apply_content_change ?version (change : TextDocumentContentChangeEvent.t)
     | Some range -> Text_document_text.apply_change doc.text range change.text
   in
   { doc with version; text }
+
+let languageId (t : t) = t.languageId

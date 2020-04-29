@@ -37,15 +37,10 @@ let run_command command stdin_value args : command_result =
   let status = Unix.close_process_full (in_chan, out_chan, err_chan) in
   { stdout; stderr; status }
 
-let _PATH =
-  lazy
-    (Bin.parse_path
-       (Option.value ~default:"" (Unix_env.get Unix_env.initial "PATH")))
-
 type error =
   | Missing_binary of { binary : string }
   | Unexpected_result of { message : string }
-  | Unknown_extension of { name : string }
+  | Unknown_extension of Lsp.Uri.t
 
 let message = function
   | Missing_binary { binary } ->
@@ -53,22 +48,17 @@ let message = function
       "Unable to find %s binary. You need to install %s manually to use the \
        formatting feature."
       binary binary
-  | Unknown_extension { name } ->
-    Printf.sprintf "Unable to format. File %s has an unknown extension" name
+  | Unknown_extension uri ->
+    Printf.sprintf "Unable to format. File %s has an unknown extension"
+      (Lsp.Uri.to_path uri)
   | Unexpected_result { message } -> message
 
-module Ml_kind = struct
-  type t =
-    | Intf
-    | Impl
-end
-
 type formatter =
-  | Reason of Ml_kind.t
-  | Ocaml of { name : string }
+  | Reason of Document.Kind.t
+  | Ocaml of Lsp.Uri.t
 
 let args = function
-  | Ocaml { name } -> [ sprintf "--name=%s" name; "-" ]
+  | Ocaml uri -> [ sprintf "--name=%s" (Lsp.Uri.to_path uri); "-" ]
   | Reason kind -> (
     [ "--parse"; "re"; "--print"; "re" ]
     @
@@ -83,18 +73,14 @@ let binary_name t =
 
 let binary t =
   let name = binary_name t in
-  match Bin.which ~path:(Lazy.force _PATH) name with
+  match Bin.which name with
   | None -> Result.Error (Missing_binary { binary = name })
   | Some b -> Ok b
 
-let formatter fname =
-  match Filename.extension fname with
-  | ".ml"
-  | ".mli" ->
-    Ok (Ocaml { name = fname })
-  | ".re" -> Ok (Reason Impl)
-  | ".rei" -> Ok (Reason Intf)
-  | name -> Error (Unknown_extension { name })
+let formatter doc =
+  match Document.syntax doc with
+  | Ocaml -> Ok (Ocaml (Document.uri doc))
+  | Reason -> Ok (Reason (Document.kind doc))
 
 let exec bin args stdin =
   let refmt = Fpath.to_string bin in
@@ -103,9 +89,10 @@ let exec bin args stdin =
   | Unix.WEXITED 0 -> Result.Ok res.stdout
   | _ -> Result.Error (Unexpected_result { message = res.stderr })
 
-let run ~fname ~contents =
+let run doc =
   let open Result.O in
-  let* formatter = formatter fname in
+  let* formatter = formatter doc in
   let args = args formatter in
   let* binary = binary formatter in
+  let contents = Document.source doc |> Msource.text in
   exec binary args contents

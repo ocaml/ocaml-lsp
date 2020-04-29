@@ -15,7 +15,7 @@ describe("textDocument/hover", () => {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
-        "txt",
+        "ocaml",
         0,
         "let x = 1\n",
       ),
@@ -47,7 +47,7 @@ describe("textDocument/hover", () => {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
-        "txt",
+        "ocaml",
         0,
         "let x = 1\n",
       ),
@@ -79,7 +79,7 @@ describe("textDocument/hover", () => {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
-        "txt",
+        "ocaml",
         0,
         "(** This function has a nice documentation *)\nlet id x = x\n",
       ),
@@ -111,7 +111,7 @@ describe("textDocument/hover", () => {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
-        "txt",
+        "ocaml",
         0,
         outdent`
           let f i f = float_of_int i +. f

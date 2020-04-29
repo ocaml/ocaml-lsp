@@ -7,8 +7,8 @@ open Import
 type error =
   | Missing_binary of { binary : string }
   | Unexpected_result of { message : string }
-  | Unknown_extension of { name : string }
+  | Unknown_extension of Lsp.Uri.t
 
 val message : error -> string
 
-val run : fname:string -> contents:string -> (string, error) Result.t
+val run : Document.t -> (string, error) Result.t
