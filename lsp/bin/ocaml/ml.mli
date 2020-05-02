@@ -91,11 +91,11 @@ module Type : sig
 
   val constr : t list -> name:string -> constr
 
-  val enum : string list -> decl
   (** Simplified sum types*)
+  val enum : string list -> decl
 
-  val poly_enum : string list -> t
   (** Polymorphic variant form *)
+  val poly_enum : string list -> t
 
   val list : t -> t
 
