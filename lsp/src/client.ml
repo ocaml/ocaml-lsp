@@ -96,12 +96,7 @@ let send rpc json =
   log ~title:Logger.Title.LocalDebug "send: %a"
     (fun () -> Yojson.Safe.pretty_to_string ~std:false)
     json;
-  let data = Yojson.Safe.to_string json in
-  let content_length = String.length data in
-  let header = Header.create ~content_length in
-  Header.write header rpc.oc;
-  output_string rpc.oc data;
-  flush rpc.oc
+  Io.send rpc.oc json
 
 let send_response t (response : Jsonrpc.Response.t) =
   let json = Jsonrpc.Response.yojson_of_t response in

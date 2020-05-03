@@ -1,3 +1,5 @@
+open Import
+
 module Message : sig
   type ('request, 'notif) t =
     | Request of Jsonrpc.Id.t * 'request
@@ -8,4 +10,8 @@ module Message : sig
     -> (Jsonrpc.Request.t -> ('n, string) result)
     -> Jsonrpc.Request.t
     -> (('r, 'n) t, string) result
+end
+
+module Io : sig
+  val send : out_channel -> Json.t -> unit
 end
