@@ -10,7 +10,6 @@ type state =
 type t =
   { ic : in_channel
   ; oc : out_channel
-  ; fd : Unix.file_descr
   ; mutable state : state
   }
 
@@ -155,8 +154,7 @@ let start init_state handler ic oc =
 
   set_binary_mode_in ic true;
   set_binary_mode_out oc true;
-  let fd = Unix.descr_of_in_channel stdin in
-  let rpc = { ic; oc; fd; state = Ready } in
+  let rpc = { ic; oc; state = Ready } in
   loop rpc init_state
 
 let stop (rpc : t) = rpc.state <- Closed
