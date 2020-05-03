@@ -3,6 +3,8 @@
 This project contains an implementation of an LSP server for OCaml and a
 standalone implementation of the LSP protocol.
 
+The command name is `ocamllsp`.
+
 ## Installation
 
 We recommend to install the server via a project such as
