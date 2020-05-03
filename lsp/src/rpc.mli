@@ -14,4 +14,6 @@ end
 
 module Io : sig
   val send : out_channel -> Json.t -> unit
+
+  val read : in_channel -> (Json.t, string) result
 end

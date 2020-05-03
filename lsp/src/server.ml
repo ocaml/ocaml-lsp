@@ -16,52 +16,21 @@ type t =
 
 let { Logger.log } = Logger.for_section "lsp"
 
-let send rpc json =
-  log ~title:Logger.Title.LocalDebug "send: %a"
-    (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-    json;
-  Io.send rpc.oc json
-
 let read rpc =
   let open Result.O in
-  let read_content rpc =
-    Thread.wait_read rpc.fd;
-    let header = Header.read rpc.ic in
-    let len = Header.content_length header in
-    let buffer = Bytes.create len in
-    let rec read_loop read =
-      if read < len then
-        let n = input rpc.ic buffer read (len - read) in
-        read_loop (read + n)
-    in
-    let () = read_loop 0 in
-    Ok (Bytes.to_string buffer)
-  in
-
-  let parse_json content =
-    match Yojson.Safe.from_string content with
-    | json ->
-      log ~title:Logger.Title.LocalDebug "recv: %a"
-        (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-        json;
-      Ok json
-    | exception Yojson.Json_error msg ->
-      Result.errorf "error parsing json: %s" msg
-  in
-
-  let* parsed = read_content rpc >>= parse_json in
+  let* parsed = Io.read rpc.ic in
   match Jsonrpc.Request.t_of_yojson parsed with
   | r -> Ok r
   | exception _exn -> Error "Unexpected packet"
 
 let send_response rpc (response : Jsonrpc.Response.t) =
   let json = Jsonrpc.Response.yojson_of_t response in
-  send rpc json
+  Io.send rpc.oc json
 
 let send_notification rpc notif =
   let response = Server_notification.to_jsonrpc_request notif in
   let json = Jsonrpc.Request.yojson_of_t response in
-  send rpc json
+  Io.send rpc.oc json
 
 open Types
 

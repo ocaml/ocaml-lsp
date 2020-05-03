@@ -2,8 +2,6 @@ open Import
 open Types
 open Rpc
 
-let { Logger.log } = Logger.for_section "lsp_client"
-
 type state =
   | Ready
   | Initialized
@@ -32,75 +30,21 @@ let create handler ic oc initialize =
 
 let read_response (t : t) =
   let open Result.O in
-  let read_content () =
-    let header = Header.read t.ic in
-    let len = Header.content_length header in
-    let buffer = Bytes.create len in
-    let rec read_loop read =
-      if read < len then
-        let n = input t.ic buffer read (len - read) in
-        read_loop (read + n)
-    in
-    let () = read_loop 0 in
-    Ok (Bytes.to_string buffer)
-  in
-
-  let parse_json content =
-    match Yojson.Safe.from_string content with
-    | json ->
-      log ~title:Logger.Title.LocalDebug "recv: %a"
-        (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-        json;
-      Ok json
-    | exception Yojson.Json_error msg ->
-      Result.errorf "error parsing json: %s" msg
-  in
-
-  let* parsed = read_content () >>= parse_json in
+  let* parsed = Io.read t.ic in
   match Jsonrpc.Response.t_of_yojson parsed with
   | r -> Ok r
   | exception _exn -> Error "Unexpected packet"
 
-let read_request (rpc : t) =
+let read_request (t : t) =
   let open Result.O in
-  let read_content rpc =
-    let header = Header.read rpc.ic in
-    let len = Header.content_length header in
-    let buffer = Bytes.create len in
-    let rec read_loop read =
-      if read < len then
-        let n = input rpc.ic buffer read (len - read) in
-        read_loop (read + n)
-    in
-    let () = read_loop 0 in
-    Ok (Bytes.to_string buffer)
-  in
-
-  let parse_json content =
-    match Yojson.Safe.from_string content with
-    | json ->
-      log ~title:Logger.Title.LocalDebug "recv: %a"
-        (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-        json;
-      Ok json
-    | exception Yojson.Json_error msg ->
-      Result.errorf "error parsing json: %s" msg
-  in
-
-  let* parsed = read_content rpc >>= parse_json in
+  let* parsed = Io.read t.ic in
   match Jsonrpc.Request.t_of_yojson parsed with
   | r -> Ok r
   | exception _exn -> Error "Unexpected packet"
 
-let send rpc json =
-  log ~title:Logger.Title.LocalDebug "send: %a"
-    (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-    json;
-  Io.send rpc.oc json
-
 let send_response t (response : Jsonrpc.Response.t) =
   let json = Jsonrpc.Response.yojson_of_t response in
-  Fiber.return (send t json)
+  Fiber.return (Io.send t.oc json)
 
 let read_message t =
   Result.bind (read_request t)
@@ -115,7 +59,7 @@ let send_request (type a) (t : t) (req : a Client_request.t) : a Fiber.t =
   incr req_id;
   let () =
     Client_request.to_jsonrpc_request req ~id
-    |> Jsonrpc.Request.yojson_of_t |> send t
+    |> Jsonrpc.Request.yojson_of_t |> Io.send t.oc
   in
   match read_response t with
   | Error e -> failwith ("Invalid message" ^ e)
@@ -181,7 +125,7 @@ let start (t : t) =
 let send_notification rpc notif =
   let response = Client_notification.to_jsonrpc_request notif in
   let json = Jsonrpc.Request.yojson_of_t response in
-  send rpc json
+  Io.send rpc.oc json
 
 let initialized (t : t) = Fiber.Ivar.read t.initialized
 
