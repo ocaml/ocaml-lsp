@@ -140,7 +140,7 @@ let start (t : t) =
     | Ok (Message.Notification notif) ->
       t.handler.on_notification t notif;
       Fiber.return ()
-    | Ok (Message.Request (id, E req)) -> (
+    | Ok (Message.Request (id, Server_request.E req)) -> (
       let handled =
         try t.handler.on_request t req
         with exn -> Fiber.return (Error (Jsonrpc.Response.Error.of_exn exn))
