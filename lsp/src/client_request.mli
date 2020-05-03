@@ -70,3 +70,7 @@ val yojson_of_result : 'a t -> 'a -> Json.t option
 type packed = E : 'r t -> packed
 
 val of_jsonrpc : Jsonrpc.Request.t -> (packed, string) Result.t
+
+val to_jsonrpc_request : _ t -> id:Jsonrpc.Id.t -> Jsonrpc.Request.t
+
+val response_of_json : 'a t -> Json.t -> 'a

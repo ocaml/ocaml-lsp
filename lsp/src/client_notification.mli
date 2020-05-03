@@ -14,3 +14,5 @@ type t =
   | Unknown_notification of Jsonrpc.Request.t
 
 val of_jsonrpc : Jsonrpc.Request.t -> (t, string) Result.t
+
+val to_jsonrpc_request : t -> Jsonrpc.Request.t

@@ -12,5 +12,12 @@ type _ t =
   | ShowMessageRequest :
       ShowMessageRequestParams.t
       -> MessageActionItem.t option t
+  | UnknownRequest : string * Json.t option -> unit t
+
+type packed = E : 'r t -> packed
+
+val yojson_of_result : 'a t -> 'a -> Json.t option
 
 val to_jsonrpc_request : _ t -> id:Jsonrpc.Id.t -> Jsonrpc.Request.t
+
+val of_jsonrpc : Jsonrpc.Request.t -> (packed, string) Result.t

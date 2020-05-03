@@ -13,6 +13,33 @@ type t =
   | Exit
   | Unknown_notification of Jsonrpc.Request.t
 
+let method_ = function
+  | TextDocumentDidOpen _ -> "textDocument/didOpen"
+  | TextDocumentDidChange _ -> "textDocument/didChange"
+  | TextDocumentDidClose _ -> "textDocument/didClose"
+  | Exit -> "exit"
+  | Initialized -> "initialized"
+  | ChangeWorkspaceFolders _ -> "workspace/didChangeWorkspaceFolders"
+  | ChangeConfiguration _ -> "workspace/didChangeConfiguration"
+  | WillSaveTextDocument _ -> "textDocument/willSave"
+  | DidSaveTextDocument _ -> "textDocument/didSave"
+  | Unknown_notification _ -> assert false
+
+let yojson_of_t = function
+  | TextDocumentDidOpen params -> DidOpenTextDocumentParams.yojson_of_t params
+  | TextDocumentDidChange params ->
+    DidChangeTextDocumentParams.yojson_of_t params
+  | TextDocumentDidClose params -> DidCloseTextDocumentParams.yojson_of_t params
+  | Exit -> `Null
+  | Initialized -> `Null
+  | ChangeWorkspaceFolders params ->
+    DidChangeWorkspaceFoldersParams.yojson_of_t params
+  | ChangeConfiguration params ->
+    DidChangeConfigurationParams.yojson_of_t params
+  | WillSaveTextDocument params -> WillSaveTextDocumentParams.yojson_of_t params
+  | DidSaveTextDocument params -> DidSaveTextDocumentParams.yojson_of_t params
+  | Unknown_notification _ -> assert false
+
 let of_jsonrpc (r : Jsonrpc.Request.t) =
   let open Result.O in
   match r.method_ with
@@ -40,3 +67,8 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     Jsonrpc.Request.params r DidSaveTextDocumentParams.t_of_yojson
     >>| fun params -> DidSaveTextDocument params
   | _ -> Ok (Unknown_notification r)
+
+let to_jsonrpc_request t =
+  let method_ = method_ t in
+  let params = Some (yojson_of_t t) in
+  { Jsonrpc.Request.id = None; params; method_ }
