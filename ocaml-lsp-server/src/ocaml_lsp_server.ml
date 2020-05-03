@@ -72,7 +72,7 @@ let send_diagnostics rpc doc =
       Lsp.Server_notification.PublishDiagnostics
         (PublishDiagnosticsParams.create ~uri ~diagnostics ())
     in
-    Lsp.Rpc.send_notification rpc notif
+    Lsp.Server.send_notification rpc notif
   | true ->
     let command =
       Query_protocol.Errors { lexing = true; parsing = true; typing = true }
@@ -100,7 +100,7 @@ let send_diagnostics rpc doc =
         (PublishDiagnosticsParams.create ~uri ~diagnostics ())
     in
 
-    Lsp.Rpc.send_notification rpc notif
+    Lsp.Server.send_notification rpc notif
 
 let on_initialize rpc state _params =
   let log_consumer (section, title, text) =
@@ -117,7 +117,7 @@ let on_initialize rpc state _params =
       in
       let message = Printf.sprintf "[%s] %s" section text in
       let notif = Lsp.Server_notification.LogMessage { message; type_ } in
-      Lsp.Rpc.send_notification rpc notif
+      Lsp.Server.send_notification rpc notif
   in
   Logger.register_consumer log_consumer;
   Ok (state, initializeInfo)
@@ -177,7 +177,7 @@ module Formatter = struct
       let message = Fmt.message e in
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Error in
-      Lsp.Rpc.send_notification rpc (ShowMessage msg);
+      Lsp.Server.send_notification rpc (ShowMessage msg);
       Error error
     | Result.Ok result ->
       let pos line col = { Position.character = col; line } in
@@ -194,7 +194,7 @@ end
 
 let on_request :
     type resp.
-       Lsp.Rpc.t
+       Lsp.Server.t
     -> Document_store.t
     -> ClientCapabilities.t
     -> resp Lsp.Client_request.t
@@ -635,7 +635,9 @@ let start () =
       ( prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
         on_request rpc state caps req )
   in
-  Lsp.Rpc.start docs { on_initialize; on_request; on_notification } stdin stdout
+  Lsp.Server.start docs
+    { on_initialize; on_request; on_notification }
+    stdin stdout
   |> Fiber.run;
   log ~title:Logger.Title.Info "exiting"
 
