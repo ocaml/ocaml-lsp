@@ -270,6 +270,10 @@ module Response = struct
 
     [@@@end]
 
+    exception E of t
+
+    let raise t = raise (E t)
+
     let make ?data ~code ~message () = { data; code; message }
 
     let of_exn exn =

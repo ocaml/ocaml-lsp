@@ -43,7 +43,11 @@ module Response : sig
       ; data : Json.t option
       }
 
+    exception E of t
+
     val make : ?data:Json.t -> code:Code.t -> message:string -> unit -> t
+
+    val raise : t -> 'a
 
     val of_exn : Exn.t -> t
   end
