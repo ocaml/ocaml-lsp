@@ -19,7 +19,7 @@ let rec symbol item =
   let range : Range.t = range item in
   let kind = outline_kind item.outline_kind in
   DocumentSymbol.create ~name:item.Query_protocol.outline_name ~kind
-    ?detail:item.Query_protocol.outline_type ~deprecated:false ~range
+    ?detail:item.Query_protocol.outline_type ~deprecated:item.deprecated ~range
     ~selectionRange:range ~children ()
 
 let rec symbol_info ?containerName uri item =
