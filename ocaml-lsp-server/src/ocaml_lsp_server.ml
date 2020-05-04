@@ -360,65 +360,29 @@ let on_request :
     | `Not_in_env _ ->
       Ok (store, None) )
   | Lsp.Client_request.TextDocumentTypeDefinition
-      { textDocument = { uri }; position } ->
+      { textDocument = { uri }; position } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let position = Position.logical position in
-    Document.with_pipeline doc @@ fun pipeline ->
-    let typer = Mpipeline.typer_result pipeline in
-    let structures = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
-    let pos = Mpipeline.get_lexing_pos pipeline position in
-    let path = Mbrowse.enclosing pos [ structures ] in
-    let path =
-      let rec resolve_tlink env ty =
-        match ty.Types.desc with
-        | Tconstr (path, _, _) -> Some (env, path)
-        | Tlink ty -> resolve_tlink env ty
-        | _ -> None
+    let command = Query_protocol.Locate_type position in
+    match Document.dispatch doc command with
+    | `Found (path, lex_position) ->
+      let position = Position.of_lexical_position lex_position in
+      let range = { Range.start = position; end_ = position } in
+      let uri =
+        match path with
+        | None -> uri
+        | Some path -> Lsp.Uri.of_path path
       in
-      List.filter_map path ~f:(fun (env, node) ->
-          log ~title:Logger.Title.Debug "inspecting node: %s"
-            (Browse_raw.string_of_node node);
-          match node with
-          | Browse_raw.Expression { exp_type = ty; _ }
-          | Pattern { pat_type = ty; _ }
-          | Core_type { ctyp_type = ty; _ }
-          | Value_description { val_desc = { ctyp_type = ty; _ }; _ } ->
-            resolve_tlink env ty
-          | _ -> None)
-    in
-    let locs =
-      List.filter_map path ~f:(fun (env, path) ->
-          log ~title:Logger.Title.Debug "found type: %s" (Path.name path);
-          let local_defs = Mtyper.get_typedtree typer in
-          match
-            Locate.from_string
-              ~config:(Mpipeline.final_config pipeline)
-              ~env ~local_defs ~pos ~namespaces:[ `Type ] `MLI
-              (* FIXME: instead of converting to a string, pass it directly. *)
-              (Path.name path)
-          with
-          | exception Env.Error _ -> None
-          | `Found (path, lex_position) ->
-            let position = Position.of_lexical_position lex_position in
-            let range = { Range.start = position; end_ = position } in
-            let uri =
-              match path with
-              | None -> uri
-              | Some path -> Lsp.Uri.of_path path
-            in
-            let loc = { Location.uri = Lsp.Uri.to_string uri; range } in
-            Some loc
-          | `At_origin
-          | `Builtin _
-          | `File_not_found _
-          | `Invalid_context
-          | `Missing_labels_namespace
-          | `Not_found _
-          | `Not_in_env _ ->
-            None)
-    in
-    Ok (store, Some (`Location locs))
+      let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
+      Ok (store, Some (`Location locs))
+    | `At_origin
+    | `Builtin _
+    | `File_not_found _
+    | `Invalid_context
+    | `Not_found _
+    | `Not_in_env _ ->
+      Ok (store, None) )
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
