@@ -43,6 +43,14 @@ $ cd ocaml-lsp
 $ make build
 ```
 
+## Usage
+
+Once `ocaml-lsp-server` is installed, the executable is called `ocamllsp`.
+For now, the server can only be used through the standard file descriptors `stdin` and `stdout`.
+
+For an example of usage of the server in a VSCode extension, see [here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/Extension.ml).
+
+
 ## Features
 
 The server supports the following queries:
