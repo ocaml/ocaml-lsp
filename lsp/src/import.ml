@@ -250,6 +250,8 @@ module Fiber = struct
   module Result = struct
     type nonrec ('a, 'e) t = ('a, 'e) result Fiber.t
 
+    let lift x = Fiber.map x ~f:(fun x -> Ok x)
+
     let return x = Fiber.return (Ok x)
 
     let ( >>= ) x f =

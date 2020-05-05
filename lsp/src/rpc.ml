@@ -1,11 +1,12 @@
 open Import
+open Jsonrpc
 
 module Message = struct
   type ('request, 'notif) t =
-    | Request of Jsonrpc.Id.t * 'request
+    | Request of Id.t * 'request
     | Notification of 'notif
 
-  let of_jsonrpc req notif (packet : Jsonrpc.Request.t) =
+  let of_jsonrpc req notif (packet : Request.t) =
     let open Result.O in
     match packet.id with
     | None ->
@@ -19,7 +20,26 @@ end
 module Io = struct
   let { Logger.log } = Logger.for_section "lsp_io"
 
-  let send oc json =
+  type packet =
+    | Request of Request.t
+    | Response of Response.t
+
+  type t =
+    { ic : in_channel
+    ; oc : out_channel
+    }
+
+  let make ic oc =
+    set_binary_mode_in ic true;
+    set_binary_mode_out oc true;
+    { ic; oc }
+
+  let send { oc; ic = _ } (packet : packet) =
+    let json =
+      match packet with
+      | Request r -> Request.yojson_of_t r
+      | Response r -> Response.yojson_of_t r
+    in
     log ~title:Logger.Title.LocalDebug "send: %a"
       (fun () -> Yojson.Safe.pretty_to_string ~std:false)
       json;
@@ -28,9 +48,10 @@ module Io = struct
     let header = Header.create ~content_length in
     Header.write header oc;
     output_string oc data;
-    flush oc
+    flush oc;
+    Fiber.return ()
 
-  let read ic =
+  let read { ic; oc = _ } =
     let read_content () =
       let header = Header.read ic in
       let len = Header.content_length header in
@@ -57,4 +78,20 @@ module Io = struct
 
     let open Result.O in
     read_content () >>= parse_json
+
+  let read_request (t : t) =
+    Fiber.return
+      (let open Result.O in
+      let* parsed = read t in
+      match Jsonrpc.Request.t_of_yojson parsed with
+      | r -> Ok r
+      | exception _exn -> Error "Unexpected packet")
+
+  let read_response (t : t) =
+    Fiber.return
+      (let open Result.O in
+      let* parsed = read t in
+      match Jsonrpc.Response.t_of_yojson parsed with
+      | r -> Ok r
+      | exception _exn -> Error "Unexpected packet")
 end

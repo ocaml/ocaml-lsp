@@ -8,28 +8,16 @@ type state =
   | Closed
 
 type t =
-  { ic : in_channel
-  ; oc : out_channel
+  { rpc : Rpc.Io.t
   ; mutable state : state
   }
 
 let { Logger.log } = Logger.for_section "lsp"
 
-let read rpc =
-  let open Result.O in
-  let* parsed = Io.read rpc.ic in
-  match Jsonrpc.Request.t_of_yojson parsed with
-  | r -> Ok r
-  | exception _exn -> Error "Unexpected packet"
-
-let send_response rpc (response : Jsonrpc.Response.t) =
-  let json = Jsonrpc.Response.yojson_of_t response in
-  Io.send rpc.oc json
-
-let send_notification rpc notif =
-  let response = Server_notification.to_jsonrpc_request notif in
-  let json = Jsonrpc.Request.yojson_of_t response in
-  Io.send rpc.oc json
+let send_notification (t : t) notif =
+  let request = Server_notification.to_jsonrpc_request notif in
+  let (_ : unit Fiber.t) = Io.send t.rpc (Request request) in
+  ()
 
 open Types
 
@@ -59,25 +47,26 @@ let handle_message prev_state f =
     log ~title:Logger.Title.Error "%s" msg;
     prev_state
 
-let start init_state handler ic oc =
-  let read_message rpc =
-    Result.bind (read rpc)
-      ~f:
-        (Message.of_jsonrpc Client_request.of_jsonrpc
-           Client_notification.of_jsonrpc)
-  in
+let read_message t =
+  let open Fiber.O in
+  let+ req = Io.read_request t.rpc in
+  Result.bind req
+    ~f:
+      (Message.of_jsonrpc Client_request.of_jsonrpc
+         Client_notification.of_jsonrpc)
 
+let start init_state handler ic oc =
   let on_ready rpc state =
     let open Fiber.Result.O in
-    let* msg = Fiber.return (read_message rpc) in
+    let* msg = read_message rpc in
     let open Client_request in
     match msg with
     | Message.Request (id, E (Initialize params)) ->
-      let+ next_state, result = handler.on_initialize rpc state params in
+      let* next_state, result = handler.on_initialize rpc state params in
       let json = InitializeResult.yojson_of_t result in
       let response = Jsonrpc.Response.ok id json in
       rpc.state <- Initialized params.capabilities;
-      send_response rpc response;
+      let+ () = Fiber.Result.lift (Io.send rpc.rpc (Response response)) in
       next_state
     | Message.Notification Exit ->
       rpc.state <- Closed;
@@ -94,13 +83,14 @@ let start init_state handler ic oc =
         in
         Jsonrpc.Response.error id error
       in
-      send_response rpc response;
-      Fiber.Result.return state
+      let open Fiber.O in
+      let+ () = Io.send rpc.rpc (Response response) in
+      Ok state
   in
 
   let on_initialized client_capabilities rpc state =
     let open Fiber.Result.O in
-    let* msg = Fiber.return (read_message rpc) in
+    let* msg = read_message rpc in
     let open Client_request in
     match msg with
     | Message.Request (_id, E (Initialize _)) ->
@@ -117,7 +107,7 @@ let start init_state handler ic oc =
         with exn -> Fiber.return (Error (Jsonrpc.Response.Error.of_exn exn))
       in
       let open Fiber.O in
-      let+ handled = handled in
+      let* handled = handled in
       match handled with
       | Ok (next_state, result) ->
         let yojson_result =
@@ -126,11 +116,11 @@ let start init_state handler ic oc =
           | Some res -> res
         in
         let response = Jsonrpc.Response.ok id yojson_result in
-        send_response rpc response;
+        let+ () = Io.send rpc.rpc (Response response) in
         Ok next_state
       | Error e ->
         let response = Jsonrpc.Response.error id e in
-        send_response rpc response;
+        let+ () = Io.send rpc.rpc (Response response) in
         Error e.message )
   in
 
@@ -152,9 +142,10 @@ let start init_state handler ic oc =
       loop rpc next_state
   in
 
-  set_binary_mode_in ic true;
-  set_binary_mode_out oc true;
-  let rpc = { ic; oc; state = Ready } in
+  let rpc =
+    let rpc = Rpc.Io.make ic oc in
+    { rpc; state = Ready }
+  in
   loop rpc init_state
 
 let stop (rpc : t) = rpc.state <- Closed

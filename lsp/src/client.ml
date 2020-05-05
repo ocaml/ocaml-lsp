@@ -15,8 +15,7 @@ type handler =
   }
 
 and t =
-  { ic : in_channel
-  ; oc : out_channel
+  { rpc : Io.t
   ; mutable state : state
   ; initialize : InitializeParams.t
   ; initialized : InitializeResult.t Fiber.Ivar.t
@@ -26,28 +25,13 @@ and t =
 let create handler ic oc initialize =
   let initialized = Fiber.Ivar.create () in
   let state = Ready in
-  { ic; oc; state; initialize; handler; initialized }
-
-let read_response (t : t) =
-  let open Result.O in
-  let* parsed = Io.read t.ic in
-  match Jsonrpc.Response.t_of_yojson parsed with
-  | r -> Ok r
-  | exception _exn -> Error "Unexpected packet"
-
-let read_request (t : t) =
-  let open Result.O in
-  let* parsed = Io.read t.ic in
-  match Jsonrpc.Request.t_of_yojson parsed with
-  | r -> Ok r
-  | exception _exn -> Error "Unexpected packet"
-
-let send_response t (response : Jsonrpc.Response.t) =
-  let json = Jsonrpc.Response.yojson_of_t response in
-  Fiber.return (Io.send t.oc json)
+  let rpc = Io.make ic oc in
+  { rpc; state; initialize; handler; initialized }
 
 let read_message t =
-  Result.bind (read_request t)
+  let open Fiber.O in
+  let+ req = Io.read_request t in
+  Result.bind req
     ~f:
       (Message.of_jsonrpc Server_request.of_jsonrpc
          Server_notification.of_jsonrpc)
@@ -57,27 +41,24 @@ let req_id = ref 1
 let send_request (type a) (t : t) (req : a Client_request.t) : a Fiber.t =
   let id = Either.Right !req_id in
   incr req_id;
-  let () =
-    Client_request.to_jsonrpc_request req ~id
-    |> Jsonrpc.Request.yojson_of_t |> Io.send t.oc
+  let open Fiber.O in
+  let* () =
+    Io.send t.rpc (Request (Client_request.to_jsonrpc_request req ~id))
   in
-  match read_response t with
+  let+ response = Io.read_response t.rpc in
+  match response with
   | Error e -> failwith ("Invalid message" ^ e)
-  | Ok m ->
+  | Ok m -> (
     assert (m.id = id);
-    let result =
-      match m.result with
-      | Error e -> Jsonrpc.Response.Error.raise e
-      | Ok json -> Client_request.response_of_json req json
-    in
-    Fiber.return result
+    match m.result with
+    | Error e -> Jsonrpc.Response.Error.raise e
+    | Ok json -> Client_request.response_of_json req json )
 
 let start (t : t) =
-  set_binary_mode_in t.ic true;
-  set_binary_mode_out t.oc true;
-
   let on_initialized () =
-    match read_message t with
+    let open Fiber.O in
+    let* message = read_message t.rpc in
+    match message with
     | Error _ ->
       (* TODO log this *)
       Fiber.return ()
@@ -99,10 +80,10 @@ let start (t : t) =
           | Some res -> res
         in
         let response = Jsonrpc.Response.ok id yojson_result in
-        send_response t response
+        Io.send t.rpc (Response response)
       | Error e ->
         let response = Jsonrpc.Response.error id e in
-        send_response t response )
+        Io.send t.rpc (Response response) )
   in
 
   let rec loop () =
@@ -123,9 +104,9 @@ let start (t : t) =
   loop ()
 
 let send_notification rpc notif =
-  let response = Client_notification.to_jsonrpc_request notif in
-  let json = Jsonrpc.Request.yojson_of_t response in
-  Io.send rpc.oc json
+  let req = Client_notification.to_jsonrpc_request notif in
+  let (_ : unit Fiber.t) = Io.send rpc.rpc (Request req) in
+  ()
 
 let initialized (t : t) = Fiber.Ivar.read t.initialized
 
