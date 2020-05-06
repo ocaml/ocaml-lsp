@@ -3,7 +3,7 @@
  (package ocaml-lsp-server)
  (public_name ocamllsp)
  (preprocess future_syntax)
- (libraries lsp.stdune merlin.specific merlin.analysis merlin.kernel
+ (libraries stdune merlin.specific merlin.analysis merlin.kernel
    merlin.merlin_utils merlin.parsing merlin.query_protocol lsp merlin.typing
    merlin.utils merlin.query_commands result yojson ppx_yojson_conv_lib
-   cmdliner lsp.fiber))
+   cmdliner fiber))
