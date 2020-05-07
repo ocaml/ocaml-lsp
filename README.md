@@ -81,7 +81,7 @@ Note that degrees of support for each LSP request are varying.
 
 ## Contribution
 
-```
+```bash
 # clone repo with submodules
 git clone --recursive git@github.com:ocaml/ocaml-lsp.git
 
