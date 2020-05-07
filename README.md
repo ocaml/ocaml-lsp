@@ -79,6 +79,28 @@ The server supports the following queries:
 
 Note that degrees of support for each LSP request are varying.
 
+## Contribution
+
+```
+# clone repo with submodules
+git clone --recursive git@github.com:ocaml/ocaml-lsp.git
+
+# if you already clone, pull submodules
+git submodule update --init --recursive
+
+# creat local switch (or use global one)
+opam sw create . 4.09.0
+
+# install dependencies
+opam install .
+
+# build
+make build
+
+# install ocamllsp
+make lsp-server
+```
+
 ## Tests
 
 To run tests execute:
