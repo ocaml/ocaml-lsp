@@ -171,8 +171,8 @@ module Formatter = struct
     in
     make_error ~code ~message ()
 
-  let run rpc store doc =
-    match Fmt.run doc with
+  let run ~refmt_width rpc store doc =
+    match Fmt.run ~refmt_width doc with
     | Result.Error e ->
       let message = Fmt.message e in
       let error = jsonrpc_error e in
@@ -194,12 +194,13 @@ end
 
 let on_request :
     type resp.
-       Lsp.Server.t
+    refmt_width:int
+       -> Lsp.Server.t
     -> Document_store.t
     -> ClientCapabilities.t
     -> resp Lsp.Client_request.t
     -> (Document_store.t * resp, Lsp.Jsonrpc.Response.Error.t) result =
- fun rpc store client_capabilities req ->
+ fun ~refmt_width rpc store client_capabilities req ->
   let open Lsp.Import.Result.O in
   match req with
   | Lsp.Client_request.Initialize _ -> assert false
@@ -476,7 +477,7 @@ let on_request :
       { textDocument = { uri }; options = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    Formatter.run rpc store doc
+    Formatter.run ~refmt_width rpc store doc
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, None)
   | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
     let selection_range_of_shapes (cursor_position : Position.t)
@@ -571,7 +572,7 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
           json );
       Ok store )
 
-let start () =
+let start ~refmt_width () =
   let docs = Document_store.make () in
   let prepare_and_run prep_exn f =
     let f () =
@@ -597,7 +598,7 @@ let start () =
   let on_request rpc state caps req =
     Fiber.return
       ( prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
-        on_request rpc state caps req )
+        on_request ~refmt_width rpc state caps req )
   in
   Lsp.Server.start docs
     { on_initialize; on_request; on_notification }
@@ -605,6 +606,6 @@ let start () =
   |> Fiber.run;
   log ~title:Logger.Title.Info "exiting"
 
-let run ~log_file =
+let run ~log_file ~refmt_width =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file start
+  Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file (start ~refmt_width)

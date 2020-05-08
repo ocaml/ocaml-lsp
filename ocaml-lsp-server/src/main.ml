@@ -1,4 +1,4 @@
-let run log_file _refmt_width = Ocaml_lsp_server.run ~log_file
+let run log_file refmt_width = Ocaml_lsp_server.run ~log_file ~refmt_width
 
 let default_refmt_width = 80
 

@@ -11,4 +11,4 @@ type error =
 
 val message : error -> string
 
-val run : Document.t -> (string, error) Result.t
+val run : refmt_width:int -> Document.t -> (string, error) Result.t

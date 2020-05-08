@@ -57,10 +57,11 @@ type formatter =
   | Reason of Document.Kind.t
   | Ocaml of Lsp.Uri.t
 
-let args = function
+let args ~refmt_width t =
+  match t with
   | Ocaml uri -> [ sprintf "--name=%s" (Lsp.Uri.to_path uri); "-" ]
   | Reason kind -> (
-    [ "--parse"; "re"; "--print"; "re" ]
+    [ "--parse"; "re"; "--print"; "re"; "--print-width"; string_of_int refmt_width ]
     @
     match kind with
     | Impl -> []
@@ -89,10 +90,10 @@ let exec bin args stdin =
   | Unix.WEXITED 0 -> Result.Ok res.stdout
   | _ -> Result.Error (Unexpected_result { message = res.stderr })
 
-let run doc =
+let run ~refmt_width doc =
   let open Result.O in
   let* formatter = formatter doc in
-  let args = args formatter in
+  let args = args ~refmt_width formatter in
   let* binary = binary formatter in
   let contents = Document.source doc |> Msource.text in
   exec binary args contents
