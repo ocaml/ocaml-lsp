@@ -1,30 +1,32 @@
 (lang dune 2.0)
+
 (using menhir 2.0)
+
 (using cinaps 1.0)
+
 (name lsp)
 
 (implicit_transitive_deps false)
 
 (license ISC)
-(maintainers "Rudi Grinberg <me@rgrinerg.com>")
-(authors
- "Andrey Popp <8mayday@gmail.com>"
- "Rusty Key <iam@stfoo.ru>"
- "Louis Roché <louis@louisroche.net>"
- "Oleksiy Golovko <alexei.golovko@gmail.com>"
- "Rudi Grinberg <me@rgrinberg.com>")
 
-(source (github ocaml/ocaml-lsp))
+(maintainers "Rudi Grinberg <me@rgrinerg.com>")
+
+(authors "Andrey Popp <8mayday@gmail.com>" "Rusty Key <iam@stfoo.ru>"
+  "Louis Roch\195\169 <louis@louisroche.net>"
+  "Oleksiy Golovko <alexei.golovko@gmail.com>"
+  "Rudi Grinberg <me@rgrinberg.com>")
+
+(source
+ (github ocaml/ocaml-lsp))
 
 (generate_opam_files true)
 
 (package
  (name lsp)
  (synopsis "LSP protocol implementation in OCaml")
- (description "
-Implementation of the LSP protocol in OCaml. It is designed to be as portable as
-possible and does not make any assumptions about IO.
-")
+ (description
+   "\nImplementation of the LSP protocol in OCaml. It is designed to be as portable as\npossible and does not make any assumptions about IO.\n")
  (depends
   stdlib-shims
   yojson
@@ -32,8 +34,10 @@ possible and does not make any assumptions about IO.
   ocaml-syntax-shims
   (cppo :dev)
   menhir
-  (ocaml (>= 4.06))
-  (dune (>= 2.0))))
+  (ocaml
+   (>= 4.06))
+  (dune
+   (>= 2.0))))
 
 (package
  (name ocaml-lsp-server)
@@ -45,7 +49,11 @@ possible and does not make any assumptions about IO.
   menhir
   ocaml-syntax-shims
   ppx_yojson_conv_lib
-  (ocamlformat :with-test)
-  (ocamlfind (>= 1.5.2))
-  (ocaml (>= 4.06))
-  (dune (>= 2.0))))
+  (ocamlformat
+   (and :dev :with-test))
+  (ocamlfind
+   (>= 1.5.2))
+  (ocaml
+   (>= 4.06))
+  (dune
+   (>= 2.0))))

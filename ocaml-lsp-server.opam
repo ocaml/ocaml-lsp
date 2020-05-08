@@ -19,7 +19,7 @@ depends: [
   "menhir"
   "ocaml-syntax-shims"
   "ppx_yojson_conv_lib"
-  "ocamlformat" {with-test}
+  "ocamlformat" {dev & with-test}
   "ocamlfind" {>= "1.5.2"}
   "ocaml" {>= "4.06"}
   "dune" {>= "2.0"}
