@@ -63,4 +63,23 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
     E (ShowMessageRequest params)
   | m -> Ok (E (UnknownRequest (m, r.params)))
 
-let yojson_of_result _ = assert false
+let yojson_of_result (type a) (t : a t) (r : a) : Json.t option =
+  match (t, r) with
+  | WorkspaceApplyEdit _, r -> Some (ApplyWorkspaceEditResponse.yojson_of_t r)
+  | WorkspaceFolders, r -> Some (yojson_of_list WorkspaceFolder.yojson_of_t r)
+  | WorkspaceConfiguration _, r -> Some (yojson_of_list (fun x -> x) r)
+  | ClientRegisterCapability _, () -> None
+  | ClientUnregisterCapability _, () -> None
+  | ShowMessageRequest _, None -> None
+  | ShowMessageRequest _, Some r -> Some (MessageActionItem.yojson_of_t r)
+  | UnknownRequest (_, _), _ -> None
+
+let response_of_json (type a) (t : a t) (json : Json.t) : a =
+  match t with
+  | WorkspaceApplyEdit _ -> ApplyWorkspaceEditResponse.t_of_yojson json
+  | WorkspaceFolders -> list_of_yojson WorkspaceFolder.t_of_yojson json
+  | WorkspaceConfiguration _ -> list_of_yojson (fun x -> x) json
+  | ClientRegisterCapability _ -> unit_of_yojson json
+  | ClientUnregisterCapability _ -> unit_of_yojson json
+  | ShowMessageRequest _ -> option_of_yojson MessageActionItem.t_of_yojson json
+  | UnknownRequest (_, _) -> unit_of_yojson json
