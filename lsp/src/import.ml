@@ -10,6 +10,9 @@ module Exn = Stdune.Exn
 module Unix_env = Stdune.Env
 module Fpath = Stdune.Path
 module Code_error = Code_error
+module Or_exn = Or_exn
+module Table = Table
+module Id = Id
 
 module String = struct
   include Stdune.String
