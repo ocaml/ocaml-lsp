@@ -5,9 +5,8 @@ build: [
     "build"
     "-j"
     jobs
-    "ocaml-lsp-server/src/main.exe"
-    "@install"
-    "--promote-install-files"
+    "ocaml-lsp-server.install"
+    "--release"
   ]
 ]
 run-test: [
