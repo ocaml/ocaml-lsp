@@ -143,8 +143,8 @@ and timer =
   }
 
 and 'a active_timer =
-  { mutable scheduled : float
-  ; mutable ivar : ('a, [ `Cancelled ]) result Fiber.Ivar.t
+  { scheduled : float
+  ; ivar : ('a, [ `Cancelled ]) result Fiber.Ivar.t
   ; action : unit -> 'a Fiber.t
   ; parent : timer
   }
