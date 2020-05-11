@@ -1,5 +1,43 @@
 open Import
 
+module Mvar : sig
+  type 'a t
+
+  val create : unit -> 'a t
+
+  val get : 'a t -> 'a
+
+  val set : 'a t -> 'a -> unit
+end = struct
+  type 'a t =
+    { m : Mutex.t
+    ; cv : Condition.t
+    ; mutable cell : 'a option
+    }
+
+  let create () = { m = Mutex.create (); cv = Condition.create (); cell = None }
+
+  let get t =
+    let rec await_value t =
+      match t.cell with
+      | None ->
+        Condition.wait t.cv t.m;
+        await_value t
+      | Some v ->
+        t.cell <- None;
+        Mutex.unlock t.m;
+        v
+    in
+    Mutex.lock t.m;
+    await_value t
+
+  let set t v =
+    Mutex.lock t.m;
+    t.cell <- Some v;
+    Mutex.unlock t.m;
+    Condition.signal t.cv
+end
+
 module Worker : sig
   type 'work t
   (** Simple queue that is consumed by its own thread *)
@@ -8,7 +46,7 @@ module Worker : sig
 
   val add_work : 'a t -> 'a -> unit
 
-  val stop : 'a -> unit
+  val stop : _ t -> unit
 end = struct
   type state =
     | Running of Thread.t
@@ -65,34 +103,37 @@ end = struct
     Condition.signal t.work_available;
     Mutex.unlock t.mutex
 
-  let stop _ = assert false
+  let stop (t : _ t) =
+    match t.state with
+    | Running th -> t.state <- Stopped th
+    | _ -> ()
 end
 
 module Timer_id = Id.Make ()
 
 type t =
-  { mutable jobs_pending : int
-  ; jobs_completed : event Queue.t
+  { mutable events_pending : int
+  ; events : event Queue.t
   ; mutex : Mutex.t
-  ; job_completed : Condition.t
-  ; timer_available : Condition.t
+  ; time_mutex : Mutex.t
+  ; event_ready : Condition.t
+  ; timers_available : Condition.t
   ; mutable threads : thread list
-  ; timers : (Timer_id.t, active_timer) Table.t
+  ; earliest_wakeup : float Mvar.t
+  ; mutable time : Thread.t
+  ; mutable waker : Thread.t
+  ; timers : (Timer_id.t, packed_active_timer ref) Table.t
   }
 
 and event =
   | Job_completed : 'a * 'a Fiber.Ivar.t -> event
-  | Scheduled of active_timer
+  | Scheduled of packed_active_timer
 
 and job = Pending : (unit -> 'a) * 'a Or_exn.t Fiber.Ivar.t -> job
 
 and thread =
   { scheduler : t
-  ; jobs : job Queue.t
-  ; job_available : Condition.t
-  ; thread : Thread.t Lazy.t
-  ; th_mutex : Mutex.t
-  ; mutable stopped : bool
+  ; worker : job Worker.t
   }
 
 and timer =
@@ -101,99 +142,153 @@ and timer =
   ; timer_id : Timer_id.t
   }
 
-and active_timer =
+and 'a active_timer =
   { mutable scheduled : float
-  ; action : unit -> unit
+  ; mutable ivar : ('a, [ `Cancelled ]) result Fiber.Ivar.t
+  ; action : unit -> 'a Fiber.t
   ; parent : timer
   }
 
-let create () =
-  { jobs_pending = 0
-  ; jobs_completed = Queue.create ()
-  ; mutex = Mutex.create ()
-  ; job_completed = Condition.create ()
-  ; threads = []
-  ; timer_available = Condition.create ()
-  ; timers = Table.create (module Timer_id) 10
-  }
+and packed_active_timer =
+  | Active_timer : 'a active_timer -> packed_active_timer
 
-let consume_queue q ~f =
-  while not (Queue.is_empty q) do
-    f (Queue.pop q)
-  done
+let add_events t = function
+  | [] -> ()
+  | events ->
+    Mutex.lock t.mutex;
+    t.events_pending <- t.events_pending - List.length events;
+    List.iter events ~f:(fun e -> Queue.add e t.events);
+    Condition.signal t.event_ready;
+    Mutex.unlock t.mutex
 
-let run_thread (t : thread) =
-  Mutex.lock t.th_mutex;
+let is_empty table =
+  try
+    Table.iter table ~f:(fun _ -> raise_notrace Exit);
+    true
+  with Exit -> false
+
+let time_loop t =
+  (* Mutex.lock t.time_mutex; *)
   let rec loop () =
-    while Queue.is_empty t.jobs && not t.stopped do
-      Condition.wait t.job_available t.th_mutex
-    done;
-    consume_queue t.jobs ~f:(fun (Pending (f, ivar)) ->
-        Mutex.unlock t.th_mutex;
-        let res = Result.try_with f in
-        Mutex.lock t.scheduler.mutex;
-        Queue.add (Job_completed (res, ivar)) t.scheduler.jobs_completed;
-        Condition.signal t.scheduler.job_completed;
-        Mutex.unlock t.scheduler.mutex);
-    if not t.stopped then loop ()
+    Condition.wait t.timers_available t.time_mutex;
+    if is_empty t.timers then
+      loop ()
+    else
+      let to_run = ref [] in
+      let now = Unix.gettimeofday () in
+      let earliest_next = ref None in
+      Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
+          let (Active_timer active_timer) = !active_timer in
+          let scheduled_at =
+            active_timer.scheduled +. active_timer.parent.delay
+          in
+          let need_to_run = scheduled_at < now in
+          if need_to_run then
+            to_run := Scheduled (Active_timer active_timer) :: !to_run
+          else
+            earliest_next :=
+              Some
+                ( match !earliest_next with
+                | None -> scheduled_at
+                | Some v -> min scheduled_at v );
+          not need_to_run);
+      Option.iter !earliest_next ~f:(Mvar.set t.earliest_wakeup);
+      add_events t !to_run;
+      loop ()
   in
-  if not t.stopped then loop ();
-  Mutex.unlock t.th_mutex
+  loop ()
 
-let create_thread scheduler =
-  let rec t : thread =
-    { scheduler
-    ; thread = lazy (Thread.create run_thread t)
-    ; jobs = Queue.create ()
-    ; job_available = Condition.create ()
-    ; th_mutex = Mutex.create ()
-    ; stopped = false
+let wake_loop t =
+  let rec loop () =
+    let wakeup_at = Mvar.get t.earliest_wakeup in
+    let now = Unix.gettimeofday () in
+    if now < wakeup_at then Thread.delay (wakeup_at -. now);
+    Condition.signal t.timers_available;
+    loop ()
+  in
+
+  loop ()
+
+let create () =
+  let rec t =
+    { events_pending = 0
+    ; events = Queue.create ()
+    ; mutex = Mutex.create ()
+    ; time_mutex = Mutex.create ()
+    ; event_ready = Condition.create ()
+    ; threads = []
+    ; timers = Table.create (module Timer_id) 10
+    ; timers_available = Condition.create ()
+    ; time = Thread.self ()
+    ; earliest_wakeup = Mvar.create ()
+    ; waker = Thread.self ()
     }
   in
+  Mutex.lock t.time_mutex;
+  t.time <- Thread.create time_loop t;
+  t.waker <- Thread.create wake_loop t;
+  t
+
+let create_thread scheduler =
+  let worker =
+    let do_ (Pending (f, ivar)) =
+      let res = Result.try_with f in
+      add_events scheduler [ Job_completed (res, ivar) ]
+    in
+    Worker.create ~do_
+  in
+  let t = { scheduler; worker } in
   scheduler.threads <- t :: scheduler.threads;
   t
 
+let add_pending_events t by =
+  Mutex.lock t.mutex;
+  t.events_pending <- t.events_pending + by;
+  Mutex.unlock t.mutex
+
 let async (t : thread) f =
-  if t.stopped then
-    Code_error.raise "Cannot enqueue jobs after thread is stopped" [];
-  let (_ : Thread.t) = Lazy.force t.thread in
-  Mutex.lock t.scheduler.mutex;
-  t.scheduler.jobs_pending <- t.scheduler.jobs_pending + 1;
-  Mutex.unlock t.scheduler.mutex;
+  add_pending_events t.scheduler 1;
   let ivar = Fiber.Ivar.create () in
-  Mutex.lock t.th_mutex;
-  Queue.add (Pending (f, ivar)) t.jobs;
-  Condition.signal t.job_available;
-  Mutex.unlock t.th_mutex;
+  Worker.add_work t.worker (Pending (f, ivar));
   Fiber.Ivar.read ivar
 
-let stop (t : thread) =
-  Mutex.lock t.th_mutex;
-  t.stopped <- true;
-  Condition.signal t.job_available;
-  Mutex.unlock t.th_mutex
+let stop (t : thread) = Worker.stop t.worker
 
 let rec pump_events (t : t) =
   let open Fiber.O in
   let* () = Fiber.yield () in
-  if t.jobs_pending = 0 then
+  if t.events_pending = 0 && Queue.is_empty t.events then
     Fiber.return (List.iter t.threads ~f:stop)
+  else if t.events_pending < 0 then
+    assert false
   else (
     Mutex.lock t.mutex;
-    while Queue.is_empty t.jobs_completed do
-      Condition.wait t.job_completed t.mutex
+    while Queue.is_empty t.events do
+      Condition.wait t.event_ready t.mutex
     done;
-    let* () =
-      match Queue.pop t.jobs_completed with
-      | Job_completed (a, ivar) ->
-        Mutex.unlock t.mutex;
-        t.jobs_pending <- t.jobs_pending - 1;
-        Fiber.Ivar.fill ivar a
-      | Scheduled active_timer ->
-        Mutex.unlock t.mutex;
-        active_timer.action ();
-        Fiber.return ()
+    let consume_event () =
+      let res = Queue.pop t.events in
+      Mutex.unlock t.mutex;
+      res
     in
+    let rec aux () =
+      if Queue.is_empty t.events then (
+        Mutex.unlock t.mutex;
+        Fiber.return ()
+      ) else
+        let* () =
+          match consume_event () with
+          | Job_completed (a, ivar) -> Fiber.Ivar.fill ivar a
+          | Scheduled (Active_timer active_timer) ->
+            Table.remove t.timers active_timer.parent.timer_id;
+            Mutex.unlock t.time_mutex;
+            let* res = active_timer.action () in
+            Fiber.Ivar.fill active_timer.ivar (Ok res)
+        in
+        Mutex.lock t.mutex;
+        aux ()
+    in
+    let* () = aux () in
     pump_events t
   )
 
@@ -212,13 +307,29 @@ let run t f =
 let create_timer t ~delay =
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }
 
-let schedule (timer : timer) f =
-  Mutex.lock timer.timer_scheduler.mutex;
+let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
+    (a, [ `Cancelled ]) result Fiber.t =
   let scheduled = Unix.gettimeofday () in
-  ( match Table.find timer.timer_scheduler.timers timer.timer_id with
-  | Some active -> active.scheduled <- scheduled
-  | None ->
-    Table.add_exn timer.timer_scheduler.timers timer.timer_id
-      { scheduled; action = f; parent = timer } );
-  Condition.signal timer.timer_scheduler.timer_available;
-  Mutex.unlock timer.timer_scheduler.mutex
+  Mutex.lock timer.timer_scheduler.time_mutex;
+  let open Fiber.O in
+  let ivar =
+    match Table.find timer.timer_scheduler.timers timer.timer_id with
+    | Some active ->
+      let fill_old =
+        let (Active_timer active) = !active in
+        Fiber.Ivar.fill active.ivar (Error `Cancelled)
+      in
+      let ivar = Fiber.Ivar.create () in
+      let action () = Fiber.fork_and_join_unit (fun () -> fill_old) f in
+      active := Active_timer { scheduled; action; ivar; parent = timer };
+      ivar
+    | None ->
+      add_pending_events timer.timer_scheduler 1;
+      let ivar = Fiber.Ivar.create () in
+      Table.add_exn timer.timer_scheduler.timers timer.timer_id
+        (ref (Active_timer { scheduled; action = f; ivar; parent = timer }));
+      Condition.signal timer.timer_scheduler.timers_available;
+      ivar
+  in
+  Mutex.unlock timer.timer_scheduler.time_mutex;
+  Fiber.Ivar.read ivar

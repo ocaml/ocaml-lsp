@@ -18,4 +18,5 @@ type timer
 
 val create_timer : t -> delay:float -> timer
 
-val schedule : timer -> (unit -> unit) -> unit
+val schedule :
+  timer -> (unit -> 'a Fiber.t) -> ('a, [ `Cancelled ]) result Fiber.t
