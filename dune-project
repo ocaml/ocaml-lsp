@@ -50,7 +50,7 @@
   ocaml-syntax-shims
   ppx_yojson_conv_lib
   (ocamlformat
-   (and :dev :with-test))
+   (or :dev :with-test))
   (ocamlfind
    (>= 1.5.2))
   (ocaml
