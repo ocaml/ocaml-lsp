@@ -22,11 +22,11 @@ describe("TextDocument: incremental sync", () => {
         "ocaml",
         0,
         outdent`
-    let x = 4
-    let y = "a𐐀b"
-    `
-      )
-    })
+          let x = 4
+          let y = "a𐐀b"
+        `,
+      ),
+    });
     languageServer.sendNotification("textDocument/didChange", {
       textDocument: Types.VersionedTextDocumentIdentifier.create(
         "file:///test-document.txt",
@@ -43,8 +43,8 @@ describe("TextDocument: incremental sync", () => {
       ],
     });
 
-    expect(await getDoc(languageServer)).toEqual("let x = 4\nlet y = \"ab\"");
-  })
+    expect(await getDoc(languageServer)).toEqual('let x = 4\nlet y = "ab"');
+  });
 
   it("updates in the middle of the line", async () => {
     let languageServer = await LanguageServer.startAndInitialize();
