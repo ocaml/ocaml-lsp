@@ -1,4 +1,4 @@
-open Import
+(* open Import *)
 
 module Kind = struct
   type t =
@@ -27,7 +27,7 @@ module Syntax = struct
     | id -> failwith ("Unexpected language id " ^ id)
 end
 
-let { Logger.log } = Logger.for_section "ocaml-lsp-server"
+(* let { Logger.log } = Logger.for_section "ocaml-lsp-server" *)
 
 type t =
   { tdoc : Lsp.Text_document.t
@@ -78,7 +78,7 @@ let make tdoc =
 let update_text ?version change doc =
   let tdoc = Lsp.Text_document.apply_content_change ?version change doc.tdoc in
   let text = Lsp.Text_document.text tdoc in
-  log ~title:Logger.Title.Debug "TEXT\n%s" text;
+  (* log ~title:Logger.Title.Debug "TEXT\n%s" text; *)
   let config = make_config (Lsp.Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
