@@ -7,6 +7,7 @@ module Import = Import
 module Jsonrpc = Jsonrpc
 module Logger = Logger
 module Rpc = Rpc
+module Scheduler = Scheduler
 module Server_notification = Server_notification
 module Server_request = Server_request
 module Server = Server
