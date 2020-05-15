@@ -1,0 +1,21 @@
+; (executable
+;  (name server_test)
+;  (libraries stdune lsp fiber threads.posix)
+;  (preprocess future_syntax))
+
+; we cannot use the normal test alias because cinaps overtakes it
+
+; (rule
+;  (alias test)
+;  (action
+;   (run ./server_test.exe)))
+
+(executable
+ (name fiber_thread_test)
+ (preprocess future_syntax)
+ (libraries stdune lsp fiber threads.posix))
+
+(rule
+ (alias test)
+ (action
+  (run ./fiber_thread_test.exe)))
