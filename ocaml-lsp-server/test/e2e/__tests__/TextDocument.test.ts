@@ -1,3 +1,4 @@
+import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
@@ -12,6 +13,38 @@ describe("TextDocument: incremental sync", () => {
     });
     return result;
   }
+
+  it("Manages unicode character ranges correctly", async () => {
+    let languageServer = await LanguageServer.startAndInitialize();
+    languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test-document.txt",
+        "ocaml",
+        0,
+        outdent`
+          let x = 4
+          let y = "a𐐀b"
+        `,
+      ),
+    });
+    languageServer.sendNotification("textDocument/didChange", {
+      textDocument: Types.VersionedTextDocumentIdentifier.create(
+        "file:///test-document.txt",
+        1,
+      ),
+      contentChanges: [
+        {
+          range: {
+            start: { line: 1, character: 10 },
+            end: { line: 1, character: 12 },
+          },
+          text: "",
+        },
+      ],
+    });
+
+    expect(await getDoc(languageServer)).toEqual('let x = 4\nlet y = "ab"');
+  });
 
   it("updates in the middle of the line", async () => {
     let languageServer = await LanguageServer.startAndInitialize();
