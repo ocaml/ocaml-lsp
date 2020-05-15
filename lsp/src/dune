@@ -3,11 +3,26 @@
 (library
  (name lsp)
  (public_name lsp)
- (libraries stdune yojson threads.posix ppx_yojson_conv_lib fiber uutf)
+ (libraries stdune yojson threads.posix ppx_yojson_conv_lib fiber uutf ocaml_uri)
+ (modules :standard \ ocaml_uri)
  (preprocess future_syntax)
  (flags :standard "-open" "Ppx_yojson_conv_lib" "-open" "Yojson_conv")
  (lint
   (pps ppx_yojson_conv)))
+
+(library
+ (name ocaml_uri)
+ (public_name lsp._ocaml_uri)
+ (modules ocaml_uri)
+ (preprocess future_syntax) ; avoid unhappy merlin
+ (libraries uri))
+
+(rule
+ (targets ocaml_uri.ml)
+ (action
+  (with-stdout-to
+   %{targets}
+   (echo "include Uri"))))
 
 ; [Printf.ifprintf] doesn't have the right type before ocaml/ocaml#201, and
 ; [make_iprintf] doesn't exist before ocaml/ocaml#267
