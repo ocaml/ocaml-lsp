@@ -210,7 +210,7 @@ let wake_loop t =
   loop ()
 
 let create () =
-  let rec t =
+  let t =
     { events_pending = 0
     ; events = Queue.create ()
     ; mutex = Mutex.create ()
@@ -311,7 +311,6 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     (a, [ `Cancelled ]) result Fiber.t =
   let scheduled = Unix.gettimeofday () in
   Mutex.lock timer.timer_scheduler.time_mutex;
-  let open Fiber.O in
   let ivar =
     match Table.find timer.timer_scheduler.timers timer.timer_id with
     | Some active ->

@@ -16,4 +16,5 @@
 
 (rule
  (alias test)
- (action (run ./fiber_thread_test.exe)))
+ (action
+  (run ./fiber_thread_test.exe)))
