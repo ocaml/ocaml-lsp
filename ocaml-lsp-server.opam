@@ -19,6 +19,7 @@ depends: [
   "menhir"
   "ocaml-syntax-shims"
   "ppx_yojson_conv_lib"
+  "uri"
   "ocamlformat" {with-test}
   "ocamlfind" {>= "1.5.2"}
   "ocaml" {>= "4.06"}

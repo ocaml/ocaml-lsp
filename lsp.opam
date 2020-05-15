@@ -22,6 +22,7 @@ depends: [
   "yojson"
   "ppx_yojson_conv_lib"
   "ocaml-syntax-shims"
+  "uri"
   "cppo" {dev}
   "menhir"
   "ocaml" {>= "4.06"}
