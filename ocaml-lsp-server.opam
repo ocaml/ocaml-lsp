@@ -27,27 +27,13 @@ depends: [
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
   ["dune" "subst"] {pinned}
-  # A workaround for https://github.com/ocaml/dune/issues/2982
   [
     "dune"
     "build"
     "-j"
     jobs
-    "--root"
-    "."
-    "--ignore-promoted-rules"
-    "--no-config"
-    "--profile"
-    "release"
-    "%{name}%.install"
-  ]
-  # dune 2.0 doesn't promote *.install if --ignore-promoted-rules is passed,
-  # we can ask it to do it with --promote-install-files but it's dune 2.0 only
-  # so we do this manually to be compat with dune 1.0 and dune 2.0
-  [
-    "cp"
-    "%{_:build}%/_build/default/%{name}%.install"
-    "%{name}%.install"
+    "ocaml-lsp-server.install"
+    "--release"
   ]
 ]
 run-test: [
