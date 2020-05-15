@@ -12,6 +12,7 @@
 
 (executable
  (name fiber_thread_test)
+ (preprocess future_syntax)
  (libraries stdune lsp fiber threads.posix))
 
 (rule
