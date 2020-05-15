@@ -63,7 +63,8 @@ val make : 'a Handler.t -> Io.t -> 'a t
 
 val stop : _ t -> unit
 
-val start_client : client t -> Types.InitializeParams.t -> Types.InitializeResult.t Fiber.t
+val start_client :
+  client t -> Types.InitializeParams.t -> Types.InitializeResult.t Fiber.t
 
 val start_server : server t -> unit
 
