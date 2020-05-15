@@ -1,5 +1,4 @@
 open Import
-module Uri = Ocaml_uri
 
 type t = Uri.t
 
@@ -89,4 +88,4 @@ let of_path (path : string) =
 
 let pp = Uri.pp
 
-let to_dyn x = Dyn.Encoder.string (Ocaml_uri.to_string x)
+let to_dyn x = Dyn.Encoder.string (Uri.to_string x)

@@ -88,7 +88,7 @@ let utf16_range_change (text_utf8 : string) ({ start; end_ } : Range.t)
 
 let make (t : DidOpenTextDocumentParams.t) = t.textDocument
 
-let documentUri (t : t) = Uri.t_of_yojson (`String t.uri)
+let documentUri (t : t) = Uri0.t_of_yojson (`String t.uri)
 
 let version (t : t) = t.version
 
