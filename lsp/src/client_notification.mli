@@ -15,4 +15,4 @@ type t =
 
 val of_jsonrpc : Jsonrpc.Request.t -> (t, string) Result.t
 
-val to_jsonrpc_request : t -> Jsonrpc.Request.t
+val to_jsonrpc : t -> Jsonrpc.Request.t

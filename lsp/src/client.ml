@@ -104,7 +104,7 @@ let start (t : t) =
   loop ()
 
 let send_notification rpc notif =
-  let req = Client_notification.to_jsonrpc_request notif in
+  let req = Client_notification.to_jsonrpc notif in
   let (_ : unit Fiber.t) = Io.send rpc.rpc (Request req) in
   ()
 

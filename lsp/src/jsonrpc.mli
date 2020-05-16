@@ -73,7 +73,7 @@ module Session (Chan : sig
 
   val send : t -> packet -> unit Fiber.t
 
-  val recv : t -> packet Fiber.t
+  val recv : t -> packet option Fiber.t
 
   val close : t -> unit Fiber.t
 end) : sig
@@ -86,6 +86,8 @@ end) : sig
     -> t
 
   val stop : t -> unit Fiber.t
+
+  val stopped : t -> unit Fiber.t
 
   val run : t -> unit Fiber.t
 

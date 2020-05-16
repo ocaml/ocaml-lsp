@@ -340,7 +340,7 @@ module Session (Chan : sig
 
   val send : t -> packet -> unit Fiber.t
 
-  val recv : t -> packet Fiber.t
+  val recv : t -> packet option Fiber.t
 
   val close : t -> unit Fiber.t
 end) =
@@ -351,6 +351,7 @@ struct
     ; on_notification : Request.t -> unit Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
+    ; stopped : unit Fiber.Ivar.t
     }
 
   let on_request_fail (req : Request.t) : Response.t Fiber.t =
@@ -362,13 +363,20 @@ struct
 
   let stop t = Fiber.Ivar.fill t.stop_requested ()
 
+  let stopped t = Fiber.Ivar.read t.stopped
+
   let fork_and_race (type a b) (_ : unit -> a Fiber.t) (_ : unit -> b Fiber.t) :
       (a, b) Either.t Fiber.t =
     assert false
 
+  let _close t =
+    let open Fiber.O in
+    let* () = Chan.close t.chan in
+    Fiber.Ivar.fill t.stopped ()
+
   let run t =
+    let open Fiber.O in
     let rec loop () =
-      let open Fiber.O in
       let* res =
         fork_and_race
           (fun () -> Chan.recv t.chan)
@@ -376,7 +384,8 @@ struct
       in
       match res with
       | Either.Right () -> Chan.close t.chan
-      | Left (Request r) ->
+      | Left None -> Fiber.Ivar.fill t.stop_requested ()
+      | Left (Some (Request r)) ->
         let* () =
           match r.id with
           | None -> t.on_notification r
@@ -385,7 +394,7 @@ struct
             Chan.send t.chan (Response resp)
         in
         loop ()
-      | Left (Response r) -> (
+      | Left (Some (Response r)) -> (
         match Table.find t.pending r.id with
         | None -> loop ()
         | Some ivar ->
@@ -393,7 +402,8 @@ struct
           let* () = Fiber.Ivar.fill ivar r in
           loop () )
     in
-    loop ()
+    let* () = loop () in
+    _close t
 
   let on_notification_fail _ = Fiber.return ()
 
@@ -404,6 +414,7 @@ struct
     ; on_notification
     ; pending = Table.create (module Id) 10
     ; stop_requested = Fiber.Ivar.create ()
+    ; stopped = Fiber.Ivar.create ()
     }
 
   let notification t req = Chan.send t.chan (Request req)

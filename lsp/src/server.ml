@@ -15,7 +15,7 @@ type t =
 let { Logger.log } = Logger.for_section "lsp"
 
 let send_notification (t : t) notif =
-  let request = Server_notification.to_jsonrpc_request notif in
+  let request = Server_notification.to_jsonrpc notif in
   let (_ : unit Fiber.t) = Io.send t.rpc (Request request) in
   ()
 

@@ -68,7 +68,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     >>| fun params -> DidSaveTextDocument params
   | _ -> Ok (Unknown_notification r)
 
-let to_jsonrpc_request t =
+let to_jsonrpc t =
   let method_ = method_ t in
   let params = Some (yojson_of_t t) in
   { Jsonrpc.Request.id = None; params; method_ }

@@ -23,7 +23,7 @@ let yojson_of_t = function
   | TelemetryNotification params -> params
   | Unknown_notification _ -> assert false
 
-let to_jsonrpc_request t =
+let to_jsonrpc t =
   let method_ = method_ t in
   let params = Some (yojson_of_t t) in
   { Jsonrpc.Request.id = None; params; method_ }
