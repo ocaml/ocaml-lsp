@@ -11,6 +11,12 @@ module Id = struct
     | `String s -> Either.Left s
     | `Int i -> Right i
     | json -> Json.error "Id.t" json
+
+  let to_dyn x = Dyn.Encoder.opaque x
+
+  let hash x = Hashtbl.hash x
+
+  let equal = ( = )
 end
 
 module Constant = struct
@@ -322,4 +328,94 @@ module Response = struct
   let ok id result = make ~id ~result:(Ok result)
 
   let error id error = make ~id ~result:(Error error)
+end
+
+type packet =
+  | Request of Request.t
+  | Response of Response.t
+
+module Session (Chan : sig
+  type t
+
+  val send : t -> packet -> unit Fiber.t
+
+  val recv : t -> packet Fiber.t
+
+  val close : t -> unit Fiber.t
+end) =
+struct
+  type t =
+    { chan : Chan.t
+    ; on_request : Request.t -> Response.t Fiber.t
+    ; on_notification : Request.t -> unit Fiber.t
+    ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
+    ; stop_requested : unit Fiber.Ivar.t
+    }
+
+  let on_request_fail (req : Request.t) : Response.t Fiber.t =
+    let id = Option.value_exn req.id in
+    let error =
+      Response.Error.make ~code:InternalError ~message:"not implemented" ()
+    in
+    Fiber.return (Response.error id error)
+
+  let stop t = Fiber.Ivar.fill t.stop_requested ()
+
+  let fork_and_race (type a b) (_ : unit -> a Fiber.t) (_ : unit -> b Fiber.t) :
+      (a, b) Either.t Fiber.t =
+    assert false
+
+  let run t =
+    let rec loop () =
+      let open Fiber.O in
+      let* res =
+        fork_and_race
+          (fun () -> Chan.recv t.chan)
+          (fun () -> Fiber.Ivar.read t.stop_requested)
+      in
+      match res with
+      | Either.Right () -> Chan.close t.chan
+      | Left (Request r) ->
+        let* () =
+          match r.id with
+          | None -> t.on_notification r
+          | Some _ ->
+            let* resp = t.on_request r in
+            Chan.send t.chan (Response resp)
+        in
+        loop ()
+      | Left (Response r) -> (
+        match Table.find t.pending r.id with
+        | None -> loop ()
+        | Some ivar ->
+          Table.remove t.pending r.id;
+          let* () = Fiber.Ivar.fill ivar r in
+          loop () )
+    in
+    loop ()
+
+  let on_notification_fail _ = Fiber.return ()
+
+  let create ?(on_request = on_request_fail)
+      ?(on_notification = on_notification_fail) chan =
+    { chan
+    ; on_request
+    ; on_notification
+    ; pending = Table.create (module Id) 10
+    ; stop_requested = Fiber.Ivar.create ()
+    }
+
+  let notification t req = Chan.send t.chan (Request req)
+
+  let request t req =
+    let open Fiber.O in
+    let* () = Chan.send t.chan (Request req) in
+    let id =
+      match req.id with
+      | Some id -> id
+      | None -> Code_error.raise "request without an id" []
+    in
+    let ivar = Fiber.Ivar.create () in
+    Table.add_exn t.pending id ivar;
+    Fiber.Ivar.read ivar
 end

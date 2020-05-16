@@ -63,3 +63,34 @@ module Response : sig
 
   include Json.Jsonable.S with type t := t
 end
+
+type packet =
+  | Request of Request.t
+  | Response of Response.t
+
+module Session (Chan : sig
+  type t
+
+  val send : t -> packet -> unit Fiber.t
+
+  val recv : t -> packet Fiber.t
+
+  val close : t -> unit Fiber.t
+end) : sig
+  type t
+
+  val create :
+       ?on_request:(Request.t -> Response.t Fiber.t)
+    -> ?on_notification:(Request.t -> unit Fiber.t)
+    -> Chan.t
+    -> t
+
+  val stop : t -> unit Fiber.t
+
+  val run : t -> unit Fiber.t
+
+  val notification : t -> Request.t -> unit Fiber.t
+
+  (** TODO this isn't type safe enough. Request.t must require an ID*)
+  val request : t -> Request.t -> Response.t Fiber.t
+end
