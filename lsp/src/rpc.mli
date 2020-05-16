@@ -14,10 +14,6 @@ module Message : sig
 end
 
 module Io : sig
-  type packet =
-    | Request of Request.t
-    | Response of Response.t
-
   type t
 
   val make : in_channel -> out_channel -> t

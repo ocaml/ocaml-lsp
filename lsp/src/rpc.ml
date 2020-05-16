@@ -20,10 +20,6 @@ end
 module Io = struct
   let { Logger.log } = Logger.for_section "lsp_io"
 
-  type packet =
-    | Request of Request.t
-    | Response of Response.t
-
   type t =
     { ic : in_channel
     ; oc : out_channel
