@@ -50,4 +50,4 @@ possible and does not make any assumptions about IO.
   (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))
-  (dune (>= 2.0))))
+  (dune (>= 2.5.0))))
