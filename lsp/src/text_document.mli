@@ -6,7 +6,7 @@ val make : DidOpenTextDocumentParams.t -> t
 
 val languageId : t -> string
 
-val documentUri : t -> Uri.t
+val documentUri : t -> Uri0.t
 
 val version : t -> int
 

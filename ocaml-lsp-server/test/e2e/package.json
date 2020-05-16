@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "jest-cli": "25.4.0",
-    "outdent": "0.7.1"
+    "outdent": "0.7.1",
+    "vscode-uri": "^2.1.1"
   },
   "devDependencies": {
     "@types/jest": "25.2.1",

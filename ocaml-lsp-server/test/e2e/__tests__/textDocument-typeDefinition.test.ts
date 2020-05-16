@@ -1,7 +1,17 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
-import { testUri } from "./../src/LanguageServer";
+import { testUri, toEqualUri } from "./../src/LanguageServer";
+expect.extend({
+  toEqualUri,
+});
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toEqualUri(uri: string): R;
+    }
+  }
+}
 
 describe("textDocument/definition", () => {
   let languageServer = null;
@@ -9,7 +19,7 @@ describe("textDocument/definition", () => {
   async function openDocument(source: string) {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
+        testUri("file.ml"),
         "ocaml",
         0,
         source,
@@ -19,7 +29,7 @@ describe("textDocument/definition", () => {
 
   async function queryDefinition(position: Types.Position) {
     return await languageServer.sendRequest("textDocument/typeDefinition", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      textDocument: Types.TextDocumentIdentifier.create(testUri("file.ml")),
       position,
     });
   }
@@ -43,15 +53,12 @@ describe("textDocument/definition", () => {
 
     let result = await queryDefinition(Types.Position.create(3, 4));
 
-    expect(result).toMatchObject([
-      {
-        range: {
-          end: { character: 0, line: 1 },
-          start: { character: 0, line: 1 },
-        },
-        uri: testUri("test.ml"),
-      },
-    ]);
+    expect(result.length).toBe(1);
+    expect(result[0].range).toMatchObject({
+      end: { character: 0, line: 1 },
+      start: { character: 0, line: 1 },
+    });
+    expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
 
   it("ignores names in values namespace", async () => {
@@ -65,15 +72,12 @@ describe("textDocument/definition", () => {
 
     let result = await queryDefinition(Types.Position.create(4, 4));
 
-    expect(result).toMatchObject([
-      {
-        range: {
-          end: { character: 0, line: 1 },
-          start: { character: 0, line: 1 },
-        },
-        uri: testUri("test.ml"),
-      },
-    ]);
+    expect(result.length).toBe(1);
+    expect(result[0].range).toMatchObject({
+      end: { character: 0, line: 1 },
+      start: { character: 0, line: 1 },
+    });
+    expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
 
   it("ignores names in values namespace (cursor on same named value)", async () => {
@@ -86,14 +90,11 @@ describe("textDocument/definition", () => {
 
     let result = await queryDefinition(Types.Position.create(3, 4));
 
-    expect(result).toMatchObject([
-      {
-        range: {
-          end: { character: 0, line: 1 },
-          start: { character: 0, line: 1 },
-        },
-        uri: testUri("test.ml"),
-      },
-    ]);
+    expect(result.length).toBe(1);
+    expect(result[0].range).toMatchObject({
+      end: { character: 0, line: 1 },
+      start: { character: 0, line: 1 },
+    });
+    expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
 });

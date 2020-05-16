@@ -30,6 +30,7 @@ possible and does not make any assumptions about IO.
   yojson
   ppx_yojson_conv_lib
   ocaml-syntax-shims
+  uri
   (cppo :dev)
   menhir
   (ocaml (>= 4.06))
@@ -45,6 +46,7 @@ possible and does not make any assumptions about IO.
   menhir
   ocaml-syntax-shims
   ppx_yojson_conv_lib
+  uri
   (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
   (ocaml (>= 4.06))

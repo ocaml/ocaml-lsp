@@ -6,6 +6,7 @@ import * as rpc from "vscode-jsonrpc";
 
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Rpc from "vscode-jsonrpc";
+import { URI } from "vscode-uri";
 
 let serverBin = os.platform() === "win32" ? "ocamllsp.exe" : "ocamllsp";
 
@@ -87,6 +88,28 @@ export const exit = async (languageServer) => {
   return ret;
 };
 
-export const testUri = (uri: string) => {
-  return "file://" + (os.type() === "Windows_NT" ? "/" : "") + uri;
+export const testUri = (file: string) => {
+  return URI.file(file).toString();
+};
+
+export const toEqualUri = (received: string, expected: string) => {
+  const options = {
+    comment: "Uri equality",
+    isNot: this.isNot,
+    promise: this.promise,
+  };
+  const pass =
+    URI.parse(received).toString() === URI.parse(received).toString();
+  const message = pass
+    ? () =>
+        this.utils.matcherHint("toEqualUri", undefined, undefined, options) +
+        "\n\n" +
+        `Expected: not ${this.utils.printExpected(expected)}\n` +
+        `Received: ${this.utils.printReceived(received)}`
+    : () =>
+        this.utils.matcherHint("toBe", undefined, undefined, options) +
+        "\n\n" +
+        `Expected: ${this.utils.printExpected(expected)}\n` +
+        `Received: ${this.utils.printReceived(received)}`;
+  return { pass, message };
 };
