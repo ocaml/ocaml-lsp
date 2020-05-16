@@ -9,6 +9,8 @@ authors: [
   "Louis Roché <louis@louisroche.net>"
   "Oleksiy Golovko <alexei.golovko@gmail.com>"
   "Rudi Grinberg <me@rgrinberg.com>"
+  "Sacha Ayoun <sachaayoun@gmail.com>"
+  "cannorin <cannorin@gmail.com>"
 ]
 license: "ISC"
 homepage: "https://github.com/ocaml/ocaml-lsp"
