@@ -66,7 +66,6 @@ end = struct
     | _ -> false
 
   let run (f, t) =
-    Mutex.lock t.mutex;
     let rec loop () =
       while Queue.is_empty t.work && is_running t do
         Condition.wait t.work_available t.mutex
@@ -91,7 +90,10 @@ end = struct
       ; work_available = Condition.create ()
       }
     in
+    Mutex.lock t.mutex;
     t.state <- Running (Thread.create run (do_, t));
+    Mutex.lock t.mutex;
+    Mutex.unlock t.mutex;
     t
 
   let add_work t w =
@@ -168,7 +170,6 @@ let is_empty table =
   with Exit -> false
 
 let time_loop t =
-  (* Mutex.lock t.time_mutex; *)
   let rec loop () =
     Condition.wait t.timers_available t.time_mutex;
     if is_empty t.timers then
