@@ -1,5 +1,7 @@
 # OCaml-LSP
 
+[![Build](https://github.com/ocaml/ocaml-lsp/workflows/Build%20and%20Test/badge.svg)](https://github.com/ocaml/ocaml-lsp/actions)
+
 This project contains an implementation of an LSP server for OCaml and a
 standalone implementation of the LSP protocol.
 
