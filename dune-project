@@ -12,7 +12,9 @@
  "Rusty Key <iam@stfoo.ru>"
  "Louis Roché <louis@louisroche.net>"
  "Oleksiy Golovko <alexei.golovko@gmail.com>"
- "Rudi Grinberg <me@rgrinberg.com>")
+ "Rudi Grinberg <me@rgrinberg.com>"
+ "Sacha Ayoun <sachaayoun@gmail.com>"
+ "cannorin <cannorin@gmail.com>")
 
 (source (github ocaml/ocaml-lsp))
 
@@ -31,8 +33,7 @@ possible and does not make any assumptions about IO.
   ppx_yojson_conv_lib
   ocaml-syntax-shims
   uri
-  (cppo :dev)
-  menhir
+  cppo
   (ocaml (>= 4.06))
   (dune (>= 2.0))))
 
