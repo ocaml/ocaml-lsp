@@ -24,7 +24,7 @@ lsp-server:
 .PHONY: lsp-server
 
 test: $(TEST_E2E_DIR)/node_modules lsp-server
-	cd $(TEST_E2E_DIR) && dune exec -- yarn test
+	dune build @test && cd $(TEST_E2E_DIR) && dune exec -- yarn test
 .PHONY: test
 
 $(TEST_E2E_DIR)/node_modules:
