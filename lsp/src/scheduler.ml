@@ -163,11 +163,7 @@ let add_events t = function
     Condition.signal t.event_ready;
     Mutex.unlock t.mutex
 
-let is_empty table =
-  try
-    Table.iter table ~f:(fun _ -> raise_notrace Exit);
-    true
-  with Exit -> false
+let is_empty table = Table.length table = 0
 
 let time_loop t =
   let rec loop () =
