@@ -257,7 +257,6 @@ let stop (t : thread) = Worker.stop t.worker
 
 let rec pump_events (t : t) =
   let open Fiber.O in
-  let* () = Fiber.yield () in
   if t.events_pending = 0 && Queue.is_empty t.events then
     Fiber.return (List.iter t.threads ~f:stop)
   else if t.events_pending < 0 then
@@ -293,17 +292,20 @@ let rec pump_events (t : t) =
     pump_events t
   )
 
+exception Never
+
 let run t f =
   let open Fiber.O in
   match
     Fiber.run
-      (let* user_action_result = Fiber.fork (fun () -> f) in
-       let* pump_events_result = pump_events t in
-       Fiber.return (pump_events_result, user_action_result))
+      (let* user_action = Fiber.fork (fun () -> f) in
+       let* () = pump_events t in
+       Fiber.Future.peek user_action)
   with
-  | exception Fiber.Never ->
-    Code_error.raise "[Scheduler.pump_events] got stuck somehow" []
-  | (), b -> Fiber.run (Fiber.Future.wait b)
+  | None
+  | Some None ->
+    raise Never
+  | Some (Some x) -> x
 
 let create_timer t ~delay =
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }

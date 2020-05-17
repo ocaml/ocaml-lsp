@@ -56,7 +56,7 @@ module Future : sig
   val wait : 'a t -> 'a fiber
 
   (** Return [Some x] if [t] has already returned. *)
-  val peek : 'a t -> 'a option
+  val peek : 'a t -> 'a option fiber
 end
 with type 'a fiber := 'a t
 
@@ -123,28 +123,6 @@ val parallel_map : 'a list -> f:('a -> 'b t) -> 'b list t
         all_unit (List.map futures ~f:Future.wait)
     ]} *)
 val parallel_iter : 'a list -> f:('a -> unit t) -> unit t
-
-(** {1 Execute once fibers} *)
-
-module Once : sig
-  type 'a fiber = 'a t
-
-  type 'a t
-
-  val create : (unit -> 'a fiber) -> 'a t
-
-  (** [get t] returns the value of [t]. If [get] was never called before on this
-      [t], it is executed at this point, otherwise returns a fiber that waits
-      for the fiber from the first call to [get t] to terminate. *)
-  val get : 'a t -> 'a fiber
-
-  (** [peek t] returns [Some v] if [get t] has already been called and has
-      yielded a value [v]. *)
-  val peek : 'a t -> 'a option
-
-  val peek_exn : 'a t -> 'a
-end
-with type 'a fiber := 'a t
 
 (** {1 Local storage} *)
 
@@ -215,7 +193,7 @@ val finalize : (unit -> 'a t) -> finally:(unit -> unit t) -> 'a t
 
 (** Write once variables *)
 module Ivar : sig
-  type 'a fiber = 'a t
+  type 'a fiber
 
   (** A ivar is a synchronization variable that can be written only once. *)
   type 'a t
@@ -231,7 +209,7 @@ module Ivar : sig
   val fill : 'a t -> 'a -> unit fiber
 
   (** Return [Some x] is [fill t x] has been called previously. *)
-  val peek : 'a t -> 'a option
+  val peek : 'a t -> 'a option fiber
 end
 with type 'a fiber := 'a t
 
@@ -248,11 +226,6 @@ with type 'a fiber := 'a t
 
 (** {1 Running fibers} *)
 
-(** Wait for one iteration of the scheduler *)
-val yield : unit -> unit t
-
-(** [run t] runs a fiber until it (and all the fibers it forked) terminate.
-    Returns the result if it's determined in the end, otherwise raises [Never]. *)
-val run : 'a t -> 'a
-
-exception Never
+(** [run t] runs a fiber. If the fiber doesn't complete immediately, [run t]
+    returns [None]. *)
+val run : 'a t -> 'a option

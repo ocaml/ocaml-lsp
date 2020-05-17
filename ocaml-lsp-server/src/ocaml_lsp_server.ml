@@ -599,10 +599,16 @@ let start () =
       ( prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
         on_request rpc state caps req )
   in
-  Lsp.Server.start docs
-    { on_initialize; on_request; on_notification }
-    stdin stdout
-  |> Fiber.run;
+  ( match
+      Lsp.Server.start docs
+        { on_initialize; on_request; on_notification }
+        stdin stdout
+      |> Fiber.run
+    with
+  | None ->
+    Format.eprintf "Scheduler got stuck@.";
+    exit 1
+  | Some () -> () );
   log ~title:Logger.Title.Info "exiting"
 
 let run ~log_file =

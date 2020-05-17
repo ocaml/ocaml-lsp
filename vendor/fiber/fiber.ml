@@ -16,8 +16,6 @@ module Execution_context : sig
     val run : 'a t -> 'a -> unit
 
     val run_queue : 'a t Queue.t -> 'a -> unit
-
-    val run_list : 'a t list -> 'a -> unit
   end
 
   (* Execute a function returning a fiber, passing any raised excetion to the
@@ -161,11 +159,6 @@ end = struct
     let run_queue q x =
       let backup = !current in
       Queue.iter (fun k -> run_k k x) q;
-      current := backup
-
-    let run_list l x =
-      let backup = !current in
-      List.iter l ~f:(fun k -> run_k k x);
       current := backup
   end
 
@@ -394,10 +387,11 @@ module Ivar = struct
     | Full x -> k x
     | Empty q -> Queue.push (K.create k) q
 
-  let peek t =
-    match t.state with
-    | Full x -> Some x
-    | Empty _ -> None
+  let peek t k =
+    k
+      ( match t.state with
+      | Full x -> Some x
+      | Empty _ -> None )
 end
 
 module Future = struct
@@ -431,34 +425,6 @@ let nfork_map l ~f k =
 
 let nfork l : _ Future.t list t = nfork_map l ~f:(fun f -> f ())
 
-module Once = struct
-  type 'a state =
-    | Running of 'a Future.t
-    | Not_started of (unit -> 'a t)
-    | Starting
-
-  type 'a t = { mutable state : 'a state }
-
-  let create f = { state = Not_started f }
-
-  let get t =
-    match t.state with
-    | Running fut -> Future.wait fut
-    | Not_started f ->
-      t.state <- Starting;
-      let* fut = fork f in
-      t.state <- Running fut;
-      Future.wait fut
-    | Starting -> failwith "Fiber.Once.get: recursive evaluation"
-
-  let peek t =
-    match t.state with
-    | Running fut -> Future.peek fut
-    | _ -> None
-
-  let peek_exn t = Option.value_exn (peek t)
-end
-
 module Mutex = struct
   type t =
     { mutable locked : bool
@@ -488,24 +454,7 @@ module Mutex = struct
   let create () = { locked = false; waiters = Queue.create () }
 end
 
-let suspended = ref []
-
-let yield () k = suspended := K.create k :: !suspended
-
-exception Never
-
 let run t =
   let result = ref None in
   EC.apply (fun () -> t) () (fun x -> result := Some x);
-  let rec loop () =
-    match List.rev !suspended with
-    | [] -> (
-      match !result with
-      | None -> raise Never
-      | Some x -> x )
-    | to_run ->
-      suspended := [];
-      K.run_list to_run ();
-      loop ()
-  in
-  loop ()
+  !result
