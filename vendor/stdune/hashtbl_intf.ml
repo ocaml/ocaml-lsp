@@ -1,5 +1,15 @@
 module type S = sig
-  include MoreLabels.Hashtbl.S
+  type 'a t
+
+  type key
+
+  val create : int -> 'a t
+
+  val clear : 'a t -> unit
+
+  val mem : 'a t -> key -> bool
+
+  val remove : 'a t -> key -> unit
 
   val iter : 'a t -> f:('a -> unit) -> unit
 
@@ -26,4 +36,6 @@ module type S = sig
   val to_dyn : ('v -> Dyn.t) -> 'v t -> Dyn.t
 
   val filteri_inplace : 'a t -> f:(key:key -> data:'a -> bool) -> unit
+
+  val length : _ t -> int
 end

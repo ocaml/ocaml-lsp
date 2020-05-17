@@ -58,7 +58,7 @@ let selected_sections = ref None
 let is_section_enabled section =
   match !selected_sections with
   | None -> true
-  | Some sections -> String.Table.mem sections section
+  | Some sections -> Table.mem sections section
 
 let output_section oc section title =
   Printf.fprintf oc "# %2.2f %s - %s\n" (delta_time ()) section
@@ -146,9 +146,8 @@ let with_sections sections f =
     match sections with
     | [] -> None
     | sections ->
-      let table = String.Table.create (List.length sections) in
-      List.iter sections ~f:(fun section ->
-          String.Table.replace table ~key:section ~data:());
+      let table = Table.create (module String) (List.length sections) in
+      List.iter sections ~f:(fun section -> Table.set table section ());
       Some table
   in
   let sections0 = !selected_sections in
