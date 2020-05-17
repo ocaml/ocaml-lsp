@@ -19,6 +19,12 @@ module Fpath = struct
         )
 end
 
+let basename_opt ~is_root ~basename t =
+  if is_root t then
+    None
+  else
+    Some (basename t)
+
 let is_dir_sep =
   if Sys.win32 || Sys.cygwin then
     fun c ->
@@ -87,8 +93,6 @@ end = struct
 
   let hash = T.hash
 
-  let pp = T.pp
-
   let compare = T.compare
 
   let as_string x ~f = to_string x |> f |> make
@@ -127,6 +131,8 @@ end = struct
   let root = of_string "/"
 
   let is_root = equal root
+
+  let basename_opt = basename_opt ~is_root ~basename
 
   let parent t =
     if is_root t then
@@ -229,8 +235,6 @@ end = struct
   let hash = T.hash
 
   let compare = T.compare
-
-  let pp ppf s = Format.pp_print_string ppf (to_string s)
 
   let root = make "."
 
@@ -559,6 +563,8 @@ end = struct
   include Fix_root (struct
     type nonrec w = w
   end)
+
+  let basename_opt = basename_opt ~is_root ~basename
 end
 
 module Relative_to_source_root = struct
@@ -620,6 +626,20 @@ module Kind = struct
     | In_source_dir x -> In_source_dir (Local.append x y)
     | External x -> External (External.relative x (Local.to_string y))
 end
+
+let chmod_generic ~mode ?(op = `Set) path =
+  let mode =
+    match op with
+    | `Set -> mode
+    | `Add
+    | `Remove ->
+      let stat = Unix.stat path in
+      if op = `Add then
+        stat.st_perm lor mode
+      else
+        stat.st_perm land lnot mode
+  in
+  Unix.chmod path mode
 
 module Build = struct
   include Local
@@ -715,6 +735,8 @@ module Build = struct
         Filename.concat (External.to_string b) (Local.to_string p)
 
   let of_local t = t
+
+  let chmod ~mode ?(op = `Set) path = chmod_generic ~mode ~op (to_string path)
 
   module Kind = Kind
 end
@@ -915,6 +937,8 @@ let basename t =
   match kind t with
   | In_source_dir t -> Local.basename t
   | External t -> External.basename t
+
+let basename_opt = basename_opt ~is_root ~basename
 
 let parent = function
   | External s -> Option.map (External.parent s) ~f:external_
@@ -1179,7 +1203,7 @@ let mkdir_p ?perms = function
   | In_build_dir k ->
     Kind.mkdir_p ?perms (Kind.append_local (Fdecl.get Build.build_dir) k)
 
-let touch p =
+let touch ?(create = true) p =
   let p =
     match p with
     | External s -> External.to_string s
@@ -1189,7 +1213,7 @@ let touch p =
   in
   try Unix.utimes p 0.0 0.0
   with Unix.Unix_error (Unix.ENOENT, _, _) ->
-    Unix.close (Unix.openfile p [ Unix.O_CREAT ] 0o777)
+    if create then Unix.close (Unix.openfile p [ Unix.O_CREAT ] 0o777)
 
 let compare x y =
   match (x, y) with
@@ -1225,14 +1249,6 @@ let set_extension t ~ext =
   | External t -> external_ (External.set_extension t ~ext)
   | In_build_dir t -> in_build_dir (Local.set_extension t ~ext)
   | In_source_tree t -> in_source_tree (Local.set_extension t ~ext)
-
-let pp ppf t = Format.pp_print_string ppf (to_string_maybe_quoted t)
-
-let pp_debug ppf = function
-  | In_source_tree s ->
-    Format.fprintf ppf "(In_source_tree %S)" (Local.to_string s)
-  | In_build_dir s -> Format.fprintf ppf "(In_build_dir %S)" (Local.to_string s)
-  | External s -> Format.fprintf ppf "(External %S)" (External.to_string s)
 
 module O = Comparable.Make (T)
 
@@ -1318,3 +1334,21 @@ let temp_dir ?(temp_dir = get_temp_dir_name ()) ?(mode = 0o700) prefix suffix =
 
 let rename old_path new_path =
   Sys.rename (to_string old_path) (to_string new_path)
+
+let chmod ~mode ?(stats = None) ?(op = `Set) path =
+  let mode =
+    match op with
+    | `Set -> mode
+    | `Add
+    | `Remove ->
+      let stats =
+        match stats with
+        | Some stats -> stats
+        | None -> stat path
+      in
+      if Stdlib.( = ) op `Add then
+        stats.st_perm lor mode
+      else
+        stats.st_perm land lnot mode
+  in
+  Unix.chmod (to_string path) mode

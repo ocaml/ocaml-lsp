@@ -1,11 +1,10 @@
 open! Import
-module Table = Hashtbl.Make (Lsp.Uri)
 
-type t = Document.t Table.t
+type t = (Lsp.Uri.t, Document.t) Table.t
 
-let make () = Table.create 50
+let make () = Table.create (module Lsp.Uri) 50
 
-let put store doc = Table.replace store ~key:(Document.uri doc) ~data:doc
+let put store doc = Table.set store (Document.uri doc) doc
 
 let get_opt store = Table.find store
 
