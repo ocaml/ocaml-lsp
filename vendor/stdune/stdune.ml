@@ -66,7 +66,6 @@ module Applicative = Applicative
 module Top_closure_intf = Top_closure_intf
 module Top_closure = Top_closure
 module Spawn = Spawn
-module Seq = Seq
 
 external reraise : exn -> _ = "%reraise"
 

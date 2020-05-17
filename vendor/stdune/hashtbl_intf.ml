@@ -11,8 +11,6 @@ module type S = sig
 
   val remove : 'a t -> key -> unit
 
-  val to_seq_values : 'a t -> 'a Seq.t
-
   val iter : 'a t -> f:('a -> unit) -> unit
 
   val set : 'a t -> key -> 'a -> unit
