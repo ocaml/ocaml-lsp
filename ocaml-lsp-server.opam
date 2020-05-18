@@ -19,7 +19,6 @@ depends: [
   "yojson"
   "stdlib-shims"
   "menhir"
-  "ocaml-syntax-shims"
   "ppx_yojson_conv_lib"
   "uri"
   "ocamlformat" {with-test}
