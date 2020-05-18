@@ -121,6 +121,9 @@ module Expanded = struct
     object
       inherit [binding Named.t list] Resolved.fold as super
 
+      (** Every record valued field introduces a new type
+
+          TODO handle the case where two fields share a type *)
       method! field f ~init =
         let init =
           match f.data with
@@ -131,9 +134,6 @@ module Expanded = struct
             | Some data -> { f with data } :: init )
         in
         super#field f ~init
-      (** Every record valued field introduces a new type
-
-          TODO handle the case where two fields share a type *)
     end
 
   let bindings (r : Resolved.t) =

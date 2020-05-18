@@ -39,8 +39,8 @@ end = struct
 end
 
 module Worker : sig
-  type 'work t
   (** Simple queue that is consumed by its own thread *)
+  type 'work t
 
   val create : do_:('a -> unit) -> 'a t
 
