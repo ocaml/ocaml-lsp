@@ -3,7 +3,7 @@
 (library
  (name lsp)
  (public_name lsp)
- (libraries stdune yojson threads.posix ppx_yojson_conv_lib fiber uutf uri)
+ (libraries stdune yojson threads.posix ppx_yojson_conv_lib fiber uutf)
  (preprocess future_syntax)
  (flags :standard "-open" "Ppx_yojson_conv_lib" "-open" "Yojson_conv")
  (lint
