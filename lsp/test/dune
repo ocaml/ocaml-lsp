@@ -12,6 +12,7 @@
 
 (executable
  (name fiber_thread_test)
+ (modules fiber_thread_test)
  (preprocess future_syntax)
  (libraries stdune lsp fiber threads.posix))
 
@@ -19,3 +20,14 @@
  (alias test)
  (action
   (run ./fiber_thread_test.exe)))
+
+(executable
+ (name jsonrpc_test)
+ (modules jsonrpc_test)
+ (preprocess future_syntax)
+ (libraries stdune yojson lsp fiber ppx_yojson_conv_lib  threads.posix))
+
+(rule
+ (alias test)
+ (action
+  (run ./jsonrpc_test.exe)))
