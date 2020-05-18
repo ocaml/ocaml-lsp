@@ -89,7 +89,7 @@ module Io = struct
          Some
            ( match Request.t_of_yojson json with
            | s -> Request s
-           | exception Of_yojson_error (_, _) ->
+           | exception Json.Conv.Of_yojson_error (_, _) ->
              Response (Response.t_of_yojson json) ))
 
   let read_request (t : t) =
