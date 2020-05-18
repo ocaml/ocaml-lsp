@@ -45,7 +45,6 @@ possible and does not make any assumptions about IO.
   yojson
   stdlib-shims
   menhir
-  ocaml-syntax-shims
   ppx_yojson_conv_lib
   uri
   (ocamlformat :with-test)
