@@ -1,7 +1,8 @@
-version=0.14.1
+version=0.14.2
 break-separators=before
 dock-collection-brackets=false
 break-sequences=true
+doc-comments=before
 field-space=loose
 let-and=sparse
 sequence-style=terminator
@@ -15,4 +16,3 @@ space-around-arrays
 cases-exp-indent=2
 break-cases=all
 indicate-nested-or-patterns=unsafe-no
-doc-comments-val=before
