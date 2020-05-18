@@ -66,8 +66,10 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
 let yojson_of_result (type a) (t : a t) (r : a) : Json.t option =
   match (t, r) with
   | WorkspaceApplyEdit _, r -> Some (ApplyWorkspaceEditResponse.yojson_of_t r)
-  | WorkspaceFolders, r -> Some (yojson_of_list WorkspaceFolder.yojson_of_t r)
-  | WorkspaceConfiguration _, r -> Some (yojson_of_list (fun x -> x) r)
+  | WorkspaceFolders, r ->
+    Some (Json.Conv.yojson_of_list WorkspaceFolder.yojson_of_t r)
+  | WorkspaceConfiguration _, r ->
+    Some (Json.Conv.yojson_of_list (fun x -> x) r)
   | ClientRegisterCapability _, () -> None
   | ClientUnregisterCapability _, () -> None
   | ShowMessageRequest _, None -> None
@@ -75,6 +77,7 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t option =
   | UnknownRequest (_, _), _ -> None
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
+  let open Json.Conv in
   match t with
   | WorkspaceApplyEdit _ -> ApplyWorkspaceEditResponse.t_of_yojson json
   | WorkspaceFolders -> list_of_yojson WorkspaceFolder.t_of_yojson json

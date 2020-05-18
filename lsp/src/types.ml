@@ -1,4 +1,5 @@
 open! Import
+open Json.Conv
 
 module MarkedString = struct
   type t =
@@ -16,9 +17,9 @@ module MarkedString = struct
     match json with
     | `String value -> { value; language = None }
     | `Assoc fields ->
-      let value = Json.field_exn fields "value" Yojson_conv.string_of_yojson in
+      let value = Json.field_exn fields "value" Json.Conv.string_of_yojson in
       let language =
-        Json.field_exn fields "language" Yojson_conv.string_of_yojson
+        Json.field_exn fields "language" Json.Conv.string_of_yojson
       in
       { value; language = Some language }
     | _ -> Json.error "invalid MarkedString" json

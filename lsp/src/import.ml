@@ -141,6 +141,10 @@ module Json = struct
     | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
     | Some f -> f
 
+  module Conv = struct
+    include Ppx_yojson_conv_lib.Yojson_conv
+  end
+
   module Option = struct
     type 'a t = 'a option
 

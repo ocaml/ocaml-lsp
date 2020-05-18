@@ -1,4 +1,5 @@
 open Import
+open Json.Conv
 
 module Id = struct
   type t = (string, int) Either.t
@@ -66,12 +67,12 @@ module Request = struct
     match json with
     | `Assoc fields ->
       let method_ =
-        Json.field_exn fields Constant.method_ Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.method_ Json.Conv.string_of_yojson
       in
       let params = Json.field fields Constant.params (fun x -> x) in
       let id = Json.field fields Constant.id Id.t_of_yojson in
       let jsonrpc =
-        Json.field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
       in
       if jsonrpc = Constant.jsonrpcv then
         { method_; params; id }
@@ -309,7 +310,7 @@ module Response = struct
     | `Assoc fields -> (
       let id = Json.field_exn fields Constant.id Id.t_of_yojson in
       let jsonrpc =
-        Json.field_exn fields Constant.jsonrpc Yojson_conv.string_of_yojson
+        Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
       in
       if jsonrpc <> Constant.jsonrpcv then
         Json.error "Invalid response" json

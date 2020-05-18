@@ -84,13 +84,13 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | Shutdown, () -> None
   | Initialize _, result -> Some (InitializeResult.yojson_of_t result)
   | TextDocumentDeclaration _, result ->
-    Some (yojson_of_option Locations.yojson_of_t result)
+    Some (Json.Conv.yojson_of_option Locations.yojson_of_t result)
   | TextDocumentHover _, result ->
     Some (Json.Option.yojson_of_t Hover.yojson_of_t result)
   | TextDocumentDefinition _, result ->
-    Some (yojson_of_option Locations.yojson_of_t result)
+    Some (Json.Option.yojson_of_t Locations.yojson_of_t result)
   | TextDocumentTypeDefinition _, result ->
-    Some (yojson_of_option Locations.yojson_of_t result)
+    Some (Json.Option.yojson_of_t Locations.yojson_of_t result)
   | TextDocumentCompletion _, result -> Some (yojson_of_Completion result)
   | TextDocumentCodeLens _, result ->
     Some (Json.To.list CodeLens.yojson_of_t result)

@@ -1,4 +1,5 @@
 open Import
+open Json.Conv
 
 type t = string [@@deriving_inline yojson]
 
