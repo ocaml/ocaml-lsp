@@ -5,7 +5,7 @@ module In : sig
 
   val create : (unit -> 'a option Fiber.t) -> 'a t
 
-  val return : 'a -> 'a t
+  val empty : unit -> 'a t
 
   val of_list : 'a list -> 'a t
 
@@ -23,3 +23,7 @@ module Out : sig
 
   val null : unit -> 'a t
 end
+
+val connect : 'a In.t -> 'a Out.t -> 'a Fiber.t
+
+val pipe : unit -> 'a In.t * 'a Out.t

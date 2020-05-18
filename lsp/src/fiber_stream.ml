@@ -7,6 +7,8 @@ module In = struct
 
   let read t = t ()
 
+  let empty () () = Fiber.return None
+
   let of_list xs =
     let xs = ref xs in
     fun () ->
@@ -15,15 +17,6 @@ module In = struct
       | x :: xs' ->
         xs := xs';
         Fiber.return (Some x)
-
-  let return x =
-    let first = ref true in
-    fun () ->
-      if !first then (
-        first := false;
-        Fiber.return (Some x)
-      ) else
-        Fiber.return None
 end
 
 module Out = struct
@@ -39,3 +32,18 @@ module Out = struct
 
   let null () _ = Fiber.return ()
 end
+
+let connect i o =
+  let open Fiber.O in
+  let rec go () =
+    let* a = In.read i in
+    let* () = Out.write o a in
+    go ()
+  in
+  go ()
+
+let pipe () =
+  let mvar = Fiber_mvar.create () in
+  let i = In.create (fun () -> Fiber_mvar.get mvar) in
+  let o = Out.create (fun x -> Fiber_mvar.set mvar x) in
+  (i, o)
