@@ -107,6 +107,8 @@ val fork_and_join : (unit -> 'a t) -> (unit -> 'b t) -> ('a * 'b) t
     ]} *)
 val fork_and_join_unit : (unit -> unit t) -> (unit -> 'a t) -> 'a t
 
+val fork_and_race : (unit -> 'a t) -> (unit -> 'b t) -> ('a, 'b) Either.t t
+
 (** Map a list in parallel:
 
     {[

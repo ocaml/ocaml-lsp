@@ -365,10 +365,6 @@ struct
 
   let stopped t = Fiber.Ivar.read t.stopped
 
-  let fork_and_race (type a b) (_ : unit -> a Fiber.t) (_ : unit -> b Fiber.t) :
-      (a, b) Either.t Fiber.t =
-    assert false
-
   let _close t =
     let open Fiber.O in
     let* () = Chan.close t.chan in
@@ -378,7 +374,7 @@ struct
     let open Fiber.O in
     let rec loop () =
       let* res =
-        fork_and_race
+        Fiber.fork_and_race
           (fun () -> Chan.recv t.chan)
           (fun () -> Fiber.Ivar.read t.stop_requested)
       in
