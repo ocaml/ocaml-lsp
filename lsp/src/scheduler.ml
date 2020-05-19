@@ -125,6 +125,7 @@ type t =
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
   ; timers : (Timer_id.t, packed_active_timer ref) Table.t
+  ; detached : unit Fiber.t Queue.t
   }
 
 and event =
@@ -164,6 +165,10 @@ let add_events t = function
     Mutex.unlock t.mutex
 
 let is_empty table = Table.length table = 0
+
+let me = Fiber.Var.create ()
+
+let scheduler () = Fiber.Var.get_exn me
 
 let time_loop t =
   let rec loop () =
@@ -219,6 +224,7 @@ let create () =
     ; time = Thread.self ()
     ; earliest_wakeup = Mvar.create ()
     ; waker = Thread.self ()
+    ; detached = Queue.create ()
     }
   in
   Mutex.lock t.time_mutex;
@@ -290,12 +296,23 @@ let rec pump_events (t : t) =
 
 exception Never
 
-let run t f =
-  let open Fiber.O in
+let rec restart_suspended t =
+  if Queue.is_empty t.detached then
+    Fiber.return ()
+  else
+    let open Fiber.O in
+    let* () = Queue.pop t.detached in
+    restart_suspended t
+
+let run : 'a. t -> 'a Fiber.t -> 'a =
+ fun t f ->
+  let f = Fiber.Var.set me t (fun () -> f) in
   match
+    let open Fiber.O in
     Fiber.run
       (let* user_action = Fiber.fork (fun () -> f) in
        let* () = pump_events t in
+       let* () = restart_suspended t in
        Fiber.Future.peek user_action)
   with
   | None
@@ -331,3 +348,5 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
   in
   Mutex.unlock timer.timer_scheduler.time_mutex;
   Fiber.Ivar.read ivar
+
+let detach t fiber = Queue.add (Fiber.map fiber ~f:ignore) t.detached
