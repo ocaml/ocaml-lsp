@@ -17,7 +17,7 @@ module Message = struct
       Request (id, req)
 end
 
-module Io = struct
+module Raw_io = struct
   let { Logger.log } = Logger.for_section "lsp_io"
 
   type t =
@@ -27,8 +27,7 @@ module Io = struct
 
   let close { ic; oc } =
     close_in_noerr ic;
-    close_out_noerr oc;
-    Fiber.return ()
+    close_out_noerr oc
 
   let make ic oc =
     set_binary_mode_in ic true;
@@ -49,8 +48,7 @@ module Io = struct
     let header = Header.create ~content_length in
     Header.write header oc;
     output_string oc data;
-    flush oc;
-    Fiber.return ()
+    flush oc
 
   let read { ic; oc = _ } : (Json.t, string) result =
     let read_content () =
@@ -80,36 +78,66 @@ module Io = struct
     let open Result.O in
     read_content () >>= parse_json
 
-  let recv t : packet option Fiber.t =
-    Fiber.return
-      (let json = read t in
-       match json with
-       | Error _ -> Code_error.raise "Invalid input" []
-       | Ok json ->
-         Some
-           ( match Request.t_of_yojson json with
-           | s -> Request s
-           | exception Json.Conv.Of_yojson_error (_, _) ->
-             Response (Response.t_of_yojson json) ))
-
   let read_request (t : t) =
-    Fiber.return
-      (let open Result.O in
-      let* parsed = read t in
-      match Jsonrpc.Request.t_of_yojson parsed with
-      | r -> Ok r
-      | exception _exn -> Error "Unexpected packet")
+    let open Result.O in
+    let* parsed = read t in
+    match Jsonrpc.Request.t_of_yojson parsed with
+    | r -> Ok r
+    | exception _exn -> Error "Unexpected packet"
 
   let read_response (t : t) =
-    Fiber.return
-      (let open Result.O in
-      let* parsed = read t in
-      match Jsonrpc.Response.t_of_yojson parsed with
-      | r -> Ok r
-      | exception _exn -> Error "Unexpected packet")
+    let open Result.O in
+    let* parsed = read t in
+    match Jsonrpc.Response.t_of_yojson parsed with
+    | r -> Ok r
+    | exception _exn -> Error "Unexpected packet"
 end
 
-module Session = Session (Io)
+module Stream_io = struct
+  open Fiber_stream
+
+  type t = Jsonrpc.packet In.t * Jsonrpc.packet Out.t
+
+  let close (_, o) = Out.write o None
+
+  let send (_, o) p = Out.write o (Some p)
+
+  let recv (i, _) = In.read i
+
+  let make s io =
+    let r = Scheduler.create_thread s in
+    let w = Scheduler.create_thread s in
+    let i =
+      Fiber_stream.In.create (fun () ->
+          let open Fiber.O in
+          let+ res =
+            Scheduler.async r (fun () ->
+                match Raw_io.read io with
+                | Error s -> failwith ("failed to parse " ^ s)
+                | Ok json ->
+                  let open Json.O in
+                  ( (fun json -> Request (Jsonrpc.Request.t_of_yojson json))
+                  <|> fun json -> Response (Jsonrpc.Response.t_of_yojson json)
+                  )
+                    json)
+          in
+          Some (Result.ok_exn res))
+    in
+    let o =
+      let open Fiber.O in
+      Fiber_stream.Out.create (fun t ->
+          let+ res =
+            Scheduler.async w
+              ( match t with
+              | None -> fun () -> Raw_io.close io
+              | Some p -> fun () -> Raw_io.send io p )
+          in
+          Result.ok_exn res)
+    in
+    (i, o)
+end
+
+module Session = Session (Stream_io)
 
 module State = struct
   type t =
@@ -141,7 +169,7 @@ module type S = sig
 
   type t
 
-  val make : Handler.t -> Io.t -> t
+  val make : Handler.t -> Stream_io.t -> t
 
   val stop : t -> unit Fiber.t
 
@@ -231,7 +259,7 @@ struct
 
   type t =
     { handler : Handler.t
-    ; io : Io.t
+    ; io : Stream_io.t
     ; session : Session.t
     ; mutable state : State.t
     ; initialized : unit Fiber.Ivar.t
@@ -317,4 +345,14 @@ module Server = struct
     { t with handler }
 
   let start t = start_loop t
+end
+
+module Io = struct
+  include Raw_io
+
+  let send t x = Fiber.return (send t x)
+
+  let read_request t = Fiber.return (read_request t)
+
+  let read_response t = Fiber.return (read_response t)
 end

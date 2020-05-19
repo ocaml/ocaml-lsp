@@ -25,6 +25,19 @@ module Io : sig
   val read_response : t -> (Response.t, string) result Fiber.t
 end
 
+module Stream_io : sig
+  type t = packet Fiber_stream.In.t * packet Fiber_stream.Out.t
+
+  val close : 'a * 'b Fiber_stream.Out.t -> unit Fiber.t
+
+  val send : 'a * 'b Fiber_stream.Out.t -> 'b -> unit Fiber.t
+
+  val recv : 'a Fiber_stream.In.t * 'b -> 'a option Fiber.t
+
+  val make :
+    Scheduler.t -> Io.t -> packet Fiber_stream.In.t * packet Fiber_stream.Out.t
+end
+
 module type S = sig
   type 'a out_request
 
@@ -48,7 +61,7 @@ module type S = sig
 
   type t
 
-  val make : Handler.t -> Io.t -> t
+  val make : Handler.t -> Stream_io.t -> t
 
   val stop : t -> unit Fiber.t
 
