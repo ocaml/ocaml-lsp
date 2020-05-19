@@ -303,7 +303,7 @@ module Server = struct
               let open Fiber.O in
               let initialize () =
                 match Client_request.E in_r with
-                | Client_request.E (Initialize _) ->
+                | Client_request.E (Client_request.Initialize _) ->
                   Fiber.Ivar.fill t.initialized ()
                 | _ -> Fiber.return ()
               in
