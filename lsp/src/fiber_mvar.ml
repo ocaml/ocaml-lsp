@@ -14,7 +14,12 @@ let try_wakeup t =
     Fiber.return ()
   else
     let reader = Queue.pop t.readers in
-    Fiber.Ivar.fill reader (Option.value_exn t.value)
+    let value =
+      let v = Option.value_exn t.value in
+      t.value <- None;
+      v
+    in
+    Fiber.Ivar.fill reader value
 
 let next_writer (type a) (t : a t) : unit Fiber.t =
   if Queue.is_empty t.writers then
@@ -29,7 +34,7 @@ let get (type a) (t : a t) : a Fiber.t =
   match t.value with
   | Some v ->
     t.value <- None;
-    let (_ : unit Fiber.t) = next_writer t in
+    Scheduler.detach (Scheduler.scheduler ()) (next_writer t);
     Fiber.return v
   | None ->
     let ivar = Fiber.Ivar.create () in
@@ -40,7 +45,7 @@ let set t x =
   match t.value with
   | None ->
     t.value <- Some x;
-    let (_ : unit Fiber.t) = try_wakeup t in
+    Scheduler.detach (Scheduler.scheduler ()) (try_wakeup t);
     Fiber.return ()
   | Some _ ->
     let ivar = Fiber.Ivar.create () in
