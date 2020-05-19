@@ -17,6 +17,13 @@ module In = struct
       | x :: xs' ->
         xs := xs';
         Fiber.return (Some x)
+
+  let map t ~f () =
+    let open Fiber.O in
+    let+ next = read t in
+    match next with
+    | None -> None
+    | Some x -> Some (f x)
 end
 
 module Out = struct

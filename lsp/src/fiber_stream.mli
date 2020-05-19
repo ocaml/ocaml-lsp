@@ -10,6 +10,8 @@ module In : sig
   val of_list : 'a list -> 'a t
 
   val read : 'a t -> 'a option Fiber.t
+
+  val map : 'a t -> f:('a -> 'b) -> 'b t
 end
 
 module Out : sig
