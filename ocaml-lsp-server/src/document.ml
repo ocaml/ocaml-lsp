@@ -22,6 +22,7 @@ module Syntax = struct
     | Reason
 
   let of_language_id = function
+    | "ocaml.interface" -> Ocaml
     | "ocaml" -> Ocaml
     | "reason" -> Reason
     | id -> failwith ("Unexpected language id " ^ id)
