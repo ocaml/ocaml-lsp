@@ -32,13 +32,17 @@ let initializeInfo : InitializeResult.t =
     `RenameOptions (Lsp.Types.RenameOptions.create ~prepareProvider:true ())
   in
   let capabilities =
+    let experimental =
+      `Assoc
+        [ ("ocamllsp", `Assoc [ ("interfaceSpecificLangId", `Bool true) ]) ]
+    in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
       ~completionProvider ~codeActionProvider ~codeLensProvider
       ~referencesProvider:(`Bool true) ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
-      ~renameProvider ()
+      ~experimental ~renameProvider ()
   in
   let serverInfo =
     (* TODO use actual version *)
