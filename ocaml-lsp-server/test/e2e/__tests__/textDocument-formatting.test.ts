@@ -110,5 +110,38 @@ maybeDescribe("textDocument/formatting", () => {
         },
       ]);
     });
+
+    it("does not format ignored files", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
+
+      let tmpdir = setupOcamlFormat(ocamlFormat);
+
+      let ocamlFormatIgnore = path.join(tmpdir, ".ocamlformat-ignore");
+      fs.writeFileSync(ocamlFormatIgnore, "test.ml\n");
+
+      let name = path.join(tmpdir, "test.ml");
+
+      await openDocument(
+        languageServer,
+        "let rec gcd a b = match (a, b) with\n" +
+        "  | 0, n\n" +
+        "  | n, 0 ->\n" +
+        "    n\n" +
+        "  | _, _ -> gcd a (b mod a)\n",
+        name,
+      );
+
+      let result = await query(languageServer, name);
+      expect(result).toMatchObject([
+        {
+          newText:
+            "let rec gcd a b = match (a, b) with\n" +
+            "  | 0, n\n" +
+            "  | n, 0 ->\n" +
+            "    n\n" +
+            "  | _, _ -> gcd a (b mod a)\n",
+        },
+      ]);
+    });
   });
 });
