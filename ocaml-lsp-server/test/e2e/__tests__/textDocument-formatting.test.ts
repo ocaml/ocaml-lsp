@@ -124,10 +124,10 @@ maybeDescribe("textDocument/formatting", () => {
       await openDocument(
         languageServer,
         "let rec gcd a b = match (a, b) with\n" +
-        "  | 0, n\n" +
-        "  | n, 0 ->\n" +
-        "    n\n" +
-        "  | _, _ -> gcd a (b mod a)\n",
+          "  | 0, n\n" +
+          "  | n, 0 ->\n" +
+          "    n\n" +
+          "  | _, _ -> gcd a (b mod a)\n",
         name,
       );
 
