@@ -53,6 +53,7 @@ let initializeInfo : InitializeResult.t =
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
 let send_diagnostics rpc doc =
+  let diagnostic_create = Diagnostic.create ~source:"ocamllsp" in
   let reason_merlin_available =
     match Document.syntax doc with
     | Ocaml -> true
@@ -71,7 +72,7 @@ let send_diagnostics rpc doc =
           let pos = Position.create ~line:1 ~character:1 in
           Range.create ~start:pos ~end_:pos
         in
-        [ Diagnostic.create ~range ~message () ]
+        [ diagnostic_create ~range ~message () ]
       in
       Lsp.Server_notification.PublishDiagnostics
         (PublishDiagnosticsParams.create ~uri ~diagnostics ())
@@ -96,7 +97,7 @@ let send_diagnostics rpc doc =
             Loc.print_main Format.str_formatter error;
             String.trim (Format.flush_str_formatter ())
           in
-          Diagnostic.create ~range ~message ~severity ())
+          diagnostic_create ~range ~message ~severity ())
     in
 
     let notif =
