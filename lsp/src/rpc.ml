@@ -303,6 +303,7 @@ module Client = struct
   let start (t : t) (p : InitializeParams.t) =
     assert (t.state = Waiting_for_init);
     let open Fiber.O in
+    let loop = start_loop t in
     let* init =
       Fiber.fork (fun () ->
           let* resp = request t (Client_request.Initialize p) in
@@ -310,7 +311,7 @@ module Client = struct
           Fiber.Ivar.fill t.initialized resp)
     in
     Scheduler.detach (Scheduler.scheduler ()) (fun () -> Fiber.Future.wait init);
-    start_loop t
+    loop
 end
 
 module Server = struct

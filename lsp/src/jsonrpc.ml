@@ -357,6 +357,7 @@ struct
     ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
+    ; mutable running : bool
     }
 
   let on_request_fail (req : Request.t) : Response.t Fiber.t =
@@ -403,6 +404,7 @@ struct
           let* () = Fiber.Ivar.fill ivar r in
           loop () )
     in
+    t.running <- true;
     let* () = loop () in
     close t
 
@@ -417,11 +419,15 @@ struct
     ; stop_requested = Fiber.Ivar.create ()
     ; stopped = Fiber.Ivar.create ()
     ; name
+    ; running = false
     }
 
-  let notification t req = Chan.send t.chan (Request req)
+  let notification t req =
+    if not t.running then Code_error.raise "jsonrpc must be running" [];
+    Chan.send t.chan (Request req)
 
   let request t req =
+    if not t.running then Code_error.raise "jsonrpc must be running" [];
     let open Fiber.O in
     let* () = Chan.send t.chan (Request req) in
     let id =
