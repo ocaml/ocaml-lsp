@@ -252,6 +252,7 @@ struct
     ; session : Session.t
     ; mutable state : State.t
     ; initialized : unit Fiber.Ivar.t
+    ; mutable req_id : int
     }
 
   let make handler io =
@@ -264,14 +265,13 @@ struct
     ; state = Waiting_for_init
     ; session
     ; initialized = Fiber.Ivar.create ()
+    ; req_id = 0
     }
 
-  let req_id = ref 1
-
   let request (type r) (t : t) (req : r Out_request.t) : r Fiber.t =
-    let id = Either.Right !req_id in
+    let id = Either.Right t.req_id in
     let jsonrpc_request =
-      incr req_id;
+      t.req_id <- t.req_id + 1;
       Out_request.to_jsonrpc_request req ~id
     in
     let open Fiber.O in
