@@ -309,7 +309,7 @@ module Client = struct
           t.state <- Running;
           Fiber.Ivar.fill t.initialized resp)
     in
-    Scheduler.detach (Scheduler.scheduler ()) (Fiber.Future.wait init);
+    Scheduler.detach (Scheduler.scheduler ()) (fun () -> Fiber.Future.wait init);
     start_loop t
 end
 

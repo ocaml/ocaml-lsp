@@ -34,7 +34,7 @@ let get (type a) (t : a t) : a Fiber.t =
   match t.value with
   | Some v ->
     t.value <- None;
-    Scheduler.detach (Scheduler.scheduler ()) (next_writer t);
+    Scheduler.detach (Scheduler.scheduler ()) (fun () -> next_writer t);
     Fiber.return v
   | None ->
     let ivar = Fiber.Ivar.create () in
@@ -45,7 +45,7 @@ let set t x =
   match t.value with
   | None ->
     t.value <- Some x;
-    Scheduler.detach (Scheduler.scheduler ()) (try_wakeup t);
+    Scheduler.detach (Scheduler.scheduler ()) (fun () -> try_wakeup t);
     Fiber.return ()
   | Some _ ->
     let ivar = Fiber.Ivar.create () in

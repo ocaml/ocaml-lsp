@@ -352,4 +352,4 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
   Mutex.unlock timer.timer_scheduler.time_mutex;
   Fiber.Ivar.read ivar
 
-let detach t fiber = Queue.add (Fiber.map fiber ~f:ignore) t.detached
+let detach t fiber = Queue.add (Fiber.map (fiber ()) ~f:ignore) t.detached
