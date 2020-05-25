@@ -365,7 +365,7 @@ struct
 
   let stopped t = Fiber.Ivar.read t.stopped
 
-  let _close t =
+  let close t =
     let open Fiber.O in
     let* () = Chan.close t.chan in
     Fiber.Ivar.fill t.stopped ()
@@ -399,7 +399,7 @@ struct
           loop () )
     in
     let* () = loop () in
-    _close t
+    close t
 
   let on_notification_fail _ = Fiber.return ()
 
