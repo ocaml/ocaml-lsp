@@ -50,7 +50,7 @@ let () =
     let out = Out.of_ref responses in
     (reqs_in, out)
   in
-  let session = Session.create ~on_notification ~on_request chan in
+  let session = Session.create ~on_notification ~on_request ~name:"test" chan in
   let scheduler = Scheduler.create () in
   let write_reqs () =
     let open Fiber.O in

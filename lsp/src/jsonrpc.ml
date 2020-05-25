@@ -356,6 +356,7 @@ struct
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
+    ; name : string
     }
 
   let on_request_fail (req : Request.t) : Response.t Fiber.t =
@@ -408,13 +409,14 @@ struct
   let on_notification_fail _ = Fiber.return ()
 
   let create ?(on_request = on_request_fail)
-      ?(on_notification = on_notification_fail) chan =
+      ?(on_notification = on_notification_fail) ~name chan =
     { chan
     ; on_request
     ; on_notification
     ; pending = Table.create (module Id) 10
     ; stop_requested = Fiber.Ivar.create ()
     ; stopped = Fiber.Ivar.create ()
+    ; name
     }
 
   let notification t req = Chan.send t.chan (Request req)

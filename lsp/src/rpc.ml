@@ -253,10 +253,10 @@ struct
     ; mutable req_id : int
     }
 
-  let make handler io =
+  let make ~name handler io =
     let session =
       let on_request, on_notification = Handler.to_jsonrpc handler in
-      Session.create ~on_request ~on_notification io
+      Session.create ~on_request ~on_notification ~name io
     in
     { handler
     ; io
@@ -298,6 +298,8 @@ module Client = struct
             (Server_request)
             (Server_notification)
 
+  let make handler io = make ~name:"client" handler io
+
   let start (t : t) (p : InitializeParams.t) =
     assert (t.state = Waiting_for_init);
     let open Fiber.O in
@@ -318,7 +320,7 @@ module Server = struct
             (Client_notification)
 
   let make handler io =
-    let t = make handler io in
+    let t = make ~name:"server" handler io in
     let handler =
       let on_request : Handler.on_request =
         { Handler.on_request =
