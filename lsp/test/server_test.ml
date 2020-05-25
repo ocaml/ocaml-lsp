@@ -26,12 +26,11 @@ module Client = struct
     in
     let running = Client.start client initialize in
     let open Fiber.O in
-    let* init =
-      Fiber.fork (fun () ->
-          let+ (_ : Types.InitializeResult.t) = Client.initialized client in
-          Format.eprintf "client: initialized server@.%!")
+    let init () =
+      let+ (_ : Types.InitializeResult.t) = Client.initialized client in
+      Format.eprintf "client: initialized server@.%!"
     in
-    Scheduler.detach scheduler (fun () -> Fiber.Future.wait init);
+    Scheduler.detach scheduler init;
     running
 end
 

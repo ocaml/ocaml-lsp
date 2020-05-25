@@ -11,7 +11,7 @@ let create () =
 
 let try_wakeup t =
   if Queue.is_empty t.readers then
-    Fiber.return ()
+    None
   else
     let reader = Queue.pop t.readers in
     let value =
@@ -19,22 +19,26 @@ let try_wakeup t =
       t.value <- None;
       v
     in
-    Fiber.Ivar.fill reader value
+    Some (reader, value)
 
-let next_writer (type a) (t : a t) : unit Fiber.t =
+let next_writer (type a) (t : a t) =
   if Queue.is_empty t.writers then
-    Fiber.return ()
+    None
   else
     let a, w = Queue.pop t.writers in
     assert (t.value = None);
     t.value <- Some a;
-    Fiber.Ivar.fill w ()
+    Some w
 
 let get (type a) (t : a t) : a Fiber.t =
   match t.value with
   | Some v ->
     t.value <- None;
-    Scheduler.detach (Scheduler.scheduler ()) (fun () -> next_writer t);
+    ( match next_writer t with
+    | None -> ()
+    | Some w ->
+      Scheduler.detach (Scheduler.scheduler ()) (fun () -> Fiber.Ivar.fill w ())
+    );
     Fiber.return v
   | None ->
     let ivar = Fiber.Ivar.create () in
@@ -45,7 +49,11 @@ let set t x =
   match t.value with
   | None ->
     t.value <- Some x;
-    Scheduler.detach (Scheduler.scheduler ()) (fun () -> try_wakeup t);
+    ( match try_wakeup t with
+    | None -> ()
+    | Some (reader, value) ->
+      Scheduler.detach (Scheduler.scheduler ()) (fun () ->
+          Fiber.Ivar.fill reader value) );
     Fiber.return ()
   | Some _ ->
     let ivar = Fiber.Ivar.create () in
