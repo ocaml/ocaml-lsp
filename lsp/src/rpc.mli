@@ -71,6 +71,8 @@ module type S = sig
 end
 
 module Client : sig
+  open Types
+
   include
     S
       with type 'a out_request = 'a Client_request.t
@@ -78,16 +80,22 @@ module Client : sig
        and type 'a in_request = 'a Server_request.t
        and type in_notification = Server_notification.t
 
-  val start : t -> Types.InitializeParams.t -> Types.InitializeResult.t Fiber.t
+  val initialized : t -> InitializeResult.t Fiber.t
+
+  val start : t -> InitializeParams.t -> unit Fiber.t
 end
 
 module Server : sig
+  open Types
+
   include
     S
       with type 'a out_request = 'a Server_request.t
        and type out_notification = Server_notification.t
        and type 'a in_request = 'a Client_request.t
        and type in_notification = Client_notification.t
+
+  val initialized : t -> InitializeParams.t Fiber.t
 
   val start : t -> unit Fiber.t
 end

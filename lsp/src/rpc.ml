@@ -191,11 +191,13 @@ module type Notification_intf = sig
   val to_jsonrpc : t -> Jsonrpc.Request.t
 end
 
-module Make
-    (Out_request : Request_intf)
-    (Out_notification : Notification_intf)
-    (In_request : Request_intf)
-    (In_notification : Notification_intf) =
+module Make (Initialize : sig
+  type t
+end)
+(Out_request : Request_intf)
+(Out_notification : Notification_intf)
+(In_request : Request_intf)
+(In_notification : Notification_intf) =
 struct
   type 'a out_request = 'a Out_request.t
 
@@ -251,7 +253,7 @@ struct
     ; io : Stream_io.t
     ; session : Session.t
     ; mutable state : State.t
-    ; initialized : unit Fiber.Ivar.t
+    ; initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
     }
 
@@ -295,20 +297,24 @@ struct
 end
 
 module Client = struct
-  include Make (Client_request) (Client_notification) (Server_request)
+  open Types
+  include Make (InitializeResult) (Client_request) (Client_notification)
+            (Server_request)
             (Server_notification)
 
-  let start (t : t) (p : Types.InitializeParams.t) =
+  let start (t : t) (p : InitializeParams.t) =
     assert (t.state = Waiting_for_init);
     let open Fiber.O in
     let* resp = request t (Client_request.Initialize p) in
     t.state <- Running;
-    let (_ : unit Fiber.t) = start_loop t in
-    Fiber.return resp
+    let* () = Fiber.Ivar.fill t.initialized resp in
+    start_loop t
 end
 
 module Server = struct
-  include Make (Server_request) (Server_notification) (Client_request)
+  open Types
+  include Make (InitializeParams) (Server_request) (Server_notification)
+            (Client_request)
             (Client_notification)
 
   let make handler io =
@@ -320,8 +326,8 @@ module Server = struct
               let open Fiber.O in
               let initialize () =
                 match Client_request.E in_r with
-                | Client_request.E (Client_request.Initialize _) ->
-                  Fiber.Ivar.fill t.initialized ()
+                | Client_request.E (Client_request.Initialize i) ->
+                  Fiber.Ivar.fill t.initialized i
                 | _ -> Fiber.return ()
               in
               let* result = t.handler.on_request.on_request in_r in
