@@ -317,7 +317,10 @@ let run : 'a. t -> 'a Fiber.t -> 'a =
   with
   | None
   | Some None ->
-    raise Never
+    if Queue.is_empty t.detached then
+      raise Never
+    else
+      Code_error.raise "detached tasks left" []
   | Some (Some x) -> x
 
 let create_timer t ~delay =
