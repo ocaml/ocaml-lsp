@@ -51,10 +51,9 @@ let read_message t =
   let open Fiber.O in
   let+ req = Io.read t.rpc in
   let req =
-    match req with
-    | Ok (Request r) -> Ok r
-    | Ok (Response _) -> Error "unexpected packet"
-    | Error _ as e -> e
+    match Option.value_exn req with
+    | Request r -> Ok r
+    | Response _ -> Error "unexpected packet"
   in
   Result.bind req
     ~f:

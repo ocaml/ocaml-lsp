@@ -46,9 +46,10 @@ module Raw_io = struct
     output_string oc data;
     flush oc
 
-  let read { ic; oc = _ } : (Json.t, string) result =
-    let read_content () =
-      let header = Header.read ic in
+  let read_content ic =
+    match Header.read ic with
+    | exception End_of_file -> None
+    | header ->
       let len = Header.content_length header in
       let buffer = Bytes.create len in
       let rec read_loop read =
@@ -57,25 +58,13 @@ module Raw_io = struct
           read_loop (read + n)
       in
       let () = read_loop 0 in
-      Ok (Bytes.to_string buffer)
-    in
+      Some (Bytes.to_string buffer)
 
-    let parse_json content =
-      match Yojson.Safe.from_string content with
-      | json ->
-        log ~title:Logger.Title.LocalDebug "recv: %a"
-          (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-          json;
-        Ok json
-      | exception Yojson.Json_error msg ->
-        Result.errorf "error parsing json: %s" msg
-    in
+  let read { ic; oc = _ } : Json.t option =
+    read_content ic |> Option.map ~f:Yojson.Safe.from_string
 
-    let open Result.O in
-    read_content () >>= parse_json
-
-  let read (t : t) : (packet, string) result =
-    let open Result.O in
+  let read (t : t) : packet option =
+    let open Option.O in
     let+ json = read t in
     let open Json.O in
     let req json = Request (Jsonrpc.Request.t_of_yojson json) in
@@ -100,13 +89,8 @@ module Stream_io = struct
     let i =
       Fiber_stream.In.create (fun () ->
           let open Fiber.O in
-          let+ res =
-            Scheduler.async r (fun () ->
-                match Raw_io.read io with
-                | Ok s -> s
-                | Error s -> failwith s)
-          in
-          Some (Result.ok_exn res))
+          let+ res = Scheduler.async r (fun () -> Raw_io.read io) in
+          Result.ok_exn res)
     in
     let o =
       let open Fiber.O in
