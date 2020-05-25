@@ -45,8 +45,8 @@ let initializeInfo : InitializeResult.t =
       ~experimental ~renameProvider ()
   in
   let serverInfo =
-    (* TODO use actual version *)
-    InitializeResult.create_serverInfo ~name:"ocamllsp" ()
+    let version = Version.get () in
+    InitializeResult.create_serverInfo ~name:"ocamllsp" ~version ()
   in
   InitializeResult.create ~capabilities ~serverInfo ()
 
