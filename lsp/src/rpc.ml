@@ -35,11 +35,7 @@ module Raw_io = struct
     { ic; oc }
 
   let send { oc; ic = _ } (packet : packet) =
-    let json =
-      match packet with
-      | Request r -> Request.yojson_of_t r
-      | Response r -> Response.yojson_of_t r
-    in
+    let json = Jsonrpc.yojson_of_packet packet in
     log ~title:Logger.Title.LocalDebug "send: %a"
       (fun () -> Yojson.Safe.pretty_to_string ~std:false)
       json;

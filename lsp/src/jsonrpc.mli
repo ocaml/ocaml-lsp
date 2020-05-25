@@ -68,6 +68,8 @@ type packet =
   | Request of Request.t
   | Response of Response.t
 
+val yojson_of_packet : packet -> Json.t
+
 module Session (Chan : sig
   type t
 

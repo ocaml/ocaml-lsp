@@ -66,10 +66,6 @@ let () =
   in
   List.rev !responses
   |> List.iter ~f:(fun packet ->
-         let json =
-           match packet with
-           | Request r -> Request.yojson_of_t r
-           | Response r -> Response.yojson_of_t r
-         in
+         let json = Jsonrpc.yojson_of_packet packet in
          print_json json);
   print_endline "finished test"

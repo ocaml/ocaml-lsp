@@ -335,6 +335,10 @@ type packet =
   | Request of Request.t
   | Response of Response.t
 
+let yojson_of_packet = function
+  | Request r -> Request.yojson_of_t r
+  | Response r -> Response.yojson_of_t r
+
 module Session (Chan : sig
   type t
 
