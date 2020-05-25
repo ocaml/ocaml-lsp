@@ -49,7 +49,13 @@ let handle_message prev_state f =
 
 let read_message t =
   let open Fiber.O in
-  let+ req = Io.read_request t.rpc in
+  let+ req = Io.read t.rpc in
+  let req =
+    match req with
+    | Ok (Request r) -> Ok r
+    | Ok (Response _) -> Error "unexpected packet"
+    | Error _ as e -> e
+  in
   Result.bind req
     ~f:
       (Message.of_jsonrpc Client_request.of_jsonrpc

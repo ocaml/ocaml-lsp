@@ -78,19 +78,13 @@ module Raw_io = struct
     let open Result.O in
     read_content () >>= parse_json
 
-  let read_request (t : t) =
+  let read (t : t) : (packet, string) result =
     let open Result.O in
-    let* parsed = read t in
-    match Jsonrpc.Request.t_of_yojson parsed with
-    | r -> Ok r
-    | exception _exn -> Error "Unexpected packet"
-
-  let read_response (t : t) =
-    let open Result.O in
-    let* parsed = read t in
-    match Jsonrpc.Response.t_of_yojson parsed with
-    | r -> Ok r
-    | exception _exn -> Error "Unexpected packet"
+    let+ json = read t in
+    let open Json.O in
+    let req json = Request (Jsonrpc.Request.t_of_yojson json) in
+    let resp json = Response (Jsonrpc.Response.t_of_yojson json) in
+    (req <|> resp) json
 end
 
 module Stream_io = struct
@@ -113,13 +107,8 @@ module Stream_io = struct
           let+ res =
             Scheduler.async r (fun () ->
                 match Raw_io.read io with
-                | Error s -> failwith ("failed to parse " ^ s)
-                | Ok json ->
-                  let open Json.O in
-                  ( (fun json -> Request (Jsonrpc.Request.t_of_yojson json))
-                  <|> fun json -> Response (Jsonrpc.Response.t_of_yojson json)
-                  )
-                    json)
+                | Ok s -> s
+                | Error s -> failwith s)
           in
           Some (Result.ok_exn res))
     in
@@ -352,7 +341,5 @@ module Io = struct
 
   let send t x = Fiber.return (send t x)
 
-  let read_request t = Fiber.return (read_request t)
-
-  let read_response t = Fiber.return (read_response t)
+  let read t = Fiber.return (read t)
 end

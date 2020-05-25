@@ -30,7 +30,13 @@ let create handler ic oc initialize =
 
 let read_message t =
   let open Fiber.O in
-  let+ req = Io.read_request t in
+  let+ req = Io.read t in
+  let req =
+    match req with
+    | Ok (Request r) -> Ok r
+    | Ok (Response _) -> Error "unexpected response"
+    | Error _ as e -> e
+  in
   Result.bind req
     ~f:
       (Message.of_jsonrpc Server_request.of_jsonrpc
@@ -45,10 +51,11 @@ let send_request (type a) (t : t) (req : a Client_request.t) : a Fiber.t =
   let* () =
     Io.send t.rpc (Request (Client_request.to_jsonrpc_request req ~id))
   in
-  let+ response = Io.read_response t.rpc in
+  let+ response = Io.read t.rpc in
   match response with
+  | Ok (Request _) -> failwith "unexpected request"
   | Error e -> failwith ("Invalid message" ^ e)
-  | Ok m -> (
+  | Ok (Response m) -> (
     assert (m.id = id);
     match m.result with
     | Error e -> Jsonrpc.Response.Error.raise e

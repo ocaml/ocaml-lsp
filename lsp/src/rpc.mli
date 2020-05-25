@@ -20,9 +20,7 @@ module Io : sig
 
   val send : t -> packet -> unit Fiber.t
 
-  val read_request : t -> (Request.t, string) result Fiber.t
-
-  val read_response : t -> (Response.t, string) result Fiber.t
+  val read : t -> (packet, string) result Fiber.t
 end
 
 module Stream_io : sig
