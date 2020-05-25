@@ -263,7 +263,7 @@ struct
     ; state = Waiting_for_init
     ; session
     ; initialized = Fiber.Ivar.create ()
-    ; req_id = 0
+    ; req_id = 1
     }
 
   let request (type r) (t : t) (req : r Out_request.t) : r Fiber.t =
