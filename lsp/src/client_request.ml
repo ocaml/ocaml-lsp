@@ -222,11 +222,13 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
 let method_ (type a) (t : a t) =
   match t with
   | Initialize _ -> "initialize"
+  | ExecuteCommand _ -> "workspace/executeCommand"
   | _ -> assert false
 
 let params (type a) (t : a t) =
   match t with
   | Initialize params -> InitializeParams.yojson_of_t params
+  | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
   | _ -> assert false
 
 let to_jsonrpc_request t ~id =
@@ -237,4 +239,5 @@ let to_jsonrpc_request t ~id =
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
   match t with
   | Initialize _ -> InitializeResult.t_of_yojson json
+  | ExecuteCommand _ -> json
   | _ -> assert false
