@@ -292,31 +292,34 @@ let on_request :
     Ok (store, Some lsp_locs)
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
     Ok (store, codeLens)
-  | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } ->
+  | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    let command = Query_protocol.Outline in
-    let outline = Document.dispatch doc command in
-    let symbol_infos =
-      let rec symbol_info_of_outline_item item =
-        let children =
-          List.concat_map item.Query_protocol.children
-            ~f:symbol_info_of_outline_item
-        in
-        match item.Query_protocol.outline_type with
-        | None -> children
-        | Some typ ->
-          let loc = item.Query_protocol.location in
-          let info =
-            let range = Range.of_loc loc in
-            let command = Command.create ~title:typ ~command:"" () in
-            CodeLens.create ~range ~command ()
+    match Document.kind doc with
+    | Intf -> Ok (store, [])
+    | Impl ->
+      let command = Query_protocol.Outline in
+      let outline = Document.dispatch doc command in
+      let symbol_infos =
+        let rec symbol_info_of_outline_item item =
+          let children =
+            List.concat_map item.Query_protocol.children
+              ~f:symbol_info_of_outline_item
           in
-          info :: children
+          match item.Query_protocol.outline_type with
+          | None -> children
+          | Some typ ->
+            let loc = item.Query_protocol.location in
+            let info =
+              let range = Range.of_loc loc in
+              let command = Command.create ~title:typ ~command:"" () in
+              CodeLens.create ~range ~command ()
+            in
+            info :: children
+        in
+        List.concat_map ~f:symbol_info_of_outline_item outline
       in
-      List.concat_map ~f:symbol_info_of_outline_item outline
-    in
-    Ok (store, symbol_infos)
+      Ok (store, symbol_infos) )
   | Lsp.Client_request.TextDocumentHighlight
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
