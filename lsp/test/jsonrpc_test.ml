@@ -29,7 +29,8 @@ let () =
     let id = Option.value_exn req.id in
     Fiber.return (Jsonrpc.Response.ok id (response ()))
   in
-  let on_notification n =
+  let on_notification (n : Request.t) =
+    if n.method_ = "raise" then failwith "special failure";
     let json = Request.yojson_of_t n in
     print_endline ">> received notification";
     print_json json;
@@ -43,6 +44,7 @@ let () =
            ~method_:"bar" ())
     ; Request (Jsonrpc.Request.create ~params:`Null ~method_:"notif1" ())
     ; Request (Jsonrpc.Request.create ~params:`Null ~method_:"notif2" ())
+    ; Request (Jsonrpc.Request.create ~params:`Null ~method_:"raise" ())
     ]
   in
   let reqs_in, reqs_out = Fiber_stream.pipe () in

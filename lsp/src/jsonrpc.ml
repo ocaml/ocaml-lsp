@@ -360,6 +360,21 @@ struct
     ; mutable running : bool
     }
 
+  let response_of_result id = function
+    | Ok x -> x
+    | Error exns ->
+      let data : Json.t =
+        `List
+          (List.map
+             ~f:(fun e -> e |> Exn_with_backtrace.to_dyn |> Json.of_dyn)
+             exns)
+      in
+      let error =
+        Response.Error.make ~code:InternalError ~data
+          ~message:"uncaugh exception" ()
+      in
+      Response.error id error
+
   let on_request_fail (req : Request.t) : Response.t Fiber.t =
     let id = Option.value_exn req.id in
     let error =
@@ -390,9 +405,19 @@ struct
       | Left (Some (Request r)) ->
         let* () =
           match r.id with
-          | None -> t.on_notification r
-          | Some _ ->
-            let* resp = t.on_request r in
+          | None -> (
+            let+ res = Fiber.collect_errors (fun () -> t.on_notification r) in
+            match res with
+            | Ok () -> ()
+            | Error errors ->
+              Format.eprintf
+                "Uncaught error when handling notification:@.%a@.Error:@.%s@."
+                Yojson.Safe.pp (Request.yojson_of_t r)
+                (Dyn.to_string
+                   (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors)) )
+          | Some id ->
+            let* resp = Fiber.collect_errors (fun () -> t.on_request r) in
+            let resp = response_of_result id resp in
             Chan.send t.chan (Response resp)
         in
         loop ()
