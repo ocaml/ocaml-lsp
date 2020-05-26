@@ -371,7 +371,7 @@ struct
       in
       let error =
         Response.Error.make ~code:InternalError ~data
-          ~message:"uncaugh exception" ()
+          ~message:"uncaught exception" ()
       in
       Response.error id error
 
