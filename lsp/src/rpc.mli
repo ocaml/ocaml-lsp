@@ -63,8 +63,6 @@ module type S = sig
 
   val stop : t -> unit Fiber.t
 
-  val initialized : t -> unit Fiber.t
-
   val request : t -> 'resp out_request -> 'resp Fiber.t
 
   val notification : t -> out_notification -> unit Fiber.t
