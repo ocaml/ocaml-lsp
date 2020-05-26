@@ -127,7 +127,9 @@ module type S = sig
   module Handler : sig
     type t
 
-    type on_request = { on_request : 'a. 'a in_request -> 'a Fiber.t }
+    type on_request =
+      { on_request : 'a. 'a in_request -> ('a, Response.Error.t) result Fiber.t
+      }
 
     val make :
          ?on_request:on_request
@@ -142,7 +144,8 @@ module type S = sig
 
   val stop : t -> unit Fiber.t
 
-  val request : t -> 'resp out_request -> 'resp Fiber.t
+  val request :
+    t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
 
   val notification : t -> out_notification -> unit Fiber.t
 end
@@ -186,7 +189,9 @@ struct
   type in_notification = In_notification.t
 
   module Handler = struct
-    type on_request = { on_request : 'a. 'a In_request.t -> 'a Fiber.t }
+    type on_request =
+      { on_request : 'a. 'a in_request -> ('a, Response.Error.t) result Fiber.t
+      }
 
     type t =
       { on_request : on_request
@@ -210,13 +215,16 @@ struct
       let on_request (req : Request.t) : Response.t Fiber.t =
         match In_request.of_jsonrpc req with
         | Error e -> Code_error.raise e []
-        | Ok (In_request.E r) ->
+        | Ok (In_request.E r) -> (
           let open Fiber.O in
-          let+ response = on_request.on_request r in
-          let json = In_request.yojson_of_result r response in
           let id = Option.value_exn req.id in
-          let result = Option.value_exn json in
-          Response.ok id result
+          let+ response = on_request.on_request r in
+          match response with
+          | Error e -> Response.error id e
+          | Ok response ->
+            let json = In_request.yojson_of_result r response in
+            let result = Option.value_exn json in
+            Response.ok id result )
       in
       let on_notification r =
         match In_notification.of_jsonrpc r with
@@ -248,7 +256,8 @@ struct
     ; req_id = 1
     }
 
-  let request (type r) (t : t) (req : r Out_request.t) : r Fiber.t =
+  let request (type r) (t : t) (req : r Out_request.t) :
+      (r, Jsonrpc.Response.Error.t) result Fiber.t =
     let id = Either.Right t.req_id in
     let jsonrpc_request =
       t.req_id <- t.req_id + 1;
@@ -256,9 +265,7 @@ struct
     in
     let open Fiber.O in
     let+ resp = Session.request t.session jsonrpc_request in
-    match resp.result with
-    | Error e -> Jsonrpc.Response.Error.raise e
-    | Ok json -> Out_request.response_of_json req json
+    resp.result |> Result.map ~f:(Out_request.response_of_json req)
 
   let notification (t : t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
@@ -289,7 +296,9 @@ module Client = struct
     let init () =
       let* resp = request t (Client_request.Initialize p) in
       t.state <- Running;
-      Fiber.Ivar.fill t.initialized resp
+      match resp with
+      | Ok resp -> Fiber.Ivar.fill t.initialized resp
+      | Error _ -> Fiber.return ()
     in
     Scheduler.detach (Scheduler.scheduler ()) init;
     loop

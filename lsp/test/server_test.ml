@@ -1,5 +1,6 @@
 open Lsp
 open! Import
+open Lsp.Types
 
 let scheduler = Scheduler.create ()
 
@@ -27,15 +28,25 @@ module Client = struct
     let running = Client.start client initialize in
     let open Fiber.O in
     let init () =
-      let+ (_ : Types.InitializeResult.t) = Client.initialized client in
-      Format.eprintf "client: initialized server@.%!"
+      let* (_ : Types.InitializeResult.t) = Client.initialized client in
+      Format.eprintf "client: initialized server@.%!";
+      let req =
+        Client_request.ExecuteCommand
+          (ExecuteCommandParams.create ~command:"foo" ())
+      in
+      let+ resp = Client.request client req in
+      Format.eprintf "client: sent requests@.%!";
+      match resp with
+      | Error _ -> failwith "unexpected failure running command"
+      | Ok json ->
+        Format.eprintf "Successfully executed command with result:@.%a@."
+          Yojson.Safe.pp json
     in
     Scheduler.detach scheduler init;
     running
 end
 
 module Server = struct
-  open Lsp.Types
   module Server = Rpc.Server
 
   type state =
@@ -43,15 +54,20 @@ module Server = struct
     | Initialized
 
   let on_request state =
-    let on_request (type a) (req : a Client_request.t) : a Fiber.t =
+    let on_request (type a) (req : a Client_request.t) :
+        (a, Jsonrpc.Response.Error.t) result Fiber.t =
       match req with
       | Client_request.Initialize _ ->
         state := Initialized;
         let capabilities = ServerCapabilities.create () in
         let result = InitializeResult.create ~capabilities () in
         Format.eprintf "server: initializing server@.";
-        Fiber.return result
-      | _ -> failwith "not supported"
+        Fiber.return (Ok result)
+      | _ ->
+        Fiber.return
+          (Error
+             (Jsonrpc.Response.Error.make ~code:InternalError
+                ~message:"not supported" ()))
     in
     { Server.Handler.on_request }
 

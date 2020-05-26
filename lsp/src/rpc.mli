@@ -48,7 +48,9 @@ module type S = sig
   module Handler : sig
     type t
 
-    type on_request = { on_request : 'a. 'a in_request -> 'a Fiber.t }
+    type on_request =
+      { on_request : 'a. 'a in_request -> ('a, Response.Error.t) result Fiber.t
+      }
 
     val make :
          ?on_request:on_request
@@ -63,7 +65,8 @@ module type S = sig
 
   val stop : t -> unit Fiber.t
 
-  val request : t -> 'resp out_request -> 'resp Fiber.t
+  val request :
+    t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
 
   val notification : t -> out_notification -> unit Fiber.t
 end

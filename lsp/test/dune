@@ -2,7 +2,7 @@
 
 (executable
  (name server_test)
- (libraries stdune lsp fiber threads.posix)
+ (libraries stdune lsp yojson ppx_yojson_conv_lib fiber threads.posix)
  (modules server_test)
  (preprocess future_syntax))
 
