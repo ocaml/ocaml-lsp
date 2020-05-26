@@ -353,9 +353,7 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
   Fiber.Ivar.read ivar
 
 let detach t f =
-  let task =
-    let open Fiber.O in
-    let* fiber = Fiber.fork (fun () -> Fiber.map (f ()) ~f:ignore) in
-    Fiber.Future.wait fiber
-  in
+  let open Fiber.O in
+  let+ fiber = Fiber.fork (fun () -> Fiber.map (f ()) ~f:ignore) in
+  let task = Fiber.Future.wait fiber in
   Queue.add task t.detached

@@ -300,7 +300,7 @@ module Client = struct
       | Ok resp -> Fiber.Ivar.fill t.initialized resp
       | Error _ -> Fiber.return ()
     in
-    Scheduler.detach (Scheduler.scheduler ()) init;
+    let* () = Scheduler.detach (Scheduler.scheduler ()) init in
     loop
 end
 

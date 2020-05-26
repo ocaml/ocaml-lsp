@@ -34,12 +34,15 @@ let get (type a) (t : a t) : a Fiber.t =
   match t.value with
   | Some v ->
     t.value <- None;
-    ( match next_writer t with
-    | None -> ()
-    | Some w ->
-      Scheduler.detach (Scheduler.scheduler ()) (fun () -> Fiber.Ivar.fill w ())
-    );
-    Fiber.return v
+    let open Fiber.O in
+    let+ () =
+      match next_writer t with
+      | None -> Fiber.return ()
+      | Some w ->
+        Scheduler.detach (Scheduler.scheduler ()) (fun () ->
+            Fiber.Ivar.fill w ())
+    in
+    v
   | None ->
     let ivar = Fiber.Ivar.create () in
     Queue.add ivar t.readers;
@@ -47,14 +50,13 @@ let get (type a) (t : a t) : a Fiber.t =
 
 let set t x =
   match t.value with
-  | None ->
+  | None -> (
     t.value <- Some x;
-    ( match try_wakeup t with
-    | None -> ()
+    match try_wakeup t with
+    | None -> Fiber.return ()
     | Some (reader, value) ->
       Scheduler.detach (Scheduler.scheduler ()) (fun () ->
-          Fiber.Ivar.fill reader value) );
-    Fiber.return ()
+          Fiber.Ivar.fill reader value) )
   | Some _ ->
     let ivar = Fiber.Ivar.create () in
     Queue.add (x, ivar) t.writers;
