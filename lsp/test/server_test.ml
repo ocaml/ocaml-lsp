@@ -5,9 +5,12 @@ open Lsp.Types
 let scheduler = Scheduler.create ()
 
 module Client = struct
-  let on_request _ =
-    Format.eprintf "fix me@.%!";
-    failwith "not implemented"
+  let on_request (type a) (_ : a Server_request.t) :
+      (a, Jsonrpc.Response.Error.t) result Fiber.t =
+    Fiber.return
+      (Error
+         (Jsonrpc.Response.Error.make ~message:"not implemented"
+            ~code:InternalError ()))
 
   let on_notification _ = Format.eprintf "client: received notification@.%!"
 
@@ -39,10 +42,10 @@ module Client = struct
       match resp with
       | Error _ -> failwith "unexpected failure running command"
       | Ok json ->
-        Format.eprintf "Successfully executed command with result:@.%a@."
-          Yojson.Safe.pp json
+        Format.eprintf "Successfully executed command with result:@.%s@."
+          (Yojson.Safe.pretty_to_string json)
     in
-    Scheduler.detach scheduler init;
+    let* () = Scheduler.detach scheduler init in
     running
 end
 
@@ -63,6 +66,7 @@ module Server = struct
         let result = InitializeResult.create ~capabilities () in
         Format.eprintf "server: initializing server@.";
         Fiber.return (Ok result)
+      | ExecuteCommand _ -> Fiber.return (Ok (`String "succesful execution"))
       | _ ->
         Fiber.return
           (Error
