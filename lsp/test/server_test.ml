@@ -96,6 +96,7 @@ let pipe () =
   (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
 
 let () =
+  (Lsp.Import.Log.level := fun _ -> true);
   let client_in, server_out = pipe () in
   let server_in, client_out = pipe () in
   let server () = Server.run server_in server_out in
