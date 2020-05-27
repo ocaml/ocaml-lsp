@@ -409,8 +409,12 @@ struct
       | Left None -> Fiber.Ivar.fill t.stop_requested ()
       | Left (Some (Request r)) ->
         log t (fun () ->
-            Log.msg "received request (or notification)"
-              [ ("r", Request.yojson_of_t r) ]);
+            let what =
+              match r.id with
+              | None -> "notification"
+              | Some _ -> "request"
+            in
+            Log.msg ("received " ^ what) [ ("r", Request.yojson_of_t r) ]);
         let* () =
           match r.id with
           | None -> (
@@ -424,12 +428,8 @@ struct
                 (Dyn.to_string
                    (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors)) )
           | Some id ->
-            let* resp =
-              try t.on_request r
-              with exn ->
-                let error = Response.Error.of_exn exn in
-                Fiber.return (Response.error id error)
-            in
+            let* resp = Fiber.collect_errors (fun () -> t.on_request r) in
+            let resp = response_of_result id resp in
             log t (fun () ->
                 Log.msg "sending response"
                   [ ("response", Response.yojson_of_t resp) ]);
