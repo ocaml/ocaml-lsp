@@ -1,3 +1,4 @@
+(** Jsonrpc implementation *)
 open Import
 
 module Id : sig
@@ -72,6 +73,8 @@ type packet =
 
 val yojson_of_packet : packet -> Json.t
 
+(** IO free implementation of the jsonrpc protocol. We stay completely agnostic
+    of transport by only dealing with abstract jsonrpc packets *)
 module Session (Chan : sig
   type t
 
