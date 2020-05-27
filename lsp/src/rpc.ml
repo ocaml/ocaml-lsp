@@ -295,6 +295,13 @@ module Client = struct
     let loop = start_loop t in
     let init () =
       let* resp = request t (Client_request.Initialize p) in
+      Log.log ~section:"client" (fun () ->
+          let resp =
+            match resp with
+            | Ok s -> InitializeResult.yojson_of_t s
+            | Error s -> Jsonrpc.Response.Error.yojson_of_t s
+          in
+          Log.msg "initialized" [ ("resp", resp) ]);
       t.state <- Running;
       match resp with
       | Ok resp -> Fiber.Ivar.fill t.initialized resp

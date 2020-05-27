@@ -358,6 +358,7 @@ struct
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
+    ; mutable tick : int
     }
 
   let response_of_result id = function
@@ -391,9 +392,13 @@ struct
     let* () = Chan.close t.chan in
     Fiber.Ivar.fill t.stopped ()
 
+  let log t = Log.log ~section:t.name
+
   let run t =
     let open Fiber.O in
     let rec loop () =
+      t.tick <- t.tick + 1;
+      log t (fun () -> Log.msg "new tick" [ ("tick", `Int t.tick) ]);
       let* res =
         Fiber.fork_and_race
           (fun () -> Chan.recv t.chan)
@@ -403,6 +408,9 @@ struct
       | Either.Right () -> Chan.close t.chan
       | Left None -> Fiber.Ivar.fill t.stop_requested ()
       | Left (Some (Request r)) ->
+        log t (fun () ->
+            Log.msg "received request (or notification)"
+              [ ("r", Request.yojson_of_t r) ]);
         let* () =
           match r.id with
           | None -> (
@@ -416,15 +424,29 @@ struct
                 (Dyn.to_string
                    (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors)) )
           | Some id ->
-            let* resp = Fiber.collect_errors (fun () -> t.on_request r) in
-            let resp = response_of_result id resp in
+            let* resp =
+              try t.on_request r
+              with exn ->
+                let error = Response.Error.of_exn exn in
+                Fiber.return (Response.error id error)
+            in
+            log t (fun () ->
+                Log.msg "sending response"
+                  [ ("response", Response.yojson_of_t resp) ]);
             Chan.send t.chan (Response resp)
         in
         loop ()
       | Left (Some (Response r)) -> (
+        let log (what : string) =
+          log t (fun () ->
+              Log.msg ("response " ^ what) [ ("r", Response.yojson_of_t r) ])
+        in
         match Table.find t.pending r.id with
-        | None -> loop ()
+        | None ->
+          log "dropped";
+          loop ()
         | Some ivar ->
+          log "acknowledged";
           Table.remove t.pending r.id;
           let* () = Fiber.Ivar.fill ivar r in
           loop () )
@@ -445,6 +467,7 @@ struct
     ; stopped = Fiber.Ivar.create ()
     ; name
     ; running = false
+    ; tick = 0
     }
 
   let notification t req =
