@@ -50,6 +50,8 @@ module Response : sig
     val raise : t -> 'a
 
     val of_exn : Exn.t -> t
+
+    val yojson_of_t : t -> Json.t
   end
 
   type t =

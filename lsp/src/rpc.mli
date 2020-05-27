@@ -54,7 +54,7 @@ module type S = sig
 
     val make :
          ?on_request:on_request
-      -> ?on_notification:(in_notification -> unit)
+      -> ?on_notification:(in_notification -> unit Fiber.t)
       -> unit
       -> t
   end

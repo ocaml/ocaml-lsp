@@ -133,7 +133,7 @@ module type S = sig
 
     val make :
          ?on_request:on_request
-      -> ?on_notification:(in_notification -> unit)
+      -> ?on_notification:(in_notification -> unit Fiber.t)
       -> unit
       -> t
   end
@@ -195,12 +195,12 @@ struct
 
     type t =
       { on_request : on_request
-      ; on_notification : In_notification.t -> unit
+      ; on_notification : In_notification.t -> unit Fiber.t
       }
 
     let on_notification_default _ =
-      (* TODO we can also just log it *)
-      ()
+      Format.eprintf "dropped notification@.%!";
+      Fiber.return ()
 
     let make ?on_request ?(on_notification = on_notification_default) () =
       let on_request =
@@ -229,7 +229,7 @@ struct
       let on_notification r =
         match In_notification.of_jsonrpc r with
         | Error e -> Code_error.raise e []
-        | Ok r -> Fiber.return (on_notification r)
+        | Ok r -> on_notification r
       in
       (on_request, on_notification)
   end
