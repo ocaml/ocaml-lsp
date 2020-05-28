@@ -472,18 +472,24 @@ struct
 
   let notification t req =
     if not t.running then Code_error.raise "jsonrpc must be running" [];
-    Chan.send t.chan (Request req)
+    let open Fiber.O in
+    let* f = Fiber.fork (fun () -> Chan.send t.chan (Request req)) in
+    Fiber.Future.wait f
 
   let request t req =
     if not t.running then Code_error.raise "jsonrpc must be running" [];
     let open Fiber.O in
-    let* () = Chan.send t.chan (Request req) in
-    let id =
-      match req.id with
-      | Some id -> id
-      | None -> Code_error.raise "request without an id" []
+    let* f =
+      Fiber.fork (fun () ->
+          let* () = Chan.send t.chan (Request req) in
+          let id =
+            match req.id with
+            | Some id -> id
+            | None -> Code_error.raise "request without an id" []
+          in
+          let ivar = Fiber.Ivar.create () in
+          Table.add_exn t.pending id ivar;
+          Fiber.Ivar.read ivar)
     in
-    let ivar = Fiber.Ivar.create () in
-    Table.add_exn t.pending id ivar;
-    Fiber.Ivar.read ivar
+    Fiber.Future.wait f
 end
