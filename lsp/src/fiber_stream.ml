@@ -18,12 +18,24 @@ module In = struct
         xs := xs';
         Fiber.return (Some x)
 
-  let map t ~f () =
+  let rec filter_map t ~f () =
     let open Fiber.O in
-    let+ next = read t in
+    let* next = read t in
     match next with
-    | None -> None
-    | Some x -> Some (f x)
+    | None -> Fiber.return None
+    | Some x -> (
+      match f x with
+      | None -> filter_map t ~f ()
+      | Some y -> Fiber.return (Some y) )
+
+  let map t ~f = filter_map t ~f:(fun x -> Some (f x))
+
+  let filter (type a) (t : a t) ~f : a t =
+    filter_map t ~f:(fun x ->
+        if f x then
+          Some x
+        else
+          None)
 end
 
 module Out = struct
@@ -45,6 +57,19 @@ let connect i o =
   let rec go () =
     let* a = In.read i in
     let* () = Out.write o a in
+    go ()
+  in
+  go ()
+
+let supply i o =
+  let open Fiber.O in
+  let rec go () =
+    let* a = In.read i in
+    let* () =
+      match a with
+      | None -> Fiber.return ()
+      | Some _ -> Out.write o a
+    in
     go ()
   in
   go ()
