@@ -91,7 +91,7 @@ module Server = struct
         Fiber.return (Ok result)
       | ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
-        Fiber.return (Ok (`String "succesful execution"))
+        Fiber.return (Ok (`String "successful execution"))
       | _ ->
         Fiber.return
           (Error
