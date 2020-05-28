@@ -361,6 +361,8 @@ struct
     ; mutable tick : int
     }
 
+  let log t = Log.log ~section:t.name
+
   let response_of_result id = function
     | Ok x -> x
     | Error exns ->
@@ -383,7 +385,9 @@ struct
     in
     Fiber.return (Response.error id error)
 
-  let stop t = Fiber.Ivar.fill t.stop_requested ()
+  let stop t =
+    log t (fun () -> Log.msg "requesting shutdown" []);
+    Fiber.Ivar.fill t.stop_requested ()
 
   let stopped t = Fiber.Ivar.read t.stopped
 
@@ -392,9 +396,8 @@ struct
     let* () = Chan.close t.chan in
     Fiber.Ivar.fill t.stopped ()
 
-  let log t = Log.log ~section:t.name
-
   let run t =
+    let stop_requested = Fiber.Ivar.read t.stop_requested in
     let open Fiber.O in
     let rec loop () =
       t.tick <- t.tick + 1;
@@ -402,10 +405,12 @@ struct
       let* res =
         Fiber.fork_and_race
           (fun () -> Chan.recv t.chan)
-          (fun () -> Fiber.Ivar.read t.stop_requested)
+          (fun () -> stop_requested)
       in
       match res with
-      | Either.Right () -> Chan.close t.chan
+      | Either.Right () ->
+        log t (fun () -> Log.msg "shutdown granted" []);
+        Chan.close t.chan
       | Left None -> Fiber.Ivar.fill t.stop_requested ()
       | Left (Some (Request r)) ->
         log t (fun () ->
