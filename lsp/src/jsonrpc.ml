@@ -412,49 +412,50 @@ struct
         log t (fun () -> Log.msg "shutdown granted" []);
         Chan.close t.chan
       | Left None -> Fiber.Ivar.fill t.stop_requested ()
-      | Left (Some (Request r)) ->
+      | Left (Some packet) ->
+        ( match packet with
+        | Request r -> on_request r
+        | Response r -> on_response r )
+        >>= loop
+    and on_request r =
+      log t (fun () ->
+          let what =
+            match r.id with
+            | None -> "notification"
+            | Some _ -> "request"
+          in
+          Log.msg ("received " ^ what) [ ("r", Request.yojson_of_t r) ]);
+      match r.id with
+      | None -> (
+        let+ res = Fiber.collect_errors (fun () -> t.on_notification r) in
+        match res with
+        | Ok () -> ()
+        | Error errors ->
+          Format.eprintf
+            "Uncaught error when handling notification:@.%a@.Error:@.%s@."
+            Yojson.Safe.pp (Request.yojson_of_t r)
+            (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors))
+        )
+      | Some id ->
+        let* resp = Fiber.collect_errors (fun () -> t.on_request r) in
+        let resp = response_of_result id resp in
         log t (fun () ->
-            let what =
-              match r.id with
-              | None -> "notification"
-              | Some _ -> "request"
-            in
-            Log.msg ("received " ^ what) [ ("r", Request.yojson_of_t r) ]);
-        let* () =
-          match r.id with
-          | None -> (
-            let+ res = Fiber.collect_errors (fun () -> t.on_notification r) in
-            match res with
-            | Ok () -> ()
-            | Error errors ->
-              Format.eprintf
-                "Uncaught error when handling notification:@.%a@.Error:@.%s@."
-                Yojson.Safe.pp (Request.yojson_of_t r)
-                (Dyn.to_string
-                   (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors)) )
-          | Some id ->
-            let* resp = Fiber.collect_errors (fun () -> t.on_request r) in
-            let resp = response_of_result id resp in
-            log t (fun () ->
-                Log.msg "sending response"
-                  [ ("response", Response.yojson_of_t resp) ]);
-            Chan.send t.chan (Response resp)
-        in
-        loop ()
-      | Left (Some (Response r)) -> (
-        let log (what : string) =
-          log t (fun () ->
-              Log.msg ("response " ^ what) [ ("r", Response.yojson_of_t r) ])
-        in
-        match Table.find t.pending r.id with
-        | None ->
-          log "dropped";
-          loop ()
-        | Some ivar ->
-          log "acknowledged";
-          Table.remove t.pending r.id;
-          let* () = Fiber.Ivar.fill ivar r in
-          loop () )
+            Log.msg "sending response"
+              [ ("response", Response.yojson_of_t resp) ]);
+        Chan.send t.chan (Response resp)
+    and on_response r =
+      let log (what : string) =
+        log t (fun () ->
+            Log.msg ("response " ^ what) [ ("r", Response.yojson_of_t r) ])
+      in
+      match Table.find t.pending r.id with
+      | None ->
+        log "dropped";
+        Fiber.return ()
+      | Some ivar ->
+        log "acknowledged";
+        Table.remove t.pending r.id;
+        Fiber.Ivar.fill ivar r
     in
     t.running <- true;
     let* () = loop () in
