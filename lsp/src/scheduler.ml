@@ -125,7 +125,7 @@ type t =
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
   ; timers : (Timer_id.t, packed_active_timer ref) Table.t
-  ; detached : unit Fiber.t Queue.t
+  ; detached : (unit -> unit Fiber.t) Queue.t
   }
 
 and event =
@@ -208,7 +208,6 @@ let wake_loop t =
     Condition.signal t.timers_available;
     loop ()
   in
-
   loop ()
 
 let create () =
@@ -301,19 +300,29 @@ let rec restart_suspended t =
     Fiber.return ()
   else
     let open Fiber.O in
-    let* () = Queue.pop t.detached in
+    let* () =
+      let detached =
+        Queue.fold (fun acc a -> a :: acc) [] t.detached |> List.rev
+      in
+      Queue.clear t.detached;
+      Fiber.parallel_iter ~f:(fun f -> f ()) detached
+    in
     restart_suspended t
 
 let run : 'a. t -> 'a Fiber.t -> 'a =
  fun t f ->
   let f = Fiber.Var.set me t (fun () -> f) in
   match
-    let open Fiber.O in
-    Fiber.run
-      (let* user_action = Fiber.fork (fun () -> f) in
-       let* () = pump_events t in
-       let* () = restart_suspended t in
-       Fiber.Future.peek user_action)
+    let fiber =
+      let open Fiber.O in
+      let* user_action = Fiber.fork (fun () -> f) in
+      let* (_ : unit Fiber.Future.t) =
+        Fiber.fork (fun () -> restart_suspended t)
+      in
+      let* (_ : unit Fiber.Future.t) = Fiber.fork (fun () -> pump_events t) in
+      Fiber.Future.peek user_action
+    in
+    Fiber.run fiber
   with
   | None
   | Some None ->
@@ -353,7 +362,12 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
   Fiber.Ivar.read ivar
 
 let detach t f =
-  let open Fiber.O in
-  let+ fiber = Fiber.fork (fun () -> Fiber.map (f ()) ~f:ignore) in
-  let task = Fiber.Future.wait fiber in
-  Queue.add task t.detached
+  let task () =
+    Fiber.with_error_handler
+      ~on_error:(fun e ->
+        Format.eprintf "detached raised:@.%s@.%!"
+          (Dyn.to_string (Exn_with_backtrace.to_dyn e)))
+      (fun () -> Fiber.map (f ()) ~f:ignore)
+  in
+  Queue.add task t.detached;
+  Fiber.return ()
