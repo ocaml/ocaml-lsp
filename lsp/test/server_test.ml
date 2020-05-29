@@ -41,14 +41,15 @@ module Client = struct
         Client_request.ExecuteCommand
           (ExecuteCommandParams.create ~command:"foo" ())
       in
-      let+ resp = Client.request client req in
+      let* resp = Client.request client req in
       Format.eprintf "client: sending request@.%!";
       match resp with
       | Error _ -> failwith "unexpected failure running command"
       | Ok json ->
         Format.eprintf
           "client: Successfully executed command with result:@.%s@."
-          (Yojson.Safe.pretty_to_string json)
+          (Yojson.Safe.pretty_to_string json);
+        Client.stop client
     in
     let* () = Scheduler.detach scheduler init in
     running
