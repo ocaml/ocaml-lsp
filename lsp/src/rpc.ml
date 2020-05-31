@@ -125,22 +125,23 @@ module type S = sig
   type in_notification
 
   module Handler : sig
-    type t
+    type 'self t
 
-    type on_request =
-      { on_request : 'a. 'a in_request -> ('a, Response.Error.t) result Fiber.t
+    type 'self on_request =
+      { on_request :
+          'a. 'self -> 'a in_request -> ('a, Response.Error.t) result Fiber.t
       }
 
     val make :
-         ?on_request:on_request
-      -> ?on_notification:(in_notification -> unit Fiber.t)
+         ?on_request:'self on_request
+      -> ?on_notification:('self -> in_notification -> unit Fiber.t)
       -> unit
-      -> t
+      -> 'self t
   end
 
   type t
 
-  val make : Handler.t -> Stream_io.t -> t
+  val make : t Handler.t -> Stream_io.t -> t
 
   val stop : t -> unit Fiber.t
 
@@ -189,16 +190,17 @@ struct
   type in_notification = In_notification.t
 
   module Handler = struct
-    type on_request =
-      { on_request : 'a. 'a in_request -> ('a, Response.Error.t) result Fiber.t
+    type 'self on_request =
+      { on_request :
+          'a. 'self -> 'a in_request -> ('a, Response.Error.t) result Fiber.t
       }
 
-    type t =
-      { on_request : on_request
-      ; on_notification : In_notification.t -> unit Fiber.t
+    type 'self t =
+      { on_request : 'self on_request
+      ; on_notification : 'self -> In_notification.t -> unit Fiber.t
       }
 
-    let on_notification_default _ =
+    let on_notification_default _ _ =
       Format.eprintf "dropped notification@.%!";
       Fiber.return ()
 
@@ -209,51 +211,59 @@ struct
         | None -> assert false
       in
       { on_request; on_notification }
-
-    let to_jsonrpc { on_request; on_notification } =
-      let on_request _ (req : Request.t) : Response.t Fiber.t =
-        match In_request.of_jsonrpc req with
-        | Error e -> Code_error.raise e []
-        | Ok (In_request.E r) -> (
-          let open Fiber.O in
-          let id = Option.value_exn req.id in
-          let+ response = on_request.on_request r in
-          match response with
-          | Error e -> Response.error id e
-          | Ok response ->
-            let json = In_request.yojson_of_result r response in
-            let result = Option.value_exn json in
-            Response.ok id result )
-      in
-      let on_notification _ r =
-        match In_notification.of_jsonrpc r with
-        | Error e -> Code_error.raise e []
-        | Ok r -> on_notification r
-      in
-      (on_request, on_notification)
   end
 
   type t =
-    { handler : Handler.t
+    { handler : t Handler.t
     ; io : Stream_io.t
-    ; session : Session.t
+    ; mutable session : Session.t option
     ; mutable state : State.t
     ; initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
     }
 
-  let make ~name handler io =
+  let to_jsonrpc (t : t) ({ Handler.on_request; on_notification } : t Handler.t)
+      =
+    let on_request (session : Session.t) (req : Request.t) : Response.t Fiber.t
+        =
+      match In_request.of_jsonrpc req with
+      | Error e -> Code_error.raise e []
+      | Ok (In_request.E r) -> (
+        let open Fiber.O in
+        let id = Option.value_exn req.id in
+        let+ response =
+          on_request.on_request { t with session = Some session } r
+        in
+        match response with
+        | Error e -> Response.error id e
+        | Ok response ->
+          let json = In_request.yojson_of_result r response in
+          let result = Option.value_exn json in
+          Response.ok id result )
+    in
+    let on_notification (session : Session.t) r =
+      match In_notification.of_jsonrpc r with
+      | Error e -> Code_error.raise e []
+      | Ok r -> on_notification { t with session = Some session } r
+    in
+    (on_request, on_notification)
+
+  let make ~name (handler : t Handler.t) io =
+    let t =
+      { handler
+      ; io
+      ; state = Waiting_for_init
+      ; session = None
+      ; initialized = Fiber.Ivar.create ()
+      ; req_id = 1
+      }
+    in
     let session =
-      let on_request, on_notification = Handler.to_jsonrpc handler in
+      let on_request, on_notification = to_jsonrpc t handler in
       Session.create ~on_request ~on_notification ~name io
     in
-    { handler
-    ; io
-    ; state = Waiting_for_init
-    ; session
-    ; initialized = Fiber.Ivar.create ()
-    ; req_id = 1
-    }
+    t.session <- Some session;
+    t
 
   let request (type r) (t : t) (req : r Out_request.t) :
       (r, Jsonrpc.Response.Error.t) result Fiber.t =
@@ -263,21 +273,21 @@ struct
       Out_request.to_jsonrpc_request req ~id
     in
     let open Fiber.O in
-    let+ resp = Session.request t.session jsonrpc_request in
+    let+ resp = Session.request (Option.value_exn t.session) jsonrpc_request in
     resp.result |> Result.map ~f:(Out_request.response_of_json req)
 
   let notification (t : t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
-    Session.notification t.session jsonrpc_request
+    Session.notification (Option.value_exn t.session) jsonrpc_request
 
   let initialized t = Fiber.Ivar.read t.initialized
 
   let stop t =
     let open Fiber.O in
-    let+ () = Session.stop t.session in
+    let+ () = Session.stop (Option.value_exn t.session) in
     t.state <- Closed
 
-  let start_loop t = Session.run t.session
+  let start_loop t = Session.run (Option.value_exn t.session)
 end
 
 module Client = struct
@@ -319,9 +329,9 @@ module Server = struct
   let make handler io =
     let t = make ~name:"server" handler io in
     let handler =
-      let on_request : Handler.on_request =
+      let on_request : _ Handler.on_request =
         { Handler.on_request =
-            (fun in_r ->
+            (fun t in_r ->
               let open Fiber.O in
               let initialize () =
                 match Client_request.E in_r with
@@ -329,7 +339,7 @@ module Server = struct
                   Fiber.Ivar.fill t.initialized i
                 | _ -> Fiber.return ()
               in
-              let* result = t.handler.on_request.on_request in_r in
+              let* result = t.handler.on_request.on_request t in_r in
               let+ () = initialize () in
               result)
         }

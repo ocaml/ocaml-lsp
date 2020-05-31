@@ -5,14 +5,14 @@ open Lsp.Types
 let scheduler = Scheduler.create ()
 
 module Client = struct
-  let on_request (type a) (_ : a Server_request.t) :
+  let on_request (type a) _ (_ : a Server_request.t) :
       (a, Jsonrpc.Response.Error.t) result Fiber.t =
     Fiber.return
       (Error
          (Jsonrpc.Response.Error.make ~message:"not implemented"
             ~code:InternalError ()))
 
-  let on_notification n =
+  let on_notification _ n =
     let req = Server_notification.to_jsonrpc n in
     Format.eprintf "client: received notification@.%s@.%!" req.method_;
     Fiber.return ()
@@ -68,7 +68,7 @@ module Server = struct
     }
 
   let on_request (t : t) =
-    let on_request (type a) (req : a Client_request.t) :
+    let on_request (type a) _ (req : a Client_request.t) :
         (a, Jsonrpc.Response.Error.t) result Fiber.t =
       match req with
       | Client_request.Initialize _ ->
@@ -101,7 +101,7 @@ module Server = struct
     in
     { Server.Handler.on_request }
 
-  let on_notification _ =
+  let on_notification _ _ =
     Format.eprintf "server: Received notification@.%!";
     Fiber.return ()
 

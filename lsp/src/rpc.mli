@@ -46,22 +46,23 @@ module type S = sig
   type in_notification
 
   module Handler : sig
-    type t
+    type 'self t
 
-    type on_request =
-      { on_request : 'a. 'a in_request -> ('a, Response.Error.t) result Fiber.t
+    type 'self on_request =
+      { on_request :
+          'a. 'self -> 'a in_request -> ('a, Response.Error.t) result Fiber.t
       }
 
     val make :
-         ?on_request:on_request
-      -> ?on_notification:(in_notification -> unit Fiber.t)
+         ?on_request:'self on_request
+      -> ?on_notification:('self -> in_notification -> unit Fiber.t)
       -> unit
-      -> t
+      -> 'self t
   end
 
   type t
 
-  val make : Handler.t -> Stream_io.t -> t
+  val make : t Handler.t -> Stream_io.t -> t
 
   val stop : t -> unit Fiber.t
 
