@@ -124,27 +124,30 @@ module type S = sig
 
   type in_notification
 
-  module Handler : sig
-    type ('self, 'state) t
+  type 'state t
 
-    type ('self, 'state) on_request =
+  module Handler : sig
+    type 'a session
+
+    type 'state on_request =
       { on_request :
-          'a.    'self -> 'a in_request
+          'a.    'state session -> 'a in_request
           -> ('a * 'state, Response.Error.t) result Fiber.t
       }
 
-    val make :
-         ?on_request:('self, 'state) on_request
-      -> ?on_notification:('self -> in_notification -> 'state Fiber.t)
-      -> unit
-      -> ('self, 'state) t
-  end
+    type 'state t
 
-  type 'state t
+    val make :
+         ?on_request:'state on_request
+      -> ?on_notification:('state session -> in_notification -> 'state Fiber.t)
+      -> unit
+      -> 'state t
+  end
+  with type 'a session := 'a t
 
   val state : 'a t -> 'a
 
-  val make : ('state t, 'state) Handler.t -> Stream_io.t -> 'state -> 'state t
+  val make : 'state Handler.t -> Stream_io.t -> 'state -> 'state t
 
   val stop : _ t -> unit Fiber.t
 
@@ -192,33 +195,8 @@ struct
 
   type in_notification = In_notification.t
 
-  module Handler = struct
-    type ('self, 'state) on_request =
-      { on_request :
-          'a.    'self -> 'a in_request
-          -> ('a * 'state, Response.Error.t) result Fiber.t
-      }
-
-    type ('self, 'state) t =
-      { on_request : ('self, 'state) on_request
-      ; on_notification : 'self -> In_notification.t -> 'state Fiber.t
-      }
-
-    let on_notification_default _ _ =
-      Format.eprintf "dropped notification@.%!";
-      assert false
-
-    let make ?on_request ?(on_notification = on_notification_default) () =
-      let on_request =
-        match on_request with
-        | Some t -> t
-        | None -> assert false
-      in
-      { on_request; on_notification }
-  end
-
   type 'state t =
-    { handler : ('state t, 'state) Handler.t
+    { handler : 'state handler
     ; io : Stream_io.t
     ; mutable session : 'state Session.t option
     ; mutable state : State.t
@@ -226,10 +204,46 @@ struct
     ; mutable req_id : int
     }
 
+  and 'state on_request =
+    { on_request :
+        'a.    'state t -> 'a in_request
+        -> ('a * 'state, Response.Error.t) result Fiber.t
+    }
+
+  and 'state handler =
+    { h_on_request : 'state on_request
+    ; h_on_notification : 'state t -> In_notification.t -> 'state Fiber.t
+    }
+
+  module Handler = struct
+    type nonrec 'state on_request = 'state on_request =
+      { on_request :
+          'a.    'state t -> 'a in_request
+          -> ('a * 'state, Response.Error.t) result Fiber.t
+      }
+
+    type nonrec 'state t = 'state handler =
+      { h_on_request : 'state on_request
+      ; h_on_notification : 'state t -> In_notification.t -> 'state Fiber.t
+      }
+
+    let on_notification_default _ _ =
+      Format.eprintf "dropped notification@.%!";
+      assert false
+
+    let make ?on_request ?(on_notification = on_notification_default) () =
+      let h_on_request =
+        match on_request with
+        | Some t -> t
+        | None -> assert false
+      in
+      { h_on_request; h_on_notification = on_notification }
+  end
+
   let state t = Session.state (Option.value_exn t.session)
 
   let to_jsonrpc (type state) (t : state t)
-      ({ Handler.on_request; on_notification } : (state t, state) Handler.t) =
+      ({ Handler.h_on_request; h_on_notification } : state Handler.t) =
     let open Fiber.O in
     let on_request (ctx : state Session.Context.t) :
         (Response.t * state) Fiber.t =
@@ -240,7 +254,7 @@ struct
         let id = Option.value_exn req.id in
         let+ response =
           let session = Session.Context.session ctx in
-          on_request.on_request { t with session = Some session } r
+          h_on_request.on_request { t with session = Some session } r
         in
         match response with
         | Error e ->
@@ -258,11 +272,11 @@ struct
       | Error e -> Code_error.raise e []
       | Ok r ->
         let session = Session.Context.session ctx in
-        on_notification { t with session = Some session } r
+        h_on_notification { t with session = Some session } r
     in
     (on_request, on_notification)
 
-  let make ~name (handler : (_, _) Handler.t) io state =
+  let make ~name (handler : _ Handler.t) io state =
     let t =
       { handler
       ; io
@@ -343,7 +357,7 @@ module Server = struct
   let make handler io state =
     let t = make ~name:"server" handler io state in
     let handler =
-      let on_request : _ Handler.on_request =
+      let h_on_request : _ Handler.on_request =
         { Handler.on_request =
             (fun t in_r ->
               let open Fiber.O in
@@ -353,12 +367,12 @@ module Server = struct
                   Fiber.Ivar.fill t.initialized i
                 | _ -> Fiber.return ()
               in
-              let* result = t.handler.on_request.on_request t in_r in
+              let* result = t.handler.h_on_request.on_request t in_r in
               let+ () = initialize () in
               result)
         }
       in
-      { t.handler with on_request }
+      { t.handler with h_on_request }
     in
     { t with handler }
 
