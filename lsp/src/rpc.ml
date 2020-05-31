@@ -210,9 +210,8 @@ struct
       in
       { on_request; on_notification }
 
-    let to_jsonrpc { on_request; on_notification } :
-        (Request.t -> Response.t Fiber.t) * (Request.t -> unit Fiber.t) =
-      let on_request (req : Request.t) : Response.t Fiber.t =
+    let to_jsonrpc { on_request; on_notification } =
+      let on_request _ (req : Request.t) : Response.t Fiber.t =
         match In_request.of_jsonrpc req with
         | Error e -> Code_error.raise e []
         | Ok (In_request.E r) -> (
@@ -226,7 +225,7 @@ struct
             let result = Option.value_exn json in
             Response.ok id result )
       in
-      let on_notification r =
+      let on_notification _ r =
         match In_notification.of_jsonrpc r with
         | Error e -> Code_error.raise e []
         | Ok r -> on_notification r

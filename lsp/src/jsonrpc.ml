@@ -351,8 +351,8 @@ end) =
 struct
   type t =
     { chan : Chan.t
-    ; on_request : Request.t -> Response.t Fiber.t
-    ; on_notification : Request.t -> unit Fiber.t
+    ; on_request : t -> Request.t -> Response.t Fiber.t
+    ; on_notification : t -> Request.t -> unit Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
@@ -378,7 +378,7 @@ struct
       in
       Response.error id error
 
-  let on_request_fail (req : Request.t) : Response.t Fiber.t =
+  let on_request_fail _ (req : Request.t) : Response.t Fiber.t =
     let id = Option.value_exn req.id in
     let error =
       Response.Error.make ~code:InternalError ~message:"not implemented" ()
@@ -427,7 +427,7 @@ struct
           Log.msg ("received " ^ what) [ ("r", Request.yojson_of_t r) ]);
       match r.id with
       | None -> (
-        let+ res = Fiber.collect_errors (fun () -> t.on_notification r) in
+        let+ res = Fiber.collect_errors (fun () -> t.on_notification t r) in
         match res with
         | Ok () -> ()
         | Error errors ->
@@ -437,7 +437,7 @@ struct
             (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors))
         )
       | Some id ->
-        let* resp = Fiber.collect_errors (fun () -> t.on_request r) in
+        let* resp = Fiber.collect_errors (fun () -> t.on_request t r) in
         let resp = response_of_result id resp in
         log t (fun () ->
             Log.msg "sending response"
@@ -461,7 +461,7 @@ struct
     let* () = loop () in
     close t
 
-  let on_notification_fail _ = Fiber.return ()
+  let on_notification_fail _ _ = Fiber.return ()
 
   let create ?(on_request = on_request_fail)
       ?(on_notification = on_notification_fail) ~name chan =

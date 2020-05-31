@@ -25,11 +25,11 @@ let () =
       incr i;
       `Int !i
   in
-  let on_request (req : Request.t) =
+  let on_request _ (req : Request.t) =
     let id = Option.value_exn req.id in
     Fiber.return (Jsonrpc.Response.ok id (response ()))
   in
-  let on_notification (n : Request.t) =
+  let on_notification _ (n : Request.t) =
     if n.method_ = "raise" then failwith "special failure";
     let json = Request.yojson_of_t n in
     print_endline ">> received notification";

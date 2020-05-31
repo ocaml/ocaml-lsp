@@ -87,8 +87,8 @@ end) : sig
   type t
 
   val create :
-       ?on_request:(Request.t -> Response.t Fiber.t)
-    -> ?on_notification:(Request.t -> unit Fiber.t)
+       ?on_request:(t -> Request.t -> Response.t Fiber.t)
+    -> ?on_notification:(t -> Request.t -> unit Fiber.t)
     -> name:string
     -> Chan.t
     -> t
