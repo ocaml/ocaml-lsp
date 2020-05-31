@@ -139,16 +139,16 @@ module type S = sig
       -> 'self t
   end
 
-  type t
+  type 'state t
 
-  val make : t Handler.t -> Stream_io.t -> t
+  val make : 'state t Handler.t -> Stream_io.t -> 'state -> 'state t
 
-  val stop : t -> unit Fiber.t
+  val stop : _ t -> unit Fiber.t
 
   val request :
-    t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
+    _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
 
-  val notification : t -> out_notification -> unit Fiber.t
+  val notification : _ t -> out_notification -> unit Fiber.t
 end
 
 module type Request_intf = sig
@@ -213,19 +213,19 @@ struct
       { on_request; on_notification }
   end
 
-  type t =
-    { handler : t Handler.t
+  type 'state t =
+    { handler : 'state t Handler.t
     ; io : Stream_io.t
-    ; mutable session : Session.t option
+    ; mutable session : 'state Session.t option
     ; mutable state : State.t
     ; initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
     }
 
-  let to_jsonrpc (t : t) ({ Handler.on_request; on_notification } : t Handler.t)
-      =
-    let on_request (session : Session.t) (req : Request.t) : Response.t Fiber.t
-        =
+  let to_jsonrpc (type state) (t : state t)
+      ({ Handler.on_request; on_notification } : state t Handler.t) =
+    let on_request (session : state Session.t) (req : Request.t) :
+        Response.t Fiber.t =
       match In_request.of_jsonrpc req with
       | Error e -> Code_error.raise e []
       | Ok (In_request.E r) -> (
@@ -241,14 +241,14 @@ struct
           let result = Option.value_exn json in
           Response.ok id result )
     in
-    let on_notification (session : Session.t) r =
+    let on_notification (session : state Session.t) r =
       match In_notification.of_jsonrpc r with
       | Error e -> Code_error.raise e []
       | Ok r -> on_notification { t with session = Some session } r
     in
     (on_request, on_notification)
 
-  let make ~name (handler : t Handler.t) io =
+  let make ~name (handler : _ t Handler.t) io state =
     let t =
       { handler
       ; io
@@ -260,12 +260,12 @@ struct
     in
     let session =
       let on_request, on_notification = to_jsonrpc t handler in
-      Session.create ~on_request ~on_notification ~name io
+      Session.create ~on_request ~on_notification ~name io state
     in
     t.session <- Some session;
     t
 
-  let request (type r) (t : t) (req : r Out_request.t) :
+  let request (type r) (t : _ t) (req : r Out_request.t) :
       (r, Jsonrpc.Response.Error.t) result Fiber.t =
     let id = Either.Right t.req_id in
     let jsonrpc_request =
@@ -276,7 +276,7 @@ struct
     let+ resp = Session.request (Option.value_exn t.session) jsonrpc_request in
     resp.result |> Result.map ~f:(Out_request.response_of_json req)
 
-  let notification (t : t) (n : Out_notification.t) : unit Fiber.t =
+  let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
     Session.notification (Option.value_exn t.session) jsonrpc_request
 
@@ -298,7 +298,7 @@ module Client = struct
 
   let make handler io = make ~name:"client" handler io
 
-  let start (t : t) (p : InitializeParams.t) =
+  let start (t : _ t) (p : InitializeParams.t) =
     assert (t.state = Waiting_for_init);
     let open Fiber.O in
     let loop = start_loop t in
@@ -326,8 +326,8 @@ module Server = struct
             (Client_request)
             (Client_notification)
 
-  let make handler io =
-    let t = make ~name:"server" handler io in
+  let make handler io state =
+    let t = make ~name:"server" handler io state in
     let handler =
       let on_request : _ Handler.on_request =
         { Handler.on_request =

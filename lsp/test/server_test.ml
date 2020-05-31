@@ -29,7 +29,7 @@ module Client = struct
     let client =
       let io = Rpc.Io.make in_ out in
       let stream_io = Rpc.Stream_io.make scheduler io in
-      Client.make handler stream_io
+      Client.make handler stream_io ()
     in
     let running = Client.start client initialize in
     let open Fiber.O in
@@ -63,7 +63,7 @@ module Server = struct
     | Initialized
 
   type t =
-    { mutable server : Server.t option
+    { mutable server : unit Server.t option
     ; mutable state : state
     }
 
@@ -114,7 +114,7 @@ module Server = struct
     let server =
       let io = Rpc.Io.make in_ out in
       let stream_io = Rpc.Stream_io.make scheduler io in
-      Server.make (handler state) stream_io
+      Server.make (handler state) stream_io ()
     in
     state.server <- Some server;
     Server.start server

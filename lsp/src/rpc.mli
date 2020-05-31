@@ -60,16 +60,16 @@ module type S = sig
       -> 'self t
   end
 
-  type t
+  type 'state t
 
-  val make : t Handler.t -> Stream_io.t -> t
+  val make : 'state t Handler.t -> Stream_io.t -> 'state -> 'state t
 
-  val stop : t -> unit Fiber.t
+  val stop : 'state t -> unit Fiber.t
 
   val request :
-    t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
+    _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
 
-  val notification : t -> out_notification -> unit Fiber.t
+  val notification : _ t -> out_notification -> unit Fiber.t
 end
 
 module Client : sig
@@ -82,9 +82,9 @@ module Client : sig
        and type 'a in_request = 'a Server_request.t
        and type in_notification = Server_notification.t
 
-  val initialized : t -> InitializeResult.t Fiber.t
+  val initialized : _ t -> InitializeResult.t Fiber.t
 
-  val start : t -> InitializeParams.t -> unit Fiber.t
+  val start : _ t -> InitializeParams.t -> unit Fiber.t
 end
 
 module Server : sig
@@ -97,7 +97,7 @@ module Server : sig
        and type 'a in_request = 'a Client_request.t
        and type in_notification = Client_notification.t
 
-  val initialized : t -> InitializeParams.t Fiber.t
+  val initialized : _ t -> InitializeParams.t Fiber.t
 
-  val start : t -> unit Fiber.t
+  val start : _ t -> unit Fiber.t
 end

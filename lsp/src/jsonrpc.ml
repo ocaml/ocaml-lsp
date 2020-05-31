@@ -349,16 +349,17 @@ module Session (Chan : sig
   val close : t -> unit Fiber.t
 end) =
 struct
-  type t =
+  type 'state t =
     { chan : Chan.t
-    ; on_request : t -> Request.t -> Response.t Fiber.t
-    ; on_notification : t -> Request.t -> unit Fiber.t
+    ; on_request : 'state t -> Request.t -> Response.t Fiber.t
+    ; on_notification : 'state t -> Request.t -> unit Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
     ; mutable tick : int
+    ; mutable state : 'state
     }
 
   let log t = Log.log ~section:t.name
@@ -464,7 +465,7 @@ struct
   let on_notification_fail _ _ = Fiber.return ()
 
   let create ?(on_request = on_request_fail)
-      ?(on_notification = on_notification_fail) ~name chan =
+      ?(on_notification = on_notification_fail) ~name chan state =
     { chan
     ; on_request
     ; on_notification
@@ -474,6 +475,7 @@ struct
     ; name
     ; running = false
     ; tick = 0
+    ; state
     }
 
   let notification t req =

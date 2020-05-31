@@ -84,23 +84,24 @@ module Session (Chan : sig
 
   val close : t -> unit Fiber.t
 end) : sig
-  type t
+  type 'state t
 
   val create :
-       ?on_request:(t -> Request.t -> Response.t Fiber.t)
-    -> ?on_notification:(t -> Request.t -> unit Fiber.t)
+       ?on_request:('state t -> Request.t -> Response.t Fiber.t)
+    -> ?on_notification:('state t -> Request.t -> unit Fiber.t)
     -> name:string
     -> Chan.t
-    -> t
+    -> 'state
+    -> 'state t
 
-  val stop : t -> unit Fiber.t
+  val stop : _ t -> unit Fiber.t
 
-  val stopped : t -> unit Fiber.t
+  val stopped : _ t -> unit Fiber.t
 
-  val run : t -> unit Fiber.t
+  val run : _ t -> unit Fiber.t
 
-  val notification : t -> Request.t -> unit Fiber.t
+  val notification : _ t -> Request.t -> unit Fiber.t
 
   (** TODO this isn't type safe enough. Request.t must require an ID*)
-  val request : t -> Request.t -> Response.t Fiber.t
+  val request : _ t -> Request.t -> Response.t Fiber.t
 end
