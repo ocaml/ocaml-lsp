@@ -28,7 +28,8 @@ let () =
   let on_request ctx =
     let req = Session.Context.request ctx in
     let id = Option.value_exn req.id in
-    Fiber.return (Jsonrpc.Response.ok id (response ()))
+    let state = Session.Context.state ctx in
+    Fiber.return (Jsonrpc.Response.ok id (response ()), state)
   in
   let on_notification ctx =
     let n = Session.Context.request ctx in

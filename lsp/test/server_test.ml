@@ -6,7 +6,7 @@ let scheduler = Scheduler.create ()
 
 module Client = struct
   let on_request (type a) _ (_ : a Server_request.t) :
-      (a, Jsonrpc.Response.Error.t) result Fiber.t =
+      (_, Jsonrpc.Response.Error.t) result Fiber.t =
     Fiber.return
       (Error
          (Jsonrpc.Response.Error.make ~message:"not implemented"
@@ -68,8 +68,9 @@ module Server = struct
     }
 
   let on_request (t : t) =
-    let on_request (type a) _ (req : a Client_request.t) :
-        (a, Jsonrpc.Response.Error.t) result Fiber.t =
+    let on_request (type a) self (req : a Client_request.t) :
+        (a * _, Jsonrpc.Response.Error.t) result Fiber.t =
+      let state = Server.state self in
       match req with
       | Client_request.Initialize _ ->
         t.state <- Initialized;
@@ -89,10 +90,11 @@ module Server = struct
                 (Server_notification.ShowMessage msg))
         in
         Format.eprintf "server: returning initialization result@.%!";
-        Fiber.return (Ok result)
+        Fiber.return (Ok (result, state))
       | ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
-        Fiber.return (Ok (`String "successful execution"))
+        let result = `String "successful execution" in
+        Fiber.return (Ok (result, state))
       | _ ->
         Fiber.return
           (Error

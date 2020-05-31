@@ -125,23 +125,26 @@ module type S = sig
   type in_notification
 
   module Handler : sig
-    type 'self t
+    type ('self, 'state) t
 
-    type 'self on_request =
+    type ('self, 'state) on_request =
       { on_request :
-          'a. 'self -> 'a in_request -> ('a, Response.Error.t) result Fiber.t
+          'a.    'self -> 'a in_request
+          -> ('a * 'state, Response.Error.t) result Fiber.t
       }
 
     val make :
-         ?on_request:'self on_request
-      -> ?on_notification:('self -> in_notification -> unit Fiber.t)
+         ?on_request:('self, 'state) on_request
+      -> ?on_notification:('self -> in_notification -> 'state Fiber.t)
       -> unit
-      -> 'self t
+      -> ('self, 'state) t
   end
 
   type 'state t
 
-  val make : 'state t Handler.t -> Stream_io.t -> 'state -> 'state t
+  val state : 'a t -> 'a
+
+  val make : ('state t, 'state) Handler.t -> Stream_io.t -> 'state -> 'state t
 
   val stop : _ t -> unit Fiber.t
 
@@ -190,19 +193,20 @@ struct
   type in_notification = In_notification.t
 
   module Handler = struct
-    type 'self on_request =
+    type ('self, 'state) on_request =
       { on_request :
-          'a. 'self -> 'a in_request -> ('a, Response.Error.t) result Fiber.t
+          'a.    'self -> 'a in_request
+          -> ('a * 'state, Response.Error.t) result Fiber.t
       }
 
-    type 'self t =
-      { on_request : 'self on_request
-      ; on_notification : 'self -> In_notification.t -> unit Fiber.t
+    type ('self, 'state) t =
+      { on_request : ('self, 'state) on_request
+      ; on_notification : 'self -> In_notification.t -> 'state Fiber.t
       }
 
     let on_notification_default _ _ =
       Format.eprintf "dropped notification@.%!";
-      Fiber.return ()
+      assert false
 
     let make ?on_request ?(on_notification = on_notification_default) () =
       let on_request =
@@ -214,7 +218,7 @@ struct
   end
 
   type 'state t =
-    { handler : 'state t Handler.t
+    { handler : ('state t, 'state) Handler.t
     ; io : Stream_io.t
     ; mutable session : 'state Session.t option
     ; mutable state : State.t
@@ -222,27 +226,33 @@ struct
     ; mutable req_id : int
     }
 
+  let state t = Session.state (Option.value_exn t.session)
+
   let to_jsonrpc (type state) (t : state t)
-      ({ Handler.on_request; on_notification } : state t Handler.t) =
-    let on_request (ctx : state Session.Context.t) : Response.t Fiber.t =
+      ({ Handler.on_request; on_notification } : (state t, state) Handler.t) =
+    let open Fiber.O in
+    let on_request (ctx : state Session.Context.t) :
+        (Response.t * state) Fiber.t =
       let req = Session.Context.request ctx in
       match In_request.of_jsonrpc req with
       | Error e -> Code_error.raise e []
       | Ok (In_request.E r) -> (
-        let open Fiber.O in
         let id = Option.value_exn req.id in
         let+ response =
           let session = Session.Context.session ctx in
           on_request.on_request { t with session = Some session } r
         in
         match response with
-        | Error e -> Response.error id e
-        | Ok response ->
+        | Error e ->
+          let state = Session.Context.state ctx in
+          (Response.error id e, state)
+        | Ok (response, state) ->
           let json = In_request.yojson_of_result r response in
           let result = Option.value_exn json in
-          Response.ok id result )
+          let response = Response.ok id result in
+          (response, state) )
     in
-    let on_notification ctx =
+    let on_notification ctx : state Fiber.t =
       let r = Session.Context.request ctx in
       match In_notification.of_jsonrpc r with
       | Error e -> Code_error.raise e []
@@ -252,7 +262,7 @@ struct
     in
     (on_request, on_notification)
 
-  let make ~name (handler : _ t Handler.t) io state =
+  let make ~name (handler : (_, _) Handler.t) io state =
     let t =
       { handler
       ; io

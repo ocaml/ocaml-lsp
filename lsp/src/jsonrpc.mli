@@ -93,16 +93,21 @@ end) : sig
 
     val request : _ t -> Request.t
 
+    val state : 'a t -> 'a
+
     val session : 'a t -> 'a session
-  end with type 'a session := 'a t
+  end
+  with type 'a session := 'a t
 
   val create :
-       ?on_request:('state Context.t -> Response.t Fiber.t)
-    -> ?on_notification:('state Context.t -> unit Fiber.t)
+       ?on_request:('state Context.t -> (Response.t * 'state) Fiber.t)
+    -> ?on_notification:('state Context.t -> 'state Fiber.t)
     -> name:string
     -> Chan.t
     -> 'state
     -> 'state t
+
+  val state : 'a t -> 'a
 
   val stop : _ t -> unit Fiber.t
 
