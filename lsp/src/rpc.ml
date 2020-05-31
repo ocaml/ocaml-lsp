@@ -224,14 +224,15 @@ struct
 
   let to_jsonrpc (type state) (t : state t)
       ({ Handler.on_request; on_notification } : state t Handler.t) =
-    let on_request (session : state Session.t) (req : Request.t) :
-        Response.t Fiber.t =
+    let on_request (ctx : state Session.Context.t) : Response.t Fiber.t =
+      let req = Session.Context.request ctx in
       match In_request.of_jsonrpc req with
       | Error e -> Code_error.raise e []
       | Ok (In_request.E r) -> (
         let open Fiber.O in
         let id = Option.value_exn req.id in
         let+ response =
+          let session = Session.Context.session ctx in
           on_request.on_request { t with session = Some session } r
         in
         match response with
@@ -241,10 +242,13 @@ struct
           let result = Option.value_exn json in
           Response.ok id result )
     in
-    let on_notification (session : state Session.t) r =
+    let on_notification ctx =
+      let r = Session.Context.request ctx in
       match In_notification.of_jsonrpc r with
       | Error e -> Code_error.raise e []
-      | Ok r -> on_notification { t with session = Some session } r
+      | Ok r ->
+        let session = Session.Context.session ctx in
+        on_notification { t with session = Some session } r
     in
     (on_request, on_notification)
 
