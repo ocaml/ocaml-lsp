@@ -62,18 +62,12 @@ module Server = struct
     | Started
     | Initialized
 
-  type t =
-    { mutable server : unit Server.t option
-    ; mutable state : state
-    }
-
-  let on_request (t : t) =
+  let on_request =
     let on_request (type a) self (req : a Client_request.t) :
-        (a * _, Jsonrpc.Response.Error.t) result Fiber.t =
+        (a * state, Jsonrpc.Response.Error.t) result Fiber.t =
       let state = Server.state self in
       match req with
       | Client_request.Initialize _ ->
-        t.state <- Initialized;
         let capabilities = ServerCapabilities.create () in
         let result = InitializeResult.create ~capabilities () in
         Format.eprintf "server: initializing server@.";
@@ -85,12 +79,10 @@ module Server = struct
               let msg =
                 ShowMessageParams.create ~type_:MessageType.Info ~message:"foo"
               in
-              Server.notification
-                (Option.value_exn t.server)
-                (Server_notification.ShowMessage msg))
+              Server.notification self (Server_notification.ShowMessage msg))
         in
         Format.eprintf "server: returning initialization result@.%!";
-        Fiber.return (Ok (result, state))
+        Fiber.return (Ok (result, Initialized))
       | ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
@@ -103,22 +95,19 @@ module Server = struct
     in
     { Server.Handler.on_request }
 
-  let on_notification _ _ =
+  let on_notification self _ =
+    let state = Server.state self in
     Format.eprintf "server: Received notification@.%!";
-    Fiber.return ()
+    Fiber.return state
 
-  let handler state =
-    let on_request = on_request state in
-    Server.Handler.make ~on_request ~on_notification ()
+  let handler = Server.Handler.make ~on_request ~on_notification ()
 
   let run in_ out =
-    let state = { state = Started; server = None } in
     let server =
       let io = Rpc.Io.make in_ out in
       let stream_io = Rpc.Stream_io.make scheduler io in
-      Server.make (handler state) stream_io ()
+      Server.make handler stream_io Started
     in
-    state.server <- Some server;
     Server.start server
 end
 
