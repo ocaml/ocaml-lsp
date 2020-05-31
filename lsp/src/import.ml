@@ -14,6 +14,7 @@ module Or_exn = Or_exn
 module Table = Table
 module Id = Id
 module Exn_with_backtrace = Exn_with_backtrace
+module Fdecl = Fdecl
 
 module String = struct
   include Stdune.String

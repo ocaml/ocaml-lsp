@@ -198,9 +198,12 @@ struct
   type 'state t =
     { handler : 'state handler
     ; io : Stream_io.t
-    ; mutable session : 'state Session.t option
-    ; mutable state : State.t
-    ; initialized : Initialize.t Fiber.Ivar.t
+    ; (* mutable only to initialiaze this record *)
+      mutable session : 'state Session.t Fdecl.t
+    ; (* Internal state of the session *)
+      mutable state : State.t
+    ; (* Filled when the server is initialied *)
+      initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
     }
 
@@ -240,7 +243,7 @@ struct
       { h_on_request; h_on_notification = on_notification }
   end
 
-  let state t = Session.state (Option.value_exn t.session)
+  let state t = Session.state (Fdecl.get t.session)
 
   let to_jsonrpc (type state) (t : state t)
       ({ Handler.h_on_request; h_on_notification } : state Handler.t) =
@@ -252,10 +255,7 @@ struct
       | Error e -> Code_error.raise e []
       | Ok (In_request.E r) -> (
         let id = Option.value_exn req.id in
-        let+ response =
-          let session = Session.Context.session ctx in
-          h_on_request.on_request { t with session = Some session } r
-        in
+        let+ response = h_on_request.on_request t r in
         match response with
         | Error e ->
           let state = Session.Context.state ctx in
@@ -270,9 +270,7 @@ struct
       let r = Session.Context.request ctx in
       match In_notification.of_jsonrpc r with
       | Error e -> Code_error.raise e []
-      | Ok r ->
-        let session = Session.Context.session ctx in
-        h_on_notification { t with session = Some session } r
+      | Ok r -> h_on_notification t r
     in
     (on_request, on_notification)
 
@@ -281,7 +279,7 @@ struct
       { handler
       ; io
       ; state = Waiting_for_init
-      ; session = None
+      ; session = Fdecl.create Dyn.Encoder.opaque
       ; initialized = Fiber.Ivar.create ()
       ; req_id = 1
       }
@@ -290,7 +288,7 @@ struct
       let on_request, on_notification = to_jsonrpc t handler in
       Session.create ~on_request ~on_notification ~name io state
     in
-    t.session <- Some session;
+    Fdecl.set t.session session;
     t
 
   let request (type r) (t : _ t) (req : r Out_request.t) :
@@ -301,21 +299,21 @@ struct
       Out_request.to_jsonrpc_request req ~id
     in
     let open Fiber.O in
-    let+ resp = Session.request (Option.value_exn t.session) jsonrpc_request in
+    let+ resp = Session.request (Fdecl.get t.session) jsonrpc_request in
     resp.result |> Result.map ~f:(Out_request.response_of_json req)
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
-    Session.notification (Option.value_exn t.session) jsonrpc_request
+    Session.notification (Fdecl.get t.session) jsonrpc_request
 
   let initialized t = Fiber.Ivar.read t.initialized
 
   let stop t =
     let open Fiber.O in
-    let+ () = Session.stop (Option.value_exn t.session) in
+    let+ () = Session.stop (Fdecl.get t.session) in
     t.state <- Closed
 
-  let start_loop t = Session.run (Option.value_exn t.session)
+  let start_loop t = Session.run (Fdecl.get t.session)
 end
 
 module Client = struct
