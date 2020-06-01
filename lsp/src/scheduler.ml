@@ -113,6 +113,11 @@ end
 
 module Timer_id = Id.Make ()
 
+type detached_task =
+  { name : string option
+  ; task : unit -> unit Fiber.t
+  }
+
 type t =
   { mutable events_pending : int
   ; events : event Queue.t
@@ -125,7 +130,7 @@ type t =
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
   ; timers : (Timer_id.t, packed_active_timer ref) Table.t
-  ; detached : (unit -> unit Fiber.t) Queue.t
+  ; detached : detached_task Queue.t
   }
 
 and event =
@@ -295,18 +300,38 @@ let rec pump_events (t : t) =
 
 exception Never
 
+let log = Log.log ~section:"scheduler"
+
 let rec restart_suspended t =
-  if Queue.is_empty t.detached then
+  if Queue.is_empty t.detached then (
+    log (fun () -> Log.msg "finished processing detached tasks" []);
     Fiber.return ()
-  else
+  ) else
     let open Fiber.O in
     let* () =
       let detached =
         Queue.fold (fun acc a -> a :: acc) [] t.detached |> List.rev
       in
+      log (fun () ->
+          Log.msg
+            ( "cleared "
+            ^ Int.to_string (Queue.length t.detached)
+            ^ " detached tasks" )
+            []);
       Queue.clear t.detached;
-      Fiber.parallel_iter ~f:(fun f -> f ()) detached
+      Fiber.parallel_iter
+        ~f:(fun f ->
+          log (fun () ->
+              let args =
+                match f.name with
+                | None -> []
+                | Some name -> [ ("name", `String name) ]
+              in
+              Log.msg "running detached task" args);
+          f.task ())
+        detached
     in
+    log (fun () -> Log.msg "finished processing tasks" []);
     restart_suspended t
 
 let run : 'a. t -> 'a Fiber.t -> 'a =
@@ -361,7 +386,7 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
   Mutex.unlock timer.timer_scheduler.time_mutex;
   Fiber.Ivar.read ivar
 
-let detach t f =
+let detach ?name t f =
   let task () =
     Fiber.with_error_handler
       ~on_error:(fun e ->
@@ -369,5 +394,13 @@ let detach t f =
           (Dyn.to_string (Exn_with_backtrace.to_dyn e)))
       (fun () -> Fiber.map (f ()) ~f:ignore)
   in
-  Queue.add task t.detached;
+  Queue.add { name; task } t.detached;
   Fiber.return ()
+
+let report ppf t =
+  Format.fprintf ppf "detached tasks:@.";
+  Queue.iter
+    (fun (dt : detached_task) ->
+      let name = Option.value ~default:"<Anon>" dt.name in
+      Format.fprintf ppf "- %s@." name)
+    t.detached
