@@ -11,6 +11,11 @@
  (action
   (run ./server_test.exe)))
 
+(rule
+ (alias server-test)
+ (action
+  (run ./server_test.exe)))
+
 (executable
  (name fiber_thread_test)
  (modules fiber_thread_test)
