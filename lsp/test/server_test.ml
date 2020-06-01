@@ -5,6 +5,8 @@ open Lsp.Types
 let scheduler = Scheduler.create ()
 
 module Client = struct
+  type state = { received_notification : unit Fiber.Ivar.t }
+
   let on_request (type a) _ (_ : a Server_request.t) :
       (_, Jsonrpc.Response.Error.t) result Fiber.t =
     Fiber.return
@@ -12,10 +14,12 @@ module Client = struct
          (Jsonrpc.Response.Error.make ~message:"not implemented"
             ~code:InternalError ()))
 
-  let on_notification _ n =
+  let on_notification (client : state Client.t) n =
+    let state = Client.state client in
     let req = Server_notification.to_jsonrpc n in
     Format.eprintf "client: received notification@.%s@.%!" req.method_;
-    Fiber.return ()
+    let (_ : unit Fiber.t) = Fiber.Ivar.fill state.received_notification () in
+    Fiber.return state
 
   let handler =
     let on_request = { Client.Handler.on_request } in
@@ -29,7 +33,8 @@ module Client = struct
     let client =
       let io = Rpc.Io.make in_ out in
       let stream_io = Rpc.Stream_io.make scheduler io in
-      Client.make handler stream_io ()
+      Client.make handler stream_io
+        { received_notification = Fiber.Ivar.create () }
     in
     let running = Client.start client initialize in
     let open Fiber.O in
@@ -49,9 +54,14 @@ module Client = struct
         Format.eprintf
           "client: Successfully executed command with result:@.%s@."
           (Yojson.Safe.pretty_to_string json);
-        Client.stop client
+        let state = Client.state client in
+        Format.eprintf
+          "client: waiting to receive notification before shutdown @.%!";
+        let* () = Fiber.Ivar.read state.received_notification in
+        Format.eprintf "client: sending request to shutdown@.%!";
+        Client.notification client Exit
     in
-    let* () = Scheduler.detach scheduler init in
+    let* () = Scheduler.detach ~name:"client init" scheduler init in
     running
 end
 
@@ -71,9 +81,14 @@ module Server = struct
         let capabilities = ServerCapabilities.create () in
         let result = InitializeResult.create ~capabilities () in
         Format.eprintf "server: initializing server@.";
+        Format.eprintf "server: returning initialization result@.%!";
+        Fiber.return (Ok (result, Initialized))
+      | ExecuteCommand _ ->
+        Format.eprintf "server: executing command@.%!";
+        let result = `String "successful execution" in
         let open Fiber.O in
         let* () =
-          Scheduler.detach scheduler (fun () ->
+          Scheduler.detach ~name:"ShowMessage" scheduler (fun () ->
               Format.eprintf
                 "server: sending message notification to client@.%!";
               let msg =
@@ -81,11 +96,6 @@ module Server = struct
               in
               Server.notification self (Server_notification.ShowMessage msg))
         in
-        Format.eprintf "server: returning initialization result@.%!";
-        Fiber.return (Ok (result, Initialized))
-      | ExecuteCommand _ ->
-        Format.eprintf "server: executing command@.%!";
-        let result = `String "successful execution" in
         Fiber.return (Ok (result, state))
       | _ ->
         Fiber.return
@@ -126,7 +136,8 @@ let () =
       (fun () ->
         let delay = 3.0 in
         Thread.delay delay;
-        Format.eprintf "Test failed to terminate before %.2f seconds" delay;
+        Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
+        Format.eprintf "----@.%a-----@." Scheduler.report scheduler;
         exit 1)
       ()
   in
