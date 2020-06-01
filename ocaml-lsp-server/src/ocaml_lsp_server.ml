@@ -197,6 +197,25 @@ module Formatter = struct
       Ok (store, Some [ change ])
 end
 
+let location_of_merlin_loc uri = function
+  | `At_origin
+  | `Builtin _
+  | `File_not_found _
+  | `Invalid_context
+  | `Not_found _
+  | `Not_in_env _ ->
+    None
+  | `Found (path, lex_position) ->
+    let position = Position.of_lexical_position lex_position in
+    let range = { Range.start = position; end_ = position } in
+    let uri =
+      match path with
+      | None -> uri
+      | Some path -> Lsp.Uri.of_path path
+    in
+    let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
+    Some (`Location locs)
+
 let on_request :
     type resp.
        Lsp.Server.t
@@ -349,48 +368,18 @@ let on_request :
     let* doc = Document_store.get store uri in
     let position = Position.logical position in
     let command = Query_protocol.Locate (None, `ML, position) in
-    match Document.dispatch doc command with
-    | `Found (path, lex_position) ->
-      let position = Position.of_lexical_position lex_position in
-      let range = { Range.start = position; end_ = position } in
-      let uri =
-        match path with
-        | None -> uri
-        | Some path -> Lsp.Uri.of_path path
-      in
-      let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
-      Ok (store, Some (`Location locs))
-    | `At_origin
-    | `Builtin _
-    | `File_not_found _
-    | `Invalid_context
-    | `Not_found _
-    | `Not_in_env _ ->
-      Ok (store, None) )
+    match Document.dispatch doc command |> location_of_merlin_loc uri with
+    | None -> Ok (store, None)
+    | Some loc -> Ok (store, Some loc) )
   | Lsp.Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let position = Position.logical position in
     let command = Query_protocol.Locate_type position in
-    match Document.dispatch doc command with
-    | `Found (path, lex_position) ->
-      let position = Position.of_lexical_position lex_position in
-      let range = { Range.start = position; end_ = position } in
-      let uri =
-        match path with
-        | None -> uri
-        | Some path -> Lsp.Uri.of_path path
-      in
-      let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
-      Ok (store, Some (`Location locs))
-    | `At_origin
-    | `Builtin _
-    | `File_not_found _
-    | `Invalid_context
-    | `Not_found _
-    | `Not_in_env _ ->
-      Ok (store, None) )
+    match Document.dispatch doc command |> location_of_merlin_loc uri with
+    | None -> Ok (store, None)
+    | Some loc -> Ok (store, Some loc) )
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
