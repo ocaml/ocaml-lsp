@@ -31,7 +31,7 @@ module Client = struct
       Types.InitializeParams.create ~capabilities ()
     in
     let client =
-      let io = Rpc.Io.make in_ out in
+      let io = Io.make in_ out in
       let stream_io = Rpc.Stream_io.make scheduler io in
       Client.make handler stream_io
         { received_notification = Fiber.Ivar.create () }
@@ -61,8 +61,7 @@ module Client = struct
         Format.eprintf "client: sending request to shutdown@.%!";
         Client.notification client Exit
     in
-    let* () = Scheduler.detach ~name:"client init" scheduler init in
-    running
+    Fiber.fork_and_join_unit init (fun () -> running)
 end
 
 module Server = struct
@@ -114,7 +113,7 @@ module Server = struct
 
   let run in_ out =
     let server =
-      let io = Rpc.Io.make in_ out in
+      let io = Io.make in_ out in
       let stream_io = Rpc.Stream_io.make scheduler io in
       Server.make handler stream_io Started
     in

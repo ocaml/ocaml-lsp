@@ -1,61 +1,6 @@
 open Import
 open Jsonrpc
 
-module Raw_io = struct
-  let { Logger.log } = Logger.for_section "lsp_io"
-
-  type t =
-    { ic : in_channel
-    ; oc : out_channel
-    }
-
-  let close { ic; oc } =
-    close_in_noerr ic;
-    close_out_noerr oc
-
-  let make ic oc =
-    set_binary_mode_in ic true;
-    set_binary_mode_out oc true;
-    { ic; oc }
-
-  let send { oc; ic = _ } (packet : packet) =
-    let json = Jsonrpc.yojson_of_packet packet in
-    log ~title:Logger.Title.LocalDebug "send: %a"
-      (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-      json;
-    let data = Yojson.Safe.to_string json in
-    let content_length = String.length data in
-    let header = Header.create ~content_length in
-    Header.write header oc;
-    output_string oc data;
-    flush oc
-
-  let read_content ic =
-    match Header.read ic with
-    | exception End_of_file -> None
-    | header ->
-      let len = Header.content_length header in
-      let buffer = Bytes.create len in
-      let rec read_loop read =
-        if read < len then
-          let n = input ic buffer read (len - read) in
-          read_loop (read + n)
-      in
-      let () = read_loop 0 in
-      Some (Bytes.to_string buffer)
-
-  let read { ic; oc = _ } : Json.t option =
-    read_content ic |> Option.map ~f:Yojson.Safe.from_string
-
-  let read (t : t) : packet option =
-    let open Option.O in
-    let+ json = read t in
-    let open Json.O in
-    let req json = Request (Jsonrpc.Request.t_of_yojson json) in
-    let resp json = Response (Jsonrpc.Response.t_of_yojson json) in
-    (req <|> resp) json
-end
-
 module Stream_io = struct
   open Fiber_stream
 
@@ -73,7 +18,7 @@ module Stream_io = struct
     let i =
       Fiber_stream.In.create (fun () ->
           let open Fiber.O in
-          let+ res = Scheduler.async r (fun () -> Raw_io.read io) in
+          let+ res = Scheduler.async r (fun () -> Io.read io) in
           Result.ok_exn res)
     in
     let o =
@@ -82,8 +27,8 @@ module Stream_io = struct
           let+ res =
             Scheduler.async w
               ( match t with
-              | None -> fun () -> Raw_io.close io
-              | Some p -> fun () -> Raw_io.send io p )
+              | None -> fun () -> Io.close io
+              | Some p -> fun () -> Io.send io p )
           in
           Result.ok_exn res)
     in
@@ -326,7 +271,9 @@ module Client = struct
       | Ok resp -> Fiber.Ivar.fill t.initialized resp
       | Error _ -> Fiber.return ()
     in
-    let* () = Scheduler.detach (Scheduler.scheduler ()) init in
+    let* () =
+      Scheduler.detach ~name:"lsp client init" (Scheduler.scheduler ()) init
+    in
     loop
 end
 
@@ -380,12 +327,4 @@ module Server = struct
     { t with handler }
 
   let start t = start_loop t
-end
-
-module Io = struct
-  include Raw_io
-
-  let send t x = Fiber.return (send t x)
-
-  let read t = Fiber.return (read t)
 end
