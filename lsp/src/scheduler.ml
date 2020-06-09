@@ -302,6 +302,10 @@ exception Never
 
 let log = Log.log ~section:"scheduler"
 
+(* This implementation of dequeing detached tasks is buggy. What happens when we
+   detach that rely on some subsequent detached task to proceed?
+
+   The issue is that we should wait for more tasks in parallel *)
 let rec restart_suspended t =
   if Queue.is_empty t.detached then (
     log (fun () -> Log.msg "finished processing detached tasks" []);
