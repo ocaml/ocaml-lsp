@@ -1,6 +1,26 @@
 open Import
+module Server_notification = Lsp.Server_notification
+module Scheduler = Lsp.Scheduler
+module Jsonrpc = Lsp.Jsonrpc
+module Server = Lsp.Server
+
+type init =
+  | Uninitialized
+  | Initialized of ClientCapabilities.t
+
+type state =
+  { store : Document_store.t
+  ; init : init
+  }
+
+let client_capabilities state =
+  match state.init with
+  | Uninitialized -> assert false
+  | Initialized c -> c
 
 let make_error = Lsp.Jsonrpc.Response.Error.make
+
+let detach f = Scheduler.detach (Scheduler.scheduler ()) f
 
 let not_supported () =
   Error
@@ -10,7 +30,7 @@ module Action = struct
   let destruct = "destruct"
 end
 
-let initializeInfo : InitializeResult.t =
+let initialize_info : InitializeResult.t =
   let codeActionProvider =
     `CodeActionOptions
       (CodeActionOptions.create ~codeActionKinds:[ Other Action.destruct ] ())
@@ -74,10 +94,10 @@ let send_diagnostics rpc doc =
         in
         [ diagnostic_create ~range ~message () ]
       in
-      Lsp.Server_notification.PublishDiagnostics
+      Server_notification.PublishDiagnostics
         (PublishDiagnosticsParams.create ~uri ~diagnostics ())
     in
-    Lsp.Server.send_notification rpc notif
+    Server.notification rpc notif
   | true ->
     let command =
       Query_protocol.Errors { lexing = true; parsing = true; typing = true }
@@ -101,13 +121,13 @@ let send_diagnostics rpc doc =
     in
 
     let notif =
-      Lsp.Server_notification.PublishDiagnostics
+      Server_notification.PublishDiagnostics
         (PublishDiagnosticsParams.create ~uri ~diagnostics ())
     in
 
-    Lsp.Server.send_notification rpc notif
+    Server.notification rpc notif
 
-let on_initialize rpc state _params =
+let on_initialize rpc =
   let log_consumer (section, title, text) =
     if title <> Logger.Title.LocalDebug then
       let type_, text =
@@ -121,11 +141,14 @@ let on_initialize rpc state _params =
         | LocalDebug -> failwith "impossible"
       in
       let message = Printf.sprintf "[%s] %s" section text in
-      let notif = Lsp.Server_notification.LogMessage { message; type_ } in
-      Lsp.Server.send_notification rpc notif
+      let notif = Server_notification.LogMessage { message; type_ } in
+      let (_ : unit Fiber.t) =
+        detach (fun () -> Server.notification rpc notif)
+      in
+      ()
   in
   Logger.register_consumer log_consumer;
-  Ok (state, initializeInfo)
+  initialize_info
 
 let code_action_of_case_analysis uri (loc, newText) =
   let edit : WorkspaceEdit.t =
@@ -137,11 +160,13 @@ let code_action_of_case_analysis uri (loc, newText) =
   CodeAction.create ~title ~kind:(CodeActionKind.Other Action.destruct) ~edit
     ~isPreferred:false ()
 
-let code_action store (params : CodeActionParams.t) =
+let code_action server (params : CodeActionParams.t) =
   let open Lsp.Import.Result.O in
+  let state = Server.state server in
+  let store = state.store in
   match params.context.only with
   | Some set when not (List.mem (CodeActionKind.Other Action.destruct) ~set) ->
-    Ok (store, None)
+    Ok (None, state)
   | Some _
   | None ->
     let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
@@ -163,7 +188,7 @@ let code_action store (params : CodeActionParams.t) =
       | Destruct.Nothing_to_do ->
         Some []
     in
-    Ok (store, result)
+    Ok (result, state)
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
@@ -176,13 +201,15 @@ module Formatter = struct
     in
     make_error ~code ~message ()
 
-  let run rpc store doc =
+  let run rpc doc =
     match Fmt.run doc with
     | Result.Error e ->
       let message = Fmt.message e in
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Error in
-      Lsp.Server.send_notification rpc (ShowMessage msg);
+      let (_ : unit Fiber.t) =
+        detach (fun () -> Server.notification rpc (ShowMessage msg))
+      in
       Error error
     | Result.Ok result ->
       let pos line col = { Position.character = col; line } in
@@ -194,7 +221,8 @@ module Formatter = struct
           { Range.start = start_pos; end_ = end_pos }
       in
       let change = { TextEdit.newText = result; range } in
-      Ok (store, Some [ change ])
+      let state = Server.state rpc in
+      Ok (Some [ change ], state)
 end
 
 let location_of_merlin_loc uri = function
@@ -222,25 +250,28 @@ let location_of_merlin_loc uri = function
 
 let on_request :
     type resp.
-       Lsp.Server.t
-    -> Document_store.t
-    -> ClientCapabilities.t
+       state Server.t
     -> resp Lsp.Client_request.t
-    -> (Document_store.t * resp, Lsp.Jsonrpc.Response.Error.t) result =
- fun rpc store client_capabilities req ->
+    -> (resp * state, Lsp.Jsonrpc.Response.Error.t) result =
+ fun rpc req ->
+  let state = Server.state rpc in
+  let store = state.store in
   let open Lsp.Import.Result.O in
   match req with
-  | Lsp.Client_request.Initialize _ -> assert false
-  | Lsp.Client_request.Shutdown -> Ok (store, ())
+  | Lsp.Client_request.Initialize ip ->
+    let initialize_result = on_initialize rpc in
+    let state = { state with init = Initialized ip.capabilities } in
+    Ok (initialize_result, state)
+  | Lsp.Client_request.Shutdown -> Ok ((), state)
   | Lsp.Client_request.DebugTextDocumentGet
       { textDocument = { uri }; position = _ } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     match Document_store.get_opt store uri with
-    | None -> Ok (store, None)
-    | Some doc -> Ok (store, Some (Msource.text (Document.source doc))) )
-  | Lsp.Client_request.DebugEcho params -> Ok (store, params)
-  | Lsp.Client_request.TextDocumentColor _ -> Ok (store, [])
-  | Lsp.Client_request.TextDocumentColorPresentation _ -> Ok (store, [])
+    | None -> Ok (None, state)
+    | Some doc -> Ok (Some (Msource.text (Document.source doc)), state) )
+  | Lsp.Client_request.DebugEcho params -> Ok (params, state)
+  | Lsp.Client_request.TextDocumentColor _ -> Ok ([], state)
+  | Lsp.Client_request.TextDocumentColorPresentation _ -> Ok ([], state)
   | Lsp.Client_request.TextDocumentHover { textDocument = { uri }; position }
     -> (
     let query_type doc pos =
@@ -281,8 +312,9 @@ let on_request :
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let pos = Position.logical position in
+    let client_capabilities = client_capabilities state in
     match query_type doc pos with
-    | None -> Ok (store, None)
+    | None -> Ok (None, state)
     | Some (loc, typ) ->
       let doc = query_doc doc pos in
       let as_markdown =
@@ -296,7 +328,7 @@ let on_request :
       let contents = format_contents ~as_markdown ~typ ~doc in
       let range = Range.of_loc loc in
       let resp = Hover.create ~contents ~range () in
-      Ok (store, Some resp) )
+      Ok (Some resp, state) )
   | Lsp.Client_request.TextDocumentReferences
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -312,14 +344,14 @@ let on_request :
           let uri = Lsp.Uri.to_string uri in
           { Location.uri; range })
     in
-    Ok (store, Some lsp_locs)
+    Ok (Some lsp_locs, state)
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
-    Ok (store, codeLens)
+    Ok (codeLens, state)
   | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     match Document.kind doc with
-    | Intf -> Ok (store, [])
+    | Intf -> Ok ([], state)
     | Impl ->
       let command = Query_protocol.Outline in
       let outline = Document.dispatch doc command in
@@ -342,7 +374,7 @@ let on_request :
         in
         List.concat_map ~f:symbol_info_of_outline_item outline
       in
-      Ok (store, symbol_infos) )
+      Ok (symbol_infos, state) )
   | Lsp.Client_request.TextDocumentHighlight
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -358,14 +390,15 @@ let on_request :
              between assignment and usage. *)
           DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
     in
-    Ok (store, Some lsp_locs)
-  | Lsp.Client_request.WorkspaceSymbol _ -> Ok (store, None)
+    Ok (Some lsp_locs, state)
+  | Lsp.Client_request.WorkspaceSymbol _ -> Ok (None, state)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
+    let client_capabilities = client_capabilities state in
     let symbols = Document_symbol.run client_capabilities doc uri in
-    Ok (store, Some symbols)
-  | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (store, None)
+    Ok (Some symbols, state)
+  | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (None, state)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -373,8 +406,8 @@ let on_request :
     let position = Position.logical position in
     let command = Query_protocol.Locate (None, `ML, position) in
     match Document.dispatch doc command |> location_of_merlin_loc uri with
-    | None -> Ok (store, None)
-    | Some loc -> Ok (store, Some loc) )
+    | None -> Ok (None, state)
+    | Some loc -> Ok (Some loc, state) )
   | Lsp.Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -382,14 +415,14 @@ let on_request :
     let position = Position.logical position in
     let command = Query_protocol.Locate_type position in
     match Document.dispatch doc command |> location_of_merlin_loc uri with
-    | None -> Ok (store, None)
-    | Some loc -> Ok (store, Some loc) )
+    | None -> Ok (None, state)
+    | Some loc -> Ok (Some loc, state) )
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
     let+ resp = Compl.complete doc position in
-    (store, Some resp)
+    (Some resp, state)
   | Lsp.Client_request.TextDocumentPrepareRename
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -403,7 +436,7 @@ let on_request :
           let range = Range.of_loc loc in
           Position.compare_inclusion position range = `Inside)
     in
-    Ok (store, Option.map loc ~f:Range.of_loc)
+    Ok (Option.map loc ~f:Range.of_loc, state)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -419,6 +452,7 @@ let on_request :
           { TextEdit.newText = newName; range })
     in
     let workspace_edits =
+      let client_capabilities = client_capabilities state in
       let documentChanges =
         let open Option.O in
         Option.value ~default:false
@@ -438,7 +472,7 @@ let on_request :
       else
         WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
     in
-    Ok (store, workspace_edits)
+    Ok (workspace_edits, state)
   | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
@@ -465,20 +499,20 @@ let on_request :
       loop [] outline
       |> List.sort ~compare:(fun x y -> Ordering.of_int (compare x y))
     in
-    Ok (store, Some folds)
+    Ok (Some folds, state)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
   | Lsp.Client_request.ExecuteCommand _ -> not_supported ()
-  | Lsp.Client_request.TextDocumentLinkResolve l -> Ok (store, l)
-  | Lsp.Client_request.TextDocumentLink _ -> Ok (store, None)
-  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> Ok (store, None)
-  | Lsp.Client_request.CodeAction params -> code_action store params
-  | Lsp.Client_request.CompletionItemResolve compl -> Ok (store, compl)
+  | Lsp.Client_request.TextDocumentLinkResolve l -> Ok (l, state)
+  | Lsp.Client_request.TextDocumentLink _ -> Ok (None, state)
+  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> Ok (None, state)
+  | Lsp.Client_request.CodeAction params -> code_action rpc params
+  | Lsp.Client_request.CompletionItemResolve compl -> Ok (compl, state)
   | Lsp.Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     let* doc = Document_store.get store uri in
-    Formatter.run rpc store doc
-  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (store, None)
+    Formatter.run rpc doc
+  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (None, state)
   | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
     let selection_range_of_shapes (cursor_position : Position.t)
         (shapes : Query_protocol.shape list) : SelectionRange.t option =
@@ -512,46 +546,50 @@ let on_request :
           let shapes = Document.dispatch doc command in
           selection_range_of_shapes x shapes)
     in
-    Ok (store, results)
+    Ok (results, state)
   | Lsp.Client_request.UnknownRequest _ ->
     Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
-let on_notification rpc store (notification : Lsp.Client_notification.t) :
-    (Document_store.t, string) result =
+let on_notification server (notification : Lsp.Client_notification.t) : state =
+  let state = Server.state server in
+  let store = state.store in
   match notification with
   | TextDocumentDidOpen params ->
     let doc = Document.make params in
     Document_store.put store doc;
-    send_diagnostics rpc doc;
-    Ok store
+    let (_ : unit Fiber.t) = send_diagnostics server doc in
+    state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.remove_document store uri;
-    Ok store
+    state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
     -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     match Document_store.get store uri with
+    | Error e ->
+      Format.eprintf "uri doesn't exist %s@.%!" e.message;
+      state
     | Ok prev_doc ->
       let doc =
         let f doc change = Document.update_text ?version change doc in
         List.fold_left ~f ~init:prev_doc contentChanges
       in
       Document_store.put store doc;
-      send_diagnostics rpc doc;
-      Ok store
-    | Error e -> Error e.message )
+      let (_ : unit Fiber.t) = send_diagnostics server doc in
+      state )
   | DidSaveTextDocument _
   | WillSaveTextDocument _
   | ChangeConfiguration _
   | ChangeWorkspaceFolders _
   | Initialized
   | Exit ->
-    Ok store
+    state
   | Unknown_notification req -> (
     match req.method_ with
-    | "$/setTraceNotification" -> Ok store
-    | "$/cancelRequest" -> Ok store
+    | "$/setTraceNotification"
+    | "$/cancelRequest" ->
+      state
     | _ ->
       ( match req.params with
       | None ->
@@ -561,7 +599,7 @@ let on_notification rpc store (notification : Lsp.Client_notification.t) :
           req.method_
           (fun () -> Yojson.Safe.pretty_to_string ~std:false)
           json );
-      Ok store )
+      state )
 
 let start () =
   let docs = Document_store.make () in
@@ -576,31 +614,27 @@ let start () =
     let _notifications = ref [] in
     Logger.with_notifications (ref []) @@ fun () -> File_id.with_cache @@ f
   in
-  let on_initialize rpc state params =
-    Fiber.return
-      ( prepare_and_run Printexc.to_string @@ fun () ->
-        on_initialize rpc state params )
+  let on_notification server notif =
+    Fiber.return (on_notification server notif)
   in
-  let on_notification rpc state notif =
-    Fiber.return
-      ( prepare_and_run Printexc.to_string @@ fun () ->
-        on_notification rpc state notif )
-  in
-  let on_request rpc state caps req =
+  let on_request server req =
     Fiber.return
       ( prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
-        on_request rpc state caps req )
+        on_request server req )
   in
-  ( match
-      Lsp.Server.start docs
-        { on_initialize; on_request; on_notification }
-        stdin stdout
-      |> Fiber.run
-    with
-  | None ->
-    Format.eprintf "Scheduler got stuck@.";
-    exit 1
-  | Some () -> () );
+  let scheduler = Scheduler.create () in
+  let handler =
+    let on_request = { Server.Handler.on_request } in
+    Server.Handler.make ~on_request ~on_notification ()
+  in
+  let stream =
+    let io = Lsp.Io.make stdin stdout in
+    Lsp.Rpc.Stream_io.make scheduler io
+  in
+  let server =
+    Server.make handler stream { store = docs; init = Uninitialized }
+  in
+  Scheduler.run scheduler (Server.start server);
   log ~title:Logger.Title.Info "exiting"
 
 let run ~log_file =

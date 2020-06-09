@@ -1,22 +1,6 @@
 open Import
 open Jsonrpc
 
-module Message = struct
-  type ('request, 'notif) t =
-    | Request of Id.t * 'request
-    | Notification of 'notif
-
-  let of_jsonrpc req notif (packet : Request.t) =
-    let open Result.O in
-    match packet.id with
-    | None ->
-      let+ n = notif packet in
-      Notification n
-    | Some id ->
-      let+ req = req packet in
-      Request (id, req)
-end
-
 module Raw_io = struct
   let { Logger.log } = Logger.for_section "lsp_io"
 

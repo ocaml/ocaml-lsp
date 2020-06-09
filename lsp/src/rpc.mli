@@ -1,18 +1,6 @@
 open! Import
 open Jsonrpc
 
-module Message : sig
-  type ('request, 'notif) t =
-    | Request of Id.t * 'request
-    | Notification of 'notif
-
-  val of_jsonrpc :
-       (Request.t -> ('r, string) result)
-    -> (Request.t -> ('n, string) result)
-    -> Request.t
-    -> (('r, 'n) t, string) result
-end
-
 module Io : sig
   type t
 
