@@ -10,6 +10,7 @@ type init =
 
 type state =
   { store : Document_store.t
+  ; diagnostics_timer : Scheduler.timer
   ; init : init
   }
 
@@ -125,7 +126,16 @@ let send_diagnostics rpc doc =
         (PublishDiagnosticsParams.create ~uri ~diagnostics ())
     in
 
-    Server.notification rpc notif
+    detach (fun () ->
+        let open Fiber.O in
+        let+ res =
+          let state : state = Server.state rpc in
+          Scheduler.schedule state.diagnostics_timer (fun () ->
+              Server.notification rpc notif)
+        in
+        match res with
+        | Error `Cancelled -> ()
+        | Ok () -> ())
 
 let on_initialize rpc =
   let log_consumer (section, title, text) =
@@ -632,7 +642,9 @@ let start () =
     Lsp.Rpc.Stream_io.make scheduler io
   in
   let server =
-    Server.make handler stream { store = docs; init = Uninitialized }
+    let diagnostics_timer = Scheduler.create_timer scheduler ~delay:0.25 in
+    Server.make handler stream
+      { store = docs; init = Uninitialized; diagnostics_timer }
   in
   Scheduler.run scheduler (Server.start server);
   log ~title:Logger.Title.Info "exiting"
