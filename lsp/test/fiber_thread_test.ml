@@ -30,13 +30,20 @@ let () =
     let last =
       Scheduler.schedule timer (fun () -> Fiber.return (true, diff ()))
     in
-    let+ res = Fiber.fork_and_join (fun () -> first) (fun () -> last) in
+    let* res = Fiber.fork_and_join (fun () -> first) (fun () -> last) in
     match res with
     | Error `Cancelled, Ok (true, diff) ->
       Format.eprintf "first scheduled cancelled. second one ran after %f@.%!"
         diff;
-      Ok ()
-    | _, _ -> Error ()
+      let* () =
+        Scheduler.detach ~name:"timer" s (fun () ->
+            let+ res = Scheduler.schedule timer (fun () -> Fiber.return ()) in
+            match res with
+            | Error `Cancelled -> assert false
+            | Ok () -> ())
+      in
+      Fiber.return (Ok ())
+    | _, _ -> Fiber.return (Error ())
   in
   let all = Fiber.fork_and_join fb timers_finished in
   let res = Scheduler.run s all in
