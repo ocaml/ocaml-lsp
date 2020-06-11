@@ -15,11 +15,13 @@ module Client = struct
             ~code:InternalError ()))
 
   let on_notification (client : state Client.t) n =
+    let open Fiber.O in
     let state = Client.state client in
     let req = Server_notification.to_jsonrpc n in
     Format.eprintf "client: received notification@.%s@.%!" req.method_;
-    let (_ : unit Fiber.t) = Fiber.Ivar.fill state.received_notification () in
-    Fiber.return state
+    let+ () = Fiber.Ivar.fill state.received_notification () in
+    Format.eprintf "client: filled received_notification@.%!";
+    state
 
   let handler =
     let on_request = { Client.Handler.on_request } in
@@ -38,7 +40,7 @@ module Client = struct
     in
     let running = Client.start client initialize in
     let open Fiber.O in
-    let init () =
+    let init () : unit Fiber.t =
       Format.eprintf "client: waiting for initialization@.%!";
       let* (_ : Types.InitializeResult.t) = Client.initialized client in
       Format.eprintf "client: server initialized. sending request@.%!";
