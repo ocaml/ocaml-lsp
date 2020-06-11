@@ -283,10 +283,12 @@ module Server = struct
             (Client_request)
             (Client_notification)
 
-  let h_on_notification t n =
+  let h_on_notification handler t n =
     let open Fiber.O in
     match n with
     | Client_notification.Exit ->
+      Log.log ~section:"server" (fun () ->
+          Log.msg "received exit notification" []);
       let* () = stop t in
       Fiber.return (state t)
     | _ ->
@@ -294,14 +296,14 @@ module Server = struct
         let state = state t in
         Fiber.return state
       else
-        t.handler.h_on_notification t n
+        handler.h_on_notification t n
 
-  let on_request t in_r =
+  let on_request handler t in_r =
     let open Fiber.O in
     match Client_request.E in_r with
     | Client_request.E (Client_request.Initialize i) ->
       if t.state = Waiting_for_init then (
-        let* result = t.handler.h_on_request.on_request t in_r in
+        let* result = handler.h_on_request.on_request t in_r in
         t.state <- Running;
         (* XXX Should we wait for the waiter of initialized to finish? *)
         let* () = Fiber.Ivar.fill t.initialized i in
@@ -316,15 +318,17 @@ module Server = struct
         let message = "not initialized" in
         Fiber.return (Error (Jsonrpc.Response.Error.make ~code ~message ()))
       else
-        t.handler.h_on_request.on_request t in_r
+        handler.h_on_request.on_request t in_r
 
   let make (type s) (handler : s Handler.t) io (initial_state : s) =
-    let t = make ~name:"server" handler io initial_state in
     let handler =
-      let h_on_request : _ Handler.on_request = { Handler.on_request } in
+      let h_on_request : _ Handler.on_request =
+        { Handler.on_request = (fun t x -> on_request handler t x) }
+      in
+      let h_on_notification = h_on_notification handler in
       { h_on_request; h_on_notification }
     in
-    { t with handler }
+    make ~name:"server" handler io initial_state
 
   let start t = start_loop t
 end
