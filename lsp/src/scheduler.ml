@@ -136,6 +136,7 @@ type t =
 and event =
   | Job_completed : 'a * 'a Fiber.Ivar.t -> event
   | Scheduled of packed_active_timer
+  | Detached of detached_task
 
 and job = Pending : (unit -> 'a) * 'a Or_exn.t Fiber.Ivar.t -> job
 
@@ -261,6 +262,8 @@ let async (t : thread) f =
 
 let stop (t : thread) = Worker.stop t.worker
 
+let log = Log.log ~section:"scheduler"
+
 let rec pump_events (t : t) =
   let open Fiber.O in
   if t.events_pending = 0 && Queue.is_empty t.events then
@@ -284,6 +287,25 @@ let rec pump_events (t : t) =
       ) else
         let* () =
           match consume_event () with
+          | Detached { name; task } ->
+            log (fun () ->
+                let args =
+                  match name with
+                  | None -> []
+                  | Some name -> [ ("name", `String name) ]
+                in
+                Log.msg "running detached task" args);
+            let task () =
+              let+ () = task () in
+              log (fun () ->
+                  let args =
+                    match name with
+                    | None -> []
+                    | Some name -> [ ("name", `String name) ]
+                  in
+                  Log.msg "finished detached task" args)
+            in
+            Fiber.fork_and_join_unit task (fun () -> pump_events t)
           | Job_completed (a, ivar) -> Fiber.Ivar.fill ivar a
           | Scheduled (Active_timer active_timer) ->
             Table.remove t.timers active_timer.parent.timer_id;
@@ -299,8 +321,6 @@ let rec pump_events (t : t) =
   )
 
 exception Never
-
-let log = Log.log ~section:"scheduler"
 
 (* This implementation of dequeing detached tasks is buggy. What happens when we
    detach that rely on some subsequent detached task to proceed?
@@ -335,7 +355,6 @@ let rec restart_suspended t =
           f.task ())
         detached
     in
-    log (fun () -> Log.msg "finished processing tasks" []);
     restart_suspended t
 
 let run : 'a. t -> 'a Fiber.t -> 'a =
@@ -398,7 +417,8 @@ let detach ?name t f =
           (Dyn.to_string (Exn_with_backtrace.to_dyn e)))
       (fun () -> Fiber.map (f ()) ~f:ignore)
   in
-  Queue.add { name; task } t.detached;
+  add_pending_events t 1;
+  add_events t [ Detached { name; task } ];
   Fiber.return ()
 
 let report ppf t =
