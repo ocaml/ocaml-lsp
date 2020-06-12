@@ -4,6 +4,8 @@ module Scheduler = Lsp.Scheduler
 module Jsonrpc = Lsp.Jsonrpc
 module Server = Lsp.Server
 
+let default_delay = 0.25
+
 type init =
   | Uninitialized
   | Initialized of ClientCapabilities.t
@@ -642,7 +644,9 @@ let start () =
     Lsp.Rpc.Stream_io.make scheduler io
   in
   let server =
-    let diagnostics_timer = Scheduler.create_timer scheduler ~delay:0.25 in
+    let diagnostics_timer =
+      Scheduler.create_timer scheduler ~delay:default_delay
+    in
     Server.make handler stream
       { store = docs; init = Uninitialized; diagnostics_timer }
   in
