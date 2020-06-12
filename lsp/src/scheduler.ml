@@ -273,9 +273,10 @@ let log = Log.log ~section:"scheduler"
 
 let rec pump_events (t : t) =
   let open Fiber.O in
-  if t.events_pending = 0 && Queue.is_empty t.events then
+  if t.events_pending = 0 && Queue.is_empty t.events then (
+    log (fun () -> Log.msg "finished processing events" []);
     Fiber.return (List.iter t.threads ~f:stop)
-  else if t.events_pending < 0 then
+  ) else if t.events_pending < 0 then
     assert false
   else (
     Mutex.lock t.mutex;
