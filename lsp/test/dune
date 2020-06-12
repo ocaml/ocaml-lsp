@@ -27,6 +27,11 @@
  (action
   (run ./fiber_thread_test.exe)))
 
+(rule
+ (alias fiber)
+ (action
+  (run ./fiber_thread_test.exe)))
+
 (executable
  (name jsonrpc_test)
  (modules jsonrpc_test)
