@@ -84,7 +84,7 @@ module Server = struct
         Format.eprintf "server: initializing server@.";
         Format.eprintf "server: returning initialization result@.%!";
         Fiber.return (Ok (result, Initialized))
-      | ExecuteCommand _ ->
+      | Client_request.ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
         let open Fiber.O in
