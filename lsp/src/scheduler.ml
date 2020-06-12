@@ -317,10 +317,14 @@ let rec pump_events (t : t) =
             ()
           | Job_completed (a, ivar) -> Fiber.Ivar.fill ivar a
           | Scheduled (Active_timer active_timer) ->
-            Table.remove t.timers active_timer.parent.timer_id;
-            Mutex.unlock t.time_mutex;
-            let* res = active_timer.action () in
-            Fiber.Ivar.fill active_timer.ivar (Ok res)
+            with_mutex t.time_mutex ~f:(fun () ->
+                Table.remove t.timers active_timer.parent.timer_id);
+            let+ (_ : _ Fiber.Future.t) =
+              Fiber.fork (fun () ->
+                  let* res = active_timer.action () in
+                  Fiber.Ivar.fill active_timer.ivar (Ok res))
+            in
+            ()
         in
         Mutex.lock t.mutex;
         aux ()
