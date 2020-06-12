@@ -375,7 +375,7 @@ let run : 'a. t -> 'a Fiber.t -> 'a =
       let* (_ : unit Fiber.Future.t) =
         Fiber.fork (fun () -> restart_suspended t)
       in
-      let* (_ : unit Fiber.Future.t) = Fiber.fork (fun () -> pump_events t) in
+      let* () = pump_events t in
       Fiber.Future.peek user_action
     in
     Fiber.run fiber
