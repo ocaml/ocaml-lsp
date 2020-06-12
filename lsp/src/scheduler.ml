@@ -381,10 +381,16 @@ let run : 'a. t -> 'a Fiber.t -> 'a =
   with
   | None
   | Some None ->
-    if Queue.is_empty t.detached then
-      raise Never
-    else
-      Code_error.raise "detached tasks left" []
+    if not (Queue.is_empty t.detached) then
+      Code_error.raise "detached tasks left" [];
+    if t.events_pending <> 0 || not (Queue.is_empty t.events) then
+      Code_error.raise "pending events ignored"
+        [ ("events_pending", Int t.events_pending)
+        ; ( "events"
+          , Dyn.Encoder.list dyn_event_tag (List.of_seq (Queue.to_seq t.events))
+          )
+        ];
+    raise Never
   | Some (Some x) -> x
 
 let create_timer t ~delay =
