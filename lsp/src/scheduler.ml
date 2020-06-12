@@ -1,5 +1,11 @@
 open Import
 
+let with_mutex m ~f =
+  Mutex.lock m;
+  let res = f () in
+  Mutex.unlock m;
+  res
+
 module Mvar : sig
   type 'a t
 
@@ -32,9 +38,7 @@ end = struct
     await_value t
 
   let set t v =
-    Mutex.lock t.m;
-    t.cell <- Some v;
-    Mutex.unlock t.m;
+    with_mutex t.m ~f:(fun () -> t.cell <- Some v);
     Condition.signal t.cv
 end
 
@@ -100,10 +104,9 @@ end = struct
     ( match t.state with
     | Running _ -> ()
     | _ -> Code_error.raise "invalid state" [] );
-    Mutex.lock t.mutex;
-    Queue.add w t.work;
-    Condition.signal t.work_available;
-    Mutex.unlock t.mutex
+    with_mutex t.mutex ~f:(fun () ->
+        Queue.add w t.work;
+        Condition.signal t.work_available)
 
   let stop (t : _ t) =
     match t.state with
@@ -161,14 +164,20 @@ and 'a active_timer =
 and packed_active_timer =
   | Active_timer : 'a active_timer -> packed_active_timer
 
+let dyn_event_tag : event -> Dyn.t =
+  let open Dyn.Encoder in
+  function
+  | Job_completed (_, _) -> constr "Job_completed" []
+  | Scheduled _ -> constr "Scheduled" []
+  | Detached _ -> constr "Detached" []
+
 let add_events t = function
   | [] -> ()
   | events ->
-    Mutex.lock t.mutex;
-    t.events_pending <- t.events_pending - List.length events;
-    List.iter events ~f:(fun e -> Queue.add e t.events);
-    Condition.signal t.event_ready;
-    Mutex.unlock t.mutex
+    with_mutex t.mutex ~f:(fun () ->
+        t.events_pending <- t.events_pending - List.length events;
+        List.iter events ~f:(fun e -> Queue.add e t.events);
+        Condition.signal t.event_ready)
 
 let is_empty table = Table.length table = 0
 
@@ -250,9 +259,7 @@ let create_thread scheduler =
   t
 
 let add_pending_events t by =
-  Mutex.lock t.mutex;
-  t.events_pending <- t.events_pending + by;
-  Mutex.unlock t.mutex
+  with_mutex t.mutex ~f:(fun () -> t.events_pending <- t.events_pending + by)
 
 let async (t : thread) f =
   add_pending_events t.scheduler 1;
@@ -386,27 +393,30 @@ let create_timer t ~delay =
 let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     (a, [ `Cancelled ]) result Fiber.t =
   let scheduled = Unix.gettimeofday () in
-  Mutex.lock timer.timer_scheduler.time_mutex;
-  let ivar =
-    match Table.find timer.timer_scheduler.timers timer.timer_id with
-    | Some active ->
-      let fill_old =
-        let (Active_timer active) = !active in
-        Fiber.Ivar.fill active.ivar (Error `Cancelled)
-      in
-      let ivar = Fiber.Ivar.create () in
-      let action () = Fiber.fork_and_join_unit (fun () -> fill_old) f in
-      active := Active_timer { scheduled; action; ivar; parent = timer };
-      ivar
-    | None ->
-      add_pending_events timer.timer_scheduler 1;
-      let ivar = Fiber.Ivar.create () in
-      Table.add_exn timer.timer_scheduler.timers timer.timer_id
-        (ref (Active_timer { scheduled; action = f; ivar; parent = timer }));
-      Condition.signal timer.timer_scheduler.timers_available;
-      ivar
+  let make_active_timer action =
+    { scheduled; action; ivar = Fiber.Ivar.create (); parent = timer }
   in
-  Mutex.unlock timer.timer_scheduler.time_mutex;
+  let ivar =
+    with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
+        match Table.find timer.timer_scheduler.timers timer.timer_id with
+        | Some active ->
+          let fill_old =
+            let (Active_timer active) = !active in
+            log (fun () -> Log.msg "cancelled task" []);
+            Fiber.Ivar.fill active.ivar (Error `Cancelled)
+          in
+          let action () = Fiber.fork_and_join_unit (fun () -> fill_old) f in
+          let active_timer = make_active_timer action in
+          active := Active_timer active_timer;
+          active_timer.ivar
+        | None ->
+          add_pending_events timer.timer_scheduler 1;
+          let active_timer = make_active_timer f in
+          Table.add_exn timer.timer_scheduler.timers timer.timer_id
+            (ref (Active_timer active_timer));
+          Condition.signal timer.timer_scheduler.timers_available;
+          active_timer.ivar)
+  in
   Fiber.Ivar.read ivar
 
 let detach ?name t f =
