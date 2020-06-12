@@ -89,13 +89,35 @@ module Server = struct
         let result = `String "successful execution" in
         let open Fiber.O in
         let* () =
+          let timer = Scheduler.create_timer scheduler ~delay:0.5 in
           Scheduler.detach ~name:"ShowMessage" scheduler (fun () ->
               Format.eprintf
                 "server: sending message notification to client@.%!";
               let msg =
                 ShowMessageParams.create ~type_:MessageType.Info ~message:"foo"
               in
-              Server.notification self (Server_notification.ShowMessage msg))
+              let rec loop n res : unit Fiber.t =
+                if n = 0 then
+                  let+ res = res in
+                  let () =
+                    match res with
+                    | Ok () -> Format.eprintf "server: %d ran@.%!" n
+                    | Error `Cancelled ->
+                      Format.eprintf "server: %d cancellation@.%!" n
+                  in
+                  ()
+                else
+                  let res =
+                    Format.eprintf "server: scheduling show message@.%!";
+                    Scheduler.schedule timer (fun () ->
+                        Format.eprintf
+                          "server: sending show message notification@.%!";
+                        Server.notification self
+                          (Server_notification.ShowMessage msg))
+                  in
+                  loop (n - 1) res
+              in
+              loop 2 (Fiber.return (Ok ())))
         in
         Fiber.return (Ok (result, state))
       | _ ->
