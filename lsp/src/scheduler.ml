@@ -433,8 +433,8 @@ let detach ?name t f =
           (Dyn.to_string (Exn_with_backtrace.to_dyn e)))
       (fun () -> Fiber.map (f ()) ~f:ignore)
   in
-  add_pending_events t 1;
-  add_events t [ Detached { name; task } ];
+  let event = Detached { name; task } in
+  with_mutex t.mutex ~f:(fun () -> Queue.add event t.events);
   Fiber.return ()
 
 let report ppf t =
