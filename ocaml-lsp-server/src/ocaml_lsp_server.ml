@@ -205,16 +205,20 @@ let location_of_merlin_loc uri = function
   | `Not_found _
   | `Not_in_env _ ->
     None
-  | `Found (path, lex_position) ->
-    let position = Position.of_lexical_position lex_position in
-    let range = { Range.start = position; end_ = position } in
-    let uri =
-      match path with
-      | None -> uri
-      | Some path -> Lsp.Uri.of_path path
-    in
-    let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
-    Some (`Location locs)
+  | `Found (path, lex_position) -> (
+    match Position.of_lexical_position lex_position with
+    | None ->
+      log ~title:Logger.Title.Warning "merlin returned dummy position";
+      None
+    | Some position ->
+      let range = { Range.start = position; end_ = position } in
+      let uri =
+        match path with
+        | None -> uri
+        | Some path -> Lsp.Uri.of_path path
+      in
+      let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
+      Some (`Location locs) )
 
 let on_request :
     type resp.
