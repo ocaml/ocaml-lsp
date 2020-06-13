@@ -33,6 +33,7 @@ possible and does not make any assumptions about IO.
   ppx_yojson_conv_lib
   ocaml-syntax-shims
   cppo
+  uutf
   (ocaml (>= 4.06))
   (dune (>= 2.0))))
 
