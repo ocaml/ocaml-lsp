@@ -488,16 +488,7 @@ let on_request :
       let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
       (* try to find the nearest range inside first, then outside *)
       let nearest_range =
-        let min_by_opt xs ~f =
-          List.fold_left xs ~init:None ~f:(fun state x ->
-              match state with
-              | None -> Some x
-              | Some y -> (
-                match f x y with
-                | Ordering.Lt -> Some x
-                | _ -> Some y ))
-        in
-        min_by_opt ranges ~f:(fun r1 r2 ->
+        List.min ranges ~f:(fun r1 r2 ->
             let inc (r : SelectionRange.t) =
               Position.compare_inclusion cursor_position r.range
             in
