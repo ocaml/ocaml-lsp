@@ -370,6 +370,9 @@ let rec restart_suspended t =
     in
     restart_suspended t
 
+let list_of_queue q =
+  List.rev (Queue.fold (fun acc a -> a :: acc) [] q)
+
 let run : 'a. t -> 'a Fiber.t -> 'a =
  fun t f ->
   let f = Fiber.Var.set me t (fun () -> f) in
@@ -393,7 +396,7 @@ let run : 'a. t -> 'a Fiber.t -> 'a =
       Code_error.raise "pending events ignored"
         [ ("events_pending", Int t.events_pending)
         ; ( "events"
-          , Dyn.Encoder.list dyn_event_tag (List.of_seq (Queue.to_seq t.events))
+          , Dyn.Encoder.list dyn_event_tag (list_of_queue t.events)
           )
         ];
     raise Never
