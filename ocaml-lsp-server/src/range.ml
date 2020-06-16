@@ -8,7 +8,14 @@ let compare_size (x : t) (y : t) =
   Stdune.Tuple.T2.compare Int.compare Int.compare (dx.line, dy.line)
     (dx.character, dy.character)
 
+let first_line =
+  let start = { Position.line = 1; character = 0 } in
+  let end_ = { Position.line = 2; character = 0 } in
+  { start; end_ }
+
 let of_loc (loc : Loc.t) : t =
-  { start = Position.of_lexical_position loc.loc_start
-  ; end_ = Position.of_lexical_position loc.loc_end
-  }
+  (let open Option.O in
+  let* start = Position.of_lexical_position loc.loc_start in
+  let+ end_ = Position.of_lexical_position loc.loc_end in
+  { start; end_ })
+  |> Option.value ~default:first_line
