@@ -13,6 +13,7 @@ type init =
 type state =
   { store : Document_store.t
   ; diagnostics_timer : Scheduler.timer
+  ; merlin : Scheduler.thread
   ; init : init
   }
 
@@ -647,8 +648,9 @@ let start () =
     let diagnostics_timer =
       Scheduler.create_timer scheduler ~delay:default_delay
     in
+    let merlin = Scheduler.create_thread scheduler in
     Server.make handler stream
-      { store = docs; init = Uninitialized; diagnostics_timer }
+      { store = docs; init = Uninitialized; diagnostics_timer; merlin }
   in
   Scheduler.run scheduler (Server.start server);
   log ~title:Logger.Title.Info "exiting"
