@@ -13,15 +13,15 @@ module Stream_io = struct
   let recv (i, _) = In.read i
 
   let make s io =
-    let r = Scheduler.create_thread s in
-    let w = Scheduler.create_thread s in
     let i =
+      let r = Scheduler.create_thread s in
       Fiber_stream.In.create (fun () ->
           let open Fiber.O in
           let+ res = Scheduler.async r (fun () -> Io.read io) in
           Result.ok_exn res)
     in
     let o =
+      let w = Scheduler.create_thread s in
       let open Fiber.O in
       Fiber_stream.Out.create (fun t ->
           let+ res =
