@@ -82,13 +82,12 @@ let complete doc position =
   let prefix = prefix_of_position (Document.source doc) position in
   log ~title:Logger.Title.Debug "completion prefix: |%s|" prefix;
 
-  Document.with_pipeline doc @@ fun pipeline ->
+  Document.with_pipeline_exn doc @@ fun pipeline ->
   let completion =
     let complete =
       Query_protocol.Complete_prefix
         (prefix, position, completion_kinds, true, true)
     in
-    (* TODO use Document.dispatch *)
     Query_commands.dispatch pipeline complete
   in
   let items = completion.entries |> List.map ~f:(fun entry -> `Keep entry) in

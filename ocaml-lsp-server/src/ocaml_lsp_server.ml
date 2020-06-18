@@ -1,5 +1,7 @@
 open Import
 module Server_notification = Lsp.Server_notification
+module HoverParams = Lsp.Types.HoverParams
+module CodeLensParams = Lsp.Types.CodeLensParams
 module Scheduler = Lsp.Scheduler
 module Jsonrpc = Lsp.Jsonrpc
 module Server = Lsp.Server
@@ -27,8 +29,9 @@ let make_error = Lsp.Jsonrpc.Response.Error.make
 let detach f = Scheduler.detach (Scheduler.scheduler ()) f
 
 let not_supported () =
-  Error
-    (make_error ~code:InternalError ~message:"Request not supported yet!" ())
+  Fiber.return
+  @@ Error
+       (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
 module Action = struct
   let destruct = "destruct"
@@ -103,12 +106,13 @@ let send_diagnostics rpc doc =
     in
     Server.notification rpc notif
   | true ->
-    let command =
-      Query_protocol.Errors { lexing = true; parsing = true; typing = true }
-    in
-    Document.with_pipeline doc @@ fun pipeline ->
-    let errors = Query_commands.dispatch pipeline command in
-    let diagnostics =
+    let open Fiber.O in
+    let* diagnostics =
+      Document.with_pipeline_exn doc @@ fun pipeline ->
+      let command =
+        Query_protocol.Errors { lexing = true; parsing = true; typing = true }
+      in
+      let errors = Query_commands.dispatch pipeline command in
       List.map errors ~f:(fun (error : Loc.error) ->
           let loc = Loc.loc_of_report error in
           let range = Range.of_loc loc in
@@ -174,34 +178,35 @@ let code_action_of_case_analysis uri (loc, newText) =
     ~isPreferred:false ()
 
 let code_action server (params : CodeActionParams.t) =
-  let open Lsp.Import.Result.O in
   let state = Server.state server in
   let store = state.store in
   match params.context.only with
   | Some set when not (List.mem (CodeActionKind.Other Action.destruct) ~set) ->
-    Ok (None, state)
+    Fiber.return (Ok (None, state))
   | Some _
   | None ->
+    let open Fiber.Result.O in
     let uri = Lsp.Uri.t_of_yojson (`String params.textDocument.uri) in
-    let* doc = Document_store.get store uri in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let command =
       let start = Position.logical params.range.start in
       let finish = Position.logical params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
-    let result : CodeActionResult.t =
-      try
-        let res = Document.dispatch doc command in
-        Some [ `CodeAction (code_action_of_case_analysis uri res) ]
-      with
-      | Destruct.Wrong_parent _
-      | Query_commands.No_nodes
-      | Destruct.Not_allowed _
-      | Destruct.Useless_refine
-      | Destruct.Nothing_to_do ->
-        Some []
+    let+ result =
+      let open Fiber.O in
+      let+ res = Document.dispatch doc command in
+      match res with
+      | Ok res ->
+        Ok (Some [ `CodeAction (code_action_of_case_analysis uri res) ])
+      | Error
+          ( Destruct.Wrong_parent _ | Query_commands.No_nodes
+          | Destruct.Not_allowed _ | Destruct.Useless_refine
+          | Destruct.Nothing_to_do ) ->
+        Ok (Some [])
+      | Error exn -> raise exn
     in
-    Ok (result, state)
+    (result, state)
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
@@ -261,11 +266,108 @@ let location_of_merlin_loc uri = function
       let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
       Some (`Location locs) )
 
+let hover (state : state) { HoverParams.textDocument = { uri }; position } =
+  let store = state.store in
+  let query_type doc pos =
+    let command = Query_protocol.Type_enclosing (None, pos, None) in
+    let open Fiber.O in
+    let+ res = Document.dispatch_exn doc command in
+    match res with
+    | []
+    | (_, `Index _, _) :: _ ->
+      None
+    | (location, `String value, _) :: _ -> Some (location, value)
+  in
+
+  let query_doc doc pos =
+    let command = Query_protocol.Document (None, pos) in
+    let open Fiber.O in
+    let+ res = Document.dispatch_exn doc command in
+    match res with
+    | `Found s
+    | `Builtin s ->
+      Some s
+    | _ -> None
+  in
+
+  let format_contents ~as_markdown ~typ ~doc =
+    let doc =
+      match doc with
+      | None -> ""
+      | Some s -> Printf.sprintf "\n(** %s *)" s
+    in
+    `MarkupContent
+      ( if as_markdown then
+        { MarkupContent.value = Printf.sprintf "```ocaml\n%s%s\n```" typ doc
+        ; kind = MarkupKind.Markdown
+        }
+      else
+        { MarkupContent.value = Printf.sprintf "%s%s" typ doc
+        ; kind = MarkupKind.PlainText
+        } )
+  in
+
+  let uri = Lsp.Uri.t_of_yojson (`String uri) in
+  let open Fiber.Result.O in
+  let* doc = Fiber.return (Document_store.get store uri) in
+  let pos = Position.logical position in
+  let client_capabilities = client_capabilities state in
+  let open Fiber.O in
+  let* query_type = query_type doc pos in
+  match query_type with
+  | None -> Fiber.return @@ Ok (None, state)
+  | Some (loc, typ) ->
+    let+ doc = query_doc doc pos in
+    let as_markdown =
+      match client_capabilities.textDocument with
+      | None -> false
+      | Some { hover = Some { contentFormat; _ }; _ } ->
+        List.mem MarkupKind.Markdown
+          ~set:(Option.value contentFormat ~default:[ Markdown ])
+      | _ -> false
+    in
+    let contents = format_contents ~as_markdown ~typ ~doc in
+    let range = Range.of_loc loc in
+    let resp = Hover.create ~contents ~range () in
+    Ok (Some resp, state)
+
+let text_document_lens state { CodeLensParams.textDocument = { uri } } =
+  let uri = Lsp.Uri.t_of_yojson (`String uri) in
+  let store = state.store in
+  let open Fiber.Result.O in
+  let* doc = Fiber.return @@ Document_store.get store uri in
+  match Document.kind doc with
+  | Intf -> Fiber.return @@ Ok ([], state)
+  | Impl ->
+    let open Fiber.O in
+    let command = Query_protocol.Outline in
+    let+ outline = Document.dispatch_exn doc command in
+    let symbol_infos =
+      let rec symbol_info_of_outline_item item =
+        let children =
+          List.concat_map item.Query_protocol.children
+            ~f:symbol_info_of_outline_item
+        in
+        match item.Query_protocol.outline_type with
+        | None -> children
+        | Some typ ->
+          let loc = item.Query_protocol.location in
+          let info =
+            let range = Range.of_loc loc in
+            let command = Command.create ~title:typ ~command:"" () in
+            CodeLens.create ~range ~command ()
+          in
+          info :: children
+      in
+      List.concat_map ~f:symbol_info_of_outline_item outline
+    in
+    Ok (symbol_infos, state)
+
 let on_request :
     type resp.
        state Server.t
     -> resp Lsp.Client_request.t
-    -> (resp * state, Lsp.Jsonrpc.Response.Error.t) result =
+    -> (resp * state, Lsp.Jsonrpc.Response.Error.t) result Fiber.t =
  fun rpc req ->
   let state = Server.state rpc in
   let store = state.store in
@@ -274,82 +376,30 @@ let on_request :
   | Lsp.Client_request.Initialize ip ->
     let initialize_result = on_initialize rpc in
     let state = { state with init = Initialized ip.capabilities } in
-    Ok (initialize_result, state)
-  | Lsp.Client_request.Shutdown -> Ok ((), state)
+    Fiber.return @@ Ok (initialize_result, state)
+  | Lsp.Client_request.Shutdown -> Fiber.return @@ Ok ((), state)
   | Lsp.Client_request.DebugTextDocumentGet
-      { textDocument = { uri }; position = _ } -> (
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    match Document_store.get_opt store uri with
-    | None -> Ok (None, state)
-    | Some doc -> Ok (Some (Msource.text (Document.source doc)), state) )
-  | Lsp.Client_request.DebugEcho params -> Ok (params, state)
-  | Lsp.Client_request.TextDocumentColor _ -> Ok ([], state)
-  | Lsp.Client_request.TextDocumentColorPresentation _ -> Ok ([], state)
-  | Lsp.Client_request.TextDocumentHover { textDocument = { uri }; position }
-    -> (
-    let query_type doc pos =
-      let command = Query_protocol.Type_enclosing (None, pos, None) in
-      match Document.dispatch doc command with
-      | []
-      | (_, `Index _, _) :: _ ->
-        None
-      | (location, `String value, _) :: _ -> Some (location, value)
-    in
-
-    let query_doc doc pos =
-      let command = Query_protocol.Document (None, pos) in
-      match Document.dispatch doc command with
-      | `Found s
-      | `Builtin s ->
-        Some s
-      | _ -> None
-    in
-
-    let format_contents ~as_markdown ~typ ~doc =
-      let doc =
-        match doc with
-        | None -> ""
-        | Some s -> Printf.sprintf "\n(** %s *)" s
-      in
-      `MarkupContent
-        ( if as_markdown then
-          { MarkupContent.value = Printf.sprintf "```ocaml\n%s%s\n```" typ doc
-          ; kind = MarkupKind.Markdown
-          }
-        else
-          { MarkupContent.value = Printf.sprintf "%s%s" typ doc
-          ; kind = MarkupKind.PlainText
-          } )
-    in
-
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
-    let pos = Position.logical position in
-    let client_capabilities = client_capabilities state in
-    match query_type doc pos with
-    | None -> Ok (None, state)
-    | Some (loc, typ) ->
-      let doc = query_doc doc pos in
-      let as_markdown =
-        match client_capabilities.textDocument with
-        | None -> false
-        | Some { hover = Some { contentFormat; _ }; _ } ->
-          List.mem MarkupKind.Markdown
-            ~set:(Option.value contentFormat ~default:[ Markdown ])
-        | _ -> false
-      in
-      let contents = format_contents ~as_markdown ~typ ~doc in
-      let range = Range.of_loc loc in
-      let resp = Hover.create ~contents ~range () in
-      Ok (Some resp, state) )
+      { textDocument = { uri }; position = _ } ->
+    Fiber.return
+      (let uri = Lsp.Uri.t_of_yojson (`String uri) in
+       match Document_store.get_opt store uri with
+       | None -> Ok (None, state)
+       | Some doc -> Ok (Some (Msource.text (Document.source doc)), state))
+  | Lsp.Client_request.DebugEcho params -> Fiber.return @@ Ok (params, state)
+  | Lsp.Client_request.TextDocumentColor _ -> Fiber.return @@ Ok ([], state)
+  | Lsp.Client_request.TextDocumentColorPresentation _ ->
+    Fiber.return @@ Ok ([], state)
+  | Lsp.Client_request.TextDocumentHover req -> hover state req
   | Lsp.Client_request.TextDocumentReferences
       { textDocument = { uri }; position; context = _ } ->
+    let open Fiber.Result.O in
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = Document.dispatch doc command in
+    let open Fiber.O in
+    let+ locs = Document.dispatch_exn doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
           let range = Range.of_loc loc in
@@ -359,43 +409,18 @@ let on_request :
     in
     Ok (Some lsp_locs, state)
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
-    Ok (codeLens, state)
-  | Lsp.Client_request.TextDocumentCodeLens { textDocument = { uri } } -> (
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
-    match Document.kind doc with
-    | Intf -> Ok ([], state)
-    | Impl ->
-      let command = Query_protocol.Outline in
-      let outline = Document.dispatch doc command in
-      let symbol_infos =
-        let rec symbol_info_of_outline_item item =
-          let children =
-            List.concat_map item.Query_protocol.children
-              ~f:symbol_info_of_outline_item
-          in
-          match item.Query_protocol.outline_type with
-          | None -> children
-          | Some typ ->
-            let loc = item.Query_protocol.location in
-            let info =
-              let range = Range.of_loc loc in
-              let command = Command.create ~title:typ ~command:"" () in
-              CodeLens.create ~range ~command ()
-            in
-            info :: children
-        in
-        List.concat_map ~f:symbol_info_of_outline_item outline
-      in
-      Ok (symbol_infos, state) )
+    Fiber.return @@ Ok (codeLens, state)
+  | Lsp.Client_request.TextDocumentCodeLens req -> text_document_lens state req
   | Lsp.Client_request.TextDocumentHighlight
       { textDocument = { uri }; position } ->
+    let open Fiber.Result.O in
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = Document.dispatch doc command in
+    let open Fiber.O in
+    let+ locs = Document.dispatch_exn doc command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
           let range = Range.of_loc loc in
@@ -404,46 +429,60 @@ let on_request :
           DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
     in
     Ok (Some lsp_locs, state)
-  | Lsp.Client_request.WorkspaceSymbol _ -> Ok (None, state)
+  | Lsp.Client_request.WorkspaceSymbol _ -> Fiber.return @@ Ok (None, state)
   | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let open Fiber.Result.O in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let client_capabilities = client_capabilities state in
-    let symbols = Document_symbol.run client_capabilities doc uri in
+    let open Fiber.O in
+    let+ symbols = Document_symbol.run client_capabilities doc uri in
     Ok (Some symbols, state)
-  | Lsp.Client_request.TextDocumentDeclaration _ -> Ok (None, state)
+  | Lsp.Client_request.TextDocumentDeclaration _ ->
+    Fiber.return @@ Ok (None, state)
   | Lsp.Client_request.TextDocumentDefinition
       { textDocument = { uri }; position } -> (
+    let open Fiber.Result.O in
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let position = Position.logical position in
     let command = Query_protocol.Locate (None, `ML, position) in
-    match Document.dispatch doc command |> location_of_merlin_loc uri with
+    let open Fiber.O in
+    let+ result = Document.dispatch_exn doc command in
+    let result = location_of_merlin_loc uri result in
+    match result with
     | None -> Ok (None, state)
     | Some loc -> Ok (Some loc, state) )
   | Lsp.Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } -> (
+    let open Fiber.Result.O in
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let position = Position.logical position in
     let command = Query_protocol.Locate_type position in
-    match Document.dispatch doc command |> location_of_merlin_loc uri with
+    let open Fiber.O in
+    let+ result = Document.dispatch_exn doc command in
+    let result = location_of_merlin_loc uri result in
+    match result with
     | None -> Ok (None, state)
     | Some loc -> Ok (Some loc, state) )
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let open Fiber.Result.O in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let+ resp = Compl.complete doc position in
     (Some resp, state)
   | Lsp.Client_request.TextDocumentPrepareRename
       { textDocument = { uri }; position } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let open Fiber.Result.O in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = Document.dispatch doc command in
+    let open Fiber.O in
+    let+ locs = Document.dispatch_exn doc command in
     let loc =
       List.find_opt locs ~f:(fun loc ->
           let range = Range.of_loc loc in
@@ -452,12 +491,14 @@ let on_request :
     Ok (Option.map loc ~f:Range.of_loc, state)
   | Lsp.Client_request.TextDocumentRename
       { textDocument = { uri }; position; newName } ->
+    let open Fiber.Result.O in
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    let locs : Loc.t list = Document.dispatch doc command in
+    let open Fiber.O in
+    let+ locs = Document.dispatch_exn doc command in
     let version = Document.version doc in
     let edits =
       List.map locs ~f:(fun loc ->
@@ -488,9 +529,11 @@ let on_request :
     Ok (workspace_edits, state)
   | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
+    let open Fiber.Result.O in
+    let* doc = Fiber.return (Document_store.get store uri) in
     let command = Query_protocol.Outline in
-    let outline = Document.dispatch doc command in
+    let open Fiber.O in
+    let+ outline = Document.dispatch_exn doc command in
     let folds : FoldingRange.t list =
       let folding_range (range : Range.t) =
         FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
@@ -515,17 +558,21 @@ let on_request :
     Ok (Some folds, state)
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
   | Lsp.Client_request.ExecuteCommand _ -> not_supported ()
-  | Lsp.Client_request.TextDocumentLinkResolve l -> Ok (l, state)
-  | Lsp.Client_request.TextDocumentLink _ -> Ok (None, state)
-  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ -> Ok (None, state)
+  | Lsp.Client_request.TextDocumentLinkResolve l -> Fiber.return @@ Ok (l, state)
+  | Lsp.Client_request.TextDocumentLink _ -> Fiber.return @@ Ok (None, state)
+  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ ->
+    Fiber.return @@ Ok (None, state)
   | Lsp.Client_request.CodeAction params -> code_action rpc params
-  | Lsp.Client_request.CompletionItemResolve compl -> Ok (compl, state)
+  | Lsp.Client_request.CompletionItemResolve compl ->
+    Fiber.return @@ Ok (compl, state)
   | Lsp.Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
-    Formatter.run rpc doc
-  | Lsp.Client_request.TextDocumentOnTypeFormatting _ -> Ok (None, state)
+    Fiber.return
+      (let* doc = Document_store.get store uri in
+       Formatter.run rpc doc)
+  | Lsp.Client_request.TextDocumentOnTypeFormatting _ ->
+    Fiber.return @@ Ok (None, state)
   | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
     let selection_range_of_shapes (cursor_position : Position.t)
         (shapes : Query_protocol.shape list) : SelectionRange.t option =
@@ -552,23 +599,30 @@ let on_request :
       nearest_range
     in
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Document_store.get store uri in
-    let results =
-      List.filter_map positions ~f:(fun x ->
-          let command = Query_protocol.Shape (Position.logical x) in
-          let shapes = Document.dispatch doc command in
-          selection_range_of_shapes x shapes)
+    let open Fiber.Result.O in
+    let* doc = Fiber.return (Document_store.get store uri) in
+    let+ results =
+      let open Fiber.O in
+      let+ ranges =
+        Fiber.sequential_map positions ~f:(fun x ->
+            let command = Query_protocol.Shape (Position.logical x) in
+            let open Fiber.O in
+            let+ shapes = Document.dispatch_exn doc command in
+            selection_range_of_shapes x shapes)
+      in
+      Ok (List.filter_opt ranges)
     in
-    Ok (results, state)
+    (results, state)
   | Lsp.Client_request.UnknownRequest _ ->
-    Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
+    Fiber.return
+    @@ Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
 let on_notification server (notification : Lsp.Client_notification.t) : state =
   let state = Server.state server in
   let store = state.store in
   match notification with
   | TextDocumentDidOpen params ->
-    let doc = Document.make params in
+    let doc = Document.make state.merlin params in
     Document_store.put store doc;
     let (_ : unit Fiber.t) = send_diagnostics server doc in
     state
@@ -618,10 +672,17 @@ let start () =
   let docs = Document_store.make () in
   let prepare_and_run prep_exn f =
     let f () =
-      match f () with
-      | Ok s -> Ok s
-      | Error e -> Error e
-      | exception exn -> Error (prep_exn exn)
+      let open Fiber.O in
+      let+ result = Fiber.collect_errors f in
+      match result with
+      | Ok (Ok s) -> Ok s
+      | Ok (Error e) -> Error e
+      | Error [ e ] -> Error (prep_exn e.exn)
+      | Error _exns ->
+        Error
+          (Jsonrpc.Response.Error.make
+             ~code:Jsonrpc.Response.Error.Code.InternalError
+             ~message:"Multiple exceptions" ())
     in
     (* TODO: what to do with merlin notifications? *)
     let _notifications = ref [] in
@@ -631,9 +692,8 @@ let start () =
     Fiber.return (on_notification server notif)
   in
   let on_request server req =
-    Fiber.return
-      ( prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
-        on_request server req )
+    prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
+    on_request server req
   in
   let scheduler = Scheduler.create () in
   let handler =
