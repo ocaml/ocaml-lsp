@@ -4,7 +4,7 @@ import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
 
 describe("TextDocument: incremental sync", () => {
-  async function getDoc(languageServer) {
+  async function getDoc(languageServer: LanguageServer.LanguageServer) {
     let result = await languageServer.sendRequest("debug/textDocument/get", {
       textDocument: Types.TextDocumentIdentifier.create(
         "file:///test-document.txt",
@@ -44,6 +44,7 @@ describe("TextDocument: incremental sync", () => {
     });
 
     expect(await getDoc(languageServer)).toEqual('let x = 4\nlet y = "ab"');
+    await LanguageServer.exit(languageServer);
   });
 
   it("updates in the middle of the line", async () => {
@@ -131,7 +132,7 @@ describe("TextDocument: incremental sync", () => {
     });
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\ns\nlet y = 2;");
-    languageServer = await LanguageServer.startAndInitialize();
+    await LanguageServer.exit(languageServer);
   });
 
   it("update when inserting a line", async () => {
@@ -168,7 +169,7 @@ describe("TextDocument: incremental sync", () => {
     expect(await getDoc(languageServer)).toEqual(
       "let x = 1;\nlet x = 1;\n\nlet y = 2;",
     );
-    languageServer = await LanguageServer.startAndInitialize();
+    await LanguageServer.exit(languageServer);
   });
 
   it("update when inserting a line at the end of the doc", async () => {
@@ -205,7 +206,7 @@ describe("TextDocument: incremental sync", () => {
     expect(await getDoc(languageServer)).toEqual(
       "let x = 1;\n\nlet y = 2;\nlet y = 2;",
     );
-    languageServer = await LanguageServer.startAndInitialize();
+    await LanguageServer.exit(languageServer);
   });
 
   it("update when deleting a line", async () => {
@@ -240,7 +241,7 @@ describe("TextDocument: incremental sync", () => {
     });
 
     expect(await getDoc(languageServer)).toEqual("\nlet y = 2;");
-    languageServer = await LanguageServer.startAndInitialize();
+    await LanguageServer.exit(languageServer);
   });
 });
 
