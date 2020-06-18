@@ -67,15 +67,15 @@ export const startAndInitialize = async (
     workspaceFolders: [],
   };
 
-  let result = await languageServer.sendRequest(
+  await languageServer.sendRequest(
     Protocol.InitializeRequest.type,
     initializeParameters,
   );
   return languageServer;
 };
 
-export const exit = async (languageServer) => {
-  let ret = new Promise((resolve, reject) => {
+export const exit = async (languageServer: rpc.MessageConnection) => {
+  let ret = new Promise((resolve, _reject) => {
     languageServer.onClose(() => {
       languageServer.dispose();
       resolve();
