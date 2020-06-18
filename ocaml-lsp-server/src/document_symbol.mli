@@ -6,4 +6,5 @@ val run :
   -> Lsp.Uri.t
   -> [> `DocumentSymbol of DocumentSymbol.t list
      | `SymbolInformation of SymbolInformation.t list
-     ] Fiber.t
+     ]
+     Fiber.t
