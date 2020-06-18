@@ -1,7 +1,11 @@
 open Import
 module Server_notification = Lsp.Server_notification
 module HoverParams = Lsp.Types.HoverParams
+module SelectionRangeParams = Lsp.Types.SelectionRangeParams
+module RenameParams = Lsp.Types.RenameParams
 module CodeLensParams = Lsp.Types.CodeLensParams
+module FoldingRangeParams = Lsp.Types.FoldingRangeParams
+module ReferenceParams = Lsp.Types.ReferenceParams
 module Scheduler = Lsp.Scheduler
 module Jsonrpc = Lsp.Jsonrpc
 module Server = Lsp.Server
@@ -367,6 +371,135 @@ let text_document_lens state { CodeLensParams.textDocument = { uri } } =
     in
     Ok (symbol_infos, state)
 
+let folding_range state { FoldingRangeParams.textDocument = { uri } } =
+  let uri = Lsp.Uri.t_of_yojson (`String uri) in
+  let open Fiber.Result.O in
+  let* doc = Fiber.return (Document_store.get state.store uri) in
+  let command = Query_protocol.Outline in
+  let open Fiber.O in
+  let+ outline = Document.dispatch_exn doc command in
+  let folds : FoldingRange.t list =
+    let folding_range (range : Range.t) =
+      FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
+        ~startCharacter:range.start.character ~endCharacter:range.end_.character
+        ~kind:Region ()
+    in
+    let rec loop acc (items : Query_protocol.item list) =
+      match items with
+      | [] -> acc
+      | item :: items ->
+        let range = Range.of_loc item.location in
+        if range.end_.line - range.start.line < 2 then
+          loop acc items
+        else
+          let items = item.children @ items in
+          let range = folding_range range in
+          loop (range :: acc) items
+    in
+    loop [] outline
+    |> List.sort ~compare:(fun x y -> Ordering.of_int (compare x y))
+  in
+  Ok (Some folds, state)
+
+let rename state { RenameParams.textDocument = { uri }; position; newName } =
+  let open Fiber.Result.O in
+  let uri = Lsp.Uri.t_of_yojson (`String uri) in
+  let* doc = Fiber.return (Document_store.get state.store uri) in
+  let command =
+    Query_protocol.Occurrences (`Ident_at (Position.logical position))
+  in
+  let open Fiber.O in
+  let+ locs = Document.dispatch_exn doc command in
+  let version = Document.version doc in
+  let edits =
+    List.map locs ~f:(fun loc ->
+        let range = Range.of_loc loc in
+        { TextEdit.newText = newName; range })
+  in
+  let workspace_edits =
+    let client_capabilities = client_capabilities state in
+    let documentChanges =
+      let open Option.O in
+      Option.value ~default:false
+        (let* workspace = client_capabilities.workspace in
+         let* edit = workspace.workspaceEdit in
+         edit.documentChanges)
+    in
+    let uri = Lsp.Uri.to_string uri in
+    if documentChanges then
+      let textDocument =
+        VersionedTextDocumentIdentifier.create ~uri ~version ()
+      in
+      WorkspaceEdit.create
+        ~documentChanges:
+          [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
+        ()
+    else
+      WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
+  in
+  Ok (workspace_edits, state)
+
+let selection_range state
+    { SelectionRangeParams.textDocument = { uri }; positions } =
+  let selection_range_of_shapes (cursor_position : Position.t)
+      (shapes : Query_protocol.shape list) : SelectionRange.t option =
+    let rec ranges_of_shape parent s =
+      let range = Range.of_loc s.Query_protocol.shape_loc in
+      let selectionRange = { SelectionRange.range; parent } in
+      match s.Query_protocol.shape_sub with
+      | [] -> [ selectionRange ]
+      | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
+    in
+    let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
+    (* try to find the nearest range inside first, then outside *)
+    let nearest_range =
+      List.min ranges ~f:(fun r1 r2 ->
+          let inc (r : SelectionRange.t) =
+            Position.compare_inclusion cursor_position r.range
+          in
+          match (inc r1, inc r2) with
+          | `Outside x, `Outside y -> Position.compare x y
+          | `Outside _, `Inside -> Gt
+          | `Inside, `Outside _ -> Lt
+          | `Inside, `Inside -> Range.compare_size r1.range r2.range)
+    in
+    nearest_range
+  in
+  let uri = Lsp.Uri.t_of_yojson (`String uri) in
+  let open Fiber.Result.O in
+  let* doc = Fiber.return (Document_store.get state.store uri) in
+  let+ results =
+    let open Fiber.O in
+    let+ ranges =
+      Fiber.sequential_map positions ~f:(fun x ->
+          let command = Query_protocol.Shape (Position.logical x) in
+          let open Fiber.O in
+          let+ shapes = Document.dispatch_exn doc command in
+          selection_range_of_shapes x shapes)
+    in
+    Ok (List.filter_opt ranges)
+  in
+  (results, state)
+
+let references state
+    { ReferenceParams.textDocument = { uri }; position; context = _ } =
+  let open Fiber.Result.O in
+  let uri = Lsp.Uri.t_of_yojson (`String uri) in
+  let* doc = Fiber.return (Document_store.get state.store uri) in
+  let command =
+    Query_protocol.Occurrences (`Ident_at (Position.logical position))
+  in
+  let open Fiber.O in
+  let+ locs = Document.dispatch_exn doc command in
+  let lsp_locs =
+    List.map locs ~f:(fun loc ->
+        let range = Range.of_loc loc in
+        (* using original uri because merlin is looking only in local file *)
+        let uri = Lsp.Uri.to_string uri in
+        { Location.uri; range })
+  in
+  Ok (Some lsp_locs, state)
+
 let on_request :
     type resp.
        state Server.t
@@ -394,24 +527,7 @@ let on_request :
   | Lsp.Client_request.TextDocumentColorPresentation _ ->
     Fiber.return @@ Ok ([], state)
   | Lsp.Client_request.TextDocumentHover req -> hover state req
-  | Lsp.Client_request.TextDocumentReferences
-      { textDocument = { uri }; position; context = _ } ->
-    let open Fiber.Result.O in
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
-    in
-    let open Fiber.O in
-    let+ locs = Document.dispatch_exn doc command in
-    let lsp_locs =
-      List.map locs ~f:(fun loc ->
-          let range = Range.of_loc loc in
-          (* using original uri because merlin is looking only in local file *)
-          let uri = Lsp.Uri.to_string uri in
-          { Location.uri; range })
-    in
-    Ok (Some lsp_locs, state)
+  | Lsp.Client_request.TextDocumentReferences req -> references state req
   | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
     Fiber.return @@ Ok (codeLens, state)
   | Lsp.Client_request.TextDocumentCodeLens req -> text_document_lens state req
@@ -493,73 +609,8 @@ let on_request :
           Position.compare_inclusion position range = `Inside)
     in
     Ok (Option.map loc ~f:Range.of_loc, state)
-  | Lsp.Client_request.TextDocumentRename
-      { textDocument = { uri }; position; newName } ->
-    let open Fiber.Result.O in
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
-    in
-    let open Fiber.O in
-    let+ locs = Document.dispatch_exn doc command in
-    let version = Document.version doc in
-    let edits =
-      List.map locs ~f:(fun loc ->
-          let range = Range.of_loc loc in
-          { TextEdit.newText = newName; range })
-    in
-    let workspace_edits =
-      let client_capabilities = client_capabilities state in
-      let documentChanges =
-        let open Option.O in
-        Option.value ~default:false
-          (let* workspace = client_capabilities.workspace in
-           let* edit = workspace.workspaceEdit in
-           edit.documentChanges)
-      in
-      let uri = Lsp.Uri.to_string uri in
-      if documentChanges then
-        let textDocument =
-          VersionedTextDocumentIdentifier.create ~uri ~version ()
-        in
-        WorkspaceEdit.create
-          ~documentChanges:
-            [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
-          ()
-      else
-        WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
-    in
-    Ok (workspace_edits, state)
-  | Lsp.Client_request.TextDocumentFoldingRange { textDocument = { uri } } ->
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let open Fiber.Result.O in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let command = Query_protocol.Outline in
-    let open Fiber.O in
-    let+ outline = Document.dispatch_exn doc command in
-    let folds : FoldingRange.t list =
-      let folding_range (range : Range.t) =
-        FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
-          ~startCharacter:range.start.character
-          ~endCharacter:range.end_.character ~kind:Region ()
-      in
-      let rec loop acc (items : Query_protocol.item list) =
-        match items with
-        | [] -> acc
-        | item :: items ->
-          let range = Range.of_loc item.location in
-          if range.end_.line - range.start.line < 2 then
-            loop acc items
-          else
-            let items = item.children @ items in
-            let range = folding_range range in
-            loop (range :: acc) items
-      in
-      loop [] outline
-      |> List.sort ~compare:(fun x y -> Ordering.of_int (compare x y))
-    in
-    Ok (Some folds, state)
+  | Lsp.Client_request.TextDocumentRename req -> rename state req
+  | Lsp.Client_request.TextDocumentFoldingRange req -> folding_range state req
   | Lsp.Client_request.SignatureHelp _ -> not_supported ()
   | Lsp.Client_request.ExecuteCommand _ -> not_supported ()
   | Lsp.Client_request.TextDocumentLinkResolve l -> Fiber.return @@ Ok (l, state)
@@ -577,46 +628,7 @@ let on_request :
        Formatter.run rpc doc)
   | Lsp.Client_request.TextDocumentOnTypeFormatting _ ->
     Fiber.return @@ Ok (None, state)
-  | Lsp.Client_request.SelectionRange { textDocument = { uri }; positions } ->
-    let selection_range_of_shapes (cursor_position : Position.t)
-        (shapes : Query_protocol.shape list) : SelectionRange.t option =
-      let rec ranges_of_shape parent s =
-        let range = Range.of_loc s.Query_protocol.shape_loc in
-        let selectionRange = { SelectionRange.range; parent } in
-        match s.Query_protocol.shape_sub with
-        | [] -> [ selectionRange ]
-        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
-      in
-      let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
-      (* try to find the nearest range inside first, then outside *)
-      let nearest_range =
-        List.min ranges ~f:(fun r1 r2 ->
-            let inc (r : SelectionRange.t) =
-              Position.compare_inclusion cursor_position r.range
-            in
-            match (inc r1, inc r2) with
-            | `Outside x, `Outside y -> Position.compare x y
-            | `Outside _, `Inside -> Gt
-            | `Inside, `Outside _ -> Lt
-            | `Inside, `Inside -> Range.compare_size r1.range r2.range)
-      in
-      nearest_range
-    in
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let open Fiber.Result.O in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let+ results =
-      let open Fiber.O in
-      let+ ranges =
-        Fiber.sequential_map positions ~f:(fun x ->
-            let command = Query_protocol.Shape (Position.logical x) in
-            let open Fiber.O in
-            let+ shapes = Document.dispatch_exn doc command in
-            selection_range_of_shapes x shapes)
-      in
-      Ok (List.filter_opt ranges)
-    in
-    (results, state)
+  | Lsp.Client_request.SelectionRange req -> selection_range state req
   | Lsp.Client_request.UnknownRequest _ ->
     Fiber.return
     @@ Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
