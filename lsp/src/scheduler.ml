@@ -313,7 +313,9 @@ let rec pump_events (t : t) =
                   in
                   Log.msg "finished detached task" args)
             in
-            let+ (_ : unit Fiber.Future.t) = Fiber.fork task in
+            let+ (_ : unit Fiber.Future.t) =
+              Fiber.fork (fun () -> Fiber.Var.set me t task)
+            in
             ()
           | Job_completed (a, ivar) -> Fiber.Ivar.fill ivar a
           | Scheduled (Active_timer active_timer) ->
