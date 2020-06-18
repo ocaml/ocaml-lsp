@@ -17,6 +17,7 @@ type state =
   ; diagnostics_timer : Scheduler.timer
   ; merlin : Scheduler.thread
   ; init : init
+  ; scheduler : Scheduler.t
   }
 
 let client_capabilities state =
@@ -25,8 +26,6 @@ let client_capabilities state =
   | Initialized c -> c
 
 let make_error = Lsp.Jsonrpc.Response.Error.make
-
-let detach f = Scheduler.detach (Scheduler.scheduler ()) f
 
 let not_supported () =
   Fiber.return
@@ -133,7 +132,8 @@ let send_diagnostics rpc doc =
         (PublishDiagnosticsParams.create ~uri ~diagnostics ())
     in
 
-    detach (fun () ->
+    let state = Server.state rpc in
+    Scheduler.detach state.scheduler (fun () ->
         let open Fiber.O in
         let+ res =
           let state : state = Server.state rpc in
@@ -160,7 +160,9 @@ let on_initialize rpc =
       let message = Printf.sprintf "[%s] %s" section text in
       let notif = Server_notification.LogMessage { message; type_ } in
       let (_ : unit Fiber.t) =
-        detach (fun () -> Server.notification rpc notif)
+        let state = Server.state rpc in
+        Scheduler.detach state.scheduler (fun () ->
+            Server.notification rpc notif)
       in
       ()
   in
@@ -226,7 +228,9 @@ module Formatter = struct
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Error in
       let (_ : unit Fiber.t) =
-        detach (fun () -> Server.notification rpc (ShowMessage msg))
+        let state = Server.state rpc in
+        Scheduler.detach state.scheduler (fun () ->
+            Server.notification rpc (ShowMessage msg))
       in
       Error error
     | Result.Ok result ->
@@ -710,7 +714,12 @@ let start () =
     in
     let merlin = Scheduler.create_thread scheduler in
     Server.make handler stream
-      { store = docs; init = Uninitialized; diagnostics_timer; merlin }
+      { store = docs
+      ; init = Uninitialized
+      ; diagnostics_timer
+      ; merlin
+      ; scheduler
+      }
   in
   Scheduler.run scheduler (Server.start server);
   log ~title:Logger.Title.Info "exiting"
