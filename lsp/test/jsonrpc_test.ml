@@ -37,7 +37,7 @@ let () =
     let json = Request.yojson_of_t n in
     print_endline ">> received notification";
     print_json json;
-    Fiber.return ()
+    Fiber.return (Notify.Continue, ())
   in
   let responses = ref [] in
   let initial_requests =

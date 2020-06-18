@@ -36,6 +36,12 @@ module Constant = struct
   let error = "error"
 end
 
+module Notify = struct
+  type t =
+    | Stop
+    | Continue
+end
+
 module Request = struct
   type t =
     { id : Id.t option [@yojson.option]
@@ -352,7 +358,7 @@ struct
   type 'state t =
     { chan : Chan.t
     ; on_request : 'state context -> (Response.t * 'state) Fiber.t
-    ; on_notification : 'state context -> 'state Fiber.t
+    ; on_notification : 'state context -> (Notify.t * 'state) Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
@@ -429,11 +435,17 @@ struct
         log t (fun () -> Log.msg "shutdown granted" []);
         Chan.close t.chan
       | Left None -> Fiber.Ivar.fill t.stop_requested ()
-      | Left (Some packet) ->
-        ( match packet with
-        | Request r -> on_request r
-        | Response r -> on_response r )
-        >>= loop
+      | Left (Some packet) -> (
+        let* next_step =
+          match packet with
+          | Request r -> on_request r
+          | Response r ->
+            let+ () = on_response r in
+            Notify.Continue
+        in
+        match next_step with
+        | Notify.Continue -> loop ()
+        | Stop -> Fiber.return () )
     and on_request r =
       log t (fun () ->
           let what =
@@ -446,23 +458,26 @@ struct
       | None -> (
         let+ res = Fiber.collect_errors (fun () -> t.on_notification (t, r)) in
         match res with
-        | Ok state -> t.state <- state
+        | Ok (next, state) ->
+          t.state <- state;
+          next
         | Error errors ->
           Format.eprintf
             "Uncaught error when handling notification:@.%a@.Error:@.%s@."
             Yojson.Safe.pp (Request.yojson_of_t r)
-            (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors))
-        )
-      | Some id -> (
+            (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors));
+          Notify.Continue )
+      | Some id ->
         let* resp = Fiber.collect_errors (fun () -> t.on_request (t, r)) in
         let jsonrpc_resp = response_of_result id resp in
         log t (fun () ->
             Log.msg "sending response"
               [ ("response", Response.yojson_of_t jsonrpc_resp) ]);
         let+ () = Chan.send t.chan (Response jsonrpc_resp) in
-        match resp with
+        ( match resp with
         | Ok (_, state) -> t.state <- state
-        | Error _ -> () )
+        | Error _ -> () );
+        Notify.Continue
     and on_response r =
       let log (what : string) =
         log t (fun () ->
@@ -483,7 +498,7 @@ struct
 
   let on_notification_fail ctx =
     let state = Context.state ctx in
-    Fiber.return state
+    Fiber.return (Notify.Continue, state)
 
   let create ?(on_request = on_request_fail)
       ?(on_notification = on_notification_fail) ~name chan state =

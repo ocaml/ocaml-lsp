@@ -125,8 +125,7 @@ struct
   type in_notification = In_notification.t
 
   type 'state t =
-    { handler : 'state handler
-    ; io : Stream_io.t
+    { io : Stream_io.t
     ; (* mutable only to initialiaze this record *)
       mutable session : 'state Session.t Fdecl.t
     ; (* Internal state of the session *)
@@ -174,8 +173,7 @@ struct
 
   let state t = Session.state (Fdecl.get t.session)
 
-  let to_jsonrpc (type state) (t : state t)
-      ({ Handler.h_on_request; h_on_notification } : state Handler.t) =
+  let to_jsonrpc (type state) (t : state t) h_on_request h_on_notification =
     let open Fiber.O in
     let on_request (ctx : state Session.Context.t) :
         (Response.t * state) Fiber.t =
@@ -195,7 +193,7 @@ struct
           let response = Response.ok id result in
           (response, state) )
     in
-    let on_notification ctx : state Fiber.t =
+    let on_notification ctx : (Notify.t * state) Fiber.t =
       let r = Session.Context.request ctx in
       match In_notification.of_jsonrpc r with
       | Error e -> Code_error.raise e []
@@ -203,10 +201,9 @@ struct
     in
     (on_request, on_notification)
 
-  let make ~name (handler : _ Handler.t) io state =
+  let make ~name h_on_request h_on_notification io state =
     let t =
-      { handler
-      ; io
+      { io
       ; state = Waiting_for_init
       ; session = Fdecl.create Dyn.Encoder.opaque
       ; initialized = Fiber.Ivar.create ()
@@ -214,7 +211,9 @@ struct
       }
     in
     let session =
-      let on_request, on_notification = to_jsonrpc t handler in
+      let on_request, on_notification =
+        to_jsonrpc t h_on_request h_on_notification
+      in
       Session.create ~on_request ~on_notification ~name io state
     in
     Fdecl.set t.session session;
@@ -251,7 +250,13 @@ module Client = struct
             (Server_request)
             (Server_notification)
 
-  let make handler io = make ~name:"client" handler io
+  let make handler io =
+    let h_on_notification rpc notif =
+      let open Fiber.O in
+      let+ res = handler.h_on_notification rpc notif in
+      (Notify.Continue, res)
+    in
+    make ~name:"client" handler.h_on_request h_on_notification io
 
   let start (t : _ t) (p : InitializeParams.t) =
     assert (t.state = Waiting_for_init);
@@ -290,13 +295,14 @@ module Server = struct
       Log.log ~section:"server" (fun () ->
           Log.msg "received exit notification" []);
       let* () = stop t in
-      Fiber.return (state t)
+      Fiber.return (Notify.Stop, state t)
     | _ ->
       if t.state = Waiting_for_init then
         let state = state t in
-        Fiber.return state
+        Fiber.return (Notify.Continue, state)
       else
-        handler.h_on_notification t n
+        let+ state = handler.h_on_notification t n in
+        (Notify.Continue, state)
 
   let on_request handler t in_r =
     let open Fiber.O in
@@ -321,14 +327,11 @@ module Server = struct
         handler.h_on_request.on_request t in_r
 
   let make (type s) (handler : s Handler.t) io (initial_state : s) =
-    let handler =
-      let h_on_request : _ Handler.on_request =
-        { Handler.on_request = (fun t x -> on_request handler t x) }
-      in
-      let h_on_notification = h_on_notification handler in
-      { h_on_request; h_on_notification }
+    let h_on_request : _ Handler.on_request =
+      { Handler.on_request = (fun t x -> on_request handler t x) }
     in
-    make ~name:"server" handler io initial_state
+    let h_on_notification = h_on_notification handler in
+    make ~name:"server" h_on_request h_on_notification io initial_state
 
   let start t = start_loop t
 end

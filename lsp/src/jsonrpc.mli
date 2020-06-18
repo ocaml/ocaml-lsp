@@ -73,6 +73,12 @@ type packet =
 
 val yojson_of_packet : packet -> Json.t
 
+module Notify : sig
+  type t =
+    | Stop
+    | Continue
+end
+
 (** IO free implementation of the jsonrpc protocol. We stay completely agnostic
     of transport by only dealing with abstract jsonrpc packets *)
 module Session (Chan : sig
@@ -101,7 +107,7 @@ end) : sig
 
   val create :
        ?on_request:('state Context.t -> (Response.t * 'state) Fiber.t)
-    -> ?on_notification:('state Context.t -> 'state Fiber.t)
+    -> ?on_notification:('state Context.t -> (Notify.t * 'state) Fiber.t)
     -> name:string
     -> Chan.t
     -> 'state
