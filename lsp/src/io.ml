@@ -31,6 +31,7 @@ let send { oc; ic = _ } (packet : packet) =
 
 let read_content ic =
   match Header.read ic with
+  | exception Sys_error _ -> None
   | exception End_of_file -> None
   | header ->
     let len = Header.content_length header in
