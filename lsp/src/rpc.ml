@@ -178,15 +178,18 @@ struct
     let on_request (ctx : state Session.Context.t) :
         (Response.t * state) Fiber.t =
       let req = Session.Context.request ctx in
+      let state = Session.Context.state ctx in
       match In_request.of_jsonrpc req with
-      | Error e -> Code_error.raise e []
+      | Error message ->
+        let code = Jsonrpc.Response.Error.Code.InvalidParams in
+        let error = Jsonrpc.Response.Error.make ~code ~message () in
+        let id = Option.value_exn req.id in
+        Fiber.return (Response.error id error, state)
       | Ok (In_request.E r) -> (
         let id = Option.value_exn req.id in
         let+ response = h_on_request.on_request t r in
         match response with
-        | Error e ->
-          let state = Session.Context.state ctx in
-          (Response.error id e, state)
+        | Error e -> (Response.error id e, state)
         | Ok (response, state) ->
           let json = In_request.yojson_of_result r response in
           let result = Option.value_exn json in
@@ -196,8 +199,12 @@ struct
     let on_notification ctx : (Notify.t * state) Fiber.t =
       let r = Session.Context.request ctx in
       match In_notification.of_jsonrpc r with
-      | Error e -> Code_error.raise e []
       | Ok r -> h_on_notification t r
+      | Error error ->
+        Log.log ~section:"lsp" (fun () ->
+            Log.msg "Invalid notification" [ ("error", `String error) ]);
+        let state = Session.Context.state ctx in
+        Fiber.return (Notify.Continue, state)
     in
     (on_request, on_notification)
 
