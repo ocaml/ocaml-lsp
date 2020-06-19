@@ -10,8 +10,6 @@ module Scheduler = Lsp.Scheduler
 module Jsonrpc = Lsp.Jsonrpc
 module Server = Lsp.Server
 
-let default_delay = 0.25
-
 type init =
   | Uninitialized
   | Initialized of ClientCapabilities.t
@@ -22,6 +20,7 @@ type state =
   ; merlin : Scheduler.thread
   ; init : init
   ; scheduler : Scheduler.t
+  ; configuration : Configuration.t
   }
 
 let client_capabilities state =
@@ -661,9 +660,15 @@ let on_notification server (notification : Lsp.Client_notification.t) : state =
       Document_store.put store doc;
       let (_ : unit Fiber.t) = send_diagnostics server doc in
       state )
+  | ChangeConfiguration req ->
+    (* TODO this is wrong and we should just fetch the config from the client
+       after receiving this notification *)
+    let configuration = Configuration.update state.configuration req in
+    let delay = Configuration.diagnostics_delay configuration in
+    Scheduler.set_delay state.diagnostics_timer ~delay;
+    { state with configuration }
   | DidSaveTextDocument _
   | WillSaveTextDocument _
-  | ChangeConfiguration _
   | ChangeWorkspaceFolders _
   | Initialized
   | Exit ->
@@ -720,9 +725,11 @@ let start () =
     let io = Lsp.Io.make stdin stdout in
     Lsp.Rpc.Stream_io.make scheduler io
   in
+  let configuration = Configuration.default in
   let server =
     let diagnostics_timer =
-      Scheduler.create_timer scheduler ~delay:default_delay
+      let delay = Configuration.diagnostics_delay configuration in
+      Scheduler.create_timer scheduler ~delay
     in
     let merlin = Scheduler.create_thread scheduler in
     Server.make handler stream
@@ -731,6 +738,7 @@ let start () =
       ; diagnostics_timer
       ; merlin
       ; scheduler
+      ; configuration
       }
   in
   Scheduler.run scheduler (Server.start server);

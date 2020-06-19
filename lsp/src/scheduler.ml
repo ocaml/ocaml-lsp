@@ -149,7 +149,7 @@ and thread =
   }
 
 and timer =
-  { delay : float
+  { mutable delay : float
   ; timer_scheduler : t
   ; timer_id : Timer_id.t
   }
@@ -403,6 +403,8 @@ let run : 'a. t -> 'a Fiber.t -> 'a =
 
 let create_timer t ~delay =
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }
+
+let set_delay t ~delay = t.delay <- delay
 
 let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     (a, [ `Cancelled ]) result Fiber.t =

@@ -18,6 +18,8 @@ type timer
 
 val create_timer : t -> delay:float -> timer
 
+val set_delay : timer -> delay:float -> unit
+
 val detach : ?name:string -> t -> (unit -> unit Fiber.t) -> unit Fiber.t
 
 val schedule :
