@@ -30,7 +30,7 @@ module Out : sig
   val null : unit -> 'a t
 end
 
-(** [connect i o] read from [i] and write them to [o]. Close [o] when [i] is
+(** [connect i o] reads from [i] and writes to [o]. Closes [o] when [i] is
     exhausted *)
 val connect : 'a In.t -> 'a Out.t -> 'a Fiber.t
 
