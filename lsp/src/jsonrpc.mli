@@ -7,18 +7,28 @@ module Id : sig
   include Json.Jsonable.S with type t := t
 end
 
-module Request : sig
-  type t =
-    { id : Id.t option
+module Message : sig
+  type 'id t =
+    { id : 'id
     ; method_ : string
     ; params : Json.t option
     }
 
-  include Json.Jsonable.S with type t := t
+  val params : _ t -> (Json.t -> 'a) -> ('a, string) Result.t
 
-  val params : t -> (Json.t -> 'a) -> ('a, string) Result.t
+  val create : ?params:Json.t -> id:'id -> method_:string -> unit -> 'id t
 
-  val create : ?id:Id.t -> ?params:Json.t -> method_:string -> unit -> t
+  type request = Id.t t
+
+  type notification = unit t
+
+  type either = Id.t option t
+
+  val either_of_yojson : Json.t -> either
+
+  val yojson_of_notification : notification -> Json.t
+
+  val yojson_of_request : request -> Json.t
 end
 
 module Response : sig
@@ -68,7 +78,7 @@ module Response : sig
 end
 
 type packet =
-  | Request of Request.t
+  | Message of Id.t option Message.t
   | Response of Response.t
 
 val yojson_of_packet : packet -> Json.t
@@ -93,21 +103,22 @@ end) : sig
   type 'state t
 
   module Context : sig
-    type 'state t
+    type ('state, 'req) t
 
     type 'a session
 
-    val request : _ t -> Request.t
+    val message : (_, 'req) t -> 'req Message.t
 
-    val state : 'a t -> 'a
+    val state : ('a, _) t -> 'a
 
-    val session : 'a t -> 'a session
+    val session : ('a, _) t -> 'a session
   end
   with type 'a session := 'a t
 
   val create :
-       ?on_request:('state Context.t -> (Response.t * 'state) Fiber.t)
-    -> ?on_notification:('state Context.t -> (Notify.t * 'state) Fiber.t)
+       ?on_request:(('state, Id.t) Context.t -> (Response.t * 'state) Fiber.t)
+    -> ?on_notification:
+         (('state, unit) Context.t -> (Notify.t * 'state) Fiber.t)
     -> name:string
     -> Chan.t
     -> 'state
@@ -121,8 +132,7 @@ end) : sig
 
   val run : _ t -> unit Fiber.t
 
-  val notification : _ t -> Request.t -> unit Fiber.t
+  val notification : _ t -> Message.notification -> unit Fiber.t
 
-  (** TODO this isn't type safe enough. Request.t must require an ID*)
-  val request : _ t -> Request.t -> Response.t Fiber.t
+  val request : _ t -> Message.request -> Response.t Fiber.t
 end

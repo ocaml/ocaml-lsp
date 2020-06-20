@@ -26,28 +26,31 @@ let () =
       `Int !i
   in
   let on_request ctx =
-    let req = Session.Context.request ctx in
-    let id = Option.value_exn req.id in
+    let req = Session.Context.message ctx in
     let state = Session.Context.state ctx in
-    Fiber.return (Jsonrpc.Response.ok id (response ()), state)
+    Fiber.return (Jsonrpc.Response.ok req.id (response ()), state)
   in
   let on_notification ctx =
-    let n = Session.Context.request ctx in
+    let n = Session.Context.message ctx in
     if n.method_ = "raise" then failwith "special failure";
-    let json = Request.yojson_of_t n in
+    let json = Message.yojson_of_notification n in
     print_endline ">> received notification";
     print_json json;
     Fiber.return (Notify.Continue, ())
   in
   let responses = ref [] in
   let initial_requests =
-    [ Request (Jsonrpc.Request.create ~id:(Right 10) ~method_:"foo" ())
-    ; Request
-        (Jsonrpc.Request.create ~params:`Null ~id:(Left "testing")
-           ~method_:"bar" ())
-    ; Request (Jsonrpc.Request.create ~params:`Null ~method_:"notif1" ())
-    ; Request (Jsonrpc.Request.create ~params:`Null ~method_:"notif2" ())
-    ; Request (Jsonrpc.Request.create ~params:`Null ~method_:"raise" ())
+    let request ?params id method_ =
+      Jsonrpc.Message.create ?params ~id:(Some id) ~method_ ()
+    in
+    let notification ?params method_ =
+      Jsonrpc.Message.create ~id:None ?params ~method_ ()
+    in
+    [ Message (request (Either.Right 10) "foo")
+    ; Message (request ~params:`Null (Either.Left "testing") "bar")
+    ; Message (notification ~params:`Null "notif1")
+    ; Message (notification ~params:`Null "notif2")
+    ; Message (notification ~params:`Null "raise")
     ]
   in
   let reqs_in, reqs_out = Fiber_stream.pipe () in

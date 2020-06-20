@@ -91,11 +91,11 @@ module type Request_intf = sig
 
   type packed = E : 'r t -> packed
 
-  val of_jsonrpc : Jsonrpc.Request.t -> (packed, string) result
+  val of_jsonrpc : Jsonrpc.Message.request -> (packed, string) result
 
   val yojson_of_result : 'a t -> 'a -> Json.t option
 
-  val to_jsonrpc_request : 'a t -> id:Id.t -> Jsonrpc.Request.t
+  val to_jsonrpc_request : 'a t -> id:Id.t -> Jsonrpc.Message.request
 
   val response_of_json : 'a t -> Json.t -> 'a
 end
@@ -103,9 +103,9 @@ end
 module type Notification_intf = sig
   type t
 
-  val of_jsonrpc : Jsonrpc.Request.t -> (t, string) result
+  val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) result
 
-  val to_jsonrpc : t -> Jsonrpc.Request.t
+  val to_jsonrpc : t -> Jsonrpc.Message.notification
 end
 
 module Make (Initialize : sig
@@ -175,29 +175,27 @@ struct
 
   let to_jsonrpc (type state) (t : state t) h_on_request h_on_notification =
     let open Fiber.O in
-    let on_request (ctx : state Session.Context.t) :
+    let on_request (ctx : (state, Id.t) Session.Context.t) :
         (Response.t * state) Fiber.t =
-      let req = Session.Context.request ctx in
+      let req = Session.Context.message ctx in
       let state = Session.Context.state ctx in
       match In_request.of_jsonrpc req with
       | Error message ->
         let code = Jsonrpc.Response.Error.Code.InvalidParams in
         let error = Jsonrpc.Response.Error.make ~code ~message () in
-        let id = Option.value_exn req.id in
-        Fiber.return (Response.error id error, state)
+        Fiber.return (Response.error req.id error, state)
       | Ok (In_request.E r) -> (
-        let id = Option.value_exn req.id in
         let+ response = h_on_request.on_request t r in
         match response with
-        | Error e -> (Response.error id e, state)
+        | Error e -> (Response.error req.id e, state)
         | Ok (response, state) ->
           let json = In_request.yojson_of_result r response in
           let result = Option.value_exn json in
-          let response = Response.ok id result in
+          let response = Response.ok req.id result in
           (response, state) )
     in
     let on_notification ctx : (Notify.t * state) Fiber.t =
-      let r = Session.Context.request ctx in
+      let r = Session.Context.message ctx in
       match In_notification.of_jsonrpc r with
       | Ok r -> h_on_notification t r
       | Error error ->

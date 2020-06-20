@@ -42,16 +42,16 @@ module Notify = struct
     | Continue
 end
 
-module Request = struct
-  type t =
-    { id : Id.t option [@yojson.option]
-    ; method_ : string [@key "method"]
-    ; params : Json.t option [@yojson.option]
+module Message = struct
+  type 'id t =
+    { id : 'id
+    ; method_ : string
+    ; params : Json.t option
     }
 
-  let create ?id ?params ~method_ () = { id; method_; params }
+  let create ?params ~id ~method_ () = { id; method_; params }
 
-  let yojson_of_t { id; method_; params } =
+  let yojson_of_t add_id { id; method_; params } =
     let json =
       [ (Constant.method_, `String method_)
       ; (Constant.jsonrpc, `String Constant.jsonrpcv)
@@ -63,13 +63,13 @@ module Request = struct
       | Some params -> (Constant.params, params) :: json
     in
     let json =
-      match id with
+      match add_id id with
       | None -> json
-      | Some id -> (Constant.id, Id.yojson_of_t id) :: json
+      | Some id -> (Constant.id, id) :: json
     in
     `Assoc json
 
-  let t_of_yojson json =
+  let either_of_yojson json =
     match json with
     | `Assoc fields ->
       let method_ =
@@ -101,6 +101,19 @@ module Request = struct
   let params t f =
     let open Result.O in
     require_params t.params >>= read_json_params f
+
+  let yojson_of_either t : Json.t = yojson_of_t (Option.map ~f:Id.yojson_of_t) t
+
+  type request = Id.t t
+
+  type notification = unit t
+
+  type either = Id.t option t
+
+  let yojson_of_notification = yojson_of_t (fun () -> None)
+
+  let yojson_of_request (t : request) : Json.t =
+    yojson_of_t (fun id -> Some (Id.yojson_of_t id)) t
 end
 
 module Response = struct
@@ -338,11 +351,11 @@ module Response = struct
 end
 
 type packet =
-  | Request of Request.t
+  | Message of Id.t option Message.t
   | Response of Response.t
 
 let yojson_of_packet = function
-  | Request r -> Request.yojson_of_t r
+  | Message r -> Message.yojson_of_either r
   | Response r -> Response.yojson_of_t r
 
 module Session (Chan : sig
@@ -357,8 +370,8 @@ end) =
 struct
   type 'state t =
     { chan : Chan.t
-    ; on_request : 'state context -> (Response.t * 'state) Fiber.t
-    ; on_notification : 'state context -> (Notify.t * 'state) Fiber.t
+    ; on_request : ('state, Id.t) context -> (Response.t * 'state) Fiber.t
+    ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
@@ -368,12 +381,12 @@ struct
     ; mutable state : 'state
     }
 
-  and 'a context = 'a t * Request.t
+  and ('a, 'id) context = 'a t * 'id Message.t
 
   module Context = struct
-    type nonrec 'a t = 'a context
+    type nonrec ('a, 'id) t = ('a, 'id) context
 
-    let request = snd
+    let message = snd
 
     let session = fst
 
@@ -398,13 +411,12 @@ struct
       Response.error id error
 
   let on_request_fail ctx : (Response.t * _) Fiber.t =
-    let req : Request.t = Context.request ctx in
-    let id = Option.value_exn req.id in
+    let req : Message.request = Context.message ctx in
     let state = Context.state ctx in
     let error =
       Response.Error.make ~code:InternalError ~message:"not implemented" ()
     in
-    Fiber.return (Response.error id error, state)
+    Fiber.return (Response.error req.id error, state)
 
   let state t = t.state
 
@@ -438,7 +450,7 @@ struct
       | Left (Some packet) -> (
         let* next_step =
           match packet with
-          | Request r -> on_request r
+          | Message r -> on_request r
           | Response r ->
             let+ () = on_response r in
             Notify.Continue
@@ -453,9 +465,10 @@ struct
             | None -> "notification"
             | Some _ -> "request"
           in
-          Log.msg ("received " ^ what) [ ("r", Request.yojson_of_t r) ]);
+          Log.msg ("received " ^ what) [ ("r", Message.yojson_of_either r) ]);
       match r.id with
       | None -> (
+        let r = { r with id = () } in
         let+ res = Fiber.collect_errors (fun () -> t.on_notification (t, r)) in
         match res with
         | Ok (next, state) ->
@@ -464,10 +477,12 @@ struct
         | Error errors ->
           Format.eprintf
             "Uncaught error when handling notification:@.%a@.Error:@.%s@."
-            Yojson.Safe.pp (Request.yojson_of_t r)
+            Yojson.Safe.pp
+            (Message.yojson_of_notification r)
             (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors));
           Notify.Continue )
       | Some id ->
+        let r = { r with id } in
         let* resp = Fiber.collect_errors (fun () -> t.on_request (t, r)) in
         let jsonrpc_resp = response_of_result id resp in
         log t (fun () ->
@@ -514,20 +529,19 @@ struct
     ; state
     }
 
-  let notification t req =
+  let notification t (req : Message.notification) =
     if not t.running then Code_error.raise "jsonrpc must be running" [];
-    Chan.send t.chan (Request req)
+    let req = { req with Message.id = None } in
+    Chan.send t.chan (Message req)
 
-  let request t req =
+  let request t (req : Message.request) =
     if not t.running then Code_error.raise "jsonrpc must be running" [];
     let open Fiber.O in
-    let* () = Chan.send t.chan (Request req) in
-    let id =
-      match req.id with
-      | Some id -> id
-      | None -> Code_error.raise "request without an id" []
+    let* () =
+      let req = { req with Message.id = Some req.id } in
+      Chan.send t.chan (Message req)
     in
     let ivar = Fiber.Ivar.create () in
-    Table.add_exn t.pending id ivar;
+    Table.add_exn t.pending req.id ivar;
     Fiber.Ivar.read ivar
 end

@@ -39,11 +39,11 @@ let params (type a) (t : a t) =
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in
   let params = params t in
-  Jsonrpc.Request.create ~id ~method_ ~params ()
+  Jsonrpc.Message.create ~id ~method_ ~params ()
 
-let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
+let of_jsonrpc (r : Jsonrpc.Message.request) : (packed, string) Result.t =
   let open Result.O in
-  let parse f = Jsonrpc.Request.params r f in
+  let parse f = Jsonrpc.Message.params r f in
   match r.method_ with
   | "workspace/configuration" ->
     let+ params = parse ConfigurationParams.t_of_yojson in

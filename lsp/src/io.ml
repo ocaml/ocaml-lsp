@@ -51,6 +51,6 @@ let read (t : t) : packet option =
   let open Option.O in
   let+ json = read t in
   let open Json.O in
-  let req json = Request (Jsonrpc.Request.t_of_yojson json) in
+  let req json = Message (Jsonrpc.Message.either_of_yojson json) in
   let resp json = Response (Jsonrpc.Response.t_of_yojson json) in
   (req <|> resp) json
