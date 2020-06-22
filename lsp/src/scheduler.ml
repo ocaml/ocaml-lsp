@@ -42,13 +42,85 @@ end = struct
     Condition.signal t.cv
 end
 
+module Removable_queue = struct
+  type 'a node =
+    { mutable next : 'a node option
+    ; mutable prev : 'a node option
+    ; data : 'a
+    ; mutable queue : 'a t option
+    }
+
+  and 'a non_empty =
+    { tail : 'a node
+    ; head : 'a node
+    }
+
+  and 'a queue =
+    | Empty
+    | Non_empty of 'a non_empty
+
+  and 'a t = 'a queue ref
+
+  let create () = ref Empty
+
+  let is_empty t = !t = Empty
+
+  let push (type a) (t : a t) (a : a) =
+    let node prev = { next = None; prev; data = a; queue = Some t } in
+    match !t with
+    | Empty ->
+      let node = node None in
+      t := Non_empty { tail = node; head = node };
+      node
+    | Non_empty ne ->
+      let node = node (Some ne.tail) in
+      assert (ne.tail.next = None);
+      ne.tail.next <- Some node;
+      t := Non_empty { ne with tail = node };
+      node
+
+  let pop (type a) (t : a t) : a option =
+    match !t with
+    | Empty -> None
+    | Non_empty ne ->
+      let node = ne.head in
+      if ne.head == ne.tail then
+        t := Empty
+      else
+        t := Non_empty { ne with head = Option.value_exn node.prev };
+      node.prev <- None;
+      node.next <- None;
+      node.queue <- None;
+      Some node.data
+
+  let remove node =
+    if Option.is_some node.queue then (
+      ( match (node.next, node.prev) with
+      | None, None -> Option.value_exn node.queue := Empty
+      | _, _ -> (
+        ( match node.next with
+        | None -> ()
+        | Some next -> next.prev <- node.prev );
+        match node.prev with
+        | None -> ()
+        | Some prev -> prev.next <- node.next ) );
+      node.prev <- None;
+      node.next <- None;
+      node.queue <- None
+    )
+end
+
 module Worker : sig
   (** Simple queue that is consumed by its own thread *)
   type 'work t
 
   val create : do_:('a -> unit) -> 'a t
 
-  val add_work : 'a t -> 'a -> unit
+  type task
+
+  val cancel : task -> unit
+
+  val add_work : 'a t -> 'a -> task
 
   val stop : _ t -> unit
 end = struct
@@ -58,11 +130,16 @@ end = struct
     | Finished
 
   type 'a t =
-    { work : 'a Queue.t
+    { work : 'a Removable_queue.t
     ; mutable state : state
     ; mutex : Mutex.t
     ; work_available : Condition.t
     }
+
+  and task = Task : 'a t * 'a Removable_queue.node -> task
+
+  let cancel (Task (t, node)) =
+    with_mutex t.mutex ~f:(fun () -> Removable_queue.remove node)
 
   let is_running t =
     match t.state with
@@ -71,15 +148,15 @@ end = struct
 
   let run (f, t) =
     let rec loop () =
-      while Queue.is_empty t.work && is_running t do
+      while Removable_queue.is_empty t.work && is_running t do
         Condition.wait t.work_available t.mutex
       done;
-      while not (Queue.is_empty t.work) do
-        f (Queue.pop t.work)
+      while not (Removable_queue.is_empty t.work) do
+        f (Option.value_exn (Removable_queue.pop t.work))
       done;
       match t.state with
       | Stopped _ ->
-        assert (Queue.is_empty t.work);
+        assert (Removable_queue.is_empty t.work);
         t.state <- Finished
       | Finished -> assert false
       | Running _ -> loop ()
@@ -88,7 +165,7 @@ end = struct
 
   let create ~do_ =
     let t =
-      { work = Queue.create ()
+      { work = Removable_queue.create ()
       ; state = Finished
       ; mutex = Mutex.create ()
       ; work_available = Condition.create ()
@@ -100,13 +177,14 @@ end = struct
     Mutex.unlock t.mutex;
     t
 
-  let add_work t w =
+  let add_work (type a) (t : a t) (w : a) =
     ( match t.state with
     | Running _ -> ()
     | _ -> Code_error.raise "invalid state" [] );
     with_mutex t.mutex ~f:(fun () ->
-        Queue.add w t.work;
-        Condition.signal t.work_available)
+        let node = Removable_queue.push t.work w in
+        Condition.signal t.work_available;
+        Task (t, node))
 
   let stop (t : _ t) =
     match t.state with
@@ -141,7 +219,10 @@ and event =
   | Scheduled of packed_active_timer
   | Detached of detached_task
 
-and job = Pending : (unit -> 'a) * 'a Or_exn.t Fiber.Ivar.t -> job
+and job =
+  | Pending :
+      (unit -> 'a) * ('a, [ `Exn of Exn.t | `Canceled ]) result Fiber.Ivar.t
+      -> job
 
 and thread =
   { scheduler : t
@@ -249,7 +330,11 @@ let create () =
 let create_thread scheduler =
   let worker =
     let do_ (Pending (f, ivar)) =
-      let res = Result.try_with f in
+      let res =
+        match Result.try_with f with
+        | Ok x -> Ok x
+        | Error exn -> Error (`Exn exn)
+      in
       add_events scheduler [ Job_completed (res, ivar) ]
     in
     Worker.create ~do_
@@ -261,11 +346,35 @@ let create_thread scheduler =
 let add_pending_events t by =
   with_mutex t.mutex ~f:(fun () -> t.events_pending <- t.events_pending + by)
 
+type 'a task =
+  { ivar : ('a, [ `Exn of Exn.t | `Canceled ]) result Fiber.Ivar.t
+  ; task : Worker.task
+  }
+
+let await task = Fiber.Ivar.read task.ivar
+
+let await_no_cancel task =
+  let open Fiber.O in
+  let+ res = Fiber.Ivar.read task.ivar in
+  match res with
+  | Ok x -> Ok x
+  | Error `Canceled -> assert false
+  | Error (`Exn exn) -> Error exn
+
+let cancel task =
+  let open Fiber.O in
+  let* status = Fiber.Ivar.peek task.ivar in
+  match status with
+  | Some _ -> Fiber.return ()
+  | None ->
+    Worker.cancel task.task;
+    Fiber.Ivar.fill task.ivar (Error `Canceled)
+
 let async (t : thread) f =
   add_pending_events t.scheduler 1;
   let ivar = Fiber.Ivar.create () in
-  Worker.add_work t.worker (Pending (f, ivar));
-  Fiber.Ivar.read ivar
+  let task = Worker.add_work t.worker (Pending (f, ivar)) in
+  { ivar; task }
 
 let stop (t : thread) = Worker.stop t.worker
 
@@ -317,7 +426,12 @@ let rec pump_events (t : t) =
               Fiber.fork (fun () -> Fiber.Var.set me t task)
             in
             ()
-          | Job_completed (a, ivar) -> Fiber.Ivar.fill ivar a
+          | Job_completed (a, ivar) -> (
+            let* status = Fiber.Ivar.peek ivar in
+            (* in cases where a canceled task was already running *)
+            match status with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill ivar a )
           | Scheduled (Active_timer active_timer) ->
             with_mutex t.time_mutex ~f:(fun () ->
                 Table.remove t.timers active_timer.parent.timer_id);

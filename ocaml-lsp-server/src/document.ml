@@ -48,6 +48,7 @@ let source doc = doc.source
 let with_pipeline (doc : t) f =
   Scheduler.async doc.merlin (fun () ->
       Mpipeline.with_pipeline doc.pipeline (fun () -> f doc.pipeline))
+  |> Scheduler.await_no_cancel
 
 let with_pipeline_exn doc f =
   let open Fiber.O in

@@ -9,6 +9,7 @@ let fb () =
   Scheduler.async worker (fun () ->
       Thread.delay 1.0;
       print_endline "pre epmtive thread finished")
+  |> Scheduler.await_no_cancel
 
 let _ =
   Thread.create

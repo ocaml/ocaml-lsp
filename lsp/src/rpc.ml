@@ -17,7 +17,8 @@ module Stream_io = struct
       let r = Scheduler.create_thread s in
       Fiber_stream.In.create (fun () ->
           let open Fiber.O in
-          let+ res = Scheduler.async r (fun () -> Io.read io) in
+          let task = Scheduler.async r (fun () -> Io.read io) in
+          let+ res = Scheduler.await_no_cancel task in
           Result.ok_exn res)
     in
     let o =
@@ -29,6 +30,7 @@ module Stream_io = struct
               ( match t with
               | None -> fun () -> Io.close io
               | Some p -> fun () -> Io.send io p )
+            |> Scheduler.await_no_cancel
           in
           Result.ok_exn res)
     in
