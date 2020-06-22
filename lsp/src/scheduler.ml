@@ -84,7 +84,7 @@ module Removable_queue = struct
     | Empty -> None
     | Non_empty ne ->
       let node = ne.head in
-      if ne.head == ne.tail then
+      if Option.is_none node.next then
         t := Empty
       else
         t := Non_empty { ne with head = Option.value_exn node.prev };
