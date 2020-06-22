@@ -44,7 +44,7 @@ let pop (type a) (t : a t) : a option =
     if Option.is_none node.next then
       t := Empty
     else
-      t := Non_empty { ne with head = Option.value_exn node.prev };
+      t := Non_empty { ne with head = Option.value_exn node.next };
     node.prev <- None;
     node.next <- None;
     node.queue <- None;
