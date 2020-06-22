@@ -42,3 +42,19 @@
  (alias test)
  (action
   (run ./jsonrpc_test.exe)))
+
+(library
+ (name lsp_expect_tests)
+ (modules lsp_expect_tests)
+ (inline_tests)
+ (libraries
+  stdune
+  lsp
+  ;; This is because of the (implicit_transitive_deps false)
+  ;; in dune-project
+  ppx_expect.config
+  ppx_expect.common
+  base
+  ppx_inline_test.config)
+ (preprocess
+  (pps ppx_expect)))
