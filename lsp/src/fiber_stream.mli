@@ -32,7 +32,7 @@ end
 
 (** [connect i o] reads from [i] and writes to [o]. Closes [o] when [i] is
     exhausted *)
-val connect : 'a In.t -> 'a Out.t -> 'a Fiber.t
+val connect : 'a In.t -> 'a Out.t -> unit Fiber.t
 
 (** [supply i o] like [connect i o] but does not close [o] once [i] is exhausted *)
 val supply : 'a In.t -> 'a Out.t -> 'a Fiber.t

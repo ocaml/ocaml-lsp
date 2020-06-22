@@ -57,7 +57,9 @@ let connect i o =
   let rec go () =
     let* a = In.read i in
     let* () = Out.write o a in
-    go ()
+    match a with
+    | None -> Fiber.return ()
+    | Some _ -> go ()
   in
   go ()
 
