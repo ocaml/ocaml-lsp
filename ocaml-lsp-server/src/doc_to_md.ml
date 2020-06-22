@@ -1,3 +1,5 @@
+open Stdune
+
 module Oct = Octavius
 
 let { Logger.log } = Logger.for_section "doc_to_md"
@@ -45,7 +47,7 @@ let style_markdown kind md =
        using html blocks *)
     md
 
-let rec text_to_markdown doc = List.concat_map text_element_to_markdown doc
+let rec text_to_markdown doc = List.concat_map ~f:text_element_to_markdown doc
 
 and text_element_to_markdown (doc_elem : Oct.Types.text_element) =
   let open Omd in
@@ -63,21 +65,21 @@ and text_element_to_markdown (doc_elem : Oct.Types.text_element) =
     let heading = text_to_markdown content in
     [ heading_level i heading ]
   | Ref (RK_link, url, descr) ->
-    let descr = Option.map text_to_markdown descr |> Option.value ~default:[] in
+    let descr = Option.map descr ~f:text_to_markdown |> Option.value ~default:[] in
     let empty_title = "" in
     [ Url (url, descr, empty_title) ]
   | Ref (_ref_kind, reference, descr) ->
     (* TODO: add support for cross-references *)
-    Option.map text_to_markdown descr
+    Option.map ~f:text_to_markdown descr
     |> Option.value ~default:[ to_inline_code reference ]
   | Special_ref _
   | Target (_, _) (* TODO: add support for markdown-specific blocks *) ->
     []
 
-and text_elements_to_markdown lst = List.map text_to_markdown lst
+and text_elements_to_markdown lst = List.map ~f:text_to_markdown lst
 
 let rec tags_to_markdown (tags : Oct.Types.tag list) =
-  List.map tag_to_markdown tags
+  List.map ~f:tag_to_markdown tags
   |> put_in_between [ new_line; new_line ]
   |> List.concat
 
