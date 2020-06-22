@@ -57,7 +57,7 @@ and text_element_to_markdown (doc_elem : Oct.Types.text_element) =
   | Style (kind, text) -> style_markdown kind @@ text_to_markdown text
   | List l -> [ Ul (text_elements_to_markdown l) ]
   | Enum l -> [ Ol (text_elements_to_markdown l) ]
-  | Newline -> [ new_line ]
+  | Newline -> [ new_line; new_line ]
   | Title (i, _, content) ->
     (* TODO: along with cross-references support, add support for labels *)
     let heading = text_to_markdown content in

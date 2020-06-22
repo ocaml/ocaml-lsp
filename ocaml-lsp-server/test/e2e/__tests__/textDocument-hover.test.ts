@@ -155,7 +155,9 @@ describe("textDocument/hover", () => {
         "ocaml",
         0,
         outdent`
-        (** This function has a nice documentation
+        (** This function has a nice documentation.
+
+            It performs division of two integer numbers.
 
             @param x dividend
             @param divisor
@@ -182,10 +184,8 @@ describe("textDocument/hover", () => {
 
     let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(18, 4),
+      position: Types.Position.create(20, 4),
     });
-
-    console.log(result);
 
     expect(result).toMatchObject({
       contents: {
@@ -195,8 +195,9 @@ describe("textDocument/hover", () => {
           int -> int -> int
           \`\`\`
           ---
-          This function has a nice documentation
+          This function has a nice documentation.
 
+          It performs division of two integer numbers.
           * * *
           ***@param*** \`x\` dividend
 
@@ -221,10 +222,6 @@ describe("textDocument/hover", () => {
           ***@author*** John Doe
           `,
       },
-      range: {
-        start: { line: 18, character: 4 },
-        end: { line: 18, character: 7 }
-      }
     });
   });
 
