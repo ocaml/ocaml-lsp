@@ -17,3 +17,8 @@ module Types = Types
 module Uri = Uri0
 module Fiber_stream = Fiber_stream
 module Io = Io
+
+module Private = struct
+  (** These modules are not for public consumption *)
+  module Removable_queue = Removable_queue
+end
