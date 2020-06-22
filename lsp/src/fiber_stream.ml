@@ -67,12 +67,11 @@ let supply i o =
   let open Fiber.O in
   let rec go () =
     let* a = In.read i in
-    let* () =
-      match a with
-      | None -> Fiber.return ()
-      | Some _ -> Out.write o a
-    in
-    go ()
+    match a with
+    | None -> Fiber.return ()
+    | Some _ ->
+      let* () = Out.write o a in
+      go ()
   in
   go ()
 
