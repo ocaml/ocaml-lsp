@@ -262,11 +262,7 @@ let on_request :
     in
 
     let format_contents ~syntax ~as_markdown ~typ ~doc =
-      let languageId = 
-        match syntax with
-        | Document.Syntax.Ocaml -> "ocaml"
-        | Document.Syntax.Reason -> "reason"
-      in
+      let languageId = Document.Syntax.to_language_id syntax in
       let doc =
         match doc with
         | None -> ""
