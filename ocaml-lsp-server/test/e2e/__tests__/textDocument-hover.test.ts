@@ -67,6 +67,38 @@ describe("textDocument/hover", () => {
     });
   });
 
+  it("returns correct syntax for reason (markdown formatting)", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      textDocument: {
+        hover: {
+          dynamicRegistration: true,
+          contentFormat: ["markdown", "plaintext"],
+        },
+      },
+    });
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.re",
+        "reason",
+        0,
+        "let x = 1;\n",
+      ),
+    });
+
+    let result = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.re"),
+      position: Types.Position.create(0, 4),
+    });
+
+    expect(result).toMatchObject({
+      contents: { kind: "markdown", value: "```reason\nint\n```" },
+      range: {
+        end: { character: 5, line: 0 },
+        start: { character: 4, line: 0 },
+      },
+    });
+  });
+
   it("returns type inferred under cursor with documentation", async () => {
     languageServer = await LanguageServer.startAndInitialize({
       textDocument: {

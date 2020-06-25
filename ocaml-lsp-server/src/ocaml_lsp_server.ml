@@ -261,7 +261,8 @@ let on_request :
       | _ -> None
     in
 
-    let format_contents ~as_markdown ~typ ~doc =
+    let format_contents ~syntax ~as_markdown ~typ ~doc =
+      let languageId = Document.Syntax.to_language_id syntax in
       let doc =
         match doc with
         | None -> ""
@@ -269,7 +270,7 @@ let on_request :
       in
       `MarkupContent
         ( if as_markdown then
-          { MarkupContent.value = Printf.sprintf "```ocaml\n%s%s\n```" typ doc
+          { MarkupContent.value = Printf.sprintf "```%s\n%s%s\n```" languageId typ doc
           ; kind = MarkupKind.Markdown
           }
         else
@@ -284,6 +285,7 @@ let on_request :
     match query_type doc pos with
     | None -> Ok (store, None)
     | Some (loc, typ) ->
+      let syntax = Document.syntax doc in
       let doc = query_doc doc pos in
       let as_markdown =
         match client_capabilities.textDocument with
@@ -293,7 +295,7 @@ let on_request :
             ~set:(Option.value contentFormat ~default:[ Markdown ])
         | _ -> false
       in
-      let contents = format_contents ~as_markdown ~typ ~doc in
+      let contents = format_contents ~syntax ~as_markdown ~typ ~doc in
       let range = Range.of_loc loc in
       let resp = Hover.create ~contents ~range () in
       Ok (store, Some resp) )
