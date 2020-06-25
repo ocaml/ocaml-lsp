@@ -46,8 +46,6 @@ jobs:
 
       - run: opam exec -- make
 
-      - run: yarn global add reason-cli
-
       - run: yarn --frozen-lockfile
         working-directory: ocaml-lsp-server/test/e2e
 
