@@ -298,7 +298,7 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
   in
 
   let format_contents ~syntax ~as_markdown ~typ ~doc =
-    let languageId = Document.Syntax.to_language_id syntax in
+    let language_id = Document.Syntax.to_language_id syntax in
     let doc =
       match doc with
       | None -> ""
@@ -307,7 +307,7 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
     `MarkupContent
       ( if as_markdown then
         { MarkupContent.value =
-            Printf.sprintf "```%s\n%s%s\n```" languageId typ doc
+            Printf.sprintf "```%s\n%s%s\n```" language_id typ doc
         ; kind = MarkupKind.Markdown
         }
       else
