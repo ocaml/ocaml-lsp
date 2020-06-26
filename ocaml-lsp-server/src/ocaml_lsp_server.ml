@@ -270,7 +270,8 @@ let on_request :
       in
       `MarkupContent
         ( if as_markdown then
-          { MarkupContent.value = Printf.sprintf "```%s\n%s%s\n```" languageId typ doc
+          { MarkupContent.value =
+              Printf.sprintf "```%s\n%s%s\n```" languageId typ doc
           ; kind = MarkupKind.Markdown
           }
         else
