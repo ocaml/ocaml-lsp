@@ -27,6 +27,10 @@ module Syntax = struct
     | "ocaml" -> Ocaml
     | "reason" -> Reason
     | id -> failwith ("Unexpected language id " ^ id)
+
+  let to_language_id = function
+    | Ocaml -> "ocaml"
+    | Reason -> "reason"
 end
 
 type t =

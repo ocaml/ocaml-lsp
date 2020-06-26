@@ -297,7 +297,8 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
     | _ -> None
   in
 
-  let format_contents ~as_markdown ~typ ~doc =
+  let format_contents ~syntax ~as_markdown ~typ ~doc =
+    let languageId = Document.Syntax.to_language_id syntax in
     let doc =
       match doc with
       | None -> ""
@@ -305,7 +306,8 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
     in
     `MarkupContent
       ( if as_markdown then
-        { MarkupContent.value = Printf.sprintf "```ocaml\n%s%s\n```" typ doc
+        { MarkupContent.value =
+            Printf.sprintf "```%s\n%s%s\n```" languageId typ doc
         ; kind = MarkupKind.Markdown
         }
       else
@@ -324,6 +326,7 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
   match query_type with
   | None -> Fiber.return @@ Ok (None, state)
   | Some (loc, typ) ->
+    let syntax = Document.syntax doc in
     let+ doc = query_doc doc pos in
     let as_markdown =
       match client_capabilities.textDocument with
@@ -333,7 +336,7 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
           ~set:(Option.value contentFormat ~default:[ Markdown ])
       | _ -> false
     in
-    let contents = format_contents ~as_markdown ~typ ~doc in
+    let contents = format_contents ~syntax ~as_markdown ~typ ~doc in
     let range = Range.of_loc loc in
     let resp = Hover.create ~contents ~range () in
     Ok (Some resp, state)

@@ -4,6 +4,8 @@ import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
 
 describe("TextDocument: incremental sync", () => {
+  let languageServer: LanguageServer.LanguageServer;
+
   async function getDoc(languageServer: LanguageServer.LanguageServer) {
     let result = await languageServer.sendRequest("debug/textDocument/get", {
       textDocument: Types.TextDocumentIdentifier.create(
@@ -14,8 +16,13 @@ describe("TextDocument: incremental sync", () => {
     return result;
   }
 
+  afterEach(async () => {
+    await LanguageServer.exit(languageServer);
+    languageServer = null;
+  });
+
   it("Manages unicode character ranges correctly", async () => {
-    let languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize();
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
@@ -44,11 +51,10 @@ describe("TextDocument: incremental sync", () => {
     });
 
     expect(await getDoc(languageServer)).toEqual('let x = 4\nlet y = "ab"');
-    await LanguageServer.exit(languageServer);
   });
 
   it("updates in the middle of the line", async () => {
-    let languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize();
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test-document.txt",
@@ -97,11 +103,10 @@ describe("TextDocument: incremental sync", () => {
     });
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
-    await LanguageServer.exit(languageServer);
   });
 
   it("updates in at the start of the line", async () => {
-    let languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize();
 
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
@@ -132,11 +137,10 @@ describe("TextDocument: incremental sync", () => {
     });
 
     expect(await getDoc(languageServer)).toEqual("let x = 1;\ns\nlet y = 2;");
-    await LanguageServer.exit(languageServer);
   });
 
   it("update when inserting a line", async () => {
-    let languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize();
 
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
@@ -169,11 +173,10 @@ describe("TextDocument: incremental sync", () => {
     expect(await getDoc(languageServer)).toEqual(
       "let x = 1;\nlet x = 1;\n\nlet y = 2;",
     );
-    await LanguageServer.exit(languageServer);
   });
 
   it("update when inserting a line at the end of the doc", async () => {
-    let languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize();
 
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
@@ -206,11 +209,10 @@ describe("TextDocument: incremental sync", () => {
     expect(await getDoc(languageServer)).toEqual(
       "let x = 1;\n\nlet y = 2;\nlet y = 2;",
     );
-    await LanguageServer.exit(languageServer);
   });
 
   it("update when deleting a line", async () => {
-    let languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize();
 
     languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
@@ -241,14 +243,20 @@ describe("TextDocument: incremental sync", () => {
     });
 
     expect(await getDoc(languageServer)).toEqual("\nlet y = 2;");
-    await LanguageServer.exit(languageServer);
   });
 });
 
 describe("TextDocument", () => {
+  let languageServer;
+
+  afterEach(async () => {
+    await LanguageServer.exit(languageServer);
+    languageServer = null;
+  });
+
   describe("didOpen", () => {
     it("stores text document", async () => {
-      let languageServer = await LanguageServer.startAndInitialize();
+      languageServer = await LanguageServer.startAndInitialize();
       languageServer.sendNotification("textDocument/didOpen", {
         textDocument: Types.TextDocumentItem.create(
           "file:///test-document.txt",
@@ -266,13 +274,12 @@ describe("TextDocument", () => {
       });
 
       expect(result).toEqual("Hello, World!");
-      await LanguageServer.exit(languageServer);
     });
   });
 
   describe("didChange", () => {
     it("updates text document", async () => {
-      let languageServer = await LanguageServer.startAndInitialize();
+      languageServer = await LanguageServer.startAndInitialize();
       languageServer.sendNotification("textDocument/didOpen", {
         textDocument: Types.TextDocumentItem.create(
           "file:///test-document.txt",
@@ -298,7 +305,6 @@ describe("TextDocument", () => {
       });
 
       expect(result).toEqual("Hello again!");
-      await LanguageServer.exit(languageServer);
     });
   });
 });

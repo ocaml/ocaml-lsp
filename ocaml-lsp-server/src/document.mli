@@ -6,6 +6,8 @@ module Syntax : sig
   type t =
     | Ocaml
     | Reason
+
+  val to_language_id : t -> string
 end
 
 module Kind : sig
