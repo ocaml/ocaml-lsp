@@ -502,6 +502,19 @@ let references state
   in
   Ok (Some lsp_locs, state)
 
+let definition_query state uri position merlin_request =
+  let open Fiber.Result.O in
+  let uri = Lsp.Uri.t_of_yojson (`String uri) in
+  let* doc = Fiber.return (Document_store.get state.store uri) in
+  let position = Position.logical position in
+  let command = merlin_request position in
+  let open Fiber.O in
+  let+ result = Document.dispatch_exn doc command in
+  let result = location_of_merlin_loc uri result in
+  match result with
+  | None -> Ok (None, state)
+  | Some loc -> Ok (Some loc, state)
+
 let on_request :
     type resp.
        state Server.t
@@ -563,31 +576,13 @@ let on_request :
   | Lsp.Client_request.TextDocumentDeclaration _ ->
     Fiber.return @@ Ok (None, state)
   | Lsp.Client_request.TextDocumentDefinition
-      { textDocument = { uri }; position } -> (
-    let open Fiber.Result.O in
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let position = Position.logical position in
-    let command = Query_protocol.Locate (None, `ML, position) in
-    let open Fiber.O in
-    let+ result = Document.dispatch_exn doc command in
-    let result = location_of_merlin_loc uri result in
-    match result with
-    | None -> Ok (None, state)
-    | Some loc -> Ok (Some loc, state) )
+      { textDocument = { uri }; position } ->
+    definition_query state uri position (fun pos ->
+        Query_protocol.Locate (None, `ML, pos))
   | Lsp.Client_request.TextDocumentTypeDefinition
-      { textDocument = { uri }; position } -> (
-    let open Fiber.Result.O in
-    let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let position = Position.logical position in
-    let command = Query_protocol.Locate_type position in
-    let open Fiber.O in
-    let+ result = Document.dispatch_exn doc command in
-    let result = location_of_merlin_loc uri result in
-    match result with
-    | None -> Ok (None, state)
-    | Some loc -> Ok (Some loc, state) )
+      { textDocument = { uri }; position } ->
+    definition_query state uri position (fun pos ->
+        Query_protocol.Locate_type pos)
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
