@@ -14,10 +14,14 @@ let space = Omd.Text " "
 
 let new_line = Omd.NL
 
-let rec put_in_between elem = function
-  | [] -> []
-  | [ el ] -> [ el ]
-  | el :: tail -> [ el; elem ] @ put_in_between elem tail
+(* [put_in_between elem lst] inserts [elem] between all elements of [lst] *)
+let put_in_between elem lst =
+  let rec loop acc = function
+  | [] -> acc
+  | hd :: [] -> hd :: acc
+  | hd :: tail -> loop (elem :: hd :: acc) tail
+  in
+  List.rev (loop [] lst)
 
 let heading_level level heading =
   let open Omd in
@@ -145,13 +149,17 @@ let comment_to_markdown (doc, tags) =
     let separation = Omd.[ NL; Hr ] in
     text @ separation @ non_empty_tags
 
+type t =
+    | Raw of string
+    | Markdown of string
+
 let translate doc =
   let open Oct in
   match parse (Lexing.from_string doc) with
   | Error e ->
     let msg = Errors.message e.error in
     log ~title:"parse doc comment" "invalid doc comments %s" msg;
-    `Raw (Omd.to_markdown [ Raw doc ])
+    Raw (Omd.to_markdown [ Raw doc ])
   | Ok doc ->
     let doc = comment_to_markdown doc in
-    `Markdown (Omd.to_markdown doc)
+    Markdown (Omd.to_markdown doc)

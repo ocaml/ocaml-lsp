@@ -307,8 +307,8 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
         | Some s ->
           let doc =
             match Doc_to_md.translate s with
-            | `Raw d -> sprintf "(** %s *)" d
-            | `Markdown d -> d
+            | Raw d -> sprintf "(** %s *)" d
+            | Markdown d -> d
           in
           sprintf "```%s\n%s\n```\n---\n%s" languageId typ doc
       in

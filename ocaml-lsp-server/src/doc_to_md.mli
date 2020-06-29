@@ -1,1 +1,5 @@
-val translate : string -> [ `Raw of string | `Markdown of string ]
+type t =
+  | Raw of string
+  | Markdown of string
+
+val translate : string -> t
