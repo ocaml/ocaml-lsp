@@ -1,4 +1,5 @@
 open! Import
+module Scheduler = Lsp.Scheduler
 
 module Kind = struct
   type t =
@@ -37,6 +38,7 @@ type t =
   ; source : Msource.t
   ; pipeline : Mpipeline.t
   ; config : Mconfig.t
+  ; merlin : Scheduler.thread
   }
 
 let uri doc = Lsp.Text_document.documentUri doc.tdoc
@@ -47,8 +49,15 @@ let syntax t = Syntax.of_language_id (Lsp.Text_document.languageId t.tdoc)
 
 let source doc = doc.source
 
-let with_pipeline doc f =
-  Mpipeline.with_pipeline doc.pipeline (fun () -> f doc.pipeline)
+let with_pipeline (doc : t) f =
+  Scheduler.async doc.merlin (fun () ->
+      Mpipeline.with_pipeline doc.pipeline (fun () -> f doc.pipeline))
+  |> Scheduler.await_no_cancel
+
+let with_pipeline_exn doc f =
+  let open Fiber.O in
+  let+ res = with_pipeline doc f in
+  Result.ok_exn res
 
 let version doc = Lsp.Text_document.version doc.tdoc
 
@@ -69,14 +78,14 @@ let make_config uri =
          Filename.concat directory base)
       ]
 
-let make tdoc =
+let make merlin_thread tdoc =
   let tdoc = Lsp.Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
   let text = Lsp.Text_document.text tdoc in
   let config = make_config (Lsp.Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
-  { tdoc; source; config; pipeline }
+  { tdoc; source; config; pipeline; merlin = merlin_thread }
 
 let update_text ?version change doc =
   let tdoc = Lsp.Text_document.apply_content_change ?version change doc.tdoc in
@@ -84,7 +93,11 @@ let update_text ?version change doc =
   let config = make_config (Lsp.Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
-  { tdoc; config; source; pipeline }
+  { doc with tdoc; config; source; pipeline }
 
-let dispatch doc command =
+let dispatch (doc : t) command =
   with_pipeline doc (fun pipeline -> Query_commands.dispatch pipeline command)
+
+let dispatch_exn (doc : t) command =
+  with_pipeline_exn doc (fun pipeline ->
+      Query_commands.dispatch pipeline command)

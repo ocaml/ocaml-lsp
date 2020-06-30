@@ -20,16 +20,20 @@ val kind : t -> Kind.t
 
 val syntax : t -> Syntax.t
 
-val make : DidOpenTextDocumentParams.t -> t
+val make : Lsp.Scheduler.thread -> DidOpenTextDocumentParams.t -> t
 
 val uri : t -> Lsp.Uri.t
 
 val source : t -> Msource.t
 
-val with_pipeline : t -> (Mpipeline.t -> 'a) -> 'a
+val with_pipeline : t -> (Mpipeline.t -> 'a) -> ('a, exn) result Fiber.t
+
+val with_pipeline_exn : t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
 val version : t -> int
 
 val update_text : ?version:int -> TextDocumentContentChangeEvent.t -> t -> t
 
-val dispatch : t -> 'a Query_protocol.t -> 'a
+val dispatch : t -> 'a Query_protocol.t -> ('a, exn) result Fiber.t
+
+val dispatch_exn : t -> 'a Query_protocol.t -> 'a Fiber.t

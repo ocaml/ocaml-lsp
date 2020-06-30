@@ -1,154 +1,43 @@
 open Import
 open Jsonrpc
 
-module Message = struct
-  type ('request, 'notif) t =
-    | Request of Id.t * 'request
-    | Notification of 'notif
+module Stream_io = struct
+  open Fiber_stream
 
-  let of_jsonrpc req notif (packet : Request.t) =
-    let open Result.O in
-    match packet.id with
-    | None ->
-      let+ n = notif packet in
-      Notification n
-    | Some id ->
-      let+ req = req packet in
-      Request (id, req)
+  type t = Jsonrpc.packet In.t * Jsonrpc.packet Out.t
+
+  let close (_, o) = Out.write o None
+
+  let send (_, o) p = Out.write o (Some p)
+
+  let recv (i, _) = In.read i
+
+  let make s io =
+    let i =
+      let r = Scheduler.create_thread s in
+      Fiber_stream.In.create (fun () ->
+          let open Fiber.O in
+          let task = Scheduler.async r (fun () -> Io.read io) in
+          let+ res = Scheduler.await_no_cancel task in
+          Result.ok_exn res)
+    in
+    let o =
+      let w = Scheduler.create_thread s in
+      let open Fiber.O in
+      Fiber_stream.Out.create (fun t ->
+          let+ res =
+            Scheduler.async w
+              ( match t with
+              | None -> fun () -> Io.close io
+              | Some p -> fun () -> Io.send io p )
+            |> Scheduler.await_no_cancel
+          in
+          Result.ok_exn res)
+    in
+    (i, o)
 end
 
-module Io = struct
-  let { Logger.log } = Logger.for_section "lsp_io"
-
-  type t =
-    { ic : in_channel
-    ; oc : out_channel
-    }
-
-  let make ic oc =
-    set_binary_mode_in ic true;
-    set_binary_mode_out oc true;
-    { ic; oc }
-
-  let send { oc; ic = _ } (packet : packet) =
-    let json =
-      match packet with
-      | Request r -> Request.yojson_of_t r
-      | Response r -> Response.yojson_of_t r
-    in
-    log ~title:Logger.Title.LocalDebug "send: %a"
-      (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-      json;
-    let data = Yojson.Safe.to_string json in
-    let content_length = String.length data in
-    let header = Header.create ~content_length in
-    Header.write header oc;
-    output_string oc data;
-    flush oc;
-    Fiber.return ()
-
-  let read { ic; oc = _ } =
-    let read_content () =
-      let header = Header.read ic in
-      let len = Header.content_length header in
-      let buffer = Bytes.create len in
-      let rec read_loop read =
-        if read < len then
-          let n = input ic buffer read (len - read) in
-          read_loop (read + n)
-      in
-      let () = read_loop 0 in
-      Ok (Bytes.to_string buffer)
-    in
-
-    let parse_json content =
-      match Yojson.Safe.from_string content with
-      | json ->
-        log ~title:Logger.Title.LocalDebug "recv: %a"
-          (fun () -> Yojson.Safe.pretty_to_string ~std:false)
-          json;
-        Ok json
-      | exception Yojson.Json_error msg ->
-        Result.errorf "error parsing json: %s" msg
-    in
-
-    let open Result.O in
-    read_content () >>= parse_json
-
-  let read_request (t : t) =
-    Fiber.return
-      (let open Result.O in
-      let* parsed = read t in
-      match Jsonrpc.Request.t_of_yojson parsed with
-      | r -> Ok r
-      | exception _exn -> Error "Unexpected packet")
-
-  let read_response (t : t) =
-    Fiber.return
-      (let open Result.O in
-      let* parsed = read t in
-      match Jsonrpc.Response.t_of_yojson parsed with
-      | r -> Ok r
-      | exception _exn -> Error "Unexpected packet")
-end
-
-type client = Client
-
-type server = Server
-
-type (_, 'resp) request =
-  | Client : 'resp Client_request.t -> (client, 'resp) request
-  | Server : 'resp Server_request.t -> (server, 'resp) request
-
-type _ notification =
-  | Client : Client_notification.t -> client notification
-  | Server : Server_notification.t -> server notification
-
-module Handler = struct
-  type 'a on_request = E : (('a, 'r) request -> 'r Fiber.t) -> 'a on_request
-
-  type 'a gen =
-    { on_request : 'a on_request
-    ; on_notification : 'a notification -> unit
-    }
-
-  (* A server has a [client handler] A client has a [server handler] *)
-  type _ t =
-    | Client : server gen -> client t
-    | Server : client gen -> server t
-
-  let on_notification_default _ =
-    (* TODO we can also just log it *)
-    ()
-
-  let client ?on_request ?(on_notification = on_notification_default) () =
-    let on_request : server on_request =
-      let f =
-        match on_request with
-        | Some s -> s
-        | None -> assert false
-      in
-      E (fun (Server x) -> f x)
-    in
-    let on_notification : server notification -> unit =
-     fun (Server x) -> on_notification x
-    in
-    Client { on_request; on_notification }
-
-  let server ?on_request ?(on_notification = on_notification_default) () =
-    let on_request : client on_request =
-      let f =
-        match on_request with
-        | Some s -> s
-        | None -> assert false
-      in
-      E (fun (Client x) -> f x)
-    in
-    let on_notification : client notification -> unit =
-     fun (Client x) -> on_notification x
-    in
-    Server { on_request; on_notification }
-end
+module Session = Session (Stream_io)
 
 module State = struct
   type t =
@@ -157,63 +46,299 @@ module State = struct
     | Closed
 end
 
-type 'h t =
-  { handler : 'h Handler.t
-  ; io : Io.t
-  ; mutable state : State.t
-  }
+module type S = sig
+  type 'a out_request
 
-let make handler io = { handler; io; state = Waiting_for_init }
+  type out_notification
 
-let req_id = ref 1
+  type 'a in_request
 
-let request (type a r) (t : a t) (req : (a, r) request) : r Fiber.t =
-  let id = Either.Right !req_id in
-  let jsonrpc_request =
-    incr req_id;
-    match req with
-    | Client r -> Client_request.to_jsonrpc_request r ~id
-    | Server r -> Server_request.to_jsonrpc_request r ~id
-  in
-  let open Fiber.O in
-  let* () = Io.send t.io (Request jsonrpc_request) in
-  let* resp = Io.read_response t.io in
-  match resp with
-  | Error e -> failwith e
-  | Ok r -> (
-    assert (r.id = id);
-    match r.result with
-    | Error e -> Jsonrpc.Response.Error.raise e
-    | Ok (json : Json.t) ->
-      Fiber.return
-        ( match req with
-        | Client r -> Client_request.response_of_json r json
-        | Server r -> Server_request.response_of_json r json ) )
+  type in_notification
 
-let notification (type a) (t : a t) (n : a notification) : unit Fiber.t =
-  let jsonrpc_request =
+  type 'state t
+
+  module Handler : sig
+    type 'a session
+
+    type 'state on_request =
+      { on_request :
+          'a.    'state session -> 'a in_request
+          -> ('a * 'state, Response.Error.t) result Fiber.t
+      }
+
+    type 'state t
+
+    val make :
+         ?on_request:'state on_request
+      -> ?on_notification:('state session -> in_notification -> 'state Fiber.t)
+      -> unit
+      -> 'state t
+  end
+  with type 'a session := 'a t
+
+  val state : 'a t -> 'a
+
+  val make : 'state Handler.t -> Stream_io.t -> 'state -> 'state t
+
+  val stop : _ t -> unit Fiber.t
+
+  val request :
+    _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
+
+  val notification : _ t -> out_notification -> unit Fiber.t
+end
+
+module type Request_intf = sig
+  type 'a t
+
+  type packed = E : 'r t -> packed
+
+  val of_jsonrpc : Jsonrpc.Message.request -> (packed, string) result
+
+  val yojson_of_result : 'a t -> 'a -> Json.t option
+
+  val to_jsonrpc_request : 'a t -> id:Id.t -> Jsonrpc.Message.request
+
+  val response_of_json : 'a t -> Json.t -> 'a
+end
+
+module type Notification_intf = sig
+  type t
+
+  val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) result
+
+  val to_jsonrpc : t -> Jsonrpc.Message.notification
+end
+
+module Make (Initialize : sig
+  type t
+end)
+(Out_request : Request_intf)
+(Out_notification : Notification_intf)
+(In_request : Request_intf)
+(In_notification : Notification_intf) =
+struct
+  type 'a out_request = 'a Out_request.t
+
+  type 'a in_request = 'a In_request.t
+
+  type out_notification = Out_notification.t
+
+  type in_notification = In_notification.t
+
+  type 'state t =
+    { io : Stream_io.t
+    ; (* mutable only to initialiaze this record *)
+      mutable session : 'state Session.t Fdecl.t
+    ; (* Internal state of the session *)
+      mutable state : State.t
+    ; (* Filled when the server is initialied *)
+      initialized : Initialize.t Fiber.Ivar.t
+    ; mutable req_id : int
+    }
+
+  and 'state on_request =
+    { on_request :
+        'a.    'state t -> 'a in_request
+        -> ('a * 'state, Response.Error.t) result Fiber.t
+    }
+
+  and 'state handler =
+    { h_on_request : 'state on_request
+    ; h_on_notification : 'state t -> In_notification.t -> 'state Fiber.t
+    }
+
+  module Handler = struct
+    type nonrec 'state on_request = 'state on_request =
+      { on_request :
+          'a.    'state t -> 'a in_request
+          -> ('a * 'state, Response.Error.t) result Fiber.t
+      }
+
+    type nonrec 'state t = 'state handler =
+      { h_on_request : 'state on_request
+      ; h_on_notification : 'state t -> In_notification.t -> 'state Fiber.t
+      }
+
+    let on_notification_default _ _ =
+      Format.eprintf "dropped notification@.%!";
+      assert false
+
+    let make ?on_request ?(on_notification = on_notification_default) () =
+      let h_on_request =
+        match on_request with
+        | Some t -> t
+        | None -> assert false
+      in
+      { h_on_request; h_on_notification = on_notification }
+  end
+
+  let state t = Session.state (Fdecl.get t.session)
+
+  let to_jsonrpc (type state) (t : state t) h_on_request h_on_notification =
+    let open Fiber.O in
+    let on_request (ctx : (state, Id.t) Session.Context.t) :
+        (Response.t * state) Fiber.t =
+      let req = Session.Context.message ctx in
+      let state = Session.Context.state ctx in
+      match In_request.of_jsonrpc req with
+      | Error message ->
+        let code = Jsonrpc.Response.Error.Code.InvalidParams in
+        let error = Jsonrpc.Response.Error.make ~code ~message () in
+        Fiber.return (Response.error req.id error, state)
+      | Ok (In_request.E r) -> (
+        let+ response = h_on_request.on_request t r in
+        match response with
+        | Error e -> (Response.error req.id e, state)
+        | Ok (response, state) ->
+          let json = In_request.yojson_of_result r response in
+          let result = Option.value_exn json in
+          let response = Response.ok req.id result in
+          (response, state) )
+    in
+    let on_notification ctx : (Notify.t * state) Fiber.t =
+      let r = Session.Context.message ctx in
+      match In_notification.of_jsonrpc r with
+      | Ok r -> h_on_notification t r
+      | Error error ->
+        Log.log ~section:"lsp" (fun () ->
+            Log.msg "Invalid notification" [ ("error", `String error) ]);
+        let state = Session.Context.state ctx in
+        Fiber.return (Notify.Continue, state)
+    in
+    (on_request, on_notification)
+
+  let make ~name h_on_request h_on_notification io state =
+    let t =
+      { io
+      ; state = Waiting_for_init
+      ; session = Fdecl.create Dyn.Encoder.opaque
+      ; initialized = Fiber.Ivar.create ()
+      ; req_id = 1
+      }
+    in
+    let session =
+      let on_request, on_notification =
+        to_jsonrpc t h_on_request h_on_notification
+      in
+      Session.create ~on_request ~on_notification ~name io state
+    in
+    Fdecl.set t.session session;
+    t
+
+  let request (type r) (t : _ t) (req : r Out_request.t) :
+      (r, Jsonrpc.Response.Error.t) result Fiber.t =
+    let id = Either.Right t.req_id in
+    let jsonrpc_request =
+      t.req_id <- t.req_id + 1;
+      Out_request.to_jsonrpc_request req ~id
+    in
+    let open Fiber.O in
+    let+ resp = Session.request (Fdecl.get t.session) jsonrpc_request in
+    resp.result |> Result.map ~f:(Out_request.response_of_json req)
+
+  let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
+    let jsonrpc_request = Out_notification.to_jsonrpc n in
+    Session.notification (Fdecl.get t.session) jsonrpc_request
+
+  let initialized t = Fiber.Ivar.read t.initialized
+
+  let stop t =
+    let open Fiber.O in
+    let+ () = Session.stop (Fdecl.get t.session) in
+    t.state <- Closed
+
+  let start_loop t = Session.run (Fdecl.get t.session)
+end
+
+module Client = struct
+  open Types
+  include Make (InitializeResult) (Client_request) (Client_notification)
+            (Server_request)
+            (Server_notification)
+
+  let make handler io =
+    let h_on_notification rpc notif =
+      let open Fiber.O in
+      let+ res = handler.h_on_notification rpc notif in
+      (Notify.Continue, res)
+    in
+    make ~name:"client" handler.h_on_request h_on_notification io
+
+  let start (t : _ t) (p : InitializeParams.t) =
+    assert (t.state = Waiting_for_init);
+    let open Fiber.O in
+    let loop = start_loop t in
+    let init () =
+      let* resp = request t (Client_request.Initialize p) in
+      Log.log ~section:"client" (fun () ->
+          let resp =
+            match resp with
+            | Ok s -> InitializeResult.yojson_of_t s
+            | Error s -> Jsonrpc.Response.Error.yojson_of_t s
+          in
+          Log.msg "initialized" [ ("resp", resp) ]);
+      t.state <- Running;
+      match resp with
+      | Ok resp -> Fiber.Ivar.fill t.initialized resp
+      | Error _ -> Fiber.return ()
+    in
+    let* () =
+      Scheduler.detach ~name:"lsp client init" (Scheduler.scheduler ()) init
+    in
+    loop
+end
+
+module Server = struct
+  open Types
+  include Make (InitializeParams) (Server_request) (Server_notification)
+            (Client_request)
+            (Client_notification)
+
+  let h_on_notification handler t n =
+    let open Fiber.O in
     match n with
-    | Client r -> Client_notification.to_jsonrpc_request r
-    | Server r -> Server_notification.to_jsonrpc_request r
-  in
-  Io.send t.io (Request jsonrpc_request)
+    | Client_notification.Exit ->
+      Log.log ~section:"server" (fun () ->
+          Log.msg "received exit notification" []);
+      let* () = stop t in
+      Fiber.return (Notify.Stop, state t)
+    | _ ->
+      if t.state = Waiting_for_init then
+        let state = state t in
+        Fiber.return (Notify.Continue, state)
+      else
+        let+ state = handler.h_on_notification t n in
+        (Notify.Continue, state)
 
-let start_loop _ = ()
+  let on_request handler t in_r =
+    let open Fiber.O in
+    match Client_request.E in_r with
+    | Client_request.E (Client_request.Initialize i) ->
+      if t.state = Waiting_for_init then (
+        let* result = handler.h_on_request.on_request t in_r in
+        t.state <- Running;
+        (* XXX Should we wait for the waiter of initialized to finish? *)
+        let* () = Fiber.Ivar.fill t.initialized i in
+        Fiber.return result
+      ) else
+        let code = Response.Error.Code.InvalidRequest in
+        let message = "already initialized" in
+        Fiber.return (Error (Jsonrpc.Response.Error.make ~code ~message ()))
+    | Client_request.E _ ->
+      if t.state = Waiting_for_init then
+        let code = Response.Error.Code.ServerNotInitialized in
+        let message = "not initialized" in
+        Fiber.return (Error (Jsonrpc.Response.Error.make ~code ~message ()))
+      else
+        handler.h_on_request.on_request t in_r
 
-let start_client (t : client t) (p : Types.InitializeParams.t) =
-  assert (t.state = Waiting_for_init);
-  let open Fiber.O in
-  let+ resp = request t (Client (Client_request.Initialize p)) in
-  t.state <- Running;
-  start_loop t;
-  resp
+  let make (type s) (handler : s Handler.t) io (initial_state : s) =
+    let h_on_request : _ Handler.on_request =
+      { Handler.on_request = (fun t x -> on_request handler t x) }
+    in
+    let h_on_notification = h_on_notification handler in
+    make ~name:"server" h_on_request h_on_notification io initial_state
 
-let start_server t = start_loop t
-
-let initialized _ = assert false
-
-let stop t =
-  t.state <- Closed;
-  assert false
-
-let stopped _ = assert false
+  let start t = start_loop t
+end

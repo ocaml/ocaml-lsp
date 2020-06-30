@@ -1,73 +1,87 @@
 open! Import
 open Jsonrpc
 
-module Message : sig
-  type ('request, 'notif) t =
-    | Request of Id.t * 'request
-    | Notification of 'notif
+module Stream_io : sig
+  type t = packet Fiber_stream.In.t * packet Fiber_stream.Out.t
 
-  val of_jsonrpc :
-       (Request.t -> ('r, string) result)
-    -> (Request.t -> ('n, string) result)
-    -> Request.t
-    -> (('r, 'n) t, string) result
+  val close : 'a * 'b Fiber_stream.Out.t -> unit Fiber.t
+
+  val send : 'a * 'b Fiber_stream.Out.t -> 'b -> unit Fiber.t
+
+  val recv : 'a Fiber_stream.In.t * 'b -> 'a option Fiber.t
+
+  val make :
+    Scheduler.t -> Io.t -> packet Fiber_stream.In.t * packet Fiber_stream.Out.t
 end
 
-module Io : sig
-  type t
+module type S = sig
+  type 'a out_request
 
-  val make : in_channel -> out_channel -> t
+  type out_notification
 
-  val send : t -> packet -> unit Fiber.t
+  type 'a in_request
 
-  val read_request : t -> (Request.t, string) result Fiber.t
+  type in_notification
 
-  val read_response : t -> (Response.t, string) result Fiber.t
+  type 'state t
+
+  module Handler : sig
+    type 'a session
+
+    type 'state on_request =
+      { on_request :
+          'a.    'state session -> 'a in_request
+          -> ('a * 'state, Response.Error.t) result Fiber.t
+      }
+
+    type 'state t
+
+    val make :
+         ?on_request:'state on_request
+      -> ?on_notification:('state session -> in_notification -> 'state Fiber.t)
+      -> unit
+      -> 'state t
+  end
+  with type 'a session := 'a t
+
+  val state : 'a t -> 'a
+
+  val make : 'state Handler.t -> Stream_io.t -> 'state -> 'state t
+
+  val stop : 'state t -> unit Fiber.t
+
+  val request :
+    _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
+
+  val notification : _ t -> out_notification -> unit Fiber.t
 end
 
-type client = Client
+module Client : sig
+  open Types
 
-type server = Server
+  include
+    S
+      with type 'a out_request = 'a Client_request.t
+       and type out_notification = Client_notification.t
+       and type 'a in_request = 'a Server_request.t
+       and type in_notification = Server_notification.t
 
-type (_, 'resp) request =
-  | Client : 'resp Client_request.t -> (client, 'resp) request
-  | Server : 'resp Server_request.t -> (server, 'resp) request
+  val initialized : _ t -> InitializeResult.t Fiber.t
 
-type _ notification =
-  | Client : Client_notification.t -> client notification
-  | Server : Server_notification.t -> server notification
-
-module Handler : sig
-  type _ t
-
-  val server :
-       ?on_request:('a Client_request.t -> 'a Fiber.t)
-    -> ?on_notification:(Client_notification.t -> unit)
-    -> unit
-    -> server t
-
-  val client :
-       ?on_request:('a Server_request.t -> 'a Fiber.t)
-    -> ?on_notification:(Server_notification.t -> unit)
-    -> unit
-    -> client t
+  val start : _ t -> InitializeParams.t -> unit Fiber.t
 end
 
-type _ t
+module Server : sig
+  open Types
 
-val make : 'a Handler.t -> Io.t -> 'a t
+  include
+    S
+      with type 'a out_request = 'a Server_request.t
+       and type out_notification = Server_notification.t
+       and type 'a in_request = 'a Client_request.t
+       and type in_notification = Client_notification.t
 
-val stop : _ t -> unit
+  val initialized : _ t -> InitializeParams.t Fiber.t
 
-val start_client :
-  client t -> Types.InitializeParams.t -> Types.InitializeResult.t Fiber.t
-
-val start_server : server t -> unit
-
-val stopped : _ t -> unit Fiber.t
-
-val initialized : _ t -> unit Fiber.t
-
-val request : 'a t -> ('a, 'resp) request -> 'resp Fiber.t
-
-val notification : 'a t -> 'a notification -> unit Fiber.t
+  val start : _ t -> unit Fiber.t
+end

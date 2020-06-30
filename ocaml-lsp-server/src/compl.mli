@@ -6,3 +6,4 @@ val complete :
   -> ( [> `CompletionList of CompletionList.t ]
      , Lsp.Jsonrpc.Response.Error.t )
      result
+     Fiber.t

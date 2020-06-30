@@ -39,7 +39,8 @@ let rec symbol_info ?containerName uri item =
 
 let run (client_capabilities : ClientCapabilities.t) doc uri =
   let command = Query_protocol.Outline in
-  let outline = Document.dispatch doc command in
+  let open Fiber.O in
+  let+ outline = Document.dispatch_exn doc command in
   let symbols =
     let hierarchicalDocumentSymbolSupport =
       let open Option.O in

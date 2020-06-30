@@ -36,16 +36,22 @@ module Constant = struct
   let error = "error"
 end
 
-module Request = struct
+module Notify = struct
   type t =
-    { id : Id.t option [@yojson.option]
-    ; method_ : string [@key "method"]
-    ; params : Json.t option [@yojson.option]
+    | Stop
+    | Continue
+end
+
+module Message = struct
+  type 'id t =
+    { id : 'id
+    ; method_ : string
+    ; params : Json.t option
     }
 
-  let create ?id ?params ~method_ () = { id; method_; params }
+  let create ?params ~id ~method_ () = { id; method_; params }
 
-  let yojson_of_t { id; method_; params } =
+  let yojson_of_t add_id { id; method_; params } =
     let json =
       [ (Constant.method_, `String method_)
       ; (Constant.jsonrpc, `String Constant.jsonrpcv)
@@ -57,13 +63,13 @@ module Request = struct
       | Some params -> (Constant.params, params) :: json
     in
     let json =
-      match id with
+      match add_id id with
       | None -> json
-      | Some id -> (Constant.id, Id.yojson_of_t id) :: json
+      | Some id -> (Constant.id, id) :: json
     in
     `Assoc json
 
-  let t_of_yojson json =
+  let either_of_yojson json =
     match json with
     | `Assoc fields ->
       let method_ =
@@ -95,6 +101,19 @@ module Request = struct
   let params t f =
     let open Result.O in
     require_params t.params >>= read_json_params f
+
+  let yojson_of_either t : Json.t = yojson_of_t (Option.map ~f:Id.yojson_of_t) t
+
+  type request = Id.t t
+
+  type notification = unit t
+
+  type either = Id.t option t
+
+  let yojson_of_notification = yojson_of_t (fun () -> None)
+
+  let yojson_of_request (t : request) : Json.t =
+    yojson_of_t (fun id -> Some (Id.yojson_of_t id)) t
 end
 
 module Response = struct
@@ -332,91 +351,197 @@ module Response = struct
 end
 
 type packet =
-  | Request of Request.t
+  | Message of Id.t option Message.t
   | Response of Response.t
+
+let yojson_of_packet = function
+  | Message r -> Message.yojson_of_either r
+  | Response r -> Response.yojson_of_t r
 
 module Session (Chan : sig
   type t
 
   val send : t -> packet -> unit Fiber.t
 
-  val recv : t -> packet Fiber.t
+  val recv : t -> packet option Fiber.t
 
   val close : t -> unit Fiber.t
 end) =
 struct
-  type t =
+  type 'state t =
     { chan : Chan.t
-    ; on_request : Request.t -> Response.t Fiber.t
-    ; on_notification : Request.t -> unit Fiber.t
+    ; on_request : ('state, Id.t) context -> (Response.t * 'state) Fiber.t
+    ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
+    ; stopped : unit Fiber.Ivar.t
+    ; name : string
+    ; mutable running : bool
+    ; mutable tick : int
+    ; mutable state : 'state
     }
 
-  let on_request_fail (req : Request.t) : Response.t Fiber.t =
-    let id = Option.value_exn req.id in
+  and ('a, 'id) context = 'a t * 'id Message.t
+
+  module Context = struct
+    type nonrec ('a, 'id) t = ('a, 'id) context
+
+    let message = snd
+
+    let session = fst
+
+    let state t = (session t).state
+  end
+
+  let log t = Log.log ~section:t.name
+
+  let response_of_result id = function
+    | Ok (x, _) -> x
+    | Error exns ->
+      let data : Json.t =
+        `List
+          (List.map
+             ~f:(fun e -> e |> Exn_with_backtrace.to_dyn |> Json.of_dyn)
+             exns)
+      in
+      let error =
+        Response.Error.make ~code:InternalError ~data
+          ~message:"uncaught exception" ()
+      in
+      Response.error id error
+
+  let on_request_fail ctx : (Response.t * _) Fiber.t =
+    let req : Message.request = Context.message ctx in
+    let state = Context.state ctx in
     let error =
       Response.Error.make ~code:InternalError ~message:"not implemented" ()
     in
-    Fiber.return (Response.error id error)
+    Fiber.return (Response.error req.id error, state)
 
-  let stop t = Fiber.Ivar.fill t.stop_requested ()
+  let state t = t.state
 
-  let fork_and_race (type a b) (_ : unit -> a Fiber.t) (_ : unit -> b Fiber.t) :
-      (a, b) Either.t Fiber.t =
-    assert false
+  let stop t =
+    log t (fun () -> Log.msg "requesting shutdown" []);
+    Fiber.Ivar.fill t.stop_requested ()
+
+  let stopped t = Fiber.Ivar.read t.stopped
+
+  let close t =
+    let open Fiber.O in
+    let* () = Chan.close t.chan in
+    Fiber.Ivar.fill t.stopped ()
 
   let run t =
+    let stop_requested = Fiber.Ivar.read t.stop_requested in
+    let open Fiber.O in
     let rec loop () =
-      let open Fiber.O in
+      t.tick <- t.tick + 1;
+      log t (fun () -> Log.msg "new tick" [ ("tick", `Int t.tick) ]);
       let* res =
-        fork_and_race
+        Fiber.fork_and_race
           (fun () -> Chan.recv t.chan)
-          (fun () -> Fiber.Ivar.read t.stop_requested)
+          (fun () -> stop_requested)
       in
       match res with
-      | Either.Right () -> Chan.close t.chan
-      | Left (Request r) ->
-        let* () =
-          match r.id with
-          | None -> t.on_notification r
-          | Some _ ->
-            let* resp = t.on_request r in
-            Chan.send t.chan (Response resp)
+      | Either.Right () ->
+        log t (fun () -> Log.msg "shutdown granted" []);
+        Chan.close t.chan
+      | Left None -> Fiber.Ivar.fill t.stop_requested ()
+      | Left (Some packet) -> (
+        let* next_step =
+          match packet with
+          | Message r -> on_request r
+          | Response r ->
+            let+ () = on_response r in
+            Notify.Continue
         in
-        loop ()
-      | Left (Response r) -> (
-        match Table.find t.pending r.id with
-        | None -> loop ()
-        | Some ivar ->
-          Table.remove t.pending r.id;
-          let* () = Fiber.Ivar.fill ivar r in
-          loop () )
+        match next_step with
+        | Notify.Continue -> loop ()
+        | Stop -> Fiber.return () )
+    and on_request r =
+      log t (fun () ->
+          let what =
+            match r.id with
+            | None -> "notification"
+            | Some _ -> "request"
+          in
+          Log.msg ("received " ^ what) [ ("r", Message.yojson_of_either r) ]);
+      match r.id with
+      | None -> (
+        let r = { r with id = () } in
+        let+ res = Fiber.collect_errors (fun () -> t.on_notification (t, r)) in
+        match res with
+        | Ok (next, state) ->
+          t.state <- state;
+          next
+        | Error errors ->
+          Format.eprintf
+            "Uncaught error when handling notification:@.%a@.Error:@.%s@."
+            Yojson.Safe.pp
+            (Message.yojson_of_notification r)
+            (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors));
+          Notify.Continue )
+      | Some id ->
+        let r = { r with id } in
+        let* resp = Fiber.collect_errors (fun () -> t.on_request (t, r)) in
+        let jsonrpc_resp = response_of_result id resp in
+        log t (fun () ->
+            Log.msg "sending response"
+              [ ("response", Response.yojson_of_t jsonrpc_resp) ]);
+        let+ () = Chan.send t.chan (Response jsonrpc_resp) in
+        ( match resp with
+        | Ok (_, state) -> t.state <- state
+        | Error _ -> () );
+        Notify.Continue
+    and on_response r =
+      let log (what : string) =
+        log t (fun () ->
+            Log.msg ("response " ^ what) [ ("r", Response.yojson_of_t r) ])
+      in
+      match Table.find t.pending r.id with
+      | None ->
+        log "dropped";
+        Fiber.return ()
+      | Some ivar ->
+        log "acknowledged";
+        Table.remove t.pending r.id;
+        Fiber.Ivar.fill ivar r
     in
-    loop ()
+    t.running <- true;
+    let* () = loop () in
+    close t
 
-  let on_notification_fail _ = Fiber.return ()
+  let on_notification_fail ctx =
+    let state = Context.state ctx in
+    Fiber.return (Notify.Continue, state)
 
   let create ?(on_request = on_request_fail)
-      ?(on_notification = on_notification_fail) chan =
+      ?(on_notification = on_notification_fail) ~name chan state =
     { chan
     ; on_request
     ; on_notification
     ; pending = Table.create (module Id) 10
     ; stop_requested = Fiber.Ivar.create ()
+    ; stopped = Fiber.Ivar.create ()
+    ; name
+    ; running = false
+    ; tick = 0
+    ; state
     }
 
-  let notification t req = Chan.send t.chan (Request req)
+  let notification t (req : Message.notification) =
+    if not t.running then Code_error.raise "jsonrpc must be running" [];
+    let req = { req with Message.id = None } in
+    Chan.send t.chan (Message req)
 
-  let request t req =
+  let request t (req : Message.request) =
+    if not t.running then Code_error.raise "jsonrpc must be running" [];
     let open Fiber.O in
-    let* () = Chan.send t.chan (Request req) in
-    let id =
-      match req.id with
-      | Some id -> id
-      | None -> Code_error.raise "request without an id" []
+    let* () =
+      let req = { req with Message.id = Some req.id } in
+      Chan.send t.chan (Message req)
     in
     let ivar = Fiber.Ivar.create () in
-    Table.add_exn t.pending id ivar;
+    Table.add_exn t.pending req.id ivar;
     Fiber.Ivar.read ivar
 end

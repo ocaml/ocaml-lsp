@@ -107,6 +107,8 @@ val fork_and_join : (unit -> 'a t) -> (unit -> 'b t) -> ('a * 'b) t
     ]} *)
 val fork_and_join_unit : (unit -> unit t) -> (unit -> 'a t) -> 'a t
 
+val fork_and_race : (unit -> 'a t) -> (unit -> 'b t) -> ('a, 'b) Either.t t
+
 (** Map a list in parallel:
 
     {[
@@ -229,3 +231,19 @@ with type 'a fiber := 'a t
 (** [run t] runs a fiber. If the fiber doesn't complete immediately, [run t]
     returns [None]. *)
 val run : 'a t -> 'a option
+
+module Mvar : sig
+  type 'a fiber
+
+  (** Mailbox variable *)
+  type 'a t
+
+  val create : unit -> 'a t
+
+  (** Read and consume the value inside mailbox variable. Blocks until the
+      variable is available *)
+  val read : 'a t -> 'a fiber
+
+  val write : 'a t -> 'a -> unit fiber
+end
+with type 'a fiber := 'a t

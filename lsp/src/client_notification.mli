@@ -11,8 +11,8 @@ type t =
   | ChangeConfiguration of DidChangeConfigurationParams.t
   | Initialized
   | Exit
-  | Unknown_notification of Jsonrpc.Request.t
+  | Unknown_notification of Jsonrpc.Message.notification
 
-val of_jsonrpc : Jsonrpc.Request.t -> (t, string) Result.t
+val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) Result.t
 
-val to_jsonrpc_request : t -> Jsonrpc.Request.t
+val to_jsonrpc : t -> Jsonrpc.Message.notification

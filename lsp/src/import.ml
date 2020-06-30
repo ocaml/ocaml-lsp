@@ -13,6 +13,9 @@ module Code_error = Code_error
 module Or_exn = Or_exn
 module Table = Table
 module Id = Id
+module Exn_with_backtrace = Exn_with_backtrace
+module Fdecl = Fdecl
+module Queue = Queue
 
 module String = struct
   include Stdune.String
@@ -132,17 +135,48 @@ module Json = struct
 
   let yojson_of_list = Ppx_yojson_conv_lib.Yojson_conv.yojson_of_list
 
+  let pp ppf (t : t) = Yojson.Safe.pretty_print ppf t
+
   module Jsonable = Ppx_yojson_conv_lib.Yojsonable
 
   let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
 
   let field_exn fields name conv =
     match field fields name conv with
-    | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
     | Some f -> f
+    | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
+
+  let rec of_dyn (t : Dyn.t) : t =
+    match t with
+    | Opaque -> `String "<opaque>"
+    | Unit -> `String "()"
+    | Int i -> `Int i
+    | Int64 i -> `Int (Int64.to_int i)
+    | Bool b -> `Bool b
+    | String s -> `String s
+    | Bytes s -> `String (Bytes.to_string s)
+    | Char c -> `String (String.of_list [ c ])
+    | Float f -> `Float f
+    | Option None -> `String "<none>"
+    | Option (Some s) -> of_dyn s
+    | List xs -> `List (List.map ~f:of_dyn xs)
+    | Array xs -> `List (List.map ~f:of_dyn (Array.to_list xs))
+    | Tuple xs -> `List (List.map ~f:of_dyn xs)
+    | Record r -> `Assoc (List.map r ~f:(fun (k, v) -> (k, of_dyn v)))
+    | Variant (name, args) -> `Assoc [ (name, of_dyn (List args)) ]
+    | Set xs -> `List (List.map ~f:of_dyn xs)
+    | Map map ->
+      `List (List.map map ~f:(fun (k, v) -> `List [ of_dyn k; of_dyn v ]))
 
   module Conv = struct
     include Ppx_yojson_conv_lib.Yojson_conv
+  end
+
+  module O = struct
+    let ( <|> ) c1 c2 json =
+      match c1 json with
+      | s -> s
+      | exception Conv.Of_yojson_error (_, _) -> c2 json
   end
 
   module Option = struct
@@ -274,6 +308,32 @@ module Fiber = struct
       let ( let* ) x f = x >>= f
     end
   end
+end
+
+module Log = struct
+  let level : (string option -> bool) ref = ref (fun _ -> false)
+
+  let out = ref Format.err_formatter
+
+  type message =
+    { message : string
+    ; payload : (string * Json.t) list
+    }
+
+  let msg message payload = { message; payload }
+
+  let log ?section k =
+    if !level section then (
+      let message = k () in
+      ( match section with
+      | None -> Format.fprintf !out "%s@." message.message
+      | Some section -> Format.fprintf !out "[%s] %s@." section message.message
+      );
+      ( match message.payload with
+      | [] -> ()
+      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields) );
+      Format.pp_print_flush !out ()
+    )
 end
 
 let sprintf = Stdune.sprintf

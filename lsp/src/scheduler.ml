@@ -1,5 +1,11 @@
 open Import
 
+let with_mutex m ~f =
+  Mutex.lock m;
+  let res = f () in
+  Mutex.unlock m;
+  res
+
 module Mvar : sig
   type 'a t
 
@@ -32,9 +38,7 @@ end = struct
     await_value t
 
   let set t v =
-    Mutex.lock t.m;
-    t.cell <- Some v;
-    Mutex.unlock t.m;
+    with_mutex t.m ~f:(fun () -> t.cell <- Some v);
     Condition.signal t.cv
 end
 
@@ -44,7 +48,11 @@ module Worker : sig
 
   val create : do_:('a -> unit) -> 'a t
 
-  val add_work : 'a t -> 'a -> unit
+  type task
+
+  val cancel : task -> unit
+
+  val add_work : 'a t -> 'a -> task
 
   val stop : _ t -> unit
 end = struct
@@ -54,11 +62,16 @@ end = struct
     | Finished
 
   type 'a t =
-    { work : 'a Queue.t
+    { work : 'a Removable_queue.t
     ; mutable state : state
     ; mutex : Mutex.t
     ; work_available : Condition.t
     }
+
+  and task = Task : 'a t * 'a Removable_queue.node -> task
+
+  let cancel (Task (t, node)) =
+    with_mutex t.mutex ~f:(fun () -> Removable_queue.remove node)
 
   let is_running t =
     match t.state with
@@ -67,15 +80,15 @@ end = struct
 
   let run (f, t) =
     let rec loop () =
-      while Queue.is_empty t.work && is_running t do
+      while Removable_queue.is_empty t.work && is_running t do
         Condition.wait t.work_available t.mutex
       done;
-      while not (Queue.is_empty t.work) do
-        f (Queue.pop t.work)
+      while not (Removable_queue.is_empty t.work) do
+        f (Option.value_exn (Removable_queue.pop t.work))
       done;
       match t.state with
       | Stopped _ ->
-        assert (Queue.is_empty t.work);
+        assert (Removable_queue.is_empty t.work);
         t.state <- Finished
       | Finished -> assert false
       | Running _ -> loop ()
@@ -84,7 +97,7 @@ end = struct
 
   let create ~do_ =
     let t =
-      { work = Queue.create ()
+      { work = Removable_queue.create ()
       ; state = Finished
       ; mutex = Mutex.create ()
       ; work_available = Condition.create ()
@@ -96,14 +109,14 @@ end = struct
     Mutex.unlock t.mutex;
     t
 
-  let add_work t w =
+  let add_work (type a) (t : a t) (w : a) =
     ( match t.state with
     | Running _ -> ()
     | _ -> Code_error.raise "invalid state" [] );
-    Mutex.lock t.mutex;
-    Queue.add w t.work;
-    Condition.signal t.work_available;
-    Mutex.unlock t.mutex
+    with_mutex t.mutex ~f:(fun () ->
+        let node = Removable_queue.push t.work w in
+        Condition.signal t.work_available;
+        Task (t, node))
 
   let stop (t : _ t) =
     match t.state with
@@ -112,6 +125,11 @@ end = struct
 end
 
 module Timer_id = Id.Make ()
+
+type detached_task =
+  { name : string option
+  ; task : unit -> unit Fiber.t
+  }
 
 type t =
   { mutable events_pending : int
@@ -125,13 +143,18 @@ type t =
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
   ; timers : (Timer_id.t, packed_active_timer ref) Table.t
+  ; detached : detached_task Queue.t
   }
 
 and event =
   | Job_completed : 'a * 'a Fiber.Ivar.t -> event
   | Scheduled of packed_active_timer
+  | Detached of detached_task
 
-and job = Pending : (unit -> 'a) * 'a Or_exn.t Fiber.Ivar.t -> job
+and job =
+  | Pending :
+      (unit -> 'a) * ('a, [ `Exn of Exn.t | `Canceled ]) result Fiber.Ivar.t
+      -> job
 
 and thread =
   { scheduler : t
@@ -139,7 +162,7 @@ and thread =
   }
 
 and timer =
-  { delay : float
+  { mutable delay : float
   ; timer_scheduler : t
   ; timer_id : Timer_id.t
   }
@@ -154,16 +177,26 @@ and 'a active_timer =
 and packed_active_timer =
   | Active_timer : 'a active_timer -> packed_active_timer
 
+let dyn_event_tag : event -> Dyn.t =
+  let open Dyn.Encoder in
+  function
+  | Job_completed (_, _) -> constr "Job_completed" []
+  | Scheduled _ -> constr "Scheduled" []
+  | Detached _ -> constr "Detached" []
+
 let add_events t = function
   | [] -> ()
   | events ->
-    Mutex.lock t.mutex;
-    t.events_pending <- t.events_pending - List.length events;
-    List.iter events ~f:(fun e -> Queue.add e t.events);
-    Condition.signal t.event_ready;
-    Mutex.unlock t.mutex
+    with_mutex t.mutex ~f:(fun () ->
+        t.events_pending <- t.events_pending - List.length events;
+        List.iter events ~f:(Queue.push t.events);
+        Condition.signal t.event_ready)
 
 let is_empty table = Table.length table = 0
+
+let me = Fiber.Var.create ()
+
+let scheduler () = Fiber.Var.get_exn me
 
 let time_loop t =
   let rec loop () =
@@ -203,7 +236,6 @@ let wake_loop t =
     Condition.signal t.timers_available;
     loop ()
   in
-
   loop ()
 
 let create () =
@@ -219,6 +251,7 @@ let create () =
     ; time = Thread.self ()
     ; earliest_wakeup = Mvar.create ()
     ; waker = Thread.self ()
+    ; detached = Queue.create ()
     }
   in
   Mutex.lock t.time_mutex;
@@ -229,7 +262,11 @@ let create () =
 let create_thread scheduler =
   let worker =
     let do_ (Pending (f, ivar)) =
-      let res = Result.try_with f in
+      let res =
+        match Result.try_with f with
+        | Ok x -> Ok x
+        | Error exn -> Error (`Exn exn)
+      in
       add_events scheduler [ Job_completed (res, ivar) ]
     in
     Worker.create ~do_
@@ -239,23 +276,48 @@ let create_thread scheduler =
   t
 
 let add_pending_events t by =
-  Mutex.lock t.mutex;
-  t.events_pending <- t.events_pending + by;
-  Mutex.unlock t.mutex
+  with_mutex t.mutex ~f:(fun () -> t.events_pending <- t.events_pending + by)
+
+type 'a task =
+  { ivar : ('a, [ `Exn of Exn.t | `Canceled ]) result Fiber.Ivar.t
+  ; task : Worker.task
+  }
+
+let await task = Fiber.Ivar.read task.ivar
+
+let await_no_cancel task =
+  let open Fiber.O in
+  let+ res = Fiber.Ivar.read task.ivar in
+  match res with
+  | Ok x -> Ok x
+  | Error `Canceled -> assert false
+  | Error (`Exn exn) -> Error exn
+
+let cancel task =
+  let open Fiber.O in
+  let* status = Fiber.Ivar.peek task.ivar in
+  match status with
+  | Some _ -> Fiber.return ()
+  | None ->
+    Worker.cancel task.task;
+    Fiber.Ivar.fill task.ivar (Error `Canceled)
 
 let async (t : thread) f =
   add_pending_events t.scheduler 1;
   let ivar = Fiber.Ivar.create () in
-  Worker.add_work t.worker (Pending (f, ivar));
-  Fiber.Ivar.read ivar
+  let task = Worker.add_work t.worker (Pending (f, ivar)) in
+  { ivar; task }
 
 let stop (t : thread) = Worker.stop t.worker
 
+let log = Log.log ~section:"scheduler"
+
 let rec pump_events (t : t) =
   let open Fiber.O in
-  if t.events_pending = 0 && Queue.is_empty t.events then
+  if t.events_pending = 0 && Queue.is_empty t.events then (
+    log (fun () -> Log.msg "finished processing events" []);
     Fiber.return (List.iter t.threads ~f:stop)
-  else if t.events_pending < 0 then
+  ) else if t.events_pending < 0 then
     assert false
   else (
     Mutex.lock t.mutex;
@@ -263,7 +325,7 @@ let rec pump_events (t : t) =
       Condition.wait t.event_ready t.mutex
     done;
     let consume_event () =
-      let res = Queue.pop t.events in
+      let res = Queue.pop_exn t.events in
       Mutex.unlock t.mutex;
       res
     in
@@ -274,12 +336,43 @@ let rec pump_events (t : t) =
       ) else
         let* () =
           match consume_event () with
-          | Job_completed (a, ivar) -> Fiber.Ivar.fill ivar a
+          | Detached { name; task } ->
+            log (fun () ->
+                let args =
+                  match name with
+                  | None -> []
+                  | Some name -> [ ("name", `String name) ]
+                in
+                Log.msg "running detached task" args);
+            let task () =
+              let+ () = task () in
+              log (fun () ->
+                  let args =
+                    match name with
+                    | None -> []
+                    | Some name -> [ ("name", `String name) ]
+                  in
+                  Log.msg "finished detached task" args)
+            in
+            let+ (_ : unit Fiber.Future.t) =
+              Fiber.fork (fun () -> Fiber.Var.set me t task)
+            in
+            ()
+          | Job_completed (a, ivar) -> (
+            let* status = Fiber.Ivar.peek ivar in
+            (* in cases where a canceled task was already running *)
+            match status with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill ivar a )
           | Scheduled (Active_timer active_timer) ->
-            Table.remove t.timers active_timer.parent.timer_id;
-            Mutex.unlock t.time_mutex;
-            let* res = active_timer.action () in
-            Fiber.Ivar.fill active_timer.ivar (Ok res)
+            with_mutex t.time_mutex ~f:(fun () ->
+                Table.remove t.timers active_timer.parent.timer_id);
+            let+ (_ : _ Fiber.Future.t) =
+              Fiber.fork (fun () ->
+                  let* res = active_timer.action () in
+                  Fiber.Ivar.fill active_timer.ivar (Ok res))
+            in
+            ()
         in
         Mutex.lock t.mutex;
         aux ()
@@ -290,44 +383,119 @@ let rec pump_events (t : t) =
 
 exception Never
 
-let run t f =
-  let open Fiber.O in
+(* This implementation of dequeing detached tasks is buggy. What happens when we
+   detach that rely on some subsequent detached task to proceed?
+
+   The issue is that we should wait for more tasks in parallel *)
+let rec restart_suspended t =
+  if Queue.is_empty t.detached then (
+    log (fun () -> Log.msg "finished processing detached tasks" []);
+    Fiber.return ()
+  ) else
+    let open Fiber.O in
+    let* () =
+      let detached =
+        Queue.fold ~f:(fun acc a -> a :: acc) ~init:[] t.detached |> List.rev
+      in
+      log (fun () ->
+          Log.msg
+            ( "cleared "
+            ^ Int.to_string (Queue.length t.detached)
+            ^ " detached tasks" )
+            []);
+      Queue.clear t.detached;
+      Fiber.parallel_iter
+        ~f:(fun f ->
+          log (fun () ->
+              let args =
+                match f.name with
+                | None -> []
+                | Some name -> [ ("name", `String name) ]
+              in
+              Log.msg "running detached task" args);
+          f.task ())
+        detached
+    in
+    restart_suspended t
+
+let list_of_queue q =
+  List.rev (Queue.fold ~f:(fun acc a -> a :: acc) ~init:[] q)
+
+let run : 'a. t -> 'a Fiber.t -> 'a =
+ fun t f ->
+  let f = Fiber.Var.set me t (fun () -> f) in
   match
-    Fiber.run
-      (let* user_action = Fiber.fork (fun () -> f) in
-       let* () = pump_events t in
-       Fiber.Future.peek user_action)
+    let fiber =
+      let open Fiber.O in
+      let* user_action = Fiber.fork (fun () -> f) in
+      let* (_ : unit Fiber.Future.t) =
+        Fiber.fork (fun () -> restart_suspended t)
+      in
+      let* () = pump_events t in
+      Fiber.Future.peek user_action
+    in
+    Fiber.run fiber
   with
   | None
   | Some None ->
+    if not (Queue.is_empty t.detached) then
+      Code_error.raise "detached tasks left" [];
+    if t.events_pending <> 0 || not (Queue.is_empty t.events) then
+      Code_error.raise "pending events ignored"
+        [ ("events_pending", Int t.events_pending)
+        ; ("events", Dyn.Encoder.list dyn_event_tag (list_of_queue t.events))
+        ];
     raise Never
   | Some (Some x) -> x
 
 let create_timer t ~delay =
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }
 
+let set_delay t ~delay = t.delay <- delay
+
 let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     (a, [ `Cancelled ]) result Fiber.t =
   let scheduled = Unix.gettimeofday () in
-  Mutex.lock timer.timer_scheduler.time_mutex;
-  let ivar =
-    match Table.find timer.timer_scheduler.timers timer.timer_id with
-    | Some active ->
-      let fill_old =
-        let (Active_timer active) = !active in
-        Fiber.Ivar.fill active.ivar (Error `Cancelled)
-      in
-      let ivar = Fiber.Ivar.create () in
-      let action () = Fiber.fork_and_join_unit (fun () -> fill_old) f in
-      active := Active_timer { scheduled; action; ivar; parent = timer };
-      ivar
-    | None ->
-      add_pending_events timer.timer_scheduler 1;
-      let ivar = Fiber.Ivar.create () in
-      Table.add_exn timer.timer_scheduler.timers timer.timer_id
-        (ref (Active_timer { scheduled; action = f; ivar; parent = timer }));
-      Condition.signal timer.timer_scheduler.timers_available;
-      ivar
+  let make_active_timer action =
+    { scheduled; action; ivar = Fiber.Ivar.create (); parent = timer }
   in
-  Mutex.unlock timer.timer_scheduler.time_mutex;
+  let ivar =
+    with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
+        match Table.find timer.timer_scheduler.timers timer.timer_id with
+        | Some active ->
+          let fill_old =
+            let (Active_timer active) = !active in
+            log (fun () -> Log.msg "cancelled task" []);
+            Fiber.Ivar.fill active.ivar (Error `Cancelled)
+          in
+          let action () = Fiber.fork_and_join_unit (fun () -> fill_old) f in
+          let active_timer = make_active_timer action in
+          active := Active_timer active_timer;
+          active_timer.ivar
+        | None ->
+          add_pending_events timer.timer_scheduler 1;
+          let active_timer = make_active_timer f in
+          Table.add_exn timer.timer_scheduler.timers timer.timer_id
+            (ref (Active_timer active_timer));
+          Condition.signal timer.timer_scheduler.timers_available;
+          active_timer.ivar)
+  in
   Fiber.Ivar.read ivar
+
+let detach ?name t f =
+  let task () =
+    Fiber.with_error_handler
+      ~on_error:(fun e ->
+        Format.eprintf "detached raised:@.%s@.%!"
+          (Dyn.to_string (Exn_with_backtrace.to_dyn e)))
+      (fun () -> Fiber.map (f ()) ~f:ignore)
+  in
+  let event = Detached { name; task } in
+  with_mutex t.mutex ~f:(fun () -> Queue.push t.events event);
+  Fiber.return ()
+
+let report ppf t =
+  Format.fprintf ppf "detached tasks:@.";
+  Queue.iter t.detached ~f:(fun (dt : detached_task) ->
+      let name = Option.value ~default:"<Anon>" dt.name in
+      Format.fprintf ppf "- %s@." name)
