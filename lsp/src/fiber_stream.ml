@@ -76,7 +76,7 @@ let supply i o =
   go ()
 
 let pipe () =
-  let mvar = Fiber_mvar.create () in
-  let i = In.create (fun () -> Fiber_mvar.get mvar) in
-  let o = Out.create (fun x -> Fiber_mvar.set mvar x) in
+  let mvar = Fiber.Mvar.create () in
+  let i = In.create (fun () -> Fiber.Mvar.read mvar) in
+  let o = Out.create (fun x -> Fiber.Mvar.write mvar x) in
   (i, o)

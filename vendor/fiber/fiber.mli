@@ -231,3 +231,19 @@ with type 'a fiber := 'a t
 (** [run t] runs a fiber. If the fiber doesn't complete immediately, [run t]
     returns [None]. *)
 val run : 'a t -> 'a option
+
+module Mvar : sig
+  type 'a fiber
+
+  (** Mailbox variable *)
+  type 'a t
+
+  val create : unit -> 'a t
+
+  (** Read and consume the value inside mailbox variable. Blocks until the
+      variable is available *)
+  val read : 'a t -> 'a fiber
+
+  val write : 'a t -> 'a -> unit fiber
+end
+with type 'a fiber := 'a t

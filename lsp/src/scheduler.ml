@@ -189,7 +189,7 @@ let add_events t = function
   | events ->
     with_mutex t.mutex ~f:(fun () ->
         t.events_pending <- t.events_pending - List.length events;
-        List.iter events ~f:(fun e -> Queue.add e t.events);
+        List.iter events ~f:(Queue.push t.events);
         Condition.signal t.event_ready)
 
 let is_empty table = Table.length table = 0
@@ -325,7 +325,7 @@ let rec pump_events (t : t) =
       Condition.wait t.event_ready t.mutex
     done;
     let consume_event () =
-      let res = Queue.pop t.events in
+      let res = Queue.pop_exn t.events in
       Mutex.unlock t.mutex;
       res
     in
@@ -395,7 +395,7 @@ let rec restart_suspended t =
     let open Fiber.O in
     let* () =
       let detached =
-        Queue.fold (fun acc a -> a :: acc) [] t.detached |> List.rev
+        Queue.fold ~f:(fun acc a -> a :: acc) ~init:[] t.detached |> List.rev
       in
       log (fun () ->
           Log.msg
@@ -418,7 +418,8 @@ let rec restart_suspended t =
     in
     restart_suspended t
 
-let list_of_queue q = List.rev (Queue.fold (fun acc a -> a :: acc) [] q)
+let list_of_queue q =
+  List.rev (Queue.fold ~f:(fun acc a -> a :: acc) ~init:[] q)
 
 let run : 'a. t -> 'a Fiber.t -> 'a =
  fun t f ->
@@ -490,13 +491,11 @@ let detach ?name t f =
       (fun () -> Fiber.map (f ()) ~f:ignore)
   in
   let event = Detached { name; task } in
-  with_mutex t.mutex ~f:(fun () -> Queue.add event t.events);
+  with_mutex t.mutex ~f:(fun () -> Queue.push t.events event);
   Fiber.return ()
 
 let report ppf t =
   Format.fprintf ppf "detached tasks:@.";
-  Queue.iter
-    (fun (dt : detached_task) ->
+  Queue.iter t.detached ~f:(fun (dt : detached_task) ->
       let name = Option.value ~default:"<Anon>" dt.name in
       Format.fprintf ppf "- %s@." name)
-    t.detached
