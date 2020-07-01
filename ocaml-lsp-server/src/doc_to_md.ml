@@ -1,4 +1,4 @@
-open Stdune
+open Import
 
 module Oct = Octavius
 
@@ -158,7 +158,7 @@ let translate doc =
   match parse (Lexing.from_string doc) with
   | Error e ->
     let msg = Errors.message e.error in
-    log ~title:"parse doc comment" "invalid doc comments %s" msg;
+    log ~title:Logger.Title.Notify "invalid doc comments %s" msg;
     Raw (Omd.to_markdown [ Raw doc ])
   | Ok doc ->
     let doc = comment_to_markdown doc in
