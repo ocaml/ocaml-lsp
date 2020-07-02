@@ -312,6 +312,10 @@ let stop (t : thread) = Worker.stop t.worker
 
 let log = Log.log ~section:"scheduler"
 
+let assoc_of_name = function
+  | None -> []
+  | Some name -> [ ("name", `String name) ]
+
 let rec pump_events (t : t) =
   let open Fiber.O in
   if t.events_pending = 0 && Queue.is_empty t.events then (
@@ -338,20 +342,12 @@ let rec pump_events (t : t) =
           match consume_event () with
           | Detached { name; task } ->
             log (fun () ->
-                let args =
-                  match name with
-                  | None -> []
-                  | Some name -> [ ("name", `String name) ]
-                in
+                let args = assoc_of_name name in
                 Log.msg "running detached task" args);
             let task () =
               let+ () = task () in
               log (fun () ->
-                  let args =
-                    match name with
-                    | None -> []
-                    | Some name -> [ ("name", `String name) ]
-                  in
+                  let args = assoc_of_name name in
                   Log.msg "finished detached task" args)
             in
             let+ (_ : unit Fiber.Future.t) =
@@ -407,11 +403,7 @@ let rec restart_suspended t =
       Fiber.parallel_iter
         ~f:(fun f ->
           log (fun () ->
-              let args =
-                match f.name with
-                | None -> []
-                | Some name -> [ ("name", `String name) ]
-              in
+              let args = assoc_of_name f.name in
               Log.msg "running detached task" args);
           f.task ())
         detached
