@@ -1,5 +1,4 @@
 open! Import
-module Scheduler = Lsp.Scheduler
 
 module Kind = struct
   type t =
@@ -39,6 +38,7 @@ type t =
   ; pipeline : Mpipeline.t
   ; config : Mconfig.t
   ; merlin : Scheduler.thread
+  ; timer : Scheduler.timer
   }
 
 let uri doc = Lsp.Text_document.documentUri doc.tdoc
@@ -46,6 +46,8 @@ let uri doc = Lsp.Text_document.documentUri doc.tdoc
 let kind t = Kind.of_fname (Lsp.Uri.to_path (uri t))
 
 let syntax t = Syntax.of_language_id (Lsp.Text_document.languageId t.tdoc)
+
+let timer t = t.timer
 
 let source doc = doc.source
 
@@ -78,14 +80,14 @@ let make_config uri =
          Filename.concat directory base)
       ]
 
-let make merlin_thread tdoc =
+let make timer merlin_thread tdoc =
   let tdoc = Lsp.Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
   let text = Lsp.Text_document.text tdoc in
   let config = make_config (Lsp.Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
-  { tdoc; source; config; pipeline; merlin = merlin_thread }
+  { tdoc; source; config; pipeline; merlin = merlin_thread; timer }
 
 let update_text ?version change doc =
   let tdoc = Lsp.Text_document.apply_content_change ?version change doc.tdoc in

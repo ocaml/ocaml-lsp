@@ -293,7 +293,7 @@ let await_no_cancel task =
   | Error `Canceled -> assert false
   | Error (`Exn exn) -> Error exn
 
-let cancel task =
+let cancel_task task =
   let open Fiber.O in
   let* status = Fiber.Ivar.peek task.ivar in
   match status with
@@ -481,6 +481,10 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
           active_timer.ivar)
   in
   Fiber.Ivar.read ivar
+
+let cancel_timer (timer : timer) =
+  with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
+      Table.remove timer.timer_scheduler.timers timer.timer_id)
 
 let detach ?name t f =
   let task () =

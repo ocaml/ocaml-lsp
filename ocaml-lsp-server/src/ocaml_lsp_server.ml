@@ -16,7 +16,6 @@ type init =
 
 type state =
   { store : Document_store.t
-  ; diagnostics_timer : Scheduler.timer
   ; merlin : Scheduler.thread
   ; init : init
   ; scheduler : Scheduler.t
@@ -139,9 +138,8 @@ let send_diagnostics rpc doc =
     Scheduler.detach state.scheduler (fun () ->
         let open Fiber.O in
         let+ res =
-          let state : state = Server.state rpc in
-          Scheduler.schedule state.diagnostics_timer (fun () ->
-              Server.notification rpc notif)
+          let timer = Document.timer doc in
+          Scheduler.schedule timer (fun () -> Server.notification rpc notif)
         in
         match res with
         | Error `Cancelled -> ()
@@ -635,7 +633,11 @@ let on_notification server (notification : Lsp.Client_notification.t) : state =
   let store = state.store in
   match notification with
   | TextDocumentDidOpen params ->
-    let doc = Document.make state.merlin params in
+    let doc =
+      let delay = Configuration.diagnostics_delay state.configuration in
+      let timer = Scheduler.create_timer state.scheduler ~delay in
+      Document.make timer state.merlin params
+    in
     Document_store.put store doc;
     let (_ : unit Fiber.t) = send_diagnostics server doc in
     state
@@ -662,8 +664,6 @@ let on_notification server (notification : Lsp.Client_notification.t) : state =
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
     let configuration = Configuration.update state.configuration req in
-    let delay = Configuration.diagnostics_delay configuration in
-    Scheduler.set_delay state.diagnostics_timer ~delay;
     { state with configuration }
   | DidSaveTextDocument _
   | WillSaveTextDocument _
@@ -725,19 +725,9 @@ let start () =
   in
   let configuration = Configuration.default in
   let server =
-    let diagnostics_timer =
-      let delay = Configuration.diagnostics_delay configuration in
-      Scheduler.create_timer scheduler ~delay
-    in
     let merlin = Scheduler.create_thread scheduler in
     Server.make handler stream
-      { store = docs
-      ; init = Uninitialized
-      ; diagnostics_timer
-      ; merlin
-      ; scheduler
-      ; configuration
-      }
+      { store = docs; init = Uninitialized; merlin; scheduler; configuration }
   in
   Scheduler.run scheduler (Server.start server);
   log ~title:Logger.Title.Info "exiting"

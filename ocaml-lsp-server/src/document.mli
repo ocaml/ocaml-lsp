@@ -1,4 +1,4 @@
-open Lsp.Types
+open Import
 
 type t
 
@@ -20,7 +20,10 @@ val kind : t -> Kind.t
 
 val syntax : t -> Syntax.t
 
-val make : Lsp.Scheduler.thread -> DidOpenTextDocumentParams.t -> t
+val make :
+  Scheduler.timer -> Scheduler.thread -> DidOpenTextDocumentParams.t -> t
+
+val timer : t -> Scheduler.timer
 
 val uri : t -> Lsp.Uri.t
 
