@@ -95,7 +95,7 @@ module type Request_intf = sig
 
   val of_jsonrpc : Jsonrpc.Message.request -> (packed, string) result
 
-  val yojson_of_result : 'a t -> 'a -> Json.t option
+  val yojson_of_result : 'a t -> 'a -> Json.t
 
   val to_jsonrpc_request : 'a t -> id:Id.t -> Jsonrpc.Message.request
 
@@ -192,8 +192,7 @@ struct
         | Error e -> (Response.error req.id e, state)
         | Ok (response, state) ->
           let json = In_request.yojson_of_result r response in
-          let result = Option.value_exn json in
-          let response = Response.ok req.id result in
+          let response = Response.ok req.id json in
           (response, state) )
     in
     let on_notification ctx : (Notify.t * state) Fiber.t =

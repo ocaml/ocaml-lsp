@@ -63,9 +63,9 @@ type _ t =
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
-  | UnknownRequest : string * Json.t option -> unit t
+  | UnknownRequest : string * Json.t option -> Json.t t
 
-val yojson_of_result : 'a t -> 'a -> Json.t option
+val yojson_of_result : 'a t -> 'a -> Json.t
 
 type packed = E : 'r t -> packed
 
