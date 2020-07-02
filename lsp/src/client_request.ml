@@ -63,7 +63,7 @@ type _ t =
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
-  | UnknownRequest : string * Json.t option -> unit t
+  | UnknownRequest : string * Json.t option -> Json.t t
 
 let yojson_of_DocumentSymbol ds : Json.t =
   Json.Option.yojson_of_t
@@ -81,63 +81,54 @@ let yojson_of_Completion ds : Json.t =
 
 let yojson_of_result (type a) (req : a t) (result : a) =
   match (req, result) with
-  | Shutdown, () -> None
-  | Initialize _, result -> Some (InitializeResult.yojson_of_t result)
+  | Shutdown, () -> `Null
+  | Initialize _, result -> InitializeResult.yojson_of_t result
   | TextDocumentDeclaration _, result ->
-    Some (Json.Conv.yojson_of_option Locations.yojson_of_t result)
+    Json.Conv.yojson_of_option Locations.yojson_of_t result
   | TextDocumentHover _, result ->
-    Some (Json.Option.yojson_of_t Hover.yojson_of_t result)
+    Json.Option.yojson_of_t Hover.yojson_of_t result
   | TextDocumentDefinition _, result ->
-    Some (Json.Option.yojson_of_t Locations.yojson_of_t result)
+    Json.Option.yojson_of_t Locations.yojson_of_t result
   | TextDocumentTypeDefinition _, result ->
-    Some (Json.Option.yojson_of_t Locations.yojson_of_t result)
-  | TextDocumentCompletion _, result -> Some (yojson_of_Completion result)
-  | TextDocumentCodeLens _, result ->
-    Some (Json.To.list CodeLens.yojson_of_t result)
-  | TextDocumentCodeLensResolve _, result -> Some (CodeLens.yojson_of_t result)
+    Json.Option.yojson_of_t Locations.yojson_of_t result
+  | TextDocumentCompletion _, result -> yojson_of_Completion result
+  | TextDocumentCodeLens _, result -> Json.To.list CodeLens.yojson_of_t result
+  | TextDocumentCodeLensResolve _, result -> CodeLens.yojson_of_t result
   | TextDocumentPrepareRename _, result ->
-    Some (Json.Option.yojson_of_t Range.yojson_of_t result)
-  | TextDocumentRename _, result -> Some (WorkspaceEdit.yojson_of_t result)
-  | DocumentSymbol _, result -> Some (yojson_of_DocumentSymbol result)
-  | DebugEcho _, result -> Some (DebugEcho.Result.yojson_of_t result)
+    Json.Option.yojson_of_t Range.yojson_of_t result
+  | TextDocumentRename _, result -> WorkspaceEdit.yojson_of_t result
+  | DocumentSymbol _, result -> yojson_of_DocumentSymbol result
+  | DebugEcho _, result -> DebugEcho.Result.yojson_of_t result
   | DebugTextDocumentGet _, result ->
-    Some (DebugTextDocumentGet.Result.yojson_of_t result)
+    DebugTextDocumentGet.Result.yojson_of_t result
   | TextDocumentReferences _, result ->
-    Some (Json.Option.yojson_of_t (Json.To.list Location.yojson_of_t) result)
+    Json.Option.yojson_of_t (Json.To.list Location.yojson_of_t) result
   | TextDocumentHighlight _, result ->
-    Some
-      (Json.Option.yojson_of_t
-         (Json.To.list DocumentHighlight.yojson_of_t)
-         result)
+    Json.Option.yojson_of_t (Json.To.list DocumentHighlight.yojson_of_t) result
   | TextDocumentFoldingRange _, result ->
-    Some
-      (Json.Option.yojson_of_t (Json.To.list FoldingRange.yojson_of_t) result)
-  | SignatureHelp _, result -> Some (SignatureHelp.yojson_of_t result)
-  | CodeAction _, result -> Some (CodeActionResult.yojson_of_t result)
-  | CompletionItemResolve _, result -> Some (CompletionItem.yojson_of_t result)
+    Json.Option.yojson_of_t (Json.To.list FoldingRange.yojson_of_t) result
+  | SignatureHelp _, result -> SignatureHelp.yojson_of_t result
+  | CodeAction _, result -> CodeActionResult.yojson_of_t result
+  | CompletionItemResolve _, result -> CompletionItem.yojson_of_t result
   | WillSaveWaitUntilTextDocument _, result ->
-    Some (Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result)
+    Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
   | TextDocumentOnTypeFormatting _, result ->
-    Some (Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result)
+    Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
   | TextDocumentFormatting _, result ->
-    Some (Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result)
+    Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
   | TextDocumentLink _, result ->
-    Some
-      (Json.Option.yojson_of_t (Json.To.list DocumentLink.yojson_of_t) result)
-  | TextDocumentLinkResolve _, result -> Some (DocumentLink.yojson_of_t result)
+    Json.Option.yojson_of_t (Json.To.list DocumentLink.yojson_of_t) result
+  | TextDocumentLinkResolve _, result -> DocumentLink.yojson_of_t result
   | WorkspaceSymbol _, result ->
-    Some
-      (Json.Option.yojson_of_t
-         (Json.To.list SymbolInformation.yojson_of_t)
-         result)
+    Json.Option.yojson_of_t (Json.To.list SymbolInformation.yojson_of_t) result
   | TextDocumentColorPresentation _, result ->
-    Some (Json.To.list ColorPresentation.yojson_of_t result)
+    Json.To.list ColorPresentation.yojson_of_t result
   | TextDocumentColor _, result ->
-    Some (Json.To.list ColorInformation.yojson_of_t result)
+    Json.To.list ColorInformation.yojson_of_t result
   | SelectionRange _, result ->
-    Some (Json.yojson_of_list SelectionRange.yojson_of_t result)
-  | ExecuteCommand _, result -> Some result
-  | UnknownRequest _, _resp -> None
+    Json.yojson_of_list SelectionRange.yojson_of_t result
+  | ExecuteCommand _, result -> result
+  | UnknownRequest _, resp -> resp
 
 type packed = E : 'r t -> packed
 
