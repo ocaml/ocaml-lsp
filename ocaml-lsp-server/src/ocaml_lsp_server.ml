@@ -88,62 +88,61 @@ let send_diagnostics rpc doc =
     | Reason -> Option.is_some (Bin.which ocamlmerlin_reason)
   in
   let uri = Document.uri doc |> Lsp.Uri.to_string in
-  match reason_merlin_available with
-  | false ->
-    let notif =
-      let diagnostics =
-        let message =
-          sprintf "Could not detect %s. Please install reason"
-            ocamlmerlin_reason
-        in
-        let range =
-          let pos = Position.create ~line:1 ~character:1 in
-          Range.create ~start:pos ~end_:pos
-        in
-        [ diagnostic_create ~range ~message () ]
-      in
-      Server_notification.PublishDiagnostics
-        (PublishDiagnosticsParams.create ~uri ~diagnostics ())
-    in
-    Server.notification rpc notif
-  | true ->
-    let open Fiber.O in
-    let* diagnostics =
-      Document.with_pipeline_exn doc @@ fun pipeline ->
-      let command =
-        Query_protocol.Errors { lexing = true; parsing = true; typing = true }
-      in
-      let errors = Query_commands.dispatch pipeline command in
-      List.map errors ~f:(fun (error : Loc.error) ->
-          let loc = Loc.loc_of_report error in
-          let range = Range.of_loc loc in
-          let severity =
-            match error.source with
-            | Warning -> DiagnosticSeverity.Warning
-            | _ -> DiagnosticSeverity.Error
+  let state = Server.state rpc in
+  Scheduler.detach state.scheduler (fun () ->
+      match reason_merlin_available with
+      | false ->
+        let notif =
+          let diagnostics =
+            let message =
+              sprintf "Could not detect %s. Please install reason"
+                ocamlmerlin_reason
+            in
+            let range =
+              let pos = Position.create ~line:1 ~character:1 in
+              Range.create ~start:pos ~end_:pos
+            in
+            [ diagnostic_create ~range ~message () ]
           in
-          let message =
-            Loc.print_main Format.str_formatter error;
-            String.trim (Format.flush_str_formatter ())
-          in
-          diagnostic_create ~range ~message ~severity ())
-    in
-
-    let notif =
-      Server_notification.PublishDiagnostics
-        (PublishDiagnosticsParams.create ~uri ~diagnostics ())
-    in
-
-    let state = Server.state rpc in
-    Scheduler.detach state.scheduler (fun () ->
+          Server_notification.PublishDiagnostics
+            (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+        in
+        Server.notification rpc notif
+      | true -> (
         let open Fiber.O in
+        let timer = Document.timer doc in
         let+ res =
-          let timer = Document.timer doc in
-          Scheduler.schedule timer (fun () -> Server.notification rpc notif)
+          Scheduler.schedule timer (fun () ->
+              let* diagnostics =
+                Document.with_pipeline_exn doc @@ fun pipeline ->
+                let command =
+                  Query_protocol.Errors
+                    { lexing = true; parsing = true; typing = true }
+                in
+                let errors = Query_commands.dispatch pipeline command in
+                List.map errors ~f:(fun (error : Loc.error) ->
+                    let loc = Loc.loc_of_report error in
+                    let range = Range.of_loc loc in
+                    let severity =
+                      match error.source with
+                      | Warning -> DiagnosticSeverity.Warning
+                      | _ -> DiagnosticSeverity.Error
+                    in
+                    let message =
+                      Loc.print_main Format.str_formatter error;
+                      String.trim (Format.flush_str_formatter ())
+                    in
+                    diagnostic_create ~range ~message ~severity ())
+              in
+              let notif =
+                Server_notification.PublishDiagnostics
+                  (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+              in
+              Server.notification rpc notif)
         in
         match res with
         | Error `Cancelled -> ()
-        | Ok () -> ())
+        | Ok () -> () ))
 
 let on_initialize rpc =
   let log_consumer (section, title, text) =
@@ -628,7 +627,8 @@ let on_request :
     Fiber.return
     @@ Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
-let on_notification server (notification : Lsp.Client_notification.t) : state =
+let on_notification server (notification : Lsp.Client_notification.t) :
+    state Fiber.t =
   let state = Server.state server in
   let store = state.store in
   match notification with
@@ -640,18 +640,18 @@ let on_notification server (notification : Lsp.Client_notification.t) : state =
     in
     Document_store.put store doc;
     let (_ : unit Fiber.t) = send_diagnostics server doc in
-    state
+    Fiber.return state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     Document_store.remove_document store uri;
-    state
+    Fiber.return state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
     -> (
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
     match Document_store.get store uri with
     | Error e ->
       Format.eprintf "uri doesn't exist %s@.%!" e.message;
-      state
+      Fiber.return state
     | Ok prev_doc ->
       let doc =
         let f doc change = Document.update_text ?version change doc in
@@ -659,23 +659,23 @@ let on_notification server (notification : Lsp.Client_notification.t) : state =
       in
       Document_store.put store doc;
       let (_ : unit Fiber.t) = send_diagnostics server doc in
-      state )
+      Fiber.return state )
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
     let configuration = Configuration.update state.configuration req in
-    { state with configuration }
+    Fiber.return { state with configuration }
   | DidSaveTextDocument _
   | WillSaveTextDocument _
   | ChangeWorkspaceFolders _
   | Initialized
   | Exit ->
-    state
+    Fiber.return state
   | Unknown_notification req -> (
     match req.method_ with
     | "$/setTraceNotification"
     | "$/cancelRequest" ->
-      state
+      Fiber.return state
     | _ ->
       ( match req.params with
       | None ->
@@ -685,7 +685,7 @@ let on_notification server (notification : Lsp.Client_notification.t) : state =
           req.method_
           (fun () -> Yojson.Safe.pretty_to_string ~std:false)
           json );
-      state )
+      Fiber.return state )
 
 let start () =
   let docs = Document_store.make () in
@@ -706,9 +706,6 @@ let start () =
     (* TODO: what to do with merlin notifications? *)
     let _notifications = ref [] in
     Logger.with_notifications (ref []) @@ fun () -> File_id.with_cache @@ f
-  in
-  let on_notification server notif =
-    Fiber.return (on_notification server notif)
   in
   let on_request server req =
     prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
