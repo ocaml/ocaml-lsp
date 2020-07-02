@@ -1,6 +1,7 @@
 include Lsp.Import
 module Logger = Lsp.Logger
 module Loc = Location
+module Scheduler = Lsp.Scheduler
 open Lsp.Types
 module CompletionItemKind = CompletionItemKind
 module SymbolKind = SymbolKind
@@ -39,5 +40,7 @@ module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
 module TextDocumentEdit = TextDocumentEdit
 module FoldingRange = FoldingRange
 module SelectionRange = SelectionRange
+module DidOpenTextDocumentParams = DidOpenTextDocumentParams
+module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
 
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"

@@ -16,7 +16,7 @@ val await : 'a task -> ('a, [ `Exn of Exn.t | `Canceled ]) result Fiber.t
 
 val await_no_cancel : 'a task -> 'a Or_exn.t Fiber.t
 
-val cancel : 'a task -> unit Fiber.t
+val cancel_task : 'a task -> unit Fiber.t
 
 val async : thread -> (unit -> 'a) -> 'a task
 
@@ -32,6 +32,8 @@ val detach : ?name:string -> t -> (unit -> unit Fiber.t) -> unit Fiber.t
 
 val schedule :
   timer -> (unit -> 'a Fiber.t) -> ('a, [ `Cancelled ]) result Fiber.t
+
+val cancel_timer : timer -> unit
 
 val scheduler : unit -> t
 
