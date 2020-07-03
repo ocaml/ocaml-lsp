@@ -113,7 +113,11 @@ describe("textDocument/hover", () => {
         "file:///test.ml",
         "ocaml",
         0,
-        "(** This function has a nice documentation *)\nlet id x = x\n",
+        outdent`
+        (** This function has a nice documentation *)
+        let id x = x
+
+        `,
       ),
     });
 
@@ -125,8 +129,98 @@ describe("textDocument/hover", () => {
     expect(result).toMatchObject({
       contents: {
         kind: "markdown",
-        value:
-          "```ocaml\n'a -> 'a\n(** This function has a nice documentation *)\n```",
+        value: outdent`
+          \`\`\`ocaml
+          'a -> 'a
+          \`\`\`
+          ---
+          This function has a nice documentation
+          `,
+      },
+    });
+  });
+
+  it("returns type inferred under cursor with documentation with tags (markdown formatting)", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      textDocument: {
+        hover: {
+          dynamicRegistration: true,
+          contentFormat: ["markdown", "plaintext"],
+        },
+      },
+    });
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "ocaml",
+        0,
+        outdent`
+        (** This function has a nice documentation.
+
+            It performs division of two integer numbers.
+
+            @param x dividend
+            @param divisor
+
+            @return {i quotient}, i.e. result of division
+            @raise Division_by_zero raised when divided by zero
+
+            @see <https://en.wikipedia.org/wiki/Arithmetic#Division_(%C3%B7,_or_/)> article
+            @see 'arithmetic.ml' for more context
+
+            @since 4.0.0
+            @before 4.4.0
+
+            @deprecated use [(/)]
+
+            @version 1.0.0
+            @author John Doe *)
+        let div x y =
+          x / y
+
+        `,
+      ),
+    });
+
+    let result = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(20, 4),
+    });
+
+    expect(result).toMatchObject({
+      contents: {
+        kind: "markdown",
+        value: outdent`
+          \`\`\`ocaml
+          int -> int -> int
+          \`\`\`
+          ---
+          This function has a nice documentation.
+
+          It performs division of two integer numbers.
+          * * *
+          ***@param*** \`x\` dividend
+
+          ***@param*** divisor
+
+          ***@return*** *quotient*, i.e. result of division
+
+          ***@raise*** \`Division_by_zero\` raised when divided by zero
+
+          ***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_(%C3%B7,_or_/)) article
+
+          ***@see*** \`arithmetic.ml\` for more context
+
+          ***@since*** \`4.0.0\`
+
+          ***@before*** \`4.4.0\`
+
+          ***@deprecated*** use \`(/)\`
+
+          ***@version*** \`1.0.0\`
+
+          ***@author*** John Doe
+          `,
       },
     });
   });

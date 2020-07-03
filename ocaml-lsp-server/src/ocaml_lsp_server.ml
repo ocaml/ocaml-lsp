@@ -296,21 +296,27 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
 
   let format_contents ~syntax ~as_markdown ~typ ~doc =
     let language_id = Document.Syntax.to_language_id syntax in
-    let doc =
-      match doc with
-      | None -> ""
-      | Some s -> Printf.sprintf "\n(** %s *)" s
-    in
     `MarkupContent
       ( if as_markdown then
-        { MarkupContent.value =
-            Printf.sprintf "```%s\n%s%s\n```" language_id typ doc
-        ; kind = MarkupKind.Markdown
-        }
+        let value =
+          match doc with
+          | None -> sprintf "```%s\n%s\n```" language_id typ
+          | Some s ->
+            let doc =
+              match Doc_to_md.translate s with
+              | Raw d -> sprintf "(** %s *)" d
+              | Markdown d -> d
+            in
+            sprintf "```%s\n%s\n```\n---\n%s" language_id typ doc
+        in
+        { MarkupContent.value; kind = MarkupKind.Markdown }
       else
-        { MarkupContent.value = Printf.sprintf "%s%s" typ doc
-        ; kind = MarkupKind.PlainText
-        } )
+        let value =
+          match doc with
+          | None -> sprintf "%s" typ
+          | Some d -> sprintf "%s\n%s" typ d
+        in
+        { MarkupContent.value; kind = MarkupKind.PlainText } )
   in
 
   let uri = Lsp.Uri.t_of_yojson (`String uri) in

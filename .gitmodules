@@ -12,3 +12,12 @@
 [submodule "vendor/uutf"]
 	path = vendor/uutf
 	url = https://github.com/dune-universe/uutf.git
+[submodule "vendor/octavius"]
+	path = vendor/octavius
+	url = https://github.com/ocaml-doc/octavius.git
+  ignore = dirty
+[submodule "vendor/omd"]
+	path = vendor/omd
+	url = https://github.com/ulugbekna/omd.git
+	branch = ocaml-lsp
+  ignore = dirty
