@@ -1,5 +1,4 @@
 open Import
-
 module Oct = Octavius
 
 let { Logger.log } = Logger.for_section "doc_to_md"
@@ -17,14 +16,13 @@ let new_line = Omd.NL
 (* [put_in_between elem lst] inserts [elem] between all elements of [lst] *)
 let put_in_between elem lst =
   let rec loop acc = function
-  | [] -> acc
-  | hd :: [] -> hd :: acc
-  | hd :: tail -> loop (elem :: hd :: acc) tail
+    | [] -> acc
+    | [ hd ] -> hd :: acc
+    | hd :: tail -> loop (elem :: hd :: acc) tail
   in
   List.rev (loop [] lst)
 
-let heading_level level heading =
-  let open Omd in
+let heading_level level heading : Omd.element =
   match level with
   | 0 -> H1 heading
   | 1 -> H2 heading
@@ -33,9 +31,7 @@ let heading_level level heading =
   | 4 -> H5 heading
   | _ -> H6 heading
 
-let style_markdown kind md =
-  let open Oct.Types in
-  let open Omd in
+let style_markdown (kind : Oct.Types.style_kind) md : Omd.element list =
   match kind with
   | SK_bold -> [ Bold md ]
   | SK_italic
@@ -54,9 +50,8 @@ let style_markdown kind md =
 let rec text_to_markdown doc = List.concat_map ~f:text_element_to_markdown doc
 
 and text_element_to_markdown (doc_elem : Oct.Types.text_element) =
-  let open Omd in
   match doc_elem with
-  | Raw text -> [ Text text ]
+  | Raw text -> [ Omd.Text text ]
   | Code code -> [ to_inline_code code ]
   | PreCode code -> [ to_code_block code ]
   | Verbatim text -> [ Raw text ]
@@ -69,7 +64,9 @@ and text_element_to_markdown (doc_elem : Oct.Types.text_element) =
     let heading = text_to_markdown content in
     [ heading_level i heading ]
   | Ref (RK_link, url, descr) ->
-    let descr = Option.map descr ~f:text_to_markdown |> Option.value ~default:[] in
+    let descr =
+      Option.map descr ~f:text_to_markdown |> Option.value ~default:[]
+    in
     let empty_title = "" in
     [ Url (url, descr, empty_title) ]
   | Ref (_ref_kind, reference, descr) ->
@@ -88,9 +85,7 @@ let rec tags_to_markdown (tags : Oct.Types.tag list) =
   |> List.concat
 
 and tag_to_markdown tag : Omd.element list =
-  let open Oct.Types in
-  let open Omd in
-  let format_tag tag = Bold [ Emph [ Text tag ] ] in
+  let format_tag tag = Omd.Bold [ Emph [ Text tag ] ] in
   let plain_tag_to_md tag descr = [ format_tag tag; space; Text descr ] in
   let tag_with_text_to_md tag text =
     format_tag tag :: space :: text_to_markdown text
@@ -105,10 +100,10 @@ and tag_to_markdown tag : Omd.element list =
   let see_tag_to_md (see_ref, comment) =
     let content =
       match (see_ref, comment) with
-      | See_url url, text ->
+      | Oct.Types.See_url url, text ->
         let empty_hover_title = "" in
-        let link_title = [ Text "link" ] in
-        Url (url, link_title, empty_hover_title)
+        let link_title = [ Omd.Text "link" ] in
+        Omd.Url (url, link_title, empty_hover_title)
         :: space :: text_to_markdown text
       | See_file name, text
       | See_doc name, text ->
@@ -137,7 +132,7 @@ and tag_to_markdown tag : Omd.element list =
   | Raised_exception (exn, text) -> marked_tag_with_text_to_md "@raise" exn text
   | See (r, s) -> see_tag_to_md (r, s)
   | Custom (name, text) ->
-    [ Emph [ Text ("@" ^ name) ]; space ] @ text_to_markdown text
+    [ Omd.Emph [ Text ("@" ^ name) ]; space ] @ text_to_markdown text
   | Inline -> [ Emph [ Text "@inline" ] ]
 
 let comment_to_markdown (doc, tags) =
@@ -150,14 +145,13 @@ let comment_to_markdown (doc, tags) =
     text @ separation @ non_empty_tags
 
 type t =
-    | Raw of string
-    | Markdown of string
+  | Raw of string
+  | Markdown of string
 
-let translate doc =
-  let open Oct in
-  match parse (Lexing.from_string doc) with
+let translate doc : t =
+  match Oct.parse (Lexing.from_string doc) with
   | Error e ->
-    let msg = Errors.message e.error in
+    let msg = Oct.Errors.message e.error in
     log ~title:Logger.Title.Notify "invalid doc comments %s" msg;
     Raw (Omd.to_markdown [ Raw doc ])
   | Ok doc ->

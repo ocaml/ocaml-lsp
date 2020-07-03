@@ -299,7 +299,6 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
 
   let format_contents ~syntax ~as_markdown ~typ ~doc =
     let languageId = Document.Syntax.to_language_id syntax in
-    let open Printf in
     if as_markdown then
       let value =
         match doc with
