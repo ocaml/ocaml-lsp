@@ -74,11 +74,7 @@ let make_config uri =
       query = { mconfig.query with verbosity = 1; filename; directory }
     }
   in
-  Mconfig.load_dotmerlins mconfig
-    ~filenames:
-      [ (let base = "." ^ filename ^ ".merlin" in
-         Filename.concat directory base)
-      ]
+  Mconfig.get_external_config path mconfig
 
 let make timer merlin_thread tdoc =
   let tdoc = Lsp.Text_document.make tdoc in
