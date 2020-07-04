@@ -1,4 +1,4 @@
-open Lsp.Import
+open! Lsp.Import
 open Lsp
 open Lsp.Fiber_stream
 open Jsonrpc
@@ -14,8 +14,9 @@ module Stream_chan = struct
 end
 
 module Session = Jsonrpc.Session (Stream_chan)
+open Lsp.Import
 
-let print_json json = print_endline (Yojson.Safe.pretty_to_string json)
+let print_json json = print_endline (Json.to_string json)
 
 let () =
   Printexc.record_backtrace true;

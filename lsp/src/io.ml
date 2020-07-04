@@ -20,9 +20,9 @@ let make ic oc =
 let send { oc; ic = _ } (packet : packet) =
   let json = Jsonrpc.yojson_of_packet packet in
   log ~title:Logger.Title.LocalDebug "send: %a"
-    (fun () -> Yojson.Safe.pretty_to_string ~std:false)
+    (fun () -> Json.to_pretty_string)
     json;
-  let data = Yojson.Safe.to_string json in
+  let data = Json.to_string json in
   let content_length = String.length data in
   let header = Header.create ~content_length in
   Header.write header oc;
@@ -45,7 +45,7 @@ let read_content ic =
     Some (Bytes.to_string buffer)
 
 let read { ic; oc = _ } : Json.t option =
-  read_content ic |> Option.map ~f:Yojson.Safe.from_string
+  read_content ic |> Option.map ~f:Json.of_string
 
 let read (t : t) : packet option =
   let open Option.O in
