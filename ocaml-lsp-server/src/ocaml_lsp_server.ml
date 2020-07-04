@@ -589,9 +589,21 @@ let on_request :
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
+    let has_markdown_support =
+      match (client_capabilities state).textDocument with
+      | None -> false
+      | Some
+          { completion =
+              Some { completionItem = Some { documentationFormat; _ }; _ }
+          ; _
+          } ->
+        List.mem MarkupKind.Markdown
+          ~set:(Option.value documentationFormat ~default:[ Markdown ])
+      | _ -> false
+    in
     let open Fiber.Result.O in
     let* doc = Fiber.return (Document_store.get store uri) in
-    let+ resp = Compl.complete doc position in
+    let+ resp = Compl.complete doc position ~has_markdown_support in
     (Some resp, state)
   | Lsp.Client_request.TextDocumentPrepareRename
       { textDocument = { uri }; position } ->
