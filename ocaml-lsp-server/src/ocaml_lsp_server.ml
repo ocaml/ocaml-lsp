@@ -280,55 +280,52 @@ let location_of_merlin_loc uri = function
       let locs = [ { Location.uri = Lsp.Uri.to_string uri; range } ] in
       Some (`Location locs) )
 
+let format_contents ~syntax ~markdown ~typ ~doc =
+  let language_id = Document.Syntax.to_language_id syntax in
+  `MarkupContent
+    ( if markdown then
+      let value =
+        match doc with
+        | None -> sprintf "```%s\n%s\n```" language_id typ
+        | Some s ->
+          let doc =
+            match Doc_to_md.translate s with
+            | Raw d -> sprintf "(** %s *)" d
+            | Markdown d -> d
+          in
+          sprintf "```%s\n%s\n```\n---\n%s" language_id typ doc
+      in
+      { MarkupContent.value; kind = MarkupKind.Markdown }
+    else
+      let value =
+        match doc with
+        | None -> sprintf "%s" typ
+        | Some d -> sprintf "%s\n%s" typ d
+      in
+      { MarkupContent.value; kind = MarkupKind.PlainText } )
+
+let query_doc doc pos =
+  let command = Query_protocol.Document (None, pos) in
+  let open Fiber.O in
+  let+ res = Document.dispatch_exn doc command in
+  match res with
+  | `Found s
+  | `Builtin s ->
+    Some s
+  | _ -> None
+
+let query_type doc pos =
+  let command = Query_protocol.Type_enclosing (None, pos, None) in
+  let open Fiber.O in
+  let+ res = Document.dispatch_exn doc command in
+  match res with
+  | []
+  | (_, `Index _, _) :: _ ->
+    None
+  | (location, `String value, _) :: _ -> Some (location, value)
+
 let hover (state : state) { HoverParams.textDocument = { uri }; position } =
   let store = state.store in
-  let query_type doc pos =
-    let command = Query_protocol.Type_enclosing (None, pos, None) in
-    let open Fiber.O in
-    let+ res = Document.dispatch_exn doc command in
-    match res with
-    | []
-    | (_, `Index _, _) :: _ ->
-      None
-    | (location, `String value, _) :: _ -> Some (location, value)
-  in
-
-  let query_doc doc pos =
-    let command = Query_protocol.Document (None, pos) in
-    let open Fiber.O in
-    let+ res = Document.dispatch_exn doc command in
-    match res with
-    | `Found s
-    | `Builtin s ->
-      Some s
-    | _ -> None
-  in
-
-  let format_contents ~syntax ~markdown ~typ ~doc =
-    let language_id = Document.Syntax.to_language_id syntax in
-    `MarkupContent
-      ( if markdown then
-        let value =
-          match doc with
-          | None -> sprintf "```%s\n%s\n```" language_id typ
-          | Some s ->
-            let doc =
-              match Doc_to_md.translate s with
-              | Raw d -> sprintf "(** %s *)" d
-              | Markdown d -> d
-            in
-            sprintf "```%s\n%s\n```\n---\n%s" language_id typ doc
-        in
-        { MarkupContent.value; kind = MarkupKind.Markdown }
-      else
-        let value =
-          match doc with
-          | None -> sprintf "%s" typ
-          | Some d -> sprintf "%s\n%s" typ d
-        in
-        { MarkupContent.value; kind = MarkupKind.PlainText } )
-  in
-
   let uri = Lsp.Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
