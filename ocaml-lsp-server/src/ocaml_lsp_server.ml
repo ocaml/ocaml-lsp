@@ -247,6 +247,16 @@ module Formatter = struct
       Ok (Some [ change ], state)
 end
 
+let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
+  match client_capabilities.textDocument with
+  | None -> false
+  | Some td -> (
+    match field td with
+    | None -> false
+    | Some format ->
+      let set = Option.value format ~default:[ MarkupKind.Markdown ] in
+      List.mem MarkupKind.Markdown ~set )
+
 let location_of_merlin_loc uri = function
   | `At_origin
   | `Builtin _
@@ -294,10 +304,10 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
     | _ -> None
   in
 
-  let format_contents ~syntax ~as_markdown ~typ ~doc =
+  let format_contents ~syntax ~markdown ~typ ~doc =
     let language_id = Document.Syntax.to_language_id syntax in
     `MarkupContent
-      ( if as_markdown then
+      ( if markdown then
         let value =
           match doc with
           | None -> sprintf "```%s\n%s\n```" language_id typ
@@ -331,15 +341,13 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
   | Some (loc, typ) ->
     let syntax = Document.syntax doc in
     let+ doc = query_doc doc pos in
-    let as_markdown =
-      match client_capabilities.textDocument with
-      | None -> false
-      | Some { hover = Some { contentFormat; _ }; _ } ->
-        List.mem MarkupKind.Markdown
-          ~set:(Option.value contentFormat ~default:[ Markdown ])
-      | _ -> false
+    let contents =
+      let markdown =
+        markdown_support client_capabilities ~field:(fun td ->
+            Option.map td.hover ~f:(fun h -> h.contentFormat))
+      in
+      format_contents ~syntax ~markdown ~typ ~doc
     in
-    let contents = format_contents ~syntax ~as_markdown ~typ ~doc in
     let range = Range.of_loc loc in
     let resp = Hover.create ~contents ~range () in
     Ok (Some resp, state)
@@ -589,21 +597,18 @@ let on_request :
   | Lsp.Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Lsp.Uri.t_of_yojson (`String uri) in
-    let has_markdown_support =
-      match (client_capabilities state).textDocument with
-      | None -> false
-      | Some
-          { completion =
-              Some { completionItem = Some { documentationFormat; _ }; _ }
-          ; _
-          } ->
-        List.mem MarkupKind.Markdown
-          ~set:(Option.value documentationFormat ~default:[ Markdown ])
-      | _ -> false
-    in
     let open Fiber.Result.O in
     let* doc = Fiber.return (Document_store.get store uri) in
-    let+ resp = Compl.complete doc position ~has_markdown_support in
+    let+ resp =
+      let markdown =
+        markdown_support (client_capabilities state) ~field:(fun d ->
+            let open Option.O in
+            let+ completion = d.completion in
+            let* completion_item = completion.completionItem in
+            completion_item.documentationFormat)
+      in
+      Compl.complete doc position ~markdown
+    in
     (Some resp, state)
   | Lsp.Client_request.TextDocumentPrepareRename
       { textDocument = { uri }; position } ->
