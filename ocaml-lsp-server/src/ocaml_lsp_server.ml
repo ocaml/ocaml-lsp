@@ -689,7 +689,7 @@ let on_notification server (notification : Lsp.Client_notification.t) :
       | Some json ->
         log ~title:Logger.Title.Warning "unknown notification: %s %a"
           req.method_
-          (fun () -> Yojson.Safe.pretty_to_string ~std:false)
+          (fun () -> Json.to_pretty_string)
           json );
       Fiber.return state )
 

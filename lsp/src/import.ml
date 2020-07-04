@@ -127,6 +127,12 @@ end
 module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t
 
+  let to_pretty_string (t : t) = Yojson.Safe.pretty_to_string ~std:false t
+
+  let to_string t = Yojson.Safe.to_string t
+
+  let of_string s = Yojson.Safe.from_string s
+
   let yojson_of_t x = x
 
   let t_of_yojson x = x

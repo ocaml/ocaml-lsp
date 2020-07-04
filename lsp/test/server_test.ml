@@ -55,7 +55,7 @@ module Client = struct
       | Ok json ->
         Format.eprintf
           "client: Successfully executed command with result:@.%s@."
-          (Yojson.Safe.pretty_to_string json);
+          (Json.to_string json);
         let state = Client.state client in
         Format.eprintf
           "client: waiting to receive notification before shutdown @.%!";

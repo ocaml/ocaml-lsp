@@ -477,7 +477,7 @@ struct
         | Error errors ->
           Format.eprintf
             "Uncaught error when handling notification:@.%a@.Error:@.%s@."
-            Yojson.Safe.pp
+            Json.pp
             (Message.yojson_of_notification r)
             (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors));
           Notify.Continue )
