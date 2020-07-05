@@ -519,9 +519,7 @@ let definition_query state uri position merlin_request =
   let open Fiber.O in
   let+ result = Document.dispatch_exn doc command in
   let result = location_of_merlin_loc uri result in
-  match result with
-  | None -> Ok (None, state)
-  | Some loc -> Ok (Some loc, state)
+  Ok (result, state)
 
 let on_request :
     type resp.
