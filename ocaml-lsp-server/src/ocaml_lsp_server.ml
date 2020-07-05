@@ -1,18 +1,6 @@
 open Import
 
-type init =
-  | Uninitialized
-  | Initialized of ClientCapabilities.t
-
-type state =
-  { store : Document_store.t
-  ; merlin : Scheduler.thread
-  ; init : init
-  ; scheduler : Scheduler.t
-  ; configuration : Configuration.t
-  }
-
-let client_capabilities state =
+let client_capabilities (state : State.t) =
   match state.init with
   | Uninitialized -> assert false
   | Initialized c -> c
@@ -78,7 +66,7 @@ let send_diagnostics rpc doc =
     | Reason -> Option.is_some (Bin.which ocamlmerlin_reason)
   in
   let uri = Document.uri doc |> Lsp.Uri.to_string in
-  let state = Server.state rpc in
+  let state : State.t = Server.state rpc in
   Scheduler.detach state.scheduler (fun () ->
       match reason_merlin_available with
       | false ->
@@ -150,7 +138,7 @@ let on_initialize rpc =
       let message = Printf.sprintf "[%s] %s" section text in
       let notif = Server_notification.LogMessage { message; type_ } in
       let (_ : unit Fiber.t) =
-        let state = Server.state rpc in
+        let state : State.t = Server.state rpc in
         Scheduler.detach state.scheduler (fun () ->
             Server.notification rpc notif)
       in
@@ -170,7 +158,7 @@ let code_action_of_case_analysis uri (loc, newText) =
     ~isPreferred:false ()
 
 let code_action server (params : CodeActionParams.t) =
-  let state = Server.state server in
+  let state : State.t = Server.state server in
   let store = state.store in
   match params.context.only with
   | Some set when not (List.mem (CodeActionKind.Other Action.destruct) ~set) ->
@@ -218,7 +206,7 @@ module Formatter = struct
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Error in
       let (_ : unit Fiber.t) =
-        let state = Server.state rpc in
+        let state : State.t = Server.state rpc in
         Scheduler.detach state.scheduler (fun () ->
             Server.notification rpc (ShowMessage msg))
       in
@@ -314,7 +302,7 @@ let query_type doc pos =
     None
   | (location, `String value, _) :: _ -> Some (location, value)
 
-let hover (state : state) { HoverParams.textDocument = { uri }; position } =
+let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
   let store = state.store in
   let uri = Lsp.Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
@@ -339,7 +327,8 @@ let hover (state : state) { HoverParams.textDocument = { uri }; position } =
     let resp = Hover.create ~contents ~range () in
     Ok (Some resp, state)
 
-let text_document_lens state { CodeLensParams.textDocument = { uri } } =
+let text_document_lens (state : State.t)
+    { CodeLensParams.textDocument = { uri } } =
   let uri = Lsp.Uri.t_of_yojson (`String uri) in
   let store = state.store in
   let open Fiber.Result.O in
@@ -371,7 +360,8 @@ let text_document_lens state { CodeLensParams.textDocument = { uri } } =
     in
     Ok (symbol_infos, state)
 
-let folding_range state { FoldingRangeParams.textDocument = { uri } } =
+let folding_range (state : State.t)
+    { FoldingRangeParams.textDocument = { uri } } =
   let uri = Lsp.Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get state.store uri) in
@@ -401,7 +391,8 @@ let folding_range state { FoldingRangeParams.textDocument = { uri } } =
   in
   Ok (Some folds, state)
 
-let rename state { RenameParams.textDocument = { uri }; position; newName } =
+let rename (state : State.t)
+    { RenameParams.textDocument = { uri }; position; newName } =
   let open Fiber.Result.O in
   let uri = Lsp.Uri.t_of_yojson (`String uri) in
   let* doc = Fiber.return (Document_store.get state.store uri) in
@@ -439,7 +430,7 @@ let rename state { RenameParams.textDocument = { uri }; position; newName } =
   in
   Ok (workspace_edits, state)
 
-let selection_range state
+let selection_range (state : State.t)
     { SelectionRangeParams.textDocument = { uri }; positions } =
   let selection_range_of_shapes (cursor_position : Position.t)
       (shapes : Query_protocol.shape list) : SelectionRange.t option =
@@ -481,7 +472,7 @@ let selection_range state
   in
   (results, state)
 
-let references state
+let references (state : State.t)
     { ReferenceParams.textDocument = { uri }; position; context = _ } =
   let open Fiber.Result.O in
   let uri = Lsp.Uri.t_of_yojson (`String uri) in
@@ -500,7 +491,7 @@ let references state
   in
   Ok (Some lsp_locs, state)
 
-let definition_query state uri position merlin_request =
+let definition_query (state : State.t) uri position merlin_request =
   let open Fiber.Result.O in
   let uri = Lsp.Uri.t_of_yojson (`String uri) in
   let* doc = Fiber.return (Document_store.get state.store uri) in
@@ -513,9 +504,9 @@ let definition_query state uri position merlin_request =
 
 let on_request :
     type resp.
-       state Server.t
-    -> resp Lsp.Client_request.t
-    -> (resp * state, Lsp.Jsonrpc.Response.Error.t) result Fiber.t =
+       State.t Server.t
+    -> resp Client_request.t
+    -> (resp * State.t, Jsonrpc.Response.Error.t) result Fiber.t =
  fun rpc req ->
   let state = Server.state rpc in
   let store = state.store in
@@ -636,8 +627,8 @@ let on_request :
     @@ Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
 let on_notification server (notification : Lsp.Client_notification.t) :
-    state Fiber.t =
-  let state = Server.state server in
+    State.t Fiber.t =
+  let state : State.t = Server.state server in
   let store = state.store in
   match notification with
   | TextDocumentDidOpen params ->
