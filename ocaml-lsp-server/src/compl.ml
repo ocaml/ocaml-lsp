@@ -52,7 +52,16 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   in
   { Range.start; end_ = lsp_position }
 
-let item index entry =
+let format_doc ~markdown doc =
+  match markdown with
+  | false -> `String doc
+  | true ->
+    `MarkupContent
+      ( match Doc_to_md.translate doc with
+      | Markdown value -> { kind = MarkupKind.Markdown; MarkupContent.value }
+      | Raw value -> { kind = MarkupKind.PlainText; MarkupContent.value } )
+
+let item index entry ~markdown =
   let prefix, (entry : Query_protocol.Compl.entry) =
     match entry with
     | `Keep entry -> (`Keep, entry)
@@ -70,12 +79,13 @@ let item index entry =
       (* Without this field the client is not forced to respect the order
          provided by merlin. *)
     ~sortText:(Printf.sprintf "%04d" index)
+    ~documentation:(format_doc ~markdown entry.info)
     ?textEdit ()
 
 let completion_kinds =
   [ `Constructor; `Labels; `Modules; `Modules_type; `Types; `Values; `Variants ]
 
-let complete doc position =
+let complete doc position ~markdown =
   let lsp_position = position in
   let position = Position.logical position in
 
@@ -118,5 +128,5 @@ let complete doc position =
       let range = range_prefix lsp_position prefix in
       List.map ~f:(fun entry -> `Replace (range, entry)) entries
   in
-  let items = List.mapi ~f:item items in
+  let items = List.mapi ~f:(item ~markdown) items in
   Ok (`CompletionList { CompletionList.isIncomplete = false; items })

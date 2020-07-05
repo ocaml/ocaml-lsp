@@ -3,6 +3,7 @@ open Import
 val complete :
      Document.t
   -> Position.t
+  -> markdown:bool
   -> ( [> `CompletionList of CompletionList.t ]
      , Lsp.Jsonrpc.Response.Error.t )
      result
