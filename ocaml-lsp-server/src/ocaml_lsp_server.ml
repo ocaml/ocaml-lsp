@@ -1,14 +1,4 @@
 open Import
-module Server_notification = Lsp.Server_notification
-module HoverParams = Lsp.Types.HoverParams
-module SelectionRangeParams = Lsp.Types.SelectionRangeParams
-module RenameParams = Lsp.Types.RenameParams
-module CodeLensParams = Lsp.Types.CodeLensParams
-module FoldingRangeParams = Lsp.Types.FoldingRangeParams
-module ReferenceParams = Lsp.Types.ReferenceParams
-module Scheduler = Lsp.Scheduler
-module Jsonrpc = Lsp.Jsonrpc
-module Server = Lsp.Server
 
 type init =
   | Uninitialized
