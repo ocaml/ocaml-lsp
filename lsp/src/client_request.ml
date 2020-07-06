@@ -63,7 +63,11 @@ type _ t =
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
-  | UnknownRequest : string * Json.t option -> Json.t t
+  | UnknownRequest :
+      { meth : string
+      ; params : Json.t option
+      }
+      -> Json.t t
 
 let yojson_of_DocumentSymbol ds : Json.t =
   Json.Option.yojson_of_t
@@ -208,7 +212,7 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
   | "workspace/executeCommand" ->
     parse ExecuteCommandParams.t_of_yojson >>| fun params ->
     E (ExecuteCommand params)
-  | m -> Ok (E (UnknownRequest (m, r.params)))
+  | meth -> Ok (E (UnknownRequest { meth; params = r.params }))
 
 let method_ (type a) (t : a t) =
   match t with
@@ -233,7 +237,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | ExecuteCommand _ -> json
   | _ -> assert false
 
-let text_document (type a) (t : a t) : TextDocumentIdentifier.t option =
+let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   match t with
   | CompletionItemResolve _ -> None
   | TextDocumentLinkResolve _ -> None
@@ -265,4 +269,4 @@ let text_document (type a) (t : a t) : TextDocumentIdentifier.t option =
   | TextDocumentColorPresentation r -> Some r.textDocument
   | TextDocumentColor r -> Some r.textDocument
   | SelectionRange r -> Some r.textDocument
-  | UnknownRequest _ -> None
+  | UnknownRequest { meth; params } -> f ~meth ~params

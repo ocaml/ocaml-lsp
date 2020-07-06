@@ -63,7 +63,11 @@ type _ t =
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
-  | UnknownRequest : string * Json.t option -> Json.t t
+  | UnknownRequest :
+      { meth : string
+      ; params : Json.t option
+      }
+      -> Json.t t
 
 val yojson_of_result : 'a t -> 'a -> Json.t
 
@@ -75,4 +79,7 @@ val to_jsonrpc_request : _ t -> id:Jsonrpc.Id.t -> Jsonrpc.Message.request
 
 val response_of_json : 'a t -> Json.t -> 'a
 
-val text_document : _ t -> TextDocumentIdentifier.t option
+val text_document :
+     _ t
+  -> (meth:string -> params:Json.t option -> TextDocumentIdentifier.t option)
+  -> TextDocumentIdentifier.t option
