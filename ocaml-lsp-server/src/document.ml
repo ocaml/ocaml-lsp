@@ -45,6 +45,11 @@ module Syntax = struct
   let to_language_id x =
     List.find_map all ~f:(fun (k, v) -> Option.some_if (v = x) k)
     |> Option.value_exn
+
+  let markdown_name = function
+    | Ocaml -> "ocaml"
+    | Reason -> "reason"
+    | s -> to_language_id s
 end
 
 type t =

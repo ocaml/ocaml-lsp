@@ -11,7 +11,7 @@ module Syntax : sig
 
   val human_name : t -> string
 
-  val to_language_id : t -> string
+  val markdown_name : t -> string
 end
 
 module Kind : sig

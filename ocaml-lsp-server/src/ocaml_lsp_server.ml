@@ -59,6 +59,7 @@ let initialize_info : InitializeResult.t =
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
 let send_diagnostics rpc doc =
+  (* TODO this work is done too eagerly. it should be under schedule *)
   let diagnostic_create = Diagnostic.create ~source:"ocamllsp" in
   let reason_merlin_available =
     match Document.syntax doc with
@@ -265,19 +266,21 @@ let location_of_merlin_loc uri = function
       Some (`Location locs) )
 
 let format_contents ~syntax ~markdown ~typ ~doc =
-  let language_id = Document.Syntax.to_language_id syntax in
+  (* TODO for vscode, we should just use the language id. But that will not work
+     for all editors *)
+  let markdown_name = Document.Syntax.markdown_name syntax in
   `MarkupContent
     ( if markdown then
       let value =
         match doc with
-        | None -> sprintf "```%s\n%s\n```" language_id typ
+        | None -> sprintf "```%s\n%s\n```" markdown_name typ
         | Some s ->
           let doc =
             match Doc_to_md.translate s with
             | Raw d -> sprintf "(** %s *)" d
             | Markdown d -> d
           in
-          sprintf "```%s\n%s\n```\n---\n%s" language_id typ doc
+          sprintf "```%s\n%s\n```\n---\n%s" markdown_name typ doc
       in
       { MarkupContent.value; kind = MarkupKind.Markdown }
     else
