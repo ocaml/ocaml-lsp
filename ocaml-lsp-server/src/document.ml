@@ -37,10 +37,12 @@ module Syntax = struct
     ; ("ocaml.menhir", Menhir)
     ]
 
-  let of_language_id id =
-    match List.assoc all id with
+  let of_language_id language_id =
+    match List.assoc all language_id with
     | Some id -> id
-    | None -> Code_error.raise "invalid language id" [ ("id", String id) ]
+    | None ->
+      Code_error.raise "invalid language id"
+        [ ("language_id", String language_id) ]
 
   let to_language_id x =
     List.find_map all ~f:(fun (k, v) -> Option.some_if (v = x) k)
