@@ -5,6 +5,7 @@ open Import
     Relies on [ocamlformat] for OCaml and [refmt] for reason *)
 
 type error =
+  | Unsupported_syntax of Document.Syntax.t
   | Missing_binary of { binary : string }
   | Unexpected_result of { message : string }
   | Unknown_extension of Lsp.Uri.t

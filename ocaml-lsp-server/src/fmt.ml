@@ -38,11 +38,15 @@ let run_command command stdin_value args : command_result =
   { stdout; stderr; status }
 
 type error =
+  | Unsupported_syntax of Document.Syntax.t
   | Missing_binary of { binary : string }
   | Unexpected_result of { message : string }
   | Unknown_extension of Lsp.Uri.t
 
 let message = function
+  | Unsupported_syntax syntax ->
+    sprintf "formatting %s files is not supported"
+      (Document.Syntax.human_name syntax)
   | Missing_binary { binary } ->
     sprintf
       "Unable to find %s binary. You need to install %s manually to use the \
@@ -79,6 +83,7 @@ let binary t =
 
 let formatter doc =
   match Document.syntax doc with
+  | (Ocamllex | Menhir) as s -> Error (Unsupported_syntax s)
   | Ocaml -> Ok (Ocaml (Document.uri doc))
   | Reason -> Ok (Reason (Document.kind doc))
 

@@ -62,14 +62,18 @@ let send_diagnostics rpc doc =
   let diagnostic_create = Diagnostic.create ~source:"ocamllsp" in
   let reason_merlin_available =
     match Document.syntax doc with
-    | Ocaml -> true
-    | Reason -> Option.is_some (Bin.which ocamlmerlin_reason)
+    | Menhir
+    | Ocamllex ->
+      `Unsupported
+    | Ocaml -> `Available true
+    | Reason -> `Available (Option.is_some (Bin.which ocamlmerlin_reason))
   in
   let uri = Document.uri doc |> Lsp.Uri.to_string in
   let state : State.t = Server.state rpc in
   Scheduler.detach state.scheduler (fun () ->
       match reason_merlin_available with
-      | false ->
+      | `Unsupported -> Fiber.return ()
+      | `Available false ->
         let notif =
           let diagnostics =
             let message =
@@ -86,7 +90,7 @@ let send_diagnostics rpc doc =
             (PublishDiagnosticsParams.create ~uri ~diagnostics ())
         in
         Server.notification rpc notif
-      | true -> (
+      | `Available true -> (
         let open Fiber.O in
         let timer = Document.timer doc in
         let+ res =
@@ -193,9 +197,11 @@ module Formatter = struct
     let message = Fmt.message e in
     let code : Lsp.Jsonrpc.Response.Error.Code.t =
       match e with
-      | Missing_binary _ -> InvalidRequest
+      | Unsupported_syntax _
+      | Unknown_extension _
+      | Missing_binary _ ->
+        InvalidRequest
       | Unexpected_result _ -> InternalError
-      | Unknown_extension _ -> InvalidRequest
     in
     make_error ~code ~message ()
 
@@ -502,7 +508,7 @@ let definition_query (state : State.t) uri position merlin_request =
   let result = location_of_merlin_loc uri result in
   Ok (result, state)
 
-let on_request :
+let ocaml_on_request :
     type resp.
        State.t Server.t
     -> resp Client_request.t
@@ -625,6 +631,27 @@ let on_request :
   | Lsp.Client_request.UnknownRequest _ ->
     Fiber.return
     @@ Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
+
+let on_request :
+    type resp.
+       State.t Server.t
+    -> resp Client_request.t
+    -> (resp * State.t, Jsonrpc.Response.Error.t) result Fiber.t =
+ fun server req ->
+  let state : State.t = Server.state server in
+  let store = state.store in
+  let syntax : Document.Syntax.t option =
+    let open Option.O in
+    let* td =
+      Client_request.text_document req (fun ~meth:_ ~params:_ -> None)
+    in
+    let uri = Lsp.Uri.t_of_yojson (`String td.uri) in
+    let+ doc = Document_store.get_opt store uri in
+    Document.syntax doc
+  in
+  match syntax with
+  | Some (Ocamllex | Menhir) -> not_supported ()
+  | _ -> ocaml_on_request server req
 
 let on_notification server (notification : Lsp.Client_notification.t) :
     State.t Fiber.t =

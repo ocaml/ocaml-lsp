@@ -53,5 +53,6 @@ module RenameParams = Lsp.Types.RenameParams
 module CodeLensParams = Lsp.Types.CodeLensParams
 module FoldingRangeParams = Lsp.Types.FoldingRangeParams
 module ReferenceParams = Lsp.Types.ReferenceParams
+module Uri = Lsp.Uri
 
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"

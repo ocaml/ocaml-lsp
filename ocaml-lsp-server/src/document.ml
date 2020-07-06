@@ -20,16 +20,31 @@ module Syntax = struct
   type t =
     | Ocaml
     | Reason
+    | Ocamllex
+    | Menhir
 
-  let of_language_id = function
-    | "ocaml.interface" -> Ocaml
-    | "ocaml" -> Ocaml
-    | "reason" -> Reason
-    | id -> failwith ("Unexpected language id " ^ id)
+  let human_name = function
+    | Ocaml -> "OCaml"
+    | Reason -> "Reason"
+    | Ocamllex -> "OCamllex"
+    | Menhir -> "Menhir/ocamlyacc"
 
-  let to_language_id = function
-    | Ocaml -> "ocaml"
-    | Reason -> "reason"
+  let all =
+    [ ("ocaml.interface", Ocaml)
+    ; ("ocaml", Ocaml)
+    ; ("reason", Reason)
+    ; ("ocaml.ocamllex", Ocamllex)
+    ; ("ocaml.menhir", Menhir)
+    ]
+
+  let of_language_id id =
+    match List.assoc all id with
+    | Some id -> id
+    | None -> Code_error.raise "invalid language id" [ ("id", String id) ]
+
+  let to_language_id x =
+    List.find_map all ~f:(fun (k, v) -> Option.some_if (v = x) k)
+    |> Option.value_exn
 end
 
 type t =

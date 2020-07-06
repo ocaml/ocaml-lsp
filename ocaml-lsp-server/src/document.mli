@@ -6,6 +6,10 @@ module Syntax : sig
   type t =
     | Ocaml
     | Reason
+    | Ocamllex
+    | Menhir
+
+  val human_name : t -> string
 
   val to_language_id : t -> string
 end
