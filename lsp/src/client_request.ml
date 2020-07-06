@@ -232,3 +232,37 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | Initialize _ -> InitializeResult.t_of_yojson json
   | ExecuteCommand _ -> json
   | _ -> assert false
+
+let text_document (type a) (t : a t) : TextDocumentIdentifier.t option =
+  match t with
+  | CompletionItemResolve _ -> None
+  | TextDocumentLinkResolve _ -> None
+  | ExecuteCommand _ -> None
+  | TextDocumentCodeLensResolve _ -> None
+  | WorkspaceSymbol _ -> None
+  | DebugEcho _ -> None
+  | Shutdown -> None
+  | Initialize _ -> None
+  | TextDocumentHover r -> Some r.textDocument
+  | TextDocumentDefinition r -> Some r.textDocument
+  | TextDocumentDeclaration r -> Some r.textDocument
+  | TextDocumentTypeDefinition r -> Some r.textDocument
+  | TextDocumentCompletion r -> Some r.textDocument
+  | TextDocumentCodeLens r -> Some r.textDocument
+  | TextDocumentPrepareRename r -> Some r.textDocument
+  | TextDocumentRename r -> Some r.textDocument
+  | TextDocumentLink r -> Some r.textDocument
+  | DocumentSymbol r -> Some r.textDocument
+  | DebugTextDocumentGet r -> Some r.textDocument
+  | TextDocumentReferences r -> Some r.textDocument
+  | TextDocumentHighlight r -> Some r.textDocument
+  | TextDocumentFoldingRange r -> Some r.textDocument
+  | SignatureHelp r -> Some r.textDocument
+  | CodeAction r -> Some r.textDocument
+  | WillSaveWaitUntilTextDocument r -> Some r.textDocument
+  | TextDocumentFormatting r -> Some r.textDocument
+  | TextDocumentOnTypeFormatting r -> Some r.textDocument
+  | TextDocumentColorPresentation r -> Some r.textDocument
+  | TextDocumentColor r -> Some r.textDocument
+  | SelectionRange r -> Some r.textDocument
+  | UnknownRequest _ -> None

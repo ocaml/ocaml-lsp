@@ -74,3 +74,5 @@ val of_jsonrpc : Jsonrpc.Message.request -> (packed, string) Result.t
 val to_jsonrpc_request : _ t -> id:Jsonrpc.Id.t -> Jsonrpc.Message.request
 
 val response_of_json : 'a t -> Json.t -> 'a
+
+val text_document : _ t -> TextDocumentIdentifier.t option
