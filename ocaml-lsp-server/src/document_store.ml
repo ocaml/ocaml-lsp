@@ -1,8 +1,8 @@
 open! Import
 
-type t = (Lsp.Uri.t, Document.t) Table.t
+type t = (Uri.t, Document.t) Table.t
 
-let make () = Table.create (module Lsp.Uri) 50
+let make () = Table.create (module Uri) 50
 
 let put store doc = Table.set store (Document.uri doc) doc
 
@@ -15,7 +15,7 @@ let get store uri =
     Error
       (Lsp.Jsonrpc.Response.Error.make ~code:InvalidRequest
          ~message:
-           (Format.asprintf "no document found with uri: %a" Lsp.Uri.pp uri)
+           (Format.asprintf "no document found with uri: %a" Uri.pp uri)
          ())
 
 let remove_document store uri =

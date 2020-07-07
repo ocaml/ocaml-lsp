@@ -8,7 +8,7 @@ type error =
   | Unsupported_syntax of Document.Syntax.t
   | Missing_binary of { binary : string }
   | Unexpected_result of { message : string }
-  | Unknown_extension of Lsp.Uri.t
+  | Unknown_extension of Uri.t
 
 val message : error -> string
 

@@ -41,7 +41,7 @@ type error =
   | Unsupported_syntax of Document.Syntax.t
   | Missing_binary of { binary : string }
   | Unexpected_result of { message : string }
-  | Unknown_extension of Lsp.Uri.t
+  | Unknown_extension of Uri.t
 
 let message = function
   | Unsupported_syntax syntax ->
@@ -54,15 +54,15 @@ let message = function
       binary binary
   | Unknown_extension uri ->
     Printf.sprintf "Unable to format. File %s has an unknown extension"
-      (Lsp.Uri.to_path uri)
+      (Uri.to_path uri)
   | Unexpected_result { message } -> message
 
 type formatter =
   | Reason of Document.Kind.t
-  | Ocaml of Lsp.Uri.t
+  | Ocaml of Uri.t
 
 let args = function
-  | Ocaml uri -> [ sprintf "--name=%s" (Lsp.Uri.to_path uri); "-" ]
+  | Ocaml uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Reason kind -> (
     [ "--parse"; "re"; "--print"; "re" ]
     @

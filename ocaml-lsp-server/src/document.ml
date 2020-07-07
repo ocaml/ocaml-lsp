@@ -65,7 +65,7 @@ type t =
 
 let uri doc = Lsp.Text_document.documentUri doc.tdoc
 
-let kind t = Kind.of_fname (Lsp.Uri.to_path (uri t))
+let kind t = Kind.of_fname (Uri.to_path (uri t))
 
 let syntax t = Syntax.of_language_id (Lsp.Text_document.languageId t.tdoc)
 
@@ -86,7 +86,7 @@ let with_pipeline_exn doc f =
 let version doc = Lsp.Text_document.version doc.tdoc
 
 let make_config uri =
-  let path = Lsp.Uri.to_path uri in
+  let path = Uri.to_path uri in
   let mconfig = Mconfig.initial in
   let path = Misc.canonicalize_filename path in
   let filename = Filename.basename path in

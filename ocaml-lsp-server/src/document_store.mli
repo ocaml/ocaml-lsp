@@ -1,13 +1,15 @@
+open Import
+
 type t
 
 val make : unit -> t
 
 val put : t -> Document.t -> unit
 
-val get : t -> Lsp.Uri.t -> (Document.t, Lsp.Jsonrpc.Response.Error.t) result
+val get : t -> Uri.t -> (Document.t, Lsp.Jsonrpc.Response.Error.t) result
 
-val get_opt : t -> Lsp.Uri.t -> Document.t option
+val get_opt : t -> Uri.t -> Document.t option
 
-val remove_document : t -> Lsp.Uri.t -> unit
+val remove_document : t -> Uri.t -> unit
 
 val get_size : t -> int

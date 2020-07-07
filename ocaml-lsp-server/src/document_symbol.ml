@@ -24,7 +24,7 @@ let rec symbol item =
 
 let rec symbol_info ?containerName uri item =
   let location =
-    let uri = Lsp.Uri.to_string uri in
+    let uri = Uri.to_string uri in
     { Location.uri; range = range item }
   in
   let info =

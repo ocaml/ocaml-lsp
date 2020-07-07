@@ -29,7 +29,7 @@ val make :
 
 val timer : t -> Scheduler.timer
 
-val uri : t -> Lsp.Uri.t
+val uri : t -> Uri.t
 
 val source : t -> Msource.t
 
