@@ -146,6 +146,9 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
   | "textDocument/completion" ->
     parse CompletionParams.t_of_yojson >>| fun params ->
     E (TextDocumentCompletion params)
+  | "completionItem/resolve" ->
+    parse CompletionItem.t_of_yojson >>| fun params ->
+    E (CompletionItemResolve params)
   | "textDocument/documentSymbol" ->
     parse DocumentSymbolParams.t_of_yojson >>| fun params ->
     E (DocumentSymbol params)

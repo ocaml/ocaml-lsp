@@ -32,7 +32,7 @@ let initialize_info : InitializeResult.t =
     (* TODO even if this re-enabled in general, it should stay disabled for
        emacs. It makes completion too slow *)
     CompletionOptions.create ~triggerCharacters:[ "."; "#" ]
-      ~resolveProvider:false ()
+      ~resolveProvider:true ()
   in
   let renameProvider =
     `RenameOptions (RenameOptions.create ~prepareProvider:true ())

@@ -96,7 +96,7 @@ let complete doc position ~markdown =
   let completion =
     let complete =
       Query_protocol.Complete_prefix
-        (prefix, position, completion_kinds, true, true)
+        (prefix, position, completion_kinds, false, true)
     in
     Query_commands.dispatch pipeline complete
   in
