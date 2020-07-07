@@ -58,7 +58,7 @@ For an example of usage of the server in a VSCode extension, see [here](https://
 The server supports the following queries:
 
 - [x] `textDocument/completion`
-- [ ] `completionItem/resolve`
+- [x] `completionItem/resolve`
 - [x] `textdocument/hover`
 - [ ] `textDocument/signatureHelp`
 - [ ] `textDocument/declaration`
