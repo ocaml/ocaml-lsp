@@ -1,5 +1,4 @@
 open! Import
-open Lsp.Types
 
 type t = { diagnostics_delay : float }
 

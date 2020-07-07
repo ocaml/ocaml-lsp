@@ -55,7 +55,7 @@ module Syntax = struct
 end
 
 type t =
-  { tdoc : Lsp.Text_document.t
+  { tdoc : Text_document.t
   ; source : Msource.t
   ; pipeline : Mpipeline.t
   ; config : Mconfig.t
@@ -63,11 +63,11 @@ type t =
   ; timer : Scheduler.timer
   }
 
-let uri doc = Lsp.Text_document.documentUri doc.tdoc
+let uri doc = Text_document.documentUri doc.tdoc
 
 let kind t = Kind.of_fname (Uri.to_path (uri t))
 
-let syntax t = Syntax.of_language_id (Lsp.Text_document.languageId t.tdoc)
+let syntax t = Syntax.of_language_id (Text_document.languageId t.tdoc)
 
 let timer t = t.timer
 
@@ -83,7 +83,7 @@ let with_pipeline_exn doc f =
   let+ res = with_pipeline doc f in
   Result.ok_exn res
 
-let version doc = Lsp.Text_document.version doc.tdoc
+let version doc = Text_document.version doc.tdoc
 
 let make_config uri =
   let path = Uri.to_path uri in
@@ -103,18 +103,18 @@ let make_config uri =
       ]
 
 let make timer merlin_thread tdoc =
-  let tdoc = Lsp.Text_document.make tdoc in
+  let tdoc = Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
-  let text = Lsp.Text_document.text tdoc in
-  let config = make_config (Lsp.Text_document.documentUri tdoc) in
+  let text = Text_document.text tdoc in
+  let config = make_config (Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
   { tdoc; source; config; pipeline; merlin = merlin_thread; timer }
 
 let update_text ?version change doc =
-  let tdoc = Lsp.Text_document.apply_content_change ?version change doc.tdoc in
-  let text = Lsp.Text_document.text tdoc in
-  let config = make_config (Lsp.Text_document.documentUri tdoc) in
+  let tdoc = Text_document.apply_content_change ?version change doc.tdoc in
+  let text = Text_document.text tdoc in
+  let config = make_config (Text_document.documentUri tdoc) in
   let source = Msource.make text in
   let pipeline = Mpipeline.make config source in
   { doc with tdoc; config; source; pipeline }

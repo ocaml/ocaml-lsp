@@ -5,7 +5,7 @@ let client_capabilities (state : State.t) =
   | Uninitialized -> assert false
   | Initialized c -> c
 
-let make_error = Lsp.Jsonrpc.Response.Error.make
+let make_error = Jsonrpc.Response.Error.make
 
 let not_supported () =
   Fiber.return
@@ -35,7 +35,7 @@ let initialize_info : InitializeResult.t =
       ~resolveProvider:false ()
   in
   let renameProvider =
-    `RenameOptions (Lsp.Types.RenameOptions.create ~prepareProvider:true ())
+    `RenameOptions (RenameOptions.create ~prepareProvider:true ())
   in
   let capabilities =
     let experimental =
@@ -196,7 +196,7 @@ let code_action server (params : CodeActionParams.t) =
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
     let message = Fmt.message e in
-    let code : Lsp.Jsonrpc.Response.Error.Code.t =
+    let code : Jsonrpc.Response.Error.Code.t =
       match e with
       | Unsupported_syntax _
       | Unknown_extension _
@@ -519,31 +519,30 @@ let ocaml_on_request :
  fun rpc req ->
   let state = Server.state rpc in
   let store = state.store in
-  let open Lsp.Import.Result.O in
+  let open Import.Result.O in
   match req with
-  | Lsp.Client_request.Initialize ip ->
+  | Client_request.Initialize ip ->
     let initialize_result = on_initialize rpc in
     let state = { state with init = Initialized ip.capabilities } in
     Fiber.return @@ Ok (initialize_result, state)
-  | Lsp.Client_request.Shutdown -> Fiber.return @@ Ok ((), state)
-  | Lsp.Client_request.DebugTextDocumentGet
-      { textDocument = { uri }; position = _ } ->
+  | Client_request.Shutdown -> Fiber.return @@ Ok ((), state)
+  | Client_request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
+    ->
     Fiber.return
       (let uri = Uri.t_of_yojson (`String uri) in
        match Document_store.get_opt store uri with
        | None -> Ok (None, state)
        | Some doc -> Ok (Some (Msource.text (Document.source doc)), state))
-  | Lsp.Client_request.DebugEcho params -> Fiber.return @@ Ok (params, state)
-  | Lsp.Client_request.TextDocumentColor _ -> Fiber.return @@ Ok ([], state)
-  | Lsp.Client_request.TextDocumentColorPresentation _ ->
+  | Client_request.DebugEcho params -> Fiber.return @@ Ok (params, state)
+  | Client_request.TextDocumentColor _ -> Fiber.return @@ Ok ([], state)
+  | Client_request.TextDocumentColorPresentation _ ->
     Fiber.return @@ Ok ([], state)
-  | Lsp.Client_request.TextDocumentHover req -> hover state req
-  | Lsp.Client_request.TextDocumentReferences req -> references state req
-  | Lsp.Client_request.TextDocumentCodeLensResolve codeLens ->
+  | Client_request.TextDocumentHover req -> hover state req
+  | Client_request.TextDocumentReferences req -> references state req
+  | Client_request.TextDocumentCodeLensResolve codeLens ->
     Fiber.return @@ Ok (codeLens, state)
-  | Lsp.Client_request.TextDocumentCodeLens req -> text_document_lens state req
-  | Lsp.Client_request.TextDocumentHighlight
-      { textDocument = { uri }; position } ->
+  | Client_request.TextDocumentCodeLens req -> text_document_lens state req
+  | Client_request.TextDocumentHighlight { textDocument = { uri }; position } ->
     let open Fiber.Result.O in
     let uri = Uri.t_of_yojson (`String uri) in
     let* doc = Fiber.return (Document_store.get store uri) in
@@ -560,8 +559,8 @@ let ocaml_on_request :
           DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
     in
     Ok (Some lsp_locs, state)
-  | Lsp.Client_request.WorkspaceSymbol _ -> Fiber.return @@ Ok (None, state)
-  | Lsp.Client_request.DocumentSymbol { textDocument = { uri } } ->
+  | Client_request.WorkspaceSymbol _ -> Fiber.return @@ Ok (None, state)
+  | Client_request.DocumentSymbol { textDocument = { uri } } ->
     let uri = Uri.t_of_yojson (`String uri) in
     let open Fiber.Result.O in
     let* doc = Fiber.return (Document_store.get store uri) in
@@ -569,17 +568,16 @@ let ocaml_on_request :
     let open Fiber.O in
     let+ symbols = Document_symbol.run client_capabilities doc uri in
     Ok (Some symbols, state)
-  | Lsp.Client_request.TextDocumentDeclaration _ ->
-    Fiber.return @@ Ok (None, state)
-  | Lsp.Client_request.TextDocumentDefinition
-      { textDocument = { uri }; position } ->
+  | Client_request.TextDocumentDeclaration _ -> Fiber.return @@ Ok (None, state)
+  | Client_request.TextDocumentDefinition { textDocument = { uri }; position }
+    ->
     definition_query state uri position (fun pos ->
         Query_protocol.Locate (None, `ML, pos))
-  | Lsp.Client_request.TextDocumentTypeDefinition
+  | Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } ->
     definition_query state uri position (fun pos ->
         Query_protocol.Locate_type pos)
-  | Lsp.Client_request.TextDocumentCompletion
+  | Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
     let uri = Uri.t_of_yojson (`String uri) in
     let open Fiber.Result.O in
@@ -595,7 +593,7 @@ let ocaml_on_request :
       Compl.complete doc position ~markdown
     in
     (Some resp, state)
-  | Lsp.Client_request.TextDocumentPrepareRename
+  | Client_request.TextDocumentPrepareRename
       { textDocument = { uri }; position } ->
     let uri = Uri.t_of_yojson (`String uri) in
     let open Fiber.Result.O in
@@ -611,27 +609,27 @@ let ocaml_on_request :
           Position.compare_inclusion position range = `Inside)
     in
     Ok (Option.map loc ~f:Range.of_loc, state)
-  | Lsp.Client_request.TextDocumentRename req -> rename state req
-  | Lsp.Client_request.TextDocumentFoldingRange req -> folding_range state req
-  | Lsp.Client_request.SignatureHelp _ -> not_supported ()
-  | Lsp.Client_request.ExecuteCommand _ -> not_supported ()
-  | Lsp.Client_request.TextDocumentLinkResolve l -> Fiber.return @@ Ok (l, state)
-  | Lsp.Client_request.TextDocumentLink _ -> Fiber.return @@ Ok (None, state)
-  | Lsp.Client_request.WillSaveWaitUntilTextDocument _ ->
+  | Client_request.TextDocumentRename req -> rename state req
+  | Client_request.TextDocumentFoldingRange req -> folding_range state req
+  | Client_request.SignatureHelp _ -> not_supported ()
+  | Client_request.ExecuteCommand _ -> not_supported ()
+  | Client_request.TextDocumentLinkResolve l -> Fiber.return @@ Ok (l, state)
+  | Client_request.TextDocumentLink _ -> Fiber.return @@ Ok (None, state)
+  | Client_request.WillSaveWaitUntilTextDocument _ ->
     Fiber.return @@ Ok (None, state)
-  | Lsp.Client_request.CodeAction params -> code_action rpc params
-  | Lsp.Client_request.CompletionItemResolve compl ->
+  | Client_request.CodeAction params -> code_action rpc params
+  | Client_request.CompletionItemResolve compl ->
     Fiber.return @@ Ok (compl, state)
-  | Lsp.Client_request.TextDocumentFormatting
+  | Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
     let uri = Uri.t_of_yojson (`String uri) in
     Fiber.return
       (let* doc = Document_store.get store uri in
        Formatter.run rpc doc)
-  | Lsp.Client_request.TextDocumentOnTypeFormatting _ ->
+  | Client_request.TextDocumentOnTypeFormatting _ ->
     Fiber.return @@ Ok (None, state)
-  | Lsp.Client_request.SelectionRange req -> selection_range state req
-  | Lsp.Client_request.UnknownRequest _ ->
+  | Client_request.SelectionRange req -> selection_range state req
+  | Client_request.UnknownRequest _ ->
     Fiber.return
     @@ Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
@@ -656,7 +654,7 @@ let on_request :
   | Some (Ocamllex | Menhir) -> not_supported ()
   | _ -> ocaml_on_request server req
 
-let on_notification server (notification : Lsp.Client_notification.t) :
+let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
   let state : State.t = Server.state server in
   let store = state.store in
@@ -737,7 +735,7 @@ let start () =
     Logger.with_notifications (ref []) @@ fun () -> File_id.with_cache @@ f
   in
   let on_request server req =
-    prepare_and_run Lsp.Jsonrpc.Response.Error.of_exn @@ fun () ->
+    prepare_and_run Jsonrpc.Response.Error.of_exn @@ fun () ->
     on_request server req
   in
   let scheduler = Scheduler.create () in
@@ -760,4 +758,4 @@ let start () =
 
 let run ~log_file =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Lsp.Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file start
+  Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file start

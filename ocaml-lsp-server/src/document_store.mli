@@ -6,7 +6,7 @@ val make : unit -> t
 
 val put : t -> Document.t -> unit
 
-val get : t -> Uri.t -> (Document.t, Lsp.Jsonrpc.Response.Error.t) result
+val get : t -> Uri.t -> (Document.t, Jsonrpc.Response.Error.t) result
 
 val get_opt : t -> Uri.t -> Document.t option
 

@@ -13,9 +13,8 @@ let get store uri =
   | Some doc -> Ok doc
   | None ->
     Error
-      (Lsp.Jsonrpc.Response.Error.make ~code:InvalidRequest
-         ~message:
-           (Format.asprintf "no document found with uri: %a" Uri.pp uri)
+      (Jsonrpc.Response.Error.make ~code:InvalidRequest
+         ~message:(Format.asprintf "no document found with uri: %a" Uri.pp uri)
          ())
 
 let remove_document store uri =

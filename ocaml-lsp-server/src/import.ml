@@ -5,6 +5,8 @@ module Scheduler = Lsp.Scheduler
 module Server = Lsp.Server
 module Jsonrpc = Lsp.Jsonrpc
 module Client_request = Lsp.Client_request
+module Client_notification = Lsp.Client_notification
+module Text_document = Lsp.Text_document
 open Lsp.Types
 module CompletionItemKind = CompletionItemKind
 module SymbolKind = SymbolKind
@@ -53,6 +55,9 @@ module RenameParams = Lsp.Types.RenameParams
 module CodeLensParams = Lsp.Types.CodeLensParams
 module FoldingRangeParams = Lsp.Types.FoldingRangeParams
 module ReferenceParams = Lsp.Types.ReferenceParams
+module DidChangeConfigurationParams = Lsp.Types.DidChangeConfigurationParams
+module ConfigurationParams = Lsp.Types.ConfigurationParams
+module RenameOptions = Lsp.Types.RenameOptions
 module Uri = Lsp.Uri
 
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"
