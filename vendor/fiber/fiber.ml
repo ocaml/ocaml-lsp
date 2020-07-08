@@ -485,51 +485,41 @@ module Mvar = struct
     ; mutable value : 'a option
     }
 
+  (* Invariant enforced on mvars. We don't actually call this function, but we
+     keep it here for documentation and to help understand the implementation: *)
+  let _invariant t =
+    match t.value with
+    | None -> Queue.is_empty t.writers
+    | Some _ -> Queue.is_empty t.readers
+
   let create () =
     { value = None; writers = Queue.create (); readers = Queue.create () }
 
-  (** [step mvar] makes progress on the passing values to readers/writers. It
-      can detect progress in situations:
+  let create_full x =
+    { value = Some x; writers = Queue.create (); readers = Queue.create () }
 
-      - pending writes when [value] is empty: we can deque this write and make
-        unblock the writer
-
-      - pending reads when [value] is present: we can pass a value to the reader
-        and unblock it
-
-      if [step] is able to make progress, it will call itself recursively to
-      make more progress. That's because running a continuation may make it
-      possible to proceed further. *)
-  let rec step t =
-    match t.value with
-    | None when not (Queue.is_empty t.writers) ->
-      let a, wk = Queue.pop_exn t.writers in
-      t.value <- Some a;
-      K.run wk ();
-      (* We cannot assume [t.value = Some _] here. K.run may have called read
-         already *)
-      step t
-    | Some x when not (Queue.is_empty t.readers) ->
-      let r = Queue.pop_exn t.readers in
-      t.value <- None;
-      K.run r x;
-      (* Similarly, we can no longer assume [t.value = None] *)
-      step t
-    | _ -> ()
-
-  let read (type a) (t : a t) k =
+  let read t k =
     match t.value with
     | None -> Queue.push t.readers (K.create k)
-    | Some v ->
-      t.value <- None;
-      k v;
-      step t
+    | Some v -> (
+      match Queue.pop t.writers with
+      | None ->
+        t.value <- None;
+        k v
+      | Some (v', w) ->
+        t.value <- Some v';
+        k v;
+        K.run w () )
 
   let write t x k =
     match t.value with
     | Some _ -> Queue.push t.writers (x, K.create k)
-    | None ->
-      t.value <- Some x;
-      k ();
-      step t
+    | None -> (
+      match Queue.pop t.readers with
+      | None ->
+        t.value <- Some x;
+        k ()
+      | Some r ->
+        k ();
+        K.run r x )
 end
