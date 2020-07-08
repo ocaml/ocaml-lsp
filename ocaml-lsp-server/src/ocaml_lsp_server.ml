@@ -59,73 +59,73 @@ let initialize_info : InitializeResult.t =
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
 let send_diagnostics rpc doc =
-  (* TODO this work is done too eagerly. it should be under schedule *)
-  let diagnostic_create = Diagnostic.create ~source:"ocamllsp" in
-  let reason_merlin_available =
-    match Document.syntax doc with
-    | Menhir
-    | Ocamllex ->
-      `Unsupported
-    | Ocaml -> `Available true
-    | Reason -> `Available (Option.is_some (Bin.which ocamlmerlin_reason))
-  in
-  let uri = Document.uri doc |> Uri.to_string in
   let state : State.t = Server.state rpc in
-  Scheduler.detach state.scheduler (fun () ->
-      match reason_merlin_available with
-      | `Unsupported -> Fiber.return ()
-      | `Available false ->
-        let notif =
-          let diagnostics =
-            let message =
-              sprintf "Could not detect %s. Please install reason"
-                ocamlmerlin_reason
-            in
-            let range =
-              let pos = Position.create ~line:1 ~character:1 in
-              Range.create ~start:pos ~end_:pos
-            in
-            [ diagnostic_create ~range ~message () ]
+  let send () =
+    let diagnostic_create = Diagnostic.create ~source:"ocamllsp" in
+    let available =
+      match Document.syntax doc with
+      | Menhir
+      | Ocamllex ->
+        `Unsupported
+      | Ocaml -> `Available true
+      | Reason -> `Available (Option.is_some (Bin.which ocamlmerlin_reason))
+    in
+    let uri = Document.uri doc |> Lsp.Uri.to_string in
+    match available with
+    | `Unsupported -> Fiber.return ()
+    | `Available false ->
+      let notif =
+        let diagnostics =
+          let message =
+            sprintf "Could not detect %s. Please install reason"
+              ocamlmerlin_reason
           in
-          Server_notification.PublishDiagnostics
-            (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+          let range =
+            let pos = Position.create ~line:1 ~character:1 in
+            Range.create ~start:pos ~end_:pos
+          in
+          [ diagnostic_create ~range ~message () ]
         in
-        Server.notification rpc notif
-      | `Available true -> (
-        let open Fiber.O in
-        let timer = Document.timer doc in
-        let+ res =
-          Scheduler.schedule timer (fun () ->
-              let* diagnostics =
-                Document.with_pipeline_exn doc @@ fun pipeline ->
-                let command =
-                  Query_protocol.Errors
-                    { lexing = true; parsing = true; typing = true }
-                in
-                let errors = Query_commands.dispatch pipeline command in
-                List.map errors ~f:(fun (error : Loc.error) ->
-                    let loc = Loc.loc_of_report error in
-                    let range = Range.of_loc loc in
-                    let severity =
-                      match error.source with
-                      | Warning -> DiagnosticSeverity.Warning
-                      | _ -> DiagnosticSeverity.Error
-                    in
-                    let message =
-                      Loc.print_main Format.str_formatter error;
-                      String.trim (Format.flush_str_formatter ())
-                    in
-                    diagnostic_create ~range ~message ~severity ())
-              in
-              let notif =
-                Server_notification.PublishDiagnostics
-                  (PublishDiagnosticsParams.create ~uri ~diagnostics ())
-              in
-              Server.notification rpc notif)
+        Server_notification.PublishDiagnostics
+          (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+      in
+      Server.notification rpc notif
+    | `Available true ->
+      let open Fiber.O in
+      let* diagnostics =
+        Document.with_pipeline_exn doc @@ fun pipeline ->
+        let command =
+          Query_protocol.Errors { lexing = true; parsing = true; typing = true }
         in
-        match res with
-        | Error `Cancelled -> ()
-        | Ok () -> () ))
+        let errors = Query_commands.dispatch pipeline command in
+        List.map errors ~f:(fun (error : Loc.error) ->
+            let loc = Loc.loc_of_report error in
+            let range = Range.of_loc loc in
+            let severity =
+              match error.source with
+              | Warning -> DiagnosticSeverity.Warning
+              | _ -> DiagnosticSeverity.Error
+            in
+            let message =
+              Loc.print_main Format.str_formatter error;
+              String.trim (Format.flush_str_formatter ())
+            in
+            diagnostic_create ~range ~message ~severity ())
+      in
+      let notif =
+        Server_notification.PublishDiagnostics
+          (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+      in
+      Server.notification rpc notif
+  in
+  Scheduler.detach state.scheduler (fun () ->
+      let open Fiber.O in
+      let timer = Document.timer doc in
+      let+ res = Scheduler.schedule timer send in
+      match res with
+      | Error `Cancelled
+      | Ok () ->
+        ())
 
 let on_initialize rpc =
   let log_consumer (section, title, text) =
