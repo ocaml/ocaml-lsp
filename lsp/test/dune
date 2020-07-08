@@ -45,9 +45,10 @@
 
 (library
  (name lsp_expect_tests)
- (modules lsp_expect_tests)
+ (modules lsp_expect_tests fiber_stream_tests)
  (inline_tests)
  (libraries
+  fiber
   stdune
   lsp
   ;; This is because of the (implicit_transitive_deps false)
