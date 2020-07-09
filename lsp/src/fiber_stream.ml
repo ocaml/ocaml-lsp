@@ -36,6 +36,15 @@ module In = struct
           Some x
         else
           None)
+
+  let rec sequential_iter t ~f =
+    let open Fiber.O in
+    let* e = t () in
+    match e with
+    | None -> Fiber.return ()
+    | Some x ->
+      let* () = f x in
+      sequential_iter t ~f
 end
 
 module Out = struct

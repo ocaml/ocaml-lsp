@@ -16,6 +16,8 @@ module In : sig
   val filter : 'a t -> f:('a -> bool) -> 'a t
 
   val filter_map : 'a t -> f:('a -> 'b option) -> 'b t
+
+  val sequential_iter : 'a t -> f:('a -> unit Fiber.t) -> unit Fiber.t
 end
 
 module Out : sig
