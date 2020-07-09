@@ -27,6 +27,9 @@ test: $(TEST_E2E_DIR)/node_modules lsp-server
 	dune build @test @lsp/test/runtest && cd $(TEST_E2E_DIR) && dune exec -- yarn test
 .PHONY: test
 
+ocaml-test:
+	dune build @test @lsp/test/runtest
+
 $(TEST_E2E_DIR)/node_modules:
 	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
 
