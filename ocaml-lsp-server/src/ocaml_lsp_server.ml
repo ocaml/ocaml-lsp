@@ -32,7 +32,7 @@ let initialize_info : InitializeResult.t =
     (* TODO even if this re-enabled in general, it should stay disabled for
        emacs. It makes completion too slow *)
     CompletionOptions.create ~triggerCharacters:[ "."; "#" ]
-      ~resolveProvider:false ()
+      ~resolveProvider:true ()
   in
   let renameProvider =
     `RenameOptions (RenameOptions.create ~prepareProvider:true ())
@@ -582,16 +582,7 @@ let ocaml_on_request :
     let uri = Uri.t_of_yojson (`String uri) in
     let open Fiber.Result.O in
     let* doc = Fiber.return (Document_store.get store uri) in
-    let+ resp =
-      let markdown =
-        markdown_support (client_capabilities state) ~field:(fun d ->
-            let open Option.O in
-            let+ completion = d.completion in
-            let* completion_item = completion.completionItem in
-            completion_item.documentationFormat)
-      in
-      Compl.complete doc position ~markdown
-    in
+    let+ resp = Compl.complete doc position in
     (Some resp, state)
   | Client_request.TextDocumentPrepareRename
       { textDocument = { uri }; position } ->
@@ -618,7 +609,21 @@ let ocaml_on_request :
   | Client_request.WillSaveWaitUntilTextDocument _ ->
     Fiber.return @@ Ok (None, state)
   | Client_request.CodeAction params -> code_action rpc params
-  | Client_request.CompletionItemResolve compl ->
+  | Client_request.CompletionItemResolve ci ->
+    let markdown =
+      markdown_support (client_capabilities state) ~field:(fun d ->
+          let open Option.O in
+          let+ completion = d.completion in
+          let* completion_item = completion.completionItem in
+          completion_item.documentationFormat)
+    in
+    let open Fiber.Result.O in
+    let resolve = Compl.Resolve.of_completion_item ci in
+    let* doc =
+      let uri = Compl.Resolve.uri resolve in
+      Fiber.return (Document_store.get state.store uri)
+    in
+    let* compl = Compl.resolve doc ci resolve query_doc ~markdown in
     Fiber.return @@ Ok (compl, state)
   | Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->

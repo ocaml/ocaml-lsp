@@ -41,6 +41,7 @@ module DocumentSymbol = DocumentSymbol
 module SymbolInformation = SymbolInformation
 module CompletionItem = CompletionItem
 module CompletionList = CompletionList
+module CompletionParams = CompletionParams
 module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
 module TextDocumentEdit = TextDocumentEdit
 module FoldingRange = FoldingRange
