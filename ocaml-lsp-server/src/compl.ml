@@ -54,13 +54,14 @@ let prefix_of_position ~short_path source position =
         find prefix (i - 1)
       else
         let ch = text.[i] in
-        (* The characters for an infix function are missing *)
         match ch with
         | 'a' .. 'z'
         | 'A' .. 'Z'
         | '0' .. '9'
         | '\''
-        | '_' ->
+        | '_'
+        (* Infix function characters *)
+        | '$' |  '&' |  '*' |  '+' |  '-' |  '/' |  '=' |  '>' |  '@' |  '^' | '!' | '?' | '%' | '<' | ':' | '~' | '#' ->
           find (ch :: prefix) (i - 1)
         | '.' ->
           if short_path then
