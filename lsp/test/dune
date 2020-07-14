@@ -46,7 +46,8 @@
 (library
  (name lsp_expect_tests)
  (modules lsp_expect_tests fiber_stream_tests)
- (enabled_if (>= %{ocaml_version} 4.08))
+ (enabled_if
+  (>= %{ocaml_version} 4.08))
  (inline_tests)
  (libraries
   fiber
