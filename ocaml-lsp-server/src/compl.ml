@@ -146,7 +146,8 @@ let complete doc lsp_position =
     in
     Query_commands.dispatch pipeline complete
   in
-  let items = completion.entries |> List.map ~f:(fun entry -> `Keep entry) in
+  let range = range_prefix lsp_position prefix in
+  let items = completion.entries |> List.map ~f:(fun entry -> `Replace  (range,entry)) in
   let items =
     match completion.context with
     | `Unknown -> items
