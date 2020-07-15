@@ -3,7 +3,7 @@ import * as LanguageServer from "./../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
 
-xdescribe("textDocument/completion", () => {
+describe("textDocument/completion", () => {
   let languageServer: LanguageServer.LanguageServer = null;
 
   async function openDocument(source) {
@@ -21,7 +21,7 @@ xdescribe("textDocument/completion", () => {
     label: string,
     position: Types.Position,
   ) {
-    let response = await languageServer.sendRequest("completionItem/resolve", {
+    return languageServer.sendRequest("completionItem/resolve", {
       label: label,
       data: {
         textDocument: {
@@ -51,13 +51,15 @@ xdescribe("textDocument/completion", () => {
       Types.Position.create(0, 5),
     );
 
-    expect(response).toMatchObject({
-      documentation: {
-        kind: "markdown",
-        value:
-          "`List.map2 f [a1; ...; an] [b1; ...; bn]` is\n`[f a1 b1; ...; f an bn]`.\nRaise `Invalid_argument` if the two lists are determined\nto have different lengths. Not tail-recursive.",
-      },
-    });
+    expect(response).toMatchInlineSnapshot(`
+      Object {
+        "documentation": " [List.map2 f [a1; ...; an] [b1; ...; bn]] is
+         [[f a1 b1; ...; f an bn]].
+         Raise [Invalid_argument] if the two lists are determined
+         to have different lengths.  Not tail-recursive. ",
+        "label": "map2",
+      }
+    `);
   });
 
   it("can get documentation at arbitrary position", async () => {
@@ -70,12 +72,12 @@ xdescribe("textDocument/completion", () => {
       Types.Position.create(0, 5),
     );
 
-    expect(response).toMatchObject({
-      documentation: {
-        kind: "markdown",
-        value: "`find_all` is another name for `List.filter`.",
-      },
-    });
+    expect(response).toMatchInlineSnapshot(`
+      Object {
+        "documentation": " [find_all] is another name for {!List.filter}. ",
+        "label": "find_all",
+      }
+    `);
   });
 
   it("can get documentation at arbitrary position (before dot)", async () => {
@@ -88,12 +90,10 @@ xdescribe("textDocument/completion", () => {
       Types.Position.create(0, 15),
     );
 
-    expect(response).toMatchObject({
-      documentation: {
-        kind: "markdown",
-        value:
-          "Operations on large files.\nThis sub-module provides 64-bit variants of the channel functions\nthat manipulate file positions and file sizes. By representing\npositions and sizes by 64-bit integers \\(type `int64`\\) instead of\nregular integers \\(type `int`\\), these alternate functions allow\noperating on files whose sizes are greater than `max_int`.",
-      },
-    });
+    expect(response).toMatchInlineSnapshot(`
+      Object {
+        "label": "find_all",
+      }
+    `);
   });
 });
