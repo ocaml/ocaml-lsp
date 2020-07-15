@@ -162,9 +162,12 @@ let complete doc lsp_position =
     in
     Query_commands.dispatch pipeline complete
   in
-  let range = range_prefix lsp_position prefix in
+  let short_range =
+    range_prefix lsp_position
+      (prefix_of_position ~short_path:true (Document.source doc) position)
+  in
   let items =
-    completion.entries |> List.map ~f:(fun entry -> `Replace (range, entry))
+    completion.entries |> List.map ~f:(fun entry -> `Replace (short_range, entry))
   in
   let items =
     match completion.context with
