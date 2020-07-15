@@ -542,7 +542,19 @@ describe("textDocument/completion", () => {
         },
         Object {
           "label": "~f",
-          "textEdit": undefined,
+          "textEdit": Object {
+            "newText": "~f",
+            "range": Object {
+              "end": Object {
+                "character": 24,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 23,
+                "line": 0,
+              },
+            },
+          },
         },
       ]
     `);

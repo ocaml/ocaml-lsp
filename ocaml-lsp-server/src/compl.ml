@@ -175,13 +175,14 @@ let complete doc lsp_position =
     | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
       items
       @ List.map labels ~f:(fun (name, typ) ->
-            `Keep
+            `Replace
+              (short_range,
               { Query_protocol.Compl.name
               ; kind = `Label
               ; desc = typ
               ; info = ""
               ; deprecated = false (* TODO this is wrong *)
-              })
+              }))
   in
   let items =
     match items with
