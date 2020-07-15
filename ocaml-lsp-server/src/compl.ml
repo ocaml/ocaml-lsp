@@ -123,18 +123,10 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   in
   { Range.start; end_ = lsp_position }
 
-let item index entry ~compl_info =
-  let prefix, (entry : Query_protocol.Compl.entry) =
-    match entry with
-    | `Keep entry -> (`Keep, entry)
-    | `Replace (range, entry) -> (`Replace range, entry)
-  in
+let item index full_entry ~compl_info =
+  let range, (entry : Query_protocol.Compl.entry) = full_entry in
   let kind = completion_kind entry.kind in
-  let textEdit =
-    match prefix with
-    | `Keep -> None
-    | `Replace range -> Some { TextEdit.range; newText = entry.name }
-  in
+  let textEdit = Some { TextEdit.range; newText = entry.name } in
   CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
     ~deprecated:
       entry.deprecated
@@ -167,7 +159,7 @@ let complete doc lsp_position =
       (prefix_of_position ~short_path:true (Document.source doc) position)
   in
   let items =
-    completion.entries |> List.map ~f:(fun entry -> `Replace (short_range, entry))
+    completion.entries |> List.map ~f:(fun entry -> (short_range, entry))
   in
   let items =
     match completion.context with
@@ -175,7 +167,6 @@ let complete doc lsp_position =
     | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
       items
       @ List.map labels ~f:(fun (name, typ) ->
-            `Replace
               (short_range,
               { Query_protocol.Compl.name
               ; kind = `Label
@@ -195,7 +186,7 @@ let complete doc lsp_position =
         Query_commands.dispatch pipeline expand
       in
       let range = range_prefix lsp_position prefix in
-      List.map ~f:(fun entry -> `Replace (range, entry)) entries
+      List.map ~f:(fun entry -> (range, entry)) entries
   in
   let textDocument =
     TextDocumentIdentifier.create ~uri:(Document.uri doc |> Lsp.Uri.to_string)
