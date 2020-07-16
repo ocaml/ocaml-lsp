@@ -8,6 +8,11 @@ import * as Protocol from "vscode-languageserver-protocol";
 import * as Rpc from "vscode-jsonrpc";
 import { URI } from "vscode-uri";
 
+const ocamlVersion = cp.execSync("ocamlc --version").toString();
+export function ocamlVersionGEq(versString: string) {
+  return ocamlVersion >= versString;
+}
+
 let serverBin = os.platform() === "win32" ? "ocamllsp.exe" : "ocamllsp";
 
 let serverPath = path.join(
