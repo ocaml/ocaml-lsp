@@ -82,23 +82,27 @@ describe("textDocument/completion", () => {
 
   it("can get documentation at arbitrary position (before dot)", async () => {
     openDocument(outdent`
-    Stdlib.LargeFil.in_channel_length
+      module Outer = struct
+        (** documentation for [Inner] *)
+        module Inner = struct
+          let v = ()
+        end
+      end
+
+      let _ = ();;
+
+      Outer.Inner.v
     `);
 
     let response = await queryCompletionItemResolve(
-      "LargeFile",
-      Types.Position.create(0, 15),
+      "Inner",
+      Types.Position.create(9, 10),
     );
 
     expect(response).toMatchInlineSnapshot(`
       Object {
-        "documentation": " Operations on large files.
-        This sub-module provides 64-bit variants of the channel functions
-        that manipulate file positions and file sizes.  By representing
-        positions and sizes by 64-bit integers (type [int64]) instead of
-        regular integers (type [int]), these alternate functions allow
-        operating on files whose sizes are greater than [max_int]. ",
-        "label": "LargeFile",
+        "documentation": "documentation for [Inner]",
+        "label": "Inner",
       }
     `);
   });
