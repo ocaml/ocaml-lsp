@@ -54,13 +54,30 @@ let prefix_of_position ~short_path source position =
         find prefix (i - 1)
       else
         let ch = text.[i] in
-        (* The characters for an infix function are missing *)
         match ch with
         | 'a' .. 'z'
         | 'A' .. 'Z'
         | '0' .. '9'
         | '\''
-        | '_' ->
+        | '_'
+        (* Infix function characters *)
+        | '$'
+        | '&'
+        | '*'
+        | '+'
+        | '-'
+        | '/'
+        | '='
+        | '>'
+        | '@'
+        | '^'
+        | '!'
+        | '?'
+        | '%'
+        | '<'
+        | ':'
+        | '~'
+        | '#' ->
           find (ch :: prefix) (i - 1)
         | '.' ->
           if short_path then
@@ -106,18 +123,10 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   in
   { Range.start; end_ = lsp_position }
 
-let item index entry ~compl_info =
-  let prefix, (entry : Query_protocol.Compl.entry) =
-    match entry with
-    | `Keep entry -> (`Keep, entry)
-    | `Replace (range, entry) -> (`Replace range, entry)
-  in
+let item index full_entry ~compl_info =
+  let range, (entry : Query_protocol.Compl.entry) = full_entry in
   let kind = completion_kind entry.kind in
-  let textEdit =
-    match prefix with
-    | `Keep -> None
-    | `Replace range -> Some { TextEdit.range; newText = entry.name }
-  in
+  let textEdit = Some { TextEdit.range; newText = entry.name } in
   CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
     ~deprecated:
       entry.deprecated
@@ -145,20 +154,26 @@ let complete doc lsp_position =
     in
     Query_commands.dispatch pipeline complete
   in
-  let items = completion.entries |> List.map ~f:(fun entry -> `Keep entry) in
+  let short_range =
+    range_prefix lsp_position
+      (prefix_of_position ~short_path:true (Document.source doc) position)
+  in
+  let items =
+    completion.entries |> List.map ~f:(fun entry -> (short_range, entry))
+  in
   let items =
     match completion.context with
     | `Unknown -> items
     | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
       items
       @ List.map labels ~f:(fun (name, typ) ->
-            `Keep
+              (short_range,
               { Query_protocol.Compl.name
               ; kind = `Label
               ; desc = typ
               ; info = ""
               ; deprecated = false (* TODO this is wrong *)
-              })
+              }))
   in
   let items =
     match items with
@@ -171,7 +186,7 @@ let complete doc lsp_position =
         Query_commands.dispatch pipeline expand
       in
       let range = range_prefix lsp_position prefix in
-      List.map ~f:(fun entry -> `Replace (range, entry)) entries
+      List.map ~f:(fun entry -> (range, entry)) entries
   in
   let textDocument =
     TextDocumentIdentifier.create ~uri:(Document.uri doc |> Lsp.Uri.to_string)

@@ -3,7 +3,9 @@ import * as LanguageServer from "./../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
 
-xdescribe("textDocument/completion", () => {
+const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0") ? describe : xdescribe;
+
+describe_opt("textDocument/completion", () => {
   let languageServer = null;
 
   async function openDocument(source) {
@@ -88,6 +90,117 @@ xdescribe("textDocument/completion", () => {
     ]);
   });
 
+  it("completes identifier after completion-triggering character", async () => {
+    openDocument(outdent`
+      module Test = struct
+        let somenum = 42
+        let somestring = "hello"
+      end
+
+      let x = Test.
+    `);
+
+    let items = await queryCompletion(Types.Position.create(5, 13));
+
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "somenum",
+          "textEdit": Object {
+            "newText": "somenum",
+            "range": Object {
+              "end": Object {
+                "character": 13,
+                "line": 5,
+              },
+              "start": Object {
+                "character": 13,
+                "line": 5,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "somestring",
+          "textEdit": Object {
+            "newText": "somestring",
+            "range": Object {
+              "end": Object {
+                "character": 13,
+                "line": 5,
+              },
+              "start": Object {
+                "character": 13,
+                "line": 5,
+              },
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it("completes infix operators", async () => {
+    openDocument(outdent`
+      let (>>|) = (+)
+      let y = 1 >
+    `);
+
+    let items = await queryCompletion(Types.Position.create(1, 11));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": ">>|",
+          "textEdit": Object {
+            "newText": ">>|",
+            "range": Object {
+              "end": Object {
+                "character": 11,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 10,
+                "line": 1,
+              },
+            },
+          },
+        },
+        Object {
+          "label": ">",
+          "textEdit": Object {
+            "newText": ">",
+            "range": Object {
+              "end": Object {
+                "character": 11,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 10,
+                "line": 1,
+              },
+            },
+          },
+        },
+        Object {
+          "label": ">=",
+          "textEdit": Object {
+            "newText": ">=",
+            "range": Object {
+              "end": Object {
+                "character": 11,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 10,
+                "line": 1,
+              },
+            },
+          },
+        },
+      ]
+    `);
+  });
+
   it("completes from a module", async () => {
     openDocument(outdent`
       let f = List.m
@@ -128,18 +241,94 @@ xdescribe("textDocument/completion", () => {
       let somestring = "hello"
 
       let plus_42 (x:int) (y:int) =
-        somenum +
-    `);
+        somenum +    `);
 
     let items = await queryCompletion(Types.Position.create(4, 12));
     let items_top5 = items.slice(0, 5);
-    expect(items_top5).toMatchObject([
-      { label: "somenum" },
-      { label: "x" },
-      { label: "y" },
-      { label: "max_int" },
-      { label: "min_int" },
-    ]);
+    expect(items_top5).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "()",
+          "textEdit": Object {
+            "newText": "()",
+            "range": Object {
+              "end": Object {
+                "character": 12,
+                "line": 4,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 4,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "::",
+          "textEdit": Object {
+            "newText": "::",
+            "range": Object {
+              "end": Object {
+                "character": 12,
+                "line": 4,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 4,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Assert_failure",
+          "textEdit": Object {
+            "newText": "Assert_failure",
+            "range": Object {
+              "end": Object {
+                "character": 12,
+                "line": 4,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 4,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Division_by_zero",
+          "textEdit": Object {
+            "newText": "Division_by_zero",
+            "range": Object {
+              "end": Object {
+                "character": 12,
+                "line": 4,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 4,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "End_of_file",
+          "textEdit": Object {
+            "newText": "End_of_file",
+            "range": Object {
+              "end": Object {
+                "character": 12,
+                "line": 4,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 4,
+              },
+            },
+          },
+        },
+      ]
+    `);
   });
 
   it("completes with invalid prefix", async () => {
@@ -283,18 +472,93 @@ xdescribe("textDocument/completion", () => {
   });
 
   it("completes labels", async () => {
-    openDocument(outdent`
-      let f = ListLabels.map
-    `);
+    openDocument("let f = ListLabels.map ~");
 
-    let items = await queryCompletion(Types.Position.create(0, 23));
-    let items_top5 = items.slice(0, 5);
-    expect(items_top5).toMatchObject([
-      { label: "~f" },
-      { label: "::" },
-      { label: "[]" },
-      { label: "!" },
-      { label: "exit" },
-    ]);
+    let items = await queryCompletion(Types.Position.create(0, 24));
+    let items_top5 = items.slice(0, 10);
+    expect(items_top5).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "~+",
+          "textEdit": Object {
+            "newText": "~+",
+            "range": Object {
+              "end": Object {
+                "character": 24,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 23,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "~+.",
+          "textEdit": Object {
+            "newText": "~+.",
+            "range": Object {
+              "end": Object {
+                "character": 24,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 23,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "~-",
+          "textEdit": Object {
+            "newText": "~-",
+            "range": Object {
+              "end": Object {
+                "character": 24,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 23,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "~-.",
+          "textEdit": Object {
+            "newText": "~-.",
+            "range": Object {
+              "end": Object {
+                "character": 24,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 23,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "~f",
+          "textEdit": Object {
+            "newText": "~f",
+            "range": Object {
+              "end": Object {
+                "character": 24,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 23,
+                "line": 0,
+              },
+            },
+          },
+        },
+      ]
+    `);
   });
 });
