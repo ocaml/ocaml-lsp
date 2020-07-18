@@ -9,6 +9,7 @@ type t =
   | WillSaveTextDocument of WillSaveTextDocumentParams.t
   | ChangeWorkspaceFolders of DidChangeWorkspaceFoldersParams.t
   | ChangeConfiguration of DidChangeConfigurationParams.t
+  | CancelRequest of CancelParams.t
   | Initialized
   | Exit
   | Unknown_notification of Jsonrpc.Message.notification

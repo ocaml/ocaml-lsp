@@ -697,6 +697,8 @@ let on_notification server (notification : Client_notification.t) :
        after receiving this notification *)
     let configuration = Configuration.update state.configuration req in
     Fiber.return { state with configuration }
+  | CancelRequest _params ->
+    Fiber.return state (* FIXME implement $/cancelRequest *)
   | DidSaveTextDocument _
   | WillSaveTextDocument _
   | ChangeWorkspaceFolders _
@@ -705,9 +707,7 @@ let on_notification server (notification : Client_notification.t) :
     Fiber.return state
   | Unknown_notification req -> (
     match req.method_ with
-    | "$/setTraceNotification"
-    | "$/cancelRequest" ->
-      Fiber.return state
+    | "$/setTraceNotification" -> Fiber.return state
     | _ ->
       ( match req.params with
       | None ->

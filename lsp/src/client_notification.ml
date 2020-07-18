@@ -9,6 +9,7 @@ type t =
   | WillSaveTextDocument of WillSaveTextDocumentParams.t
   | ChangeWorkspaceFolders of DidChangeWorkspaceFoldersParams.t
   | ChangeConfiguration of DidChangeConfigurationParams.t
+  | CancelRequest of CancelParams.t
   | Initialized
   | Exit
   | Unknown_notification of Jsonrpc.Message.notification
@@ -17,6 +18,7 @@ let method_ = function
   | TextDocumentDidOpen _ -> "textDocument/didOpen"
   | TextDocumentDidChange _ -> "textDocument/didChange"
   | TextDocumentDidClose _ -> "textDocument/didClose"
+  | CancelRequest _ -> "$/cancelRequest"
   | Exit -> "exit"
   | Initialized -> "initialized"
   | ChangeWorkspaceFolders _ -> "workspace/didChangeWorkspaceFolders"
@@ -30,6 +32,7 @@ let yojson_of_t = function
   | TextDocumentDidChange params ->
     DidChangeTextDocumentParams.yojson_of_t params
   | TextDocumentDidClose params -> DidCloseTextDocumentParams.yojson_of_t params
+  | CancelRequest params -> CancelParams.yojson_of_t params
   | Exit -> `Null
   | Initialized -> `Null
   | ChangeWorkspaceFolders params ->
@@ -52,6 +55,9 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
   | "textDocument/didClose" ->
     Jsonrpc.Message.params r DidCloseTextDocumentParams.t_of_yojson
     >>| fun params -> TextDocumentDidClose params
+  | "$/cancelRequest" ->
+    Jsonrpc.Message.params r CancelParams.t_of_yojson >>| fun params ->
+    CancelRequest params
   | "exit" -> Ok Exit
   | "initialized" -> Ok Initialized
   | "workspace/didChangeWorkspaceFolders" ->
