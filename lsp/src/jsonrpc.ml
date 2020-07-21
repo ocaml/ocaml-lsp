@@ -454,9 +454,7 @@ struct
           Log.msg "sending response"
             [ ("response", Response.yojson_of_t jsonrpc_resp) ]);
       let+ () = Chan.send t.chan (Response jsonrpc_resp) in
-      ( match resp with
-      | Ok (_, state) -> t.state <- state
-      | Error _ -> () );
+      Result.iter resp ~f:(fun (_, state) -> t.state <- state);
       Notify.Continue
     in
     let rec loop () =
