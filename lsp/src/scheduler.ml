@@ -31,11 +31,9 @@ end = struct
         await_value t
       | Some v ->
         t.cell <- None;
-        Mutex.unlock t.m;
         v
     in
-    Mutex.lock t.m;
-    await_value t
+    with_mutex t.m ~f:(fun () -> await_value t)
 
   let set t v =
     with_mutex t.m ~f:(fun () -> t.cell <- Some v);
