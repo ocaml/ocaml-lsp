@@ -103,11 +103,11 @@ end) : sig
   type 'state t
 
   module Context : sig
-    type ('state, 'req) t
+    type ('state, 'id) t
 
     type 'a session
 
-    val message : (_, 'req) t -> 'req Message.t
+    val message : (_, 'id) t -> 'id Message.t
 
     val state : ('a, _) t -> 'a
 
