@@ -743,11 +743,11 @@ let start () =
     prepare_and_run Jsonrpc.Response.Error.of_exn @@ fun () ->
     on_request server req
   in
-  let scheduler = Scheduler.create () in
   let handler =
     let on_request = { Server.Handler.on_request } in
     Server.Handler.make ~on_request ~on_notification ()
   in
+  let scheduler = Scheduler.create () in
   let stream =
     let io = Lsp.Io.make stdin stdout in
     Lsp.Rpc.Stream_io.make scheduler io
