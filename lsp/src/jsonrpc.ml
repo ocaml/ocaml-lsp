@@ -373,12 +373,14 @@ struct
     ; on_request : ('state, Id.t) context -> (Response.t * 'state) Fiber.t
     ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
+    ; cancel_request : unit Fiber.Mvar.t
     ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
     ; mutable tick : int
     ; mutable state : 'state
+    ; mutable request_cancelled : [ `Cancelled | `Failed ] Fiber.Ivar.t option
     }
 
   and ('a, 'id) context = 'a t * 'id Message.t
@@ -448,13 +450,34 @@ struct
         Notify.Continue
     in
     let on_request (r : Id.t Message.t) =
-      let* resp = Fiber.collect_errors (fun () -> t.on_request (t, r)) in
-      let jsonrpc_resp = response_of_result r.id resp in
-      log t (fun () ->
-          Log.msg "sending response"
-            [ ("response", Response.yojson_of_t jsonrpc_resp) ]);
-      let+ () = Chan.send t.chan (Response jsonrpc_resp) in
-      Result.iter resp ~f:(fun (_, state) -> t.state <- state);
+      let* res =
+        Fiber.fork_and_race
+          (fun () -> Fiber.Mvar.read t.cancel_request)
+          (fun () -> Fiber.collect_errors (fun () -> t.on_request (t, r)))
+      in
+      let* jsonrpc_resp =
+        match res with
+        | Either.Left () ->
+          let+ () =
+            Fiber.Ivar.fill (Option.value_exn t.request_cancelled) `Cancelled
+          in
+          Response.error r.id
+          @@ Response.Error.make ~code:Response.Error.Code.RequestCancelled
+               ~message:"request cancelled" ()
+        | Either.Right resp ->
+          let+ () =
+            match t.request_cancelled with
+            | Some ivar -> Fiber.Ivar.fill ivar `Failed
+            | None -> Fiber.return ()
+          in
+          Result.iter resp ~f:(fun (_, state) -> t.state <- state);
+          let jsonrpc_resp = response_of_result r.id resp in
+          log t (fun () ->
+              Log.msg "sending response"
+                [ ("response", Response.yojson_of_t jsonrpc_resp) ]);
+          jsonrpc_resp
+      in
+      let+ () = Chan.send t.chan @@ Response jsonrpc_resp in
       Notify.Continue
     in
     let rec loop () =
@@ -520,12 +543,14 @@ struct
     ; on_request
     ; on_notification
     ; pending = Table.create (module Id) 10
+    ; cancel_request = Fiber.Mvar.create ()
     ; stop_requested = Fiber.Ivar.create ()
     ; stopped = Fiber.Ivar.create ()
     ; name
     ; running = false
     ; tick = 0
     ; state
+    ; request_cancelled = None
     }
 
   let notification t (req : Message.notification) =
@@ -543,4 +568,13 @@ struct
     let ivar = Fiber.Ivar.create () in
     Table.add_exn t.pending req.id ivar;
     Fiber.Ivar.read ivar
+
+  let try_cancel_request t =
+    let ivar = Fiber.Ivar.create () in
+    t.request_cancelled <- Some ivar;
+    let open Fiber.O in
+    let* () = Fiber.Mvar.write t.cancel_request () in
+    let+ res = Fiber.Ivar.read @@ Option.value_exn t.request_cancelled in
+    t.request_cancelled <- None;
+    res
 end

@@ -29,6 +29,7 @@ let () =
   let on_request ctx =
     let req = Session.Context.message ctx in
     let state = Session.Context.state ctx in
+    Thread.delay 3.;
     Fiber.return (Jsonrpc.Response.ok req.id (response ()), state)
   in
   let on_notification ctx =
@@ -49,6 +50,7 @@ let () =
     in
     [ Message (request (Either.Right 10) "foo")
     ; Message (request ~params:`Null (Either.Left "testing") "bar")
+    ; Message (request ~params:`Null (Either.Left "to cancel") "bar")
     ; Message (notification ~params:`Null "notif1")
     ; Message (notification ~params:`Null "notif2")
     ; Message (notification ~params:`Null "raise")
@@ -65,9 +67,18 @@ let () =
   let scheduler = Scheduler.create () in
   let write_reqs () =
     let open Fiber.O in
+    let count = ref (-1) in
     let* () =
       Fiber.sequential_iter initial_requests ~f:(fun req ->
-          Fiber_stream.Out.write reqs_out (Some req))
+          count := !count + 1;
+          let* () = Fiber_stream.Out.write reqs_out (Some req) in
+          if !count = 2 then
+            let+ res = Session.try_cancel_request session in
+            match res with
+            | `Cancelled -> print_endline "cancelled"
+            | `Failed -> print_endline "cancel failed"
+          else
+            Fiber.return ())
     in
     Fiber_stream.Out.write reqs_out None
   in

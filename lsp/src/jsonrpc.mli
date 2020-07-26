@@ -135,4 +135,6 @@ end) : sig
   val notification : _ t -> Message.notification -> unit Fiber.t
 
   val request : _ t -> Message.request -> Response.t Fiber.t
+
+  val try_cancel_request : _ t -> [ `Cancelled | `Failed ] Fiber.t
 end
