@@ -31,11 +31,9 @@ end = struct
         await_value t
       | Some v ->
         t.cell <- None;
-        Mutex.unlock t.m;
         v
     in
-    Mutex.lock t.m;
-    await_value t
+    with_mutex t.m ~f:(fun () -> await_value t)
 
   let set t v =
     with_mutex t.m ~f:(fun () -> t.cell <- Some v);
@@ -76,7 +74,9 @@ end = struct
   let is_running t =
     match t.state with
     | Running _ -> true
-    | _ -> false
+    | Stopped _
+    | Finished ->
+      false
 
   let run (f, t) =
     let rec loop () =
@@ -110,9 +110,7 @@ end = struct
     t
 
   let add_work (type a) (t : a t) (w : a) =
-    ( match t.state with
-    | Running _ -> ()
-    | _ -> Code_error.raise "invalid state" [] );
+    if not (is_running t) then Code_error.raise "invalid state" [];
     with_mutex t.mutex ~f:(fun () ->
         let node = Removable_queue.push t.work w in
         Condition.signal t.work_available;
@@ -121,7 +119,9 @@ end = struct
   let stop (t : _ t) =
     match t.state with
     | Running th -> t.state <- Stopped th
-    | _ -> ()
+    | Stopped _
+    | Finished ->
+      ()
 end
 
 module Timer_id = Id.Make ()
