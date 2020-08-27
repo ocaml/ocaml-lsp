@@ -41,3 +41,10 @@ travis-test:
 	sudo apt install -y yarn
 	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
 	cd $(TEST_E2E_DIR) && yarn test
+
+opam-release:
+	dune-release distrib --skip-build --skip-lint --skip-tests
+	# See https://github.com/ocamllabs/dune-release/issues/206
+	DUNE_RELEASE_DELEGATE=github-dune-release-delegate dune-release publish distrib --verbose
+	dune-release opam pkg
+	dune-release opam submit
