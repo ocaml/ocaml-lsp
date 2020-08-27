@@ -16,6 +16,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         ocaml-version:
+          - 4.11.0
           - 4.10.0
           - 4.09.1
           - 4.08.1
