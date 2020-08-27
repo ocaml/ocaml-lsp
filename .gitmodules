@@ -1,7 +1,7 @@
 [submodule "vendor/merlin"]
 	path = vendor/merlin
 	url = https://github.com/rgrinberg/merlin
-	branch = remove-lsp
+	branch = lsp
 	ignore = dirty
 [submodule "vendor/cmdliner"]
 	path = vendor/cmdliner

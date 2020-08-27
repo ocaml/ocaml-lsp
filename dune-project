@@ -48,6 +48,8 @@ possible and does not make any assumptions about IO.
   menhir
   ppx_yojson_conv_lib
   dune-build-info
+  (csexp (>= 1.2.3))
+  (result (>= 1.5))
   (ocamlformat :with-test)
   (reason :with-test)
   (ocamlfind (>= 1.5.2))
