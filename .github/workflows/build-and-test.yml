@@ -18,9 +18,9 @@ jobs:
         skip_test:
           - false
         ocaml-version:
-          - 4.11.0
+          - 4.10.0
         include:
-          - ocaml-version: 4.10.0
+          - ocaml-version: 4.11.0
             os: ubuntu-latest
             skip_test: true
           - ocaml-version: 4.09.1
@@ -64,7 +64,7 @@ jobs:
 
       - name: test source is well formatted
         run: opam exec -- make fmt
-        if: env.OCAML_VERSION == '4.11.0' && env.OS == 'ubuntu-latest'
+        if: env.OCAML_VERSION == '4.10.0' && env.OS == 'ubuntu-latest'
 
       - run: yarn --frozen-lockfile
         working-directory: ocaml-lsp-server/test/e2e
