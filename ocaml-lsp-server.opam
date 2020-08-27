@@ -41,6 +41,3 @@ build: [
     "--release"
   ]
 ]
-run-test: [
-  [make "travis-test"]
-]
