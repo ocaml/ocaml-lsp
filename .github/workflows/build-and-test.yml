@@ -14,7 +14,6 @@ jobs:
         os:
           - macos-latest
           - ubuntu-latest
-          - windows-latest
         skip_test:
           - false
         ocaml-version:
@@ -22,6 +21,9 @@ jobs:
         include:
           - ocaml-version: 4.11.0
             os: ubuntu-latest
+            skip_test: true
+          - ocaml-version: 4.10.0
+            os: windows-latest
             skip_test: true
           - ocaml-version: 4.09.1
             os: ubuntu-latest
