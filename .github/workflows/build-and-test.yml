@@ -14,16 +14,28 @@ jobs:
         os:
           - macos-latest
           - ubuntu-latest
-          - windows-latest
+        skip_test:
+          - false
         ocaml-version:
-          - 4.11.0
           - 4.10.0
-          - 4.09.1
-          - 4.08.1
-          - 4.07.1
-          - 4.06.1
+        include:
+          - ocaml-version: 4.11.0
+            os: ubuntu-latest
+            skip_test: true
+          - ocaml-version: 4.10.0
+            os: windows-latest
+            skip_test: true
+          - ocaml-version: 4.09.1
+            os: ubuntu-latest
+            skip_test: true
+          - ocaml-version: 4.06.1
+            os: ubuntu-latest
+            skip_test: true
 
     runs-on: ${{ matrix.os }}
+
+    env:
+      SKIP_TEST: ${{ matrix.skip_test }}
 
     steps:
       - name: Checkout code
@@ -44,11 +56,22 @@ jobs:
       - run: opam pin -n .
 
       - run: opam install -t . --deps-only
+        if: env.SKIP_TEST != 'true'
 
-      - run: opam exec -- make
+      - run: opam install . --deps-only
+        if: env.SKIP_TEST == 'true'
+
+      - run: opam exec -- make test
+        if: env.SKIP_TEST != 'true'
+
+      - name: test source is well formatted
+        run: opam exec -- make fmt
+        if: env.OCAML_VERSION == '4.10.0' && env.OS == 'ubuntu-latest'
 
       - run: yarn --frozen-lockfile
         working-directory: ocaml-lsp-server/test/e2e
+        if: env.SKIP_TEST != 'true'
 
       - run: opam exec -- yarn test
         working-directory: ocaml-lsp-server/test/e2e
+        if: env.SKIP_TEST != 'true'
