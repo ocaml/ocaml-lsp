@@ -34,6 +34,7 @@ possible and does not make any assumptions about IO.
   ocaml-syntax-shims
   cppo
   uutf
+  csexp
   (ppx_expect (and :with-test (>= v0.14.0)))
   (ocaml (>= 4.06))
   (dune (>= 2.0))))
