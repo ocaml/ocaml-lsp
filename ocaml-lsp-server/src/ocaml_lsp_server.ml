@@ -250,18 +250,17 @@ let location_of_merlin_loc uri = function
   | `Not_found _
   | `Not_in_env _ ->
     None
-  | `Found (path, lex_position) -> (
-    match Position.of_lexical_position lex_position with
-    | None -> None
-    | Some position ->
-      let range = { Range.start = position; end_ = position } in
-      let uri =
-        match path with
-        | None -> uri
-        | Some path -> Uri.of_path path
-      in
-      let locs = [ { Location.uri = Uri.to_string uri; range } ] in
-      Some (`Location locs) )
+  | `Found (path, lex_position) ->
+    Position.of_lexical_position lex_position
+    |> Option.map ~f:(fun position ->
+           let range = { Range.start = position; end_ = position } in
+           let uri =
+             match path with
+             | None -> uri
+             | Some path -> Uri.of_path path
+           in
+           let locs = [ { Location.uri = Uri.to_string uri; range } ] in
+           `Location locs)
 
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
