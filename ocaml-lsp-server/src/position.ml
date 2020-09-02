@@ -20,8 +20,8 @@ let of_lexical_position (lex_position : Lexing.position) : t option =
           ; ("pos_bol", `Int lex_position.pos_bol)
           ; ("pos_cnum", `Int lex_position.pos_cnum)
           ]);
-    let line = min line 0 in
-    let character = min character 0 in
+    let line = max line 0 in
+    let character = max character 0 in
     Some { line; character }
 
 let ( - ) ({ line; character } : t) (t : t) : t =
