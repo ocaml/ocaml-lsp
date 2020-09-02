@@ -252,9 +252,7 @@ let location_of_merlin_loc uri = function
     None
   | `Found (path, lex_position) -> (
     match Position.of_lexical_position lex_position with
-    | None ->
-      log ~title:Logger.Title.Warning "merlin returned dummy position";
-      None
+    | None -> None
     | Some position ->
       let range = { Range.start = position; end_ = position } in
       let uri =
