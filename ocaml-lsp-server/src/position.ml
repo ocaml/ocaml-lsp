@@ -11,8 +11,17 @@ let of_lexical_position (lex_position : Lexing.position) : t option =
   else
     let line = lex_position.pos_lnum - 1 in
     let character = lex_position.pos_cnum - lex_position.pos_bol in
-    assert (line >= 0);
-    assert (character >= 0);
+    if not (line >= 0 && character >= 0) then
+      log ~title:Logger.Title.Warning "merlin returned dummy position %a"
+        (fun () -> Json.to_pretty_string)
+        (`Assoc
+          [ ("pos_fname", `String lex_position.pos_fname)
+          ; ("pos_lnum", `Int lex_position.pos_lnum)
+          ; ("pos_bol", `Int lex_position.pos_bol)
+          ; ("pos_cnum", `Int lex_position.pos_cnum)
+          ]);
+    let line = max line 0 in
+    let character = max character 0 in
     Some { line; character }
 
 let ( - ) ({ line; character } : t) (t : t) : t =
