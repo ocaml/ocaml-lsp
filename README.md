@@ -52,7 +52,6 @@ For now, the server can only be used through the standard file descriptors `stdi
 
 For an example of usage of the server in a VSCode extension, see [here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/Extension.ml).
 
-
 ## Features
 
 The server supports the following queries:
@@ -90,11 +89,11 @@ git clone --recursive git@github.com:ocaml/ocaml-lsp.git
 # if you already cloned, pull submodules
 git submodule update --init --recursive
 
-# create local switch (or use global one)
-opam switch create . ocaml-base-compiler.4.09.1
+# create local switch (or use global one) and install dependencies
+opam switch create . ocaml-base-compiler.4.09.1 --with-test
 
-# install dependencies
-opam install . --deps-only --with-test
+# don't forget to set your environment to use the local switch
+eval ($opam env)
 
 # build
 make build
@@ -113,8 +112,8 @@ $ make test
 
 Note that tests require [Node.js][] and [Yarn][] installed.
 
-[Node.js]: https://nodejs.org/en/
-[Yarn]: https://yarnpkg.com/lang/en/
+[node.js]: https://nodejs.org/en/
+[yarn]: https://yarnpkg.com/lang/en/
 
 ## Relationship to Other Tools
 
@@ -136,7 +135,7 @@ lsp protocol covers a wider scope than merlin.
 Note that the comparisons below make no claims of being objective and may be
 entirely out of date:
 
-* [reason-language-server](https://github.com/jaredly/reason-language-server)
+- [reason-language-server](https://github.com/jaredly/reason-language-server)
   This server supports
   [bucklescript](https://github.com/BuckleScript/bucklescript) &
   [reason](https://github.com/facebook/reason). However, this project does not
@@ -144,7 +143,7 @@ entirely out of date:
   "smart" functionality - especially in the face of sources that do not yet
   compile.
 
-* [ocaml-language-server](https://github.com/ocaml-lsp/ocaml-language-server)
+- [ocaml-language-server](https://github.com/ocaml-lsp/ocaml-language-server)
   This project is extremely similar in the functionality it provides because it
   also reuses merlin on the backend. The essential difference is that this
   project is written in typescript, while our server is in OCaml. We feel that
