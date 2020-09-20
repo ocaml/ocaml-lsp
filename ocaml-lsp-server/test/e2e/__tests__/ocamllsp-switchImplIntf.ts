@@ -57,10 +57,11 @@ describe("ocamllsp/switchImplIntf", () => {
   /**
    * For testing 'ocamllsp/switchImplIntf'
    *
-   * @param extsForCreation file name extensiosn for files to be created in (test) workspace folder.
-   *    The first file created (even if only one file is created) is treated as the file a user wants to switch from.
-   * @param extExpected file name extensions that are expected to be returned as a reponse
-   *    to 'ocamllsp/switchImplIntf'
+   * @param extsForCreation file name extension for files to be created in
+   *    (test) workspace folder. The first file created (even if only one file
+   *    is created) is treated as the file a user wants to switch from.
+   * @param extExpected file name extensions that are expected to be returned as
+   *    a reponse to 'ocamllsp/switchImplIntf'
    */
   let testingPipeline = async (
     extsForCreation: string[],
