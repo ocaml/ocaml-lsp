@@ -38,6 +38,7 @@ module CodeLens = CodeLens
 module DocumentHighlight = DocumentHighlight
 module DocumentHighlightKind = DocumentHighlightKind
 module DocumentSymbol = DocumentSymbol
+module DocumentUri = DocumentUri
 module SymbolInformation = SymbolInformation
 module CompletionItem = CompletionItem
 module CompletionList = CompletionList

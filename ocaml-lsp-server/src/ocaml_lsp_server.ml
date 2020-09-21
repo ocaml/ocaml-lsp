@@ -40,7 +40,12 @@ let initialize_info : InitializeResult.t =
   let capabilities =
     let experimental =
       `Assoc
-        [ ("ocamllsp", `Assoc [ ("interfaceSpecificLangId", `Bool true) ]) ]
+        [ ( "ocamllsp"
+          , `Assoc
+              [ ("interfaceSpecificLangId", `Bool true)
+              ; Switch_impl_intf.capability
+              ] )
+        ]
     in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
@@ -508,6 +513,7 @@ let definition_query (state : State.t) uri position merlin_request =
   let result = location_of_merlin_loc uri result in
   Ok (result, state)
 
+(** handles requests for OCaml (syntax) documents *)
 let ocaml_on_request :
     type resp.
        State.t Server.t
@@ -652,9 +658,23 @@ let on_request :
     let+ doc = Document_store.get_opt store uri in
     Document.syntax doc
   in
-  match syntax with
-  | Some (Ocamllex | Menhir) -> not_supported ()
-  | _ -> ocaml_on_request server req
+  match req with
+  | Client_request.UnknownRequest { meth; params } -> (
+    match
+      [ (Switch_impl_intf.meth, Switch_impl_intf.on_request) ]
+      |> List.assoc_opt meth
+    with
+    | None ->
+      Fiber.return
+        (Error
+           (make_error ~code:InternalError ~message:"Unknown method"
+              ~data:(`Assoc [ ("method", `String meth) ])
+              ()))
+    | Some handler -> handler ~params state )
+  | _ -> (
+    match syntax with
+    | Some (Ocamllex | Menhir) -> not_supported ()
+    | _ -> ocaml_on_request server req )
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =

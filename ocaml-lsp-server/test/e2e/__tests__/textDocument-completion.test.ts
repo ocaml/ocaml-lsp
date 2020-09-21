@@ -3,7 +3,9 @@ import * as LanguageServer from "./../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
 
-const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0") ? describe : xdescribe;
+const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0")
+  ? describe
+  : xdescribe;
 
 describe_opt("textDocument/completion", () => {
   let languageServer = null;

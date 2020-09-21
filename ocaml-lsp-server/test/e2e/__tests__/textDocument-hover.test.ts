@@ -4,7 +4,7 @@ import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/hover", () => {
-  let languageServer;
+  let languageServer: LanguageServer.LanguageServer;
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
