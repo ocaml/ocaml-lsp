@@ -105,5 +105,5 @@ describe("ocamllsp/switchImplIntf", () => {
       [mli, ml, mll],
       [ml, mll],
     ],
-  ])("test switches", testingPipeline);
+  ])("test switches (%s => %s)", testingPipeline);
 });
