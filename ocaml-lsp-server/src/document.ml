@@ -37,6 +37,18 @@ module Syntax = struct
     ; ("ocaml.menhir", Menhir)
     ]
 
+  let of_fname s =
+    match Filename.extension s with
+    | ".mli"
+    | ".ml" ->
+      Ocaml
+    | ".rei"
+    | ".re" ->
+      Reason
+    | ".mll" -> Ocamllex
+    | ".mly" -> Menhir
+    | ext -> failwith ("Unknown extension " ^ ext)
+
   let of_language_id language_id =
     match List.assoc all language_id with
     | Some id -> id
