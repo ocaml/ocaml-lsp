@@ -135,9 +135,6 @@ let item index full_entry ~compl_info =
     ~sortText:(Printf.sprintf "%04d" index)
     ~data:compl_info ?textEdit ()
 
-let completion_kinds =
-  [ `Constructor; `Labels; `Modules; `Modules_type; `Types; `Values; `Variants ]
-
 let complete doc lsp_position =
   let position = Position.logical lsp_position in
 
@@ -149,8 +146,7 @@ let complete doc lsp_position =
   Document.with_pipeline_exn doc @@ fun pipeline ->
   let completion =
     let complete =
-      Query_protocol.Complete_prefix
-        (prefix, position, completion_kinds, false, true)
+      Query_protocol.Complete_prefix (prefix, position, [], false, true)
     in
     Query_commands.dispatch pipeline complete
   in
@@ -179,9 +175,7 @@ let complete doc lsp_position =
     match items with
     | _ :: _ -> items
     | [] ->
-      let expand =
-        Query_protocol.Expand_prefix (prefix, position, completion_kinds, true)
-      in
+      let expand = Query_protocol.Expand_prefix (prefix, position, [], true) in
       let { Query_protocol.Compl.entries; context = _ } =
         Query_commands.dispatch pipeline expand
       in
