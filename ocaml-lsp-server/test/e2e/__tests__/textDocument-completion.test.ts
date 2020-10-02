@@ -250,9 +250,9 @@ describe_opt("textDocument/completion", () => {
     expect(items_top5).toMatchInlineSnapshot(`
       Array [
         Object {
-          "label": "()",
+          "label": "somenum",
           "textEdit": Object {
-            "newText": "()",
+            "newText": "somenum",
             "range": Object {
               "end": Object {
                 "character": 12,
@@ -266,9 +266,9 @@ describe_opt("textDocument/completion", () => {
           },
         },
         Object {
-          "label": "::",
+          "label": "x",
           "textEdit": Object {
-            "newText": "::",
+            "newText": "x",
             "range": Object {
               "end": Object {
                 "character": 12,
@@ -282,9 +282,9 @@ describe_opt("textDocument/completion", () => {
           },
         },
         Object {
-          "label": "Assert_failure",
+          "label": "y",
           "textEdit": Object {
-            "newText": "Assert_failure",
+            "newText": "y",
             "range": Object {
               "end": Object {
                 "character": 12,
@@ -298,9 +298,9 @@ describe_opt("textDocument/completion", () => {
           },
         },
         Object {
-          "label": "Division_by_zero",
+          "label": "max_int",
           "textEdit": Object {
-            "newText": "Division_by_zero",
+            "newText": "max_int",
             "range": Object {
               "end": Object {
                 "character": 12,
@@ -314,9 +314,9 @@ describe_opt("textDocument/completion", () => {
           },
         },
         Object {
-          "label": "End_of_file",
+          "label": "min_int",
           "textEdit": Object {
-            "newText": "End_of_file",
+            "newText": "min_int",
             "range": Object {
               "end": Object {
                 "character": 12,
@@ -432,16 +432,6 @@ describe_opt("textDocument/completion", () => {
         },
       },
       {
-        label: "ListLabels.t",
-        textEdit: {
-          range: {
-            start: { line: 0, character: 8 },
-            end: { line: 0, character: 10 },
-          },
-          newText: "ListLabels.t",
-        },
-      },
-      {
         label: "ListLabels.append",
         textEdit: {
           range: {
@@ -459,6 +449,16 @@ describe_opt("textDocument/completion", () => {
             end: { line: 0, character: 10 },
           },
           newText: "ListLabels.assoc",
+        },
+      },
+      {
+        label: "ListLabels.assoc_opt",
+        textEdit: {
+          range: {
+            start: { line: 0, character: 8 },
+            end: { line: 0, character: 10 },
+          },
+          newText: "ListLabels.assoc_opt",
         },
       },
     ]);
@@ -563,4 +563,18 @@ describe_opt("textDocument/completion", () => {
       ]
     `);
   });
+
+  it("completion doesn't autocomplete record fields", async () => {
+    openDocument(outdent`
+      type r = {
+        x: int;
+        y: string
+      }
+
+      let _ = 
+    `);
+
+    let items: Array<any> = await queryCompletion(Types.Position.create(5, 8));
+    expect(items.filter(compl => compl.label === "x" || compl.label === "y")).toHaveLength(0);
+  })
 });
