@@ -106,4 +106,20 @@ describe("ocamllsp/switchImplIntf", () => {
       [ml, mll],
     ],
   ])("test switches (%s => %s)", testingPipeline);
+
+  it("can switch from file URI with non-file scheme", async () => {
+    let mlFpath = createPathForFile("test.ml");
+    await createFileAtPath(mlFpath);
+    let mlUri = pathToDocumentUri(mlFpath);
+
+    let newMliFpath = createPathForFile("test.mli");
+    await createFileAtPath(newMliFpath);
+    let mliUriUntitledScheme: DocumentUri = URI.file(newMliFpath)
+      .with({
+        scheme: "untitled",
+      })
+      .toString();
+
+    testRequest(mliUriUntitledScheme, [mlUri]);
+  });
 });

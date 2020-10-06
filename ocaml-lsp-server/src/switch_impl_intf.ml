@@ -4,53 +4,50 @@ let capability = ("handleSwitchImplIntf", `Bool true)
 
 let meth = "ocamllsp/switchImplIntf"
 
-(** See the spec for 'ocamllsp/switchImplIntf' *)
+(** see the spec for [ocamllsp/switchImplIntf] *)
 let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
-  let filepath =
-    let file_uri = Uri.t_of_yojson (`String param) in
-    let possible_filepath = Uri.to_path file_uri in
-    if possible_filepath = Uri.to_string file_uri then
-      (* remove URI scheme *)
-      String.split ~on:':' possible_filepath |> List.tl |> List.hd
-    else
-      possible_filepath
-    (* Note: URI lib such as ocaml-uri would help eliminate brittle URI handling *)
+  let fpath =
+    match String.split ~on:':' param with
+    | [ scheme; path ] ->
+      if scheme = "file" then
+        Uri.t_of_yojson (`String param) |> Uri.to_path
+      else
+        path
+    | _ -> failwith "provided file URI (param) doesn't follow URI spec"
   in
-  let filename = Filename.basename filepath in
+  let fname = Filename.basename fpath in
   let ml, mli, re, rei, mll, mly = ("ml", "mli", "re", "rei", "mll", "mly") in
-  let extensions_to_switch_to =
-    match Document.Syntax.of_fname filename with
+  let exts_to_switch_to =
+    match Document.Syntax.of_fname fname with
     | Ocaml -> (
-      match Document.Kind.of_fname filename with
+      match Document.Kind.of_fname fname with
       | Intf -> [ ml; mly; mll; re ]
       | Impl -> [ mli; mly; mll; rei ] )
     | Reason -> (
-      match Document.Kind.of_fname filename with
+      match Document.Kind.of_fname fname with
       | Intf -> [ re; ml ]
       | Impl -> [ rei; mli ] )
     | Ocamllex -> [ mli; rei ]
     | Menhir -> [ mli; rei ]
   in
-  let path_without_extension = Filename.remove_extension filepath ^ "." in
-  let find_switch (exts : string list) =
+  let fpath_w_ext ext = Filename.remove_extension fpath ^ "." ^ ext in
+  let find_switch exts =
     List.filter_map exts ~f:(fun ext ->
-        let file_to_switch_to = path_without_extension ^ ext in
+        let file_to_switch_to = fpath_w_ext ext in
         Option.some_if (Sys.file_exists file_to_switch_to) file_to_switch_to)
   in
-  let to_switch_to =
-    match find_switch extensions_to_switch_to with
+  let files_to_switch_to =
+    match find_switch exts_to_switch_to with
     | [] ->
-      let main_switch_to_candidate_ext = List.hd extensions_to_switch_to in
-      let main_switch_to_candidate_path =
-        path_without_extension ^ main_switch_to_candidate_ext
-      in
-      [ main_switch_to_candidate_path ]
+      let switch_to_ext = List.hd exts_to_switch_to in
+      let switch_to_fpath = fpath_w_ext switch_to_ext in
+      [ switch_to_fpath ]
     | to_switch_to -> to_switch_to
   in
-  let to_switch_to_json_array =
-    List.map to_switch_to ~f:(fun s -> `String (Uri.to_string @@ Uri.of_path s))
-  in
-  Ok (`List to_switch_to_json_array)
+  Ok
+    (Json.yojson_of_list
+       (fun fpath -> Uri.of_path fpath |> Uri.to_string |> fun s -> `String s)
+       files_to_switch_to)
 
 let on_request ~(params : Json.t option) state =
   Fiber.return
