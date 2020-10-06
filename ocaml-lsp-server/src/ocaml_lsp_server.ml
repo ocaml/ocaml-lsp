@@ -19,7 +19,9 @@ end
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     `CodeActionOptions
-      (CodeActionOptions.create ~codeActionKinds:[ Other Action.destruct ] ())
+      (CodeActionOptions.create
+         ~codeActionKinds:[ Other Action.destruct; Other Inferred_intf.action ]
+         ())
   in
   let textDocumentSync =
     `TextDocumentSyncOptions
@@ -179,7 +181,10 @@ let code_action server (params : CodeActionParams.t) =
     let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
     let* doc = Fiber.return (Document_store.get store uri) in
     match Document.kind doc with
-    | Intf -> Fiber.return (Ok (None, state))
+    | Intf ->
+      let+ action = Inferred_intf.code_action doc store in
+      let result = Option.map action ~f:(fun x -> [ `CodeAction x ]) in
+      (result, state)
     | Impl ->
       let command =
         let start = Position.logical params.range.start in
