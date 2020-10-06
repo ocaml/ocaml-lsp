@@ -174,29 +174,32 @@ let code_action server (params : CodeActionParams.t) =
   | Some set when not (List.mem (CodeActionKind.Other Action.destruct) ~set) ->
     Fiber.return (Ok (None, state))
   | Some _
-  | None ->
+  | None -> (
     let open Fiber.Result.O in
     let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
     let* doc = Fiber.return (Document_store.get store uri) in
-    let command =
-      let start = Position.logical params.range.start in
-      let finish = Position.logical params.range.end_ in
-      Query_protocol.Case_analysis (start, finish)
-    in
-    let+ result =
-      let open Fiber.O in
-      let+ res = Document.dispatch doc command in
-      match res with
-      | Ok res ->
-        Ok (Some [ `CodeAction (code_action_of_case_analysis uri res) ])
-      | Error
-          ( Destruct.Wrong_parent _ | Query_commands.No_nodes
-          | Destruct.Not_allowed _ | Destruct.Useless_refine
-          | Destruct.Nothing_to_do ) ->
-        Ok (Some [])
-      | Error exn -> raise exn
-    in
-    (result, state)
+    match Document.kind doc with
+    | Intf -> Fiber.return (Ok (None, state))
+    | Impl ->
+      let command =
+        let start = Position.logical params.range.start in
+        let finish = Position.logical params.range.end_ in
+        Query_protocol.Case_analysis (start, finish)
+      in
+      let+ result =
+        let open Fiber.O in
+        let+ res = Document.dispatch doc command in
+        match res with
+        | Ok res ->
+          Ok (Some [ `CodeAction (code_action_of_case_analysis uri res) ])
+        | Error
+            ( Destruct.Wrong_parent _ | Query_commands.No_nodes
+            | Destruct.Not_allowed _ | Destruct.Useless_refine
+            | Destruct.Nothing_to_do ) ->
+          Ok (Some [])
+        | Error exn -> raise exn
+      in
+      (result, state) )
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
