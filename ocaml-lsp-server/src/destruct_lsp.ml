@@ -31,4 +31,4 @@ let code_action doc (params : CodeActionParams.t) =
         | Destruct.Not_allowed _ | Destruct.Useless_refine
         | Destruct.Nothing_to_do ) ->
       Ok None
-    | Error exn -> raise exn )
+    | Error exn -> Error (Jsonrpc.Response.Error.of_exn exn) )
