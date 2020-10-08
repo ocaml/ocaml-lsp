@@ -1,6 +1,6 @@
 open Import
 
-let action = "destruct"
+let action_kind = "destruct"
 
 let code_action_of_case_analysis uri (loc, newText) =
   let edit : WorkspaceEdit.t =
@@ -8,8 +8,8 @@ let code_action_of_case_analysis uri (loc, newText) =
     let uri = Uri.to_string uri in
     WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
-  let title = String.capitalize_ascii action in
-  CodeAction.create ~title ~kind:(CodeActionKind.Other action) ~edit
+  let title = String.capitalize_ascii action_kind in
+  CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
     ~isPreferred:false ()
 
 let code_action doc (params : CodeActionParams.t) =

@@ -1,6 +1,6 @@
 open Import
 
-val action : string
+val action_kind : string
 
 val code_action :
      Document.t

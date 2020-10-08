@@ -14,7 +14,7 @@ let not_supported () =
 
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
-    let codeActionKinds = [ CodeActionKind.Other Destruct_lsp.action ] in
+    let codeActionKinds = [ CodeActionKind.Other Destruct_lsp.action_kind ] in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
   in
   let textDocumentSync =
@@ -157,8 +157,8 @@ let code_action server (params : CodeActionParams.t) =
   let state : State.t = Server.state server in
   let store = state.store in
   match params.context.only with
-  | Some set when not (List.mem (CodeActionKind.Other Destruct_lsp.action) ~set)
-    ->
+  | Some set
+    when not (List.mem (CodeActionKind.Other Destruct_lsp.action_kind) ~set) ->
     Fiber.return (Ok (None, state))
   | Some _
   | None ->
