@@ -34,7 +34,7 @@ $(TEST_E2E_DIR)/node_modules:
 	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
 
 opam-release:
-	dune-release distrib --skip-build --skip-lint --skip-tests
+	dune-release distrib --skip-build --skip-lint --skip-tests --include-submodules
 	# See https://github.com/ocamllabs/dune-release/issues/206
 	DUNE_RELEASE_DELEGATE=github-dune-release-delegate dune-release publish distrib --verbose
 	dune-release opam pkg
