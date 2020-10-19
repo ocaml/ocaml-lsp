@@ -4,16 +4,37 @@ let capability = ("handleSwitchImplIntf", `Bool true)
 
 let meth = "ocamllsp/switchImplIntf"
 
+let scheme_path_of_uri s =
+  let uri_regex_1 =
+    Str.regexp "\\([a-z]+\\)://\\(.+\\)"
+    (* handles URI: scheme://path as in file:///path/to/test.ml or
+       file:///c:/test.ml *)
+  in
+  let uri_regex_2 =
+    Str.regexp "\\([a-z]+\\):\\(.+\\)"
+    (* handles URI: scheme:path as in untitled:/path/to/test.ml or
+       untitled:/c:/test.ml *)
+  in
+  let scheme_path_of_uri () = (Str.matched_group 1 s, Str.matched_group 2 s) in
+  if Str.string_match uri_regex_1 s 0 then
+    Some (scheme_path_of_uri ())
+  else if Str.string_match uri_regex_2 s 0 then
+    Some (scheme_path_of_uri ())
+  else
+    None
+
 (** see the spec for [ocamllsp/switchImplIntf] *)
 let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
-  let fpath =
-    match String.split ~on:':' param with
-    | [ scheme; path ] ->
-      if scheme = "file" then
-        Uri.t_of_yojson (`String param) |> Uri.to_path
-      else
-        path
-    | _ -> failwith "provided file URI (param) doesn't follow URI spec"
+  let incorrect_uri =
+    Jsonrpc.Response.Error.make ~code:Jsonrpc.Response.Error.Code.InvalidParams
+      ~message:"provided file URI (param) doesn't follow URI spec" ()
+  in
+  let open Result.O in
+  let+ fpath =
+    match scheme_path_of_uri param with
+    | Some ("file", _path) -> Ok (Uri.t_of_yojson (`String param) |> Uri.to_path)
+    | Some (_scheme, path) -> Ok path
+    | None -> Error incorrect_uri
   in
   let fname = Filename.basename fpath in
   let ml, mli, re, rei, mll, mly = ("ml", "mli", "re", "rei", "mll", "mly") in
@@ -44,10 +65,9 @@ let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
       [ switch_to_fpath ]
     | to_switch_to -> to_switch_to
   in
-  Ok
-    (Json.yojson_of_list
-       (fun fpath -> Uri.of_path fpath |> Uri.to_string |> fun s -> `String s)
-       files_to_switch_to)
+  Json.yojson_of_list
+    (fun fpath -> Uri.of_path fpath |> Uri.to_string |> fun s -> `String s)
+    files_to_switch_to
 
 let on_request ~(params : Json.t option) state =
   Fiber.return
