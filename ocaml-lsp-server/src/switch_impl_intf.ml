@@ -15,11 +15,13 @@ let scheme_path_of_uri s =
     (* handles URI: scheme:path as in untitled:/path/to/test.ml or
        untitled:/c:/test.ml *)
   in
-  let scheme_path_of_uri () = (Str.matched_group 1 s, Str.matched_group 2 s) in
+  let scheme_path_of_uri () =
+    try Some (Str.matched_group 1 s, Str.matched_group 2 s) with _ -> None
+  in
   if Str.string_match uri_regex_1 s 0 then
-    Some (scheme_path_of_uri ())
+    scheme_path_of_uri ()
   else if Str.string_match uri_regex_2 s 0 then
-    Some (scheme_path_of_uri ())
+    scheme_path_of_uri ()
   else
     None
 
