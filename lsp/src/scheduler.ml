@@ -93,7 +93,7 @@ end = struct
       | Finished -> assert false
       | Running _ -> loop ()
     in
-    loop ()
+    with_mutex t.mutex ~f:loop
 
   let create ~do_ =
     let t =
@@ -105,7 +105,6 @@ end = struct
     in
     Mutex.lock t.mutex;
     t.state <- Running (Thread.create run (do_, t));
-    Mutex.lock t.mutex;
     Mutex.unlock t.mutex;
     t
 
