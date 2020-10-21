@@ -1,5 +1,5 @@
 build: [
-  ["ocaml" "unvendor.ml"]
+  ["ocaml" "unix.cma" "unvendor.ml"]
   ["dune" "subst"] {pinned}
   [
     "dune"
