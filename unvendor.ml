@@ -9,4 +9,4 @@ let rec rm_rf path =
 and clear path =
   Sys.readdir path |> Array.iter (fun name -> rm_rf (Filename.concat path name))
 
-let () = clear "./vendor"
+let () = clear "./ocaml-lsp-server/vendor"
