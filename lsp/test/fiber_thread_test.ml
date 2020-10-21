@@ -8,7 +8,7 @@ let worker = Scheduler.create_thread s
 let fb () =
   Scheduler.async worker (fun () ->
       Thread.delay 1.0;
-      print_endline "pre epmtive thread finished")
+      print_endline "preemptive thread finished")
   |> Scheduler.await_no_cancel
 
 let _ =
