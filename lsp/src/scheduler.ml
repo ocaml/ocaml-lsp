@@ -103,9 +103,8 @@ end = struct
       ; work_available = Condition.create ()
       }
     in
-    Mutex.lock t.mutex;
-    t.state <- Running (Thread.create run (do_, t));
-    Mutex.unlock t.mutex;
+    with_mutex t.mutex ~f:(fun () ->
+        t.state <- Running (Thread.create run (do_, t)));
     t
 
   let add_work (type a) (t : a t) (w : a) =
@@ -225,7 +224,8 @@ let time_loop t =
       add_events t !to_run;
       loop ()
   in
-  loop ()
+  Condition.signal t.timers_available;
+  with_mutex t.time_mutex ~f:loop
 
 let wake_loop t =
   let rec loop () =
@@ -253,8 +253,9 @@ let create () =
     ; detached = Queue.create ()
     }
   in
-  Mutex.lock t.time_mutex;
-  t.time <- Thread.create time_loop t;
+  with_mutex t.time_mutex ~f:(fun () ->
+      t.time <- Thread.create time_loop t;
+      Condition.wait t.timers_available t.time_mutex);
   t.waker <- Thread.create wake_loop t;
   t
 
