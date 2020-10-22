@@ -35,6 +35,7 @@ depends: [
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
+  ["ocaml" "unix.cma" "unvendor.ml"]
   ["dune" "subst"] {pinned}
   [
     "dune"
