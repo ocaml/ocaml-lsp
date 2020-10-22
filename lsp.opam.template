@@ -1,7 +1,6 @@
 build: [
+  ["dune" "subst"] {pinned}
   ["ocaml" "unix.cma" "unvendor.ml"]
-  # broken by unvendor
-  # ["dune" "subst"] {pinned}
   [
     "dune"
     "build"
