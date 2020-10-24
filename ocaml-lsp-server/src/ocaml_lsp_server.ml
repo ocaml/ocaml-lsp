@@ -63,18 +63,21 @@ let send_diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let send () =
     let diagnostic_create = Diagnostic.create ~source:"ocamllsp" in
-    let available =
+    let available : (unit, [ `No_reason_merlin | `Not_supported ]) result =
       match Document.syntax doc with
       | Menhir
       | Ocamllex ->
-        `Unsupported
-      | Ocaml -> `Available true
-      | Reason -> `Available (Option.is_some (Bin.which ocamlmerlin_reason))
+        Error `Not_supported
+      | Ocaml -> Ok ()
+      | Reason -> (
+        match Bin.which ocamlmerlin_reason with
+        | Some _ -> Ok ()
+        | None -> Error `No_reason_merlin )
     in
     let uri = Document.uri doc |> Lsp.Uri.to_string in
     match available with
-    | `Unsupported -> Fiber.return ()
-    | `Available false ->
+    | Error `Not_supported -> Fiber.return ()
+    | Error `No_reason_merlin ->
       let notif =
         let diagnostics =
           let message =
@@ -91,7 +94,7 @@ let send_diagnostics rpc doc =
           (PublishDiagnosticsParams.create ~uri ~diagnostics ())
       in
       Server.notification rpc notif
-    | `Available true ->
+    | Ok () ->
       let open Fiber.O in
       let* diagnostics =
         Document.with_pipeline_exn doc @@ fun pipeline ->
