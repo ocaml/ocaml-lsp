@@ -575,6 +575,8 @@ describe_opt("textDocument/completion", () => {
     `);
 
     let items: Array<any> = await queryCompletion(Types.Position.create(5, 8));
-    expect(items.filter(compl => compl.label === "x" || compl.label === "y")).toHaveLength(0);
-  })
+    expect(
+      items.filter((compl) => compl.label === "x" || compl.label === "y"),
+    ).toHaveLength(0);
+  });
 });
