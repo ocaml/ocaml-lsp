@@ -1,8 +1,11 @@
 # Unreleased
 
-- Do not use vendored libraries when building the lsp package (#260)
+## Fixes
 
-- Fix: correctly use mutexes on OpenBSD (#264)
+- #245: correctly use mutexes on OpenBSD (#264)
+
+- #268: Do not use vendored libraries when building the lsp package (#260)
+
 
 # 1.1.0 (10/14/2020)
 
