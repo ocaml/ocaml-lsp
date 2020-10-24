@@ -35,6 +35,7 @@ possible and does not make any assumptions about IO.
   cppo
   uutf
   csexp
+  dot-merlin-reader
   (menhir :with-test)
   (cinaps :with-test)
   (ppx_expect (and :with-test (>= v0.14.0)))
