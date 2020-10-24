@@ -70,7 +70,7 @@ let send_diagnostics ?diagnostics rpc doc =
       (PublishDiagnosticsParams.create ~uri ~diagnostics ())
   in
   let async send =
-    Scheduler.detach state.scheduler (fun () ->
+    Fiber_detached.task state.detached ~f:(fun () ->
         let open Fiber.O in
         let timer = Document.timer doc in
         let+ res = Scheduler.schedule timer send in
@@ -151,7 +151,7 @@ let on_initialize rpc =
       let notif = Server_notification.LogMessage { message; type_ } in
       let (_ : unit Fiber.t) =
         let state : State.t = Server.state rpc in
-        Scheduler.detach state.scheduler (fun () ->
+        Fiber_detached.task state.detached ~f:(fun () ->
             Server.notification rpc notif)
       in
       ()
@@ -196,9 +196,10 @@ module Formatter = struct
       let message = Fmt.message e in
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Error in
-      let (_ : unit Fiber.t) =
+      let open Fiber.O in
+      let+ () =
         let state : State.t = Server.state rpc in
-        Scheduler.detach state.scheduler (fun () ->
+        Fiber_detached.task state.detached ~f:(fun () ->
             Server.notification rpc (ShowMessage msg))
       in
       Error error
@@ -213,7 +214,7 @@ module Formatter = struct
       in
       let change = { TextEdit.newText = result; range } in
       let state = Server.state rpc in
-      Ok (Some [ change ], state)
+      Fiber.return (Ok (Some [ change ], state))
 end
 
 let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
@@ -501,7 +502,6 @@ let ocaml_on_request :
  fun rpc req ->
   let state = Server.state rpc in
   let store = state.store in
-  let open Import.Result.O in
   match req with
   | Client_request.Initialize ip ->
     let initialize_result = on_initialize rpc in
@@ -609,10 +609,10 @@ let ocaml_on_request :
     Fiber.return @@ Ok (compl, state)
   | Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
+    let open Fiber.Result.O in
     let uri = Uri.t_of_yojson (`String uri) in
-    Fiber.return
-      (let* doc = Document_store.get store uri in
-       Formatter.run rpc doc)
+    let* doc = Fiber.return (Document_store.get store uri) in
+    Formatter.run rpc doc
   | Client_request.TextDocumentOnTypeFormatting _ ->
     Fiber.return @@ Ok (None, state)
   | Client_request.SelectionRange req -> selection_range state req
@@ -667,15 +667,14 @@ let on_notification server (notification : Client_notification.t) :
       Document.make timer state.merlin params
     in
     Document_store.put store doc;
-    let (_ : unit Fiber.t) = send_diagnostics server doc in
-    Fiber.return state
+    let open Fiber.O in
+    let+ () = send_diagnostics server doc in
+    state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let uri = Uri.t_of_yojson (`String uri) in
     let doc = Document_store.get_opt store uri in
-    let _clear_diagnostics : unit Fiber.t =
-      send_diagnostics ~diagnostics:[] server (Option.value_exn doc)
-    in
     let open Fiber.O in
+    let* () = send_diagnostics ~diagnostics:[] server (Option.value_exn doc) in
     let+ () = Document_store.remove_document store uri in
     state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
@@ -691,8 +690,9 @@ let on_notification server (notification : Client_notification.t) :
         List.fold_left ~f ~init:prev_doc contentChanges
       in
       Document_store.put store doc;
-      let (_ : unit Fiber.t) = send_diagnostics server doc in
-      Fiber.return state )
+      let open Fiber.O in
+      let+ () = send_diagnostics server doc in
+      state )
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
@@ -704,8 +704,12 @@ let on_notification server (notification : Client_notification.t) :
   | Initialized
   | Exit ->
     let open Fiber.O in
-    let* () = Document_store.close store in
-    Fiber.return state
+    let+ () =
+      Fiber.fork_and_join_unit
+        (fun () -> Document_store.close store)
+        (fun () -> Fiber_detached.stop state.detached)
+    in
+    state
   | Unknown_notification req -> (
     match req.method_ with
     | "$/setTraceNotification"
@@ -756,12 +760,25 @@ let start () =
     Lsp_fiber.Fiber_io.make scheduler io
   in
   let configuration = Configuration.default in
+  let detached = Fiber_detached.create () in
   let server =
     let merlin = Scheduler.create_thread scheduler in
     Server.make handler stream
-      { store = docs; init = Uninitialized; merlin; scheduler; configuration }
+      { store = docs
+      ; init = Uninitialized
+      ; merlin
+      ; scheduler
+      ; configuration
+      ; detached
+      }
   in
-  Scheduler.run scheduler (Server.start server);
+  Fiber.fork_and_join_unit
+    (fun () ->
+      let open Fiber.O in
+      let* () = Server.start server in
+      Scheduler.cancel_timers scheduler)
+    (fun () -> Fiber_detached.run detached)
+  |> Scheduler.run scheduler;
   log ~title:Logger.Title.Info "exiting"
 
 let run ~log_file =

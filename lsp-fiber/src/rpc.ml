@@ -247,10 +247,7 @@ module Client = struct
       | Ok resp -> Fiber.Ivar.fill t.initialized resp
       | Error _ -> Fiber.return ()
     in
-    let* () =
-      Scheduler.detach ~name:"lsp client init" (Scheduler.scheduler ()) init
-    in
-    loop
+    Fiber.fork_and_join_unit (fun () -> loop) init
 end
 
 module Server = struct

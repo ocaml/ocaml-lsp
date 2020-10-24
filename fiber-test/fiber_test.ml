@@ -1,5 +1,4 @@
 open Stdune
-open Fiber.O
 
 let printf = Printf.printf
 
@@ -21,26 +20,13 @@ end = struct
     Queue.push suspended ivar;
     Fiber.Ivar.read ivar
 
-  let rec restart_suspended () =
-    if Queue.is_empty suspended then
-      Fiber.return ()
-    else
-      let* () = Fiber.Ivar.fill (Queue.pop_exn suspended) () in
-      restart_suspended ()
-
   exception Never
 
   let run t =
-    match
-      Fiber.run
-        (let* result = Fiber.fork (fun () -> t) in
-         let* () = restart_suspended () in
-         Fiber.Ivar.peek result)
-    with
-    | None
-    | Some None ->
-      raise Never
-    | Some (Some x) -> x
+    Fiber.run t ~iter:(fun () ->
+        match Queue.pop suspended with
+        | None -> raise Never
+        | Some e -> Fiber.Fill (e, ()))
 end
 
 let test ?(expect_never = false) to_dyn f =

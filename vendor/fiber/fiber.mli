@@ -1,4 +1,8 @@
-(** Concurrency library *)
+(** Concurrency library
+
+    This module implements
+    {{:https://en.wikipedia.org/wiki/Structured_concurrency} "structured
+    concurrency"}. *)
 
 open! Stdune
 
@@ -57,35 +61,20 @@ val sequential_iter : 'a list -> f:('a -> unit t) -> unit t
 (** {1 Forking + joining} *)
 
 (** The following functions combine forking 2 or more fibers followed by joining
-    the results. For every function, we give an equivalent implementation using
-    the more basic functions as documentation. Note however that these functions
-    are implemented as primitives and so are more efficient that the suggested
-    implementation. *)
+    the results. The execution of the various fibers might be interleaved,
+    however once the combining fiber has terminated, it is guaranteed that there
+    are no fibers lingering around. *)
 
-(** For two fibers and wait for their results:
-
-    {[ let fork_and_join f g = fork f >>= fun a -> fork g >>= fun b -> both
-    (Future.wait a) (Future.wait b) ]} *)
+(** Start two fibers and wait for their results. *)
 val fork_and_join : (unit -> 'a t) -> (unit -> 'b t) -> ('a * 'b) t
 
-(** Same but assume the first fiber returns [unit]:
-
-    {[ let fork_and_join_unit f g = fork f >>= fun a -> fork g >>= fun b ->
-    Future.wait a >>> Future.wait b ]} *)
+(** Same but assume the first fiber returns [unit]. *)
 val fork_and_join_unit : (unit -> unit t) -> (unit -> 'a t) -> 'a t
 
-val fork_and_race : (unit -> 'a t) -> (unit -> 'b t) -> ('a, 'b) Either.t t
-
-(** Map a list in parallel:
-
-    {[ let parallel_map l ~f = nfork_map l ~f >>= fun futures -> all (List.map
-    futures ~f:Future.wait) ]} *)
+(** Map a list in parallel. *)
 val parallel_map : 'a list -> f:('a -> 'b t) -> 'b list t
 
-(** Iter over a list in parallel:
-
-    {[ let parallel_iter l ~f = nfork_map l ~f >>= fun futures -> all_unit
-    (List.map futures ~f:Future.wait) ]} *)
+(** Iter over a list in parallel. *)
 val parallel_iter : 'a list -> f:('a -> unit t) -> unit t
 
 (** {1 Local storage} *)
@@ -177,25 +166,6 @@ module Ivar : sig
 end
 with type 'a fiber := 'a t
 
-val fork : (unit -> 'a t) -> 'a Ivar.t t
-
-module Mutex : sig
-  type 'a fiber = 'a t
-
-  type t
-
-  val create : unit -> t
-
-  val with_lock : t -> (unit -> 'a fiber) -> 'a fiber
-end
-with type 'a fiber := 'a t
-
-(** {1 Running fibers} *)
-
-(** [run t] runs a fiber. If the fiber doesn't complete immediately, [run t]
-    returns [None]. *)
-val run : 'a t -> 'a option
-
 (** Mailbox variables *)
 module Mvar : sig
   type 'a fiber
@@ -217,6 +187,41 @@ module Mvar : sig
   val read : 'a t -> 'a fiber
 
   val write : 'a t -> 'a -> unit fiber
+end
+with type 'a fiber := 'a t
+
+module Mutex : sig
+  type 'a fiber = 'a t
+
+  type t
+
+  val create : unit -> t
+
+  val with_lock : t -> (unit -> 'a fiber) -> 'a fiber
+end
+with type 'a fiber := 'a t
+
+module Throttle : sig
+  (** Limit the number of jobs *)
+
+  type 'a fiber = 'a t
+
+  type t
+
+  (** [create n] creates a throttler that allows to run [n] jobs at once *)
+  val create : int -> t
+
+  (** How many jobs can run at the same time *)
+  val size : t -> int
+
+  (** Change the number of jobs that can run at once *)
+  val resize : t -> int -> unit fiber
+
+  (** Execute a fiber, waiting if too many jobs are already running *)
+  val run : t -> f:(unit -> 'a fiber) -> 'a fiber
+
+  (** Return the number of jobs currently running *)
+  val running : t -> int
 end
 with type 'a fiber := 'a t
 
@@ -242,3 +247,14 @@ module Sequence : sig
   val parallel_iter : 'a t -> f:('a -> unit fiber) -> unit fiber
 end
 with type 'a fiber := 'a t
+
+(** {1 Running fibers} *)
+
+type fill = Fill : 'a Ivar.t * 'a -> fill
+
+(** [run t ~iter] runs a fiber until it terminates. [iter] is used to implement
+    the scheduler, it should block waiting for an event and return an ivar to
+    fill. *)
+val run : 'a t -> iter:(unit -> fill) -> 'a
+
+val fork_and_race : (unit -> 'a t) -> (unit -> 'b t) -> ('a, 'b) Either.t t
