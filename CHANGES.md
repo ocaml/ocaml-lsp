@@ -6,6 +6,7 @@
 
 - #268: Do not use vendored libraries when building the lsp package (#260)
 
+- #271: Clear diagnostics when files are closed
 
 # 1.1.0 (10/14/2020)
 

@@ -668,6 +668,10 @@ let on_notification server (notification : Client_notification.t) :
     Fiber.return state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let uri = Uri.t_of_yojson (`String uri) in
+    let doc = Document_store.get_opt store uri in
+    let _clear_diagnostics : unit Fiber.t =
+      send_diagnostics ~diagnostics:[] server (Option.value_exn doc)
+    in
     let open Fiber.O in
     let+ () = Document_store.remove_document store uri in
     state
