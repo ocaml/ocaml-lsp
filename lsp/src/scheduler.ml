@@ -346,7 +346,7 @@ let rec pump_events (t : t) =
                   let args = assoc_of_name name in
                   Log.msg "finished detached task" args)
             in
-            let+ (_ : unit Fiber.Future.t) =
+            let+ (_ : unit Fiber.Ivar.t) =
               Fiber.fork (fun () -> Fiber.Var.set me t task)
             in
             ()
@@ -411,11 +411,11 @@ let run : 'a. t -> 'a Fiber.t -> 'a =
     let fiber =
       let open Fiber.O in
       let* user_action = Fiber.fork (fun () -> f) in
-      let* (_ : unit Fiber.Future.t) =
+      let* (_ : unit Fiber.Ivar.t) =
         Fiber.fork (fun () -> restart_suspended t)
       in
       let* () = pump_events t in
-      Fiber.Future.peek user_action
+      Fiber.Ivar.peek user_action
     in
     Fiber.run fiber
   with

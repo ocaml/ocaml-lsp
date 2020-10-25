@@ -37,7 +37,7 @@ end = struct
       Fiber.run
         (let* result = Fiber.fork (fun () -> t) in
          let* () = restart_suspended () in
-         Fiber.Future.peek result)
+         Fiber.Ivar.peek result)
     with
     | None
     | Some None ->

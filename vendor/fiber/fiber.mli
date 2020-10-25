@@ -43,33 +43,6 @@ val map : 'a t -> f:('a -> 'b) -> 'b t
 
 val bind : 'a t -> f:('a -> 'b t) -> 'b t
 
-(** {1 Forking execution} *)
-
-module Future : sig
-  type 'a fiber
-
-  (** A future represent a promise that will eventually yield a value. It is
-      used to represent the result of a fiber running in the background. *)
-  type 'a t
-
-  (** Wait for the given future to yield a value. *)
-  val wait : 'a t -> 'a fiber
-
-  (** Return [Some x] if [t] has already returned. *)
-  val peek : 'a t -> 'a option fiber
-end
-with type 'a fiber := 'a t
-
-(** [fork f] creates a sub-fiber and return a [Future.t] to wait its result. *)
-val fork : (unit -> 'a t) -> 'a Future.t t
-
-(** [nfork l] is similar to [fork] but creates [n] sub-fibers. *)
-val nfork : (unit -> 'a t) list -> 'a Future.t list t
-
-(** [nfork_map l ~f] is the same as [nfork (List.map l ~f:(fun x () -> f x))]
-    but more efficient. *)
-val nfork_map : 'a list -> f:('a -> 'b t) -> 'b Future.t list t
-
 (** {1 Joining} *)
 
 (** The following combinators are helpers to combine the result of several
@@ -214,6 +187,8 @@ module Ivar : sig
   val peek : 'a t -> 'a option fiber
 end
 with type 'a fiber := 'a t
+
+val fork : (unit -> 'a t) -> 'a Ivar.t t
 
 module Mutex : sig
   type 'a fiber = 'a t
