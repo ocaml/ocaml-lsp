@@ -140,7 +140,8 @@ type t =
   ; earliest_wakeup : float Mvar.t
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
-  ; timers : (Timer_id.t, active_timer ref) Table.t
+  ; (* TODO Replace with Removable_queue *)
+    timers : (Timer_id.t, active_timer ref) Table.t
   ; detached : detached_task Queue.t
   }
 
