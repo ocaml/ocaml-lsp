@@ -665,8 +665,9 @@ let on_notification server (notification : Client_notification.t) :
     Fiber.return state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let uri = Uri.t_of_yojson (`String uri) in
-    Document_store.remove_document store uri;
-    Fiber.return state
+    let open Fiber.O in
+    let+ () = Document_store.remove_document store uri in
+    state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
     -> (
     let uri = Uri.t_of_yojson (`String uri) in
@@ -692,7 +693,8 @@ let on_notification server (notification : Client_notification.t) :
   | ChangeWorkspaceFolders _
   | Initialized
   | Exit ->
-    Document_store.close store;
+    let open Fiber.O in
+    let* () = Document_store.close store in
     Fiber.return state
   | Unknown_notification req -> (
     match req.method_ with

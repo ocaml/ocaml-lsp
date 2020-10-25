@@ -19,13 +19,16 @@ let get store uri =
 
 let remove_document store uri =
   match Table.find store uri with
-  | None -> ()
+  | None -> Fiber.return ()
   | Some doc ->
-    Document.close doc;
+    let open Fiber.O in
+    let+ () = Document.close doc in
     Table.remove store uri
 
 let get_size store = Table.length store
 
 let close t =
-  Table.iter t ~f:Document.close;
+  let docs = Table.fold t ~init:[] ~f:(fun doc acc -> doc :: acc) in
+  let open Fiber.O in
+  let+ () = Fiber.parallel_iter docs ~f:Document.close in
   Table.clear t

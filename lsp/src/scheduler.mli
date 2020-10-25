@@ -33,7 +33,7 @@ val detach : ?name:string -> t -> (unit -> unit Fiber.t) -> unit Fiber.t
 val schedule :
   timer -> (unit -> 'a Fiber.t) -> ('a, [ `Cancelled ]) result Fiber.t
 
-val cancel_timer : timer -> unit
+val cancel_timer : timer -> unit Fiber.t
 
 val scheduler : unit -> t
 

@@ -469,8 +469,16 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     Ok res
 
 let cancel_timer (timer : timer) =
-  with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
-      Table.remove timer.timer_scheduler.timers timer.timer_id)
+  match
+    with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
+        match Table.find timer.timer_scheduler.timers timer.timer_id with
+        | None -> None
+        | Some at ->
+          Table.remove timer.timer_scheduler.timers timer.timer_id;
+          Some !at.ivar)
+  with
+  | None -> Fiber.return ()
+  | Some ivar -> Fiber.Ivar.fill ivar `Cancelled
 
 let detach ?name t f =
   let task () =
