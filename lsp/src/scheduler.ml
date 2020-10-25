@@ -80,9 +80,6 @@ end = struct
 
   let run (f, t) =
     let rec loop () =
-      while Removable_queue.is_empty t.work && is_running t do
-        Condition.wait t.work_available t.mutex
-      done;
       while not (Removable_queue.is_empty t.work) do
         f (Option.value_exn (Removable_queue.pop t.work))
       done;
@@ -91,7 +88,11 @@ end = struct
         assert (Removable_queue.is_empty t.work);
         t.state <- Finished
       | Finished -> assert false
-      | Running _ -> loop ()
+      | Running _ ->
+        while Removable_queue.is_empty t.work && is_running t do
+          Condition.wait t.work_available t.mutex
+        done;
+        loop ()
     in
     with_mutex t.mutex ~f:loop
 
@@ -103,8 +104,7 @@ end = struct
       ; work_available = Condition.create ()
       }
     in
-    with_mutex t.mutex ~f:(fun () ->
-        t.state <- Running (Thread.create run (do_, t)));
+    t.state <- Running (Thread.create run (do_, t));
     t
 
   let add_work (type a) (t : a t) (w : a) =

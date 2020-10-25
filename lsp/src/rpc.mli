@@ -2,16 +2,15 @@ open! Import
 open Jsonrpc
 
 module Stream_io : sig
-  type t = packet Fiber_stream.In.t * packet Fiber_stream.Out.t
+  type t
 
-  val close : 'a * 'b Fiber_stream.Out.t -> unit Fiber.t
+  val close : t -> unit Fiber.t
 
-  val send : 'a * 'b Fiber_stream.Out.t -> 'b -> unit Fiber.t
+  val send : t -> packet -> unit Fiber.t
 
-  val recv : 'a Fiber_stream.In.t * 'b -> 'a option Fiber.t
+  val recv : t -> packet option Fiber.t
 
-  val make :
-    Scheduler.t -> Io.t -> packet Fiber_stream.In.t * packet Fiber_stream.Out.t
+  val make : Scheduler.t -> Io.t -> t
 end
 
 module type S = sig
