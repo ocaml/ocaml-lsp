@@ -21,8 +21,11 @@ let remove_document store uri =
   match Table.find store uri with
   | None -> ()
   | Some doc ->
-    let timer = Document.timer doc in
-    Scheduler.cancel_timer timer;
+    Document.close doc;
     Table.remove store uri
 
 let get_size store = Table.length store
+
+let close t =
+  Table.iter t ~f:Document.close;
+  Table.clear t

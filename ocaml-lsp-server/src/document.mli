@@ -48,3 +48,5 @@ val update_text : ?version:int -> TextDocumentContentChangeEvent.t -> t -> t
 val dispatch : t -> 'a Query_protocol.t -> ('a, exn) result Fiber.t
 
 val dispatch_exn : t -> 'a Query_protocol.t -> 'a Fiber.t
+
+val close : t -> unit

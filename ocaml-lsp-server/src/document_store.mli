@@ -13,3 +13,5 @@ val get_opt : t -> Uri.t -> Document.t option
 val remove_document : t -> Uri.t -> unit
 
 val get_size : t -> int
+
+val close : t -> unit

@@ -692,6 +692,7 @@ let on_notification server (notification : Client_notification.t) :
   | ChangeWorkspaceFolders _
   | Initialized
   | Exit ->
+    Document_store.close store;
     Fiber.return state
   | Unknown_notification req -> (
     match req.method_ with

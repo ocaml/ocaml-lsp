@@ -137,3 +137,5 @@ let dispatch (doc : t) command =
 let dispatch_exn (doc : t) command =
   with_pipeline_exn doc (fun pipeline ->
       Query_commands.dispatch pipeline command)
+
+let close t = Scheduler.cancel_timer t.timer
