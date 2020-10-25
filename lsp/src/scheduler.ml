@@ -140,13 +140,13 @@ type t =
   ; earliest_wakeup : float Mvar.t
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
-  ; timers : (Timer_id.t, packed_active_timer ref) Table.t
+  ; timers : (Timer_id.t, active_timer ref) Table.t
   ; detached : detached_task Queue.t
   }
 
 and event =
   | Job_completed : 'a * 'a Fiber.Ivar.t -> event
-  | Scheduled of packed_active_timer
+  | Scheduled of active_timer
   | Detached of detached_task
 
 and job =
@@ -165,15 +165,11 @@ and timer =
   ; timer_id : Timer_id.t
   }
 
-and 'a active_timer =
+and active_timer =
   { scheduled : float
-  ; ivar : ('a, [ `Cancelled ]) result Fiber.Ivar.t
-  ; action : unit -> 'a Fiber.t
+  ; ivar : [ `Resolved | `Cancelled ] Fiber.Ivar.t
   ; parent : timer
   }
-
-and packed_active_timer =
-  | Active_timer : 'a active_timer -> packed_active_timer
 
 let dyn_event_tag : event -> Dyn.t =
   let open Dyn.Encoder in
@@ -206,13 +202,13 @@ let time_loop t =
       let now = Unix.gettimeofday () in
       let earliest_next = ref None in
       Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
-          let (Active_timer active_timer) = !active_timer in
+          let active_timer = !active_timer in
           let scheduled_at =
             active_timer.scheduled +. active_timer.parent.delay
           in
           let need_to_run = scheduled_at < now in
           if need_to_run then
-            to_run := Scheduled (Active_timer active_timer) :: !to_run
+            to_run := Scheduled active_timer :: !to_run
           else
             earliest_next :=
               Some
@@ -360,15 +356,10 @@ let rec pump_events (t : t) =
             match status with
             | Some _ -> Fiber.return ()
             | None -> Fiber.Ivar.fill ivar a )
-          | Scheduled (Active_timer active_timer) ->
+          | Scheduled active_timer ->
             with_mutex t.time_mutex ~f:(fun () ->
                 Table.remove t.timers active_timer.parent.timer_id);
-            let+ (_ : _ Fiber.Future.t) =
-              Fiber.fork (fun () ->
-                  let* res = active_timer.action () in
-                  Fiber.Ivar.fill active_timer.ivar (Ok res))
-            in
-            ()
+            Fiber.Ivar.fill active_timer.ivar `Resolved
         in
         Mutex.lock t.mutex;
         aux ()
@@ -447,32 +438,35 @@ let set_delay t ~delay = t.delay <- delay
 
 let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     (a, [ `Cancelled ]) result Fiber.t =
-  let scheduled = Unix.gettimeofday () in
-  let make_active_timer action =
-    { scheduled; action; ivar = Fiber.Ivar.create (); parent = timer }
+  let open Fiber.O in
+  let active_timer =
+    let scheduled = Unix.gettimeofday () in
+    { scheduled; ivar = Fiber.Ivar.create (); parent = timer }
   in
-  let ivar =
+  let* ivar =
     with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
         match Table.find timer.timer_scheduler.timers timer.timer_id with
         | Some active ->
-          let fill_old =
-            let (Active_timer active) = !active in
+          let+ () =
+            let active = !active in
             log (fun () -> Log.msg "cancelled task" []);
-            Fiber.Ivar.fill active.ivar (Error `Cancelled)
+            Fiber.Ivar.fill active.ivar `Cancelled
           in
-          let action () = Fiber.fork_and_join_unit (fun () -> fill_old) f in
-          let active_timer = make_active_timer action in
-          active := Active_timer active_timer;
+          active := active_timer;
           active_timer.ivar
         | None ->
           add_pending_events timer.timer_scheduler 1;
-          let active_timer = make_active_timer f in
           Table.add_exn timer.timer_scheduler.timers timer.timer_id
-            (ref (Active_timer active_timer));
+            (ref active_timer);
           Condition.signal timer.timer_scheduler.timers_available;
-          active_timer.ivar)
+          Fiber.return active_timer.ivar)
   in
-  Fiber.Ivar.read ivar
+  let* res = Fiber.Ivar.read ivar in
+  match res with
+  | `Cancelled as e -> Fiber.return (Error e)
+  | `Resolved ->
+    let+ res = f () in
+    Ok res
 
 let cancel_timer (timer : timer) =
   with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
