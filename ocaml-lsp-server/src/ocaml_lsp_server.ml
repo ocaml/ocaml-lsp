@@ -81,55 +81,56 @@ let send_diagnostics ?diagnostics rpc doc =
   in
   match diagnostics with
   | Some diagnostics ->
-    async @@ fun () ->
-    let notif = create_publishDiagnostics uri diagnostics in
-    Server.notification rpc notif
+    async (fun () ->
+        let notif = create_publishDiagnostics uri diagnostics in
+        Server.notification rpc notif)
   | None -> (
     match Document.syntax doc with
     | Menhir
     | Ocamllex ->
       Fiber.return ()
     | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
-      async @@ fun () ->
-      let no_reason_merlin =
-        let message =
-          sprintf "Could not detect %s. Please install reason"
-            ocamlmerlin_reason
-        in
-        let range =
-          let pos = Position.create ~line:1 ~character:1 in
-          Range.create ~start:pos ~end_:pos
-        in
-        create_diagnostic range message
-      in
-      let notif = create_publishDiagnostics uri [ no_reason_merlin ] in
-      Server.notification rpc notif
+      async (fun () ->
+          let no_reason_merlin =
+            let message =
+              sprintf "Could not detect %s. Please install reason"
+                ocamlmerlin_reason
+            in
+            let range =
+              let pos = Position.create ~line:1 ~character:1 in
+              Range.create ~start:pos ~end_:pos
+            in
+            create_diagnostic range message
+          in
+          let notif = create_publishDiagnostics uri [ no_reason_merlin ] in
+          Server.notification rpc notif)
     | Reason
     | Ocaml ->
-      async @@ fun () ->
-      let open Fiber.O in
-      let* diagnostics =
-        Document.with_pipeline_exn doc @@ fun pipeline ->
-        let command =
-          Query_protocol.Errors { lexing = true; parsing = true; typing = true }
-        in
-        let errors = Query_commands.dispatch pipeline command in
-        List.map errors ~f:(fun (error : Loc.error) ->
-            let loc = Loc.loc_of_report error in
-            let range = Range.of_loc loc in
-            let severity =
-              match error.source with
-              | Warning -> DiagnosticSeverity.Warning
-              | _ -> DiagnosticSeverity.Error
-            in
-            let message =
-              Loc.print_main Format.str_formatter error;
-              String.trim (Format.flush_str_formatter ())
-            in
-            create_diagnostic range message ~severity)
-      in
-      let notif = create_publishDiagnostics uri diagnostics in
-      Server.notification rpc notif )
+      async (fun () ->
+          let open Fiber.O in
+          let* diagnostics =
+            Document.with_pipeline_exn doc (fun pipeline ->
+                let command =
+                  Query_protocol.Errors
+                    { lexing = true; parsing = true; typing = true }
+                in
+                let errors = Query_commands.dispatch pipeline command in
+                List.map errors ~f:(fun (error : Loc.error) ->
+                    let loc = Loc.loc_of_report error in
+                    let range = Range.of_loc loc in
+                    let severity =
+                      match error.source with
+                      | Warning -> DiagnosticSeverity.Warning
+                      | _ -> DiagnosticSeverity.Error
+                    in
+                    let message =
+                      Loc.print_main Format.str_formatter error;
+                      String.trim (Format.flush_str_formatter ())
+                    in
+                    create_diagnostic range message ~severity))
+          in
+          let notif = create_publishDiagnostics uri diagnostics in
+          Server.notification rpc notif) )
 
 let on_initialize rpc =
   let log_consumer (section, title, text) =
