@@ -7,6 +7,10 @@ module Stream_io = struct
   type t =
     { in_ : Jsonrpc.packet In.t
     ; out : Jsonrpc.packet Out.t
+    ; in_thread : Scheduler.thread
+    ; out_thread : Scheduler.thread
+    ; io : Io.t
+    ; closed : bool
     }
 
   let close t = Out.write t.out None
@@ -16,20 +20,20 @@ module Stream_io = struct
   let recv t = In.read t.in_
 
   let make s io =
+    let in_thread = Scheduler.create_thread s in
     let in_ =
-      let r = Scheduler.create_thread s in
-      Fiber_stream.In.create (fun () ->
+      In.create (fun () ->
           let open Fiber.O in
-          let task = Scheduler.async r (fun () -> Io.read io) in
+          let task = Scheduler.async in_thread (fun () -> Io.read io) in
           let+ res = Scheduler.await_no_cancel task in
           Result.ok_exn res)
     in
+    let out_thread = Scheduler.create_thread s in
     let out =
-      let w = Scheduler.create_thread s in
       let open Fiber.O in
-      Fiber_stream.Out.create (fun t ->
+      Out.create (fun t ->
           let+ res =
-            Scheduler.async w
+            Scheduler.async out_thread
               ( match t with
               | None -> fun () -> Io.close io
               | Some p -> fun () -> Io.send io p )
@@ -37,7 +41,7 @@ module Stream_io = struct
           in
           Result.ok_exn res)
     in
-    { in_; out }
+    { in_; out; in_thread; out_thread; io; closed = false }
 end
 
 module Session = Session (Stream_io)
