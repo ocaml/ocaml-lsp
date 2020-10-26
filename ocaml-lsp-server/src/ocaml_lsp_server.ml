@@ -109,25 +109,27 @@ let send_diagnostics ?diagnostics rpc doc =
       async (fun () ->
           let open Fiber.O in
           let* diagnostics =
-            Document.with_pipeline_exn doc (fun pipeline ->
-                let command =
-                  Query_protocol.Errors
-                    { lexing = true; parsing = true; typing = true }
+            let command =
+              Query_protocol.Errors
+                { lexing = true; parsing = true; typing = true }
+            in
+            let+ errors =
+              Document.with_pipeline_exn doc (fun pipeline ->
+                  Query_commands.dispatch pipeline command)
+            in
+            List.map errors ~f:(fun (error : Loc.error) ->
+                let loc = Loc.loc_of_report error in
+                let range = Range.of_loc loc in
+                let severity =
+                  match error.source with
+                  | Warning -> DiagnosticSeverity.Warning
+                  | _ -> DiagnosticSeverity.Error
                 in
-                let errors = Query_commands.dispatch pipeline command in
-                List.map errors ~f:(fun (error : Loc.error) ->
-                    let loc = Loc.loc_of_report error in
-                    let range = Range.of_loc loc in
-                    let severity =
-                      match error.source with
-                      | Warning -> DiagnosticSeverity.Warning
-                      | _ -> DiagnosticSeverity.Error
-                    in
-                    let message =
-                      Loc.print_main Format.str_formatter error;
-                      String.trim (Format.flush_str_formatter ())
-                    in
-                    create_diagnostic range message ~severity))
+                let message =
+                  Loc.print_main Format.str_formatter error;
+                  String.trim (Format.flush_str_formatter ())
+                in
+                create_diagnostic range message ~severity)
           in
           let notif = create_publishDiagnostics uri diagnostics in
           Server.notification rpc notif) )
