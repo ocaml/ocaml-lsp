@@ -136,6 +136,7 @@ type t =
   ; time_mutex : Mutex.t
   ; event_ready : Condition.t
   ; timers_available : Condition.t
+  ; timers_available_mutex : Mutex.t
   ; mutable threads : thread list
   ; earliest_wakeup : float Mvar.t
   ; mutable time : Thread.t
@@ -193,43 +194,48 @@ let me = Fiber.Var.create ()
 
 let scheduler () = Fiber.Var.get_exn me
 
+let signal_timers_available t =
+  with_mutex t.timers_available_mutex ~f:(fun () ->
+      Condition.signal t.timers_available)
+
 let time_loop t =
   let rec loop () =
-    Condition.wait t.timers_available t.time_mutex;
-    if is_empty t.timers then
-      loop ()
-    else
-      let to_run = ref [] in
-      let now = Unix.gettimeofday () in
-      let earliest_next = ref None in
-      Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
-          let active_timer = !active_timer in
-          let scheduled_at =
-            active_timer.scheduled +. active_timer.parent.delay
-          in
-          let need_to_run = scheduled_at < now in
-          if need_to_run then
-            to_run := Scheduled active_timer :: !to_run
-          else
-            earliest_next :=
-              Some
-                ( match !earliest_next with
-                | None -> scheduled_at
-                | Some v -> min scheduled_at v );
-          not need_to_run);
-      Option.iter !earliest_next ~f:(Mvar.set t.earliest_wakeup);
-      add_events t !to_run;
-      loop ()
+    let to_run = ref [] in
+    let earliest_next = ref None in
+    with_mutex t.time_mutex ~f:(fun () ->
+        if is_empty t.timers then
+          ()
+        else
+          let now = Unix.gettimeofday () in
+          Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
+              let active_timer = !active_timer in
+              let scheduled_at =
+                active_timer.scheduled +. active_timer.parent.delay
+              in
+              let need_to_run = scheduled_at < now in
+              if need_to_run then
+                to_run := Scheduled active_timer :: !to_run
+              else
+                earliest_next :=
+                  Some
+                    ( match !earliest_next with
+                    | None -> scheduled_at
+                    | Some v -> min scheduled_at v );
+              not need_to_run));
+    add_events t !to_run;
+    Option.iter !earliest_next ~f:(Mvar.set t.earliest_wakeup);
+    with_mutex t.timers_available_mutex ~f:(fun () ->
+        Condition.wait t.timers_available t.timers_available_mutex);
+    loop ()
   in
-  Condition.signal t.timers_available;
-  with_mutex t.time_mutex ~f:loop
+  loop ()
 
 let wake_loop t =
   let rec loop () =
     let wakeup_at = Mvar.get t.earliest_wakeup in
     let now = Unix.gettimeofday () in
     if now < wakeup_at then Thread.delay (wakeup_at -. now);
-    Condition.signal t.timers_available;
+    signal_timers_available t;
     loop ()
   in
   loop ()
@@ -244,15 +250,14 @@ let create () =
     ; threads = []
     ; timers = Table.create (module Timer_id) 10
     ; timers_available = Condition.create ()
+    ; timers_available_mutex = Mutex.create ()
     ; time = Thread.self ()
     ; earliest_wakeup = Mvar.create ()
     ; waker = Thread.self ()
     ; detached = Queue.create ()
     }
   in
-  with_mutex t.time_mutex ~f:(fun () ->
-      t.time <- Thread.create time_loop t;
-      Condition.wait t.timers_available t.time_mutex);
+  t.time <- Thread.create time_loop t;
   t.waker <- Thread.create wake_loop t;
   t
 
@@ -444,25 +449,26 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     let scheduled = Unix.gettimeofday () in
     { scheduled; ivar = Fiber.Ivar.create (); parent = timer }
   in
-  let* ivar =
-    with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
-        match Table.find timer.timer_scheduler.timers timer.timer_id with
-        | Some active ->
-          let+ () =
-            let active = !active in
-            log (fun () -> Log.msg "cancelled task" []);
-            Fiber.Ivar.fill active.ivar `Cancelled
-          in
-          active := active_timer;
-          active_timer.ivar
-        | None ->
-          add_pending_events timer.timer_scheduler 1;
-          Table.add_exn timer.timer_scheduler.timers timer.timer_id
-            (ref active_timer);
-          Condition.signal timer.timer_scheduler.timers_available;
-          Fiber.return active_timer.ivar)
+  let* () =
+    match
+      with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
+          match Table.find timer.timer_scheduler.timers timer.timer_id with
+          | Some active ->
+            let to_cancel = !active.ivar in
+            active := active_timer;
+            `Cancel to_cancel
+          | None ->
+            Table.add_exn timer.timer_scheduler.timers timer.timer_id
+              (ref active_timer);
+            `Signal_timers_available)
+    with
+    | `Cancel ivar -> Fiber.Ivar.fill ivar `Cancelled
+    | `Signal_timers_available ->
+      add_pending_events timer.timer_scheduler 1;
+      signal_timers_available timer.timer_scheduler;
+      Fiber.return ()
   in
-  let* res = Fiber.Ivar.read ivar in
+  let* res = Fiber.Ivar.read active_timer.ivar in
   match res with
   | `Cancelled as e -> Fiber.return (Error e)
   | `Resolved ->
@@ -475,6 +481,7 @@ let cancel_timer (timer : timer) =
         match Table.find timer.timer_scheduler.timers timer.timer_id with
         | None -> None
         | Some at ->
+          (* TODO what about decrementing pending events? *)
           Table.remove timer.timer_scheduler.timers timer.timer_id;
           Some !at.ivar)
   with
