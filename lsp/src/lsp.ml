@@ -17,6 +17,7 @@ module Types = Types
 module Uri = Uri0
 module Fiber_stream = Fiber_stream
 module Io = Io
+module Fiber_io = Fiber_io
 
 module Private = struct
   (** These modules are not for public consumption *)

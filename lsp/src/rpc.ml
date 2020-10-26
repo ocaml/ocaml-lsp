@@ -1,46 +1,6 @@
 open Import
 open Jsonrpc
-
-module Stream_io = struct
-  open Fiber_stream
-
-  type t =
-    { in_ : Jsonrpc.packet In.t
-    ; out : Jsonrpc.packet Out.t
-    }
-
-  let close t = Out.write t.out None
-
-  let send t p = Out.write t.out (Some p)
-
-  let recv t = In.read t.in_
-
-  let make s io =
-    let in_ =
-      let r = Scheduler.create_thread s in
-      Fiber_stream.In.create (fun () ->
-          let open Fiber.O in
-          let task = Scheduler.async r (fun () -> Io.read io) in
-          let+ res = Scheduler.await_no_cancel task in
-          Result.ok_exn res)
-    in
-    let out =
-      let w = Scheduler.create_thread s in
-      let open Fiber.O in
-      Fiber_stream.Out.create (fun t ->
-          let+ res =
-            Scheduler.async w
-              ( match t with
-              | None -> fun () -> Io.close io
-              | Some p -> fun () -> Io.send io p )
-            |> Scheduler.await_no_cancel
-          in
-          Result.ok_exn res)
-    in
-    { in_; out }
-end
-
-module Session = Session (Stream_io)
+module Session = Session (Fiber_io)
 
 module State = struct
   type t =
@@ -81,7 +41,7 @@ module type S = sig
 
   val state : 'a t -> 'a
 
-  val make : 'state Handler.t -> Stream_io.t -> 'state -> 'state t
+  val make : 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
 
   val stop : _ t -> unit Fiber.t
 
@@ -130,7 +90,7 @@ struct
   type in_notification = In_notification.t
 
   type 'state t =
-    { io : Stream_io.t
+    { io : Fiber_io.t
     ; (* mutable only to initialiaze this record *)
       mutable session : 'state Session.t Fdecl.t
     ; (* Internal state of the session *)
