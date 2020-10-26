@@ -1,4 +1,8 @@
+(** Reprsents a bi-directional jsonrpc packet stream read in dedicated threads.
+
+    TODO Nothing here is specific to jsonrpc *)
 open! Import
+
 open Jsonrpc
 
 type t
