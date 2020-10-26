@@ -34,7 +34,7 @@ module Client = struct
     in
     let client =
       let io = Io.make in_ out in
-      let stream_io = Rpc.Stream_io.make scheduler io in
+      let stream_io = Fiber_io.make scheduler io in
       Client.make handler stream_io
         { received_notification = Fiber.Ivar.create () }
     in
@@ -138,7 +138,7 @@ module Server = struct
   let run in_ out =
     let server =
       let io = Io.make in_ out in
-      let stream_io = Rpc.Stream_io.make scheduler io in
+      let stream_io = Fiber_io.make scheduler io in
       Server.make handler stream_io Started
     in
     Server.start server
