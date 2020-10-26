@@ -8,9 +8,13 @@ type t =
   ; oc : out_channel
   }
 
-let close { ic; oc } =
-  close_in_noerr ic;
-  close_out_noerr oc
+let close_in { ic; oc = _ } = close_in_noerr ic
+
+let close_out { ic = _; oc } = close_out_noerr oc
+
+let close t =
+  close_in t;
+  close_out t
 
 let make ic oc =
   set_binary_mode_in ic true;
