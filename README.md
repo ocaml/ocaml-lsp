@@ -135,7 +135,7 @@ entirely out of date:
   This server supports
   [bucklescript](https://github.com/BuckleScript/bucklescript) &
   [reason](https://github.com/facebook/reason). However, this project does not
-  use merlin which means that it supports less versions of OCaml and offers less
+  use merlin which means that it supports fewer versions of OCaml and offers less
   "smart" functionality - especially in the face of sources that do not yet
   compile.
 
