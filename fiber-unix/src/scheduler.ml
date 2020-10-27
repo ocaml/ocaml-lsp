@@ -480,17 +480,19 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     Ok res
 
 let cancel_timer (timer : timer) =
+  let t = timer.timer_scheduler in
   match
-    with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
-        match Table.find timer.timer_scheduler.timers timer.timer_id with
+    with_mutex t.time_mutex ~f:(fun () ->
+        match Table.find t.timers timer.timer_id with
         | None -> None
         | Some at ->
-          (* TODO what about decrementing pending events? *)
-          Table.remove timer.timer_scheduler.timers timer.timer_id;
+          Table.remove t.timers timer.timer_id;
           Some !at.ivar)
   with
   | None -> Fiber.return ()
-  | Some ivar -> Fiber.Ivar.fill ivar `Cancelled
+  | Some ivar ->
+    with_mutex t.mutex ~f:(fun () -> t.events_pending <- t.events_pending - 1);
+    Fiber.Ivar.fill ivar `Cancelled
 
 let detach ?name t f =
   let task () =
