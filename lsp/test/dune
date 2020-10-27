@@ -2,7 +2,7 @@
 
 (executable
  (name server_test)
- (libraries stdune lsp yojson ppx_yojson_conv_lib fiber threads.posix)
+ (libraries stdune lsp jsonrpc yojson ppx_yojson_conv_lib fiber threads.posix)
  (modules server_test)
  (preprocess future_syntax))
 
@@ -36,7 +36,7 @@
  (name jsonrpc_test)
  (modules jsonrpc_test)
  (preprocess future_syntax)
- (libraries stdune yojson lsp fiber ppx_yojson_conv_lib threads.posix))
+ (libraries stdune jsonrpc yojson lsp fiber ppx_yojson_conv_lib threads.posix))
 
 (rule
  (alias test)
@@ -51,6 +51,7 @@
  (inline_tests)
  (libraries
   fiber
+  jsonrpc
   stdune
   lsp
   ;; This is because of the (implicit_transitive_deps false)

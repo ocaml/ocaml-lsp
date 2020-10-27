@@ -1,6 +1,6 @@
 open Import
 open Jsonrpc
-module Session = Session (Fiber_io)
+module Session = Jsonrpc_session.Make (Fiber_io)
 
 module State = struct
   type t =
@@ -81,6 +81,8 @@ end)
 (In_request : Request_intf)
 (In_notification : Notification_intf) =
 struct
+  open Jsonrpc_session
+
   type 'a out_request = 'a Out_request.t
 
   type 'a in_request = 'a In_request.t
@@ -223,7 +225,7 @@ module Client = struct
     let h_on_notification rpc notif =
       let open Fiber.O in
       let+ res = handler.h_on_notification rpc notif in
-      (Notify.Continue, res)
+      (Jsonrpc_session.Notify.Continue, res)
     in
     make ~name:"client" handler.h_on_request h_on_notification io
 
@@ -264,14 +266,14 @@ module Server = struct
       Log.log ~section:"server" (fun () ->
           Log.msg "received exit notification" []);
       let* () = stop t in
-      Fiber.return (Notify.Stop, state t)
+      Fiber.return (Jsonrpc_session.Notify.Stop, state t)
     | _ ->
       if t.state = Waiting_for_init then
         let state = state t in
-        Fiber.return (Notify.Continue, state)
+        Fiber.return (Jsonrpc_session.Notify.Continue, state)
       else
         let+ state = handler.h_on_notification t n in
-        (Notify.Continue, state)
+        (Jsonrpc_session.Notify.Continue, state)
 
   let on_request handler t in_r =
     let open Fiber.O in

@@ -1,9 +1,9 @@
 include Lsp.Import
+module Jsonrpc = Jsonrpc
 module Logger = Lsp.Logger
 module Loc = Location
 module Scheduler = Lsp.Scheduler
 module Server = Lsp.Server
-module Jsonrpc = Lsp.Jsonrpc
 module Fiber_detached = Lsp.Fiber_detached
 module Client_request = Lsp.Client_request
 module Client_notification = Lsp.Client_notification
