@@ -16,6 +16,7 @@ module Text_document = Text_document
 module Types = Types
 module Uri = Uri0
 module Fiber_stream = Fiber_stream
+module Fiber_detached = Fiber_detached
 module Io = Io
 module Fiber_io = Fiber_io
 

@@ -69,9 +69,14 @@ end
 module Server = struct
   module Server = Rpc.Server
 
-  type state =
+  type status =
     | Started
     | Initialized
+
+  type state =
+    { status : status
+    ; detached : Fiber_detached.t
+    }
 
   let on_request =
     let on_request (type a) self (req : a Client_request.t) :
@@ -83,14 +88,14 @@ module Server = struct
         let result = InitializeResult.create ~capabilities () in
         Format.eprintf "server: initializing server@.";
         Format.eprintf "server: returning initialization result@.%!";
-        Fiber.return (Ok (result, Initialized))
+        Fiber.return (Ok (result, { state with status = Initialized }))
       | Client_request.ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
         let open Fiber.O in
         let* () =
           let timer = Scheduler.create_timer scheduler ~delay:0.5 in
-          Scheduler.detach ~name:"ShowMessage" scheduler (fun () ->
+          Fiber_detached.task state.detached ~f:(fun () ->
               Format.eprintf
                 "server: sending message notification to client@.%!";
               let msg =
@@ -119,7 +124,8 @@ module Server = struct
               in
               loop 2 (Fiber.return (Ok ())))
         in
-        Fiber.return (Ok (result, state))
+        let+ () = Fiber_detached.stop state.detached in
+        Ok (result, state)
       | _ ->
         Fiber.return
           (Error
@@ -136,12 +142,15 @@ module Server = struct
   let handler = Server.Handler.make ~on_request ~on_notification ()
 
   let run in_ out =
+    let detached = Fiber_detached.create () in
     let server =
       let io = Io.make in_ out in
       let stream_io = Fiber_io.make scheduler io in
-      Server.make handler stream_io Started
+      Server.make handler stream_io { status = Started; detached }
     in
-    Server.start server
+    Fiber.fork_and_join_unit
+      (fun () -> Server.start server)
+      (fun () -> Fiber_detached.run detached)
 end
 
 let pipe () =
@@ -160,7 +169,6 @@ let () =
         let delay = 3.0 in
         Thread.delay delay;
         Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
-        Format.eprintf "----@.%a-----@." Scheduler.report scheduler;
         exit 1)
       ()
   in

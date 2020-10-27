@@ -64,39 +64,28 @@ val sequential_iter : 'a list -> f:('a -> unit t) -> unit t
 
 (** For two fibers and wait for their results:
 
-    {[
-      let fork_and_join f g =
-        fork f >>= fun a ->
-        fork g >>= fun b -> both (Future.wait a) (Future.wait b)
-    ]} *)
+    {[ let fork_and_join f g = fork f >>= fun a -> fork g >>= fun b -> both
+    (Future.wait a) (Future.wait b) ]} *)
 val fork_and_join : (unit -> 'a t) -> (unit -> 'b t) -> ('a * 'b) t
 
 (** Same but assume the first fiber returns [unit]:
 
-    {[
-      let fork_and_join_unit f g =
-        fork f >>= fun a ->
-        fork g >>= fun b -> Future.wait a >>> Future.wait b
-    ]} *)
+    {[ let fork_and_join_unit f g = fork f >>= fun a -> fork g >>= fun b ->
+    Future.wait a >>> Future.wait b ]} *)
 val fork_and_join_unit : (unit -> unit t) -> (unit -> 'a t) -> 'a t
 
 val fork_and_race : (unit -> 'a t) -> (unit -> 'b t) -> ('a, 'b) Either.t t
 
 (** Map a list in parallel:
 
-    {[
-      let parallel_map l ~f =
-        nfork_map l ~f >>= fun futures -> all (List.map futures ~f:Future.wait)
-    ]} *)
+    {[ let parallel_map l ~f = nfork_map l ~f >>= fun futures -> all (List.map
+    futures ~f:Future.wait) ]} *)
 val parallel_map : 'a list -> f:('a -> 'b t) -> 'b list t
 
 (** Iter over a list in parallel:
 
-    {[
-      let parallel_iter l ~f =
-        nfork_map l ~f >>= fun futures ->
-        all_unit (List.map futures ~f:Future.wait)
-    ]} *)
+    {[ let parallel_iter l ~f = nfork_map l ~f >>= fun futures -> all_unit
+    (List.map futures ~f:Future.wait) ]} *)
 val parallel_iter : 'a list -> f:('a -> unit t) -> unit t
 
 (** {1 Local storage} *)
@@ -135,9 +124,9 @@ with type 'a fiber := 'a t
 (** {1 Error handling} *)
 
 (** [with_error_handler f ~on_error] calls [on_error] for every exception raised
-    during the execution of [f]. This include exceptions raised when calling
-    [f ()] or during the execution of fibers after [f ()] has returned.
-    Exceptions raised by [on_error] are passed on to the parent error handler.
+    during the execution of [f]. This include exceptions raised when calling [f
+    ()] or during the execution of fibers after [f ()] has returned. Exceptions
+    raised by [on_error] are passed on to the parent error handler.
 
     It is guaranteed that after the fiber has returned a value, [on_error] will
     never be called. *)
@@ -145,8 +134,8 @@ val with_error_handler :
   (unit -> 'a t) -> on_error:(Exn_with_backtrace.t -> unit) -> 'a t
 
 (** [fold_errors f ~init ~on_error] calls [on_error] for every exception raised
-    during the execution of [f]. This include exceptions raised when calling
-    [f ()] or during the execution of fibers after [f ()] has returned.
+    during the execution of [f]. This include exceptions raised when calling [f
+    ()] or during the execution of fibers after [f ()] has returned.
 
     Exceptions raised by [on_error] are passed on to the parent error handler. *)
 val fold_errors :
@@ -155,8 +144,8 @@ val fold_errors :
   -> on_error:(Exn_with_backtrace.t -> 'b -> 'b)
   -> ('a, 'b) Result.t t
 
-(** [collect_errors f] is:
-    [fold_errors f ~init:\[\] ~on_error:(fun e l -> e :: l)] *)
+(** [collect_errors f] is: [fold_errors f ~init:\[\] ~on_error:(fun e l -> e ::
+    l)] *)
 val collect_errors :
   (unit -> 'a t) -> ('a, Exn_with_backtrace.t list) Result.t t
 
@@ -228,5 +217,28 @@ module Mvar : sig
   val read : 'a t -> 'a fiber
 
   val write : 'a t -> 'a -> unit fiber
+end
+with type 'a fiber := 'a t
+
+module Sequence : sig
+  type 'a fiber = 'a t
+
+  type 'a t = 'a node fiber
+
+  and 'a node =
+    | Nil
+    | Cons of 'a * 'a t
+
+  val sequential_iter : 'a t -> f:('a -> unit fiber) -> unit fiber
+
+  (** [parallel_iter t ~f] is the same as:
+
+      {[ let rec loop t ~f = t >>= function | Nil -> return () | Cons (x, t) ->
+      fork_and_join_unit (fun () -> f x) (fun () -> loop t ~f) ]}
+
+      except that if the sequence is infinite, the above code would leak memory
+      while [parallel_iter] does not. This function can typically be used to
+      process a sequence of events. *)
+  val parallel_iter : 'a t -> f:('a -> unit fiber) -> unit fiber
 end
 with type 'a fiber := 'a t

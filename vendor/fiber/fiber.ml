@@ -498,3 +498,40 @@ module Mvar = struct
         k ();
         K.run r x )
 end
+
+module Sequence = struct
+  type 'a fiber = 'a t
+
+  type 'a t = 'a node fiber
+
+  and 'a node =
+    | Nil
+    | Cons of 'a * 'a t
+
+  let rec sequential_iter t ~f =
+    t >>= function
+    | Nil -> return ()
+    | Cons (x, t) ->
+      let* () = f x in
+      sequential_iter t ~f
+
+  let parallel_iter t ~f k =
+    let n = ref 1 in
+    let k () =
+      decr n;
+      if !n = 0 then
+        k ()
+      else
+        EC.deref ()
+    in
+    let rec loop t =
+      t (function
+        | Nil -> k ()
+        | Cons (x, t) ->
+          EC.add_refs 1;
+          incr n;
+          EC.apply f x k;
+          loop t)
+    in
+    loop t
+end
