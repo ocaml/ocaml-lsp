@@ -108,7 +108,8 @@ end = struct
     t
 
   let add_work (type a) (t : a t) (w : a) =
-    if not (is_running t) then Code_error.raise "invalid state" [];
+    if not (is_running t) then
+      Code_error.raise "Unable to queue tasks after stop" [];
     with_mutex t.mutex ~f:(fun () ->
         let node = Removable_queue.push t.work w in
         Condition.signal t.work_available;
