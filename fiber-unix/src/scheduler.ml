@@ -108,18 +108,22 @@ end = struct
     t
 
   let add_work (type a) (t : a t) (w : a) =
-    if not (is_running t) then Code_error.raise "invalid state" [];
+    if not (is_running t) then
+      Code_error.raise "Unable to queue tasks after stop" [];
     with_mutex t.mutex ~f:(fun () ->
         let node = Removable_queue.push t.work w in
         Condition.signal t.work_available;
         Task (t, node))
 
   let stop (t : _ t) =
-    match t.state with
-    | Running th -> t.state <- Stopped th
-    | Stopped _
-    | Finished ->
-      ()
+    with_mutex t.mutex ~f:(fun () ->
+        match t.state with
+        | Running th ->
+          t.state <- Stopped th;
+          Condition.signal t.work_available
+        | Stopped _
+        | Finished ->
+          ())
 end
 
 module Timer_id = Id.Make ()
@@ -476,17 +480,19 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     Ok res
 
 let cancel_timer (timer : timer) =
+  let t = timer.timer_scheduler in
   match
-    with_mutex timer.timer_scheduler.time_mutex ~f:(fun () ->
-        match Table.find timer.timer_scheduler.timers timer.timer_id with
+    with_mutex t.time_mutex ~f:(fun () ->
+        match Table.find t.timers timer.timer_id with
         | None -> None
         | Some at ->
-          (* TODO what about decrementing pending events? *)
-          Table.remove timer.timer_scheduler.timers timer.timer_id;
+          Table.remove t.timers timer.timer_id;
           Some !at.ivar)
   with
   | None -> Fiber.return ()
-  | Some ivar -> Fiber.Ivar.fill ivar `Cancelled
+  | Some ivar ->
+    with_mutex t.mutex ~f:(fun () -> t.events_pending <- t.events_pending - 1);
+    Fiber.Ivar.fill ivar `Cancelled
 
 let detach ?name t f =
   let task () =
