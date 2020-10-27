@@ -19,8 +19,11 @@ let _ =
       exit 1)
     ()
 
+exception Timer_error
+
 let () =
   let open Fiber.O in
+  let detached = Fiber_detached.create () in
   let timers_finished () =
     let timer = Scheduler.create_timer s ~delay:1.0 in
     let now = Unix.gettimeofday () in
@@ -37,17 +40,27 @@ let () =
       Format.eprintf "first scheduled cancelled. second one ran after %f@.%!"
         diff;
       let* () =
-        Scheduler.detach ~name:"timer" s (fun () ->
+        Fiber_detached.task detached ~f:(fun () ->
             let+ res = Scheduler.schedule timer (fun () -> Fiber.return ()) in
             match res with
             | Error `Cancelled -> assert false
             | Ok () -> ())
       in
-      Fiber.return (Ok ())
-    | _, _ -> Fiber.return (Error ())
+      let+ () = Fiber_detached.stop detached in
+      Ok ()
+    | _, _ -> Fiber.return (Error Timer_error)
   in
-  let all = Fiber.fork_and_join fb timers_finished in
+  let all =
+    Fiber.parallel_map
+      [ fb
+      ; timers_finished
+      ; (fun () ->
+          let+ () = Fiber_detached.run detached in
+          Ok ())
+      ]
+      ~f:(fun f -> f ())
+  in
   let res = Scheduler.run s all in
   match res with
-  | Ok (), Ok () -> print_endline "finished successfully"
-  | _, _ -> Code_error.raise "unexpected error" []
+  | [ Ok (); Ok (); Ok () ] -> print_endline "finished successfully"
+  | _ -> Code_error.raise "unexpected error" []
