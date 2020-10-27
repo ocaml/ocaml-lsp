@@ -1,6 +1,6 @@
 open! Lsp.Import
 open Lsp
-open Lsp.Fiber_stream
+open Fiber_unix.Fiber_stream
 open Jsonrpc
 
 module Stream_chan = struct

@@ -753,7 +753,7 @@ let start () =
   in
   let stream =
     let io = Lsp.Io.make stdin stdout in
-    Lsp.Fiber_io.make scheduler io
+    Fiber_io.make scheduler io
   in
   let configuration = Configuration.default in
   let server =

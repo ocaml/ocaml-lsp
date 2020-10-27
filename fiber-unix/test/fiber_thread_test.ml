@@ -1,5 +1,5 @@
 open! Stdune
-open Lsp
+open Fiber_unix
 
 let s = Scheduler.create ()
 

@@ -4,7 +4,7 @@
  (name lsp)
  (public_name lsp)
  (libraries stdune yojson jsonrpc threads.posix ppx_yojson_conv_lib fiber
-   uutf)
+   uutf fiber_unix)
  (preprocess future_syntax)
  (lint
   (pps ppx_yojson_conv)))
