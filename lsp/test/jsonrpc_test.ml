@@ -13,7 +13,7 @@ module Stream_chan = struct
   let recv (i, _) = In.read i
 end
 
-module Session = Jsonrpc.Session (Stream_chan)
+module Session = Jsonrpc_session.Make (Stream_chan)
 open Lsp.Import
 
 let print_json json = print_endline (Json.to_string json)
@@ -37,7 +37,7 @@ let () =
     let json = Message.yojson_of_notification n in
     print_endline ">> received notification";
     print_json json;
-    Fiber.return (Notify.Continue, ())
+    Fiber.return (Jsonrpc_session.Notify.Continue, ())
   in
   let responses = ref [] in
   let initial_requests =

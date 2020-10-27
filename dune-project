@@ -29,6 +29,7 @@ possible and does not make any assumptions about IO.
 ")
  (depends
   stdlib-shims
+  jsonrpc
   yojson
   ppx_yojson_conv_lib
   ocaml-syntax-shims
@@ -57,5 +58,17 @@ possible and does not make any assumptions about IO.
   (ocamlformat :with-test)
   (reason :with-test)
   (ocamlfind (>= 1.5.2))
+  (ocaml (>= 4.06))
+  (dune (>= 2.5.0))))
+
+(package
+ (name jsonrpc)
+ (synopsis "Jsonrpc protocol implemenation")
+ (description "See https://www.jsonrpc.org/specification")
+ (depends
+  yojson
+  stdlib-shims
+  ppx_yojson_conv_lib
+  (result (>= 1.5))
   (ocaml (>= 4.06))
   (dune (>= 2.5.0))))

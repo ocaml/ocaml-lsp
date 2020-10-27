@@ -19,6 +19,7 @@ module Fiber_stream = Fiber_stream
 module Fiber_detached = Fiber_detached
 module Io = Io
 module Fiber_io = Fiber_io
+module Jsonrpc_session = Jsonrpc_session
 
 module Private = struct
   (** These modules are not for public consumption *)
