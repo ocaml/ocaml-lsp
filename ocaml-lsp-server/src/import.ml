@@ -2,9 +2,8 @@ include Lsp.Import
 module Jsonrpc = Jsonrpc
 module Logger = Lsp.Logger
 module Loc = Location
-module Scheduler = Lsp.Scheduler
+module Scheduler = Fiber_unix.Scheduler
 module Server = Lsp.Server
-module Fiber_detached = Lsp.Fiber_detached
 module Client_request = Lsp.Client_request
 module Client_notification = Lsp.Client_notification
 module Text_document = Lsp.Text_document
@@ -62,5 +61,7 @@ module DidChangeConfigurationParams = Lsp.Types.DidChangeConfigurationParams
 module ConfigurationParams = Lsp.Types.ConfigurationParams
 module RenameOptions = Lsp.Types.RenameOptions
 module Uri = Lsp.Uri
+module Fiber_detached = Fiber_unix.Fiber_detached
+module Fiber_io = Lsp.Fiber_io
 
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"

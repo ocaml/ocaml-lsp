@@ -1,5 +1,5 @@
-open! Lsp.Import
-module Q = Lsp.Private.Removable_queue
+open! Import
+module Q = Fiber_unix.Private.Removable_queue
 
 let printf = Printf.printf
 

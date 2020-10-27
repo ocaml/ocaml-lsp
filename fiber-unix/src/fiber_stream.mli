@@ -1,5 +1,3 @@
-open Import
-
 module In : sig
   type 'a t
 

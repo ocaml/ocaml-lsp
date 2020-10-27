@@ -1,5 +1,3 @@
-open Import
-
 module In = struct
   type 'a t = unit -> 'a option Fiber.t
 

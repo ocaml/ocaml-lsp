@@ -1,4 +1,5 @@
 open Import
+module Fiber_stream = Fiber_unix.Fiber_stream
 open Fiber_stream
 
 let failing_fiber () : unit Fiber.t =

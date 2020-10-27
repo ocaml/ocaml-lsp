@@ -1,4 +1,5 @@
 open Import
+open Fiber_unix
 
 let%expect_test "start & stop" =
   test unit

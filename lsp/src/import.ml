@@ -16,6 +16,7 @@ module Id = Id
 module Exn_with_backtrace = Exn_with_backtrace
 module Fdecl = Fdecl
 module Queue = Queue
+include Fiber_unix
 
 module String = struct
   include Stdune.String
