@@ -115,11 +115,14 @@ end = struct
         Task (t, node))
 
   let stop (t : _ t) =
-    match t.state with
-    | Running th -> t.state <- Stopped th
-    | Stopped _
-    | Finished ->
-      ()
+    with_mutex t.mutex ~f:(fun () ->
+        match t.state with
+        | Running th ->
+          t.state <- Stopped th;
+          Condition.signal t.work_available
+        | Stopped _
+        | Finished ->
+          ())
 end
 
 module Timer_id = Id.Make ()
