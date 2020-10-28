@@ -1,5 +1,6 @@
 open! Import
 module S = Fiber_unix.Scheduler
+module Fiber_detached = Fiber_unix.Fiber_detached
 
 let%expect_test "scheduler starts and runs a fiber" =
   let s = S.create () in
@@ -150,3 +151,29 @@ let%expect_test "tests rescheduling" =
   in
   S.run s (Fiber.of_thunk run);
   [%expect {| cancel. cancel. timer. counter: 1 |}]
+
+let%expect_test "detached + timer" =
+  let s = S.create () in
+  let detached = Fiber_detached.create () in
+  let timer = S.create_timer s ~delay:0.05 in
+  let run () =
+    Fiber.fork_and_join_unit
+      (fun () ->
+        let* () =
+          Fiber_detached.task detached ~f:(fun () ->
+              let* res =
+                S.schedule timer (fun () ->
+                    print_endline "inside timer";
+                    Fiber.return ())
+              in
+              match res with
+              | Ok () -> Fiber.return (print_endline "timer finished")
+              | Error `Cancelled -> assert false)
+        in
+        Fiber_detached.stop detached)
+      (fun () -> Fiber_detached.run detached)
+  in
+  S.run s (Fiber.of_thunk run);
+  [%expect{|
+    inside timer
+    timer finished |}]
