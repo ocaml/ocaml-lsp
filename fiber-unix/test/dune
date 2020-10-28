@@ -1,13 +1,5 @@
-(test
- (name fiber_thread_test)
- (modules fiber_thread_test)
- (preprocess future_syntax)
- (libraries stdune fiber_unix fiber threads.posix))
-
 (library
  (name fiber_unix_expect_tests)
- (modules
-  (:standard \ fiber_thread_test))
  (enabled_if
   (>= %{ocaml_version} 4.08))
  (inline_tests)
