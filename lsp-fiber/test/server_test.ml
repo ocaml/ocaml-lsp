@@ -95,7 +95,7 @@ module Server = struct
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
         let open Fiber.O in
-        let* () =
+        let* (_ : (unit, [ `Stopped ]) result) =
           let timer = Scheduler.create_timer scheduler ~delay:0.5 in
           Fiber_detached.task state.detached ~f:(fun () ->
               Format.eprintf

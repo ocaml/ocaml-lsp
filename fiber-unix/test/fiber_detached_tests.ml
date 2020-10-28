@@ -17,7 +17,7 @@ let%expect_test "run 2 task" =
      in
      let tasks () =
        Fiber.parallel_iter [ 1; 2 ] ~f:(fun n ->
-           Fiber_detached.task detached ~f:(task n))
+           Fiber_detached.task_exn detached ~f:(task n))
      in
      Fiber.fork_and_join_unit
        (fun () -> Fiber_detached.run detached)

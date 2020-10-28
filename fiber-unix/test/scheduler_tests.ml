@@ -160,7 +160,7 @@ let%expect_test "detached + timer" =
     Fiber.fork_and_join_unit
       (fun () ->
         let* () =
-          Fiber_detached.task detached ~f:(fun () ->
+          Fiber_detached.task_exn detached ~f:(fun () ->
               let* res =
                 S.schedule timer (fun () ->
                     print_endline "inside timer";

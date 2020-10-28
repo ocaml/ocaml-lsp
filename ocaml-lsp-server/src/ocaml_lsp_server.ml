@@ -70,14 +70,18 @@ let send_diagnostics ?diagnostics rpc doc =
       (PublishDiagnosticsParams.create ~uri ~diagnostics ())
   in
   let async send =
-    Fiber_detached.task state.detached ~f:(fun () ->
-        let open Fiber.O in
-        let timer = Document.timer doc in
-        let+ res = Scheduler.schedule timer send in
-        match res with
-        | Error `Cancelled
-        | Ok () ->
-          ())
+    let open Fiber.O in
+    let+ (_ : (unit, [ `Stopped ]) result) =
+      Fiber_detached.task state.detached ~f:(fun () ->
+          let open Fiber.O in
+          let timer = Document.timer doc in
+          let+ res = Scheduler.schedule timer send in
+          match res with
+          | Error `Cancelled
+          | Ok () ->
+            ())
+    in
+    ()
   in
   match diagnostics with
   | Some diagnostics ->
@@ -149,7 +153,7 @@ let on_initialize rpc =
       in
       let message = Printf.sprintf "[%s] %s" section text in
       let notif = Server_notification.LogMessage { message; type_ } in
-      let (_ : unit Fiber.t) =
+      let (_ : _ Fiber.t) =
         let state : State.t = Server.state rpc in
         Fiber_detached.task state.detached ~f:(fun () ->
             Server.notification rpc notif)
@@ -197,7 +201,7 @@ module Formatter = struct
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Error in
       let open Fiber.O in
-      let+ () =
+      let+ (_ : (unit, [ `Stopped ]) result) =
         let state : State.t = Server.state rpc in
         Fiber_detached.task state.detached ~f:(fun () ->
             Server.notification rpc (ShowMessage msg))
@@ -727,7 +731,7 @@ let on_notification server (notification : Client_notification.t) :
       Fiber.return state )
 
 let start () =
-  let docs = Document_store.make () in
+  let store = Document_store.make () in
   let prepare_and_run prep_exn f =
     let f () =
       let open Fiber.O in
@@ -764,7 +768,7 @@ let start () =
   let server =
     let merlin = Scheduler.create_thread scheduler in
     Server.make handler stream
-      { store = docs
+      { store
       ; init = Uninitialized
       ; merlin
       ; scheduler
@@ -776,7 +780,9 @@ let start () =
     (fun () ->
       let open Fiber.O in
       let* () = Server.start server in
-      Scheduler.cancel_timers scheduler)
+      Fiber.fork_and_join_unit
+        (fun () -> Document_store.close store)
+        (fun () -> Fiber_detached.stop detached))
     (fun () -> Fiber_detached.run detached)
   |> Scheduler.run scheduler;
   log ~title:Logger.Title.Info "exiting"
