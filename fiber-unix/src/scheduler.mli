@@ -18,7 +18,9 @@ val await_no_cancel : 'a task -> 'a Or_exn.t Fiber.t
 
 val cancel_task : 'a task -> unit Fiber.t
 
-val async : thread -> (unit -> 'a) -> 'a task
+val async : thread -> (unit -> 'a) -> ('a task, [ `Stopped ]) result
+
+val async_exn : thread -> (unit -> 'a) -> 'a task
 
 val stop : thread -> unit
 

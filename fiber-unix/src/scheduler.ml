@@ -50,7 +50,7 @@ module Worker : sig
 
   val cancel : task -> unit
 
-  val add_work : 'a t -> 'a -> task
+  val add_work : 'a t -> 'a -> (task, [ `Stopped ]) result
 
   val stop : _ t -> unit
 end = struct
@@ -114,12 +114,13 @@ end = struct
     t
 
   let add_work (type a) (t : a t) (w : a) =
-    if not (is_running t) then
-      Code_error.raise "Unable to queue tasks after stop" [];
     with_mutex t.mutex ~f:(fun () ->
-        let node = Removable_queue.push t.work w in
-        Condition.signal t.work_available;
-        Task (t, node))
+        if is_running t then (
+          let node = Removable_queue.push t.work w in
+          Condition.signal t.work_available;
+          Ok (Task (t, node))
+        ) else
+          Error `Stopped)
 
   let stop (t : _ t) =
     with_mutex t.mutex ~f:(fun () ->
@@ -303,8 +304,13 @@ let cancel_task task =
 let async (t : thread) f =
   add_pending_events t.scheduler 1;
   let ivar = Fiber.Ivar.create () in
-  let task = Worker.add_work t.worker (Pending (f, ivar)) in
-  { ivar; task }
+  let work = Worker.add_work t.worker (Pending (f, ivar)) in
+  Result.map work ~f:(fun task -> { ivar; task })
+
+let async_exn t f =
+  match async t f with
+  | Error `Stopped -> Code_error.raise "async_exn: stopped thread" []
+  | Ok task -> task
 
 let stop (t : thread) = Worker.stop t.worker
 

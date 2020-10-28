@@ -22,7 +22,7 @@ let%expect_test "run an async task and wait it for it to finish" =
   let s = S.create () in
   let th = S.create_thread s in
   let async () =
-    S.async th (fun () -> print_endline "running in a different thread")
+    S.async_exn th (fun () -> print_endline "running in a different thread")
   in
   let run () =
     print_endline "running in scheduler";
