@@ -127,6 +127,26 @@ let%expect_test "create multiple timers" =
     printf "counter: %d\n" !counter
   in
   S.run s (Fiber.of_thunk run);
-  [%expect
-    {|
+  [%expect {|
     timer. timer. timer. counter: 3 |}]
+
+let%expect_test "tests rescheduling" =
+  let s = S.create () in
+  let timer = S.create_timer s ~delay:0.05 in
+  let run () =
+    let counter = ref 0 in
+    let+ () =
+      Fiber.parallel_iter [ 1; 2; 3 ] ~f:(fun _ ->
+          let+ res =
+            S.schedule timer (fun () ->
+                printf "timer. ";
+                Fiber.return ())
+          in
+          match res with
+          | Error `Cancelled -> printf "cancel. "
+          | Ok () -> incr counter)
+    in
+    printf "counter: %d\n" !counter
+  in
+  S.run s (Fiber.of_thunk run);
+  [%expect {| cancel. cancel. timer. counter: 1 |}]
