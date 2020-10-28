@@ -80,27 +80,27 @@ end = struct
 
   let run (f, t) =
     let rec loop () =
-      match
-        with_mutex t.mutex ~f:(fun () ->
-            while not (Removable_queue.is_empty t.work) do
-              f (Option.value_exn (Removable_queue.pop t.work))
-            done;
-            match t.state with
-            | Stopped _ ->
-              assert (Removable_queue.is_empty t.work);
-              t.state <- Finished;
-              `Stop
-            | Finished -> assert false
-            | Running _ ->
-              while Removable_queue.is_empty t.work && is_running t do
-                Condition.wait t.work_available t.mutex
-              done;
-              `Continue)
-      with
-      | `Stop -> ()
-      | `Continue -> loop ()
+      match t.state with
+      | Stopped _ -> (
+        match Removable_queue.pop t.work with
+        | None -> t.state <- Finished
+        | Some job -> do_work job )
+      | Finished -> ()
+      | Running _ -> (
+        match Removable_queue.pop t.work with
+        | Some job -> do_work job
+        | None ->
+          while Removable_queue.is_empty t.work && is_running t do
+            Condition.wait t.work_available t.mutex
+          done;
+          loop () )
+    and do_work job =
+      Mutex.unlock t.mutex;
+      f job;
+      Mutex.lock t.mutex;
+      loop ()
     in
-    loop ()
+    with_mutex t.mutex ~f:loop
 
   let create ~do_ =
     let t =
