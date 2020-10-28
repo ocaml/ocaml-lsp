@@ -2,18 +2,19 @@ open Import
 open Json.Conv
 
 module Id = struct
-  type t = (string, int) Either.t
+  type t =
+    [ `String of string
+    | `Int of int
+    ]
 
   let yojson_of_t = function
-    | Either.Left s -> `String s
-    | Right i -> `Int i
+    | `String s -> `String s
+    | `Int i -> `Int i
 
   let t_of_yojson = function
-    | `String s -> Either.Left s
-    | `Int i -> Right i
+    | `String s -> `String s
+    | `Int i -> `Int i
     | json -> Json.error "Id.t" json
-
-  let to_dyn x = Dyn.Encoder.opaque x
 
   let hash x = Hashtbl.hash x
 

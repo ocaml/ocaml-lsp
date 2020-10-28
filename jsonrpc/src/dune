@@ -1,3 +1,3 @@
 (library
  (public_name jsonrpc)
- (libraries stdune ppx_yojson_conv_lib yojson))
+ (libraries ppx_yojson_conv_lib yojson))

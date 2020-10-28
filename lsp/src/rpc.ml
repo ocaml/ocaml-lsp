@@ -192,7 +192,7 @@ struct
 
   let request (type r) (t : _ t) (req : r Out_request.t) :
       (r, Jsonrpc.Response.Error.t) result Fiber.t =
-    let id = Either.Right t.req_id in
+    let id = `Int t.req_id in
     let jsonrpc_request =
       t.req_id <- t.req_id + 1;
       Out_request.to_jsonrpc_request req ~id

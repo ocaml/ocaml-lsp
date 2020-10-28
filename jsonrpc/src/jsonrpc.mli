@@ -2,11 +2,12 @@
 open Import
 
 module Id : sig
-  type t = (string, int) Either.t
+  type t =
+    [ `String of string
+    | `Int of int
+    ]
 
   include Json.Jsonable.S with type t := t
-
-  val to_dyn : t -> Dyn.t
 
   val hash : t -> int
 

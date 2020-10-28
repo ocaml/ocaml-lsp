@@ -1,6 +1,15 @@
 open Import
 open Jsonrpc
 
+module Id = struct
+  include Id
+
+  let to_dyn t : Dyn.t =
+    match t with
+    | `Int x -> Int x
+    | `String x -> String x
+end
+
 module Notify = struct
   type t =
     | Stop

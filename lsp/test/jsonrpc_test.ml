@@ -47,8 +47,8 @@ let () =
     let notification ?params method_ =
       Jsonrpc.Message.create ~id:None ?params ~method_ ()
     in
-    [ Message (request (Either.Right 10) "foo")
-    ; Message (request ~params:`Null (Either.Left "testing") "bar")
+    [ Message (request (`Int 10) "foo")
+    ; Message (request ~params:`Null (`String "testing") "bar")
     ; Message (notification ~params:`Null "notif1")
     ; Message (notification ~params:`Null "notif2")
     ; Message (notification ~params:`Null "raise")

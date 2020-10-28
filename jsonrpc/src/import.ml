@@ -1,9 +1,9 @@
-module String = Stdune.String
-module Array = Stdune.Array
-module List = Stdune.List
-module Option = Stdune.Option
-module Dyn = Stdune.Dyn
-module Either = Stdune.Either
+module Option = struct
+  let map t ~f =
+    match t with
+    | None -> None
+    | Some x -> Some (f x)
+end
 
 module Json = struct
   type t = Yojson.Safe.t
@@ -32,28 +32,6 @@ module Json = struct
     match field fields name conv with
     | Some f -> f
     | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
-
-  let rec of_dyn (t : Dyn.t) : t =
-    match t with
-    | Opaque -> `String "<opaque>"
-    | Unit -> `String "()"
-    | Int i -> `Int i
-    | Int64 i -> `Int (Int64.to_int i)
-    | Bool b -> `Bool b
-    | String s -> `String s
-    | Bytes s -> `String (Bytes.to_string s)
-    | Char c -> `String (String.of_list [ c ])
-    | Float f -> `Float f
-    | Option None -> `String "<none>"
-    | Option (Some s) -> of_dyn s
-    | List xs -> `List (List.map ~f:of_dyn xs)
-    | Array xs -> `List (List.map ~f:of_dyn (Array.to_list xs))
-    | Tuple xs -> `List (List.map ~f:of_dyn xs)
-    | Record r -> `Assoc (List.map r ~f:(fun (k, v) -> (k, of_dyn v)))
-    | Variant (name, args) -> `Assoc [ (name, of_dyn (List args)) ]
-    | Set xs -> `List (List.map ~f:of_dyn xs)
-    | Map map ->
-      `List (List.map map ~f:(fun (k, v) -> `List [ of_dyn k; of_dyn v ]))
 
   module Conv = struct
     include Ppx_yojson_conv_lib.Yojson_conv
