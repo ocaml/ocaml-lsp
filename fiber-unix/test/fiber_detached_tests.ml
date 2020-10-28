@@ -5,8 +5,7 @@ let%expect_test "start & stop" =
   test unit
     (let detached = Fiber_detached.create () in
      Fiber_detached.stop detached);
-  [%expect {|
-    () |}]
+  [%expect {| () |}]
 
 let%expect_test "run 2 task" =
   test unit

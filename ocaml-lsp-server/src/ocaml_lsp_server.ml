@@ -707,13 +707,7 @@ let on_notification server (notification : Client_notification.t) :
   | ChangeWorkspaceFolders _
   | Initialized
   | Exit ->
-    let open Fiber.O in
-    let+ () =
-      Fiber.fork_and_join_unit
-        (fun () -> Document_store.close store)
-        (fun () -> Fiber_detached.stop state.detached)
-    in
-    state
+    Fiber.return state
   | Unknown_notification req -> (
     match req.method_ with
     | "$/setTraceNotification"
