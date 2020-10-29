@@ -24,7 +24,7 @@ lsp-server:
 .PHONY: lsp-server
 
 test: $(TEST_E2E_DIR)/node_modules lsp-server
-	dune build @test @lsp/test/runtest && cd $(TEST_E2E_DIR) && dune exec -- yarn test
+	dune build @test @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest && cd $(TEST_E2E_DIR) && dune exec -- yarn test
 .PHONY: test
 
 ocaml-test:

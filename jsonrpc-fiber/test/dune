@@ -1,0 +1,10 @@
+(executable
+ (name jsonrpc_test)
+ (preprocess future_syntax)
+ (libraries stdune fiber_unix jsonrpc jsonrpc_fiber yojson lsp fiber
+   ppx_yojson_conv_lib threads.posix))
+
+(rule
+ (alias test)
+ (action
+  (run ./jsonrpc_test.exe)))

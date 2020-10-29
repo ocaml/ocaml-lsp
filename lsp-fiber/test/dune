@@ -4,7 +4,6 @@
  (name server_test)
  (libraries stdune fiber_unix lsp lsp_fiber jsonrpc yojson
    ppx_yojson_conv_lib fiber threads.posix)
- (modules server_test)
  (preprocess future_syntax))
 
 (rule
@@ -16,15 +15,3 @@
  (alias server-test)
  (action
   (run ./server_test.exe)))
-
-(executable
- (name jsonrpc_test)
- (modules jsonrpc_test)
- (preprocess future_syntax)
- (libraries stdune fiber_unix jsonrpc jsonrpc_fiber yojson lsp fiber
-   ppx_yojson_conv_lib threads.posix))
-
-(rule
- (alias test)
- (action
-  (run ./jsonrpc_test.exe)))
