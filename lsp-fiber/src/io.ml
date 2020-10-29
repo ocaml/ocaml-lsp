@@ -1,8 +1,6 @@
 open Import
 open Jsonrpc
 
-let { Logger.log } = Logger.for_section "lsp_io"
-
 type t =
   { ic : in_channel
   ; oc : out_channel
@@ -23,9 +21,6 @@ let make ic oc =
 
 let send { oc; ic = _ } (packet : packet) =
   let json = Jsonrpc.yojson_of_packet packet in
-  log ~title:Logger.Title.LocalDebug "send: %a"
-    (fun () -> Json.to_pretty_string)
-    json;
   let data = Json.to_string json in
   let content_length = String.length data in
   let header = Header.create ~content_length in

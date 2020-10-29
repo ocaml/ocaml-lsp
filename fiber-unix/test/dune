@@ -6,7 +6,8 @@
 
 (library
  (name fiber_unix_expect_tests)
- (modules (:standard \ fiber_thread_test))
+ (modules
+  (:standard \ fiber_thread_test))
  (enabled_if
   (>= %{ocaml_version} 4.08))
  (inline_tests)
