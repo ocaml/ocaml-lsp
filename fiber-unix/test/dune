@@ -5,6 +5,7 @@
  (inline_tests)
  (libraries
   fiber
+  fiber_test
   jsonrpc
   fiber_unix
   stdune

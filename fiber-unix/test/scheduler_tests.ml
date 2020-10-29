@@ -174,6 +174,6 @@ let%expect_test "detached + timer" =
       (fun () -> Fiber_detached.run detached)
   in
   S.run s (Fiber.of_thunk run);
-  [%expect{|
+  [%expect {|
     inside timer
     timer finished |}]
