@@ -2,17 +2,21 @@ open Stdune
 module List = Stdune.List
 module Hashtbl = Stdune.Hashtbl
 module Option = Stdune.Option
-module Either = Stdune.Either
 module Int = Stdune.Int
 module Dyn = Stdune.Dyn
 module Ordering = Stdune.Ordering
 module Exn = Stdune.Exn
+module Unix_env = Stdune.Env
+module Fpath = Stdune.Path
 module Code_error = Code_error
 module Or_exn = Or_exn
 module Table = Table
 module Id = Id
 module Exn_with_backtrace = Exn_with_backtrace
+module Fdecl = Fdecl
 module Queue = Queue
+module Header = Lsp.Header
+include Fiber_unix
 
 module String = struct
   include Stdune.String
@@ -101,17 +105,6 @@ module String = struct
         aux 0 j0;
         Buffer.contents buffer
 end
-
-let let_ref r v f =
-  let v' = !r in
-  r := v;
-  match f () with
-  | result ->
-    r := v';
-    result
-  | exception exn ->
-    r := v';
-    raise exn
 
 module Result = struct
   include Stdune.Result
@@ -288,6 +281,31 @@ module Json = struct
   end
 end
 
+module Fiber = struct
+  include Fiber
+
+  module Result = struct
+    type nonrec ('a, 'e) t = ('a, 'e) result Fiber.t
+
+    let lift x = Fiber.map x ~f:(fun x -> Ok x)
+
+    let return x = Fiber.return (Ok x)
+
+    let ( >>= ) x f =
+      Fiber.bind
+        ~f:(function
+          | Error _ as e -> Fiber.return e
+          | Ok x -> f x)
+        x
+
+    module O = struct
+      let ( let+ ) x f = Fiber.map ~f:(Result.map ~f) x
+
+      let ( let* ) x f = x >>= f
+    end
+  end
+end
+
 module Log = struct
   let level : (string option -> bool) ref = ref (fun _ -> false)
 
@@ -315,3 +333,9 @@ module Log = struct
 end
 
 let sprintf = Stdune.sprintf
+
+module Types = Lsp.Types
+module Client_request = Lsp.Client_request
+module Server_request = Lsp.Server_request
+module Server_notification = Lsp.Server_notification
+module Client_notification = Lsp.Client_notification

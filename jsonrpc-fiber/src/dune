@@ -1,0 +1,3 @@
+(library
+ (name jsonrpc_fiber)
+ (libraries jsonrpc fiber yojson stdune fiber_unix ppx_yojson_conv_lib))

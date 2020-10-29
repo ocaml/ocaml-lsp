@@ -1,9 +1,18 @@
-include Lsp.Import
-module Jsonrpc = Jsonrpc
+module Fpath = Stdune.Path
+module Ordering = Stdune.Ordering
+module Json = Lsp.Import.Json
+module Unix_env = Stdune.Env
+module Code_error = Stdune.Code_error
+module Int = Stdune.Int
+module Option = Stdune.Option
+module Table = Stdune.Table
+module String = Stdune.String
+module List = Stdune.List
+module Result = Stdune.Result
 module Logger = Lsp.Logger
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
-module Server = Lsp.Server
+module Server = Lsp_fiber.Server
 module Client_request = Lsp.Client_request
 module Client_notification = Lsp.Client_notification
 module Text_document = Lsp.Text_document
@@ -62,6 +71,32 @@ module ConfigurationParams = Lsp.Types.ConfigurationParams
 module RenameOptions = Lsp.Types.RenameOptions
 module Uri = Lsp.Uri
 module Fiber_detached = Fiber_unix.Fiber_detached
-module Fiber_io = Lsp.Fiber_io
+
+let sprintf = Stdune.sprintf
+
+module Fiber = struct
+  include Fiber
+
+  module Result = struct
+    type nonrec ('a, 'e) t = ('a, 'e) result Fiber.t
+
+    let lift x = Fiber.map x ~f:(fun x -> Ok x)
+
+    let return x = Fiber.return (Ok x)
+
+    let ( >>= ) x f =
+      Fiber.bind
+        ~f:(function
+          | Error _ as e -> Fiber.return e
+          | Ok x -> f x)
+        x
+
+    module O = struct
+      let ( let+ ) x f = Fiber.map ~f:(Stdune.Result.map ~f) x
+
+      let ( let* ) x f = x >>= f
+    end
+  end
+end
 
 let { Logger.log } = Logger.for_section "ocaml-lsp-server"

@@ -1,7 +1,7 @@
 open! Lsp.Import
-open Lsp
 open Fiber_unix.Fiber_stream
 open Jsonrpc
+open Fiber_unix
 
 module Stream_chan = struct
   type t = Jsonrpc.packet In.t * Jsonrpc.packet Out.t
@@ -13,7 +13,7 @@ module Stream_chan = struct
   let recv (i, _) = In.read i
 end
 
-module Session = Jsonrpc_session.Make (Stream_chan)
+module Session = Jsonrpc_fiber.Make (Stream_chan)
 open Lsp.Import
 
 let print_json json = print_endline (Json.to_string json)
@@ -37,7 +37,7 @@ let () =
     let json = Message.yojson_of_notification n in
     print_endline ">> received notification";
     print_json json;
-    Fiber.return (Jsonrpc_session.Notify.Continue, ())
+    Fiber.return (Jsonrpc_fiber.Notify.Continue, ())
   in
   let responses = ref [] in
   let initial_requests =
