@@ -40,7 +40,7 @@ possible and does not make any assumptions about IO.
   (menhir :with-test)
   (cinaps :with-test)
   (ppx_expect (and :with-test (>= v0.14.0)))
-  (ocaml (>= 4.06))
+  (ocaml (and (>= 4.06) (< 4.12)))
   (dune (>= 2.0))))
 
 (package
@@ -58,7 +58,7 @@ possible and does not make any assumptions about IO.
   (ocamlformat :with-test)
   (reason :with-test)
   (ocamlfind (>= 1.5.2))
-  (ocaml (>= 4.06))
+  (ocaml (and (>= 4.06) (< 4.12)))
   (dune (>= 2.5.0))))
 
 (package
@@ -70,5 +70,5 @@ possible and does not make any assumptions about IO.
   stdlib-shims
   ppx_yojson_conv_lib
   (result (>= 1.5))
-  (ocaml (>= 4.06))
+  (ocaml (and (>= 4.06) (< 4.12)))
   (dune (>= 2.5.0))))

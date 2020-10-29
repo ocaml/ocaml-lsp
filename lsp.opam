@@ -32,7 +32,7 @@ depends: [
   "menhir" {with-test}
   "cinaps" {with-test}
   "ppx_expect" {with-test & >= "v0.14.0"}
-  "ocaml" {>= "4.06"}
+  "ocaml" {>= "4.06" & < "4.12"}
   "dune" {>= "2.0"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
