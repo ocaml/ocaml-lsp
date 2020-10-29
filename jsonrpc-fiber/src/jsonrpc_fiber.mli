@@ -34,7 +34,8 @@ end) : sig
   with type 'a session := 'a t
 
   val create :
-       ?on_request:(('state, Id.t) Context.t -> (Response.t * 'state) Fiber.t)
+       ?on_request:
+         (('state, Id.t) Context.t -> (Response.t Fiber.t * 'state) Fiber.t)
     -> ?on_notification:
          (('state, unit) Context.t -> (Notify.t * 'state) Fiber.t)
     -> name:string

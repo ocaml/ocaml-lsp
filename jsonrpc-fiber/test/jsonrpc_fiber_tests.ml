@@ -102,7 +102,7 @@ let%expect_test "serving requests" =
       let state = Context.state c in
       assert (r = { request with id = r.id });
       let response = Jsonrpc.Response.ok r.id response_data in
-      Fiber.return (response, state)
+      Fiber.return (Fiber.return response, state)
     in
     let out = Out.of_ref responses in
     let jrpc = Jrpc.create ~name:"test" ~on_request (in_, out) () in
@@ -131,7 +131,7 @@ let%expect_test "concurrent requests" =
       let request = Context.message c in
       print_endline "waiter: received request";
       print (Message { request with id = Some request.id });
-      let+ response =
+      let response =
         print_endline "waiter: making request";
         let+ response =
           let request =
@@ -143,7 +143,7 @@ let%expect_test "concurrent requests" =
         print (Response response);
         Jsonrpc.Response.ok request.id `Null
       in
-      (response, ())
+      Fiber.return (response, ())
     in
     Jrpc.create ~name:"waiter" ~on_request chan ()
   in
@@ -163,7 +163,7 @@ let%expect_test "concurrent requests" =
           Fiber.return ()
       in
       let state = Context.state c in
-      Fiber.return (response, state)
+      Fiber.return (Fiber.return response, state)
     in
     Jrpc.create ~on_request ~name:"waitee" chan ()
   in
@@ -191,8 +191,11 @@ let%expect_test "concurrent requests" =
     { "id": "initial", "method": "init", "jsonrpc": "2.0" }
     waiter: making request
     waitee: received request
-    { "id": 100, "method": "shutdown", "jsonrpc": "2.0" }
-    waitee: stopping
+    { "id": 100, "method": "random", "jsonrpc": "2.0" }
+    waiter: received response:
+    { "id": 100, "jsonrpc": "2.0", "result": 42 }
+    initial request response:
+    { "id": "initial", "jsonrpc": "2.0", "result": null }
     [FAIL] unexpected Never raised |}]
 
 let%expect_test "test from jsonrpc_test.ml" =
@@ -206,7 +209,7 @@ let%expect_test "test from jsonrpc_test.ml" =
   let on_request ctx =
     let req = Context.message ctx in
     let state = Context.state ctx in
-    Fiber.return (Jsonrpc.Response.ok req.id (response ()), state)
+    Fiber.return (Fiber.return (Jsonrpc.Response.ok req.id (response ())), state)
   in
   let on_notification ctx =
     let n = Context.message ctx in
@@ -262,5 +265,5 @@ let%expect_test "test from jsonrpc_test.ml" =
     Error:
     [ { exn = "(Failure \"special failure\")"; backtrace = "" } ]
     "<opaque>"
-    { "id": 10, "jsonrpc": "2.0", "result": 1 }
-    { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
+    { "id": "testing", "jsonrpc": "2.0", "result": 2 }
+    { "id": 10, "jsonrpc": "2.0", "result": 1 } |}]
