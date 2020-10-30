@@ -18,6 +18,7 @@
  (inline_tests)
  (libraries
   fiber
+  yojson
   jsonrpc
   jsonrpc_fiber
   fiber_unix
