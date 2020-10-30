@@ -45,6 +45,12 @@ end
 
 let test ?(expect_never = false) to_dyn f =
   let never_raised = ref false in
+  let f =
+    let on_error exn =
+      Format.eprintf "%a@." Exn_with_backtrace.pp_uncaught exn
+    in
+    Fiber.with_error_handler (fun () -> f) ~on_error
+  in
   ( try Scheduler.run f |> to_dyn |> print_dyn
     with Scheduler.Never -> never_raised := true );
   match (!never_raised, expect_never) with
