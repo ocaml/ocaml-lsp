@@ -68,7 +68,6 @@ end
 
 type t =
   { tdoc : Text_document.t
-  ; source : Msource.t
   ; pipeline : Mpipeline.t
   ; config : Mconfig.t
   ; merlin : Scheduler.thread
@@ -83,7 +82,7 @@ let syntax t = Syntax.of_language_id (Text_document.languageId t.tdoc)
 
 let timer t = t.timer
 
-let source doc = doc.source
+let source doc = Mpipeline.raw_source doc.pipeline
 
 let with_pipeline (doc : t) f =
   Scheduler.async_exn doc.merlin (fun () ->
@@ -118,18 +117,18 @@ let make timer merlin_thread tdoc =
   let tdoc = Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
   let text = Text_document.text tdoc in
-  let config = make_config (Text_document.documentUri tdoc) in
   let source = Msource.make text in
+  let config = make_config (Text_document.documentUri tdoc) in
   let pipeline = Mpipeline.make config source in
-  { tdoc; source; config; pipeline; merlin = merlin_thread; timer }
+  { tdoc; config; pipeline; merlin = merlin_thread; timer }
 
 let update_text ?version doc change =
   let tdoc = Text_document.apply_content_change ?version doc.tdoc change in
   let text = Text_document.text tdoc in
-  let config = make_config (Text_document.documentUri tdoc) in
   let source = Msource.make text in
+  let config = make_config (Text_document.documentUri tdoc) in
   let pipeline = Mpipeline.make config source in
-  { doc with tdoc; config; source; pipeline }
+  { doc with tdoc; config; pipeline }
 
 let dispatch (doc : t) command =
   with_pipeline doc (fun pipeline -> Query_commands.dispatch pipeline command)
