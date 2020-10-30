@@ -135,7 +135,7 @@ struct
       | Either.Right () ->
         log t (fun () -> Log.msg "shutdown granted" []);
         Chan.close t.chan
-      | Left None -> Fiber.Ivar.fill t.stop_requested ()
+      | Left None -> Fiber.return ()
       | Left (Some packet) -> (
         let* next_step =
           match packet with

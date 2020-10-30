@@ -39,20 +39,8 @@ let%expect_test "start and stop server" =
     Fiber.fork_and_join_unit (fun () -> run) (fun () -> Jrpc.stop jrpc)
   in
   let () = Fiber_test.test Dyn.Encoder.opaque (run ()) in
-  [%expect
-    {|
-    (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-       This is strongly discouraged as backtraces are fragile.
-       Please change this test to not include a backtrace. *)
-
-    /-----------------------------------------------------------------------
-    | Internal error: Uncaught exception.
-    | (Failure Fiber.Ivar.fill)
-    | Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-    | Called from Fiber.Execution_context.apply in file "vendor/fiber/fiber.ml", line 193, characters 9-14
-    \-----------------------------------------------------------------------
-
-    [FAIL] unexpected Never raised |}]
+  [%expect {|
+    "<opaque>" |}]
 
 let%expect_test "server accepts notifications" =
   let notif =
@@ -268,7 +256,7 @@ let%expect_test "test from jsonrpc_test.ml" =
     [ { exn = "(Failure \"special failure\")"
       ; backtrace =
           "Raised at Stdlib.failwith in file \"stdlib.ml\", line 29, characters 17-33\n\
-           Called from Jsonrpc_fiber_tests.(fun).on_notification in file \"jsonrpc-fiber/test/jsonrpc_fiber_tests.ml\", line 214, characters 32-58\n\
+           Called from Jsonrpc_fiber_tests.(fun).on_notification in file \"jsonrpc-fiber/test/jsonrpc_fiber_tests.ml\", line 202, characters 32-58\n\
            Called from Fiber.Execution_context.apply in file \"vendor/fiber/fiber.ml\", line 193, characters 9-14\n\
            "
       }

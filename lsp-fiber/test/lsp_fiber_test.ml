@@ -177,7 +177,8 @@ let%expect_test "ent to end run of lsp tests" =
   Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
   print_endline "[TEST] finished";
   [%expect.unreachable]
-[@@expect.uncaught_exn {|
+  [@@expect.uncaught_exn
+    {|
   (* CR expect_test_collector: This test expectation appears to contain a backtrace.
      This is strongly discouraged as backtraces are fragile.
      Please change this test to not include a backtrace. *)
