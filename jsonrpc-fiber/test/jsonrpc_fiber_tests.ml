@@ -185,8 +185,8 @@ let%expect_test "concurrent requests" =
       Jsonrpc.Message.create ~id:(`String "initial") ~method_:"init" ()
     in
     let+ resp = Jrpc.request waitee request in
-    print_response resp;
-    ()
+    print_endline "initial request:";
+    print_response resp
   in
   let all = [ Jrpc.run waiter; Jrpc.run waitee ] in
   let all = initial_request () :: all in
@@ -195,5 +195,6 @@ let%expect_test "concurrent requests" =
   [%expect
     {|
     waitee: received request and returning response
+    initial request:
     { "id": "initial", "jsonrpc": "2.0", "result": 42 }
     [FAIL] unexpected Never raised |}]
