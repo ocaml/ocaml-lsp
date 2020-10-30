@@ -64,8 +64,8 @@ let%expect_test "server accepts notifications" =
   let run () =
     let in_ = In.of_list [ Jsonrpc.Message notif ] in
     let on_notification c =
-      let n = Jrpc.Context.message c in
-      let state = Jrpc.Context.state c in
+      let n = Context.message c in
+      let state = Context.state c in
       assert (notif = { n with id = None });
       print_endline "received notification";
       Fiber.return (Notify.Stop, state)
@@ -122,8 +122,8 @@ let%expect_test "serving requests" =
     let responses = ref [] in
     let in_ = In.of_list [ Jsonrpc.Message request ] in
     let on_request c =
-      let r = Jrpc.Context.message c in
-      let state = Jrpc.Context.state c in
+      let r = Context.message c in
+      let state = Context.state c in
       assert (r = { request with id = r.id });
       let response = Jsonrpc.Response.ok r.id response_data in
       Fiber.return (response, state)
@@ -151,7 +151,7 @@ let%expect_test "concurrent requests" =
   in
   let waiter chan self =
     let on_request c =
-      let request = Jrpc.Context.message c in
+      let request = Context.message c in
       print_endline "waiter: received request";
       print (Message { request with id = Some request.id });
       let+ response =
@@ -173,10 +173,10 @@ let%expect_test "concurrent requests" =
   let waitee chan =
     let on_request c =
       print_endline "waitee: received request";
-      let request = Jrpc.Context.message c in
+      let request = Context.message c in
       print (Message { request with id = Some request.id });
       let response = Jsonrpc.Response.ok request.id (`Int 42) in
-      let state = Jrpc.Context.state c in
+      let state = Context.state c in
       Fiber.return (response, state)
     in
     Jrpc.create ~on_request ~name:"waitee" chan ()
@@ -218,12 +218,12 @@ let%expect_test "test from jsonrpc_test.ml" =
       `Int !i
   in
   let on_request ctx =
-    let req = Jrpc.Context.message ctx in
-    let state = Jrpc.Context.state ctx in
+    let req = Context.message ctx in
+    let state = Context.state ctx in
     Fiber.return (Jsonrpc.Response.ok req.id (response ()), state)
   in
   let on_notification ctx =
-    let n = Jrpc.Context.message ctx in
+    let n = Context.message ctx in
     if n.method_ = "raise" then failwith "special failure";
     let json = Message.yojson_of_notification n in
     print_endline ">> received notification";
