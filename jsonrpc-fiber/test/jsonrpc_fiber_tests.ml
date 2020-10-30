@@ -15,6 +15,10 @@ module Stream_chan = struct
 end
 
 module Jrpc = Jsonrpc_fiber.Make (Stream_chan)
+module Context = Jrpc.Context
+
+let print_json json =
+  print_endline (Yojson.Safe.pretty_to_string ~std:false json)
 
 let no_output () =
   let received_none = ref false in
@@ -100,7 +104,7 @@ let%expect_test "stopped fiber" =
     | Internal error: Uncaught exception.
     | (Failure "received None more than once")
     | Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-    | Called from Jsonrpc_fiber_tests.no_output.(fun) in file "jsonrpc-fiber/test/jsonrpc_fiber_tests.ml", line 24, characters 8-47
+    | Called from Jsonrpc_fiber_tests.no_output.(fun) in file "jsonrpc-fiber/test/jsonrpc_fiber_tests.ml", line 28, characters 8-47
     | Called from Jsonrpc_fiber.Make.close in file "jsonrpc-fiber/src/jsonrpc_fiber.ml", line 89, characters 14-31
     | Called from Fiber.Execution_context.safe_run_k in file "vendor/fiber/fiber.ml", line 127, characters 18-21
     \-----------------------------------------------------------------------
@@ -205,3 +209,83 @@ let%expect_test "concurrent requests" =
     waitee: received request
     { "id": 100, "method": "random", "jsonrpc": "2.0" }
     [FAIL] unexpected Never raised |}]
+
+let%expect_test "test from jsonrpc_test.ml" =
+  let response =
+    let i = ref 0 in
+    fun () ->
+      incr i;
+      `Int !i
+  in
+  let on_request ctx =
+    let req = Jrpc.Context.message ctx in
+    let state = Jrpc.Context.state ctx in
+    Fiber.return (Jsonrpc.Response.ok req.id (response ()), state)
+  in
+  let on_notification ctx =
+    let n = Jrpc.Context.message ctx in
+    if n.method_ = "raise" then failwith "special failure";
+    let json = Message.yojson_of_notification n in
+    print_endline ">> received notification";
+    print_json json;
+    Fiber.return (Jsonrpc_fiber.Notify.Continue, ())
+  in
+  let responses = ref [] in
+  let initial_requests =
+    let request ?params id method_ =
+      Jsonrpc.Message.create ?params ~id:(Some id) ~method_ ()
+    in
+    let notification ?params method_ =
+      Jsonrpc.Message.create ~id:None ?params ~method_ ()
+    in
+    [ Message (request (`Int 10) "foo")
+    ; Message (request ~params:`Null (`String "testing") "bar")
+    ; Message (notification ~params:`Null "notif1")
+    ; Message (notification ~params:`Null "notif2")
+    ; Message (notification ~params:`Null "raise")
+    ]
+  in
+  let reqs_in, reqs_out = pipe () in
+  let chan =
+    let out = Out.of_ref responses in
+    (reqs_in, out)
+  in
+  let session = Jrpc.create ~on_notification ~on_request ~name:"test" chan () in
+  let write_reqs () =
+    let open Fiber.O in
+    let* () =
+      Fiber.sequential_iter initial_requests ~f:(fun req ->
+          Out.write reqs_out (Some req))
+    in
+    Out.write reqs_out None
+  in
+  Fiber_test.test Dyn.Encoder.opaque
+    (Fiber.fork_and_join_unit write_reqs (fun () -> Jrpc.run session));
+  List.rev !responses
+  |> List.iter ~f:(fun packet ->
+         let json = Jsonrpc.yojson_of_packet packet in
+         print_json json);
+  [%expect
+    {|
+    (* CR expect_test_collector: This test expectation appears to contain a backtrace.
+       This is strongly discouraged as backtraces are fragile.
+       Please change this test to not include a backtrace. *)
+
+    >> received notification
+    { "params": null, "method": "notif1", "jsonrpc": "2.0" }
+    >> received notification
+    { "params": null, "method": "notif2", "jsonrpc": "2.0" }
+    Uncaught error when handling notification:
+    { "params": null, "method": "raise", "jsonrpc": "2.0" }
+    Error:
+    [ { exn = "(Failure \"special failure\")"
+      ; backtrace =
+          "Raised at Stdlib.failwith in file \"stdlib.ml\", line 29, characters 17-33\n\
+           Called from Jsonrpc_fiber_tests.(fun).on_notification in file \"jsonrpc-fiber/test/jsonrpc_fiber_tests.ml\", line 227, characters 32-58\n\
+           Called from Fiber.Execution_context.apply in file \"vendor/fiber/fiber.ml\", line 193, characters 9-14\n\
+           "
+      }
+    ]
+    "<opaque>"
+    { "id": 10, "jsonrpc": "2.0", "result": 1 }
+    { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]

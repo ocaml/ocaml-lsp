@@ -1,18 +1,5 @@
-(executable
- (name jsonrpc_test)
- (modules jsonrpc_test)
- (preprocess future_syntax)
- (libraries fiber fiber_unix jsonrpc jsonrpc_fiber lsp ppx_yojson_conv_lib
-   stdune threads.posix yojson))
-
-(rule
- (alias test)
- (action
-  (run ./jsonrpc_test.exe)))
-
 (library
  (name jsonrpc_fiber_tests)
- (modules :standard \ jsonrpc_test)
  (enabled_if
   (>= %{ocaml_version} 4.08))
  (inline_tests)
