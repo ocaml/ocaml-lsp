@@ -96,8 +96,8 @@ let languageId (t : t) = t.languageId
 
 let text (t : t) = t.text
 
-let apply_content_change ?version (change : TextDocumentContentChangeEvent.t)
-    (t : t) =
+let apply_content_change ?version (t : t)
+    (change : TextDocumentContentChangeEvent.t) =
   (* Changes can only be applied using utf16 offsets *)
   let version =
     match version with

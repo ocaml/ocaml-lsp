@@ -209,7 +209,7 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
     let range = Range.create ~start ~end_ in
     TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
   in
-  let doc = Document.update_text complete doc in
+  let doc = Document.update_text doc complete in
   let open Fiber.O in
   let* documentation = query_doc doc @@ Position.logical position in
   let documentation = Option.map ~f:(format_doc ~markdown) documentation in

@@ -43,7 +43,7 @@ val with_pipeline_exn : t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
 val version : t -> int
 
-val update_text : ?version:int -> TextDocumentContentChangeEvent.t -> t -> t
+val update_text : ?version:int -> t -> TextDocumentContentChangeEvent.t -> t
 
 val dispatch : t -> 'a Query_protocol.t -> ('a, exn) result Fiber.t
 

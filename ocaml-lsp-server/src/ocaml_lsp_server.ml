@@ -689,7 +689,7 @@ let on_notification server (notification : Client_notification.t) :
       Fiber.return state
     | Ok prev_doc ->
       let doc =
-        let f doc change = Document.update_text ?version change doc in
+        let f doc change = Document.update_text ?version doc change in
         List.fold_left ~f ~init:prev_doc contentChanges
       in
       Document_store.put store doc;

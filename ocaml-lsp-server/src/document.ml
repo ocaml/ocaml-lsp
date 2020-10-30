@@ -123,8 +123,8 @@ let make timer merlin_thread tdoc =
   let pipeline = Mpipeline.make config source in
   { tdoc; source; config; pipeline; merlin = merlin_thread; timer }
 
-let update_text ?version change doc =
-  let tdoc = Text_document.apply_content_change ?version change doc.tdoc in
+let update_text ?version doc change =
+  let tdoc = Text_document.apply_content_change ?version doc.tdoc change in
   let text = Text_document.text tdoc in
   let config = make_config (Text_document.documentUri tdoc) in
   let source = Msource.make text in
