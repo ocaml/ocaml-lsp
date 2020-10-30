@@ -2,6 +2,13 @@ open! Import
 module S = Fiber_unix.Scheduler
 module Fiber_detached = Fiber_unix.Fiber_detached
 
+let test s f =
+  let f =
+    Fiber.with_error_handler f ~on_error:(fun exn ->
+        Format.printf "%a@." Exn_with_backtrace.pp_uncaught exn)
+  in
+  S.run s f
+
 let%expect_test "scheduler starts and runs a fiber" =
   let s = S.create () in
   S.run s
@@ -15,7 +22,7 @@ let%expect_test "run an async task and wait it for it to finish" =
   let s = S.create () in
   let th = S.create_thread s in
   let async () =
-    S.async th (fun () -> print_endline "running in a different thread")
+    S.async_exn th (fun () -> print_endline "running in a different thread")
   in
   let run () =
     print_endline "running in scheduler";
@@ -50,7 +57,7 @@ let%expect_test "create timer & schedule task" =
     | Error `Cancelled -> assert false
     | Ok () -> print_endline "timer done"
   in
-  S.run s (Fiber.of_thunk run);
+  test s run;
   [%expect {|
     scheduling timer
     timer running
@@ -74,7 +81,7 @@ let%expect_test "create timer & schedule task & cancel it" =
         | Ok () -> assert false)
       (fun () -> S.cancel_timer timer)
   in
-  S.run s (Fiber.of_thunk run);
+  test s run;
   [%expect {|
     scheduling timer
     timer cancelled successfully |}]
@@ -95,7 +102,7 @@ let%expect_test "create multiple timers" =
         | Error `Cancelled -> assert false
         | Ok () -> printf "%d: timer done\n" i)
   in
-  S.run s (Fiber.of_thunk run);
+  test s run;
   [%expect
     {|
     1: scheduling timer
@@ -127,7 +134,7 @@ let%expect_test "create multiple timers" =
     in
     printf "counter: %d\n" !counter
   in
-  S.run s (Fiber.of_thunk run);
+  test s run;
   [%expect {|
     timer. timer. timer. counter: 3 |}]
 
@@ -149,7 +156,7 @@ let%expect_test "tests rescheduling" =
     in
     printf "counter: %d\n" !counter
   in
-  S.run s (Fiber.of_thunk run);
+  test s run;
   [%expect {| cancel. cancel. timer. counter: 1 |}]
 
 let%expect_test "detached + timer" =
@@ -160,7 +167,7 @@ let%expect_test "detached + timer" =
     Fiber.fork_and_join_unit
       (fun () ->
         let* () =
-          Fiber_detached.task detached ~f:(fun () ->
+          Fiber_detached.task_exn detached ~f:(fun () ->
               let* res =
                 S.schedule timer (fun () ->
                     print_endline "inside timer";
@@ -173,7 +180,7 @@ let%expect_test "detached + timer" =
         Fiber_detached.stop detached)
       (fun () -> Fiber_detached.run detached)
   in
-  S.run s (Fiber.of_thunk run);
+  test s run;
   [%expect {|
     inside timer
     timer finished |}]

@@ -36,7 +36,7 @@ let make s io =
         | None -> Fiber.return None
         | Some thread ->
           let task =
-            Scheduler.async thread (fun () ->
+            Scheduler.async_exn thread (fun () ->
                 let res = Io.read io in
                 ( match res with
                 | None -> Io.close_in io
@@ -63,7 +63,7 @@ let make s io =
           Fiber.return ()
         | Some thread, _ ->
           let+ res =
-            Scheduler.async thread
+            Scheduler.async_exn thread
               ( match t with
               | None -> fun () -> Io.close_out io
               | Some p -> fun () -> Io.send io p )
@@ -84,7 +84,7 @@ let close (t : t) =
     | Some thread ->
       let open Fiber.O in
       let+ close =
-        Scheduler.async thread (fun () -> Io.close_in t.io)
+        Scheduler.async_exn thread (fun () -> Io.close_in t.io)
         |> Scheduler.await_no_cancel
       in
       close_in t.in_thread;

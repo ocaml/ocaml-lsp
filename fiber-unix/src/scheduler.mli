@@ -18,7 +18,9 @@ val await_no_cancel : 'a task -> 'a Or_exn.t Fiber.t
 
 val cancel_task : 'a task -> unit Fiber.t
 
-val async : thread -> (unit -> 'a) -> 'a task
+val async : thread -> (unit -> 'a) -> ('a task, [ `Stopped ]) result
+
+val async_exn : thread -> (unit -> 'a) -> 'a task
 
 val stop : thread -> unit
 
@@ -28,13 +30,11 @@ val create_timer : t -> delay:float -> timer
 
 val set_delay : timer -> delay:float -> unit
 
-val detach : ?name:string -> t -> (unit -> unit Fiber.t) -> unit Fiber.t
-
 val schedule :
   timer -> (unit -> 'a Fiber.t) -> ('a, [ `Cancelled ]) result Fiber.t
 
 val cancel_timer : timer -> unit Fiber.t
 
-val scheduler : unit -> t
+val cancel_timers : t -> unit Fiber.t
 
-val report : Format.formatter -> t -> unit
+val scheduler : unit -> t

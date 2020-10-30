@@ -86,7 +86,7 @@ let timer t = t.timer
 let source doc = doc.source
 
 let with_pipeline (doc : t) f =
-  Scheduler.async doc.merlin (fun () ->
+  Scheduler.async_exn doc.merlin (fun () ->
       Mpipeline.with_pipeline doc.pipeline (fun () -> f doc.pipeline))
   |> Scheduler.await_no_cancel
 

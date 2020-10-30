@@ -45,7 +45,7 @@ let%expect_test "start and stop server" =
     | Internal error: Uncaught exception.
     | (Failure Fiber.Ivar.fill)
     | Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-    | Called from Fiber.Execution_context.exec_in in file "vendor/fiber/fiber.ml", line 110, characters 10-15
+    | Called from Fiber.Execution_context.apply in file "vendor/fiber/fiber.ml", line 193, characters 9-14
     \-----------------------------------------------------------------------
 
     [FAIL] unexpected Never raised |}]
@@ -102,7 +102,7 @@ let%expect_test "stopped fiber" =
     | Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
     | Called from Jsonrpc_fiber_tests.no_output.(fun) in file "jsonrpc-fiber/test/jsonrpc_fiber_tests.ml", line 24, characters 8-47
     | Called from Jsonrpc_fiber.Make.close in file "jsonrpc-fiber/src/jsonrpc_fiber.ml", line 89, characters 14-31
-    | Called from Fiber.Execution_context.exec_in in file "vendor/fiber/fiber.ml", line 110, characters 10-15
+    | Called from Fiber.Execution_context.safe_run_k in file "vendor/fiber/fiber.ml", line 127, characters 18-21
     \-----------------------------------------------------------------------
 
     [FAIL] unexpected Never raised
