@@ -176,16 +176,16 @@ let%expect_test "concurrent requests" =
     in
     Jrpc.create ~on_request ~name:"waitee" chan ()
   in
-  let waitee_in, waitee_out = pipe () in
+  let waitee_in, waiter_out = pipe () in
+  let waiter_in, waitee_out = pipe () in
   let waitee = waitee (waitee_in, waitee_out) in
-  let waiter_in, waiter_out = pipe () in
   let waiter = waiter (waiter_in, waiter_out) waitee in
   let initial_request () =
     let request =
       Jsonrpc.Message.create ~id:(`String "initial") ~method_:"init" ()
     in
+    print_endline "initial request";
     let+ resp = Jrpc.request waitee request in
-    print_endline "initial request:";
     print_response resp
   in
   let all = [ Jrpc.run waiter; Jrpc.run waitee ] in
@@ -194,7 +194,7 @@ let%expect_test "concurrent requests" =
   Fiber_test.test Dyn.Encoder.opaque (run ());
   [%expect
     {|
-    waitee: received request and returning response
-    initial request:
-    { "id": "initial", "jsonrpc": "2.0", "result": 42 }
+    initial request
+    waiter: received request
+    waiter: making request
     [FAIL] unexpected Never raised |}]
