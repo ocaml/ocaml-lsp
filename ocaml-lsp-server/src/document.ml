@@ -69,7 +69,6 @@ end
 type t =
   { tdoc : Text_document.t
   ; pipeline : Mpipeline.t
-  ; config : Mconfig.t
   ; merlin : Scheduler.thread
   ; timer : Scheduler.timer
   }
@@ -120,7 +119,7 @@ let make timer merlin_thread tdoc =
   let source = Msource.make text in
   let config = make_config (Text_document.documentUri tdoc) in
   let pipeline = Mpipeline.make config source in
-  { tdoc; config; pipeline; merlin = merlin_thread; timer }
+  { tdoc; pipeline; merlin = merlin_thread; timer }
 
 let update_text ?version doc change =
   let tdoc = Text_document.apply_content_change ?version doc.tdoc change in
@@ -128,7 +127,7 @@ let update_text ?version doc change =
   let source = Msource.make text in
   let config = make_config (Text_document.documentUri tdoc) in
   let pipeline = Mpipeline.make config source in
-  { doc with tdoc; config; pipeline }
+  { doc with tdoc; pipeline }
 
 let dispatch (doc : t) command =
   with_pipeline doc (fun pipeline -> Query_commands.dispatch pipeline command)
