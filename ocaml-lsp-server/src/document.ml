@@ -112,21 +112,21 @@ let make_config uri =
          Filename.concat directory base)
       ]
 
-let make timer merlin_thread tdoc =
-  let tdoc = Text_document.make tdoc in
-  (* we can do that b/c all text positions in LSP are line/col *)
+let pipeline tdoc =
   let text = Text_document.text tdoc in
   let source = Msource.make text in
   let config = make_config (Text_document.documentUri tdoc) in
-  let pipeline = Mpipeline.make config source in
+  Mpipeline.make config source
+
+let make timer merlin_thread tdoc =
+  let tdoc = Text_document.make tdoc in
+  (* we can do that b/c all text positions in LSP are line/col *)
+  let pipeline = pipeline tdoc in
   { tdoc; pipeline; merlin = merlin_thread; timer }
 
 let update_text ?version doc change =
   let tdoc = Text_document.apply_content_change ?version doc.tdoc change in
-  let text = Text_document.text tdoc in
-  let source = Msource.make text in
-  let config = make_config (Text_document.documentUri tdoc) in
-  let pipeline = Mpipeline.make config source in
+  let pipeline = pipeline tdoc in
   { doc with tdoc; pipeline }
 
 let dispatch (doc : t) command =
