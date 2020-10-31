@@ -1,5 +1,9 @@
 # Unreleased
 
+## Features
+
+- Add keyword completion
+
 ## Fixes
 
 - #245: correctly use mutexes on OpenBSD (#264)

@@ -28,6 +28,7 @@ let completion_kind kind : CompletionItemKind.t option =
     Some Module
   | `Type -> Some TypeParameter
   | `MethodCall -> Some Method
+  | `Keyword -> Some Keyword
 
 let make_string chars =
   let chars = Array.of_list chars in
