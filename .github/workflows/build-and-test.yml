@@ -17,10 +17,10 @@ jobs:
         skip_test:
           - false
         ocaml-version:
-          - 4.10.0
+          - 4.11.0
         include:
           - ocaml-version: 4.11.0
-            os: ubuntu-latest
+            os: windows-latest
             skip_test: true
           - ocaml-version: 4.10.0
             os: windows-latest
