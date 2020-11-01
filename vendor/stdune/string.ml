@@ -260,7 +260,18 @@ let findi =
     else
       loop s len ~f (i + 1)
   in
-  fun s ~f -> loop s (String.length s) ~f 0
+  fun ?from s ~f ->
+    let len = String.length s in
+    let from =
+      match from with
+      | None -> 0
+      | Some i ->
+        if i > len - 1 then
+          Code_error.raise "findi: invalid from" []
+        else
+          i
+    in
+    loop s len ~f from
 
 let rfindi =
   let rec loop s ~f i =

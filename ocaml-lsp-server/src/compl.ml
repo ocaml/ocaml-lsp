@@ -88,27 +88,25 @@ let suffix_of_position source position =
   | "" -> ""
   | text ->
     let len = String.length text in
-    let buf = Buffer.create 8 in
-    let rec find i =
-      if i >= len then
-        ()
-      else
-        let ch = text.[i] in
-        (* The characters for an infix function are missing *)
-        match ch with
-        | 'a' .. 'z'
-        | 'A' .. 'Z'
-        | '0' .. '9'
-        | '\''
-        | '_' ->
-          Buffer.add_char buf ch;
-          find (i + 1)
-        | _ -> ()
+    let from =
+      let (`Offset index) = Msource.get_offset source position in
+      min index (len - 1)
     in
-
-    let (`Offset index) = Msource.get_offset source position in
-    find index;
-    Buffer.contents buf
+    let len =
+      let until =
+        String.findi ~from text ~f:(function
+          | 'a' .. 'z'
+          | 'A' .. 'Z'
+          | '0' .. '9'
+          | '\''
+          | '_' ->
+            false
+          | _ -> true)
+      in
+      let until = Option.value ~default:len until in
+      until - from
+    in
+    String.sub text ~pos:from ~len
 
 let range_prefix (lsp_position : Position.t) prefix : Range.t =
   let start =

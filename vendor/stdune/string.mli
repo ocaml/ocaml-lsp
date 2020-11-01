@@ -99,7 +99,7 @@ val enumerate_or : string list -> string
 val enumerate_one_of : t list -> t
 
 (** Find index of first character satisfying [f] *)
-val findi : string -> f:(char -> bool) -> int option
+val findi : ?from:int -> string -> f:(char -> bool) -> int option
 
 (** Find index of last character satisfying [f] *)
 val rfindi : ?from:int -> string -> f:(char -> bool) -> int option
