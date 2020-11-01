@@ -138,7 +138,7 @@ let send_diagnostics ?diagnostics rpc doc =
           let notif = create_publishDiagnostics uri diagnostics in
           Server.notification rpc notif) )
 
-let on_initialize rpc =
+let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   let log_consumer (section, title, text) =
     if title <> Logger.Title.LocalDebug then
       let type_, text =
@@ -161,7 +161,9 @@ let on_initialize rpc =
       ()
   in
   Logger.register_consumer log_consumer;
-  initialize_info
+  let state = Server.state rpc in
+  let state = { state with init = Initialized ip.capabilities } in
+  Fiber.return @@ Ok (initialize_info, state)
 
 let code_action server (params : CodeActionParams.t) =
   let state : State.t = Server.state server in
@@ -507,10 +509,7 @@ let ocaml_on_request :
   let state = Server.state rpc in
   let store = state.store in
   match req with
-  | Client_request.Initialize ip ->
-    let initialize_result = on_initialize rpc in
-    let state = { state with init = Initialized ip.capabilities } in
-    Fiber.return @@ Ok (initialize_result, state)
+  | Client_request.Initialize ip -> on_initialize rpc ip
   | Client_request.Shutdown -> Fiber.return @@ Ok ((), state)
   | Client_request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
     ->
