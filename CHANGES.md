@@ -12,6 +12,9 @@
 
 - #271: Clear diagnostics when files are closed
 
+- Disable non-prefix completion. There's no reliably way to trigger it and it
+  can be slow.
+
 # 1.1.0 (10/14/2020)
 
 ## Features
