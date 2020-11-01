@@ -159,7 +159,7 @@ let pipe () =
   let in_, out = Unix.pipe () in
   (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
 
-let () =
+let%expect_test "ent to end run of lsp tests" =
   (Lsp.Import.Log.level := fun _ -> true);
   let client_in, server_out = pipe () in
   let server_in, client_out = pipe () in
@@ -174,4 +174,24 @@ let () =
         exit 1)
       ()
   in
-  Scheduler.run scheduler (Fiber.fork_and_join_unit client server)
+  Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
+  [%expect
+    {|
+    client: waiting for initialization
+    server: initializing server
+    server: returning initialization result
+    client: server initialized. sending request
+    server: executing command
+    server: sending message notification to client
+    server: scheduling show message
+    server: scheduling show message
+    client: sending request
+    client: Successfully executed command with result:
+    "successful execution"
+    client: waiting to receive notification before shutdown
+    server: sending show message notification
+    server: 0 ran
+    client: received notification
+    window/showMessage
+    client: filled received_notification
+    client: sending request to shutdown |}]
