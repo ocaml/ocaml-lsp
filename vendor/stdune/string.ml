@@ -327,3 +327,10 @@ let of_list chars =
   let s = Bytes.make (List.length chars) '0' in
   List.iteri chars ~f:(fun i c -> Bytes.set s i c);
   Bytes.to_string s
+
+let sub s ~pos ~len =
+  match sub s ~pos ~len with
+  | s -> s
+  | exception _ ->
+    Code_error.raise "sub"
+      [ ("s", String s); ("pos", Int pos); ("len", Int len) ]
