@@ -96,10 +96,10 @@ let suffix_of_position source position =
   | "" -> ""
   | text ->
     let len = String.length text in
-
-    let rec find suffix i =
+    let buf = Buffer.create 8 in
+    let rec find i =
       if i >= len then
-        suffix
+        ()
       else
         let ch = text.[i] in
         (* The characters for an infix function are missing *)
@@ -109,12 +109,14 @@ let suffix_of_position source position =
         | '0' .. '9'
         | '\''
         | '_' ->
-          find (ch :: suffix) (i + 1)
-        | _ -> suffix
+          Buffer.add_char buf ch;
+          find (i + 1)
+        | _ -> ()
     in
 
     let (`Offset index) = Msource.get_offset source position in
-    make_string (List.rev @@ find [] index)
+    find index;
+    Buffer.contents buf
 
 let range_prefix (lsp_position : Position.t) prefix : Range.t =
   let start =
