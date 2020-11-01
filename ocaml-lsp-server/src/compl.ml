@@ -30,10 +30,6 @@ let completion_kind kind : CompletionItemKind.t option =
   | `MethodCall -> Some Method
   | `Keyword -> Some Keyword
 
-let make_string chars =
-  let chars = Array.of_list chars in
-  String.init (Array.length chars) ~f:(Array.get chars)
-
 (** [prefix_of_position ~short_path source position] computes prefix before
     given [position].
 
@@ -47,12 +43,12 @@ let prefix_of_position ~short_path source position =
   | "" -> ""
   | text ->
     let len = String.length text in
-
-    let rec find prefix i =
+    let buf = Buffer.create 8 in
+    let rec find i =
       if i < 0 then
-        make_string prefix
+        ()
       else if i >= len then
-        find prefix (i - 1)
+        find (i - 1)
       else
         let ch = text.[i] in
         match ch with
@@ -79,17 +75,24 @@ let prefix_of_position ~short_path source position =
         | ':'
         | '~'
         | '#' ->
-          find (ch :: prefix) (i - 1)
+          Buffer.add_char buf ch;
+          find (i - 1)
         | '.' ->
           if short_path then
-            make_string prefix
-          else
-            find (ch :: prefix) (i - 1)
-        | _ -> make_string prefix
+            ()
+          else (
+            Buffer.add_char buf ch;
+            find (i - 1)
+          )
+        | _ -> ()
     in
 
     let (`Offset index) = Msource.get_offset source position in
-    find [] (index - 1)
+    find (index - 1);
+    let s = Buffer.contents buf in
+    (* Poor man's string revserse *)
+    let len = String.length s in
+    StringLabels.init len ~f:(fun i -> s.[len - i - 1])
 
 let suffix_of_position source position =
   match Msource.text source with
