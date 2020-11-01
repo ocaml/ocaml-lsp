@@ -14,6 +14,11 @@ gen:
 	dune build @fmt --auto-promote
 .PHONY: gen
 
+
+jest-promote:
+	cd $(TEST_E2E_DIR) && yarn promote
+.PHONY: jest-promote
+
 fmt-check:
 	dune build @fmt
 	cd $(TEST_E2E_DIR) && yarn fmt-check

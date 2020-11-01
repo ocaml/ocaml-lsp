@@ -172,17 +172,6 @@ let complete doc lsp_position =
               ; deprecated = false (* TODO this is wrong *)
               } ))
   in
-  let items =
-    match items with
-    | _ :: _ -> items
-    | [] ->
-      let expand = Query_protocol.Expand_prefix (prefix, position, [], true) in
-      let { Query_protocol.Compl.entries; context = _ } =
-        Query_commands.dispatch pipeline expand
-      in
-      let range = range_prefix lsp_position prefix in
-      List.map ~f:(fun entry -> (range, entry)) entries
-  in
   let textDocument =
     TextDocumentIdentifier.create ~uri:(Document.uri doc |> Lsp.Uri.to_string)
   in

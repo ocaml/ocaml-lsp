@@ -31,11 +31,6 @@ function setupOcamlFormat(ocamlFormat: string) {
   return tmpdir;
 }
 
-function setupRefmt() {
-  let tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), "ocamllsp-test-"));
-  return tmpdir;
-}
-
 async function openDocument(languageServer, source, name) {
   await languageServer.sendNotification("textDocument/didOpen", {
     textDocument: Types.TextDocumentItem.create(name, "ocaml", 0, source),
