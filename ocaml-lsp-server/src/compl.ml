@@ -42,16 +42,12 @@ let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
   | text ->
-    let len = String.length text in
-    let buf = Buffer.create 8 in
-    let rec find i =
-      if i < 0 then
-        ()
-      else if i >= len then
-        find (i - 1)
-      else
-        let ch = text.[i] in
-        match ch with
+    let from =
+      let (`Offset index) = Msource.get_offset source position in
+      min (String.length text - 1) (index - 1)
+    in
+    let pos =
+      String.rfindi text ~from ~f:(function
         | 'a' .. 'z'
         | 'A' .. 'Z'
         | '0' .. '9'
@@ -75,24 +71,17 @@ let prefix_of_position ~short_path source position =
         | ':'
         | '~'
         | '#' ->
-          Buffer.add_char buf ch;
-          find (i - 1)
-        | '.' ->
-          if short_path then
-            ()
-          else (
-            Buffer.add_char buf ch;
-            find (i - 1)
-          )
-        | _ -> ()
+          false
+        | '.' -> short_path
+        | _ -> true)
     in
-
-    let (`Offset index) = Msource.get_offset source position in
-    find (index - 1);
-    let s = Buffer.contents buf in
-    (* Poor man's string revserse *)
-    let len = String.length s in
-    StringLabels.init len ~f:(fun i -> s.[len - i - 1])
+    let pos =
+      match pos with
+      | None -> 0
+      | Some pos -> pos + 1
+    in
+    let len = from - pos + 1 in
+    String.sub text ~pos ~len
 
 let suffix_of_position source position =
   match Msource.text source with

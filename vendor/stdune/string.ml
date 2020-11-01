@@ -271,7 +271,18 @@ let rfindi =
     else
       loop s ~f (i - 1)
   in
-  fun s ~f -> loop s ~f (String.length s - 1)
+  fun ?from s ~f ->
+    let from =
+      let len = String.length s in
+      match from with
+      | None -> len - 1
+      | Some i ->
+        if i > len - 1 then
+          Code_error.raise "rfindi: invalid from" []
+        else
+          i
+    in
+    loop s ~f from
 
 let need_quoting s =
   let len = String.length s in

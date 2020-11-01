@@ -102,7 +102,7 @@ val enumerate_one_of : t list -> t
 val findi : string -> f:(char -> bool) -> int option
 
 (** Find index of last character satisfying [f] *)
-val rfindi : string -> f:(char -> bool) -> int option
+val rfindi : ?from:int -> string -> f:(char -> bool) -> int option
 
 module Set : sig
   include Set.S with type elt = t
