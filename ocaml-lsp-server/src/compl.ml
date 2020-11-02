@@ -47,7 +47,7 @@ let prefix_of_position ~short_path source position =
       min (String.length text - 1) (index - 1)
     in
     let pos =
-      String.rfindi text ~from ~f:(function
+      let ident_or_infix_char = function
         | 'a' .. 'z'
         | 'A' .. 'Z'
         | '0' .. '9'
@@ -71,9 +71,11 @@ let prefix_of_position ~short_path source position =
         | ':'
         | '~'
         | '#' ->
-          false
-        | '.' -> short_path
-        | _ -> true)
+          true
+        | '.' -> not short_path
+        | _ -> false
+      in
+      String.rfindi text ~from ~f:(fun c -> not (ident_or_infix_char c))
     in
     let pos =
       match pos with
@@ -93,17 +95,19 @@ let suffix_of_position source position =
       min index (len - 1)
     in
     let len =
-      let until =
-        String.findi ~from text ~f:(function
-          | 'a' .. 'z'
-          | 'A' .. 'Z'
-          | '0' .. '9'
-          | '\''
-          | '_' ->
-            false
-          | _ -> true)
+      let ident_char = function
+        | 'a' .. 'z'
+        | 'A' .. 'Z'
+        | '0' .. '9'
+        | '\''
+        | '_' ->
+          true
+        | _ -> false
       in
-      let until = Option.value ~default:len until in
+      let until =
+        String.findi ~from text ~f:(fun c -> not (ident_char c))
+        |> Option.value ~default:len
+      in
       until - from
     in
     String.sub text ~pos:from ~len
