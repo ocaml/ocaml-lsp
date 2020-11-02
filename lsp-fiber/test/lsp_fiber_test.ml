@@ -175,6 +175,7 @@ let%expect_test "ent to end run of lsp tests" =
       ()
   in
   Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
+  print_endline "[TEST] finished";
   [%expect
     {|
     client: waiting for initialization
@@ -194,4 +195,5 @@ let%expect_test "ent to end run of lsp tests" =
     client: received notification
     window/showMessage
     client: filled received_notification
-    client: sending request to shutdown |}]
+    client: sending request to shutdown
+    [TEST] finished |}]
