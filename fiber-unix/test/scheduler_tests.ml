@@ -1,4 +1,5 @@
 open! Import
+open Fiber.O
 module S = Fiber_unix.Scheduler
 module Fiber_detached = Fiber_unix.Fiber_detached
 
@@ -184,3 +185,25 @@ let%expect_test "detached + timer" =
   [%expect {|
     inside timer
     timer finished |}]
+
+let%expect_test "multiple timers" =
+  let s = S.create () in
+  let timer delay = S.create_timer s ~delay in
+  let run () =
+    [ timer 0.06; timer 0.03; timer 0.01 ]
+    |> List.mapi ~f:(fun i timer ->
+           let+ res =
+             S.schedule timer (fun () ->
+                 printf "timer %d\n" i;
+                 Fiber.return ())
+           in
+           match res with
+           | Error `Cancelled -> assert false
+           | Ok () -> ())
+    |> Fiber.parallel_iter ~f:Fun.id
+  in
+  test s run;
+  [%expect {|
+    timer 2
+    timer 1
+    timer 0 |}]
