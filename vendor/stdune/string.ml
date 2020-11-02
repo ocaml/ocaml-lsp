@@ -260,7 +260,18 @@ let findi =
     else
       loop s len ~f (i + 1)
   in
-  fun s ~f -> loop s (String.length s) ~f 0
+  fun ?from s ~f ->
+    let len = String.length s in
+    let from =
+      match from with
+      | None -> 0
+      | Some i ->
+        if i > len - 1 then
+          Code_error.raise "findi: invalid from" []
+        else
+          i
+    in
+    loop s len ~f from
 
 let rfindi =
   let rec loop s ~f i =
@@ -271,7 +282,18 @@ let rfindi =
     else
       loop s ~f (i - 1)
   in
-  fun s ~f -> loop s ~f (String.length s - 1)
+  fun ?from s ~f ->
+    let from =
+      let len = String.length s in
+      match from with
+      | None -> len - 1
+      | Some i ->
+        if i > len - 1 then
+          Code_error.raise "rfindi: invalid from" []
+        else
+          i
+    in
+    loop s ~f from
 
 let need_quoting s =
   let len = String.length s in
@@ -305,3 +327,10 @@ let of_list chars =
   let s = Bytes.make (List.length chars) '0' in
   List.iteri chars ~f:(fun i c -> Bytes.set s i c);
   Bytes.to_string s
+
+let sub s ~pos ~len =
+  match sub s ~pos ~len with
+  | s -> s
+  | exception _ ->
+    Code_error.raise "sub"
+      [ ("s", String s); ("pos", Int pos); ("len", Int len) ]

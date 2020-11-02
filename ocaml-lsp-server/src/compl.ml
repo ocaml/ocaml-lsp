@@ -30,10 +30,6 @@ let completion_kind kind : CompletionItemKind.t option =
   | `MethodCall -> Some Method
   | `Keyword -> Some Keyword
 
-let make_string chars =
-  let chars = Array.of_list chars in
-  String.init (Array.length chars) ~f:(Array.get chars)
-
 (** [prefix_of_position ~short_path source position] computes prefix before
     given [position].
 
@@ -46,16 +42,12 @@ let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
   | text ->
-    let len = String.length text in
-
-    let rec find prefix i =
-      if i < 0 then
-        make_string prefix
-      else if i >= len then
-        find prefix (i - 1)
-      else
-        let ch = text.[i] in
-        match ch with
+    let from =
+      let (`Offset index) = Msource.get_offset source position in
+      min (String.length text - 1) (index - 1)
+    in
+    let pos =
+      let ident_or_infix_char = function
         | 'a' .. 'z'
         | 'A' .. 'Z'
         | '0' .. '9'
@@ -79,42 +71,46 @@ let prefix_of_position ~short_path source position =
         | ':'
         | '~'
         | '#' ->
-          find (ch :: prefix) (i - 1)
-        | '.' ->
-          if short_path then
-            make_string prefix
-          else
-            find (ch :: prefix) (i - 1)
-        | _ -> make_string prefix
+          true
+        | '.' -> not short_path
+        | _ -> false
+      in
+      String.rfindi text ~from ~f:(fun c -> not (ident_or_infix_char c))
     in
-
-    let (`Offset index) = Msource.get_offset source position in
-    find [] (index - 1)
+    let pos =
+      match pos with
+      | None -> 0
+      | Some pos -> pos + 1
+    in
+    let len = from - pos + 1 in
+    String.sub text ~pos ~len
 
 let suffix_of_position source position =
   match Msource.text source with
   | "" -> ""
   | text ->
     let len = String.length text in
-
-    let rec find suffix i =
-      if i >= len then
-        suffix
-      else
-        let ch = text.[i] in
-        (* The characters for an infix function are missing *)
-        match ch with
+    let from =
+      let (`Offset index) = Msource.get_offset source position in
+      min index (len - 1)
+    in
+    let len =
+      let ident_char = function
         | 'a' .. 'z'
         | 'A' .. 'Z'
         | '0' .. '9'
         | '\''
         | '_' ->
-          find (ch :: suffix) (i + 1)
-        | _ -> suffix
+          true
+        | _ -> false
+      in
+      let until =
+        String.findi ~from text ~f:(fun c -> not (ident_char c))
+        |> Option.value ~default:len
+      in
+      until - from
     in
-
-    let (`Offset index) = Msource.get_offset source position in
-    make_string (List.rev @@ find [] index)
+    String.sub text ~pos:from ~len
 
 let range_prefix (lsp_position : Position.t) prefix : Range.t =
   let start =
