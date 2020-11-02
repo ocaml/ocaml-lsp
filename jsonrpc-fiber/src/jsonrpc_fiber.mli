@@ -7,6 +7,14 @@ module Notify : sig
     | Continue
 end
 
+module Reply : sig
+  type t
+
+  val now : Response.t -> t
+
+  val later : ((Response.t -> unit Fiber.t) -> unit Fiber.t) -> t
+end
+
 (** IO free implementation of the jsonrpc protocol. We stay completely agnostic
     of transport by only dealing with abstract jsonrpc packets *)
 module Make (Chan : sig
@@ -34,8 +42,7 @@ end) : sig
   with type 'a session := 'a t
 
   val create :
-       ?on_request:
-         (('state, Id.t) Context.t -> (Response.t Fiber.t * 'state) Fiber.t)
+       ?on_request:(('state, Id.t) Context.t -> (Reply.t * 'state) Fiber.t)
     -> ?on_notification:
          (('state, unit) Context.t -> (Notify.t * 'state) Fiber.t)
     -> name:string

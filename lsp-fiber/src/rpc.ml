@@ -143,22 +143,22 @@ struct
   let to_jsonrpc (type state) (t : state t) h_on_request h_on_notification =
     let open Fiber.O in
     let on_request (ctx : (state, Id.t) Session.Context.t) :
-        (Response.t Fiber.t * state) Fiber.t =
+        (Reply.t * state) Fiber.t =
       let req = Session.Context.message ctx in
       let state = Session.Context.state ctx in
       match In_request.of_jsonrpc req with
       | Error message ->
         let code = Jsonrpc.Response.Error.Code.InvalidParams in
         let error = Jsonrpc.Response.Error.make ~code ~message () in
-        Fiber.return (Fiber.return (Response.error req.id error), state)
+        Fiber.return (Reply.now (Response.error req.id error), state)
       | Ok (In_request.E r) -> (
         let+ response = h_on_request.on_request t r in
         match response with
-        | Error e -> (Fiber.return (Response.error req.id e), state)
+        | Error e -> (Reply.now (Response.error req.id e), state)
         | Ok (response, state) ->
           let json = In_request.yojson_of_result r response in
           let response = Response.ok req.id json in
-          (Fiber.return response, state) )
+          (Reply.now response, state) )
     in
     let on_notification ctx : (Notify.t * state) Fiber.t =
       let r = Session.Context.message ctx in

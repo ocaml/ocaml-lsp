@@ -16,6 +16,41 @@ module Notify = struct
     | Continue
 end
 
+module Sender = struct
+  type t =
+    { mutable called : bool
+    ; for_ : Id.t
+    ; send : Response.t -> unit Fiber.t
+    }
+
+  let make id send = { for_ = id; called = false; send }
+
+  let send t (r : Response.t) : unit Fiber.t =
+    if t.called then
+      Code_error.raise "cannot send response twice" []
+    else if not (Id.equal t.for_ r.id) then
+      Code_error.raise "invalid id" []
+    else (
+      t.called <- true;
+      t.send r
+    )
+end
+
+module Reply = struct
+  type t =
+    | Now of Response.t
+    | Later of ((Response.t -> unit Fiber.t) -> unit Fiber.t)
+
+  let now (r : Response.t) = Now r
+
+  let later f = Later f
+
+  let send (t : t) sender =
+    match t with
+    | Now r -> Sender.send sender r
+    | Later f -> f (fun (r : Response.t) -> Sender.send sender r)
+end
+
 module Make (Chan : sig
   type t
 
@@ -28,8 +63,7 @@ end) =
 struct
   type 'state t =
     { chan : Chan.t
-    ; on_request :
-        ('state, Id.t) context -> (Response.t Fiber.t * 'state) Fiber.t
+    ; on_request : ('state, Id.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
     ; stop_requested : unit Fiber.Ivar.t
@@ -54,28 +88,30 @@ struct
 
   let log t = Log.log ~section:t.name
 
+  let response_error_of_exns id exns =
+    let data : Json.t =
+      `List
+        (List.map
+           ~f:(fun e -> e |> Exn_with_backtrace.to_dyn |> Json.of_dyn)
+           exns)
+    in
+    let error =
+      Response.Error.make ~code:InternalError ~data
+        ~message:"uncaught exception" ()
+    in
+    Response.error id error
+
   let response_of_result id = function
     | Ok x -> Ok x
-    | Error exns ->
-      let data : Json.t =
-        `List
-          (List.map
-             ~f:(fun e -> e |> Exn_with_backtrace.to_dyn |> Json.of_dyn)
-             exns)
-      in
-      let error =
-        Response.Error.make ~code:InternalError ~data
-          ~message:"uncaught exception" ()
-      in
-      Error (Response.error id error)
+    | Error exns -> Error (response_error_of_exns id exns)
 
-  let on_request_fail ctx : (Response.t Fiber.t * _) Fiber.t =
+  let on_request_fail ctx : (Reply.t * _) Fiber.t =
     let req : Message.request = Context.message ctx in
     let state = Context.state ctx in
     let error =
       Response.Error.make ~code:InternalError ~message:"not implemented" ()
     in
-    Fiber.return (Fiber.return (Response.error req.id error), state)
+    Fiber.return (Reply.now (Response.error req.id error), state)
 
   let state t = t.state
 
@@ -152,16 +188,22 @@ struct
       match jsonrpc_resp with
       | Error resp ->
         Fiber.fork_and_join_unit (fun () -> send_response resp) loop
-      | Ok (resp, state) ->
+      | Ok (reply, state) ->
         t.state <- state;
+        let sender = Sender.make r.id send_response in
         Fiber.fork_and_join_unit loop (fun () ->
-            let* resp = Fiber.collect_errors (fun () -> resp) in
-            let resp =
-              match response_of_result r.id resp with
-              | Error resp -> resp
-              | Ok resp -> resp
+            let* resp =
+              Fiber.collect_errors (fun () -> Reply.send reply sender)
             in
-            send_response resp)
+            match (sender.called, resp) with
+            | false, Ok () -> Code_error.raise "must send response" []
+            | true, Ok () -> Fiber.return ()
+            | true, Error _ ->
+              (* TODO we should log *)
+              Fiber.return ()
+            | false, Error exns ->
+              let resp = response_error_of_exns r.id exns in
+              Sender.send sender resp)
     and on_notification (r : unit Message.t) : unit Fiber.t =
       let* res = Fiber.collect_errors (fun () -> t.on_notification (t, r)) in
       match res with
