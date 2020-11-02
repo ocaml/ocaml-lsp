@@ -13,11 +13,11 @@
 (executable
  (name gen)
  (modules gen)
- (preprocess future_syntax)
- (libraries stdune lsp_gen))
+ (libraries lsp_gen stdune)
+ (preprocess future_syntax))
 
 (library
  (name lsp_gen)
- (preprocess future_syntax)
  (modules :standard \ gen)
- (libraries stdune))
+ (libraries stdune)
+ (preprocess future_syntax))

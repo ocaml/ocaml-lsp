@@ -3,7 +3,8 @@
 (library
  (name lsp)
  (public_name lsp)
- (libraries stdune yojson jsonrpc threads.posix ppx_yojson_conv_lib uutf)
+ (libraries jsonrpc ppx_yojson_conv_lib result stdune threads.posix uutf
+   yojson)
  (preprocess future_syntax)
  (lint
   (pps ppx_yojson_conv)))

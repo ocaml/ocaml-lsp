@@ -2,8 +2,8 @@
  (name jsonrpc_test)
  (modules jsonrpc_test)
  (preprocess future_syntax)
- (libraries stdune fiber_unix jsonrpc jsonrpc_fiber yojson lsp fiber
-   ppx_yojson_conv_lib threads.posix))
+ (libraries fiber fiber_unix jsonrpc jsonrpc_fiber lsp ppx_yojson_conv_lib
+   stdune threads.posix yojson))
 
 (rule
  (alias test)
@@ -17,19 +17,19 @@
   (>= %{ocaml_version} 4.08))
  (inline_tests)
  (libraries
+  base
   fiber
-  yojson
+  fiber_test
+  fiber_unix
   jsonrpc
   jsonrpc_fiber
-  fiber_unix
-  fiber_test
-  stdune
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
+  ppx_expect.common
   ppx_expect.config
   ppx_expect.config_types
-  ppx_expect.common
-  base
-  ppx_inline_test.config)
+  ppx_inline_test.config
+  stdune
+  yojson)
  (preprocess
   (pps ppx_expect)))
