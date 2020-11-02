@@ -1,3 +1,4 @@
 (library
  (name jsonrpc_fiber)
- (libraries jsonrpc fiber yojson stdune fiber_unix ppx_yojson_conv_lib))
+ (libraries fiber fiber_unix jsonrpc ppx_yojson_conv_lib stdune yojson)
+ (preprocess future_syntax))

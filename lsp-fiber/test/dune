@@ -8,21 +8,21 @@
  (enabled_if
   (>= %{ocaml_version} 4.08))
  (libraries
+  base
   fiber
-  yojson
-  jsonrpc
-  threads.posix
-  ppx_yojson_conv_lib
-  jsonrpc_fiber
-  fiber_unix
   fiber_test
-  lsp_fiber
+  fiber_unix
+  jsonrpc
+  jsonrpc_fiber
   lsp
-  stdune
+  lsp_fiber
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
+  ppx_expect.common
   ppx_expect.config
   ppx_expect.config_types
-  ppx_expect.common
-  base
-  ppx_inline_test.config))
+  ppx_inline_test.config
+  ppx_yojson_conv_lib
+  stdune
+  threads.posix
+  yojson))
