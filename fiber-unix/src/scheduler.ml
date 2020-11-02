@@ -200,9 +200,7 @@ let time_loop t =
     let to_run = ref [] in
     let earliest_next = ref None in
     with_mutex t.time_mutex ~f:(fun () ->
-        if is_empty t.timers then
-          ()
-        else
+        if not (is_empty t.timers) then
           let now = Unix.gettimeofday () in
           Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
               let active_timer = !active_timer in
