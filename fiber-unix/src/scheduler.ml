@@ -211,7 +211,7 @@ let time_loop t =
               in
               let need_to_run = scheduled_at < now in
               if need_to_run then
-                to_run := Scheduled active_timer :: !to_run
+                to_run := active_timer :: !to_run
               else
                 earliest_next :=
                   Some
@@ -219,7 +219,12 @@ let time_loop t =
                     | None -> scheduled_at
                     | Some v -> min scheduled_at v );
               not need_to_run));
-    add_events t !to_run;
+    let to_run =
+      List.sort !to_run ~compare:(fun x y ->
+          Timer_id.compare x.parent.timer_id y.parent.timer_id)
+      |> List.map ~f:(fun x -> Scheduled x)
+    in
+    add_events t to_run;
     Option.iter !earliest_next ~f:(Mvar.set t.earliest_wakeup);
     with_mutex t.timers_available_mutex ~f:(fun () ->
         Condition.wait t.timers_available t.timers_available_mutex);
