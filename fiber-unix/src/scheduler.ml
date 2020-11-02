@@ -154,6 +154,7 @@ type t =
 and event =
   | Job_completed : 'a * 'a Fiber.Ivar.t -> event
   | Scheduled of active_timer
+  | Abort
 
 and job =
   | Pending :
@@ -324,7 +325,10 @@ let cancel_timers t =
 
 let cleanup t = List.iter t.threads ~f:stop
 
-type run_error = Never
+type run_error =
+  | Never
+  | Abort_requested
+  | Exn of Exn.t
 
 exception Abort of run_error
 
@@ -342,10 +346,10 @@ let event_next (t : t) : Fiber.fill =
       if Queue.is_empty t.events then
         Error (Abort Never)
       else
-        Ok
-          ( match consume_event () with
-          | Job_completed (a, ivar) -> Fiber.Fill (ivar, a)
-          | Scheduled active_timer -> Fill (active_timer.ivar, `Resolved) ))
+        match consume_event () with
+        | Abort -> Error (Abort Abort_requested)
+        | Job_completed (a, ivar) -> Ok (Fiber.Fill (ivar, a))
+        | Scheduled active_timer -> Ok (Fill (active_timer.ivar, `Resolved)))
   |> Result.ok_exn
 
 let report t =
@@ -374,14 +378,25 @@ let iter (t : t) =
   ) else
     event_next t
 
-let run : 'a. t -> 'a Fiber.t -> 'a =
+let run_result : 'a. t -> 'a Fiber.t -> ('a, _) result =
  fun t f ->
   let f = Fiber.Var.set me t (fun () -> f) in
   let iter () = iter t in
-  let res = Fiber.run f ~iter in
-  assert (t.events_pending = 0);
+  let res =
+    match Fiber.run f ~iter with
+    | exception Abort err -> Error err
+    | exception exn -> Error (Exn exn)
+    | res ->
+      assert (t.events_pending = 0);
+      Ok res
+  in
   cleanup t;
   res
+
+let run t f =
+  match run_result t f with
+  | Ok s -> s
+  | Error e -> raise (Abort e)
 
 let create_timer t ~delay =
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }
@@ -436,3 +451,7 @@ let cancel_timer (timer : timer) =
     with_mutex t.events_mutex ~f:(fun () ->
         t.events_pending <- t.events_pending - 1);
     Fiber.Ivar.fill ivar `Cancelled
+
+let abort t =
+  (* TODO proper cleanup *)
+  add_events t [ Abort ]

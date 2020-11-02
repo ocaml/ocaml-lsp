@@ -4,6 +4,13 @@ type t
 
 val create : unit -> t
 
+type run_error =
+  | Never
+  | Abort_requested
+  | Exn of Exn.t
+
+val run_result : t -> 'a Fiber.t -> ('a, run_error) result
+
 val run : t -> 'a Fiber.t -> 'a
 
 type thread
@@ -38,3 +45,5 @@ val cancel_timer : timer -> unit Fiber.t
 val cancel_timers : t -> unit Fiber.t
 
 val scheduler : unit -> t
+
+val abort : t -> unit
