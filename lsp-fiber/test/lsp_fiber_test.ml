@@ -171,29 +171,41 @@ let%expect_test "ent to end run of lsp tests" =
         let delay = 3.0 in
         Thread.delay delay;
         Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
-        exit 1)
+        Scheduler.abort scheduler)
       ()
   in
   Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
   print_endline "[TEST] finished";
-  [%expect
+  [%expect.unreachable]
+  [@@expect.uncaught_exn
     {|
-    client: waiting for initialization
-    server: initializing server
-    server: returning initialization result
-    client: server initialized. sending request
-    server: executing command
-    server: sending message notification to client
-    server: scheduling show message
-    server: scheduling show message
-    client: sending request
-    client: Successfully executed command with result:
-    "successful execution"
-    client: waiting to receive notification before shutdown
-    server: sending show message notification
-    server: 0 ran
-    client: received notification
-    window/showMessage
-    client: filled received_notification
-    client: sending request to shutdown
-    [TEST] finished |}]
+  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
+     This is strongly discouraged as backtraces are fragile.
+     Please change this test to not include a backtrace. *)
+
+  ("Fiber_unix__Scheduler.Abort(1)")
+  Raised at Fiber_unix__Scheduler.run in file "fiber-unix/src/scheduler.ml", line 399, characters 15-30
+  Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 177, characters 2-66
+  Called from Expect_test_collector.Make.Instance.exec in file "collector/expect_test_collector.ml", line 244, characters 12-19
+
+  Trailing output
+  ---------------
+  client: waiting for initialization
+  server: initializing server
+  server: returning initialization result
+  client: server initialized. sending request
+  server: executing command
+  server: sending message notification to client
+  server: scheduling show message
+  server: scheduling show message
+  client: sending request
+  client: Successfully executed command with result:
+  "successful execution"
+  client: waiting to receive notification before shutdown
+  server: sending show message notification
+  server: 0 ran
+  client: received notification
+  window/showMessage
+  client: filled received_notification
+  client: sending request to shutdown
+  Test failed to terminate before 3.00 seconds |}]

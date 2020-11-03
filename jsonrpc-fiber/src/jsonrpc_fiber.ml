@@ -78,11 +78,17 @@ struct
 
   let state t = t.state
 
-  let stop t =
-    log t (fun () -> Log.msg "requesting shutdown" []);
-    Fiber.Ivar.fill t.stop_requested ()
-
   let stopped t = Fiber.Ivar.read t.stopped
+
+  let stop t =
+    let open Fiber.O in
+    let* res = Fiber.Ivar.peek t.stop_requested in
+    Fiber.fork_and_join_unit
+      (fun () ->
+        match res with
+        | None -> Fiber.return ()
+        | Some _ -> Fiber.Ivar.fill t.stop_requested ())
+      (fun () -> stopped t)
 
   let close t =
     let open Fiber.O in
@@ -129,7 +135,7 @@ struct
       | Either.Right () ->
         log t (fun () -> Log.msg "shutdown granted" []);
         Chan.close t.chan
-      | Left None -> Fiber.Ivar.fill t.stop_requested ()
+      | Left None -> Fiber.return ()
       | Left (Some packet) -> (
         let* next_step =
           match packet with
