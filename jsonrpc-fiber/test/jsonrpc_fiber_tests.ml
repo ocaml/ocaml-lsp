@@ -186,6 +186,7 @@ let%expect_test "concurrent requests" =
     [FAIL] unexpected Never raised |}]
 
 let%expect_test "test from jsonrpc_test.ml" =
+  Printexc.record_backtrace false;
   let response =
     let i = ref 0 in
     fun () ->
@@ -242,10 +243,6 @@ let%expect_test "test from jsonrpc_test.ml" =
          print_json json);
   [%expect
     {|
-    (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-       This is strongly discouraged as backtraces are fragile.
-       Please change this test to not include a backtrace. *)
-
     >> received notification
     { "params": null, "method": "notif1", "jsonrpc": "2.0" }
     >> received notification
@@ -253,14 +250,7 @@ let%expect_test "test from jsonrpc_test.ml" =
     Uncaught error when handling notification:
     { "params": null, "method": "raise", "jsonrpc": "2.0" }
     Error:
-    [ { exn = "(Failure \"special failure\")"
-      ; backtrace =
-          "Raised at Stdlib.failwith in file \"stdlib.ml\", line 29, characters 17-33\n\
-           Called from Jsonrpc_fiber_tests.(fun).on_notification in file \"jsonrpc-fiber/test/jsonrpc_fiber_tests.ml\", line 202, characters 32-58\n\
-           Called from Fiber.Execution_context.apply in file \"vendor/fiber/fiber.ml\", line 193, characters 9-14\n\
-           "
-      }
-    ]
+    [ { exn = "(Failure \"special failure\")"; backtrace = "" } ]
     "<opaque>"
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
