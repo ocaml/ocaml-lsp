@@ -19,6 +19,10 @@ jest-promote:
 	cd $(TEST_E2E_DIR) && yarn promote
 .PHONY: jest-promote
 
+dune-promote:
+	dune promote
+.PHONY: dune-promote
+
 fmt-check:
 	dune build @fmt
 	cd $(TEST_E2E_DIR) && yarn fmt-check
@@ -28,12 +32,21 @@ lsp-server:
 	dune build @install
 .PHONY: lsp-server
 
-test: $(TEST_E2E_DIR)/node_modules lsp-server
-	dune build @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest && cd $(TEST_E2E_DIR) && dune exec -- yarn test
+test-e2e: $(TEST_E2E_DIR)/node_modules
+	dune build @install
+	cd $(TEST_E2E_DIR) && dune exec -- yarn test
+.PHONY: test-e2e
+
+test-ocaml:
+	dune build @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
+.PHONY: test-ocaml
+
+test: test-ocaml test-e2e
 .PHONY: test
 
-ocaml-test:
-	dune build @test @lsp/test/runtest
+clean:
+	dune clean
+.PHONY: clean
 
 $(TEST_E2E_DIR)/node_modules:
 	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
