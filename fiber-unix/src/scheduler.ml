@@ -103,8 +103,10 @@ type t =
   ; event_ready : Condition.t
   ; timers_available : Condition.t
   ; timers_available_mutex : Mutex.t
+  ; earliest_next_mutex : Mutex.t
+  ; earliest_next_barrier : Barrier.t
+  ; mutable earliest_next : float option
   ; mutable threads : thread list
-  ; earliest_wakeup : float Mvar.t
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
   ; (* TODO Replace with Removable_queue *)
@@ -183,7 +185,10 @@ let time_loop t =
       |> List.map ~f:(fun x -> Scheduled x)
     in
     add_events t to_run;
-    Option.iter !earliest_next ~f:(Mvar.set t.earliest_wakeup);
+    Option.iter !earliest_next ~f:(fun s ->
+        with_mutex t.earliest_next_mutex ~f:(fun () ->
+            t.earliest_next <- Some s);
+        Barrier.signal t.earliest_next_barrier);
     with_mutex t.timers_available_mutex ~f:(fun () ->
         Condition.wait t.timers_available t.timers_available_mutex);
     loop ()
@@ -191,14 +196,31 @@ let time_loop t =
   loop ()
 
 let wake_loop t =
-  let rec loop () =
-    let wakeup_at = Mvar.get t.earliest_wakeup in
-    let now = Unix.gettimeofday () in
-    if now < wakeup_at then Thread.delay (wakeup_at -. now);
-    signal_timers_available t;
-    loop ()
+  let rec loop timeout =
+    match Barrier.await t.earliest_next_barrier ?timeout with
+    | Error (`Closed (`Read b)) -> if b then signal_timers_available t
+    | Error `Timeout ->
+      signal_timers_available t;
+      loop None
+    | Ok () -> (
+      let wakeup_at =
+        with_mutex t.earliest_next_mutex ~f:(fun () ->
+            let v = t.earliest_next in
+            t.earliest_next <- None;
+            v)
+      in
+      let now = Unix.gettimeofday () in
+      match wakeup_at with
+      | None -> loop None
+      | Some wakeup_at ->
+        if now < wakeup_at then
+          loop (Some (wakeup_at -. now))
+        else (
+          signal_timers_available t;
+          loop None
+        ) )
   in
-  loop ()
+  loop None
 
 let create () =
   let t =
@@ -207,12 +229,14 @@ let create () =
     ; events_mutex = Mutex.create ()
     ; time_mutex = Mutex.create ()
     ; event_ready = Condition.create ()
+    ; earliest_next_mutex = Mutex.create ()
+    ; earliest_next = None
+    ; earliest_next_barrier = Barrier.create ()
     ; threads = []
     ; timers = Table.create (module Timer_id) 10
     ; timers_available = Condition.create ()
     ; timers_available_mutex = Mutex.create ()
     ; time = Thread.self ()
-    ; earliest_wakeup = Mvar.create ()
     ; waker = Thread.self ()
     }
   in
@@ -286,7 +310,9 @@ let cancel_timers t =
           false));
   Fiber.parallel_iter !timers ~f:(fun ivar -> Fiber.Ivar.fill ivar `Cancelled)
 
-let cleanup t = List.iter t.threads ~f:stop
+let cleanup t =
+  Barrier.close t.earliest_next_barrier;
+  List.iter t.threads ~f:stop
 
 type run_error =
   | Never
