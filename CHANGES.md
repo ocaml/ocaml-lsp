@@ -4,6 +4,9 @@
 
 - Add keyword completion
 
+- Add go to declaration functionality to jump to a value's specification in a
+  .mli file (#294)
+
 ## Fixes
 
 - #245: correctly use mutexes on OpenBSD (#264)
