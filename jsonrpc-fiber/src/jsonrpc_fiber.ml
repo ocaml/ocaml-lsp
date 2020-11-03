@@ -86,8 +86,8 @@ struct
     Fiber.fork_and_join_unit
       (fun () ->
         match res with
-        | None -> Fiber.return ()
-        | Some _ -> Fiber.Ivar.fill t.stop_requested ())
+        | Some _ -> Fiber.return ()
+        | None -> Fiber.Ivar.fill t.stop_requested ())
       (fun () -> stopped t)
 
   let close t =

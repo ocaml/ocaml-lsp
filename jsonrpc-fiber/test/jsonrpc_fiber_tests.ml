@@ -86,7 +86,7 @@ let%expect_test "stopped fiber" =
     {|
     running
     stopping
-    [FAIL] unexpected Never raised
+    "<opaque>"
     stopped |}]
 
 let%expect_test "serving requests" =
