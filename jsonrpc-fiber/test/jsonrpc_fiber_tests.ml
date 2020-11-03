@@ -72,17 +72,19 @@ let%expect_test "stopped fiber" =
   let run () =
     let in_ = In.create (fun () -> Fiber.never) in
     let jrpc = Jrpc.create ~name:"test" (in_, no_output ()) () in
-    print_endline "runing";
+    print_endline "running";
     let running = Jrpc.run jrpc in
-    print_endline "stopping";
-    let* () = Jrpc.stop jrpc in
-    running
+    Fiber.fork_and_join_unit
+      (fun () ->
+        print_endline "stopping";
+        Jrpc.stop jrpc)
+      (fun () -> running)
   in
   Fiber_test.test Dyn.Encoder.opaque (run ());
   print_endline "stopped";
   [%expect
     {|
-    runing
+    running
     stopping
     [FAIL] unexpected Never raised
     stopped |}]
