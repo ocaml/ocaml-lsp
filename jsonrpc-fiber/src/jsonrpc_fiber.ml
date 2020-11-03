@@ -91,9 +91,9 @@ struct
       (fun () -> stopped t)
 
   let close t =
-    let open Fiber.O in
-    let* () = Chan.close t.chan in
-    Fiber.Ivar.fill t.stopped ()
+    Fiber.fork_and_join_unit
+      (fun () -> Chan.close t.chan)
+      (fun () -> Fiber.Ivar.fill t.stopped ())
 
   let run t =
     let stop_requested = Fiber.Ivar.read t.stop_requested in
@@ -134,7 +134,7 @@ struct
       match res with
       | Either.Right () ->
         log t (fun () -> Log.msg "shutdown granted" []);
-        Chan.close t.chan
+        Fiber.return ()
       | Left None -> Fiber.return ()
       | Left (Some packet) -> (
         let* next_step =
