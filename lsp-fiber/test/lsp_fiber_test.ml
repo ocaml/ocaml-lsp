@@ -171,7 +171,7 @@ let%expect_test "ent to end run of lsp tests" =
         let delay = 3.0 in
         Thread.delay delay;
         Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
-        exit 1)
+        Scheduler.abort scheduler)
       ()
   in
   Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
