@@ -1,11 +1,5 @@
 open Import
 
-let with_mutex m ~f =
-  Mutex.lock m;
-  let res = f () in
-  Mutex.unlock m;
-  res
-
 module Mvar : sig
   type 'a t
 

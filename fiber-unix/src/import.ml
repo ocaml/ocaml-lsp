@@ -1,5 +1,11 @@
 include Stdune
 
+let with_mutex m ~f =
+  Mutex.lock m;
+  let res = f () in
+  Mutex.unlock m;
+  res
+
 module Json = struct
   type t = Yojson.Safe.t
 
