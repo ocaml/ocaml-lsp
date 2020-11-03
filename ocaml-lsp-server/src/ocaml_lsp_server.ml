@@ -44,9 +44,10 @@ let initialize_info : InitializeResult.t =
         ]
     in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
-      ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
-      ~completionProvider ~codeActionProvider ~codeLensProvider
-      ~referencesProvider:(`Bool true) ~documentHighlightProvider:(`Bool true)
+      ~declarationProvider:(`Bool true) ~definitionProvider:(`Bool true)
+      ~typeDefinitionProvider:(`Bool true) ~completionProvider
+      ~codeActionProvider ~codeLensProvider ~referencesProvider:(`Bool true)
+      ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
       ~foldingRangeProvider:(`Bool true) ~experimental ~renameProvider ()
@@ -550,7 +551,10 @@ let ocaml_on_request :
     let open Fiber.O in
     let+ symbols = Document_symbol.run client_capabilities doc uri in
     Ok (Some symbols, state)
-  | Client_request.TextDocumentDeclaration _ -> Fiber.return @@ Ok (None, state)
+  | Client_request.TextDocumentDeclaration { textDocument = { uri }; position }
+    ->
+    definition_query state uri position (fun pos ->
+        Query_protocol.Locate (None, `MLI, pos))
   | Client_request.TextDocumentDefinition { textDocument = { uri }; position }
     ->
     definition_query state uri position (fun pos ->
