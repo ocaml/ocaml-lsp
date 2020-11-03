@@ -82,8 +82,7 @@ let%expect_test "stopped fiber" =
   in
   Fiber_test.test Dyn.Encoder.opaque (run ());
   print_endline "stopped";
-  [%expect
-    {|
+  [%expect {|
     running
     stopping
     "<opaque>"
@@ -126,8 +125,9 @@ let%expect_test "concurrent requests" =
       (Yojson.Safe.pretty_to_string ~std:false
          (Jsonrpc.yojson_of_packet packet))
   in
-  let waiter chan self =
+  let waiter chan =
     let on_request c =
+      let self = Context.session c in
       let request = Context.message c in
       print_endline "waiter: received request";
       print (Message { request with id = Some request.id });
@@ -135,9 +135,9 @@ let%expect_test "concurrent requests" =
         print_endline "waiter: making request";
         let+ response =
           let request =
-            Jsonrpc.Message.create ~id:(`Int 100) ~method_:"random" ()
+            Jsonrpc.Message.create ~id:(`Int 100) ~method_:"shutdown" ()
           in
-          Jrpc.request (Option.value_exn !self) request
+          Jrpc.request self request
         in
         print_endline "waiter: received response:";
         print (Response response);
@@ -153,6 +153,15 @@ let%expect_test "concurrent requests" =
       let request = Context.message c in
       print (Message { request with id = Some request.id });
       let response = Jsonrpc.Response.ok request.id (`Int 42) in
+      let* () =
+        if request.method_ = "shutdown" then (
+          let self = Context.session c in
+          print_endline "waitee: stopping";
+          let+ () = Jrpc.stop self in
+          print_endline "waitee: stopped"
+        ) else
+          Fiber.return ()
+      in
       let state = Context.state c in
       Fiber.return (response, state)
     in
@@ -161,9 +170,7 @@ let%expect_test "concurrent requests" =
   let waitee_in, waiter_out = pipe () in
   let waiter_in, waitee_out = pipe () in
   let waitee = waitee (waitee_in, waitee_out) in
-  let self = ref None in
-  let waiter = waiter (waiter_in, waiter_out) self in
-  self := Some waiter;
+  let waiter = waiter (waiter_in, waiter_out) in
   let initial_request () =
     let request =
       Jsonrpc.Message.create ~id:(`String "initial") ~method_:"init" ()
@@ -184,7 +191,8 @@ let%expect_test "concurrent requests" =
     { "id": "initial", "method": "init", "jsonrpc": "2.0" }
     waiter: making request
     waitee: received request
-    { "id": 100, "method": "random", "jsonrpc": "2.0" }
+    { "id": 100, "method": "shutdown", "jsonrpc": "2.0" }
+    waitee: stopping
     [FAIL] unexpected Never raised |}]
 
 let%expect_test "test from jsonrpc_test.ml" =
