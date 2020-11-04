@@ -16,6 +16,7 @@ module Exn_with_backtrace = Exn_with_backtrace
 module Fdecl = Fdecl
 module Queue = Queue
 module Header = Lsp.Header
+module Io = Lsp.Io
 include Fiber_unix
 
 module String = struct

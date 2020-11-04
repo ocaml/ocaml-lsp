@@ -753,7 +753,7 @@ let start () =
     Server.Handler.make ~on_request ~on_notification ()
   in
   let stream =
-    let io = Lsp_fiber.Io.make stdin stdout in
+    let io = Lsp.Io.make stdin stdout in
     Lsp_fiber.Fiber_io.make scheduler io
   in
   let configuration = Configuration.default in
