@@ -17,12 +17,12 @@ jobs:
         skip_test:
           - false
         ocaml-version:
-          - 4.11.0
+          - 4.11.1
         include:
-          - ocaml-version: 4.11.0
+          - ocaml-version: 4.11.1
             os: windows-latest
             skip_test: true
-          - ocaml-version: 4.10.0
+          - ocaml-version: 4.10.1
             os: windows-latest
             skip_test: true
           - ocaml-version: 4.09.1
@@ -34,9 +34,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    env:
-      SKIP_TEST: ${{ matrix.skip_test }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -46,32 +43,36 @@ jobs:
       - name: Use latest LTS Node.js release
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 14.x
 
       - name: Use OCaml ${{ matrix.ocaml-version }}
         uses: avsm/setup-ocaml@v1
         with:
           ocaml-version: ${{ matrix.ocaml-version }}
 
-      - run: opam pin -n .
+      - run: opam pin jsonrpc.next . --no-action
 
-      - run: opam install -t . --deps-only
-        if: env.SKIP_TEST != 'true'
+      - run: opam pin lsp.next . --no-action
 
-      - run: opam install . --deps-only
-        if: env.SKIP_TEST == 'true'
+      - run: opam pin ocaml-lsp-server.next . --no-action
+
+      - run: opam install ocamlfind-secondary
+        if: ${{ matrix.ocaml-version }} == '4.06.1'
+
+      - run: opam install . --deps-only --with-test
+
+      - run: opam exec -- make build
 
       - run: opam exec -- make test
-        if: env.SKIP_TEST != 'true'
+        if: ${{ matrix.skip_test }} != 'true'
 
-      - name: test source is well formatted
-        run: opam exec -- make fmt
-        if: env.OCAML_VERSION == '4.10.0' && env.OS == 'ubuntu-latest'
+      - run: opam exec -- make fmt
+        if: ${{ matrix.ocaml-version }} == '4.11.1' && runner.os == 'Linux'
 
       - run: yarn --frozen-lockfile
         working-directory: ocaml-lsp-server/test/e2e
-        if: env.SKIP_TEST != 'true'
+        if: ${{ matrix.skip_test }} != 'true'
 
       - run: opam exec -- yarn test
         working-directory: ocaml-lsp-server/test/e2e
-        if: env.SKIP_TEST != 'true'
+        if: ${{ matrix.skip_test }} != 'true'
