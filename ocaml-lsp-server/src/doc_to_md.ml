@@ -123,12 +123,12 @@ and tag_to_markdown tag : Omd.element list =
   | Before (ver, text) -> (
     match text with
     | [] -> marked_tag_to_md "@before" ver
-    | _ -> marked_tag_with_text_to_md "@before" ver text )
+    | _ -> marked_tag_with_text_to_md "@before" ver text)
   | Param (name, text) -> (
     match text with
     | [] ->
       tag_with_text_to_md "@param" [ Raw name ] (* in case `id` is missing) *)
-    | _ -> marked_tag_with_text_to_md "@param" name text )
+    | _ -> marked_tag_with_text_to_md "@param" name text)
   | Raised_exception (exn, text) -> marked_tag_with_text_to_md "@raise" exn text
   | See (r, s) -> see_tag_to_md (r, s)
   | Custom (name, text) ->

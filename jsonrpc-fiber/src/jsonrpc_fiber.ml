@@ -155,8 +155,7 @@ struct
       | Left (Some packet) -> (
         match packet with
         | Message r -> on_message r
-        | Response r -> Fiber.fork_and_join_unit (fun () -> on_response r) loop
-        )
+        | Response r -> Fiber.fork_and_join_unit (fun () -> on_response r) loop)
     and on_message (r : _ Message.t) =
       log t (fun () ->
           let what =
@@ -210,7 +209,7 @@ struct
         t.state <- state;
         match next with
         | Stop -> Fiber.return ()
-        | Continue -> loop () )
+        | Continue -> loop ())
       | Error errors ->
         Format.eprintf
           "Uncaught error when handling notification:@.%a@.Error:@.%s@." Json.pp

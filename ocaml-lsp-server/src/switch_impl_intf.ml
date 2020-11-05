@@ -22,11 +22,11 @@ let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
     | Ocaml -> (
       match Document.Kind.of_fname fname with
       | Intf -> [ ml; mly; mll; re ]
-      | Impl -> [ mli; mly; mll; rei ] )
+      | Impl -> [ mli; mly; mll; rei ])
     | Reason -> (
       match Document.Kind.of_fname fname with
       | Intf -> [ re; ml ]
-      | Impl -> [ rei; mli ] )
+      | Impl -> [ rei; mli ])
     | Ocamllex -> [ mli; rei ]
     | Menhir -> [ mli; rei ]
   in
@@ -51,7 +51,7 @@ let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
 
 let on_request ~(params : Json.t option) state =
   Fiber.return
-    ( match params with
+    (match params with
     | Some (`String (file_uri : DocumentUri.t)) ->
       let open Result.O in
       let+ res = switch file_uri in
@@ -61,4 +61,4 @@ let on_request ~(params : Json.t option) state =
       Error
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
            ~message:"ocamllsp/switchImplIntf must receive param : DocumentUri.t"
-           ()) )
+           ()))

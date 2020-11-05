@@ -38,16 +38,16 @@ let make s io =
           let task =
             Scheduler.async_exn thread (fun () ->
                 let res = Io.read io in
-                ( match res with
+                (match res with
                 | None -> Io.close_in io
-                | Some _ -> () );
+                | Some _ -> ());
                 res)
           in
           let+ res = Scheduler.await_no_cancel task in
           let res = Result.ok_exn res in
-          ( match res with
+          (match res with
           | None -> close_in in_thread
-          | Some _ -> () );
+          | Some _ -> ());
           res)
   in
   let out_thread = ref (Some (Scheduler.create_thread s)) in
@@ -64,14 +64,14 @@ let make s io =
         | Some thread, _ ->
           let+ res =
             Scheduler.async_exn thread
-              ( match t with
+              (match t with
               | None -> fun () -> Io.close_out io
-              | Some p -> fun () -> Io.send io p )
+              | Some p -> fun () -> Io.send io p)
             |> Scheduler.await_no_cancel
           in
-          ( match t with
+          (match t with
           | None -> close_out out_thread
-          | Some _ -> () );
+          | Some _ -> ());
           Result.ok_exn res)
   in
   { in_; out; in_thread; out_thread; io }
