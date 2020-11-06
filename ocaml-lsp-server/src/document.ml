@@ -68,9 +68,7 @@ end
 
 type t =
   { tdoc : Text_document.t
-  ; source : Msource.t
   ; pipeline : Mpipeline.t
-  ; config : Mconfig.t
   ; merlin : Scheduler.thread
   ; timer : Scheduler.timer
   }
@@ -83,7 +81,7 @@ let syntax t = Syntax.of_language_id (Text_document.languageId t.tdoc)
 
 let timer t = t.timer
 
-let source doc = doc.source
+let source doc = Mpipeline.raw_source doc.pipeline
 
 let with_pipeline (doc : t) f =
   Scheduler.async_exn doc.merlin (fun () ->
@@ -114,22 +112,34 @@ let make_config uri =
          Filename.concat directory base)
       ]
 
+let make_pipeline thread tdoc =
+  let async_make_pipeline =
+    Scheduler.async_exn thread (fun () ->
+        let text = Text_document.text tdoc in
+        let source = Msource.make text in
+        let config =
+          let uri = Text_document.documentUri tdoc in
+          make_config uri
+        in
+        Mpipeline.make config source)
+  in
+  Scheduler.await_no_cancel async_make_pipeline |> Fiber.map ~f:Result.ok_exn
+
 let make timer merlin_thread tdoc =
   let tdoc = Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
-  let text = Text_document.text tdoc in
-  let config = make_config (Text_document.documentUri tdoc) in
-  let source = Msource.make text in
-  let pipeline = Mpipeline.make config source in
-  { tdoc; source; config; pipeline; merlin = merlin_thread; timer }
+  let open Fiber.O in
+  let+ pipeline = make_pipeline merlin_thread tdoc in
+  { tdoc; pipeline; merlin = merlin_thread; timer }
 
-let update_text ?version change doc =
-  let tdoc = Text_document.apply_content_change ?version change doc.tdoc in
-  let text = Text_document.text tdoc in
-  let config = make_config (Text_document.documentUri tdoc) in
-  let source = Msource.make text in
-  let pipeline = Mpipeline.make config source in
-  { doc with tdoc; config; source; pipeline }
+let update_text ?version doc changes =
+  let tdoc =
+    List.fold_left changes ~init:doc.tdoc ~f:(fun acc change ->
+        Text_document.apply_content_change ?version acc change)
+  in
+  let open Fiber.O in
+  let+ pipeline = make_pipeline doc.merlin tdoc in
+  { doc with tdoc; pipeline }
 
 let dispatch (doc : t) command =
   with_pipeline doc (fun pipeline -> Query_commands.dispatch pipeline command)

@@ -209,9 +209,9 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
     let range = Range.create ~start ~end_ in
     TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
   in
-  let doc = Document.update_text complete doc in
   let open Fiber.O in
-  let* documentation = query_doc doc @@ Position.logical position in
+  let* doc = Document.update_text doc [ complete ] in
+  let+ documentation = query_doc doc @@ Position.logical position in
   let documentation = Option.map ~f:(format_doc ~markdown) documentation in
   let compl = { compl with documentation; data = None } in
-  Fiber.return @@ Ok compl
+  Ok compl

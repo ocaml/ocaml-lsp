@@ -664,13 +664,13 @@ let on_notification server (notification : Client_notification.t) :
   let store = state.store in
   match notification with
   | TextDocumentDidOpen params ->
-    let doc =
+    let open Fiber.O in
+    let* doc =
       let delay = Configuration.diagnostics_delay state.configuration in
       let timer = Scheduler.create_timer state.scheduler ~delay in
       Document.make timer state.merlin params
     in
     Document_store.put store doc;
-    let open Fiber.O in
     let+ () = send_diagnostics server doc in
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
@@ -688,12 +688,9 @@ let on_notification server (notification : Client_notification.t) :
       Format.eprintf "uri doesn't exist %s@.%!" e.message;
       Fiber.return state
     | Ok prev_doc ->
-      let doc =
-        let f doc change = Document.update_text ?version change doc in
-        List.fold_left ~f ~init:prev_doc contentChanges
-      in
-      Document_store.put store doc;
       let open Fiber.O in
+      let* doc = Document.update_text ?version prev_doc contentChanges in
+      Document_store.put store doc;
       let+ () = send_diagnostics server doc in
       state )
   | ChangeConfiguration req ->
