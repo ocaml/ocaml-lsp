@@ -69,25 +69,25 @@ let send_diagnostics ?diagnostics rpc doc =
     Server_notification.PublishDiagnostics
       (PublishDiagnosticsParams.create ~uri ~diagnostics ())
   in
-  let async send =
-    let open Fiber.O in
-    let+ (_ : (unit, [ `Stopped ]) result) =
-      Fiber_detached.task state.detached ~f:(fun () ->
-          let open Fiber.O in
-          let timer = Document.timer doc in
-          let+ res = Scheduler.schedule timer send in
-          match res with
-          | Error `Cancelled
-          | Ok () ->
-            ())
-    in
-    ()
-  in
   match diagnostics with
   | Some diagnostics ->
     let notif = create_publishDiagnostics uri diagnostics in
     Server.notification rpc notif
   | None -> (
+    let async send =
+      let open Fiber.O in
+      let+ (_ : (unit, [ `Stopped ]) result) =
+        Fiber_detached.task state.detached ~f:(fun () ->
+            let open Fiber.O in
+            let timer = Document.timer doc in
+            let+ res = Scheduler.schedule timer send in
+            match res with
+            | Error `Cancelled
+            | Ok () ->
+              ())
+      in
+      ()
+    in
     match Document.syntax doc with
     | Menhir
     | Ocamllex ->
