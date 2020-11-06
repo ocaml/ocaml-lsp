@@ -85,9 +85,8 @@ let send_diagnostics ?diagnostics rpc doc =
   in
   match diagnostics with
   | Some diagnostics ->
-    async (fun () ->
-        let notif = create_publishDiagnostics uri diagnostics in
-        Server.notification rpc notif)
+    let notif = create_publishDiagnostics uri diagnostics in
+    Server.notification rpc notif
   | None -> (
     match Document.syntax doc with
     | Menhir
