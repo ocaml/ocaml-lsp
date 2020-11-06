@@ -112,22 +112,24 @@ let make_config uri =
          Filename.concat directory base)
       ]
 
-let pipeline thread tdoc =
-  let task =
+let make_pipeline thread tdoc =
+  let async_make_pipeline =
     Scheduler.async_exn thread (fun () ->
         let text = Text_document.text tdoc in
-        let uri = Text_document.documentUri tdoc in
         let source = Msource.make text in
-        let config = make_config uri in
+        let config =
+          let uri = Text_document.documentUri tdoc in
+          make_config uri
+        in
         Mpipeline.make config source)
   in
-  Scheduler.await_no_cancel task |> Fiber.map ~f:Result.ok_exn
+  Scheduler.await_no_cancel async_make_pipeline |> Fiber.map ~f:Result.ok_exn
 
 let make timer merlin_thread tdoc =
   let tdoc = Text_document.make tdoc in
   (* we can do that b/c all text positions in LSP are line/col *)
   let open Fiber.O in
-  let+ pipeline = pipeline merlin_thread tdoc in
+  let+ pipeline = make_pipeline merlin_thread tdoc in
   { tdoc; pipeline; merlin = merlin_thread; timer }
 
 let update_text ?version doc changes =
@@ -136,7 +138,7 @@ let update_text ?version doc changes =
         Text_document.apply_content_change ?version acc change)
   in
   let open Fiber.O in
-  let+ pipeline = pipeline doc.merlin tdoc in
+  let+ pipeline = make_pipeline doc.merlin tdoc in
   { doc with tdoc; pipeline }
 
 let dispatch (doc : t) command =
