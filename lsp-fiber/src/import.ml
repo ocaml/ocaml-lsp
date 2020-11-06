@@ -1,5 +1,6 @@
 open Stdune
 module List = Stdune.List
+module Result = Stdune.Result
 module Hashtbl = Stdune.Hashtbl
 module Option = Stdune.Option
 module Int = Stdune.Int
@@ -105,14 +106,6 @@ module String = struct
         in
         aux 0 j0;
         Buffer.contents buffer
-end
-
-module Result = struct
-  include Stdune.Result
-
-  let errorf fmt =
-    let kerr _ = Error (Format.flush_str_formatter ()) in
-    Format.kfprintf kerr Format.str_formatter fmt
 end
 
 module Json = struct
