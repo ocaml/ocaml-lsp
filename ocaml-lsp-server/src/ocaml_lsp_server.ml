@@ -69,26 +69,25 @@ let send_diagnostics ?diagnostics rpc doc =
     Server_notification.PublishDiagnostics
       (PublishDiagnosticsParams.create ~uri ~diagnostics ())
   in
-  let async send =
-    let open Fiber.O in
-    let+ (_ : (unit, [ `Stopped ]) result) =
-      Fiber_detached.task state.detached ~f:(fun () ->
-          let open Fiber.O in
-          let timer = Document.timer doc in
-          let+ res = Scheduler.schedule timer send in
-          match res with
-          | Error `Cancelled
-          | Ok () ->
-            ())
-    in
-    ()
-  in
   match diagnostics with
   | Some diagnostics ->
-    async (fun () ->
-        let notif = create_publishDiagnostics uri diagnostics in
-        Server.notification rpc notif)
+    let notif = create_publishDiagnostics uri diagnostics in
+    Server.notification rpc notif
   | None -> (
+    let async send =
+      let open Fiber.O in
+      let+ (_ : (unit, [ `Stopped ]) result) =
+        Fiber_detached.task state.detached ~f:(fun () ->
+            let open Fiber.O in
+            let timer = Document.timer doc in
+            let+ res = Scheduler.schedule timer send in
+            match res with
+            | Error `Cancelled
+            | Ok () ->
+              ())
+      in
+      ()
+    in
     match Document.syntax doc with
     | Menhir
     | Ocamllex ->
@@ -117,23 +116,21 @@ let send_diagnostics ?diagnostics rpc doc =
               Query_protocol.Errors
                 { lexing = true; parsing = true; typing = true }
             in
-            let+ errors =
-              Document.with_pipeline_exn doc (fun pipeline ->
-                  Query_commands.dispatch pipeline command)
-            in
-            List.map errors ~f:(fun (error : Loc.error) ->
-                let loc = Loc.loc_of_report error in
-                let range = Range.of_loc loc in
-                let severity =
-                  match error.source with
-                  | Warning -> DiagnosticSeverity.Warning
-                  | _ -> DiagnosticSeverity.Error
-                in
-                let message =
-                  Loc.print_main Format.str_formatter error;
-                  String.trim (Format.flush_str_formatter ())
-                in
-                create_diagnostic range message ~severity)
+            Document.with_pipeline_exn doc (fun pipeline ->
+                let errors = Query_commands.dispatch pipeline command in
+                List.map errors ~f:(fun (error : Loc.error) ->
+                    let loc = Loc.loc_of_report error in
+                    let range = Range.of_loc loc in
+                    let severity =
+                      match error.source with
+                      | Warning -> DiagnosticSeverity.Warning
+                      | _ -> DiagnosticSeverity.Error
+                    in
+                    let message =
+                      Loc.print_main Format.str_formatter error;
+                      String.trim (Format.flush_str_formatter ())
+                    in
+                    create_diagnostic range message ~severity))
           in
           let notif = create_publishDiagnostics uri diagnostics in
           Server.notification rpc notif) )

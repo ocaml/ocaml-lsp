@@ -7,6 +7,7 @@ module Int = Stdune.Int
 module Dyn = Stdune.Dyn
 module Ordering = Stdune.Ordering
 module Exn = Stdune.Exn
+module Result = Stdune.Result
 module Code_error = Code_error
 module Or_exn = Or_exn
 module Table = Table
@@ -14,14 +15,6 @@ module Id = Id
 module Exn_with_backtrace = Exn_with_backtrace
 module Queue = Queue
 include Fiber_unix
-
-module Result = struct
-  include Stdune.Result
-
-  let errorf fmt =
-    let kerr _ = Error (Format.flush_str_formatter ()) in
-    Format.kfprintf kerr Format.str_formatter fmt
-end
 
 module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t
