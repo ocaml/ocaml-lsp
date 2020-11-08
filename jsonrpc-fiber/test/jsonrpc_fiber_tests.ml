@@ -102,7 +102,7 @@ let%expect_test "serving requests" =
       let state = Context.state c in
       assert (r = { request with id = r.id });
       let response = Jsonrpc.Response.ok r.id response_data in
-      Fiber.return (response, state)
+      Fiber.return (Reply.now response, state)
     in
     let out = Out.of_ref responses in
     let jrpc = Jrpc.create ~name:"test" ~on_request (in_, out) () in
@@ -131,19 +131,23 @@ let%expect_test "concurrent requests" =
       let request = Context.message c in
       print_endline "waiter: received request";
       print (Message { request with id = Some request.id });
-      let+ response =
-        print_endline "waiter: making request";
-        let+ response =
-          let request =
-            Jsonrpc.Message.create ~id:(`Int 100) ~method_:"shutdown" ()
-          in
-          Jrpc.request self request
-        in
-        print_endline "waiter: received response:";
-        print (Response response);
-        Jsonrpc.Response.ok request.id `Null
+      let response =
+        Reply.later (fun send ->
+            print_endline "waiter: making request";
+            let* response =
+              let request =
+                Jsonrpc.Message.create ~id:(`Int 100) ~method_:"shutdown" ()
+              in
+              Jrpc.request self request
+            in
+            print_endline "waiter: received response:";
+            print (Response response);
+            let* () = send (Jsonrpc.Response.ok request.id `Null) in
+            print_endline "waiter: stopping";
+            let+ () = Jrpc.stop self in
+            print_endline "waiter: stopped")
       in
-      (response, ())
+      Fiber.return (response, ())
     in
     Jrpc.create ~name:"waiter" ~on_request chan ()
   in
@@ -152,15 +156,16 @@ let%expect_test "concurrent requests" =
       print_endline "waitee: received request";
       let request = Context.message c in
       print (Message { request with id = Some request.id });
-      let response = Jsonrpc.Response.ok request.id (`Int 42) in
-      let* () =
-        if request.method_ = "shutdown" then (
-          let self = Context.session c in
-          print_endline "waitee: stopping";
-          let+ () = Jrpc.stop self in
-          print_endline "waitee: stopped"
-        ) else
-          Fiber.return ()
+      let response =
+        Reply.later (fun send ->
+            let* () = send (Jsonrpc.Response.ok request.id (`Int 42)) in
+            if request.method_ = "shutdown" then (
+              let self = Context.session c in
+              print_endline "waitee: stopping";
+              let+ () = Jrpc.stop self in
+              print_endline "waitee: stopped"
+            ) else
+              Fiber.return ())
       in
       let state = Context.state c in
       Fiber.return (response, state)
@@ -193,6 +198,9 @@ let%expect_test "concurrent requests" =
     waitee: received request
     { "id": 100, "method": "shutdown", "jsonrpc": "2.0" }
     waitee: stopping
+    waiter: received response:
+    { "id": 100, "jsonrpc": "2.0", "result": 42 }
+    waiter: stopping
     [FAIL] unexpected Never raised |}]
 
 let%expect_test "test from jsonrpc_test.ml" =
@@ -206,7 +214,7 @@ let%expect_test "test from jsonrpc_test.ml" =
   let on_request ctx =
     let req = Context.message ctx in
     let state = Context.state ctx in
-    Fiber.return (Jsonrpc.Response.ok req.id (response ()), state)
+    Fiber.return (Reply.now (Jsonrpc.Response.ok req.id (response ())), state)
   in
   let on_notification ctx =
     let n = Context.message ctx in
@@ -262,5 +270,5 @@ let%expect_test "test from jsonrpc_test.ml" =
     Error:
     [ { exn = "(Failure \"special failure\")"; backtrace = "" } ]
     "<opaque>"
-    { "id": 10, "jsonrpc": "2.0", "result": 1 }
-    { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
+    { "id": "testing", "jsonrpc": "2.0", "result": 2 }
+    { "id": 10, "jsonrpc": "2.0", "result": 1 } |}]
