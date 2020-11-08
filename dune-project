@@ -49,7 +49,6 @@ possible and does not make any assumptions about IO.
  (depends
   yojson
   stdlib-shims
-  menhir
   ppx_yojson_conv_lib
   dune-build-info
   dot-merlin-reader
