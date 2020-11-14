@@ -2,28 +2,30 @@
 
 [![Build](https://github.com/ocaml/ocaml-lsp/workflows/Build%20and%20Test/badge.svg)](https://github.com/ocaml/ocaml-lsp/actions)
 
-This project contains an implementation of an LSP server for OCaml and a
-standalone implementation of the LSP protocol.
+OCaml-LSP is a language server for OCaml that implements [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP).
+
+This project contains an implementation of a language server for OCaml and a standalone
+library implementing LSP.
 
 ## Installation
 
-We recommend to install the server via a project such as
+We recommend to install the language server via a package manager such as
 [opam](http://github.com/ocaml/opam) or [esy](https://github.com/esy/esy).
 
 ### Opam
 
-To install the lsp server in a particular opam switch:
+To install the language server in the currently used opam [switch](https://opam.ocaml.org/doc/Manual.html#Switches):
 
-```
+```sh
 $ opam install ocaml-lsp-server
 ```
 
-Note that you will need to run install the lsp server in every switch where
-you'd like to use it.
+*Note:* you will need to install `ocaml-lsp-server` in every switch where you would like
+to use it.
 
 ### Esy
 
-To add the lsp server to an esy project:
+To add the language server to an esy project, run in terminal:
 
 ```
 $ esy add @opam/ocaml-lsp-server
@@ -32,10 +34,10 @@ $ esy add @opam/ocaml-lsp-server
 ### Source
 
 This project uses submodules to handle dependencies. This is done so that users
-who install ocaml-lsp-server into their sandbox will not share constraints on
-the same dependencies that ocaml-lsp-server is using.
+who install `ocaml-lsp-server` into their sandbox will not share dependency constraints on
+the same packages that `ocaml-lsp-server` is using.
 
-```
+```sh
 $ git clone --recurse-submodules http://github.com/ocaml/ocaml-lsp.git
 $ cd ocaml-lsp
 $ make build
@@ -44,21 +46,21 @@ $ make build
 ## Usage
 
 Once `ocaml-lsp-server` is installed, the executable is called `ocamllsp`. For
-now, the server can only be used through the standard file descriptors `stdin`
-and `stdout`.
+now, the server can only be used through the standard input (`stdin`) and output
+(`stdout`) file descriptors.
 
-For an example of usage of the server in a VSCode extension, see
-[here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/vscode_ocaml_platform.ml).
+For an example of usage of the server in a VS Code extension, see
+OCaml Platform Extension implementation [here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/vscode_ocaml_platform.ml).
 
 ## Features
 
-The server supports the following queries:
+The server supports the following LSP requests:
 
 - [x] `textDocument/completion`
 - [x] `completionItem/resolve`
 - [x] `textdocument/hover`
 - [ ] `textDocument/signatureHelp`
-- [ ] `textDocument/declaration`
+- [x] `textDocument/declaration`
 - [x] `textDocument/definition`
 - [x] `textDocument/typeDefinition`
 - [ ] `textDocument/implementation`
@@ -78,7 +80,17 @@ The server supports the following queries:
 
 Note that degrees of support for each LSP request are varying.
 
-## Contribution
+## Integration with other tools
+
+### Formatters: OCamlFormat & Refmt
+
+OCaml-LSP is dependent on external tools (OCamlFormat for OCaml and `refmt` for Reason)
+for formatting source files. You should have the necessary tool (OCamlFormat and/or Refmt)
+installed in your opam switch or esy project to have formatting support. Note, however, that
+OCaml-LSP requires presence of OCamlFormat configuration file (called `.ocamlformat`) in
+the project root to be able to format source files in your project.
+
+## Contributing to project
 
 ```bash
 # clone repo with submodules
@@ -104,7 +116,7 @@ make lsp-server
 
 To run tests execute:
 
-```
+```sh
 $ make test
 ```
 
