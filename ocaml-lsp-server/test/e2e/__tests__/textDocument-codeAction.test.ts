@@ -6,10 +6,10 @@ import * as Types from "vscode-languageserver-types";
 describe("textDocument/codeAction", () => {
   let languageServer = null;
 
-  async function openDocument(source) {
+  async function openDocument(source, name) {
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
+        "file:///" + name,
         "ocaml",
         0,
         source,
@@ -26,9 +26,9 @@ describe("textDocument/codeAction", () => {
     languageServer = null;
   });
 
-  async function codeAction(start, end) {
+  async function codeAction(name, start, end) {
     return await languageServer.sendRequest("textDocument/codeAction", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      textDocument: Types.TextDocumentIdentifier.create("file:///" + name),
       context: { diagnostics: [] },
       range: { start, end },
     });
@@ -39,10 +39,10 @@ describe("textDocument/codeAction", () => {
 type t = Foo of int | Bar of bool
 
 let f (x : t) = x
-`);
+`, "test.ml");
     let start = Types.Position.create(2, 16);
     let end = Types.Position.create(2, 17);
-    let actions = await codeAction(start, end);
+    let actions = await codeAction("test.ml", start, end);
     expect(actions).toMatchObject([
       {
         edit: {
@@ -66,6 +66,43 @@ let f (x : t) = x
         },
         kind: "destruct",
         title: "Destruct",
+      },
+    ]);
+  });
+
+  it("can infer module interfaces", async () => {
+    await openDocument(outdent`
+type t = Foo of int | Bar of bool
+
+let f (x : t) = x
+`, "test.ml");
+    await openDocument("", "test.mli");
+    let start = Types.Position.create(0, 0);
+    let end = Types.Position.create(0, 0);
+    let actions = await codeAction("test.mli", start, end);
+    expect(actions).toMatchObject([
+      {
+        edit: {
+          changes: {
+            "file:///test.mli": [
+              {
+                newText: "type t = Foo of int | Bar of bool\nval f : t -> t\n",
+                range: {
+                  end: {
+                    character: 1,
+                    line: 1,
+                  },
+                  start: {
+                    character: 1,
+                    line: 1,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        kind: "inferred_intf",
+        title: "Insert inferred interface",
       },
     ]);
   });

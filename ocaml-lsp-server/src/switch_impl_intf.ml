@@ -4,17 +4,7 @@ let capability = ("handleSwitchImplIntf", `Bool true)
 
 let meth = "ocamllsp/switchImplIntf"
 
-(** see the spec for [ocamllsp/switchImplIntf] *)
-let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
-  let fpath =
-    match String.split ~on:':' param with
-    | [ scheme; path ] ->
-      if scheme = "file" then
-        Uri.t_of_yojson (`String param) |> Uri.to_path
-      else
-        path
-    | _ -> failwith "provided file URI (param) doesn't follow URI spec"
-  in
+let get_intf_impl_counterparts fpath =
   let fname = Filename.basename fpath in
   let ml, mli, re, rei, mll, mly = ("ml", "mli", "re", "rei", "mll", "mly") in
   let exts_to_switch_to =
@@ -44,6 +34,20 @@ let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
       [ switch_to_fpath ]
     | to_switch_to -> to_switch_to
   in
+  files_to_switch_to
+
+(** see the spec for [ocamllsp/switchImplIntf] *)
+let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
+  let fpath =
+    match String.split ~on:':' param with
+    | [ scheme; path ] ->
+      if scheme = "file" then
+        Uri.t_of_yojson (`String param) |> Uri.to_path
+      else
+        path
+    | _ -> failwith "provided file URI (param) doesn't follow URI spec"
+  in
+  let files_to_switch_to = get_intf_impl_counterparts fpath in
   Ok
     (Json.yojson_of_list
        (fun fpath -> Uri.of_path fpath |> Uri.to_string |> fun s -> `String s)
