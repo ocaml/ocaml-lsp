@@ -39,7 +39,7 @@ possible and does not make any assumptions about IO.
   (menhir :with-test)
   (cinaps :with-test)
   (ppx_expect (and :with-test (>= v0.14.0)))
-  (ocaml (and (>= 4.06) (< 4.12)))))
+  (ocaml (>= 4.06))))
 
 (package
  (name ocaml-lsp-server)
@@ -67,4 +67,4 @@ possible and does not make any assumptions about IO.
   ocaml-syntax-shims
   ppx_yojson_conv_lib
   (result (>= 1.5))
-  (ocaml (and (>= 4.06) (< 4.12)))))
+  (ocaml (>= 4.06))))
