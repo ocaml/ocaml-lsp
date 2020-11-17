@@ -19,6 +19,7 @@ nothing that should be noted
 ##### Server capability
 
 property name: `handleSwitchImplIntf`
+
 property type: `boolean`
 
 ##### Request
@@ -29,6 +30,6 @@ property type: `boolean`
 ##### Response
 
 - result: DocumentUri[] (non-empty)
-- error: code and message set in case an exception happens during the willSaveWaitUntil request.
+- error: code and message set in case an exception happens during the `ocamllsp/switchImplIntf` request.
 
 
