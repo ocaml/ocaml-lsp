@@ -16,6 +16,7 @@ license: "ISC"
 homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
+  "dune" {>= "2.5"}
   "yojson"
   "stdlib-shims"
   "ppx_yojson_conv_lib"
@@ -26,11 +27,10 @@ depends: [
   "ocamlformat" {with-test}
   "ocamlfind" {>= "1.5.2"}
   "ocaml" {>= "4.06" & < "4.12"}
-  "dune" {>= "2.5.0"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

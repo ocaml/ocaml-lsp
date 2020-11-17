@@ -29,7 +29,7 @@ possible and does not make any assumptions about IO.
 ")
  (depends
   stdlib-shims
-  jsonrpc
+  (jsonrpc (= :version))
   yojson
   ppx_yojson_conv_lib
   ocaml-syntax-shims
@@ -39,8 +39,7 @@ possible and does not make any assumptions about IO.
   (menhir :with-test)
   (cinaps :with-test)
   (ppx_expect (and :with-test (>= v0.14.0)))
-  (ocaml (and (>= 4.06) (< 4.12)))
-  (dune (>= 2.0))))
+  (ocaml (and (>= 4.06) (< 4.12)))))
 
 (package
  (name ocaml-lsp-server)
@@ -56,8 +55,7 @@ possible and does not make any assumptions about IO.
   (result (>= 1.5))
   (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
-  (ocaml (and (>= 4.06) (< 4.12)))
-  (dune (>= 2.5.0))))
+  (ocaml (and (>= 4.06) (< 4.12)))))
 
 (package
  (name jsonrpc)
@@ -66,7 +64,7 @@ possible and does not make any assumptions about IO.
  (depends
   yojson
   stdlib-shims
+  ocaml-syntax-shims
   ppx_yojson_conv_lib
   (result (>= 1.5))
-  (ocaml (and (>= 4.06) (< 4.12)))
-  (dune (>= 2.5.0))))
+  (ocaml (and (>= 4.06) (< 4.12)))))
