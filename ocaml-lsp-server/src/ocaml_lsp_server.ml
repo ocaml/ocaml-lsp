@@ -187,7 +187,7 @@ let code_action server (params : CodeActionParams.t) =
   in
   let* inferred_intf_action =
     code_action (CodeActionKind.Other Inferred_intf.action_kind) (fun () ->
-        Inferred_intf.code_action doc store)
+        Inferred_intf.code_action doc store params)
   in
   match List.filter_opt [ destruct_action; inferred_intf_action ] with
   | [] -> Fiber.return (Ok (None, state))

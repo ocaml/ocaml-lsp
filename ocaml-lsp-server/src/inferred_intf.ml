@@ -15,8 +15,7 @@ let infer_intf impl =
       in
       Format.asprintf "%a@." Printtyp.signature sig_)
 
-let code_action_of_intf uri intf =
-  let range = Range.create ~start:Position.start ~end_:Position.start in
+let code_action_of_intf uri intf range =
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range; newText = intf } in
     let uri = Uri.to_string uri in
@@ -26,7 +25,7 @@ let code_action_of_intf uri intf =
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
     ~isPreferred:false ()
 
-let code_action doc store =
+let code_action doc store (params : CodeActionParams.t) =
   match Document.kind doc with
   | Intf -> (
     let intf_uri = Document.uri doc in
@@ -36,13 +35,12 @@ let code_action doc store =
     in
     let impl_uri = Uri.of_path impl_path in
     match Document_store.get_opt store impl_uri with
-    | None ->
-      Fiber.return (Ok None)
+    | None -> Fiber.return (Ok None)
     | Some impl -> (
       let open Fiber.O in
       let+ intf = infer_intf impl in
       match intf with
       | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
-      | Ok intf -> Ok (Some (code_action_of_intf intf_uri intf)) ) )
-  | Impl ->
-    Fiber.return (Ok None)
+      | Ok intf -> Ok (Some (code_action_of_intf intf_uri intf params.range)) )
+    )
+  | Impl -> Fiber.return (Ok None)
