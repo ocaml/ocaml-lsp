@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Filter keywords by context (#307)
+
 # 1.2.0 (11/16/2020)
 
 ## Features
