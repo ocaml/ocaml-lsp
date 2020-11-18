@@ -5,15 +5,16 @@ let action_kind = "inferred_intf"
 let infer_intf impl =
   Document.with_pipeline impl (fun pipeline ->
       let typer = Mpipeline.typer_result pipeline in
+      let pos = Mpipeline.get_lexing_pos pipeline `Start in
+      let env, _ = Mbrowse.leaf_node (Mtyper.node_at typer pos) in
       let sig_ : Types.signature =
         let typedtree = Mtyper.get_typedtree typer in
         match typedtree with
-        | `Interface _ ->
-          Printf.fprintf stderr "assert false\n";
-          assert false
+        | `Interface _ -> assert false
         | `Implementation impl -> impl.str_type
       in
-      Format.asprintf "%a@." Printtyp.signature sig_)
+      Printtyp.wrap_printing_env env (fun () ->
+          Format.asprintf "%a@." Printtyp.signature sig_))
 
 let code_action_of_intf uri intf range =
   let edit : WorkspaceEdit.t =
