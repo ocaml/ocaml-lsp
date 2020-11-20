@@ -26,7 +26,7 @@ describe("ocamllsp/switchImplIntf", () => {
   beforeEach(async () => {
     languageServer = await LanguageServer.startAndInitialize();
     await fs.rmdir(testWorkspacePath, { recursive: true });
-    fs.mkdir(testWorkspacePath);
+    await fs.mkdir(testWorkspacePath);
   });
 
   afterEach(async () => {
@@ -38,7 +38,7 @@ describe("ocamllsp/switchImplIntf", () => {
   let createPathForFile = (filename: string) =>
     path.join(testWorkspacePath, filename);
 
-  let createFileAtPath = async (path: string) =>
+  let createFileAtPath = (path: string) =>
     fs.writeFile(path, "", { flag: "a+" });
 
   let pathToDocumentUri = (path: string): DocumentUri =>
@@ -93,18 +93,25 @@ describe("ocamllsp/switchImplIntf", () => {
       return pathToDocumentUri(filePath);
     });
 
-    testRequest(fileURIToSwitchFrom, expectedFileURIs);
+    await testRequest(fileURIToSwitchFrom, expectedFileURIs);
   };
 
+  /* `create`, `expect`, and `test_case` are for declarativeness */
+  let varargFn = <T>(...args: T[]): T[] => args;
+  let createFiles = varargFn;
+  let expectSwitchTo = varargFn;
+  let testCase = (filesToCreate: string[], filesToExpect: string[]) => [
+    filesToCreate,
+    filesToExpect,
+  ];
+
   test.each([
-    [[mli], [ml]],
-    [[mli, ml], [ml]],
-    [[ml], [mli]],
-    [[ml, mli], [mli]],
-    [
-      [mli, ml, mll],
-      [ml, mll],
-    ],
+    testCase(createFiles(mli), expectSwitchTo(ml)),
+    testCase(createFiles(mli, ml), expectSwitchTo(ml)),
+    testCase(createFiles(ml), expectSwitchTo(mli)),
+    testCase(createFiles(ml, mli), expectSwitchTo(mli)),
+    testCase(createFiles(mli, mll), expectSwitchTo(mll)),
+    testCase(createFiles(mli, ml, mll), expectSwitchTo(ml, mll)),
   ])("test switches (%s => %s)", testingPipeline);
 
   it("can switch from file URI with non-file scheme", async () => {
