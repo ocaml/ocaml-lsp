@@ -167,14 +167,6 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   let state = { state with init = Initialized ip.capabilities } in
   Fiber.return @@ Ok (initialize_info, state)
 
-let result_of_list l =
-  let rec aux acc = function
-    | [] -> Ok (acc |> List.rev)
-    | Error err :: _rest -> Error err
-    | Ok el :: rest -> aux (el :: acc) rest
-  in
-  aux [] l
-
 let code_action server (params : CodeActionParams.t) =
   let open Fiber.Result.O in
   let state : State.t = Server.state server in
@@ -200,7 +192,7 @@ let code_action server (params : CodeActionParams.t) =
       ~f:code_action
   in
   let code_action_results =
-    result_of_list code_action_results |> Result.map ~f:List.filter_opt
+    Result.List.all code_action_results |> Result.map ~f:List.filter_opt
   in
   match code_action_results with
   | Ok [] -> Ok (None, state)
