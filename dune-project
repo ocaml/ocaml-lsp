@@ -53,7 +53,6 @@ possible and does not make any assumptions about IO.
   dot-merlin-reader
   (csexp (>= 1.2.3))
   (result (>= 1.5))
-  (reason :with-test)
   (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
   (ocaml (and (>= 4.06) (< 4.12)))))
