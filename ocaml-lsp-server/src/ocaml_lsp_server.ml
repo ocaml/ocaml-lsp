@@ -186,11 +186,11 @@ let code_action server (params : CodeActionParams.t) =
     | Some set when not (List.mem kind ~set) -> Fiber.return (Ok None)
     | Some _
     | None ->
-      let+ action = f () in
-      Option.map action ~f:(fun destruct -> `CodeAction destruct)
+      let+ action_opt = f () in
+      Option.map action_opt ~f:(fun action_opt -> `CodeAction action_opt)
   in
   let open Fiber.O in
-  let* code_action_results =
+  let+ code_action_results =
     Fiber.parallel_map
       [ ( CodeActionKind.Other Destruct_lsp.action_kind
         , fun () -> Destruct_lsp.code_action doc params )
@@ -203,9 +203,9 @@ let code_action server (params : CodeActionParams.t) =
     result_of_list code_action_results |> Result.map ~f:List.filter_opt
   in
   match code_action_results with
-  | Ok [] -> Fiber.return (Ok (None, state))
-  | Ok l -> Fiber.return (Ok (Some l, state))
-  | Error err -> Fiber.return (Error err)
+  | Ok [] -> Ok (None, state)
+  | Ok l -> Ok (Some l, state)
+  | Error err -> Error err
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =

@@ -26,12 +26,6 @@ let code_action_of_intf uri intf range =
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
     ~isPreferred:false ()
 
-let read_file filename =
-  let ch = open_in filename in
-  let s = really_input_string ch (in_channel_length ch) in
-  close_in ch;
-  s
-
 let language_id_of_fname s =
   match Filename.extension s with
   | ".mli" -> "ocaml.interface"
@@ -45,11 +39,8 @@ let language_id_of_fname s =
 
 let force_open_document (state : State.t) uri =
   let open Fiber.O in
-  log ~title:Logger.Title.Warning "Forcing file open on %s" (Uri.to_string uri);
   let filename = Uri.to_path uri in
-  log ~title:Logger.Title.Warning "Path is %s" filename;
-  let text = read_file filename in
-  log ~title:Logger.Title.Warning "Content is %s" text;
+  let text = Io.read_file (Fpath.of_string filename) in
   let delay = Configuration.diagnostics_delay state.configuration in
   let timer = Scheduler.create_timer state.scheduler ~delay in
   let languageId = language_id_of_fname filename in
@@ -64,7 +55,6 @@ let force_open_document (state : State.t) uri =
 
 let code_action doc (state : State.t) (params : CodeActionParams.t) =
   let open Fiber.O in
-  log ~title:Logger.Title.Warning "Running code action";
   match Document.kind doc with
   | Impl -> Fiber.return (Ok None)
   | Intf -> (
