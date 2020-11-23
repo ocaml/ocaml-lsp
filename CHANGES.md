@@ -2,6 +2,7 @@
 
 ## Features
 
+- Code action to insert inferred module interface (#308)
 - Filter keywords by context (#307)
 
 # 1.2.0 (11/16/2020)

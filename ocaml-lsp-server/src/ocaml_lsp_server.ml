@@ -14,7 +14,11 @@ let not_supported () =
 
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
-    let codeActionKinds = [ CodeActionKind.Other Destruct_lsp.action_kind ] in
+    let codeActionKinds =
+      [ CodeActionKind.Other Destruct_lsp.action_kind
+      ; CodeActionKind.Other Inferred_intf.action_kind
+      ]
+    in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
   in
   let textDocumentSync =
@@ -164,22 +168,36 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   Fiber.return @@ Ok (initialize_info, state)
 
 let code_action server (params : CodeActionParams.t) =
+  let open Fiber.Result.O in
   let state : State.t = Server.state server in
   let store = state.store in
-  match params.context.only with
-  | Some set
-    when not (List.mem (CodeActionKind.Other Destruct_lsp.action_kind) ~set) ->
-    Fiber.return (Ok (None, state))
-  | Some _
-  | None ->
-    let open Fiber.Result.O in
-    let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let+ action = Destruct_lsp.code_action doc params in
-    let action =
-      Option.map action ~f:(fun destruct -> [ `CodeAction destruct ])
-    in
-    (action, state)
+  let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
+  let* doc = Fiber.return (Document_store.get store uri) in
+  let code_action (kind, f) =
+    match params.context.only with
+    | Some set when not (List.mem kind ~set) -> Fiber.return (Ok None)
+    | Some _
+    | None ->
+      let+ action_opt = f () in
+      Option.map action_opt ~f:(fun action_opt -> `CodeAction action_opt)
+  in
+  let open Fiber.O in
+  let+ code_action_results =
+    Fiber.parallel_map
+      [ ( CodeActionKind.Other Destruct_lsp.action_kind
+        , fun () -> Destruct_lsp.code_action doc params )
+      ; ( CodeActionKind.Other Inferred_intf.action_kind
+        , fun () -> Inferred_intf.code_action doc state params )
+      ]
+      ~f:code_action
+  in
+  let code_action_results =
+    Result.List.all code_action_results |> Result.map ~f:List.filter_opt
+  in
+  match code_action_results with
+  | Ok [] -> Ok (None, state)
+  | Ok l -> Ok (Some l, state)
+  | Error err -> Error err
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =

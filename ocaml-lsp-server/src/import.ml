@@ -71,6 +71,7 @@ module ConfigurationParams = Lsp.Types.ConfigurationParams
 module RenameOptions = Lsp.Types.RenameOptions
 module Uri = Lsp.Uri
 module Fiber_detached = Fiber_unix.Fiber_detached
+module Io = Stdune.Io
 
 let sprintf = Stdune.sprintf
 

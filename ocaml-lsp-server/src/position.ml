@@ -1,6 +1,8 @@
 open Import
 include Lsp.Types.Position
 
+let start = { line = 0; character = 0 }
+
 let is_dummy (lp : Lexing.position) =
   lp.pos_lnum = Lexing.dummy_pos.pos_lnum
   && lp.pos_cnum = Lexing.dummy_pos.pos_cnum
