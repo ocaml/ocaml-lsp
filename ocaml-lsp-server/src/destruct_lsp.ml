@@ -27,8 +27,9 @@ let code_action doc (params : CodeActionParams.t) =
     match res with
     | Ok res -> Ok (Some (code_action_of_case_analysis uri res))
     | Error
-        ( Destruct.Wrong_parent _ | Query_commands.No_nodes
-        | Destruct.Not_allowed _ | Destruct.Useless_refine
-        | Destruct.Nothing_to_do ) ->
+        ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
+        | Merlin_analysis.Destruct.Not_allowed _
+        | Merlin_analysis.Destruct.Useless_refine
+        | Merlin_analysis.Destruct.Nothing_to_do ) ->
       Ok None
     | Error exn -> Error (Jsonrpc.Response.Error.of_exn exn) )

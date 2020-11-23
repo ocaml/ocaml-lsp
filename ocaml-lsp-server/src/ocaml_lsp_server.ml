@@ -757,7 +757,8 @@ let start () =
     in
     (* TODO: what to do with merlin notifications? *)
     let _notifications = ref [] in
-    Logger.with_notifications (ref []) @@ fun () -> File_id.with_cache @@ f
+    Logger.with_notifications (ref []) @@ fun () ->
+    Merlin_utils.File_id.with_cache @@ f
   in
   let on_request server req =
     prepare_and_run Jsonrpc.Response.Error.of_exn @@ fun () ->
