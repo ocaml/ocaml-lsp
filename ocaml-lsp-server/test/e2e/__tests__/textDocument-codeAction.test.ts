@@ -1,4 +1,5 @@
 import outdent from "outdent";
+import * as path from "path";
 import * as LanguageServer from "../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
@@ -6,14 +7,9 @@ import * as Types from "vscode-languageserver-types";
 describe("textDocument/codeAction", () => {
   let languageServer = null;
 
-  async function openDocument(source, name) {
+  async function openDocument(source, uri) {
     await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///" + name,
-        "ocaml",
-        0,
-        source,
-      ),
+      textDocument: Types.TextDocumentItem.create(uri, "ocaml", 0, source),
     });
   }
 
@@ -26,9 +22,9 @@ describe("textDocument/codeAction", () => {
     languageServer = null;
   });
 
-  async function codeAction(name, start, end) {
+  async function codeAction(uri, start, end) {
     return await languageServer.sendRequest("textDocument/codeAction", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///" + name),
+      textDocument: Types.TextDocumentIdentifier.create(uri),
       context: { diagnostics: [] },
       range: { start, end },
     });
@@ -41,11 +37,11 @@ type t = Foo of int | Bar of bool
 
 let f (x : t) = x
 `,
-      "test.ml",
+      "file:///test.ml",
     );
     let start = Types.Position.create(2, 16);
     let end = Types.Position.create(2, 17);
-    let actions = await codeAction("test.ml", start, end);
+    let actions = await codeAction("file:///test.ml", start, end);
     expect(actions).toMatchObject([
       {
         edit: {
@@ -80,12 +76,12 @@ type t = Foo of int | Bar of bool
 
 let f (x : t) = x
 `,
-      "test.ml",
+      "file:///test.ml",
     );
-    await openDocument("", "test.mli");
+    await openDocument("", "file:///test.mli");
     let start = Types.Position.create(0, 0);
     let end = Types.Position.create(0, 0);
-    let actions = await codeAction("test.mli", start, end);
+    let actions = await codeAction("file:///test.mli", start, end);
     expect(actions).toMatchObject([
       {
         edit: {
@@ -95,17 +91,52 @@ let f (x : t) = x
                 newText: "type t = Foo of int | Bar of bool\nval f : t -> t\n",
                 range: {
                   end: {
-                    character: 1,
-                    line: 1,
+                    character: 0,
+                    line: 0,
                   },
                   start: {
-                    character: 1,
-                    line: 1,
+                    character: 0,
+                    line: 0,
                   },
                 },
               },
             ],
           },
+        },
+        kind: "inferred_intf",
+        title: "Insert inferred interface",
+      },
+    ]);
+  });
+
+  it("opens the implementation if not in store", async () => {
+    let testWorkspacePath = path.join(__dirname, "declaration_files/");
+    let intfFilepath = path.join(testWorkspacePath, "lib.mli");
+    let intfUri = "file://" + intfFilepath;
+    await openDocument("", intfUri);
+    let start = Types.Position.create(0, 0);
+    let end = Types.Position.create(0, 0);
+    let actions = await codeAction(intfUri, start, end);
+    let changes = {};
+    changes[intfUri] = [
+      {
+        newText: "val x : int\n",
+        range: {
+          end: {
+            character: 0,
+            line: 0,
+          },
+          start: {
+            character: 0,
+            line: 0,
+          },
+        },
+      },
+    ];
+    expect(actions).toMatchObject([
+      {
+        edit: {
+          changes: changes,
         },
         kind: "inferred_intf",
         title: "Insert inferred interface",

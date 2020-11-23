@@ -195,7 +195,7 @@ let code_action server (params : CodeActionParams.t) =
       [ ( CodeActionKind.Other Destruct_lsp.action_kind
         , fun () -> Destruct_lsp.code_action doc params )
       ; ( CodeActionKind.Other Inferred_intf.action_kind
-        , fun () -> Inferred_intf.code_action doc store params )
+        , fun () -> Inferred_intf.code_action doc state params )
       ]
       ~f:code_action
   in

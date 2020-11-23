@@ -32,8 +32,39 @@ let read_file filename =
   close_in ch;
   s
 
-let code_action doc store (params : CodeActionParams.t) =
+let language_id_of_fname s =
+  match Filename.extension s with
+  | ".mli" -> "ocaml.interface"
+  | ".ml" -> "ocaml"
+  | ".rei"
+  | ".re" ->
+    "reason"
+  | ".mll" -> "ocaml.ocamllex"
+  | ".mly" -> "ocaml.menhir"
+  | ext -> failwith ("Unknown extension " ^ ext)
+
+let force_open_document (state : State.t) uri =
   let open Fiber.O in
+  log ~title:Logger.Title.Warning "Forcing file open on %s" (Uri.to_string uri);
+  let filename = Uri.to_path uri in
+  log ~title:Logger.Title.Warning "Path is %s" filename;
+  let text = read_file filename in
+  log ~title:Logger.Title.Warning "Content is %s" text;
+  let delay = Configuration.diagnostics_delay state.configuration in
+  let timer = Scheduler.create_timer state.scheduler ~delay in
+  let languageId = language_id_of_fname filename in
+  let text_document =
+    Lsp.Types.TextDocumentItem.create ~uri:(Uri.to_string uri) ~languageId
+      ~version:0 ~text
+  in
+  let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
+  let+ doc = Document.make timer state.merlin params in
+  Document_store.put state.store doc;
+  doc
+
+let code_action doc (state : State.t) (params : CodeActionParams.t) =
+  let open Fiber.O in
+  log ~title:Logger.Title.Warning "Running code action";
   match Document.kind doc with
   | Impl -> Fiber.return (Ok None)
   | Intf -> (
@@ -44,11 +75,8 @@ let code_action doc store (params : CodeActionParams.t) =
     in
     let impl_uri = Uri.of_path impl_path in
     let* impl =
-      match Document_store.get_opt store impl_uri with
-      | None ->
-        let delay = Configuration.diagnostics_delay state.configuration in
-        let timer = Scheduler.create_timer state.scheduler ~delay in
-        Document.make timer state.merlin params
+      match Document_store.get_opt state.store impl_uri with
+      | None -> force_open_document state impl_uri
       | Some impl -> Fiber.return impl
     in
     let+ intf = infer_intf impl in
