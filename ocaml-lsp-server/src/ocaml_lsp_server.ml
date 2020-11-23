@@ -15,7 +15,7 @@ let not_supported () =
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
-      [ CodeActionKind.Other Destruct_lsp.action_kind
+      [ CodeActionKind.Other Destruct.action_kind
       ; CodeActionKind.Other Inferred_intf.action_kind
       ]
     in
@@ -183,21 +183,21 @@ let code_action server (params : CodeActionParams.t) =
   in
   let open Fiber.O in
   let+ code_action_results =
-    Fiber.parallel_map
-      [ ( CodeActionKind.Other Destruct_lsp.action_kind
-        , fun () -> Destruct_lsp.code_action doc params )
+    Fiber.parallel_map ~f:code_action
+      [ ( CodeActionKind.Other Destruct.action_kind
+        , fun () -> Destruct.code_action doc params )
       ; ( CodeActionKind.Other Inferred_intf.action_kind
         , fun () -> Inferred_intf.code_action doc state params )
       ]
-      ~f:code_action
   in
-  let code_action_results =
+  let open Result.O in
+  let+ code_action_results =
+    (* TODO use Result.List.filter_map after updating stdune *)
     Result.List.all code_action_results |> Result.map ~f:List.filter_opt
   in
   match code_action_results with
-  | Ok [] -> Ok (None, state)
-  | Ok l -> Ok (Some l, state)
-  | Error err -> Error err
+  | [] -> (None, state)
+  | l -> (Some l, state)
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
@@ -756,7 +756,6 @@ let start () =
              ~message:"Multiple exceptions" ())
     in
     (* TODO: what to do with merlin notifications? *)
-    let _notifications = ref [] in
     Logger.with_notifications (ref []) @@ fun () ->
     Merlin_utils.File_id.with_cache @@ f
   in
