@@ -60,7 +60,7 @@ let on_request ~(params : Json.t option) state =
       let open Result.O in
       let+ res = switch file_uri in
       (res, state)
-    | Some _
+    | Some _ 
     | None ->
       Error
         (Jsonrpc.Response.Error.make ~code:InvalidRequest

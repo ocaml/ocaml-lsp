@@ -13,6 +13,12 @@ describe("textDocument/codeAction", () => {
     });
   }
 
+  async function openReasonDocument(source, uri) {
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(uri, "reason", 0, source),
+    });
+  }
+
   beforeEach(async () => {
     languageServer = await LanguageServer.startAndInitialize();
   });
@@ -109,6 +115,48 @@ let f (x : t) = x
     ]);
   });
 
+  it("can infer module interfaces with reason syntax", async () => {
+    await openReasonDocument(
+      outdent`
+type t =
+| Foo(int)
+| Bar(bool);
+
+let f = (x: t) => x;
+`,
+      "file:///test.re",
+    );
+    await openReasonDocument("", "file:///test.rei");
+    let start = Types.Position.create(0, 0);
+    let end = Types.Position.create(0, 0);
+    let actions = await codeAction("file:///test.rei", start, end);
+    expect(actions).toMatchObject([
+      {
+        edit: {
+          changes: {
+            "file:///test.rei": [
+              {
+                newText: "type t = Foo(int) | Bar(bool);\nlet f: t => t;\n",
+                range: {
+                  end: {
+                    character: 0,
+                    line: 0,
+                  },
+                  start: {
+                    character: 0,
+                    line: 0,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        kind: "inferred_intf",
+        title: "Insert inferred interface",
+      },
+    ]);
+  });
+
   it("opens the implementation if not in store", async () => {
     let testWorkspacePath = path.join(__dirname, "declaration_files/");
     let intfFilepath = path.join(testWorkspacePath, "lib.mli");
@@ -121,6 +169,41 @@ let f (x : t) = x
     changes[intfUri] = [
       {
         newText: "val x : int\n",
+        range: {
+          end: {
+            character: 0,
+            line: 0,
+          },
+          start: {
+            character: 0,
+            line: 0,
+          },
+        },
+      },
+    ];
+    expect(actions).toMatchObject([
+      {
+        edit: {
+          changes: changes,
+        },
+        kind: "inferred_intf",
+        title: "Insert inferred interface",
+      },
+    ]);
+  });
+
+  it("opens the implementation if not in store with reason syntax", async () => {
+    let testWorkspacePath = path.join(__dirname, "declaration_files_reason/");
+    let intfFilepath = path.join(testWorkspacePath, "lib.rei");
+    let intfUri = "file://" + intfFilepath;
+    await openDocument("", intfUri);
+    let start = Types.Position.create(0, 0);
+    let end = Types.Position.create(0, 0);
+    let actions = await codeAction(intfUri, start, end);
+    let changes = {};
+    changes[intfUri] = [
+      {
+        newText: "let x: int;\n",
         range: {
           end: {
             character: 0,
