@@ -167,13 +167,21 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   let state = { state with init = Initialized ip.capabilities } in
   Fiber.return @@ Ok (initialize_info, state)
 
+let result_of_list l =
+  let rec aux acc = function
+    | [] -> Ok (acc |> List.rev)
+    | Error err :: _rest -> Error err
+    | Ok el :: rest -> aux (el :: acc) rest
+  in
+  aux [] l
+
 let code_action server (params : CodeActionParams.t) =
   let open Fiber.Result.O in
   let state : State.t = Server.state server in
   let store = state.store in
   let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
   let* doc = Fiber.return (Document_store.get store uri) in
-  let code_action kind f =
+  let code_action (kind, f) =
     match params.context.only with
     | Some set when not (List.mem kind ~set) -> Fiber.return (Ok None)
     | Some _
@@ -181,17 +189,23 @@ let code_action server (params : CodeActionParams.t) =
       let+ action = f () in
       Option.map action ~f:(fun destruct -> `CodeAction destruct)
   in
-  let* destruct_action =
-    code_action (CodeActionKind.Other Destruct_lsp.action_kind) (fun () ->
-        Destruct_lsp.code_action doc params)
+  let open Fiber.O in
+  let* code_action_results =
+    Fiber.parallel_map
+      [ ( CodeActionKind.Other Destruct_lsp.action_kind
+        , fun () -> Destruct_lsp.code_action doc params )
+      ; ( CodeActionKind.Other Inferred_intf.action_kind
+        , fun () -> Inferred_intf.code_action doc store params )
+      ]
+      ~f:code_action
   in
-  let* inferred_intf_action =
-    code_action (CodeActionKind.Other Inferred_intf.action_kind) (fun () ->
-        Inferred_intf.code_action doc store params)
+  let code_action_results =
+    result_of_list code_action_results |> Result.map ~f:List.filter_opt
   in
-  match List.filter_opt [ destruct_action; inferred_intf_action ] with
-  | [] -> Fiber.return (Ok (None, state))
-  | l -> Fiber.return (Ok (Some l, state))
+  match code_action_results with
+  | Ok [] -> Fiber.return (Ok (None, state))
+  | Ok l -> Fiber.return (Ok (Some l, state))
+  | Error err -> Fiber.return (Error err)
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =

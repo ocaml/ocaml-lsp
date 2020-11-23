@@ -1,14 +1,7 @@
 open Import
 include Lsp.Types.Position
 
-let start = { line = 1; character = 1 }
-
-let end_of_string s =
-  let lines = String.split_lines s in
-  let length_last_line =
-    ListLabels.nth lines (List.length lines - 1) |> String.length
-  in
-  { line = List.length lines; character = length_last_line }
+let start = { line = 0; character = 0 }
 
 let is_dummy (lp : Lexing.position) =
   lp.pos_lnum = Lexing.dummy_pos.pos_lnum

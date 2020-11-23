@@ -26,8 +26,16 @@ let code_action_of_intf uri intf range =
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
     ~isPreferred:false ()
 
+let read_file filename =
+  let ch = open_in filename in
+  let s = really_input_string ch (in_channel_length ch) in
+  close_in ch;
+  s
+
 let code_action doc store (params : CodeActionParams.t) =
+  let open Fiber.O in
   match Document.kind doc with
+  | Impl -> Fiber.return (Ok None)
   | Intf -> (
     let intf_uri = Document.uri doc in
     let intf_path = Uri.to_path intf_uri in
@@ -35,13 +43,15 @@ let code_action doc store (params : CodeActionParams.t) =
       Switch_impl_intf.get_intf_impl_counterparts intf_path |> List.hd
     in
     let impl_uri = Uri.of_path impl_path in
-    match Document_store.get_opt store impl_uri with
-    | None -> Fiber.return (Ok None)
-    | Some impl -> (
-      let open Fiber.O in
-      let+ intf = infer_intf impl in
-      match intf with
-      | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
-      | Ok intf -> Ok (Some (code_action_of_intf intf_uri intf params.range)) )
-    )
-  | Impl -> Fiber.return (Ok None)
+    let* impl =
+      match Document_store.get_opt store impl_uri with
+      | None ->
+        let delay = Configuration.diagnostics_delay state.configuration in
+        let timer = Scheduler.create_timer state.scheduler ~delay in
+        Document.make timer state.merlin params
+      | Some impl -> Fiber.return impl
+    in
+    let+ intf = infer_intf impl in
+    match intf with
+    | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
+    | Ok intf -> Ok (Some (code_action_of_intf intf_uri intf params.range)) )

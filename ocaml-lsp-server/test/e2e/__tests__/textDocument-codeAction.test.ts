@@ -35,11 +35,14 @@ describe("textDocument/codeAction", () => {
   }
 
   it("can destruct sum types", async () => {
-    await openDocument(outdent`
+    await openDocument(
+      outdent`
 type t = Foo of int | Bar of bool
 
 let f (x : t) = x
-`, "test.ml");
+`,
+      "test.ml",
+    );
     let start = Types.Position.create(2, 16);
     let end = Types.Position.create(2, 17);
     let actions = await codeAction("test.ml", start, end);
@@ -71,11 +74,14 @@ let f (x : t) = x
   });
 
   it("can infer module interfaces", async () => {
-    await openDocument(outdent`
+    await openDocument(
+      outdent`
 type t = Foo of int | Bar of bool
 
 let f (x : t) = x
-`, "test.ml");
+`,
+      "test.ml",
+    );
     await openDocument("", "test.mli");
     let start = Types.Position.create(0, 0);
     let end = Types.Position.create(0, 0);
