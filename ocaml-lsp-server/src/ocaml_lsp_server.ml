@@ -15,8 +15,8 @@ let not_supported () =
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
-      [ CodeActionKind.Other Destruct.action_kind
-      ; CodeActionKind.Other Inferred_intf.action_kind
+      [ CodeActionKind.Other Action_destruct.action_kind
+      ; CodeActionKind.Other Action_inferred_intf.action_kind
       ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
@@ -43,7 +43,7 @@ let initialize_info : InitializeResult.t =
         [ ( "ocamllsp"
           , `Assoc
               [ ("interfaceSpecificLangId", `Bool true)
-              ; Switch_impl_intf.capability
+              ; Req_switch_impl_intf.capability
               ] )
         ]
     in
@@ -184,10 +184,10 @@ let code_action server (params : CodeActionParams.t) =
   let open Fiber.O in
   let+ code_action_results =
     Fiber.parallel_map ~f:code_action
-      [ ( CodeActionKind.Other Destruct.action_kind
-        , fun () -> Destruct.code_action doc params )
-      ; ( CodeActionKind.Other Inferred_intf.action_kind
-        , fun () -> Inferred_intf.code_action doc state params )
+      [ ( CodeActionKind.Other Action_destruct.action_kind
+        , fun () -> Action_destruct.code_action doc params )
+      ; ( CodeActionKind.Other Action_inferred_intf.action_kind
+        , fun () -> Action_inferred_intf.code_action doc state params )
       ]
   in
   let open Result.O in
@@ -662,7 +662,7 @@ let on_request :
   match req with
   | Client_request.UnknownRequest { meth; params } -> (
     match
-      [ (Switch_impl_intf.meth, Switch_impl_intf.on_request) ]
+      [ (Req_switch_impl_intf.meth, Req_switch_impl_intf.on_request) ]
       |> List.assoc_opt meth
     with
     | None ->

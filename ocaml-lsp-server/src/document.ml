@@ -145,3 +145,45 @@ let dispatch_exn (doc : t) command =
       Query_commands.dispatch pipeline command)
 
 let close t = Scheduler.cancel_timer t.timer
+
+let get_impl_intf_counterparts uri =
+  let uri_s = Uri.to_string uri in
+  let fpath =
+    match String.split ~on:':' uri_s with
+    | [ scheme; path ] ->
+      if scheme = "file" then
+        Uri.t_of_yojson (`String uri_s) |> Uri.to_path
+      else
+        path
+    | _ -> failwith "provided file URI (param) doesn't follow URI spec"
+  in
+  let fname = Filename.basename fpath in
+  let ml, mli, re, rei, mll, mly = ("ml", "mli", "re", "rei", "mll", "mly") in
+  let exts_to_switch_to =
+    match Syntax.of_fname fname with
+    | Ocaml -> (
+      match Kind.of_fname fname with
+      | Intf -> [ ml; mly; mll; re ]
+      | Impl -> [ mli; mly; mll; rei ] )
+    | Reason -> (
+      match Kind.of_fname fname with
+      | Intf -> [ re; ml ]
+      | Impl -> [ rei; mli ] )
+    | Ocamllex -> [ mli; rei ]
+    | Menhir -> [ mli; rei ]
+  in
+  let fpath_w_ext ext = Filename.remove_extension fpath ^ "." ^ ext in
+  let find_switch exts =
+    List.filter_map exts ~f:(fun ext ->
+        let file_to_switch_to = fpath_w_ext ext in
+        Option.some_if (Sys.file_exists file_to_switch_to) file_to_switch_to)
+  in
+  let files_to_switch_to =
+    match find_switch exts_to_switch_to with
+    | [] ->
+      let switch_to_ext = List.hd exts_to_switch_to in
+      let switch_to_fpath = fpath_w_ext switch_to_ext in
+      [ switch_to_fpath ]
+    | to_switch_to -> to_switch_to
+  in
+  List.map ~f:Uri.of_path files_to_switch_to
