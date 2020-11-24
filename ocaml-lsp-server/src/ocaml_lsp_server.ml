@@ -44,6 +44,7 @@ let initialize_info : InitializeResult.t =
           , `Assoc
               [ ("interfaceSpecificLangId", `Bool true)
               ; Req_switch_impl_intf.capability
+              ; Req_infer_intf.capability
               ] )
         ]
     in
@@ -662,7 +663,9 @@ let on_request :
   match req with
   | Client_request.UnknownRequest { meth; params } -> (
     match
-      [ (Req_switch_impl_intf.meth, Req_switch_impl_intf.on_request) ]
+      [ (Req_switch_impl_intf.meth, Req_switch_impl_intf.on_request)
+      ; (Req_infer_intf.meth, Req_infer_intf.on_request)
+      ]
       |> List.assoc_opt meth
     with
     | None ->
