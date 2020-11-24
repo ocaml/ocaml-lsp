@@ -59,11 +59,7 @@ let code_action doc (state : State.t) (params : CodeActionParams.t) =
   | Impl -> Fiber.return (Ok None)
   | Intf -> (
     let intf_uri = Document.uri doc in
-    let intf_path = Uri.to_path intf_uri in
-    let impl_path =
-      Switch_impl_intf.get_intf_impl_counterparts intf_path |> List.hd
-    in
-    let impl_uri = Uri.of_path impl_path in
+    let impl_uri = Document.get_impl_intf_counterparts intf_uri |> List.hd in
     let* impl =
       match Document_store.get_opt state.store impl_uri with
       | None -> force_open_document state impl_uri

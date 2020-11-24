@@ -7,3 +7,5 @@
    merlin.analysis merlin.kernel merlin.merlin_utils merlin.parsing
    merlin.query_commands merlin.query_protocol merlin.specific merlin.typing
    merlin.utils octavius omd ppx_yojson_conv_lib result stdune yojson))
+
+(include_subdirs unqualified)
