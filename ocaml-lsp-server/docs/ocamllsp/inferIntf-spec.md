@@ -7,6 +7,9 @@ The document URI in the request has to be open before sending a the request.
 
 If the file cannot be found in the document store, an error will be returned.
 
+Warning: this custom request is meant to be consumed by `ocaml-vscode-platform` exclusively,
+it can be removed any time and should not be relied on.
+
 ##### Client capability
 
 nothing that should be noted
