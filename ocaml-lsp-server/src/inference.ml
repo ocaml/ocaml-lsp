@@ -2,10 +2,7 @@ open Import
 
 let infer_intf_for_impl doc =
   match Document.kind doc with
-  | Intf ->
-    Fiber.return
-      (Error
-         (Invalid_argument "the provided document is not an implementation."))
+  | Intf -> failwith "the provided document is not an implementation."
   | Impl ->
     Document.with_pipeline doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
