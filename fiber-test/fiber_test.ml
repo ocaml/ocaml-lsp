@@ -32,6 +32,7 @@ end = struct
   exception Never
 
   let run t fiber =
+    let fiber = Fiber.Var.set t_var t (fun () -> fiber) in
     Fiber.run fiber ~iter:(fun () ->
         match Queue.pop t with
         | None -> raise Never
