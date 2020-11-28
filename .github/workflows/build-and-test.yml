@@ -63,6 +63,10 @@ jobs:
           opam pin lsp.dev . --no-action
           opam pin ocaml-lsp-server.dev . --no-action
 
+      - name: Install OCaml secondary compiler
+        if: steps.cache-opam.outputs.cache-hit != 'true' && runner.os != 'Windows' && (matrix.ocaml-version == '4.06.1' || matrix.ocaml-version == '4.07.1')
+        run: opam install ocamlfind-secondary
+
       - name: Install Opam dependencies
         if: steps.cache-opam.outputs.cache-hit != 'true'
         run: |
@@ -82,12 +86,12 @@ jobs:
         run: make build
 
       - name: Check formatting
-        if: ${{ matrix.ocaml-version }} == '4.11.1' && runner.os == 'Linux'
-        run: make format
+        if: matrix.ocaml-version == '4.11.1' && runner.os == 'Linux'
+        run: make fmt
 
       - name: Run OCaml tests
         run: make test
 
       - name: Run Node tests
         working-directory: ocaml-lsp-server/test/e2e
-        run: opam exec -- yarn test
+        run: opam exec -- dune exec -- yarn test
