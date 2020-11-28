@@ -32,4 +32,4 @@ let code_action doc (params : CodeActionParams.t) =
         | Merlin_analysis.Destruct.Useless_refine
         | Merlin_analysis.Destruct.Nothing_to_do ) ->
       Ok None
-    | Error exn -> Error (Jsonrpc.Response.Error.of_exn exn) )
+    | Error exn -> Error (Jsonrpc.Response.Error.of_exn exn))

@@ -160,7 +160,7 @@ module Response = struct
         | `Int i -> (
           match of_int i with
           | None -> Json.error "unknown code" json
-          | Some i -> i )
+          | Some i -> i)
         | _ -> Json.error "invalid code" json
 
       let yojson_of_t t = `Int (to_int t)
@@ -236,7 +236,7 @@ module Response = struct
           let result =
             Error (Json.field_exn fields Constant.error Error.t_of_yojson)
           in
-          { id; result } )
+          { id; result })
     | _ -> Json.error "Jsonrpc.Result.t" json
 
   let make ~id ~result = { id; result }

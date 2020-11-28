@@ -16,7 +16,7 @@ let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
 
 let on_request ~(params : Json.t option) state =
   Fiber.return
-    ( match params with
+    (match params with
     | Some (`String (file_uri : DocumentUri.t)) ->
       let open Result.O in
       let+ res = switch file_uri in
@@ -26,4 +26,4 @@ let on_request ~(params : Json.t option) state =
       Error
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
            ~message:"ocamllsp/switchImplIntf must receive param : DocumentUri.t"
-           ()) )
+           ()))

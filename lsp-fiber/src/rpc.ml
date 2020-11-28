@@ -158,7 +158,7 @@ struct
         | Ok (response, state) ->
           let json = In_request.yojson_of_result r response in
           let response = Response.ok req.id json in
-          (Reply.now response, state) )
+          (Reply.now response, state))
     in
     let on_notification ctx : (Notify.t * state) Fiber.t =
       let r = Session.Context.message ctx in
@@ -217,9 +217,10 @@ end
 
 module Client = struct
   open Types
-  include Make (InitializeResult) (Client_request) (Client_notification)
-            (Server_request)
-            (Server_notification)
+  include
+    Make (InitializeResult) (Client_request) (Client_notification)
+      (Server_request)
+      (Server_notification)
 
   let make handler io =
     let h_on_notification rpc notif =
@@ -252,9 +253,10 @@ end
 
 module Server = struct
   open Types
-  include Make (InitializeParams) (Server_request) (Server_notification)
-            (Client_request)
-            (Client_notification)
+  include
+    Make (InitializeParams) (Server_request) (Server_notification)
+      (Client_request)
+      (Client_notification)
 
   let h_on_notification handler t n =
     let open Fiber.O in

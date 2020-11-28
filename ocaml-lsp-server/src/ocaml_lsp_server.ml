@@ -139,7 +139,7 @@ let send_diagnostics ?diagnostics rpc doc =
                     create_diagnostic range message ~severity))
           in
           let notif = create_publishDiagnostics uri diagnostics in
-          Server.notification rpc notif) )
+          Server.notification rpc notif))
 
 let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   let log_consumer (section, title, text) =
@@ -248,7 +248,7 @@ let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
     | None -> false
     | Some format ->
       let set = Option.value format ~default:[ MarkupKind.Markdown ] in
-      List.mem MarkupKind.Markdown ~set )
+      List.mem MarkupKind.Markdown ~set)
 
 let location_of_merlin_loc uri = function
   | `At_origin
@@ -275,7 +275,7 @@ let format_contents ~syntax ~markdown ~typ ~doc =
      for all editors *)
   let markdown_name = Document.Syntax.markdown_name syntax in
   `MarkupContent
-    ( if markdown then
+    (if markdown then
       let value =
         match doc with
         | None -> sprintf "```%s\n%s\n```" markdown_name typ
@@ -294,7 +294,7 @@ let format_contents ~syntax ~markdown ~typ ~doc =
         | None -> sprintf "%s" typ
         | Some d -> sprintf "%s\n%s" typ d
       in
-      { MarkupContent.value; kind = MarkupKind.PlainText } )
+      { MarkupContent.value; kind = MarkupKind.PlainText })
 
 let query_doc doc pos =
   let command = Query_protocol.Document (None, pos) in
@@ -674,11 +674,11 @@ let on_request :
            (make_error ~code:InternalError ~message:"Unknown method"
               ~data:(`Assoc [ ("method", `String meth) ])
               ()))
-    | Some handler -> handler ~params state )
+    | Some handler -> handler ~params state)
   | _ -> (
     match syntax with
     | Some (Ocamllex | Menhir) -> not_supported ()
-    | _ -> ocaml_on_request server req )
+    | _ -> ocaml_on_request server req)
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
@@ -714,7 +714,7 @@ let on_notification server (notification : Client_notification.t) :
       let* doc = Document.update_text ?version prev_doc contentChanges in
       Document_store.put store doc;
       let+ () = send_diagnostics server doc in
-      state )
+      state)
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
@@ -732,15 +732,15 @@ let on_notification server (notification : Client_notification.t) :
     | "$/cancelRequest" ->
       Fiber.return state
     | _ ->
-      ( match req.params with
+      (match req.params with
       | None ->
         log ~title:Logger.Title.Warning "unknown notification: %s" req.method_
       | Some json ->
         log ~title:Logger.Title.Warning "unknown notification: %s %a"
           req.method_
           (fun () -> Json.to_pretty_string)
-          json );
-      Fiber.return state )
+          json);
+      Fiber.return state)
 
 let start () =
   let store = Document_store.make () in

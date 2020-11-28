@@ -21,9 +21,9 @@ module Output = struct
     in
     ( (name, Arg.String set, "test | ocaml")
     , lazy
-        ( match !field with
+        (match !field with
         | Some f -> f
-        | None -> raise (Arg.Bad (sprintf "%s not set" name)) ) )
+        | None -> raise (Arg.Bad (sprintf "%s not set" name))) )
 end
 
 let () =

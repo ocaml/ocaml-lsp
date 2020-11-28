@@ -21,7 +21,7 @@ let on_request ~(params : Json.t option) (state : State.t) =
       let+ intf = Inference.infer_intf_for_impl impl in
       match intf with
       | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
-      | Ok intf -> Ok (Json.t_of_yojson (`String intf), state) ) )
+      | Ok intf -> Ok (Json.t_of_yojson (`String intf), state)))
   | Some _
   | None ->
     Fiber.return

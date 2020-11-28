@@ -164,11 +164,11 @@ let get_impl_intf_counterparts uri =
     | Ocaml -> (
       match Kind.of_fname fname with
       | Intf -> [ ml; mly; mll; re ]
-      | Impl -> [ mli; mly; mll; rei ] )
+      | Impl -> [ mli; mly; mll; rei ])
     | Reason -> (
       match Kind.of_fname fname with
       | Intf -> [ re; ml ]
-      | Impl -> [ rei; mli ] )
+      | Impl -> [ rei; mli ])
     | Ocamllex -> [ mli; rei ]
     | Menhir -> [ mli; rei ]
   in

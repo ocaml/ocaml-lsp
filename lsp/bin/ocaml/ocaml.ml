@@ -82,7 +82,7 @@ let preprocess =
                 | "WorkDoneProgressParams"
                 | "PartialResultParams" ->
                   false
-                | _ -> true )
+                | _ -> true)
               | _ -> true)
         in
         let fields =
@@ -131,7 +131,7 @@ module Expanded = struct
           | Single { optional = _; typ } -> (
             match new_binding_of_typ typ with
             | None -> init
-            | Some data -> { f with data } :: init )
+            | Some data -> { f with data } :: init)
         in
         super#field f ~init
     end
@@ -145,7 +145,7 @@ module Expanded = struct
       | Type typ -> (
         match new_binding_of_typ typ with
         | Some data -> { t with data }
-        | None -> { t with data = Alias typ } )
+        | None -> { t with data = Alias typ })
     in
     let init = [ t ] in
     match r.data with
@@ -745,7 +745,7 @@ module Gen = struct
       | [], _ -> None
       | [ (field, lit) ], normal_fields ->
         Some ((field, lit), { Named.name; data = Ml.Type.Record normal_fields })
-      | _ -> assert false )
+      | _ -> assert false)
     | _ -> None
 
   let literal_wrapper ((field : Ml.Type.field), lit) name =
