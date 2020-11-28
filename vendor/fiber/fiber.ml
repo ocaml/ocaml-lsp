@@ -617,8 +617,3 @@ let fork_and_race fa fb k =
         k (Right b)
       | Got_a () -> ()
       | Got_b () -> assert false)
-
-let run2 t =
-  let result = ref None in
-  EC.apply (fun () -> t) () (fun x -> result := Some x);
-  !result
