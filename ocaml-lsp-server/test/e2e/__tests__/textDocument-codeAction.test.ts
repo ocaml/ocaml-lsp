@@ -90,11 +90,11 @@ let f (x : t) = x
               {
                 newText: "type t = Foo of int | Bar of bool\nval f : t -> t\n",
                 range: {
-                  end: {
+                  start: {
                     character: 0,
                     line: 0,
                   },
-                  start: {
+                  end: {
                     character: 0,
                     line: 0,
                   },
