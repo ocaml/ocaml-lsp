@@ -1,12 +1,16 @@
 name: Build and Test
 
 on:
-  - push
-  - pull_request
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   build-and-test:
     name: Build and Test
+
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
@@ -14,25 +18,15 @@ jobs:
         os:
           - macos-latest
           - ubuntu-latest
-        skip_test:
-          - false
+          - windows-latest
+
         ocaml-version:
           - 4.11.1
-        include:
-          - ocaml-version: 4.11.1
-            os: windows-latest
-            skip_test: true
-          - ocaml-version: 4.10.1
-            os: windows-latest
-            skip_test: true
-          - ocaml-version: 4.09.1
-            os: ubuntu-latest
-            skip_test: true
-          - ocaml-version: 4.06.1
-            os: ubuntu-latest
-            skip_test: true
-
-    runs-on: ${{ matrix.os }}
+          - 4.10.1
+          - 4.09.1
+          - 4.08.1
+          - 4.07.1
+          - 4.06.1
 
     steps:
       - name: Checkout code
@@ -50,29 +44,34 @@ jobs:
         with:
           ocaml-version: ${{ matrix.ocaml-version }}
 
-      - run: opam pin jsonrpc.next . --no-action
+      - name: Print OCaml version
+        run: opam exec -- ocaml --version
 
-      - run: opam pin lsp.next . --no-action
+      - name: Pin local packages
+        run: |
+          opam pin jsonrpc.dev . --no-action
+          opam pin lsp.dev . --no-action
+          opam pin ocaml-lsp-server.dev . --no-action
 
-      - run: opam pin ocaml-lsp-server.next . --no-action
+      - name: Install Opam dependencies
+        working-directory: ocaml-lsp-server/test/e2e
+        run: |
+          opam install . --deps-only --with-doc --with-test --locked --ignore-constraints-on=ocaml
 
-      - run: opam install ocamlfind-secondary
-        if: ${{ matrix.ocaml-version }} == '4.06.1'
+      - name: Install Node dependencies
+        run: |
+          yarn --frozen-lockfile
 
-      - run: opam install . --deps-only --with-test
+      - name: Build
+        run: make build
 
-      - run: opam exec -- make build
-
-      - run: opam exec -- make test
-        if: ${{ matrix.skip_test }} != 'true'
-
-      - run: opam exec -- make fmt
+      - name: Check formatting
         if: ${{ matrix.ocaml-version }} == '4.11.1' && runner.os == 'Linux'
+        run: make format
 
-      - run: yarn --frozen-lockfile
-        working-directory: ocaml-lsp-server/test/e2e
-        if: ${{ matrix.skip_test }} != 'true'
+      - name: Run OCaml tests
+        run: make test
 
-      - run: opam exec -- yarn test
+      - name: Run Node tests
         working-directory: ocaml-lsp-server/test/e2e
-        if: ${{ matrix.skip_test }} != 'true'
+        run: opam exec -- yarn test
