@@ -54,8 +54,8 @@ utop: ## Run a REPL and link with the project's libraries
 
 .PHONY: release
 release: all ## Release on Opam
-	dune-release distrib --skip-build --skip-lint --skip-tests --include-submodules
+	opam exec -- dune-release distrib --skip-build --skip-lint --skip-tests --include-submodules
 	# See https://github.com/ocamllabs/dune-release/issues/206
 	DUNE_RELEASE_DELEGATE=github-dune-release-delegate dune-release publish distrib --verbose
-	dune-release opam pkg
-	dune-release opam submit
+	opam exec -- dune-release opam pkg
+	opam exec -- dune-release opam submit
