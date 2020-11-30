@@ -333,3 +333,11 @@ module Client_request = Lsp.Client_request
 module Server_request = Lsp.Server_request
 module Server_notification = Lsp.Server_notification
 module Client_notification = Lsp.Client_notification
+
+module Jrpc_id = struct
+  include Jsonrpc.Id
+
+  let to_dyn = function
+    | `String s -> Dyn.String s
+    | `Int i -> Dyn.Int i
+end

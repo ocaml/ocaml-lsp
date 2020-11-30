@@ -83,10 +83,23 @@ let timer t = t.timer
 
 let source doc = Mpipeline.raw_source doc.pipeline
 
+let await task =
+  let open Fiber.O in
+  let () = Server.on_cancel (fun () -> Scheduler.cancel_task task) in
+  let+ res = Scheduler.await task in
+  match res with
+  | Error `Canceled ->
+    let e =
+      Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" ()
+    in
+    raise (Jsonrpc.Response.Error.E e)
+  | Error (`Exn e) -> Error e
+  | Ok s -> Ok s
+
 let with_pipeline (doc : t) f =
   Scheduler.async_exn doc.merlin (fun () ->
       Mpipeline.with_pipeline doc.pipeline (fun () -> f doc.pipeline))
-  |> Scheduler.await_no_cancel
+  |> await
 
 let with_pipeline_exn doc f =
   let open Fiber.O in
@@ -119,7 +132,7 @@ let make_pipeline thread tdoc =
         in
         Mpipeline.make config source)
   in
-  Scheduler.await_no_cancel async_make_pipeline |> Fiber.map ~f:Result.ok_exn
+  await async_make_pipeline |> Fiber.map ~f:Result.ok_exn
 
 let make timer merlin_thread tdoc =
   let tdoc = Text_document.make tdoc in

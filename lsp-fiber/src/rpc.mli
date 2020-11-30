@@ -50,6 +50,8 @@ module type S = sig
     _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
 
   val notification : _ t -> out_notification -> unit Fiber.t
+
+  val on_cancel : (unit -> unit Fiber.t) -> unit
 end
 
 module Client : sig
