@@ -17,38 +17,54 @@ module Notify = struct
 end
 
 module Sender = struct
+  type status =
+    | Pending
+    | Sent
+    | Cancelled
+
   type t =
-    { mutable called : bool
+    { mutable status : status
     ; for_ : Id.t
     ; send : Response.t -> unit Fiber.t
     }
 
-  let make id send = { for_ = id; called = false; send }
+  let make id send = { for_ = id; status = Pending; send }
 
   let send t (r : Response.t) : unit Fiber.t =
-    if t.called then
-      Code_error.raise "cannot send response twice" []
-    else if not (Id.equal t.for_ r.id) then
-      Code_error.raise "invalid id" []
-    else (
-      t.called <- true;
-      t.send r
-    )
+    match t.status with
+    | Sent -> Code_error.raise "cannot send response twice" []
+    | Cancelled -> Code_error.raise "response already cancelled" []
+    | Pending ->
+      if not (Id.equal t.for_ r.id) then
+        Code_error.raise "invalid id" []
+      else (
+        t.status <- Sent;
+        t.send r
+      )
+
+  let cancel t =
+    match t.status with
+    | Pending -> t.status <- Cancelled
+    | Sent
+    | Cancelled ->
+      ()
 end
 
 module Reply = struct
-  type t =
-    | Now of Response.t
-    | Later of ((Response.t -> unit Fiber.t) -> unit Fiber.t)
+  type with_ =
+    | Response of Response.t
+    | Cancel
 
-  let now (r : Response.t) = Now r
+  type t = (with_ -> unit Fiber.t) -> unit Fiber.t
 
-  let later f = Later f
+  let now (r : Response.t) k = k (Response r)
+
+  let later (t : t) = t
 
   let send (t : t) sender =
-    match t with
-    | Now r -> Sender.send sender r
-    | Later f -> f (fun (r : Response.t) -> Sender.send sender r)
+    t (function
+      | Cancel -> Fiber.return (Sender.cancel sender)
+      | Response r -> Sender.send sender r)
 end
 
 module Make (Chan : sig
@@ -194,13 +210,13 @@ struct
             let* resp =
               Fiber.collect_errors (fun () -> Reply.send reply sender)
             in
-            match (sender.called, resp) with
-            | false, Ok () -> Code_error.raise "must send response" []
-            | true, Ok () -> Fiber.return ()
-            | true, Error _ ->
+            match (sender.status, resp) with
+            | Pending, Ok () -> Code_error.raise "must send response" []
+            | (Sent | Cancelled), Ok () -> Fiber.return ()
+            | (Sent | Cancelled), Error _ ->
               (* TODO we should log *)
               Fiber.return ()
-            | false, Error exns ->
+            | Pending, Error exns ->
               let resp = response_error_of_exns r.id exns in
               Sender.send sender resp)
     and on_notification (r : unit Message.t) : unit Fiber.t =

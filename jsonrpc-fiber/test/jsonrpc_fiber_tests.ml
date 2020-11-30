@@ -142,7 +142,7 @@ let%expect_test "concurrent requests" =
             in
             print_endline "waiter: received response:";
             print (Response response);
-            let* () = send (Jsonrpc.Response.ok request.id `Null) in
+            let* () = send (Response (Jsonrpc.Response.ok request.id `Null)) in
             print_endline "waiter: stopping";
             let+ () = Jrpc.stop self in
             print_endline "waiter: stopped")
@@ -158,7 +158,9 @@ let%expect_test "concurrent requests" =
       print (Message { request with id = Some request.id });
       let response =
         Reply.later (fun send ->
-            let* () = send (Jsonrpc.Response.ok request.id (`Int 42)) in
+            let* () =
+              send (Response (Jsonrpc.Response.ok request.id (`Int 42)))
+            in
             if request.method_ = "shutdown" then (
               let self = Context.session c in
               print_endline "waitee: stopping";

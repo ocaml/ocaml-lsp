@@ -8,11 +8,15 @@ module Notify : sig
 end
 
 module Reply : sig
+  type with_ =
+    | Response of Response.t
+    | Cancel
+
   type t
 
-  val now : Response.t -> t
+  val later : ((with_ -> unit Fiber.t) -> unit Fiber.t) -> t
 
-  val later : ((Response.t -> unit Fiber.t) -> unit Fiber.t) -> t
+  val now : Response.t -> t
 end
 
 (** IO free implementation of the jsonrpc protocol. We stay completely agnostic
