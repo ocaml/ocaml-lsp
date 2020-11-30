@@ -65,4 +65,6 @@ end) : sig
   val notification : _ t -> Message.notification -> unit Fiber.t
 
   val request : _ t -> Message.request -> Response.t Fiber.t
+
+  val cancel : _ t -> Jsonrpc.Id.t -> unit
 end

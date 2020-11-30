@@ -271,4 +271,6 @@ struct
     let ivar = Fiber.Ivar.create () in
     Table.add_exn t.pending req.id ivar;
     Fiber.Ivar.read ivar
+
+  let cancel t id = Table.remove t.pending id
 end
