@@ -715,6 +715,9 @@ let on_notification server (notification : Client_notification.t) :
       Document_store.put store doc;
       let+ () = send_diagnostics server doc in
       state )
+  | CancelRequest _ ->
+    log ~title:Logger.Title.Warning "ignoring cancellation";
+    Fiber.return state
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
@@ -729,8 +732,6 @@ let on_notification server (notification : Client_notification.t) :
   | Unknown_notification req -> (
     match req.method_ with
     | "$/setTraceNotification"
-    | "$/cancelRequest" ->
-      Fiber.return state
     | _ ->
       ( match req.params with
       | None ->

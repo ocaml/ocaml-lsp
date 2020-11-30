@@ -11,6 +11,7 @@ type t =
   | ChangeConfiguration of DidChangeConfigurationParams.t
   | Initialized
   | Exit
+  | CancelRequest of Jsonrpc.Id.t
   | Unknown_notification of Jsonrpc.Message.notification
 
 val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) Result.t

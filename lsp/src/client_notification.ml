@@ -11,6 +11,7 @@ type t =
   | ChangeConfiguration of DidChangeConfigurationParams.t
   | Initialized
   | Exit
+  | CancelRequest of Jsonrpc.Id.t
   | Unknown_notification of Jsonrpc.Message.notification
 
 let method_ = function
@@ -23,6 +24,7 @@ let method_ = function
   | ChangeConfiguration _ -> "workspace/didChangeConfiguration"
   | WillSaveTextDocument _ -> "textDocument/willSave"
   | DidSaveTextDocument _ -> "textDocument/didSave"
+  | CancelRequest _ -> Cancel_request.meth_
   | Unknown_notification _ -> assert false
 
 let yojson_of_t = function
@@ -38,6 +40,7 @@ let yojson_of_t = function
     DidChangeConfigurationParams.yojson_of_t params
   | WillSaveTextDocument params -> WillSaveTextDocumentParams.yojson_of_t params
   | DidSaveTextDocument params -> DidSaveTextDocumentParams.yojson_of_t params
+  | CancelRequest params -> Cancel_request.yojson_of_t params
   | Unknown_notification _ -> assert false
 
 let of_jsonrpc (r : Jsonrpc.Message.notification) =
@@ -66,6 +69,9 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
   | "textDocument/didSave" ->
     Jsonrpc.Message.params r DidSaveTextDocumentParams.t_of_yojson
     >>| fun params -> DidSaveTextDocument params
+  | m when m = Cancel_request.meth_ ->
+    let+ params = Jsonrpc.Message.params r Cancel_request.t_of_yojson in
+    CancelRequest params
   | _ -> Ok (Unknown_notification r)
 
 let to_jsonrpc t =
