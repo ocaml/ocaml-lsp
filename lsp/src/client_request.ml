@@ -178,6 +178,9 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
   | "textDocument/foldingRange" ->
     parse FoldingRangeParams.t_of_yojson >>| fun params ->
     E (TextDocumentFoldingRange params)
+  | "textDocument/signatureHelp" ->
+    parse SignatureHelpParams.t_of_yojson >>| fun params ->
+    E (SignatureHelp params)
   | "textDocument/codeAction" ->
     parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
   | "debug/echo" ->

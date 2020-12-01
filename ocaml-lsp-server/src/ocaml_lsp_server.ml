@@ -34,6 +34,11 @@ let initialize_info : InitializeResult.t =
     CompletionOptions.create ~triggerCharacters:[ "."; "#" ]
       ~resolveProvider:true ()
   in
+  let signatureHelpProvider =
+    SignatureHelpOptions.create
+      ~triggerCharacters:[ " "; "~"; "?"; ":"; "("; "["; "{" ]
+      ()
+  in
   let renameProvider =
     `RenameOptions (RenameOptions.create ~prepareProvider:true ())
   in
@@ -51,8 +56,8 @@ let initialize_info : InitializeResult.t =
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~declarationProvider:(`Bool true) ~definitionProvider:(`Bool true)
       ~typeDefinitionProvider:(`Bool true) ~completionProvider
-      ~codeActionProvider ~codeLensProvider ~referencesProvider:(`Bool true)
-      ~documentHighlightProvider:(`Bool true)
+      ~signatureHelpProvider ~codeActionProvider ~codeLensProvider
+      ~referencesProvider:(`Bool true) ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
       ~foldingRangeProvider:(`Bool true) ~experimental ~renameProvider ()
@@ -341,6 +346,46 @@ let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
     let resp = Hover.create ~contents ~range () in
     Ok (Some resp, state)
 
+let signature_help (state : State.t)
+    { SignatureHelpParams.textDocument = { uri }; position; context = _ } =
+  let store = state.store in
+  let uri = Uri.t_of_yojson (`String uri) in
+  let open Fiber.Result.O in
+  let* doc = Fiber.return (Document_store.get store uri) in
+  let pos = Position.logical position in
+  let open Fiber.O in
+  let+ result =
+    Document.with_pipeline doc (fun pipeline ->
+        let typer = Mpipeline.typer_result pipeline in
+        let pos = Mpipeline.get_lexing_pos pipeline pos in
+        let node = Mtyper.node_at typer pos in
+        let context = Merlin_analysis.Completion.application_signature node in
+        match context with
+        | `Application { fun_name; signature; param_offset } ->
+          let fun_name = Option.value ~default:"_" fun_name in
+          let prefix = sprintf " %s : " fun_name in
+          let offset = String.length prefix in
+          let parameters =
+            match param_offset with
+            | Some (param_start, param_end) ->
+              [ ParameterInformation.create
+                  ~label:(`Offset (offset + param_start, offset + param_end))
+                  ()
+              ]
+            | None -> []
+          in
+          let label = prefix ^ signature in
+          let info = SignatureInformation.create ~label ~parameters () in
+          let help = SignatureHelp.create ~signatures:[ info ] () in
+          (help, state)
+        | `Unknown ->
+          let help = SignatureHelp.create ~signatures:[] () in
+          (help, state))
+  in
+  match result with
+  | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
+  | Ok _ as ok -> ok
+
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri } } =
   let uri = Uri.t_of_yojson (`String uri) in
@@ -607,7 +652,7 @@ let ocaml_on_request :
     Ok (Option.map loc ~f:Range.of_loc, state)
   | Client_request.TextDocumentRename req -> rename state req
   | Client_request.TextDocumentFoldingRange req -> folding_range state req
-  | Client_request.SignatureHelp _ -> not_supported ()
+  | Client_request.SignatureHelp req -> signature_help state req
   | Client_request.ExecuteCommand _ -> not_supported ()
   | Client_request.TextDocumentLinkResolve l -> Fiber.return @@ Ok (l, state)
   | Client_request.TextDocumentLink _ -> Fiber.return @@ Ok (None, state)
