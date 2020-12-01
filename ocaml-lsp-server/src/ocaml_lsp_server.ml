@@ -36,7 +36,7 @@ let initialize_info : InitializeResult.t =
   in
   let signatureHelpProvider =
     SignatureHelpOptions.create
-      ~triggerCharacters:[ " "; "~"; "?"; ":"; "("; "["; "{" ]
+      ~triggerCharacters:[ " "; "~"; "?"; ":"; "(" ]
       ()
   in
   let renameProvider =
