@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Implement signature help request for functions (#324)
+
 # 1.3.0 (11/23/2020)
 
 ## Features
