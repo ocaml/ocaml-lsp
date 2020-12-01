@@ -361,7 +361,7 @@ let signature_help (state : State.t)
       match context with
       | `Application { fun_name; signature; param_offsets; active_param } ->
         let fun_name = Option.value ~default:"_" fun_name in
-        let prefix = sprintf " %s : " fun_name in
+        let prefix = sprintf "%s : " fun_name in
         let offset = String.length prefix in
         let parameters =
           List.map param_offsets ~f:(fun (param_start, param_end) ->
