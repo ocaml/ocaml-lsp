@@ -1,61 +1,57 @@
-.DEFAULT_GOAL := all
-
 TEST_E2E_DIR = ocaml-lsp-server/test/e2e
 
-$(TEST_E2E_DIR)/node_modules:
-	cd $(TEST_E2E_DIR) && yarn install
-
--include Makefile.dev
-
-.PHONY: all
-all:
-	dune build --root . @install
-
-.PHONY: dev
-dev: ## Setup a development environment
-	opam switch create --no-install . ocaml-base-compiler.4.11.1
-	opam install -y dune-release merlin ocamlformat utop ocaml-lsp-server
-	opam install --locked --deps-only --with-test --with-doc -y .
-
+build:
+	dune build
 .PHONY: build
-build: ## Build the project, including non installable libraries and executables
-	dune build --root .
 
-.PHONY: install
-install: all ## Install the packages on the system
-	dune install --root .
-
-.PHONY: lock
-lock: ## Generate the lock files
-	opam lock -y .
-
-.PHONY: test
-test: ## Run the unit tests
-	dune build --root . @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
-
-.PHONY: test-template
-test-e2e: $(TEST_E2E_DIR)/node_modules all ## Run the template integration tests
-	cd $(TEST_E2E_DIR) && dune exec -- yarn test
-
-.PHONY: clean
-clean: ## Clean build artifacts and other generated files
-	dune clean --root .
-
-.PHONY: fmt
-fmt: ## Format the codebase with ocamlformat
-	dune build --root . @fmt --auto-promote
+fmt:
+	dune build @fmt --auto-promote
 	cd $(TEST_E2E_DIR) && yarn fmt
+.PHONY: fmt
 
-.PHONY: watch
-watch: ## Watch for the filesystem and rebuild on every change
-	dune build ---root . -watch
+gen:
+	dune build @cinaps --auto-promote
+	dune build @fmt --auto-promote
+.PHONY: gen
 
-.PHONY: utop
-utop: ## Run a REPL and link with the project's libraries
-	dune utop --root . . -- -implicit-bindings
 
-.PHONY: release
-release: all ## Release on Opam
+jest-promote:
+	cd $(TEST_E2E_DIR) && yarn promote
+.PHONY: jest-promote
+
+dune-promote:
+	dune promote
+.PHONY: dune-promote
+
+fmt-check:
+	dune build @fmt
+	cd $(TEST_E2E_DIR) && yarn fmt-check
+.PHONY: fmt-check
+
+lsp-server:
+	dune build @install
+.PHONY: lsp-server
+
+test-e2e: $(TEST_E2E_DIR)/node_modules
+	dune build @install
+	cd $(TEST_E2E_DIR) && dune exec -- yarn test
+.PHONY: test-e2e
+
+test-ocaml:
+	dune build @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
+.PHONY: test-ocaml
+
+test: test-ocaml test-e2e
+.PHONY: test
+
+clean:
+	dune clean
+.PHONY: clean
+
+$(TEST_E2E_DIR)/node_modules:
+	cd $(TEST_E2E_DIR) && yarn install --frozen-lockfile
+
+opam-release:
 	dune-release distrib --skip-build --skip-lint --skip-tests --include-submodules
 	# See https://github.com/ocamllabs/dune-release/issues/206
 	DUNE_RELEASE_DELEGATE=github-dune-release-delegate dune-release publish distrib --verbose
