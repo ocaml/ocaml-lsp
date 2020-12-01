@@ -353,38 +353,32 @@ let signature_help (state : State.t)
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
   let pos = Position.logical position in
-  let open Fiber.O in
-  let+ result =
-    Document.with_pipeline doc (fun pipeline ->
-        let typer = Mpipeline.typer_result pipeline in
-        let pos = Mpipeline.get_lexing_pos pipeline pos in
-        let node = Mtyper.node_at typer pos in
-        let context = Merlin_analysis.Completion.application_signature node in
-        match context with
-        | `Application { fun_name; signature; param_offset } ->
-          let fun_name = Option.value ~default:"_" fun_name in
-          let prefix = sprintf " %s : " fun_name in
-          let offset = String.length prefix in
-          let parameters =
-            match param_offset with
-            | Some (param_start, param_end) ->
-              [ ParameterInformation.create
-                  ~label:(`Offset (offset + param_start, offset + param_end))
-                  ()
-              ]
-            | None -> []
-          in
-          let label = prefix ^ signature in
-          let info = SignatureInformation.create ~label ~parameters () in
-          let help = SignatureHelp.create ~signatures:[ info ] () in
-          (help, state)
-        | `Unknown ->
-          let help = SignatureHelp.create ~signatures:[] () in
-          (help, state))
-  in
-  match result with
-  | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
-  | Ok _ as ok -> ok
+  Document.with_pipeline_exn doc (fun pipeline ->
+      let typer = Mpipeline.typer_result pipeline in
+      let pos = Mpipeline.get_lexing_pos pipeline pos in
+      let node = Mtyper.node_at typer pos in
+      let context = Merlin_analysis.Signature_help.application_signature node in
+      match context with
+      | `Application { fun_name; signature; param_offsets; active_param } ->
+        let fun_name = Option.value ~default:"_" fun_name in
+        let prefix = sprintf " %s : " fun_name in
+        let offset = String.length prefix in
+        let parameters =
+          List.map param_offsets ~f:(fun (param_start, param_end) ->
+              ParameterInformation.create
+                ~label:(`Offset (offset + param_start, offset + param_end))
+                ())
+        in
+        let label = prefix ^ signature in
+        let info = SignatureInformation.create ~label ~parameters () in
+        let help =
+          SignatureHelp.create ~signatures:[ info ] ~activeSignature:0
+            ?activeParameter:active_param ()
+        in
+        Ok (help, state)
+      | `Unknown ->
+        let help = SignatureHelp.create ~signatures:[] () in
+        Ok (help, state))
 
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri } } =
