@@ -62,7 +62,7 @@ jobs:
           opam pin ocaml-lsp-server.dev . --no-action
 
       - name: Install OCaml secondary compiler
-        if: steps.cache-opam.outputs.cache-hit != 'true' && runner.os != 'Windows' && (matrix.ocaml-version == '4.06.1' || matrix.ocaml-version == '4.07.1')
+        if: steps.cache-opam.outputs.cache-hit != 'true' && runner.os != 'Windows' && (matrix.ocaml-version == '4.06.1')
         run: opam install ocamlfind-secondary
 
       - name: Install Opam dependencies
