@@ -13,7 +13,9 @@ module Kind = struct
     | ".mli"
     | ".rei" ->
       Intf
-    | ext -> failwith ("Unknown extension " ^ ext)
+    | ext ->
+      Code_error.raise "unsupported file extension"
+        [ ("extension", String ext) ]
 end
 
 module Syntax = struct
@@ -47,7 +49,9 @@ module Syntax = struct
       Reason
     | ".mll" -> Ocamllex
     | ".mly" -> Menhir
-    | ext -> failwith ("Unknown extension " ^ ext)
+    | ext ->
+      Code_error.raise "unsupported file extension"
+        [ ("extension", String ext) ]
 
   let of_language_id language_id =
     match List.assoc all language_id with
@@ -155,7 +159,10 @@ let get_impl_intf_counterparts uri =
         Uri.t_of_yojson (`String uri_s) |> Uri.to_path
       else
         path
-    | _ -> failwith "provided file URI (param) doesn't follow URI spec"
+    | _ ->
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make ~code:InvalidRequest
+           ~message:"provided file URI (param) doesn't follow URI spec" ())
   in
   let fname = Filename.basename fpath in
   let ml, mli, re, rei, mll, mly = ("ml", "mli", "re", "rei", "mll", "mly") in

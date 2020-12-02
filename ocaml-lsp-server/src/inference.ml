@@ -2,7 +2,9 @@ open Import
 
 let infer_intf_for_impl doc =
   match Document.kind doc with
-  | Intf -> failwith "the provided document is not an implementation."
+  | Intf ->
+    Code_error.raise
+      "expected an implementation document, got an interface instead" []
   | Impl ->
     Document.with_pipeline doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
@@ -26,7 +28,8 @@ let language_id_of_fname s =
     "reason"
   | ".mll" -> "ocaml.ocamllex"
   | ".mly" -> "ocaml.menhir"
-  | ext -> failwith ("Unknown extension " ^ ext)
+  | ext ->
+    Code_error.raise "unsupported file extension" [ ("extension", String ext) ]
 
 let force_open_document (state : State.t) uri =
   let open Fiber.O in
