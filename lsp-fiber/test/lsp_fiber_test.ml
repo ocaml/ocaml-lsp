@@ -184,7 +184,7 @@ let%expect_test "ent to end run of lsp tests" =
      Please change this test to not include a backtrace. *)
 
   ("Fiber_unix__Scheduler.Abort(1)")
-  Raised at Fiber_unix__Scheduler.run in file "fiber-unix/src/scheduler.ml", line 399, characters 15-30
+  Raised at Fiber_unix__Scheduler.run in file "fiber-unix/src/scheduler.ml", line 388, characters 15-30
   Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 177, characters 2-66
   Called from Expect_test_collector.Make.Instance.exec in file "collector/expect_test_collector.ml", line 244, characters 12-19
 

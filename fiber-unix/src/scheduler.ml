@@ -1,45 +1,5 @@
 open Import
 
-let with_mutex m ~f =
-  Mutex.lock m;
-  let res = f () in
-  Mutex.unlock m;
-  res
-
-module Mvar : sig
-  type 'a t
-
-  val create : unit -> 'a t
-
-  val get : 'a t -> 'a
-
-  val set : 'a t -> 'a -> unit
-end = struct
-  type 'a t =
-    { m : Mutex.t
-    ; cv : Condition.t
-    ; mutable cell : 'a option
-    }
-
-  let create () = { m = Mutex.create (); cv = Condition.create (); cell = None }
-
-  let get t =
-    let rec await_value t =
-      match t.cell with
-      | None ->
-        Condition.wait t.cv t.m;
-        await_value t
-      | Some v ->
-        t.cell <- None;
-        v
-    in
-    with_mutex t.m ~f:(fun () -> await_value t)
-
-  let set t v =
-    with_mutex t.m ~f:(fun () -> t.cell <- Some v);
-    Condition.signal t.cv
-end
-
 module Worker : sig
   (** Simple queue that is consumed by its own thread *)
   type 'work t
@@ -143,8 +103,10 @@ type t =
   ; event_ready : Condition.t
   ; timers_available : Condition.t
   ; timers_available_mutex : Mutex.t
+  ; earliest_next_mutex : Mutex.t
+  ; earliest_next_barrier : Barrier.t
+  ; mutable earliest_next : float option
   ; mutable threads : thread list
-  ; earliest_wakeup : float Mvar.t
   ; mutable time : Thread.t
   ; mutable waker : Thread.t
   ; (* TODO Replace with Removable_queue *)
@@ -200,9 +162,7 @@ let time_loop t =
     let to_run = ref [] in
     let earliest_next = ref None in
     with_mutex t.time_mutex ~f:(fun () ->
-        if is_empty t.timers then
-          ()
-        else
+        if not (is_empty t.timers) then
           let now = Unix.gettimeofday () in
           Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
               let active_timer = !active_timer in
@@ -211,7 +171,7 @@ let time_loop t =
               in
               let need_to_run = scheduled_at < now in
               if need_to_run then
-                to_run := Scheduled active_timer :: !to_run
+                to_run := active_timer :: !to_run
               else
                 earliest_next :=
                   Some
@@ -219,8 +179,16 @@ let time_loop t =
                     | None -> scheduled_at
                     | Some v -> min scheduled_at v );
               not need_to_run));
-    add_events t !to_run;
-    Option.iter !earliest_next ~f:(Mvar.set t.earliest_wakeup);
+    let to_run =
+      List.sort !to_run ~compare:(fun x y ->
+          Timer_id.compare x.parent.timer_id y.parent.timer_id)
+      |> List.map ~f:(fun x -> Scheduled x)
+    in
+    add_events t to_run;
+    Option.iter !earliest_next ~f:(fun s ->
+        with_mutex t.earliest_next_mutex ~f:(fun () ->
+            t.earliest_next <- Some s);
+        Barrier.signal t.earliest_next_barrier);
     with_mutex t.timers_available_mutex ~f:(fun () ->
         Condition.wait t.timers_available t.timers_available_mutex);
     loop ()
@@ -228,14 +196,31 @@ let time_loop t =
   loop ()
 
 let wake_loop t =
-  let rec loop () =
-    let wakeup_at = Mvar.get t.earliest_wakeup in
-    let now = Unix.gettimeofday () in
-    if now < wakeup_at then Thread.delay (wakeup_at -. now);
-    signal_timers_available t;
-    loop ()
+  let rec loop timeout =
+    match Barrier.await t.earliest_next_barrier ?timeout with
+    | Error (`Closed (`Read b)) -> if b then signal_timers_available t
+    | Error `Timeout ->
+      signal_timers_available t;
+      loop None
+    | Ok () -> (
+      let wakeup_at =
+        with_mutex t.earliest_next_mutex ~f:(fun () ->
+            let v = t.earliest_next in
+            t.earliest_next <- None;
+            v)
+      in
+      let now = Unix.gettimeofday () in
+      match wakeup_at with
+      | None -> loop None
+      | Some wakeup_at ->
+        if now < wakeup_at then
+          loop (Some (wakeup_at -. now))
+        else (
+          signal_timers_available t;
+          loop None
+        ) )
   in
-  loop ()
+  loop None
 
 let create () =
   let t =
@@ -244,12 +229,14 @@ let create () =
     ; events_mutex = Mutex.create ()
     ; time_mutex = Mutex.create ()
     ; event_ready = Condition.create ()
+    ; earliest_next_mutex = Mutex.create ()
+    ; earliest_next = None
+    ; earliest_next_barrier = Barrier.create ()
     ; threads = []
     ; timers = Table.create (module Timer_id) 10
     ; timers_available = Condition.create ()
     ; timers_available_mutex = Mutex.create ()
     ; time = Thread.self ()
-    ; earliest_wakeup = Mvar.create ()
     ; waker = Thread.self ()
     }
   in
@@ -323,7 +310,9 @@ let cancel_timers t =
           false));
   Fiber.parallel_iter !timers ~f:(fun ivar -> Fiber.Ivar.fill ivar `Cancelled)
 
-let cleanup t = List.iter t.threads ~f:stop
+let cleanup t =
+  Barrier.close t.earliest_next_barrier;
+  List.iter t.threads ~f:stop
 
 type run_error =
   | Never
