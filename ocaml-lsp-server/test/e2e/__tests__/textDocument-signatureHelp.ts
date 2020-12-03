@@ -136,4 +136,29 @@ describe_opt("textDocument/completion", () => {
       activeParameter: 0,
     });
   });
+
+  it("can make a labelled parameter active by prefix", async () => {
+    openDocument(outdent`
+      let _ = ListLabels.mem ~se
+    `);
+
+    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    expect(items).toMatchObject({
+      signatures: [
+        {
+          label: "ListLabels.mem : 'a -> set:'a list -> bool",
+          parameters: [
+            {
+              label: [17, 19],
+            },
+            {
+              label: [23, 34],
+            },
+          ],
+        },
+      ],
+      activeSignature: 0,
+      activeParameter: 1,
+    });
+  });
 });
