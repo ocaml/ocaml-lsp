@@ -183,4 +183,29 @@ describe_opt("textDocument/completion", () => {
       activeParameter: 1,
     });
   });
+
+  it("can make an optional parameter active by prefix", async () => {
+    openDocument(outdent`
+      let _ = Hashtbl.create ?ra
+    `);
+
+    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    expect(items).toMatchObject({
+      signatures: [
+        {
+          label: "Hashtbl.create : ?random:bool -> int -> ('a, 'b) Hashtbl.t",
+          parameters: [
+            {
+              label: [17, 29],
+            },
+            {
+              label: [33, 36],
+            },
+          ],
+        },
+      ],
+      activeSignature: 0,
+      activeParameter: 0,
+    });
+  });
 });
