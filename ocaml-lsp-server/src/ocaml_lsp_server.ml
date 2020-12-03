@@ -353,20 +353,26 @@ let signature_help (state : State.t)
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
   let pos = Position.logical position in
+  let prefix =
+    Compl.prefix_of_position (Document.source doc) pos ~short_path:false
+  in
   Document.with_pipeline_exn doc (fun pipeline ->
       let typer = Mpipeline.typer_result pipeline in
       let pos = Mpipeline.get_lexing_pos pipeline pos in
       let node = Mtyper.node_at typer pos in
-      let context = Merlin_analysis.Signature_help.application_signature node in
+      let context =
+        Merlin_analysis.Signature_help.application_signature node ~prefix
+      in
       match context with
-      | `Application { fun_name; signature; param_offsets; active_param } ->
+      | `Application { fun_name; signature; parameters; active_param } ->
         let fun_name = Option.value ~default:"_" fun_name in
         let prefix = sprintf "%s : " fun_name in
         let offset = String.length prefix in
         let parameters =
-          List.map param_offsets ~f:(fun (param_start, param_end) ->
+          List.map parameters
+            ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
               ParameterInformation.create
-                ~label:(`Offset (offset + param_start, offset + param_end))
+                ~label:(`Offset (offset + p.param_start, offset + p.param_end))
                 ())
         in
         let label = prefix ^ signature in
