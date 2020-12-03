@@ -87,6 +87,28 @@ describe_opt("textDocument/completion", () => {
     });
   });
 
+  it("can provide signature help for an anonymous function", async () => {
+    openDocument(outdent`
+      let _ = (fun x -> x + 1)
+    `);
+
+    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    expect(items).toMatchObject({
+      signatures: [
+        {
+          label: "_ : int -> int",
+          parameters: [
+            {
+              label: [4, 7],
+            },
+          ],
+        },
+      ],
+      activeSignature: 0,
+      activeParameter: 0,
+    });
+  });
+
   it("can make the non-labelled parameter active", async () => {
     openDocument(outdent`
       let _ = ListLabels.map []
@@ -128,6 +150,56 @@ describe_opt("textDocument/completion", () => {
             },
             {
               label: [35, 43],
+            },
+          ],
+        },
+      ],
+      activeSignature: 0,
+      activeParameter: 0,
+    });
+  });
+
+  it("can make a labelled parameter active by prefix", async () => {
+    openDocument(outdent`
+      let _ = ListLabels.mem ~se
+    `);
+
+    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    expect(items).toMatchObject({
+      signatures: [
+        {
+          label: "ListLabels.mem : 'a -> set:'a list -> bool",
+          parameters: [
+            {
+              label: [17, 19],
+            },
+            {
+              label: [23, 34],
+            },
+          ],
+        },
+      ],
+      activeSignature: 0,
+      activeParameter: 1,
+    });
+  });
+
+  it("can make an optional parameter active by prefix", async () => {
+    openDocument(outdent`
+      let _ = Hashtbl.create ?ra
+    `);
+
+    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    expect(items).toMatchObject({
+      signatures: [
+        {
+          label: "Hashtbl.create : ?random:bool -> int -> ('a, 'b) Hashtbl.t",
+          parameters: [
+            {
+              label: [17, 29],
+            },
+            {
+              label: [33, 36],
             },
           ],
         },

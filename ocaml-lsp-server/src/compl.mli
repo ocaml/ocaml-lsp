@@ -26,3 +26,6 @@ val resolve :
   -> (Document.t -> [> `Logical of int * int ] -> string option Fiber.t)
   -> markdown:bool
   -> (CompletionItem.t, Jsonrpc.Response.Error.t) result Fiber.t
+
+val prefix_of_position :
+  short_path:bool -> Msource.t -> [< Msource.position ] -> string
