@@ -87,6 +87,28 @@ describe_opt("textDocument/completion", () => {
     });
   });
 
+  it("can provide signature help for an anonymous function", async () => {
+    openDocument(outdent`
+      let _ = (fun x -> x + 1)
+    `);
+
+    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    expect(items).toMatchObject({
+      signatures: [
+        {
+          label: "_ : int -> int",
+          parameters: [
+            {
+              label: [4, 7],
+            },
+          ],
+        },
+      ],
+      activeSignature: 0,
+      activeParameter: 0,
+    });
+  });
+
   it("can make the non-labelled parameter active", async () => {
     openDocument(outdent`
       let _ = ListLabels.map []
