@@ -14,13 +14,10 @@ let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
        (fun uri -> uri |> Uri.to_string |> fun s -> `String s)
        files_to_switch_to)
 
-let on_request ~(params : Json.t option) state =
+let on_request ~(params : Json.t option) _ =
   Fiber.return
     ( match params with
-    | Some (`String (file_uri : DocumentUri.t)) ->
-      let open Result.O in
-      let+ res = switch file_uri in
-      (res, state)
+    | Some (`String (file_uri : DocumentUri.t)) -> switch file_uri
     | Some _
     | None ->
       Error

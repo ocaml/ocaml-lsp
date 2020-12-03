@@ -2,6 +2,28 @@ open Import
 open Jsonrpc
 module Session = Jsonrpc_fiber.Make (Fiber_io)
 
+module Reply = struct
+  type 'r t =
+    | Now of ('r, Jsonrpc.Response.Error.t) result
+    | Later of
+        (   (('r, Jsonrpc.Response.Error.t) result -> unit Fiber.t)
+         -> unit Fiber.t)
+
+  let now r = Now r
+
+  let later f = Later f
+
+  let to_jsonrpc t id to_json : Jsonrpc_fiber.Reply.t =
+    let f x =
+      match x with
+      | Error e -> Jsonrpc.Response.error id e
+      | Ok x -> Jsonrpc.Response.ok id (to_json x)
+    in
+    match t with
+    | Now r -> Jsonrpc_fiber.Reply.now (f r)
+    | Later k -> Jsonrpc_fiber.Reply.later (fun send -> k (fun r -> send (f r)))
+end
+
 module State = struct
   type t =
     | Waiting_for_init
@@ -25,8 +47,7 @@ module type S = sig
 
     type 'state on_request =
       { on_request :
-          'a.    'state session -> 'a in_request
-          -> ('a * 'state, Response.Error.t) result Fiber.t
+          'a. 'state session -> 'a in_request -> ('a Reply.t * 'state) Fiber.t
       }
 
     type 'state t
@@ -81,8 +102,6 @@ end)
 (In_request : Request_intf)
 (In_notification : Notification_intf) =
 struct
-  open Jsonrpc_fiber
-
   type 'a out_request = 'a Out_request.t
 
   type 'a in_request = 'a In_request.t
@@ -104,8 +123,7 @@ struct
 
   and 'state on_request =
     { on_request :
-        'a.    'state t -> 'a in_request
-        -> ('a * 'state, Response.Error.t) result Fiber.t
+        'a. 'state t -> 'a in_request -> ('a Reply.t * 'state) Fiber.t
     }
 
   and 'state handler =
@@ -116,8 +134,7 @@ struct
   module Handler = struct
     type nonrec 'state on_request = 'state on_request =
       { on_request :
-          'a.    'state t -> 'a in_request
-          -> ('a * 'state, Response.Error.t) result Fiber.t
+          'a. 'state t -> 'a in_request -> ('a Reply.t * 'state) Fiber.t
       }
 
     type nonrec 'state t = 'state handler =
@@ -142,25 +159,23 @@ struct
 
   let to_jsonrpc (type state) (t : state t) h_on_request h_on_notification =
     let open Fiber.O in
-    let on_request (ctx : (state, Id.t) Session.Context.t) :
-        (Reply.t * state) Fiber.t =
+    let on_request (ctx : (state, Id.t) Session.Context.t) =
       let req = Session.Context.message ctx in
       let state = Session.Context.state ctx in
       match In_request.of_jsonrpc req with
       | Error message ->
         let code = Jsonrpc.Response.Error.Code.InvalidParams in
         let error = Jsonrpc.Response.Error.make ~code ~message () in
-        Fiber.return (Reply.now (Response.error req.id error), state)
-      | Ok (In_request.E r) -> (
-        let+ response = h_on_request.on_request t r in
-        match response with
-        | Error e -> (Reply.now (Response.error req.id e), state)
-        | Ok (response, state) ->
-          let json = In_request.yojson_of_result r response in
-          let response = Response.ok req.id json in
-          (Reply.now response, state) )
+        Fiber.return
+          (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
+      | Ok (In_request.E r) ->
+        let+ response, state = h_on_request.on_request t r in
+        let reply =
+          Reply.to_jsonrpc response req.id (In_request.yojson_of_result r)
+        in
+        (reply, state)
     in
-    let on_notification ctx : (Notify.t * state) Fiber.t =
+    let on_notification ctx =
       let r = Session.Context.message ctx in
       match In_notification.of_jsonrpc r with
       | Ok r -> h_on_notification t r
@@ -168,7 +183,7 @@ struct
         Log.log ~section:"lsp" (fun () ->
             Log.msg "Invalid notification" [ ("error", `String error) ]);
         let state = Session.Context.state ctx in
-        Fiber.return (Notify.Continue, state)
+        Fiber.return (Jsonrpc_fiber.Notify.Continue, state)
     in
     (on_request, on_notification)
 
@@ -285,12 +300,18 @@ module Server = struct
       ) else
         let code = Response.Error.Code.InvalidRequest in
         let message = "already initialized" in
-        Fiber.return (Error (Jsonrpc.Response.Error.make ~code ~message ()))
+        let state = state t in
+        Fiber.return
+          ( Reply.now (Error (Jsonrpc.Response.Error.make ~code ~message ()))
+          , state )
     | Client_request.E _ ->
       if t.state = Waiting_for_init then
         let code = Response.Error.Code.ServerNotInitialized in
         let message = "not initialized" in
-        Fiber.return (Error (Jsonrpc.Response.Error.make ~code ~message ()))
+        let state = state t in
+        Fiber.return
+          ( Reply.now (Error (Jsonrpc.Response.Error.make ~code ~message ()))
+          , state )
       else
         handler.h_on_request.on_request t in_r
 

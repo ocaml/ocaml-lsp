@@ -1,6 +1,16 @@
 open! Import
 open Jsonrpc
 
+module Reply : sig
+  type 'resp t
+
+  val now : ('r, Jsonrpc.Response.Error.t) result -> 'r t
+
+  val later :
+       ((('r, Jsonrpc.Response.Error.t) result -> unit Fiber.t) -> unit Fiber.t)
+    -> 'r t
+end
+
 module type S = sig
   type 'a out_request
 
@@ -17,8 +27,7 @@ module type S = sig
 
     type 'state on_request =
       { on_request :
-          'a.    'state session -> 'a in_request
-          -> ('a * 'state, Response.Error.t) result Fiber.t
+          'a. 'state session -> 'a in_request -> ('a Reply.t * 'state) Fiber.t
       }
 
     type 'state t
