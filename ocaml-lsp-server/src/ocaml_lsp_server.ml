@@ -378,12 +378,7 @@ let signature_help (state : State.t)
         let typer = Mpipeline.typer_result pipeline in
         let pos = Mpipeline.get_lexing_pos pipeline pos in
         let node = Mtyper.node_at typer pos in
-        let signature =
-          Merlin_analysis.Signature_help.application_signature node ~prefix
-        in
-        match signature with
-        | `Application a -> Some a
-        | `Unknown -> None)
+        Merlin_analysis.Signature_help.application_signature node ~prefix)
   in
   match application_signature with
   | None ->
