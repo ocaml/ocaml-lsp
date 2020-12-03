@@ -354,7 +354,10 @@ let signature_help (state : State.t)
   let* doc = Fiber.return (Document_store.get store uri) in
   let pos = Position.logical position in
   let prefix =
-    Compl.prefix_of_position (Document.source doc) pos ~short_path:false
+    (* The value of [short_path] doesn't make a difference to the final result
+       because labels cannot include dots. However, a true value is slightly
+       faster for getting the prefix. *)
+    Compl.prefix_of_position (Document.source doc) pos ~short_path:true
   in
   Document.with_pipeline_exn doc (fun pipeline ->
       let typer = Mpipeline.typer_result pipeline in
