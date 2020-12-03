@@ -29,7 +29,19 @@ describe_opt("textDocument/completion", () => {
   }
 
   beforeEach(async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize({
+      textDocument: {
+        signatureHelp: {
+          dynamicRegistration: true,
+          signatureInformation: {
+            documentationFormat: ["markdown", "plaintext"],
+            parameterInformation: {
+              labelOffsetSupport: true,
+            },
+          },
+        },
+      },
+    });
   });
 
   afterEach(async () => {
@@ -39,20 +51,22 @@ describe_opt("textDocument/completion", () => {
 
   it("can provide signature help after a function-type value", async () => {
     openDocument(outdent`
-      let _ = ListLabels.map
+      let map = ListLabels.map
+
+      let _ = map
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(0, 22));
+    let items = await querySignatureHelp(Types.Position.create(2, 11));
     expect(items).toMatchObject({
       signatures: [
         {
-          label: "ListLabels.map : f:('a -> 'b) -> 'a list -> 'b list",
+          label: "map : f:('a -> 'b) -> 'a list -> 'b list",
           parameters: [
             {
-              label: [17, 29],
+              label: [6, 18],
             },
             {
-              label: [33, 40],
+              label: [22, 29],
             },
           ],
         },
@@ -64,10 +78,12 @@ describe_opt("textDocument/completion", () => {
 
   it("can provide signature help for an operator", async () => {
     openDocument(outdent`
+      let (+) = (+)
+
       let _ = 1 + 2
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(0, 13));
+    let items = await querySignatureHelp(Types.Position.create(2, 13));
     expect(items).toMatchObject({
       signatures: [
         {
@@ -111,20 +127,22 @@ describe_opt("textDocument/completion", () => {
 
   it("can make the non-labelled parameter active", async () => {
     openDocument(outdent`
-      let _ = ListLabels.map []
+      let map = ListLabels.map
+
+      let _ = map []
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(0, 25));
+    let items = await querySignatureHelp(Types.Position.create(2, 14));
     expect(items).toMatchObject({
       signatures: [
         {
-          label: "ListLabels.map : f:('a -> 'b) -> 'a list -> 'b list",
+          label: "map : f:('a -> 'b) -> 'a list -> 'b list",
           parameters: [
             {
-              label: [17, 29],
+              label: [6, 18],
             },
             {
-              label: [33, 40],
+              label: [22, 29],
             },
           ],
         },
@@ -136,20 +154,22 @@ describe_opt("textDocument/completion", () => {
 
   it("can make the labelled parameter active", async () => {
     openDocument(outdent`
-      let _ = ListLabels.map ~f:Int.abs
+      let map = ListLabels.map
+
+      let _ = map ~f:Int.abs
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(0, 33));
+    let items = await querySignatureHelp(Types.Position.create(2, 22));
     expect(items).toMatchObject({
       signatures: [
         {
-          label: "ListLabels.map : f:(int -> int) -> int list -> int list",
+          label: "map : f:(int -> int) -> int list -> int list",
           parameters: [
             {
-              label: [17, 31],
+              label: [6, 20],
             },
             {
-              label: [35, 43],
+              label: [24, 32],
             },
           ],
         },
@@ -161,20 +181,22 @@ describe_opt("textDocument/completion", () => {
 
   it("can make a labelled parameter active by prefix", async () => {
     openDocument(outdent`
-      let _ = ListLabels.mem ~se
+      let mem = ListLabels.mem
+
+      let _ = mem ~se
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    let items = await querySignatureHelp(Types.Position.create(2, 15));
     expect(items).toMatchObject({
       signatures: [
         {
-          label: "ListLabels.mem : 'a -> set:'a list -> bool",
+          label: "mem : 'a -> set:'a list -> bool",
           parameters: [
             {
-              label: [17, 19],
+              label: [6, 8],
             },
             {
-              label: [23, 34],
+              label: [12, 23],
             },
           ],
         },
@@ -186,26 +208,108 @@ describe_opt("textDocument/completion", () => {
 
   it("can make an optional parameter active by prefix", async () => {
     openDocument(outdent`
-      let _ = Hashtbl.create ?ra
+      let create = Hashtbl.create
+
+      let _ = create ?ra
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    let items = await querySignatureHelp(Types.Position.create(2, 18));
     expect(items).toMatchObject({
       signatures: [
         {
-          label: "Hashtbl.create : ?random:bool -> int -> ('a, 'b) Hashtbl.t",
+          label: "create : ?random:bool -> int -> ('a, 'b) Hashtbl.t",
           parameters: [
             {
-              label: [17, 29],
+              label: [9, 21],
             },
             {
-              label: [33, 36],
+              label: [25, 28],
             },
           ],
         },
       ],
       activeSignature: 0,
       activeParameter: 0,
+    });
+  });
+
+  it("can return documentation for the function being applied", async () => {
+    openDocument(
+      outdent`
+      (** This function has a nice documentation.
+
+          It performs division of two integer numbers.
+
+          @param x dividend
+          @param divisor
+
+          @return {i quotient}, i.e. result of division
+          @raise Division_by_zero raised when divided by zero
+
+          @see <https://en.wikipedia.org/wiki/Arithmetic#Division_(%C3%B7,_or_/)> article
+          @see 'arithmetic.ml' for more context
+
+          @since 4.0.0
+          @before 4.4.0
+
+          @deprecated use [(/)]
+
+          @version 1.0.0
+          @author John Doe *)
+      let div x y =
+        x / y
+
+      let _ = div 1
+    `,
+    );
+
+    let items = await querySignatureHelp(Types.Position.create(23, 13));
+    expect(items).toMatchObject({
+      activeSignature: 0,
+      activeParameter: 0,
+      signatures: [
+        {
+          label: "div : int -> int -> int",
+          parameters: [
+            {
+              label: [6, 9],
+            },
+            {
+              label: [13, 16],
+            },
+          ],
+          documentation: {
+            kind: "markdown",
+            value: outdent`
+              This function has a nice documentation.
+
+              It performs division of two integer numbers.
+              * * *
+              ***@param*** \`x\` dividend
+
+              ***@param*** divisor
+
+              ***@return*** *quotient*, i.e. result of division
+
+              ***@raise*** \`Division_by_zero\` raised when divided by zero
+
+              ***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_(%C3%B7,_or_/)) article
+
+              ***@see*** \`arithmetic.ml\` for more context
+
+              ***@since*** \`4.0.0\`
+
+              ***@before*** \`4.4.0\`
+
+              ***@deprecated*** use \`(/)\`
+
+              ***@version*** \`1.0.0\`
+
+              ***@author*** John Doe
+              `,
+          },
+        },
+      ],
     });
   });
 });
