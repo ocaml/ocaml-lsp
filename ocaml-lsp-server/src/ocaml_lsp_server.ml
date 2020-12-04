@@ -275,6 +275,18 @@ let location_of_merlin_loc uri = function
            let locs = [ { Location.uri = Uri.to_string uri; range } ] in
            `Location locs)
 
+let format_doc ~markdown ~doc =
+  `MarkupContent
+    ( if markdown then
+      let value =
+        match Doc_to_md.translate doc with
+        | Raw d -> sprintf "(** %s *)" d
+        | Markdown d -> d
+      in
+      { MarkupContent.value; kind = MarkupKind.Markdown }
+    else
+      { MarkupContent.value = doc; kind = MarkupKind.PlainText } )
+
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -353,41 +365,56 @@ let signature_help (state : State.t)
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
   let pos = Position.logical position in
+  let client_capabilities = client_capabilities state in
   let prefix =
     (* The value of [short_path] doesn't make a difference to the final result
        because labels cannot include dots. However, a true value is slightly
        faster for getting the prefix. *)
     Compl.prefix_of_position (Document.source doc) pos ~short_path:true
   in
-  Document.with_pipeline_exn doc (fun pipeline ->
-      let typer = Mpipeline.typer_result pipeline in
-      let pos = Mpipeline.get_lexing_pos pipeline pos in
-      let node = Mtyper.node_at typer pos in
-      let context =
-        Merlin_analysis.Signature_help.application_signature node ~prefix
+  let open Fiber.O in
+  let* application_signature =
+    Document.with_pipeline_exn doc (fun pipeline ->
+        let typer = Mpipeline.typer_result pipeline in
+        let pos = Mpipeline.get_lexing_pos pipeline pos in
+        let node = Mtyper.node_at typer pos in
+        Merlin_analysis.Signature_help.application_signature node ~prefix)
+  in
+  match application_signature with
+  | None ->
+    let help = SignatureHelp.create ~signatures:[] () in
+    Fiber.return (Ok (help, state))
+  | Some a ->
+    let fun_name = Option.value ~default:"_" a.function_name in
+    let prefix = sprintf "%s : " fun_name in
+    let offset = String.length prefix in
+    let parameters =
+      List.map a.parameters
+        ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
+          let label = `Offset (offset + p.param_start, offset + p.param_end) in
+          ParameterInformation.create ~label ())
+    in
+    let+ doc = query_doc doc a.function_position in
+    let documentation =
+      let open Option.O in
+      let+ doc = doc in
+      let markdown =
+        markdown_support client_capabilities ~field:(fun td ->
+            let* sh = td.signatureHelp in
+            let+ si = sh.signatureInformation in
+            si.documentationFormat)
       in
-      match context with
-      | `Application { fun_name; signature; parameters; active_param } ->
-        let fun_name = Option.value ~default:"_" fun_name in
-        let prefix = sprintf "%s : " fun_name in
-        let offset = String.length prefix in
-        let parameters =
-          List.map parameters
-            ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
-              ParameterInformation.create
-                ~label:(`Offset (offset + p.param_start, offset + p.param_end))
-                ())
-        in
-        let label = prefix ^ signature in
-        let info = SignatureInformation.create ~label ~parameters () in
-        let help =
-          SignatureHelp.create ~signatures:[ info ] ~activeSignature:0
-            ?activeParameter:active_param ()
-        in
-        Ok (help, state)
-      | `Unknown ->
-        let help = SignatureHelp.create ~signatures:[] () in
-        Ok (help, state))
+      format_doc ~markdown ~doc
+    in
+    let label = prefix ^ a.signature in
+    let info =
+      SignatureInformation.create ~label ?documentation ~parameters ()
+    in
+    let help =
+      SignatureHelp.create ~signatures:[ info ] ~activeSignature:0
+        ?activeParameter:a.active_param ()
+    in
+    Ok (help, state)
 
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri } } =
