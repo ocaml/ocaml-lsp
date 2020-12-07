@@ -4,10 +4,11 @@ open Fiber_unix
 open Lsp.Types
 open Lsp_fiber
 
-let scheduler = Scheduler.create ()
-
 module Client = struct
-  type state = { received_notification : unit Fiber.Ivar.t }
+  type state =
+    { received_notification : unit Fiber.Ivar.t
+    ; scheduler : Scheduler.t
+    }
 
   let on_request (type a) s (_ : a Server_request.t) =
     let state = Client.state s in
@@ -31,7 +32,7 @@ module Client = struct
     let on_request = { Client.Handler.on_request } in
     Client.Handler.make ~on_request ~on_notification ()
 
-  let run in_ out =
+  let run scheduler in_ out =
     let initialize =
       let capabilities = Types.ClientCapabilities.create () in
       Types.InitializeParams.create ~capabilities ()
@@ -40,7 +41,7 @@ module Client = struct
       let io = Io.make in_ out in
       let stream_io = Lsp_fiber.Fiber_io.make scheduler io in
       Client.make handler stream_io
-        { received_notification = Fiber.Ivar.create () }
+        { received_notification = Fiber.Ivar.create (); scheduler }
     in
     let running = Client.start client initialize in
     let open Fiber.O in
@@ -79,6 +80,7 @@ module Server = struct
 
   type state =
     { status : status
+    ; scheduler : Scheduler.t
     ; detached : Fiber_detached.t
     }
 
@@ -99,6 +101,7 @@ module Server = struct
         let result = `String "successful execution" in
         let open Fiber.O in
         let* (_ : (unit, [ `Stopped ]) result) =
+          let scheduler = state.scheduler in
           let timer = Scheduler.create_timer scheduler ~delay:0.5 in
           Fiber_detached.task state.detached ~f:(fun () ->
               Format.eprintf
@@ -148,12 +151,12 @@ module Server = struct
 
   let handler = Server.Handler.make ~on_request ~on_notification ()
 
-  let run in_ out =
+  let run scheduler in_ out =
     let detached = Fiber_detached.create () in
     let server =
       let io = Io.make in_ out in
       let stream_io = Fiber_io.make scheduler io in
-      Server.make handler stream_io { status = Started; detached }
+      Server.make handler stream_io { scheduler; status = Started; detached }
     in
     Fiber.fork_and_join_unit
       (fun () -> Server.start server)
@@ -168,8 +171,9 @@ let%expect_test "ent to end run of lsp tests" =
   (Lsp.Import.Log.level := fun _ -> true);
   let client_in, server_out = pipe () in
   let server_in, client_out = pipe () in
-  let server () = Server.run server_in server_out in
-  let client () = Client.run client_in client_out in
+  let scheduler = Scheduler.create () in
+  let server () = Server.run scheduler server_in server_out in
+  let client () = Client.run scheduler client_in client_out in
   let (_ : Thread.t) =
     Thread.create
       (fun () ->
