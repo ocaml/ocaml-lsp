@@ -4,6 +4,21 @@ open Fiber_unix
 open Lsp.Types
 open Lsp_fiber
 
+module Test = struct
+  module Client = struct
+    let run ?(capabilities = ClientCapabilities.create ()) ?on_request
+        ?on_notification (scheduler, state) (in_, out) =
+      let initialize = InitializeParams.create ~capabilities () in
+      let client =
+        let io = Io.make in_ out in
+        let stream_io = Lsp_fiber.Fiber_io.make scheduler io in
+        let handler = Client.Handler.make ?on_request ?on_notification () in
+        Client.make handler stream_io (scheduler, state)
+      in
+      (client, Client.start client initialize)
+  end
+end
+
 let pipe () =
   let in_, out = Unix.pipe () in
   (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
@@ -14,8 +29,8 @@ let test make_client make_server =
   let client_in, server_out = pipe () in
   let server_in, client_out = pipe () in
   let scheduler = Scheduler.create () in
-  let server () = make_server scheduler server_in server_out in
-  let client () = make_client scheduler client_in client_out in
+  let server () = make_server scheduler (server_in, server_out) in
+  let client () = make_client scheduler (client_in, client_out) in
   let (_ : Thread.t) =
     Thread.create
       (fun () ->
@@ -28,12 +43,7 @@ let test make_client make_server =
   Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
   print_endline "[TEST] finished"
 
-module Client = struct
-  type state =
-    { received_notification : unit Fiber.Ivar.t
-    ; scheduler : Scheduler.t
-    }
-
+module End_to_end_client = struct
   let on_request (type a) s (_ : a Server_request.t) =
     let state = Client.state s in
     Fiber.return
@@ -43,31 +53,24 @@ module Client = struct
                 ~code:InternalError ()))
       , state )
 
-  let on_notification (client : state Client.t) n =
+  let on_notification (client : _ Client.t) n =
     let open Fiber.O in
     let state = Client.state client in
+    let _, received_notification = state in
     let req = Server_notification.to_jsonrpc n in
     Format.eprintf "client: received notification@.%s@.%!" req.method_;
-    let+ () = Fiber.Ivar.fill state.received_notification () in
+    let+ () = Fiber.Ivar.fill received_notification () in
     Format.eprintf "client: filled received_notification@.%!";
     state
 
-  let handler =
-    let on_request = { Client.Handler.on_request } in
-    Client.Handler.make ~on_request ~on_notification ()
-
-  let run scheduler in_ out =
-    let initialize =
-      let capabilities = Types.ClientCapabilities.create () in
-      Types.InitializeParams.create ~capabilities ()
+  let run scheduler io =
+    let received_notification = Fiber.Ivar.create () in
+    let client, running =
+      let on_request = { Client.Handler.on_request } in
+      Test.Client.run ~on_request ~on_notification
+        (scheduler, received_notification)
+        io
     in
-    let client =
-      let io = Io.make in_ out in
-      let stream_io = Lsp_fiber.Fiber_io.make scheduler io in
-      Client.make handler stream_io
-        { received_notification = Fiber.Ivar.create (); scheduler }
-    in
-    let running = Client.start client initialize in
     let open Fiber.O in
     let init () : unit Fiber.t =
       Format.eprintf "client: waiting for initialization@.%!";
@@ -85,10 +88,9 @@ module Client = struct
         Format.eprintf
           "client: Successfully executed command with result:@.%s@."
           (Json.to_string json);
-        let state = Client.state client in
         Format.eprintf
           "client: waiting to receive notification before shutdown @.%!";
-        let* () = Fiber.Ivar.read state.received_notification in
+        let* () = Fiber.Ivar.read received_notification in
         Format.eprintf "client: sending request to shutdown@.%!";
         Client.notification client Exit
     in
@@ -175,7 +177,7 @@ module Server = struct
 
   let handler = Server.Handler.make ~on_request ~on_notification ()
 
-  let run scheduler in_ out =
+  let run scheduler (in_, out) =
     let detached = Fiber_detached.create () in
     let server =
       let io = Io.make in_ out in
@@ -188,7 +190,7 @@ module Server = struct
 end
 
 let%expect_test "ent to end run of lsp tests" =
-  test Client.run Server.run;
+  test End_to_end_client.run Server.run;
   [%expect.unreachable]
   [@@expect.uncaught_exn
     {|
