@@ -9,6 +9,7 @@ let pipe () =
   (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
 
 let test make_client make_server =
+  Printexc.record_backtrace false;
   (Lsp.Import.Log.level := fun _ -> true);
   let client_in, server_out = pipe () in
   let server_in, client_out = pipe () in
@@ -191,16 +192,7 @@ let%expect_test "ent to end run of lsp tests" =
   [%expect.unreachable]
   [@@expect.uncaught_exn
     {|
-  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-     This is strongly discouraged as backtraces are fragile.
-     Please change this test to not include a backtrace. *)
-
   ("Fiber_unix__Scheduler.Abort(1)")
-  Raised at Fiber_unix__Scheduler.run in file "fiber-unix/src/scheduler.ml", line 388, characters 15-30
-  Called from Lsp_fiber_tests__Lsp_fiber_test.test in file "lsp-fiber/test/lsp_fiber_test.ml", line 27, characters 2-66
-  Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 190, characters 2-28
-  Called from Expect_test_collector.Make.Instance.exec in file "collector/expect_test_collector.ml", line 244, characters 12-19
-
   Trailing output
   ---------------
   client: waiting for initialization
