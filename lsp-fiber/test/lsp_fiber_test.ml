@@ -1,14 +1,70 @@
+open Fiber.O
 open Lsp
 open! Import
 open Fiber_unix
 open Lsp.Types
 open Lsp_fiber
 
-let scheduler = Scheduler.create ()
+module Test = struct
+  module Client = struct
+    let run ?(capabilities = ClientCapabilities.create ()) ?on_request
+        ?on_notification (scheduler, state) (in_, out) =
+      let initialize = InitializeParams.create ~capabilities () in
+      let client =
+        let io = Io.make in_ out in
+        let stream_io = Lsp_fiber.Fiber_io.make scheduler io in
+        let handler = Client.Handler.make ?on_request ?on_notification () in
+        Client.make handler stream_io (scheduler, state)
+      in
+      (client, Client.start client initialize)
+  end
 
-module Client = struct
-  type state = { received_notification : unit Fiber.Ivar.t }
+  module Server = struct
+    let run ?on_request ?on_notification (scheduler, state) (in_, out) =
+      let server =
+        let io = Io.make in_ out in
+        let stream_io = Fiber_io.make scheduler io in
+        let handler = Server.Handler.make ?on_request ?on_notification () in
+        Server.make handler stream_io (scheduler, state)
+      in
+      (server, Server.start server)
+  end
+end
 
+let pipe () =
+  let in_, out = Unix.pipe () in
+  (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
+
+let test make_client make_server =
+  Printexc.record_backtrace false;
+  (Lsp.Import.Log.level := fun _ -> true);
+  let client_in, server_out = pipe () in
+  let server_in, client_out = pipe () in
+  let scheduler = Scheduler.create () in
+  let server () = make_server scheduler (server_in, server_out) in
+  let client () = make_client scheduler (client_in, client_out) in
+  let run =
+    let delay = 3.0 in
+    let timer = Scheduler.create_timer scheduler ~delay in
+    Fiber.fork_and_join_unit
+      (fun () ->
+        let+ res =
+          Scheduler.schedule timer (fun () ->
+              Fiber.return (Scheduler.abort scheduler))
+        in
+        match res with
+        | Error `Cancelled -> ()
+        | Ok () ->
+          Printf.eprintf "Test failed to terminate inside %0.2f seconds" delay)
+      (fun () ->
+        let* () = Fiber.fork_and_join_unit server client in
+        print_endline "Successful termination of test";
+        Scheduler.cancel_timer timer)
+  in
+  Scheduler.run scheduler run;
+  print_endline "[TEST] finished"
+
+module End_to_end_client = struct
   let on_request (type a) s (_ : a Server_request.t) =
     let state = Client.state s in
     Fiber.return
@@ -18,35 +74,28 @@ module Client = struct
                 ~code:InternalError ()))
       , state )
 
-  let on_notification (client : state Client.t) n =
+  let on_notification (client : _ Client.t) n =
     let open Fiber.O in
     let state = Client.state client in
+    let _, received_notification = state in
     let req = Server_notification.to_jsonrpc n in
     Format.eprintf "client: received notification@.%s@.%!" req.method_;
-    let+ () = Fiber.Ivar.fill state.received_notification () in
+    let+ () = Fiber.Ivar.fill received_notification () in
     Format.eprintf "client: filled received_notification@.%!";
     state
 
-  let handler =
-    let on_request = { Client.Handler.on_request } in
-    Client.Handler.make ~on_request ~on_notification ()
-
-  let run in_ out =
-    let initialize =
-      let capabilities = Types.ClientCapabilities.create () in
-      Types.InitializeParams.create ~capabilities ()
+  let run scheduler io =
+    let received_notification = Fiber.Ivar.create () in
+    let client, running =
+      let on_request = { Client.Handler.on_request } in
+      Test.Client.run ~on_request ~on_notification
+        (scheduler, received_notification)
+        io
     in
-    let client =
-      let io = Io.make in_ out in
-      let stream_io = Lsp_fiber.Fiber_io.make scheduler io in
-      Client.make handler stream_io
-        { received_notification = Fiber.Ivar.create () }
-    in
-    let running = Client.start client initialize in
     let open Fiber.O in
     let init () : unit Fiber.t =
       Format.eprintf "client: waiting for initialization@.%!";
-      let* (_ : Types.InitializeResult.t) = Client.initialized client in
+      let* (_ : InitializeResult.t) = Client.initialized client in
       Format.eprintf "client: server initialized. sending request@.%!";
       let req =
         Client_request.ExecuteCommand
@@ -60,32 +109,27 @@ module Client = struct
         Format.eprintf
           "client: Successfully executed command with result:@.%s@."
           (Json.to_string json);
-        let state = Client.state client in
         Format.eprintf
           "client: waiting to receive notification before shutdown @.%!";
-        let* () = Fiber.Ivar.read state.received_notification in
+        let* () = Fiber.Ivar.read received_notification in
         Format.eprintf "client: sending request to shutdown@.%!";
         Client.notification client Exit
     in
     Fiber.fork_and_join_unit init (fun () -> running)
 end
 
-module Server = struct
+module End_to_end_server = struct
   module Server = Rpc.Server
 
   type status =
     | Started
     | Initialized
 
-  type state =
-    { status : status
-    ; detached : Fiber_detached.t
-    }
-
   let on_request =
     let on_request (type a) self (req : a Client_request.t) :
-        (a Rpc.Reply.t * state) Fiber.t =
+        (a Rpc.Reply.t * _) Fiber.t =
       let state = Server.state self in
+      let scheduler, (_status, detached) = state in
       match req with
       | Client_request.Initialize _ ->
         let capabilities = ServerCapabilities.create () in
@@ -93,14 +137,14 @@ module Server = struct
         Format.eprintf "server: initializing server@.";
         Format.eprintf "server: returning initialization result@.%!";
         Fiber.return
-          (Rpc.Reply.now (Ok result), { state with status = Initialized })
+          (Rpc.Reply.now (Ok result), (scheduler, (Initialized, detached)))
       | Client_request.ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
         let open Fiber.O in
         let* (_ : (unit, [ `Stopped ]) result) =
           let timer = Scheduler.create_timer scheduler ~delay:0.5 in
-          Fiber_detached.task state.detached ~f:(fun () ->
+          Fiber_detached.task detached ~f:(fun () ->
               Format.eprintf
                 "server: sending message notification to client@.%!";
               let msg =
@@ -129,7 +173,7 @@ module Server = struct
               in
               loop 2 (Fiber.return (Ok ())))
         in
-        let+ () = Fiber_detached.stop state.detached in
+        let+ () = Fiber_detached.stop detached in
         (Rpc.Reply.now (Ok result), state)
       | _ ->
         Fiber.return
@@ -148,51 +192,24 @@ module Server = struct
 
   let handler = Server.Handler.make ~on_request ~on_notification ()
 
-  let run in_ out =
+  let run scheduler io =
     let detached = Fiber_detached.create () in
-    let server =
-      let io = Io.make in_ out in
-      let stream_io = Fiber_io.make scheduler io in
-      Server.make handler stream_io { status = Started; detached }
+    let _server, running =
+      Test.Server.run ~on_request ~on_notification
+        (scheduler, (Started, detached))
+        io
     in
     Fiber.fork_and_join_unit
-      (fun () -> Server.start server)
+      (fun () -> running)
       (fun () -> Fiber_detached.run detached)
 end
 
-let pipe () =
-  let in_, out = Unix.pipe () in
-  (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
-
 let%expect_test "ent to end run of lsp tests" =
-  (Lsp.Import.Log.level := fun _ -> true);
-  let client_in, server_out = pipe () in
-  let server_in, client_out = pipe () in
-  let server () = Server.run server_in server_out in
-  let client () = Client.run client_in client_out in
-  let (_ : Thread.t) =
-    Thread.create
-      (fun () ->
-        let delay = 3.0 in
-        Thread.delay delay;
-        Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
-        Scheduler.abort scheduler)
-      ()
-  in
-  Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
-  print_endline "[TEST] finished";
+  test End_to_end_client.run End_to_end_server.run;
   [%expect.unreachable]
   [@@expect.uncaught_exn
     {|
-  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-     This is strongly discouraged as backtraces are fragile.
-     Please change this test to not include a backtrace. *)
-
   ("Fiber_unix__Scheduler.Abort(1)")
-  Raised at Fiber_unix__Scheduler.run in file "fiber-unix/src/scheduler.ml", line 388, characters 15-30
-  Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 182, characters 2-66
-  Called from Expect_test_collector.Make.Instance.exec in file "collector/expect_test_collector.ml", line 244, characters 12-19
-
   Trailing output
   ---------------
   client: waiting for initialization
@@ -213,4 +230,4 @@ let%expect_test "ent to end run of lsp tests" =
   window/showMessage
   client: filled received_notification
   client: sending request to shutdown
-  Test failed to terminate before 3.00 seconds |}]
+  Test failed to terminate inside 3.00 seconds |}]
