@@ -50,6 +50,7 @@ module Location = Location
 module Command = Command
 module CodeLens = CodeLens
 module DocumentHighlight = DocumentHighlight
+module DocumentHighlightParams = DocumentHighlightParams
 module DocumentHighlightKind = DocumentHighlightKind
 module DocumentSymbol = DocumentSymbol
 module DocumentUri = DocumentUri
@@ -77,6 +78,7 @@ module RenameOptions = Lsp.Types.RenameOptions
 module Uri = Lsp.Uri
 module Fiber_detached = Fiber_unix.Fiber_detached
 module Io = Stdune.Io
+module Reply = Lsp_fiber.Rpc.Reply
 
 let sprintf = Stdune.sprintf
 

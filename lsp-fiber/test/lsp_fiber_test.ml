@@ -9,12 +9,14 @@ let scheduler = Scheduler.create ()
 module Client = struct
   type state = { received_notification : unit Fiber.Ivar.t }
 
-  let on_request (type a) _ (_ : a Server_request.t) :
-      (_, Jsonrpc.Response.Error.t) result Fiber.t =
+  let on_request (type a) s (_ : a Server_request.t) =
+    let state = Client.state s in
     Fiber.return
-      (Error
-         (Jsonrpc.Response.Error.make ~message:"not implemented"
-            ~code:InternalError ()))
+      ( Rpc.Reply.now
+          (Error
+             (Jsonrpc.Response.Error.make ~message:"not implemented"
+                ~code:InternalError ()))
+      , state )
 
   let on_notification (client : state Client.t) n =
     let open Fiber.O in
@@ -82,7 +84,7 @@ module Server = struct
 
   let on_request =
     let on_request (type a) self (req : a Client_request.t) :
-        (a * state, Jsonrpc.Response.Error.t) result Fiber.t =
+        (a Rpc.Reply.t * state) Fiber.t =
       let state = Server.state self in
       match req with
       | Client_request.Initialize _ ->
@@ -90,7 +92,8 @@ module Server = struct
         let result = InitializeResult.create ~capabilities () in
         Format.eprintf "server: initializing server@.";
         Format.eprintf "server: returning initialization result@.%!";
-        Fiber.return (Ok (result, { state with status = Initialized }))
+        Fiber.return
+          (Rpc.Reply.now (Ok result), { state with status = Initialized })
       | Client_request.ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
@@ -127,12 +130,14 @@ module Server = struct
               loop 2 (Fiber.return (Ok ())))
         in
         let+ () = Fiber_detached.stop state.detached in
-        Ok (result, state)
+        (Rpc.Reply.now (Ok result), state)
       | _ ->
         Fiber.return
-          (Error
-             (Jsonrpc.Response.Error.make ~code:InternalError
-                ~message:"not supported" ()))
+          ( Rpc.Reply.now
+              (Error
+                 (Jsonrpc.Response.Error.make ~code:InternalError
+                    ~message:"not supported" ()))
+          , state )
     in
     { Server.Handler.on_request }
 
@@ -185,7 +190,7 @@ let%expect_test "ent to end run of lsp tests" =
 
   ("Fiber_unix__Scheduler.Abort(1)")
   Raised at Fiber_unix__Scheduler.run in file "fiber-unix/src/scheduler.ml", line 388, characters 15-30
-  Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 177, characters 2-66
+  Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 182, characters 2-66
   Called from Expect_test_collector.Make.Instance.exec in file "collector/expect_test_collector.ml", line 244, characters 12-19
 
   Trailing output

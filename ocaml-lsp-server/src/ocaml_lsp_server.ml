@@ -7,10 +7,9 @@ let client_capabilities (state : State.t) =
 
 let make_error = Jsonrpc.Response.Error.make
 
-let not_supported () =
-  Fiber.return
-  @@ Error
-       (make_error ~code:InternalError ~message:"Request not supported yet!" ())
+let not_supported =
+  Error
+    (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
@@ -171,11 +170,10 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   Logger.register_consumer log_consumer;
   let state = Server.state rpc in
   let state = { state with init = Initialized ip.capabilities } in
-  Fiber.return @@ Ok (initialize_info, state)
+  (initialize_info, state)
 
-let code_action server (params : CodeActionParams.t) =
+let code_action (state : State.t) (params : CodeActionParams.t) =
   let open Fiber.Result.O in
-  let state : State.t = Server.state server in
   let store = state.store in
   let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
   let* doc = Fiber.return (Document_store.get store uri) in
@@ -202,8 +200,8 @@ let code_action server (params : CodeActionParams.t) =
     Result.List.all code_action_results |> Result.map ~f:List.filter_opt
   in
   match code_action_results with
-  | [] -> (None, state)
-  | l -> (Some l, state)
+  | [] -> None
+  | l -> Some l
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
@@ -241,8 +239,7 @@ module Formatter = struct
           { Range.start = start_pos; end_ = end_pos }
       in
       let change = { TextEdit.newText = result; range } in
-      let state = Server.state rpc in
-      Fiber.return (Ok (Some [ change ], state))
+      Fiber.return (Ok (Some [ change ]))
 end
 
 let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
@@ -341,9 +338,10 @@ let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
   let pos = Position.logical position in
   let client_capabilities = client_capabilities state in
   let open Fiber.O in
+  (* TODO we shouldn't acquiring the merlin thread twice per request *)
   let* query_type = query_type doc pos in
   match query_type with
-  | None -> Fiber.return @@ Ok (None, state)
+  | None -> Fiber.return @@ Ok None
   | Some (loc, typ) ->
     let syntax = Document.syntax doc in
     let+ doc = query_doc doc pos in
@@ -356,7 +354,7 @@ let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
     in
     let range = Range.of_loc loc in
     let resp = Hover.create ~contents ~range () in
-    Ok (Some resp, state)
+    Ok (Some resp)
 
 let signature_help (state : State.t)
     { SignatureHelpParams.textDocument = { uri }; position; context = _ } =
@@ -373,6 +371,7 @@ let signature_help (state : State.t)
     Compl.prefix_of_position (Document.source doc) pos ~short_path:true
   in
   let open Fiber.O in
+  (* TODO use merlin resources efficiently and do everything in 1 thread *)
   let* application_signature =
     Document.with_pipeline_exn doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
@@ -383,7 +382,7 @@ let signature_help (state : State.t)
   match application_signature with
   | None ->
     let help = SignatureHelp.create ~signatures:[] () in
-    Fiber.return (Ok (help, state))
+    Fiber.return (Ok help)
   | Some a ->
     let fun_name = Option.value ~default:"_" a.function_name in
     let prefix = sprintf "%s : " fun_name in
@@ -414,7 +413,7 @@ let signature_help (state : State.t)
       SignatureHelp.create ~signatures:[ info ] ~activeSignature:0
         ?activeParameter:a.active_param ()
     in
-    Ok (help, state)
+    Ok help
 
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri } } =
@@ -423,7 +422,7 @@ let text_document_lens (state : State.t)
   let open Fiber.Result.O in
   let* doc = Fiber.return @@ Document_store.get store uri in
   match Document.kind doc with
-  | Intf -> Fiber.return @@ Ok ([], state)
+  | Intf -> Fiber.return @@ Ok []
   | Impl ->
     let open Fiber.O in
     let command = Query_protocol.Outline in
@@ -447,7 +446,7 @@ let text_document_lens (state : State.t)
       in
       List.concat_map ~f:symbol_info_of_outline_item outline
     in
-    Ok (symbol_infos, state)
+    Ok symbol_infos
 
 let folding_range (state : State.t)
     { FoldingRangeParams.textDocument = { uri } } =
@@ -478,7 +477,7 @@ let folding_range (state : State.t)
     loop [] outline
     |> List.sort ~compare:(fun x y -> Ordering.of_int (compare x y))
   in
-  Ok (Some folds, state)
+  Ok (Some folds)
 
 let rename (state : State.t)
     { RenameParams.textDocument = { uri }; position; newName } =
@@ -517,7 +516,7 @@ let rename (state : State.t)
     else
       WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
   in
-  Ok (workspace_edits, state)
+  Ok workspace_edits
 
 let selection_range (state : State.t)
     { SelectionRangeParams.textDocument = { uri }; positions } =
@@ -548,18 +547,15 @@ let selection_range (state : State.t)
   let uri = Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get state.store uri) in
-  let+ results =
-    let open Fiber.O in
-    let+ ranges =
-      Fiber.sequential_map positions ~f:(fun x ->
-          let command = Query_protocol.Shape (Position.logical x) in
-          let open Fiber.O in
-          let+ shapes = Document.dispatch_exn doc command in
-          selection_range_of_shapes x shapes)
-    in
-    Ok (List.filter_opt ranges)
+  let open Fiber.O in
+  let+ ranges =
+    Fiber.sequential_map positions ~f:(fun x ->
+        let command = Query_protocol.Shape (Position.logical x) in
+        let open Fiber.O in
+        let+ shapes = Document.dispatch_exn doc command in
+        selection_range_of_shapes x shapes)
   in
-  (results, state)
+  Ok (List.filter_opt ranges)
 
 let references (state : State.t)
     { ReferenceParams.textDocument = { uri }; position; context = _ } =
@@ -578,7 +574,7 @@ let references (state : State.t)
         let uri = Uri.to_string uri in
         { Location.uri; range })
   in
-  Ok (Some lsp_locs, state)
+  Ok (Some lsp_locs)
 
 let definition_query (state : State.t) uri position merlin_request =
   let open Fiber.Result.O in
@@ -589,140 +585,176 @@ let definition_query (state : State.t) uri position merlin_request =
   let open Fiber.O in
   let+ result = Document.dispatch_exn doc command in
   let result = location_of_merlin_loc uri result in
-  Ok (result, state)
+  Ok result
+
+let highlight (state : State.t)
+    { DocumentHighlightParams.textDocument = { uri }; position } =
+  let open Fiber.Result.O in
+  let uri = Uri.t_of_yojson (`String uri) in
+  let store = state.store in
+  let* doc = Fiber.return (Document_store.get store uri) in
+  let command =
+    Query_protocol.Occurrences (`Ident_at (Position.logical position))
+  in
+  let open Fiber.O in
+  let+ locs = Document.dispatch_exn doc command in
+  let lsp_locs =
+    List.map locs ~f:(fun loc ->
+        let range = Range.of_loc loc in
+        (* using the default kind as we are lacking info to make a difference
+           between assignment and usage. *)
+        DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
+  in
+  Ok (Some lsp_locs)
+
+let document_symbol (state : State.t) uri =
+  let uri = Uri.t_of_yojson (`String uri) in
+  let store = state.store in
+  let open Fiber.Result.O in
+  let* doc = Fiber.return (Document_store.get store uri) in
+  let client_capabilities = client_capabilities state in
+  let open Fiber.O in
+  let+ symbols = Document_symbol.run client_capabilities doc uri in
+  Ok (Some symbols)
 
 (** handles requests for OCaml (syntax) documents *)
 let ocaml_on_request :
     type resp.
        State.t Server.t
     -> resp Client_request.t
-    -> (resp * State.t, Jsonrpc.Response.Error.t) result Fiber.t =
+    -> (resp Reply.t * State.t) Fiber.t =
  fun rpc req ->
   let state = Server.state rpc in
   let store = state.store in
-  match req with
-  | Client_request.Initialize ip -> on_initialize rpc ip
-  | Client_request.Shutdown -> Fiber.return @@ Ok ((), state)
-  | Client_request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
-    ->
+  let now res = Fiber.return (Reply.now (Ok res), state) in
+  let later f req =
     Fiber.return
-      (let uri = Uri.t_of_yojson (`String uri) in
-       match Document_store.get_opt store uri with
-       | None -> Ok (None, state)
-       | Some doc -> Ok (Some (Msource.text (Document.source doc)), state))
-  | Client_request.DebugEcho params -> Fiber.return @@ Ok (params, state)
-  | Client_request.TextDocumentColor _ -> Fiber.return @@ Ok ([], state)
-  | Client_request.TextDocumentColorPresentation _ ->
-    Fiber.return @@ Ok ([], state)
-  | Client_request.TextDocumentHover req -> hover state req
-  | Client_request.TextDocumentReferences req -> references state req
-  | Client_request.TextDocumentCodeLensResolve codeLens ->
-    Fiber.return @@ Ok (codeLens, state)
-  | Client_request.TextDocumentCodeLens req -> text_document_lens state req
-  | Client_request.TextDocumentHighlight { textDocument = { uri }; position } ->
-    let open Fiber.Result.O in
+      ( Reply.later (fun k ->
+            let open Fiber.O in
+            let* resp = f state req in
+            k resp)
+      , state )
+  in
+  let not_supported = Fiber.return (Reply.now not_supported, state) in
+  let error e = Fiber.return (Reply.now (Error e), state) in
+  match req with
+  | Client_request.Initialize ip ->
+    let res, state = on_initialize rpc ip in
+    Fiber.return (Reply.now (Ok res), state)
+  | Client_request.Shutdown -> now ()
+  | Client_request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
+    -> (
     let uri = Uri.t_of_yojson (`String uri) in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
-    in
-    let open Fiber.O in
-    let+ locs = Document.dispatch_exn doc command in
-    let lsp_locs =
-      List.map locs ~f:(fun loc ->
-          let range = Range.of_loc loc in
-          (* using the default kind as we are lacking info to make a difference
-             between assignment and usage. *)
-          DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
-    in
-    Ok (Some lsp_locs, state)
-  | Client_request.WorkspaceSymbol _ -> Fiber.return @@ Ok (None, state)
+    match Document_store.get_opt store uri with
+    | None -> now None
+    | Some doc -> now (Some (Msource.text (Document.source doc))) )
+  | Client_request.DebugEcho params -> now params
+  | Client_request.TextDocumentColor _ -> now []
+  | Client_request.TextDocumentColorPresentation _ -> now []
+  | Client_request.TextDocumentHover req -> later hover req
+  | Client_request.TextDocumentReferences req -> later references req
+  | Client_request.TextDocumentCodeLensResolve codeLens -> now codeLens
+  | Client_request.TextDocumentCodeLens req -> later text_document_lens req
+  | Client_request.TextDocumentHighlight req -> later highlight req
+  | Client_request.WorkspaceSymbol _ -> now None
   | Client_request.DocumentSymbol { textDocument = { uri } } ->
-    let uri = Uri.t_of_yojson (`String uri) in
-    let open Fiber.Result.O in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let client_capabilities = client_capabilities state in
-    let open Fiber.O in
-    let+ symbols = Document_symbol.run client_capabilities doc uri in
-    Ok (Some symbols, state)
+    later document_symbol uri
   | Client_request.TextDocumentDeclaration { textDocument = { uri }; position }
     ->
-    definition_query state uri position (fun pos ->
-        Query_protocol.Locate (None, `MLI, pos))
+    later
+      (fun state () ->
+        definition_query state uri position (fun pos ->
+            Query_protocol.Locate (None, `MLI, pos)))
+      ()
   | Client_request.TextDocumentDefinition { textDocument = { uri }; position }
     ->
-    definition_query state uri position (fun pos ->
-        Query_protocol.Locate (None, `ML, pos))
+    later
+      (fun state () ->
+        definition_query state uri position (fun pos ->
+            Query_protocol.Locate (None, `ML, pos)))
+      ()
   | Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position } ->
-    definition_query state uri position (fun pos ->
-        Query_protocol.Locate_type pos)
+    later
+      (fun state () ->
+        definition_query state uri position (fun pos ->
+            Query_protocol.Locate_type pos))
+      ()
   | Client_request.TextDocumentCompletion
       { textDocument = { uri }; position; context = _ } ->
-    let uri = Uri.t_of_yojson (`String uri) in
-    let open Fiber.Result.O in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let+ resp = Compl.complete doc position in
-    (Some resp, state)
+    later
+      (fun _ () ->
+        let uri = Uri.t_of_yojson (`String uri) in
+        let open Fiber.Result.O in
+        let* doc = Fiber.return (Document_store.get store uri) in
+        let+ resp = Compl.complete doc position in
+        Some resp)
+      ()
   | Client_request.TextDocumentPrepareRename
       { textDocument = { uri }; position } ->
-    let uri = Uri.t_of_yojson (`String uri) in
-    let open Fiber.Result.O in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
-    in
-    let open Fiber.O in
-    let+ locs = Document.dispatch_exn doc command in
-    let loc =
-      List.find_opt locs ~f:(fun loc ->
-          let range = Range.of_loc loc in
-          Position.compare_inclusion position range = `Inside)
-    in
-    Ok (Option.map loc ~f:Range.of_loc, state)
-  | Client_request.TextDocumentRename req -> rename state req
-  | Client_request.TextDocumentFoldingRange req -> folding_range state req
-  | Client_request.SignatureHelp req -> signature_help state req
-  | Client_request.ExecuteCommand _ -> not_supported ()
-  | Client_request.TextDocumentLinkResolve l -> Fiber.return @@ Ok (l, state)
-  | Client_request.TextDocumentLink _ -> Fiber.return @@ Ok (None, state)
-  | Client_request.WillSaveWaitUntilTextDocument _ ->
-    Fiber.return @@ Ok (None, state)
-  | Client_request.CodeAction params -> code_action rpc params
+    later
+      (fun _ () ->
+        let uri = Uri.t_of_yojson (`String uri) in
+        let open Fiber.Result.O in
+        let* doc = Fiber.return (Document_store.get store uri) in
+        let command =
+          Query_protocol.Occurrences (`Ident_at (Position.logical position))
+        in
+        let open Fiber.O in
+        let+ locs = Document.dispatch_exn doc command in
+        let loc =
+          List.find_opt locs ~f:(fun loc ->
+              let range = Range.of_loc loc in
+              Position.compare_inclusion position range = `Inside)
+        in
+        Ok (Option.map loc ~f:Range.of_loc))
+      ()
+  | Client_request.TextDocumentRename req -> later rename req
+  | Client_request.TextDocumentFoldingRange req -> later folding_range req
+  | Client_request.SignatureHelp req -> later signature_help req
+  | Client_request.ExecuteCommand _ -> not_supported
+  | Client_request.TextDocumentLinkResolve l -> now l
+  | Client_request.TextDocumentLink _ -> now None
+  | Client_request.WillSaveWaitUntilTextDocument _ -> now None
+  | Client_request.CodeAction params -> later code_action params
   | Client_request.CompletionItemResolve ci ->
-    let markdown =
-      markdown_support (client_capabilities state) ~field:(fun d ->
-          let open Option.O in
-          let+ completion = d.completion in
-          let* completion_item = completion.completionItem in
-          completion_item.documentationFormat)
-    in
-    let open Fiber.Result.O in
-    let resolve = Compl.Resolve.of_completion_item ci in
-    let* doc =
-      let uri = Compl.Resolve.uri resolve in
-      Fiber.return (Document_store.get state.store uri)
-    in
-    let* compl = Compl.resolve doc ci resolve query_doc ~markdown in
-    Fiber.return @@ Ok (compl, state)
+    later
+      (fun state () ->
+        let markdown =
+          markdown_support (client_capabilities state) ~field:(fun d ->
+              let open Option.O in
+              let+ completion = d.completion in
+              let* completion_item = completion.completionItem in
+              completion_item.documentationFormat)
+        in
+        let open Fiber.Result.O in
+        let resolve = Compl.Resolve.of_completion_item ci in
+        let* doc =
+          let uri = Compl.Resolve.uri resolve in
+          Fiber.return (Document_store.get state.store uri)
+        in
+        let* compl = Compl.resolve doc ci resolve query_doc ~markdown in
+        Fiber.return @@ Ok compl)
+      ()
   | Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _ } ->
-    let open Fiber.Result.O in
-    let uri = Uri.t_of_yojson (`String uri) in
-    let* doc = Fiber.return (Document_store.get store uri) in
-    Formatter.run rpc doc
-  | Client_request.TextDocumentOnTypeFormatting _ ->
-    Fiber.return @@ Ok (None, state)
-  | Client_request.SelectionRange req -> selection_range state req
+    later
+      (fun _ () ->
+        let open Fiber.Result.O in
+        let uri = Uri.t_of_yojson (`String uri) in
+        let* doc = Fiber.return (Document_store.get store uri) in
+        Formatter.run rpc doc)
+      ()
+  | Client_request.TextDocumentOnTypeFormatting _ -> now None
+  | Client_request.SelectionRange req -> later selection_range req
   | Client_request.UnknownRequest _ ->
-    Fiber.return
-    @@ Error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
+    error (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
 let on_request :
     type resp.
        State.t Server.t
     -> resp Client_request.t
-    -> (resp * State.t, Jsonrpc.Response.Error.t) result Fiber.t =
+    -> (resp Reply.t * State.t) Fiber.t =
  fun server req ->
   let state : State.t = Server.state server in
   let store = state.store in
@@ -745,14 +777,22 @@ let on_request :
     with
     | None ->
       Fiber.return
-        (Error
-           (make_error ~code:InternalError ~message:"Unknown method"
-              ~data:(`Assoc [ ("method", `String meth) ])
-              ()))
-    | Some handler -> handler ~params state )
+        ( Reply.now
+            (Error
+               (make_error ~code:InternalError ~message:"Unknown method"
+                  ~data:(`Assoc [ ("method", `String meth) ])
+                  ()))
+        , state )
+    | Some handler ->
+      Fiber.return
+        ( Reply.later (fun send ->
+              let open Fiber.O in
+              let* res = handler ~params state in
+              send res)
+        , state ) )
   | _ -> (
     match syntax with
-    | Some (Ocamllex | Menhir) -> not_supported ()
+    | Some (Ocamllex | Menhir) -> Fiber.return (Reply.now not_supported, state)
     | _ -> ocaml_on_request server req )
 
 let on_notification server (notification : Client_notification.t) :
@@ -820,28 +860,6 @@ let on_notification server (notification : Client_notification.t) :
 
 let start () =
   let store = Document_store.make () in
-  let prepare_and_run prep_exn f =
-    let f () =
-      let open Fiber.O in
-      let+ result = Fiber.collect_errors f in
-      match result with
-      | Ok (Ok s) -> Ok s
-      | Ok (Error e) -> Error e
-      | Error [ e ] -> Error (prep_exn e.exn)
-      | Error _exns ->
-        Error
-          (Jsonrpc.Response.Error.make
-             ~code:Jsonrpc.Response.Error.Code.InternalError
-             ~message:"Multiple exceptions" ())
-    in
-    (* TODO: what to do with merlin notifications? *)
-    Logger.with_notifications (ref []) @@ fun () ->
-    Merlin_utils.File_id.with_cache @@ f
-  in
-  let on_request server req =
-    prepare_and_run Jsonrpc.Response.Error.of_exn @@ fun () ->
-    on_request server req
-  in
   let scheduler = Scheduler.create () in
   let handler =
     let on_request = { Server.Handler.on_request } in
