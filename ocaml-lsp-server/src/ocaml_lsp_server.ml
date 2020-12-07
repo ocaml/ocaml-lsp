@@ -338,6 +338,7 @@ let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
   let pos = Position.logical position in
   let client_capabilities = client_capabilities state in
   let open Fiber.O in
+  (* TODO we shouldn't acquiring the merlin thread twice per request *)
   let* query_type = query_type doc pos in
   match query_type with
   | None -> Fiber.return @@ Ok None
@@ -370,6 +371,7 @@ let signature_help (state : State.t)
     Compl.prefix_of_position (Document.source doc) pos ~short_path:true
   in
   let open Fiber.O in
+  (* TODO use merlin resources efficiently and do everything in 1 thread *)
   let* application_signature =
     Document.with_pipeline_exn doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
