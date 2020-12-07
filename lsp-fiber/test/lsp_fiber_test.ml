@@ -4,6 +4,29 @@ open Fiber_unix
 open Lsp.Types
 open Lsp_fiber
 
+let pipe () =
+  let in_, out = Unix.pipe () in
+  (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
+
+let test make_client make_server =
+  (Lsp.Import.Log.level := fun _ -> true);
+  let client_in, server_out = pipe () in
+  let server_in, client_out = pipe () in
+  let scheduler = Scheduler.create () in
+  let server () = make_server scheduler server_in server_out in
+  let client () = make_client scheduler client_in client_out in
+  let (_ : Thread.t) =
+    Thread.create
+      (fun () ->
+        let delay = 3.0 in
+        Thread.delay delay;
+        Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
+        Scheduler.abort scheduler)
+      ()
+  in
+  Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
+  print_endline "[TEST] finished"
+
 module Client = struct
   type state =
     { received_notification : unit Fiber.Ivar.t
@@ -163,28 +186,8 @@ module Server = struct
       (fun () -> Fiber_detached.run detached)
 end
 
-let pipe () =
-  let in_, out = Unix.pipe () in
-  (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
-
 let%expect_test "ent to end run of lsp tests" =
-  (Lsp.Import.Log.level := fun _ -> true);
-  let client_in, server_out = pipe () in
-  let server_in, client_out = pipe () in
-  let scheduler = Scheduler.create () in
-  let server () = Server.run scheduler server_in server_out in
-  let client () = Client.run scheduler client_in client_out in
-  let (_ : Thread.t) =
-    Thread.create
-      (fun () ->
-        let delay = 3.0 in
-        Thread.delay delay;
-        Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
-        Scheduler.abort scheduler)
-      ()
-  in
-  Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
-  print_endline "[TEST] finished";
+  test Client.run Server.run;
   [%expect.unreachable]
   [@@expect.uncaught_exn
     {|
@@ -194,7 +197,8 @@ let%expect_test "ent to end run of lsp tests" =
 
   ("Fiber_unix__Scheduler.Abort(1)")
   Raised at Fiber_unix__Scheduler.run in file "fiber-unix/src/scheduler.ml", line 388, characters 15-30
-  Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 182, characters 2-66
+  Called from Lsp_fiber_tests__Lsp_fiber_test.test in file "lsp-fiber/test/lsp_fiber_test.ml", line 27, characters 2-66
+  Called from Lsp_fiber_tests__Lsp_fiber_test.(fun) in file "lsp-fiber/test/lsp_fiber_test.ml", line 190, characters 2-28
   Called from Expect_test_collector.Make.Instance.exec in file "collector/expect_test_collector.ml", line 244, characters 12-19
 
   Trailing output
