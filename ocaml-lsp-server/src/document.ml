@@ -14,8 +14,10 @@ module Kind = struct
     | ".rei" ->
       Intf
     | ext ->
-      Code_error.raise "unsupported file extension"
-        [ ("extension", String ext) ]
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make ~code:InvalidRequest
+           ~message:(Printf.sprintf "unsupported file extension %S" ext)
+           ())
 end
 
 module Syntax = struct
@@ -50,15 +52,19 @@ module Syntax = struct
     | ".mll" -> Ocamllex
     | ".mly" -> Menhir
     | ext ->
-      Code_error.raise "unsupported file extension"
-        [ ("extension", String ext) ]
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make ~code:InvalidRequest
+           ~message:(Printf.sprintf "unsupported file extension %S" ext)
+           ())
 
   let of_language_id language_id =
     match List.assoc all language_id with
     | Some id -> id
     | None ->
-      Code_error.raise "invalid language id"
-        [ ("language_id", String language_id) ]
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make ~code:InvalidRequest
+           ~message:(Printf.sprintf "invalid language ID %S" language_id)
+           ())
 
   let to_language_id x =
     List.find_map all ~f:(fun (k, v) -> Option.some_if (v = x) k)
