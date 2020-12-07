@@ -1,3 +1,4 @@
+open Fiber.O
 open Lsp
 open! Import
 open Fiber_unix
@@ -42,16 +43,25 @@ let test make_client make_server =
   let scheduler = Scheduler.create () in
   let server () = make_server scheduler (server_in, server_out) in
   let client () = make_client scheduler (client_in, client_out) in
-  let (_ : Thread.t) =
-    Thread.create
+  let run =
+    let delay = 3.0 in
+    let timer = Scheduler.create_timer scheduler ~delay in
+    Fiber.fork_and_join_unit
       (fun () ->
-        let delay = 3.0 in
-        Thread.delay delay;
-        Format.eprintf "Test failed to terminate before %.2f seconds@." delay;
-        Scheduler.abort scheduler)
-      ()
+        let+ res =
+          Scheduler.schedule timer (fun () ->
+              Fiber.return (Scheduler.abort scheduler))
+        in
+        match res with
+        | Error `Cancelled -> ()
+        | Ok () ->
+          Printf.eprintf "Test failed to terminate inside %0.2f seconds" delay)
+      (fun () ->
+        let* () = Fiber.fork_and_join_unit server client in
+        print_endline "Successful termination of test";
+        Scheduler.cancel_timer timer)
   in
-  Scheduler.run scheduler (Fiber.fork_and_join_unit client server);
+  Scheduler.run scheduler run;
   print_endline "[TEST] finished"
 
 module End_to_end_client = struct
@@ -220,4 +230,4 @@ let%expect_test "ent to end run of lsp tests" =
   window/showMessage
   client: filled received_notification
   client: sending request to shutdown
-  Test failed to terminate before 3.00 seconds |}]
+  Test failed to terminate inside 3.00 seconds |}]
