@@ -50,18 +50,15 @@ let force_open_document (state : State.t) uri =
 let infer_intf ~force_open_impl (state : State.t) doc =
   let open Fiber.Result.O in
   match Document.kind doc with
-  | Impl ->
-    Fiber.return
-      (Error (Invalid_argument "the provided document is not an interface."))
+  | Impl -> Code_error.raise "the provided document is not an interface." []
   | Intf ->
     let intf_uri = Document.uri doc in
     let impl_uri = Document.get_impl_intf_counterparts intf_uri |> List.hd in
     let* impl =
       match (Document_store.get_opt state.store impl_uri, force_open_impl) with
       | None, false ->
-        Fiber.return
-          (Error
-             (Failure "The implementation for this interface has not been open."))
+        Code_error.raise
+          "The implementation for this interface has not been open." []
       | None, true -> force_open_document state impl_uri |> Fiber.Result.lift
       | Some impl, _ -> Fiber.Result.return impl
     in
