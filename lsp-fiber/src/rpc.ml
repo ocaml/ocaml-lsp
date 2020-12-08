@@ -24,6 +24,34 @@ module Reply = struct
     | Later k -> Jsonrpc_fiber.Reply.later (fun send -> k (fun r -> send (f r)))
 end
 
+module Cancel = struct
+  type state =
+    | Pending of { mutable callbacks : (unit -> unit Fiber.t) list }
+    | Finished
+
+  type t = state ref
+
+  let var = Fiber.Var.create ()
+
+  let register f =
+    Fiber.Var.get var
+    |> Option.iter ~f:(fun t ->
+           match !t with
+           | Pending p -> p.callbacks <- f :: p.callbacks
+           | Finished -> ())
+
+  let create () = ref (Pending { callbacks = [] })
+
+  let destroy t = t := Finished
+
+  let cancel t =
+    match !t with
+    | Finished -> Fiber.return ()
+    | Pending { callbacks } ->
+      t := Finished;
+      Fiber.parallel_iter callbacks ~f:(fun f -> f ())
+end
+
 module State = struct
   type t =
     | Waiting_for_init
@@ -70,6 +98,8 @@ module type S = sig
     _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
 
   val notification : _ t -> out_notification -> unit Fiber.t
+
+  val on_cancel : (unit -> unit Fiber.t) -> unit
 end
 
 module type Request_intf = sig
@@ -119,6 +149,8 @@ struct
     ; (* Filled when the server is initialied *)
       initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
+    ; pending : (Jsonrpc.Id.t, Cancel.t) Table.t
+    ; detached : Fiber_detached.t
     }
 
   and 'state on_request =
@@ -169,7 +201,18 @@ struct
         Fiber.return
           (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
       | Ok (In_request.E r) ->
-        let+ response, state = h_on_request.on_request t r in
+        let cancel = Cancel.create () in
+        Table.set t.pending req.id cancel;
+        let+ response, state =
+          Fiber.finalize
+            (fun () ->
+              Fiber.Var.set Cancel.var cancel (fun () ->
+                  h_on_request.on_request t r))
+            ~finally:(fun () ->
+              Cancel.destroy cancel;
+              Table.remove t.pending req.id;
+              Fiber.return ())
+        in
         let reply =
           Reply.to_jsonrpc response req.id (In_request.yojson_of_result r)
         in
@@ -194,6 +237,8 @@ struct
       ; session = Fdecl.create Dyn.Encoder.opaque
       ; initialized = Fiber.Ivar.create ()
       ; req_id = 1
+      ; pending = Table.create (module Jrpc_id) 32
+      ; detached = Fiber_detached.create ()
       }
     in
     let session =
@@ -227,7 +272,25 @@ struct
     let+ () = Session.stop (Fdecl.get t.session) in
     t.state <- Closed
 
-  let start_loop t = Session.run (Fdecl.get t.session)
+  let start_loop t =
+    Fiber.fork_and_join_unit
+      (fun () ->
+        let open Fiber.O in
+        let* () = Session.run (Fdecl.get t.session) in
+        Fiber_detached.stop t.detached)
+      (fun () -> Fiber_detached.run t.detached)
+
+  let handle_cancel_req t id =
+    let open Fiber.O in
+    let+ () =
+      match Table.find t.pending id with
+      | None -> Fiber.return ()
+      | Some id ->
+        Fiber_detached.task_exn t.detached ~f:(fun () -> Cancel.cancel id)
+    in
+    (Jsonrpc_fiber.Notify.Continue, state t)
+
+  let on_cancel = Cancel.register
 end
 
 module Client = struct
@@ -236,12 +299,16 @@ module Client = struct
             (Server_request)
             (Server_notification)
 
-  let make handler io =
-    let h_on_notification rpc notif =
+  let h_on_notification handler t n =
+    match n with
+    | Server_notification.CancelRequest id -> handle_cancel_req t id
+    | _ ->
       let open Fiber.O in
-      let+ res = handler.h_on_notification rpc notif in
+      let+ res = handler.h_on_notification t n in
       (Jsonrpc_fiber.Notify.Continue, res)
-    in
+
+  let make handler io =
+    let h_on_notification = h_on_notification handler in
     make ~name:"client" handler.h_on_request h_on_notification io
 
   let start (t : _ t) (p : InitializeParams.t) =
@@ -279,6 +346,7 @@ module Server = struct
           Log.msg "received exit notification" []);
       let* () = stop t in
       Fiber.return (Jsonrpc_fiber.Notify.Stop, state t)
+    | Client_notification.CancelRequest id -> handle_cancel_req t id
     | _ ->
       if t.state = Waiting_for_init then
         let state = state t in
