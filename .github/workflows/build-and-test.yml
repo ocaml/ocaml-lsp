@@ -81,15 +81,14 @@ jobs:
           yarn --frozen-lockfile
 
       - name: Build
-        run: opam exec -- make build
+        run: opam exec -- make all
 
       - name: Check formatting
         if: matrix.ocaml-version == '4.11.1' && runner.os == 'Linux'
         run: opam exec -- make fmt
 
       - name: Run OCaml tests
-        run: opam exec -- make test
+        run: opam exec -- make test-ocaml
 
       - name: Run Node tests
-        working-directory: ocaml-lsp-server/test/e2e
-        run: opam exec -- dune exec -- yarn test
+        run: opam exec -- make test-e2e
