@@ -188,7 +188,9 @@ let time_loop t =
     Option.iter !earliest_next ~f:(fun s ->
         with_mutex t.earliest_next_mutex ~f:(fun () ->
             t.earliest_next <- Some s);
-        Barrier.signal t.earliest_next_barrier);
+        match Barrier.signal t.earliest_next_barrier with
+        | Ok () -> ()
+        | Error `Closed -> assert false);
     with_mutex t.timers_available_mutex ~f:(fun () ->
         Condition.wait t.timers_available t.timers_available_mutex);
     loop ()

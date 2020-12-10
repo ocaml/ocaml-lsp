@@ -9,6 +9,11 @@ let print_result x =
     | Error (`Closed (`Read b)) -> Printf.sprintf "closed with read: %b" b
     | Error `Timeout -> "timeout" )
 
+let print_signal x =
+  match x with
+  | Ok () -> ()
+  | Error `Closed -> print_endline "signal failed: closed"
+
 let%expect_test "create & close" =
   let b = Barrier.create () in
   Barrier.close b;
@@ -16,7 +21,7 @@ let%expect_test "create & close" =
 
 let%expect_test "write" =
   let b = Barrier.create () in
-  Barrier.signal b;
+  print_signal (Barrier.signal b);
   Barrier.close b;
   [%expect {||}]
 
@@ -30,7 +35,7 @@ let%expect_test "timeout" =
 let%expect_test "read and write" =
   let b = Barrier.create () in
   for _ = 1 to 5 do
-    Barrier.signal b
+    print_signal (Barrier.signal b)
   done;
   print_result (Barrier.await b ~timeout:0.1);
   print_result (Barrier.await b ~timeout:0.1);
@@ -42,7 +47,7 @@ let%expect_test "read and write" =
 let%expect_test "read/write subsequent" =
   let b = Barrier.create () in
   for _ = 1 to 5 do
-    Barrier.signal b;
+    print_signal (Barrier.signal b);
     print_result (Barrier.await b ~timeout:0.1)
   done;
   Barrier.close b;
@@ -62,20 +67,22 @@ let%expect_test "await after close" =
 let%expect_test "write after close" =
   let b = Barrier.create () in
   Barrier.close b;
-  Barrier.signal b;
-  [%expect.unreachable]
-  [@@expect.uncaught_exn
-    {|
-  ("Unix.Unix_error(Unix.EBADF, \"write\", \"\")") |}]
+  print_signal (Barrier.signal b);
+  [%expect {| signal failed: closed |}]
 
-let%expect_test "signal then close" =
+let%expect_test "close without signal" =
   let b = Barrier.create () in
   let (_ : Thread.t) =
     Thread.create
       (fun () ->
         Unix.sleepf 0.5;
+        print_endline "closing barrier";
         Barrier.close b)
       ()
   in
+  print_endline "awaiting barrier";
   print_result (Barrier.await b ~timeout:10.0);
-  [%expect {| closed with read: false |}]
+  [%expect {|
+    awaiting barrier
+    closing barrier
+    closed with read: false |}]
