@@ -30,9 +30,11 @@ test-ocaml: ## Run the unit tests
 	dune build @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
 
 .PHONY: promote
+promote:
 	dune promote
 
 .PHONY: check
+check:
 	dune build @check
 
 .PHONY: test-e2e
