@@ -20,28 +20,35 @@ let close t =
     Unix.close r;
     t := Closed
 
-let rec empty_fd fd buf =
-  match Unix.select [ fd ] [] [] 0.0 with
-  | [], _, _ -> Ok ()
-  | _ ->
-    let _ = Unix.read fd buf 0 1 in
-    empty_fd fd buf
-  | exception Unix.Unix_error (Unix.EBADF, _, _) -> Error (`Closed (`Read true))
+let select fd timeout =
+  match Unix.select [ fd ] [] [] timeout with
+  | [], _, _ -> `Empty
+  | [ _ ], _, _ -> `Ready_to_read
+  | _ -> assert false
+  | exception Unix.Unix_error (Unix.EBADF, _, _) -> `Closed
   | exception Unix.Unix_error (e, _, _) ->
-    failwith ("read :" ^ Unix.error_message e)
+    failwith ("select: " ^ Unix.error_message e)
+
+let rec drain_pipe fd buf read_once =
+  let read = Unix.read fd buf 0 1 in
+  let read_once = read_once || read = 1 in
+  if read = 0 then (
+    assert read_once;
+    Ok ()
+  ) else
+    match select fd 0. with
+    | `Empty -> Ok ()
+    | `Closed -> Error (`Closed (`Read read_once))
+    | `Ready_to_read -> drain_pipe fd buf read_once
 
 let await ?(timeout = -1.) t =
   match !t with
   | Closed -> Error (`Closed (`Read false))
   | Active t -> (
-    match Unix.select [ t.r ] [] [] timeout with
-    | [], _, _ -> Error `Timeout
-    | _ -> empty_fd t.r t.buf
-    | exception Unix.Unix_error (Unix.EBADF, _, _) ->
-      Error (`Closed (`Read false))
-    | exception Unix.Unix_error (e, _, _) ->
-      failwith ("read :" ^ Unix.error_message e ^ " " ^ string_of_float timeout)
-    )
+    match select t.r timeout with
+    | `Empty -> Error `Timeout
+    | `Ready_to_read -> drain_pipe t.r t.buf false
+    | `Closed -> Error (`Closed (`Read false)) )
 
 let b = Bytes.make 1 'O'
 
