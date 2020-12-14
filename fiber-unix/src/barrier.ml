@@ -1,8 +1,11 @@
+open Import
+
 type state =
   | Closed
   | Active of
       { r : Unix.file_descr
       ; w : Unix.file_descr
+      ; mutex : Mutex.t
       ; buf : Bytes.t
       }
 
@@ -10,12 +13,12 @@ type t = state ref
 
 let create () =
   let r, w = Unix.pipe () in
-  ref (Active { r; w; buf = Bytes.create 1 })
+  ref (Active { r; w; mutex = Mutex.create (); buf = Bytes.create 1 })
 
 let close t =
   match !t with
   | Closed -> ()
-  | Active { r; w; buf = _ } ->
+  | Active { mutex = _; r; w; buf = _ } ->
     Unix.close w;
     Unix.close r;
     t := Closed
@@ -44,11 +47,12 @@ let rec drain_pipe fd buf read_once =
 let await ?(timeout = -1.) t =
   match !t with
   | Closed -> Error (`Closed (`Read false))
-  | Active t -> (
-    match select t.r timeout with
-    | `Empty -> Error `Timeout
-    | `Ready_to_read -> drain_pipe t.r t.buf false
-    | `Closed -> Error (`Closed (`Read false)) )
+  | Active t ->
+    with_mutex t.mutex ~f:(fun () ->
+        match select t.r timeout with
+        | `Empty -> Error `Timeout
+        | `Ready_to_read -> drain_pipe t.r t.buf false
+        | `Closed -> Error (`Closed (`Read false)))
 
 let b = Bytes.make 1 'O'
 
