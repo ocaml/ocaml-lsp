@@ -6,6 +6,7 @@ type state =
       { r : Unix.file_descr
       ; w : Unix.file_descr
       ; await_mutex : Mutex.t
+      ; mutex : Mutex.t
       ; buf : Bytes.t
       }
 
@@ -13,15 +14,24 @@ type t = state ref
 
 let create () =
   let r, w = Unix.pipe () in
-  ref (Active { r; w; await_mutex = Mutex.create (); buf = Bytes.create 1 })
+  ref
+    (Active
+       { r
+       ; w
+       ; mutex = Mutex.create ()
+       ; await_mutex = Mutex.create ()
+       ; buf = Bytes.create 1
+       })
 
 let close t =
   match !t with
   | Closed -> ()
-  | Active { await_mutex = _; r; w; buf = _ } ->
+  | Active { mutex; await_mutex = _; r; w; buf = _ } ->
+    Mutex.lock mutex;
     (try Unix.close w with Unix.Unix_error _ -> ());
     (try Unix.close r with Unix.Unix_error _ -> ());
-    t := Closed
+    t := Closed;
+    Mutex.unlock mutex
 
 let select fd timeout =
   match Unix.select [ fd ] [] [] timeout with
