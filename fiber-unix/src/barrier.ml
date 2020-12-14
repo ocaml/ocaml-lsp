@@ -54,12 +54,10 @@ let await ?(timeout = -1.) t =
         | `Ready_to_read -> drain_pipe t.r t.buf false
         | `Closed -> Error (`Closed (`Read false)))
 
-let b = Bytes.make 1 'O'
-
 let signal t =
   match !t with
   | Closed -> Error `Closed
   | Active t -> (
-    match Unix.write t.w b 0 1 with
+    match Unix.write t.w t.buf 0 1 with
     | 1 -> Ok ()
     | _ -> assert false )
