@@ -57,7 +57,10 @@ let await ?(timeout = -1.) t =
 let signal t =
   match !t with
   | Closed -> Error `Closed
-  | Active t -> (
-    match Unix.write t.w t.buf 0 1 with
+  | Active { w; buf; _ } -> (
+    match Unix.write w buf 0 1 with
+    | exception Unix.Unix_error (Unix.EBADF, _, _) ->
+      close t;
+      Error `Closed
     | 1 -> Ok ()
     | _ -> assert false )
