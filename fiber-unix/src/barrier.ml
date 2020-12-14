@@ -19,8 +19,8 @@ let close t =
   match !t with
   | Closed -> ()
   | Active { mutex = _; r; w; buf = _ } ->
-    Unix.close w;
-    Unix.close r;
+    (try Unix.close w with Unix.Unix_error _ -> ());
+    (try Unix.close r with Unix.Unix_error _ -> ());
     t := Closed
 
 let select fd timeout =
