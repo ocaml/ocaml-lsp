@@ -82,8 +82,7 @@ let%expect_test "close without signal" =
   in
   print_endline "awaiting barrier";
   print_result (Barrier.await b ~timeout:10.0);
-  [%expect
-    {|
-    awaiting barrier
-    closing barrier
-    closed with read: false |}]
+  [%expect {|
+  awaiting barrier
+  closing barrier
+  closed with read: false |}]

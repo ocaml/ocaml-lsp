@@ -50,16 +50,14 @@ let select fd timeout =
 let rec drain_pipe fd buf read_once =
   match with_unix_error (fun () -> Unix.read fd buf 0 1) with
   | Error `Closed -> Error (`Closed (`Read read_once))
-  | Ok read -> (
-    let read_once = read_once || read = 1 in
-    if read = 0 then (
-      assert read_once;
-      Ok ()
-    ) else
-      match select fd 0. with
-      | Ok `Empty -> Ok ()
-      | Ok `Ready_to_read -> drain_pipe fd buf read_once
-      | Error `Closed -> Error (`Closed (`Read read_once)) )
+  | Ok 0 -> drain_pipe fd buf read_once
+  | Ok 1 -> (
+    let read_once = true in
+    match select fd 0. with
+    | Ok `Empty -> Ok ()
+    | Ok `Ready_to_read -> drain_pipe fd buf read_once
+    | Error `Closed -> Error (`Closed (`Read read_once)) )
+  | Ok _ -> assert false
 
 let await ?(timeout = -1.) t =
   match !t with
