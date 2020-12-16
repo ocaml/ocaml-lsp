@@ -36,7 +36,6 @@ let completion_kind kind : CompletionItemKind.t option =
     @param short_path determines whether we want full prefix or cut at ["."],
     e.g. [List.m<cursor>] returns ["m"] when [short_path] is set vs ["List.m"]
     when not.
-
     @return prefix of [position] in [source] and its length *)
 let prefix_of_position ~short_path source position =
   match Msource.text source with
