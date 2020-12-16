@@ -14,6 +14,7 @@ type t = state ref
 
 let create () =
   let r, w = Unix.pipe () in
+  if Sys.unix then Unix.set_nonblock r;
   ref
     (Active
        { r
