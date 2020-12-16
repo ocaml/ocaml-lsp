@@ -33,26 +33,33 @@ let close t =
     t := Closed;
     Mutex.unlock mutex
 
+let with_unix_error f =
+  match f () with
+  | s -> Ok s
+  | exception Unix.Unix_error (Unix.EBADF, _, _) -> Error `Closed
+  | exception Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
+
 let select fd timeout =
-  match Unix.select [ fd ] [] [] timeout with
-  | [], _, _ -> `Empty
-  | [ _ ], _, _ -> `Ready_to_read
+  let open Result.O in
+  let* res = with_unix_error (fun () -> Unix.select [ fd ] [] [] timeout) in
+  match res with
+  | [], _, _ -> Ok `Empty
+  | [ _ ], _, _ -> Ok `Ready_to_read
   | _ -> assert false
-  | exception Unix.Unix_error (Unix.EBADF, _, _) -> `Closed
-  | exception Unix.Unix_error (e, _, _) ->
-    failwith ("select: " ^ Unix.error_message e)
 
 let rec drain_pipe fd buf read_once =
-  let read = Unix.read fd buf 0 1 in
-  let read_once = read_once || read = 1 in
-  if read = 0 then (
-    assert read_once;
-    Ok ()
-  ) else
-    match select fd 0. with
-    | `Empty -> Ok ()
-    | `Closed -> Error (`Closed (`Read read_once))
-    | `Ready_to_read -> drain_pipe fd buf read_once
+  match with_unix_error (fun () -> Unix.read fd buf 0 1) with
+  | Error `Closed -> Error (`Closed (`Read read_once))
+  | Ok read -> (
+    let read_once = read_once || read = 1 in
+    if read = 0 then (
+      assert read_once;
+      Ok ()
+    ) else
+      match select fd 0. with
+      | Ok `Empty -> Ok ()
+      | Ok `Ready_to_read -> drain_pipe fd buf read_once
+      | Error `Closed -> Error (`Closed (`Read read_once)) )
 
 let await ?(timeout = -1.) t =
   match !t with
@@ -60,9 +67,9 @@ let await ?(timeout = -1.) t =
   | Active t ->
     with_mutex t.await_mutex ~f:(fun () ->
         match select t.r timeout with
-        | `Empty -> Error `Timeout
-        | `Ready_to_read -> drain_pipe t.r t.buf false
-        | `Closed -> Error (`Closed (`Read false)))
+        | Ok `Empty -> Error `Timeout
+        | Ok `Ready_to_read -> drain_pipe t.r t.buf false
+        | Error `Closed -> Error (`Closed (`Read false)))
 
 let signal t =
   match !t with
