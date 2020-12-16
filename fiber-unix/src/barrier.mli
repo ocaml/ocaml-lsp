@@ -2,7 +2,7 @@ type t
 
 val create : unit -> t
 
-val signal : t -> unit
+val signal : t -> (unit, [ `Closed ]) result
 
 val await :
      ?timeout:float
