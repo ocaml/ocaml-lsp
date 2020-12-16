@@ -14,7 +14,6 @@ type t = state ref
 
 let create () =
   let r, w = Unix.pipe () in
-  if Sys.unix then Unix.set_nonblock r;
   ref
     (Active
        { r
@@ -39,9 +38,6 @@ let select fd timeout =
   | [], _, _ -> Ok `Empty
   | [ _ ], _, _ -> Ok `Ready_to_read
   | exception Unix.Unix_error (Unix.EBADF, _, _) -> Error `Closed
-  | (exception Unix.Unix_error (Unix.EWOULDBLOCK, _, _))
-  | (exception Unix.Unix_error (Unix.EAGAIN, _, _)) ->
-    Ok `Empty
   | _ -> assert false
 
 let rec drain_pipe fd buf read_once =
