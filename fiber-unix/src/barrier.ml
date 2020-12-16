@@ -34,31 +34,28 @@ let close t =
     t := Closed;
     Mutex.unlock mutex
 
-let with_unix_error f =
-  match f () with
-  | s -> Ok s
-  | exception Unix.Unix_error (Unix.EBADF, _, _) -> Error `Closed
-  | exception Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
-
 let select fd timeout =
-  let open Result.O in
-  let* res = with_unix_error (fun () -> Unix.select [ fd ] [] [] timeout) in
-  match res with
+  match Unix.select [ fd ] [] [] timeout with
   | [], _, _ -> Ok `Empty
   | [ _ ], _, _ -> Ok `Ready_to_read
+  | exception Unix.Unix_error (Unix.EBADF, _, _) -> Error `Closed
+  | (exception Unix.Unix_error (Unix.EWOULDBLOCK, _, _))
+  | (exception Unix.Unix_error (Unix.EAGAIN, _, _)) ->
+    Ok `Empty
   | _ -> assert false
 
 let rec drain_pipe fd buf read_once =
-  match with_unix_error (fun () -> Unix.read fd buf 0 1) with
-  | Error `Closed -> Error (`Closed (`Read read_once))
-  | Ok 0 -> drain_pipe fd buf read_once
-  | Ok 1 -> (
+  match Unix.read fd buf 0 1 with
+  | exception Unix.Unix_error (Unix.EBADF, _, _) ->
+    Error (`Closed (`Read read_once))
+  | 0 -> drain_pipe fd buf read_once
+  | 1 -> (
     let read_once = true in
     match select fd 0. with
     | Ok `Empty -> Ok ()
     | Ok `Ready_to_read -> drain_pipe fd buf read_once
     | Error `Closed -> Error (`Closed (`Read read_once)) )
-  | Ok _ -> assert false
+  | _ -> assert false
 
 let await ?(timeout = -1.) t =
   match !t with
