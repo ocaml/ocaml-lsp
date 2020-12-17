@@ -17,7 +17,7 @@ module Kind = struct
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
            ~message:(Printf.sprintf "unsupported file extension")
-           ~data:(`Assoc ["extension", `String ext])
+           ~data:(`Assoc [ ("extension", `String ext) ])
            ())
 end
 
@@ -56,7 +56,7 @@ module Syntax = struct
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
            ~message:(Printf.sprintf "unsupported file extension")
-           ~data:(`Assoc ["extension", `String ext])
+           ~data:(`Assoc [ ("extension", `String ext) ])
            ())
 
   let of_language_id language_id =
@@ -66,7 +66,7 @@ module Syntax = struct
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
            ~message:(Printf.sprintf "invalid language ID")
-           ~data:(`Assoc ["language_id", `String language_id])
+           ~data:(`Assoc [ ("language_id", `String language_id) ])
            ())
 
   let to_language_id x =
