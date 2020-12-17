@@ -29,6 +29,7 @@ depends: [
   "cppo"
   "uutf"
   "csexp"
+  "odoc" {with-doc}
   "menhir" {with-test}
   "cinaps" {with-test}
   "ppx_expect" {with-test & >= "v0.14.0"}

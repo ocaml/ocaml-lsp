@@ -26,6 +26,7 @@ depends: [
   "result" {>= "1.5"}
   "ocamlformat" {with-test}
   "ocamlfind" {>= "1.5.2"}
+  "odoc" {with-doc}
   "ocaml" {>= "4.06" & < "4.12"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
