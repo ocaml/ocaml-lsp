@@ -36,6 +36,7 @@ possible and does not make any assumptions about IO.
   cppo
   uutf
   csexp
+  (odoc :with-doc)
   (menhir :with-test)
   (cinaps :with-test)
   (ppx_expect (and :with-test (>= v0.14.0)))
@@ -55,6 +56,7 @@ possible and does not make any assumptions about IO.
   (result (>= 1.5))
   (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
+  (odoc :with-doc)
   (ocaml (and (>= 4.06) (< 4.12)))))
 
 (package
@@ -67,4 +69,5 @@ possible and does not make any assumptions about IO.
   ocaml-syntax-shims
   ppx_yojson_conv_lib
   (result (>= 1.5))
+  (odoc :with-doc)
   (ocaml (>= 4.06))))
