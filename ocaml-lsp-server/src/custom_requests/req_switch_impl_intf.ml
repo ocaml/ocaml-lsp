@@ -17,10 +17,17 @@ let switch (param : DocumentUri.t) : (Json.t, Jsonrpc.Response.Error.t) result =
 let on_request ~(params : Json.t option) _ =
   Fiber.return
     ( match params with
-    | Some (`String (file_uri : DocumentUri.t)) -> switch file_uri
-    | Some _
+    | Some (`String (file_uri : DocumentUri.t))
+    | Some (`List [ `String (file_uri : DocumentUri.t) ]) ->
+      switch file_uri
+    | Some json ->
+      Error
+        (Jsonrpc.Response.Error.make ~code:InvalidRequest
+           ~message:"The input parameter for ocamllsp/switchImplIntf is invalid"
+           ~data:(`Assoc [ ("param", json) ])
+           ())
     | None ->
       Error
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
-           ~message:"ocamllsp/switchImplIntf must receive param : DocumentUri.t"
+           ~message:"ocamllsp/switchImplIntf must receive param: DocumentUri.t"
            ()) )
