@@ -1,8 +1,13 @@
-# Unreleased
+# 1.4.0 (12/17/2020)
 
 ## Features
 
+- Support cancellation notifications when possible. (#323)
+
 - Implement signature help request for functions (#324)
+
+- Server LSP requests & notifications concurrently. Requests that require merlin
+  are still serialized. (#330)
 
 # 1.3.0 (11/23/2020)
 
