@@ -12,7 +12,7 @@ type _ t =
   | ShowMessageRequest :
       ShowMessageRequestParams.t
       -> MessageActionItem.t option t
-  | UnknownRequest : string * Json.t option -> Json.t t
+  | UnknownRequest : string * Jsonrpc.Message.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
 

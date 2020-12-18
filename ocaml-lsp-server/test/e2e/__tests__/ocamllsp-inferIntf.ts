@@ -26,11 +26,10 @@ describe("ocamllsp/inferIntf", () => {
     languageServer = null;
   });
 
-  async function inferIntf(name) {
-    return await languageServer.sendRequest(
-      "ocamllsp/inferIntf",
-      "file:///" + name,
-    );
+  async function inferIntf(name: string) {
+    return await languageServer.sendRequest("ocamllsp/inferIntf", [
+      `file:///${name}`,
+    ]);
   }
 
   it("can infer module interfaces", async () => {

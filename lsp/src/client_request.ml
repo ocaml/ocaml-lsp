@@ -65,7 +65,7 @@ type _ t =
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | UnknownRequest :
       { meth : string
-      ; params : Json.t option
+      ; params : Jsonrpc.Message.Structured.t option
       }
       -> Json.t t
 
@@ -227,10 +227,11 @@ let method_ (type a) (t : a t) =
   | _ -> assert false
 
 let params (type a) (t : a t) =
-  match t with
-  | Initialize params -> InitializeParams.yojson_of_t params
-  | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
-  | _ -> assert false
+  Jsonrpc.Message.Structured.of_json
+    ( match t with
+    | Initialize params -> InitializeParams.yojson_of_t params
+    | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
+    | _ -> assert false )
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in

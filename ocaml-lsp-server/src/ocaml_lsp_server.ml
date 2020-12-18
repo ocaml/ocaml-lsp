@@ -855,7 +855,7 @@ let on_notification server (notification : Client_notification.t) :
         log ~title:Logger.Title.Warning "unknown notification: %s %a"
           req.method_
           (fun () -> Json.to_pretty_string)
-          json );
+          (json :> Json.t) );
       Fiber.return state )
 
 let start () =

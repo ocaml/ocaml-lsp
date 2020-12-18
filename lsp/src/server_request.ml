@@ -12,7 +12,7 @@ type _ t =
   | ShowMessageRequest :
       ShowMessageRequestParams.t
       -> MessageActionItem.t option t
-  | UnknownRequest : string * Json.t option -> Json.t t
+  | UnknownRequest : string * Jsonrpc.Message.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
 
@@ -27,14 +27,16 @@ let method_ (type a) (t : a t) =
   | UnknownRequest _ -> assert false
 
 let params (type a) (t : a t) =
-  match t with
-  | WorkspaceApplyEdit params -> ApplyWorkspaceEditParams.yojson_of_t params
-  | WorkspaceFolders -> `Null
-  | WorkspaceConfiguration params -> ConfigurationParams.yojson_of_t params
-  | ClientRegisterCapability params -> RegistrationParams.yojson_of_t params
-  | ClientUnregisterCapability params -> UnregistrationParams.yojson_of_t params
-  | ShowMessageRequest params -> ShowMessageRequestParams.yojson_of_t params
-  | UnknownRequest (_, _) -> assert false
+  Jsonrpc.Message.Structured.of_json
+    ( match t with
+    | WorkspaceApplyEdit params -> ApplyWorkspaceEditParams.yojson_of_t params
+    | WorkspaceFolders -> `Null
+    | WorkspaceConfiguration params -> ConfigurationParams.yojson_of_t params
+    | ClientRegisterCapability params -> RegistrationParams.yojson_of_t params
+    | ClientUnregisterCapability params ->
+      UnregistrationParams.yojson_of_t params
+    | ShowMessageRequest params -> ShowMessageRequestParams.yojson_of_t params
+    | UnknownRequest (_, _) -> assert false )
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in

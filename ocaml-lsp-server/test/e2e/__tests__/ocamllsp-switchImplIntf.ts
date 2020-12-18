@@ -18,7 +18,7 @@ describe("ocamllsp/switchImplIntf", () => {
   async function ocamllspSwitchImplIntf(
     documentUri: DocumentUri,
   ): Promise<Array<DocumentUri>> {
-    return languageServer.sendRequest("ocamllsp/switchImplIntf", documentUri);
+    return languageServer.sendRequest("ocamllsp/switchImplIntf", [documentUri]);
   }
 
   let testWorkspacePath = path.join(__dirname, "..", "test_files/");
