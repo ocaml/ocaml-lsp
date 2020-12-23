@@ -8,9 +8,11 @@ module Kind = struct
   let of_fname p =
     match Filename.extension p with
     | ".ml"
+    | ".eliom"
     | ".re" ->
       Impl
     | ".mli"
+    | ".eliomi"
     | ".rei" ->
       Intf
     | ext ->
@@ -44,6 +46,8 @@ module Syntax = struct
 
   let of_fname s =
     match Filename.extension s with
+    | ".eliomi"
+    | ".eliom"
     | ".mli"
     | ".ml" ->
       Ocaml
@@ -187,13 +191,14 @@ let get_impl_intf_counterparts uri =
            ~message:"provided file URI (param) doesn't follow URI spec" ())
   in
   let fname = Filename.basename fpath in
-  let ml, mli, re, rei, mll, mly = ("ml", "mli", "re", "rei", "mll", "mly") in
+  let ml, mli, eliom, eliomi, re, rei, mll, mly =
+    ("ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly") in
   let exts_to_switch_to =
     match Syntax.of_fname fname with
     | Ocaml -> (
       match Kind.of_fname fname with
-      | Intf -> [ ml; mly; mll; re ]
-      | Impl -> [ mli; mly; mll; rei ] )
+      | Intf -> [ ml; mly; mll; eliom; re ]
+      | Impl -> [ mli; mly; mll; eliomi; rei ] )
     | Reason -> (
       match Kind.of_fname fname with
       | Intf -> [ re; ml ]

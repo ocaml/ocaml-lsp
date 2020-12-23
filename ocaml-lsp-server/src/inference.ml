@@ -21,8 +21,10 @@ let infer_intf_for_impl doc =
 
 let language_id_of_fname s =
   match Filename.extension s with
-  | ".mli" -> "ocaml.interface"
-  | ".ml" -> "ocaml"
+  | ".mli"
+  | ".eliomi" -> "ocaml.interface"
+  | ".ml"
+  | ".eliom" -> "ocaml"
   | ".rei"
   | ".re" ->
     "reason"
