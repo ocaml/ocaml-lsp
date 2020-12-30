@@ -118,7 +118,8 @@ let send_diagnostics ?diagnostics rpc doc =
           let notif = create_publishDiagnostics uri [ no_reason_merlin ] in
           Server.notification rpc notif)
     | Reason
-    | Ocaml ->
+    | Ocaml
+    | Eliom ->
       async (fun () ->
           let open Fiber.O in
           let* diagnostics =

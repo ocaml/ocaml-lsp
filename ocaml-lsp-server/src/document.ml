@@ -29,12 +29,14 @@ module Syntax = struct
     | Reason
     | Ocamllex
     | Menhir
+    | Eliom
 
   let human_name = function
     | Ocaml -> "OCaml"
     | Reason -> "Reason"
     | Ocamllex -> "OCamllex"
     | Menhir -> "Menhir/ocamlyacc"
+    | Eliom -> "Eliom"
 
   let all =
     [ ("ocaml.interface", Ocaml)
@@ -42,15 +44,18 @@ module Syntax = struct
     ; ("reason", Reason)
     ; ("ocaml.ocamllex", Ocamllex)
     ; ("ocaml.menhir", Menhir)
+    ; ("ocaml.eliom", Eliom)
+    ; ("ocaml.eliom.interface", Eliom)
     ]
 
   let of_fname s =
     match Filename.extension s with
-    | ".eliomi"
-    | ".eliom"
     | ".mli"
     | ".ml" ->
       Ocaml
+    | ".eliomi"
+    | ".eliom" ->
+      Eliom
     | ".rei"
     | ".re" ->
       Reason
@@ -192,13 +197,18 @@ let get_impl_intf_counterparts uri =
   in
   let fname = Filename.basename fpath in
   let ml, mli, eliom, eliomi, re, rei, mll, mly =
-    ("ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly") in
+    ("ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly")
+  in
   let exts_to_switch_to =
     match Syntax.of_fname fname with
     | Ocaml -> (
       match Kind.of_fname fname with
       | Intf -> [ ml; mly; mll; eliom; re ]
       | Impl -> [ mli; mly; mll; eliomi; rei ] )
+    | Eliom -> (
+      match Kind.of_fname fname with
+      | Intf -> [ eliom ]
+      | Impl -> [ eliomi ] )
     | Reason -> (
       match Kind.of_fname fname with
       | Intf -> [ re; ml ]

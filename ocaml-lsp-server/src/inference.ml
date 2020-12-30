@@ -21,15 +21,15 @@ let infer_intf_for_impl doc =
 
 let language_id_of_fname s =
   match Filename.extension s with
-  | ".mli"
-  | ".eliomi" -> "ocaml.interface"
-  | ".ml"
-  | ".eliom" -> "ocaml"
+  | ".mli" -> "ocaml.interface"
+  | ".ml" -> "ocaml"
   | ".rei"
   | ".re" ->
     "reason"
   | ".mll" -> "ocaml.ocamllex"
   | ".mly" -> "ocaml.menhir"
+  | ".eliomi" -> "ocaml.eliom.interface"
+  | ".eliom" -> "ocaml.eliom"
   | ext ->
     Code_error.raise "unsupported file extension" [ ("extension", String ext) ]
 
