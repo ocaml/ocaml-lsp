@@ -40,7 +40,7 @@ the same packages that `ocaml-lsp-server` is using.
 ```sh
 $ git clone --recurse-submodules http://github.com/ocaml/ocaml-lsp.git
 $ cd ocaml-lsp
-$ make build
+$ make all
 ```
 
 ## Usage
