@@ -24,6 +24,7 @@ let
 
     # test deps
     "ppx_expect"
+    "ocamlformat-rpc"
   ]);
 
 in (builtins.listToAttrs (builtins.map (fname:

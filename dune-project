@@ -54,6 +54,8 @@ possible and does not make any assumptions about IO.
   (csexp (>= 1.4))
   (result (>= 1.5))
   (ocamlformat :with-test)
+  (ocamlformat-rpc :with-test)
+  (ocamlformat-rpc-lib (= 0.18.0))
   (odoc :with-doc)
   (ocaml (and (>= 4.12) (< 4.13)))))
 
