@@ -21,5 +21,6 @@ pkgs.mkShell {
 
     # test
     ppx_expect
+    ocamlformat-rpc
   ]);
 }

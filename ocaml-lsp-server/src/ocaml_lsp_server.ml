@@ -346,8 +346,8 @@ let query_type doc pos =
     None
   | (location, `String value, _) :: _ -> Some (location, value)
 
-let hover (state : State.t) { HoverParams.textDocument = { uri }; position; _ }
-    =
+let hover server (state : State.t)
+    { HoverParams.textDocument = { uri }; position; _ } =
   let store = state.store in
   let doc = Document_store.get store uri in
   let pos = Position.logical position in
@@ -359,7 +359,30 @@ let hover (state : State.t) { HoverParams.textDocument = { uri }; position; _ }
   | None -> Fiber.return None
   | Some (loc, typ) ->
     let syntax = Document.syntax doc in
-    let+ doc = query_doc doc pos in
+    let+ doc = query_doc doc pos
+    and+ typ =
+      (* We ask Ocamlformat to format this type *)
+      let* result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
+      match result with
+      | Ok v ->
+        (* OCamlformat adds an unnecessay newline at the end of the type *)
+        Fiber.return (String.trim v)
+      | Error `No_process -> Fiber.return typ
+      | Error (`Msg message) ->
+        (* We log OCamlformat errors and display the unformated type *)
+        let+ () =
+          task_if_running state ~f:(fun () ->
+              let message =
+                sprintf
+                  "An error occured while querying ocamlformat:\n\
+                   Input type: %s\n\n\
+                   Answer: %s" typ message
+              in
+              let log = LogMessageParams.create ~type_:Warning ~message in
+              Server.notification server (Server_notification.LogMessage log))
+        in
+        typ
+    in
     let contents =
       let markdown =
         markdown_support client_capabilities ~field:(fun td ->
@@ -705,7 +728,8 @@ let ocaml_on_request :
   | Client_request.DebugEcho params -> now params
   | Client_request.TextDocumentColor _ -> now []
   | Client_request.TextDocumentColorPresentation _ -> now []
-  | Client_request.TextDocumentHover req -> later hover req
+  | Client_request.TextDocumentHover req ->
+    later (fun state () -> hover rpc state req) ()
   | Client_request.TextDocumentReferences req -> later references req
   | Client_request.TextDocumentCodeLensResolve codeLens -> now codeLens
   | Client_request.TextDocumentCodeLens req -> later text_document_lens req
@@ -952,6 +976,7 @@ let start () =
                 Server.Batch.notification batch (PublishDiagnostics d));
             Server.Batch.submit batch))
   in
+  let ocamlformat_rpc = Ocamlformat_rpc.create () in
   let* server =
     let+ merlin = Scheduler.create_thread () in
     let ocamlformat = Fmt.create () in
@@ -962,6 +987,7 @@ let start () =
          ; init = Uninitialized
          ; merlin
          ; ocamlformat
+         ; ocamlformat_rpc
          ; configuration
          ; detached
          ; trace = `Off
@@ -1012,13 +1038,83 @@ let start () =
               Server.notification server (Server_notification.LogMessage log))
       in
       let* () =
-        Fiber.fork_and_join_unit
-          (fun () -> Server.start server)
-          (fun () ->
-            if enable_dune_rpc then
-              run_dune ()
-            else
-              Fiber.return ())
+        Fiber.parallel_iter
+          ~f:(fun f -> f ())
+          [ (fun () ->
+              if enable_dune_rpc then
+                run_dune ()
+              else
+                Fiber.return ())
+          ; (fun () ->
+              let* () = Server.start server in
+              (* When server exits we also stop ocamlformat rpc *)
+              Ocamlformat_rpc.stop ocamlformat_rpc)
+          ; (fun () ->
+              let logger ~type_ ~message () =
+                task_if_running (Server.state server) ~f:(fun () ->
+                    let log = LogMessageParams.create ~type_ ~message in
+                    Server.notification server
+                      (Server_notification.LogMessage log))
+              in
+              let* state = Ocamlformat_rpc.run ~logger ocamlformat_rpc in
+              let message =
+                match state with
+                | Error `Binary_not_found ->
+                  Some
+                    "OCamlformat_rpc is missing, displayed types might not be \
+                     properly formatted. "
+                | Ok () -> None
+              in
+              match message with
+              | None -> Fiber.return ()
+              | Some message ->
+                let* (_ : InitializeParams.t) = Server.initialized server in
+                let state = Server.state server in
+                task_if_running state ~f:(fun () ->
+                    let log = ShowMessageParams.create ~type_:Info ~message in
+                    Server.notification server
+                      (Server_notification.ShowMessage log)))
+          ; (fun () ->
+              let* (init_params : InitializeParams.t) =
+                Server.initialized server
+              in
+              let progress =
+                Progress.create init_params.capabilities
+                  ~report_progress:(fun progress ->
+                    Server.notification server
+                      (Server_notification.WorkDoneProgress progress))
+                  ~create_task:(fun task ->
+                    Server.request server
+                      (Server_request.WorkDoneProgressCreate task))
+              in
+              let dune =
+                let dune' = Dune.create diagnostics progress in
+                dune := Some dune';
+                dune'
+              in
+              let* state = Dune.run dune in
+              let message =
+                match state with
+                | Error Binary_not_found ->
+                  Some "Dune must be installed for project functionality"
+                | Error Out_of_date ->
+                  Some
+                    "Dune is out of date. Install dune >= 3.0 for project \
+                     functionality"
+                | Ok () -> None
+              in
+              match message with
+              | None -> Fiber.return ()
+              (* We disable the warnings because dune 3.0 isn't available yet *)
+              | Some _ when true -> Fiber.return ()
+              | Some message ->
+                let* (_ : InitializeParams.t) = Server.initialized server in
+                let state = Server.state server in
+                task_if_running state ~f:(fun () ->
+                    let log = LogMessageParams.create ~type_:Warning ~message in
+                    Server.notification server
+                      (Server_notification.LogMessage log)))
+          ]
       in
       let* () =
         Fiber.parallel_iter

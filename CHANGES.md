@@ -13,6 +13,9 @@
   the cursor will jump to the first typed hole and select it, so that user can start
   editing right away.
 
+- Use ocamlformat to properly format type snippets. This feature requires the
+  `ocamlformat-rpc` opam package to be installed. (#386)
+
 # 1.7.0 (07/28/2021)
 
 ## Features
