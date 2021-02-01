@@ -19,7 +19,7 @@ dev: ## Setup a development environment
 
 .PHONY: install
 install: ## Install the packages on the system
-	dune build @installl && dune install
+	dune build @install && dune install
 
 .PHONY: lock
 lock: ## Generate the lock files
