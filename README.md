@@ -106,10 +106,9 @@ opam switch create . ocaml-base-compiler.4.11.1 --with-test
 eval ($opam env)
 
 # build
-make build
+make all
 
-# install ocamllsp
-make lsp-server
+# the ocamllsp executable can be found at _build/default/ocaml-lsp-server/src/main.exe
 ```
 
 ## Tests
