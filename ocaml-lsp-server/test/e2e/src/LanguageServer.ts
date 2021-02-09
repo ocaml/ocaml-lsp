@@ -1,10 +1,9 @@
 import * as cp from "child_process";
 import * as os from "os";
 import * as path from "path";
-import * as rpc from "vscode-jsonrpc";
+import * as rpc from "vscode-jsonrpc/node";
 
 import * as Protocol from "vscode-languageserver-protocol";
-import * as Rpc from "vscode-jsonrpc";
 import { URI } from "vscode-uri";
 
 const ocamlVersion = cp.execSync("ocamlc --version").toString();
@@ -27,7 +26,7 @@ let serverPath = path.join(
   serverBin,
 );
 
-export type LanguageServer = Rpc.MessageConnection;
+export type LanguageServer = rpc.MessageConnection;
 
 let prefix = process.platform === "win32" ? "file:///" : "file://";
 
@@ -82,11 +81,11 @@ export const exit = async (languageServer: rpc.MessageConnection) => {
   let ret = new Promise((resolve, _reject) => {
     languageServer.onClose(() => {
       languageServer.dispose();
-      resolve();
+      resolve(null);
     });
   });
 
-  let notification = new rpc.NotificationType<string, void>("exit");
+  let notification = new rpc.NotificationType<string>("exit");
   languageServer.sendNotification(notification);
 
   return ret;

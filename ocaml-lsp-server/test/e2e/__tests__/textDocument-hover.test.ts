@@ -42,6 +42,7 @@ describe("textDocument/hover", () => {
           dynamicRegistration: true,
           contentFormat: ["markdown", "plaintext"],
         },
+        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -74,6 +75,7 @@ describe("textDocument/hover", () => {
           dynamicRegistration: true,
           contentFormat: ["markdown", "plaintext"],
         },
+        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -115,6 +117,7 @@ describe("textDocument/hover", () => {
           dynamicRegistration: true,
           contentFormat: ["markdown", "plaintext"],
         },
+        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -200,6 +203,7 @@ describe("textDocument/hover", () => {
           dynamicRegistration: true,
           contentFormat: ["markdown", "plaintext"],
         },
+        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
