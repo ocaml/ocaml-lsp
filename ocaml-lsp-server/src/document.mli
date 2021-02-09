@@ -8,6 +8,7 @@ module Syntax : sig
     | Reason
     | Ocamllex
     | Menhir
+    | Eliom
 
   val human_name : t -> string
 
