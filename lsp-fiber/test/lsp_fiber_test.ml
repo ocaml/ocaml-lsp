@@ -209,7 +209,7 @@ let%expect_test "ent to end run of lsp tests" =
   [%expect.unreachable]
   [@@expect.uncaught_exn
     {|
-  ("Fiber_unix__Scheduler.Abort(1)")
+  ("Fiber_unix__Scheduler.Abort(_)")
   Trailing output
   ---------------
   client: waiting for initialization
@@ -229,5 +229,4 @@ let%expect_test "ent to end run of lsp tests" =
   client: received notification
   window/showMessage
   client: filled received_notification
-  client: sending request to shutdown
-  Test failed to terminate inside 3.00 seconds |}]
+  client: sending request to shutdown |}]

@@ -46,7 +46,7 @@ let%expect_test "server accepts notifications" =
   let notif =
     { Jsonrpc.Message.id = None
     ; method_ = "method"
-    ; params = Some (`String "bar")
+    ; params = Some (`List [ `String "bar" ])
     }
   in
   let run () =
@@ -91,7 +91,10 @@ let%expect_test "stopped fiber" =
 let%expect_test "serving requests" =
   let id = `Int 1 in
   let request =
-    { Jsonrpc.Message.id = Some id; method_ = "bla"; params = Some (`Int 100) }
+    { Jsonrpc.Message.id = Some id
+    ; method_ = "bla"
+    ; params = Some (`List [ `Int 100 ])
+    }
   in
   let response_data = `String "response" in
   let run () =
@@ -233,10 +236,10 @@ let%expect_test "test from jsonrpc_test.ml" =
       Jsonrpc.Message.create ~id:None ?params ~method_ ()
     in
     [ Message (request (`Int 10) "foo")
-    ; Message (request ~params:`Null (`String "testing") "bar")
-    ; Message (notification ~params:`Null "notif1")
-    ; Message (notification ~params:`Null "notif2")
-    ; Message (notification ~params:`Null "raise")
+    ; Message (request (`String "testing") "bar")
+    ; Message (notification "notif1")
+    ; Message (notification "notif2")
+    ; Message (notification "raise")
     ]
   in
   let reqs_in, reqs_out = pipe () in
@@ -262,11 +265,11 @@ let%expect_test "test from jsonrpc_test.ml" =
   [%expect
     {|
     >> received notification
-    { "params": null, "method": "notif1", "jsonrpc": "2.0" }
+    { "method": "notif1", "jsonrpc": "2.0" }
     >> received notification
-    { "params": null, "method": "notif2", "jsonrpc": "2.0" }
+    { "method": "notif2", "jsonrpc": "2.0" }
     Uncaught error when handling notification:
-    { "params": null, "method": "raise", "jsonrpc": "2.0" }
+    { "method": "raise", "jsonrpc": "2.0" }
     Error:
     [ { exn = "(Failure \"special failure\")"; backtrace = "" } ]
     "<opaque>"

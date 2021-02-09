@@ -38,10 +38,24 @@ module Constant = struct
 end
 
 module Message = struct
+  module Structured = struct
+    type t =
+      [ `Assoc of (string * Json.t) list
+      | `List of Json.t list
+      ]
+
+    let of_json = function
+      | `Assoc xs -> `Assoc xs
+      | `List xs -> `List xs
+      | json -> Json.error "invalid structured value" json
+
+    let to_json t = (t :> Json.t)
+  end
+
   type 'id t =
     { id : 'id
     ; method_ : string
-    ; params : Json.t option
+    ; params : Structured.t option
     }
 
   let create ?params ~id ~method_ () = { id; method_; params }
@@ -55,7 +69,7 @@ module Message = struct
     let json =
       match params with
       | None -> json
-      | Some params -> (Constant.params, params) :: json
+      | Some params -> (Constant.params, (params :> Json.t)) :: json
     in
     let json =
       match add_id id with
@@ -70,7 +84,12 @@ module Message = struct
       let method_ =
         Json.field_exn fields Constant.method_ Json.Conv.string_of_yojson
       in
-      let params = Json.field fields Constant.params (fun x -> x) in
+      let params =
+        Json.field fields Constant.params (function
+          | `Assoc xs -> `Assoc xs
+          | `List xs -> `List xs
+          | json -> Json.error "invalid params" json)
+      in
       let id = Json.field fields Constant.id Id.t_of_yojson in
       let jsonrpc =
         Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
@@ -82,7 +101,7 @@ module Message = struct
     | _ -> Json.error "invalid request" json
 
   let read_json_params f v =
-    match f v with
+    match f (Structured.to_json v) with
     | r -> Ok r
     | exception Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _)
       ->

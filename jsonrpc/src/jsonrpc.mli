@@ -15,15 +15,26 @@ module Id : sig
 end
 
 module Message : sig
+  module Structured : sig
+    type t =
+      [ `Assoc of (string * Json.t) list
+      | `List of Json.t list
+      ]
+
+    val of_json : Json.t -> t
+
+    val to_json : t -> Json.t
+  end
+
   type 'id t =
     { id : 'id
     ; method_ : string
-    ; params : Json.t option
+    ; params : Structured.t option
     }
 
   val params : _ t -> (Json.t -> 'a) -> ('a, string) Result.t
 
-  val create : ?params:Json.t -> id:'id -> method_:string -> unit -> 'id t
+  val create : ?params:Structured.t -> id:'id -> method_:string -> unit -> 'id t
 
   type request = Id.t t
 

@@ -4,10 +4,10 @@ let capability = ("handleInferIntf", `Bool true)
 
 let meth = "ocamllsp/inferIntf"
 
-let on_request ~(params : Json.t option) (state : State.t) =
+let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
+    =
   match params with
-  | Some (`String (_ : DocumentUri.t) as json_uri)
-  | Some (`List [ `String (_ : DocumentUri.t) ] as json_uri) -> (
+  | Some (`List [ (`String (_ : DocumentUri.t) as json_uri) ]) -> (
     let open Fiber.O in
     match Document_store.get_opt state.store (Uri.t_of_yojson json_uri) with
     | None ->
@@ -28,7 +28,7 @@ let on_request ~(params : Json.t option) (state : State.t) =
     @@ Error
          (Jsonrpc.Response.Error.make ~code:InvalidRequest
             ~message:"The input parameter for ocamllsp/inferIntf is invalid"
-            ~data:(`Assoc [ ("param", json) ])
+            ~data:(`Assoc [ ("param", (json :> Json.t)) ])
             ())
   | None ->
     Fiber.return

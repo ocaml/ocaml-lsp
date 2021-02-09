@@ -76,5 +76,5 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
 
 let to_jsonrpc t =
   let method_ = method_ t in
-  let params = Some (yojson_of_t t) in
+  let params = Some (Jsonrpc.Message.Structured.of_json (yojson_of_t t)) in
   { Jsonrpc.Message.id = (); params; method_ }
