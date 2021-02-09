@@ -1,10 +1,9 @@
 import * as cp from "child_process";
 import * as os from "os";
 import * as path from "path";
-import * as rpc from "vscode-jsonrpc";
+import * as rpc from "vscode-jsonrpc/node";
 
 import * as Protocol from "vscode-languageserver-protocol";
-import * as Rpc from "vscode-jsonrpc";
 import { URI } from "vscode-uri";
 
 const ocamlVersion = cp.execSync("ocamlc --version").toString();
@@ -27,7 +26,7 @@ let serverPath = path.join(
   serverBin,
 );
 
-export type LanguageServer = Rpc.MessageConnection;
+export type LanguageServer = rpc.MessageConnection;
 
 let prefix = process.platform === "win32" ? "file:///" : "file://";
 
@@ -82,11 +81,11 @@ export const exit = async (languageServer: rpc.MessageConnection) => {
   let ret = new Promise((resolve, _reject) => {
     languageServer.onClose(() => {
       languageServer.dispose();
-      resolve();
+      resolve(null);
     });
   });
 
-  let notification = new rpc.NotificationType<string, void>("exit");
+  let notification = new rpc.NotificationType<string>("exit");
   languageServer.sendNotification(notification);
 
   return ret;
@@ -96,24 +95,26 @@ export const testUri = (file: string) => {
   return URI.file(file).toString();
 };
 
-export const toEqualUri = (received: string, expected: string) => {
-  const options = {
-    comment: "Uri equality",
-    isNot: this.isNot,
-    promise: this.promise,
+export const toEqualUri = (obj) => {
+  return (received: string, expected: string) => {
+    const options = {
+      comment: "Uri equality",
+      isNot: obj.isNot,
+      promise: obj.promise,
+    };
+    const pass =
+      URI.parse(received).toString() === URI.parse(received).toString();
+    const message = pass
+      ? () =>
+          obj.utils.matcherHint("toEqualUri", undefined, undefined, options) +
+          "\n\n" +
+          `Expected: not ${obj.utils.printExpected(expected)}\n` +
+          `Received: ${obj.utils.printReceived(received)}`
+      : () =>
+          obj.utils.matcherHint("toBe", undefined, undefined, options) +
+          "\n\n" +
+          `Expected: ${obj.utils.printExpected(expected)}\n` +
+          `Received: ${obj.utils.printReceived(received)}`;
+    return { pass, message };
   };
-  const pass =
-    URI.parse(received).toString() === URI.parse(received).toString();
-  const message = pass
-    ? () =>
-        this.utils.matcherHint("toEqualUri", undefined, undefined, options) +
-        "\n\n" +
-        `Expected: not ${this.utils.printExpected(expected)}\n` +
-        `Received: ${this.utils.printReceived(received)}`
-    : () =>
-        this.utils.matcherHint("toBe", undefined, undefined, options) +
-        "\n\n" +
-        `Expected: ${this.utils.printExpected(expected)}\n` +
-        `Received: ${this.utils.printReceived(received)}`;
-  return { pass, message };
 };

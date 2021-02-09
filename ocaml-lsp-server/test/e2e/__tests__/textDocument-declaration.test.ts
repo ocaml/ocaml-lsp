@@ -4,9 +4,11 @@ import * as child_process from "child_process";
 import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
 import { testUri, toEqualUri } from "./../src/LanguageServer";
+
 expect.extend({
-  toEqualUri,
+  toEqualUri: toEqualUri(this),
 });
+
 declare global {
   namespace jest {
     interface Matchers<R> {

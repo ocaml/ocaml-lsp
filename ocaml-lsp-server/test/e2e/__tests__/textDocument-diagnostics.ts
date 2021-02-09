@@ -1,5 +1,5 @@
 import outdent from "outdent";
-import * as rpc from "vscode-jsonrpc";
+import * as rpc from "vscode-jsonrpc/node";
 import * as LanguageServer from "../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";

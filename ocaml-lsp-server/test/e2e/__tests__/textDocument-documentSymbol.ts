@@ -109,6 +109,7 @@ describe("textDocument/documentSymbol", () => {
         documentSymbol: {
           hierarchicalDocumentSymbolSupport: true,
         },
+        moniker: {},
       },
     });
     await openDocument(outdent`

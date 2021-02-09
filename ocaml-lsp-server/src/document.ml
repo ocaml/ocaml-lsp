@@ -192,7 +192,8 @@ let get_impl_intf_counterparts uri =
   in
   let fname = Filename.basename fpath in
   let ml, mli, eliom, eliomi, re, rei, mll, mly =
-    ("ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly") in
+    ("ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly")
+  in
   let exts_to_switch_to =
     match Syntax.of_fname fname with
     | Ocaml -> (
