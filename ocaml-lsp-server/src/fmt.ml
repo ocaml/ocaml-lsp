@@ -68,7 +68,7 @@ let args = function
     @
     match kind with
     | Impl -> []
-    | Intf -> [ "--interface=true" ] )
+    | Intf -> [ "--interface=true" ])
 
 let binary_name t =
   match t with

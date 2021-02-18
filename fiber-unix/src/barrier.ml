@@ -50,7 +50,7 @@ let rec drain_pipe fd buf read_once =
     match select fd 0. with
     | Ok `Empty -> Ok ()
     | Ok `Ready_to_read -> drain_pipe fd buf read_once
-    | Error `Closed -> Error (`Closed (`Read read_once)) )
+    | Error `Closed -> Error (`Closed (`Read read_once)))
   | _ -> assert false
 
 let await ?(timeout = -1.) t =
@@ -72,4 +72,4 @@ let signal t =
       close t;
       Error `Closed
     | 1 -> Ok ()
-    | _ -> assert false )
+    | _ -> assert false)

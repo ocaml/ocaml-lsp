@@ -226,7 +226,7 @@ module Json = struct
         match ks with
         | [] -> error (sprintf "%s: key %s not found" name k) json
         | [ _ ] -> f (`Assoc xs)
-        | _ :: _ -> error (sprintf "%s: multiple keys %s" name k) json )
+        | _ :: _ -> error (sprintf "%s: multiple keys %s" name k) json)
       | _ -> error (sprintf "%s: not a record (key: %s)" name k) json
   end
 
@@ -296,13 +296,12 @@ module Log = struct
   let log ?section k =
     if !level section then (
       let message = k () in
-      ( match section with
+      (match section with
       | None -> Format.fprintf !out "%s@." message.message
-      | Some section -> Format.fprintf !out "[%s] %s@." section message.message
-      );
-      ( match message.payload with
+      | Some section -> Format.fprintf !out "[%s] %s@." section message.message);
+      (match message.payload with
       | [] -> ()
-      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields) );
+      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields));
       Format.pp_print_flush !out ()
     )
 end

@@ -28,7 +28,7 @@ let method_ (type a) (t : a t) =
 
 let params (type a) (t : a t) =
   Jsonrpc.Message.Structured.of_json
-    ( match t with
+    (match t with
     | WorkspaceApplyEdit params -> ApplyWorkspaceEditParams.yojson_of_t params
     | WorkspaceFolders -> `Null
     | WorkspaceConfiguration params -> ConfigurationParams.yojson_of_t params
@@ -36,7 +36,7 @@ let params (type a) (t : a t) =
     | ClientUnregisterCapability params ->
       UnregistrationParams.yojson_of_t params
     | ShowMessageRequest params -> ShowMessageRequestParams.yojson_of_t params
-    | UnknownRequest (_, _) -> assert false )
+    | UnknownRequest (_, _) -> assert false)
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in

@@ -143,7 +143,7 @@ let send_diagnostics ?diagnostics rpc doc =
                     create_diagnostic range message ~severity))
           in
           let notif = create_publishDiagnostics uri diagnostics in
-          Server.notification rpc notif) )
+          Server.notification rpc notif))
 
 let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   let log_consumer (section, title, text) =
@@ -250,7 +250,7 @@ let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
     | None -> false
     | Some format ->
       let set = Option.value format ~default:[ MarkupKind.Markdown ] in
-      List.mem MarkupKind.Markdown ~set )
+      List.mem MarkupKind.Markdown ~set)
 
 let location_of_merlin_loc uri = function
   | `At_origin
@@ -274,7 +274,7 @@ let location_of_merlin_loc uri = function
 
 let format_doc ~markdown ~doc =
   `MarkupContent
-    ( if markdown then
+    (if markdown then
       let value =
         match Doc_to_md.translate doc with
         | Raw d -> sprintf "(** %s *)" d
@@ -282,14 +282,14 @@ let format_doc ~markdown ~doc =
       in
       { MarkupContent.value; kind = MarkupKind.Markdown }
     else
-      { MarkupContent.value = doc; kind = MarkupKind.PlainText } )
+      { MarkupContent.value = doc; kind = MarkupKind.PlainText })
 
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
   let markdown_name = Document.Syntax.markdown_name syntax in
   `MarkupContent
-    ( if markdown then
+    (if markdown then
       let value =
         match doc with
         | None -> sprintf "```%s\n%s\n```" markdown_name typ
@@ -308,7 +308,7 @@ let format_contents ~syntax ~markdown ~typ ~doc =
         | None -> sprintf "%s" typ
         | Some d -> sprintf "%s\n%s" typ d
       in
-      { MarkupContent.value; kind = MarkupKind.PlainText } )
+      { MarkupContent.value; kind = MarkupKind.PlainText })
 
 let query_doc doc pos =
   let command = Query_protocol.Document (None, pos) in
@@ -647,7 +647,7 @@ let ocaml_on_request :
     let uri = Uri.t_of_yojson (`String uri) in
     match Document_store.get_opt store uri with
     | None -> now None
-    | Some doc -> now (Some (Msource.text (Document.source doc))) )
+    | Some doc -> now (Some (Msource.text (Document.source doc))))
   | Client_request.DebugEcho params -> now params
   | Client_request.TextDocumentColor _ -> now []
   | Client_request.TextDocumentColorPresentation _ -> now []
@@ -789,11 +789,11 @@ let on_request :
               let open Fiber.O in
               let* res = handler ~params state in
               send res)
-        , state ) )
+        , state ))
   | _ -> (
     match syntax with
     | Some (Ocamllex | Menhir) -> Fiber.return (Reply.now not_supported, state)
-    | _ -> ocaml_on_request server req )
+    | _ -> ocaml_on_request server req)
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
@@ -829,7 +829,7 @@ let on_notification server (notification : Client_notification.t) :
       let* doc = Document.update_text ?version prev_doc contentChanges in
       Document_store.put store doc;
       let+ () = send_diagnostics server doc in
-      state )
+      state)
   | CancelRequest _ ->
     log ~title:Logger.Title.Warning "ignoring cancellation";
     Fiber.return state
@@ -848,15 +848,15 @@ let on_notification server (notification : Client_notification.t) :
     match req.method_ with
     | "$/setTraceNotification"
     | _ ->
-      ( match req.params with
+      (match req.params with
       | None ->
         log ~title:Logger.Title.Warning "unknown notification: %s" req.method_
       | Some json ->
         log ~title:Logger.Title.Warning "unknown notification: %s %a"
           req.method_
           (fun () -> Json.to_pretty_string)
-          (json :> Json.t) );
-      Fiber.return state )
+          (json :> Json.t));
+      Fiber.return state)
 
 let start () =
   let store = Document_store.make () in

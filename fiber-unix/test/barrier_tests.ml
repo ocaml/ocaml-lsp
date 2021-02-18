@@ -4,10 +4,10 @@ let () = Printexc.record_backtrace false
 
 let print_result x =
   print_endline
-    ( match x with
+    (match x with
     | Ok () -> "ok"
     | Error (`Closed (`Read b)) -> Printf.sprintf "closed with read: %b" b
-    | Error `Timeout -> "timeout" )
+    | Error `Timeout -> "timeout")
 
 let print_signal x =
   match x with

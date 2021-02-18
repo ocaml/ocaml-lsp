@@ -288,11 +288,11 @@ module Type = struct
           ; Pp.verbatim "->"
           ; Pp.space
           ; pp ~kind r
-          ] )
+          ])
     | Assoc (k, v) -> (
       match kind with
       | Intf -> pp (List (Tuple [ k; v ])) ~kind
-      | Impl -> pp (App (Named "Json.Assoc.t", [ k; v ])) ~kind )
+      | Impl -> pp (App (Named "Json.Assoc.t", [ k; v ])) ~kind)
 
   let pp_decl' ~(kind : Kind.t) (a : decl) =
     match a with
@@ -300,7 +300,7 @@ module Type = struct
       let pp = pp ~kind a in
       match (a, kind) with
       | (List _ | Named _ | Prim _), Impl -> W.Type.deriving ~record:false pp
-      | _, _ -> pp )
+      | _, _ -> pp)
     | Record r -> (
       let r =
         List.filter_map r ~f:(fun { name; typ; attrs } ->
@@ -338,7 +338,7 @@ module Type = struct
       in
       match kind with
       | Intf -> r
-      | Impl -> W.Type.deriving r ~record:true )
+      | Impl -> W.Type.deriving r ~record:true)
     | Variant v ->
       List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))
       |> Type.variant
@@ -399,10 +399,10 @@ module Expr = struct
     let tag =
       let tag = String.capitalize tag in
       Pp.verbatim
-        ( if poly then
+        (if poly then
           "`" ^ tag
         else
-          tag )
+          tag)
     in
     match args with
     | [] -> tag
@@ -424,7 +424,7 @@ module Expr = struct
       | List _ -> assert false
       | Tuple _ -> assert false
       | Record _ -> assert false
-      | Constr c -> pp_constr pp_pat c )
+      | Constr c -> pp_constr pp_pat c)
 
   let rec pp_create : expr prim -> _ Pp.t = function
     | Unit -> Pp.verbatim "()"

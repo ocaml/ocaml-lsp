@@ -295,9 +295,10 @@ end
 
 module Client = struct
   open Types
-  include Make (InitializeResult) (Client_request) (Client_notification)
-            (Server_request)
-            (Server_notification)
+  include
+    Make (InitializeResult) (Client_request) (Client_notification)
+      (Server_request)
+      (Server_notification)
 
   let h_on_notification handler t n =
     match n with
@@ -334,9 +335,10 @@ end
 
 module Server = struct
   open Types
-  include Make (InitializeParams) (Server_request) (Server_notification)
-            (Client_request)
-            (Client_notification)
+  include
+    Make (InitializeParams) (Server_request) (Server_notification)
+      (Client_request)
+      (Client_notification)
 
   let h_on_notification handler t n =
     let open Fiber.O in

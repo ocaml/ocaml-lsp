@@ -65,9 +65,9 @@ let read ic =
           loop
             { acc with
               content_length =
-                ( match Int.of_string (String.trim v) with
+                (match Int.of_string (String.trim v) with
                 | Some i -> i
-                | None -> raise (Error (Invalid_header_line line)) )
+                | None -> raise (Error (Invalid_header_line line)))
             }
             mark_content_type
         else if
@@ -77,7 +77,7 @@ let read ic =
           loop { acc with content_type = String.trim v } true
         else
           loop acc mark_content_type
-      | _ -> loop acc mark_content_type )
+      | _ -> loop acc mark_content_type)
   in
   let t, mark_content_type = loop empty false in
   if t.content_length = empty.content_length then

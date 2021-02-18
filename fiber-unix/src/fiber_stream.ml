@@ -24,7 +24,7 @@ module In = struct
     | Some x -> (
       match f x with
       | None -> filter_map t ~f ()
-      | Some y -> Fiber.return (Some y) )
+      | Some y -> Fiber.return (Some y))
 
   let map t ~f = filter_map t ~f:(fun x -> Some (f x))
 

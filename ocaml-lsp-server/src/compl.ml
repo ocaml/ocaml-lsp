@@ -182,9 +182,9 @@ let format_doc ~markdown doc =
   | false -> `String doc
   | true ->
     `MarkupContent
-      ( match Doc_to_md.translate doc with
+      (match Doc_to_md.translate doc with
       | Markdown value -> { kind = MarkupKind.Markdown; MarkupContent.value }
-      | Raw value -> { kind = MarkupKind.PlainText; MarkupContent.value } )
+      | Raw value -> { kind = MarkupKind.PlainText; MarkupContent.value })
 
 let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
     ~markdown =
