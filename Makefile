@@ -21,10 +21,6 @@ dev: ## Setup a development environment
 install: ## Install the packages on the system
 	dune build @install && dune install
 
-.PHONY: lock
-lock: ## Generate the lock files
-	opam lock -y .
-
 .PHONY: test
 test-ocaml: ## Run the unit tests
 	dune build @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
