@@ -28,46 +28,55 @@ Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 ")
  (depends
-  stdlib-shims
-  (jsonrpc (= :version))
-  yojson
-  ppx_yojson_conv_lib
-  ocaml-syntax-shims
-  cppo
-  uutf
-  csexp
-  (odoc :with-doc)
-  (menhir :with-test)
+  (base :with-test)
   (cinaps :with-test)
+  (jsonrpc (= :version))
+  (menhir :with-test)
+  (ocaml (>= 4.06))
+  (odoc :with-doc)
   (ppx_expect (and :with-test (>= v0.14.0)))
-  (ocaml (>= 4.06))))
+  (ppx_inline_test :with-test)
+  (result (>= 1.5))
+  cppo
+  csexp
+  ocaml-syntax-shims
+  ppx_yojson_conv_lib
+  stdlib-shims
+  uutf
+  yojson))
 
 (package
  (name ocaml-lsp-server)
  (synopsis "LSP Server for OCaml")
  (description "An LSP server for OCaml.")
  (depends
-  yojson
-  stdlib-shims
-  ppx_yojson_conv_lib
-  dune-build-info
-  dot-merlin-reader
+  (base :with-test)
   (csexp (>= 1.2.3))
-  (result (>= 1.5))
-  (ocamlformat :with-test)
+  (ocaml (and (>= 4.06) (< 4.12)))
   (ocamlfind (>= 1.5.2))
+  (ocamlformat :with-test)
   (odoc :with-doc)
-  (ocaml (and (>= 4.06) (< 4.12)))))
+  (ppx_expect :with-test)
+  (ppx_inline_test :with-test)
+  (result (>= 1.5))
+  dot-merlin-reader
+  dune-build-info
+  ppx_yojson_conv_lib
+  stdlib-shims
+  yojson))
 
 (package
  (name jsonrpc)
  (synopsis "Jsonrpc protocol implemenation")
  (description "See https://www.jsonrpc.org/specification")
  (depends
-  yojson
-  stdlib-shims
+  (base :with-test)
+  (ocaml (>= 4.06))
+  (odoc :with-doc)
+  (ppx_expect :with-test)
+  (ppx_inline_test :with-test)
+  (result (>= 1.5))
   ocaml-syntax-shims
   ppx_yojson_conv_lib
-  (result (>= 1.5))
-  (odoc :with-doc)
-  (ocaml (>= 4.06))))
+  stdlib-shims
+  yojson))
