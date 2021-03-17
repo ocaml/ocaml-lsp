@@ -1,3 +1,12 @@
+# 1.4.1 (03/16/2020)
+
+## Fixes
+
+- Backport fixes from merlin (#382, #383)
+
+- Encode request & notification `params` in a list. This is required by the
+  spec. (#351)
+
 # 1.4.0 (12/17/2020)
 
 ## Features
