@@ -21,10 +21,7 @@ jobs:
           - windows-latest
 
         ocaml-version:
-          - 4.11.1
-          - 4.10.1
-          - 4.09.1
-          - 4.06.1
+          - 4.12.0
 
     steps:
       - name: Checkout code
