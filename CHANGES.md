@@ -1,3 +1,9 @@
+# 1.5.0 (03/18/2020)
+
+- Support 4.12 and drop support for all earlier versions
+
+- Update to the latest version of merlin
+
 # 1.4.1 (03/16/2020)
 
 ## Fixes
