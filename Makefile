@@ -41,6 +41,10 @@ check:
 test-e2e: $(TEST_E2E_DIR)/node_modules ## Run the template integration tests
 	dune build @install && cd $(TEST_E2E_DIR) && dune exec -- yarn test
 
+.PHONY: promote-e2e
+promote-e2e: $(TEST_E2E_DIR)/node_modules
+	dune build @install && cd $(TEST_E2E_DIR) && dune exec -- yarn run promote
+
 .PHONY: test
 test: test-ocaml test-e2e
 
