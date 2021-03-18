@@ -57,7 +57,7 @@ possible and does not make any assumptions about IO.
   (ocamlformat :with-test)
   (ocamlfind (>= 1.5.2))
   (odoc :with-doc)
-  (ocaml (>= 4.12))))
+  (ocaml (and (>= 4.12) (< 4.13)))))
 
 (package
  (name jsonrpc)
