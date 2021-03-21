@@ -149,9 +149,3 @@ entirely out of date:
   use merlin which means that it supports fewer versions of OCaml and offers less
   "smart" functionality - especially in the face of sources that do not yet
   compile.
-
-- [ocaml-language-server](https://github.com/ocaml-lsp/ocaml-language-server)
-  This project is extremely similar in the functionality it provides because it
-  also reuses merlin on the backend. The essential difference is that this
-  project is written in typescript, while our server is in OCaml. We feel that
-  it's best to use OCaml to maximize the contributor pool.
