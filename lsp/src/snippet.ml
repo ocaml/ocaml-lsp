@@ -70,7 +70,7 @@ let concat ?sep ts =
     | x :: rest -> (
       match sep with
       | None -> Concat (x, go rest)
-      | Some s -> Concat (x, Concat (s, go rest)) )
+      | Some s -> Concat (x, Concat (s, go rest)))
   in
   go ts
 
@@ -105,7 +105,7 @@ let pp_impl add_string (snippet : t) : unit =
         (n, m)
       | None ->
         add_string (f n);
-        (n + 1, Int.Map.set m i n) )
+        (n + 1, Int.Map.set m i n))
   in
   let rec go ctx = function
     | Text s ->
@@ -120,9 +120,9 @@ let pp_impl add_string (snippet : t) : unit =
     | Tabstop (i, `Choice values) ->
       with_ctx ctx i (fun i ->
           sprintf "${%d|%s|}" i
-            ( values
+            (values
             |> List.map ~f:(escape ~in_choice:true)
-            |> String.concat ~sep:"," ))
+            |> String.concat ~sep:","))
     | Variable (var, opt) -> (
       let var = Var.to_string var in
       match opt with
@@ -138,7 +138,7 @@ let pp_impl add_string (snippet : t) : unit =
         sprintf "${%s/%s/%s/%s}" var t.regex t.format_string
           (Option.value ~default:"" t.regex_options)
         |> add_string;
-        ctx )
+        ctx)
   in
   go (1, Int.Map.empty) snippet |> ignore
 

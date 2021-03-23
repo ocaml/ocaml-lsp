@@ -21,4 +21,4 @@ let code_action doc (state : State.t) (params : CodeActionParams.t) =
     match intf with
     | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
     | Ok intf ->
-      Ok (Some (code_action_of_intf (Document.uri doc) intf params.range)) )
+      Ok (Some (code_action_of_intf (Document.uri doc) intf params.range)))

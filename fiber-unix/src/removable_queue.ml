@@ -52,15 +52,15 @@ let pop (type a) (t : a t) : a option =
 
 let remove node =
   if Option.is_some node.queue then (
-    ( match (node.next, node.prev) with
+    (match (node.next, node.prev) with
     | None, None -> Option.value_exn node.queue := Empty
     | _, _ -> (
-      ( match node.next with
+      (match node.next with
       | None -> ()
-      | Some next -> next.prev <- node.prev );
+      | Some next -> next.prev <- node.prev);
       match node.prev with
       | None -> ()
-      | Some prev -> prev.next <- node.next ) );
+      | Some prev -> prev.next <- node.next));
     node.prev <- None;
     node.next <- None;
     node.queue <- None

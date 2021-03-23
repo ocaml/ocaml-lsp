@@ -104,9 +104,8 @@ module Json = struct
     let untagged_union (type a) name (xs : (t -> a) list) (json : t) : a =
       match
         List.find_map xs ~f:(fun conv ->
-            try Some (conv json)
-            with Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (_, _) ->
-              None)
+            try Some (conv json) with
+            | Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (_, _) -> None)
       with
       | None -> error name json
       | Some x -> x
@@ -128,7 +127,7 @@ module Json = struct
         match ks with
         | [] -> error (sprintf "%s: key %s not found" name k) json
         | [ _ ] -> f (`Assoc xs)
-        | _ :: _ -> error (sprintf "%s: multiple keys %s" name k) json )
+        | _ :: _ -> error (sprintf "%s: multiple keys %s" name k) json)
       | _ -> error (sprintf "%s: not a record (key: %s)" name k) json
   end
 
@@ -223,13 +222,12 @@ module Log = struct
   let log ?section k =
     if !level section then (
       let message = k () in
-      ( match section with
+      (match section with
       | None -> Format.fprintf !out "%s@." message.message
-      | Some section -> Format.fprintf !out "[%s] %s@." section message.message
-      );
-      ( match message.payload with
+      | Some section -> Format.fprintf !out "[%s] %s@." section message.message);
+      (match message.payload with
       | [] -> ()
-      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields) );
+      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields));
       Format.pp_print_flush !out ()
     )
 end

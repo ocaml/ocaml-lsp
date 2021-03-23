@@ -107,10 +107,10 @@ let fmt_handle = Format.formatter_of_buffer fmt_buffer
 
 let fmt () f =
   Buffer.reset fmt_buffer;
-  ( match f fmt_handle with
+  (match f fmt_handle with
   | () -> ()
   | exception exn ->
-    Format.fprintf fmt_handle "@\nException: %s" (Printexc.to_string exn) );
+    Format.fprintf fmt_handle "@\nException: %s" (Printexc.to_string exn));
   Format.pp_print_flush fmt_handle ();
   let msg = Buffer.contents fmt_buffer in
   Buffer.reset fmt_buffer;
@@ -175,7 +175,7 @@ let with_log_file file ?(sections = []) f =
           Printf.eprintf "cannot open %S for logging: %s" filename
             (Printexc.to_string exn);
           (None, ignore)
-        | oc -> (Some oc, fun () -> close_out_noerr oc) )
+        | oc -> (Some oc, fun () -> close_out_noerr oc))
     in
     let destination0 = !destination in
     destination := destination';
@@ -190,7 +190,7 @@ let with_log_file file ?(sections = []) f =
       v
     | exception exn ->
       release ();
-      Exn.reraise exn )
+      Exn.reraise exn)
 
 type 'a printf = title:Title.t -> ('a, unit, string, unit) format4 -> 'a
 

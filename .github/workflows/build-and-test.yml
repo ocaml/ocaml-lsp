@@ -66,7 +66,7 @@ jobs:
         if: steps.cache-opam.outputs.cache-hit != 'true'
         run: |
           opam install . --with-doc --with-test --locked --ignore-constraints-on=ocaml
-          opam install ocamlformat.0.15.1 --skip-updates
+          opam install ocamlformat.0.17.0 --skip-updates
 
       - name: Fix broken opam state
         if: steps.cache-opam.outputs.cache-hit == 'true'

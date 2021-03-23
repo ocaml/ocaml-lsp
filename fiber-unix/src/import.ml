@@ -27,13 +27,12 @@ module Log = struct
   let log ?section k =
     if !level section then (
       let message = k () in
-      ( match section with
+      (match section with
       | None -> Format.fprintf !out "%s@." message.message
-      | Some section -> Format.fprintf !out "[%s] %s@." section message.message
-      );
-      ( match message.payload with
+      | Some section -> Format.fprintf !out "[%s] %s@." section message.message);
+      (match message.payload with
       | [] -> ()
-      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields) );
+      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields));
       Format.pp_print_flush !out ()
     )
 end

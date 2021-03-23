@@ -228,10 +228,10 @@ let method_ (type a) (t : a t) =
 
 let params (type a) (t : a t) =
   Jsonrpc.Message.Structured.of_json
-    ( match t with
+    (match t with
     | Initialize params -> InitializeParams.yojson_of_t params
     | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
-    | _ -> assert false )
+    | _ -> assert false)
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in

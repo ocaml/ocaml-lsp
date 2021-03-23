@@ -44,7 +44,7 @@ end = struct
       | Stopped _ -> (
         match Removable_queue.pop t.work with
         | None -> t.state <- Finished
-        | Some job -> do_work job )
+        | Some job -> do_work job)
       | Finished -> ()
       | Running _ -> (
         match Removable_queue.pop t.work with
@@ -53,7 +53,7 @@ end = struct
           while Removable_queue.is_empty t.work && is_running t do
             Condition.wait t.work_available t.mutex
           done;
-          loop () )
+          loop ())
     and do_work job =
       Mutex.unlock t.mutex;
       f job;
@@ -175,9 +175,9 @@ let time_loop t =
               else
                 earliest_next :=
                   Some
-                    ( match !earliest_next with
+                    (match !earliest_next with
                     | None -> scheduled_at
-                    | Some v -> min scheduled_at v );
+                    | Some v -> min scheduled_at v);
               not need_to_run));
     let to_run =
       List.sort !to_run ~compare:(fun x y ->
@@ -220,7 +220,7 @@ let wake_loop t =
         else (
           signal_timers_available t;
           loop None
-        ) )
+        ))
   in
   loop None
 

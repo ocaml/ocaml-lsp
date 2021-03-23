@@ -28,8 +28,10 @@ let close t =
   | Closed -> ()
   | Active { mutex; await_mutex = _; r; w; buf = _ } ->
     Mutex.lock mutex;
-    (try Unix.close w with Unix.Unix_error _ -> ());
-    (try Unix.close r with Unix.Unix_error _ -> ());
+    (try Unix.close w with
+    | Unix.Unix_error _ -> ());
+    (try Unix.close r with
+    | Unix.Unix_error _ -> ());
     t := Closed;
     Mutex.unlock mutex
 
@@ -50,7 +52,7 @@ let rec drain_pipe fd buf read_once =
     match select fd 0. with
     | Ok `Empty -> Ok ()
     | Ok `Ready_to_read -> drain_pipe fd buf read_once
-    | Error `Closed -> Error (`Closed (`Read read_once)) )
+    | Error `Closed -> Error (`Closed (`Read read_once)))
   | _ -> assert false
 
 let await ?(timeout = -1.) t =
@@ -72,4 +74,4 @@ let signal t =
       close t;
       Error `Closed
     | 1 -> Ok ()
-    | _ -> assert false )
+    | _ -> assert false)
