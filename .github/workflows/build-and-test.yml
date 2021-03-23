@@ -81,13 +81,11 @@ jobs:
         run: opam exec -- make all
 
       - name: Check formatting
-        if: matrix.ocaml-version == '4.11.1' && runner.os == 'Linux'
+        if: runner.os == 'Linux'
         run: opam exec -- make fmt
 
       - name: Run OCaml tests
-        if: matrix.ocaml-version == '4.11.1'
         run: opam exec -- make test-ocaml
 
       - name: Run Node tests
-        if: matrix.ocaml-version == '4.11.1'
         run: opam exec -- make test-e2e
