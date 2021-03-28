@@ -7,7 +7,7 @@ open Jsonrpc
 
 type t
 
-val close : t -> unit Fiber.t
+val close : t -> [ `Read | `Write ] -> unit Fiber.t
 
 val send : t -> packet -> unit Fiber.t
 

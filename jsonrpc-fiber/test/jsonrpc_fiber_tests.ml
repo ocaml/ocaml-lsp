@@ -7,7 +7,10 @@ open Fiber.O
 module Stream_chan = struct
   type t = Jsonrpc.packet In.t * Jsonrpc.packet Out.t
 
-  let close (_, o) = Out.write o None
+  let close (_, o) what =
+    match what with
+    | `Read -> Fiber.return ()
+    | `Write -> Out.write o None
 
   let send (_, o) p = Out.write o (Some p)
 

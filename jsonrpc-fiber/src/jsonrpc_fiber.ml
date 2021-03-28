@@ -58,7 +58,7 @@ module Make (Chan : sig
 
   val recv : t -> packet option Fiber.t
 
-  val close : t -> unit Fiber.t
+  val close : t -> [ `Read | `Write ] -> unit Fiber.t
 end) =
 struct
   type 'state t =
@@ -128,7 +128,10 @@ struct
 
   let close t =
     Fiber.fork_and_join_unit
-      (fun () -> Chan.close t.chan)
+      (fun () ->
+        Fiber.fork_and_join_unit
+          (fun () -> Chan.close t.chan `Read)
+          (fun () -> Chan.close t.chan `Write))
       (fun () -> Fiber.Ivar.fill t.stopped ())
 
   let run t =

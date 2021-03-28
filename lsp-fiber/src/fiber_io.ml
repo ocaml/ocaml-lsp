@@ -76,9 +76,10 @@ let make s io =
   in
   { in_; out; in_thread; out_thread; io }
 
-let close (t : t) =
-  let in_ () = Out.write t.out None in
-  let out () =
+let close (t : t) what =
+  match what with
+  | `Write -> Out.write t.out None
+  | `Read -> (
     match !(t.in_thread) with
     | None -> Fiber.return ()
     | Some thread ->
@@ -88,6 +89,4 @@ let close (t : t) =
         |> Scheduler.await_no_cancel
       in
       close_in t.in_thread;
-      Result.ok_exn close
-  in
-  Fiber.fork_and_join_unit in_ out
+      Result.ok_exn close)

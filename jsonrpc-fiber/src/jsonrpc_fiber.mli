@@ -24,7 +24,7 @@ module Make (Chan : sig
 
   val recv : t -> packet option Fiber.t
 
-  val close : t -> unit Fiber.t
+  val close : t -> [ `Read | `Write ] -> unit Fiber.t
 end) : sig
   type 'state t
 
