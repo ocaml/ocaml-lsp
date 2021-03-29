@@ -21,7 +21,6 @@ homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "dune" {>= "2.5"}
-  "stdlib-shims"
   "jsonrpc" {= version}
   "yojson"
   "ppx_yojson_conv_lib"

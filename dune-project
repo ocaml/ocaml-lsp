@@ -28,7 +28,6 @@ Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 ")
  (depends
-  stdlib-shims
   (jsonrpc (= :version))
   yojson
   ppx_yojson_conv_lib
@@ -46,7 +45,6 @@ possible and does not make any assumptions about IO.
  (description "An LSP server for OCaml.")
  (depends
   yojson
-  stdlib-shims
   ppx_yojson_conv_lib
   dune-build-info
   dot-merlin-reader
@@ -63,7 +61,6 @@ possible and does not make any assumptions about IO.
  (description "See https://www.jsonrpc.org/specification")
  (depends
   yojson
-  stdlib-shims
   ppx_yojson_conv_lib
   (result (>= 1.5))
   (odoc :with-doc)
