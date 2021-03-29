@@ -9,6 +9,7 @@ module Table = Stdune.Table
 module String = Stdune.String
 module List = Stdune.List
 module Result = Stdune.Result
+module Poly = Stdune.Poly
 module Logger = Lsp.Logger
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler

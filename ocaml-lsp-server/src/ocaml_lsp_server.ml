@@ -179,7 +179,8 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
   let* doc = Fiber.return (Document_store.get store uri) in
   let code_action (kind, f) =
     match params.context.only with
-    | Some set when not (List.mem kind ~set) -> Fiber.return (Ok None)
+    | Some set when not (List.mem set kind ~equal:Poly.equal) ->
+      Fiber.return (Ok None)
     | Some _
     | None ->
       let+ action_opt = f () in
@@ -250,7 +251,7 @@ let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
     | None -> false
     | Some format ->
       let set = Option.value format ~default:[ MarkupKind.Markdown ] in
-      List.mem MarkupKind.Markdown ~set)
+      List.mem  set MarkupKind.Markdown ~equal:Poly.equal)
 
 let location_of_merlin_loc uri = function
   | `At_origin

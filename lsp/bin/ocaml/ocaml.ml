@@ -189,7 +189,7 @@ module Json = struct
     )
 
   let is_json_constr (constr : Ml.Type.constr) =
-    List.mem constr.name ~set:[ "String"; "Int"; "Bool" ]
+    List.mem [ "String"; "Int"; "Bool" ] constr.name ~equal:String.equal
 
   module Name = struct
     let of_ = sprintf "%s_of_yojson"
@@ -261,7 +261,7 @@ end
 
 let pp_file pp ch =
   let fmt = Format.formatter_of_out_channel ch in
-  Pp.render_ignore_tags fmt pp;
+  Pp.to_fmt fmt pp;
   Format.pp_print_flush fmt ()
 
 module Create = struct
@@ -531,7 +531,8 @@ module Mapper = struct
       [ Prim.Null; String; Bool; Number; Object; List ]
       |> List.map ~f:(fun s -> Resolved.Ident s)
     in
-    fun set -> List.for_all constrs ~f:(List.mem ~set)
+    fun set ->
+      List.for_all constrs ~f:(fun e -> List.mem set e ~equal:Poly.equal)
 
   let id = Type.name "Jsonrpc.Id.t"
 
