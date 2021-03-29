@@ -9,6 +9,6 @@ type t =
   ; merlin : Scheduler.thread
   ; init : init
   ; scheduler : Scheduler.t
-  ; detached : Fiber_detached.t
+  ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
   }

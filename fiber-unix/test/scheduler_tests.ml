@@ -1,12 +1,12 @@
 open! Import
 open Fiber.O
 module S = Fiber_unix.Scheduler
-module Fiber_detached = Fiber_unix.Fiber_detached
 
 let test s f =
   let f =
     Fiber.with_error_handler f ~on_error:(fun exn ->
-        Format.printf "%a@." Exn_with_backtrace.pp_uncaught exn)
+        Format.printf "%a@." Exn_with_backtrace.pp_uncaught exn;
+        Fiber.return ())
   in
   S.run s f
 
@@ -162,13 +162,13 @@ let%expect_test "tests rescheduling" =
 
 let%expect_test "detached + timer" =
   let s = S.create () in
-  let detached = Fiber_detached.create () in
+  let detached = Fiber.Pool.create () in
   let timer = S.create_timer s ~delay:0.05 in
   let run () =
     Fiber.fork_and_join_unit
       (fun () ->
         let* () =
-          Fiber_detached.task_exn detached ~f:(fun () ->
+          Fiber.Pool.task detached ~f:(fun () ->
               let* res =
                 S.schedule timer (fun () ->
                     print_endline "inside timer";
@@ -178,8 +178,8 @@ let%expect_test "detached + timer" =
               | Ok () -> Fiber.return (print_endline "timer finished")
               | Error `Cancelled -> assert false)
         in
-        Fiber_detached.stop detached)
-      (fun () -> Fiber_detached.run detached)
+        Fiber.Pool.stop detached)
+      (fun () -> Fiber.Pool.run detached)
   in
   test s run;
   [%expect {|

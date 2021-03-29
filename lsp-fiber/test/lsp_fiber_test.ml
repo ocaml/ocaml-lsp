@@ -142,9 +142,9 @@ module End_to_end_server = struct
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
         let open Fiber.O in
-        let* (_ : (unit, [ `Stopped ]) result) =
+        let* () =
           let timer = Scheduler.create_timer scheduler ~delay:0.5 in
-          Fiber_detached.task detached ~f:(fun () ->
+          Fiber.Pool.task detached ~f:(fun () ->
               Format.eprintf
                 "server: sending message notification to client@.%!";
               let msg =
@@ -173,7 +173,7 @@ module End_to_end_server = struct
               in
               loop 2 (Fiber.return (Ok ())))
         in
-        let+ () = Fiber_detached.stop detached in
+        let+ () = Fiber.Pool.stop detached in
         (Rpc.Reply.now (Ok result), state)
       | _ ->
         Fiber.return
@@ -193,7 +193,7 @@ module End_to_end_server = struct
   let handler = Server.Handler.make ~on_request ~on_notification ()
 
   let run scheduler io =
-    let detached = Fiber_detached.create () in
+    let detached = Fiber.Pool.create () in
     let _server, running =
       Test.Server.run ~on_request ~on_notification
         (scheduler, (Started, detached))
@@ -201,7 +201,7 @@ module End_to_end_server = struct
     in
     Fiber.fork_and_join_unit
       (fun () -> running)
-      (fun () -> Fiber_detached.run detached)
+      (fun () -> Fiber.Pool.run detached)
 end
 
 let%expect_test "ent to end run of lsp tests" =

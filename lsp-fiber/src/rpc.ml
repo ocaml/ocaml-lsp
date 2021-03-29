@@ -150,7 +150,7 @@ struct
       initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
     ; pending : (Jsonrpc.Id.t, Cancel.t) Table.t
-    ; detached : Fiber_detached.t
+    ; detached : Fiber.Pool.t
     }
 
   and 'state on_request =
@@ -238,7 +238,7 @@ struct
       ; initialized = Fiber.Ivar.create ()
       ; req_id = 1
       ; pending = Table.create (module Jrpc_id) 32
-      ; detached = Fiber_detached.create ()
+      ; detached = Fiber.Pool.create ()
       }
     in
     let session =
@@ -277,16 +277,15 @@ struct
       (fun () ->
         let open Fiber.O in
         let* () = Session.run (Fdecl.get t.session) in
-        Fiber_detached.stop t.detached)
-      (fun () -> Fiber_detached.run t.detached)
+        Fiber.Pool.stop t.detached)
+      (fun () -> Fiber.Pool.run t.detached)
 
   let handle_cancel_req t id =
     let open Fiber.O in
     let+ () =
       match Table.find t.pending id with
       | None -> Fiber.return ()
-      | Some id ->
-        Fiber_detached.task_exn t.detached ~f:(fun () -> Cancel.cancel id)
+      | Some id -> Fiber.Pool.task t.detached ~f:(fun () -> Cancel.cancel id)
     in
     (Jsonrpc_fiber.Notify.Continue, state t)
 

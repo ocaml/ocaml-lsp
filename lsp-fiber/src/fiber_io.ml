@@ -1,5 +1,5 @@
 open Import
-open Fiber_stream
+open Fiber.Stream
 
 type t =
   { in_ : Jsonrpc.packet In.t

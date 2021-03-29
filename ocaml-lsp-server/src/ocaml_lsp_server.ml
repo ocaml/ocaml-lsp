@@ -69,6 +69,13 @@ let initialize_info : InitializeResult.t =
 
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
+let task_if_running (state : State.t) ~f =
+  let open Fiber.O in
+  let* running = Fiber.Pool.running state.detached in
+  match running with
+  | false -> Fiber.return ()
+  | true -> Fiber.Pool.task state.detached ~f
+
 let send_diagnostics ?diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let uri = Document.uri doc |> Lsp.Uri.to_string in
@@ -86,8 +93,8 @@ let send_diagnostics ?diagnostics rpc doc =
   | None -> (
     let async send =
       let open Fiber.O in
-      let+ (_ : (unit, [ `Stopped ]) result) =
-        Fiber_detached.task state.detached ~f:(fun () ->
+      let+ () =
+        task_if_running state ~f:(fun () ->
             let open Fiber.O in
             let timer = Document.timer doc in
             let+ res = Scheduler.schedule timer send in
@@ -162,8 +169,7 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
       let notif = Server_notification.LogMessage { message; type_ } in
       let (_ : _ Fiber.t) =
         let state : State.t = Server.state rpc in
-        Fiber_detached.task state.detached ~f:(fun () ->
-            Server.notification rpc notif)
+        task_if_running state ~f:(fun () -> Server.notification rpc notif)
       in
       ()
   in
@@ -224,9 +230,9 @@ module Formatter = struct
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Error in
       let open Fiber.O in
-      let+ (_ : (unit, [ `Stopped ]) result) =
+      let+ () =
         let state : State.t = Server.state rpc in
-        Fiber_detached.task state.detached ~f:(fun () ->
+        task_if_running state ~f:(fun () ->
             Server.notification rpc (ShowMessage msg))
       in
       Error error
@@ -251,7 +257,7 @@ let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
     | None -> false
     | Some format ->
       let set = Option.value format ~default:[ MarkupKind.Markdown ] in
-      List.mem  set MarkupKind.Markdown ~equal:Poly.equal)
+      List.mem set MarkupKind.Markdown ~equal:Poly.equal)
 
 let location_of_merlin_loc uri = function
   | `At_origin
@@ -871,7 +877,7 @@ let start () =
     Lsp_fiber.Fiber_io.make scheduler io
   in
   let configuration = Configuration.default in
-  let detached = Fiber_detached.create () in
+  let detached = Fiber.Pool.create () in
   let server =
     let merlin = Scheduler.create_thread scheduler in
     Server.make handler stream
@@ -889,8 +895,8 @@ let start () =
       let* () = Server.start server in
       Fiber.fork_and_join_unit
         (fun () -> Document_store.close store)
-        (fun () -> Fiber_detached.stop detached))
-    (fun () -> Fiber_detached.run detached)
+        (fun () -> Fiber.Pool.stop detached))
+    (fun () -> Fiber.Pool.run detached)
   |> Scheduler.run scheduler;
   log ~title:Logger.Title.Info "exiting"
 

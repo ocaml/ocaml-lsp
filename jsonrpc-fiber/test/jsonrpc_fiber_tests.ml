@@ -1,8 +1,8 @@
 open Stdune
-open Fiber_unix.Fiber_stream
 open! Jsonrpc
 open Jsonrpc_fiber
 open Fiber.O
+open Fiber.Stream
 
 module Stream_chan = struct
   type t = Jsonrpc.packet In.t * Jsonrpc.packet Out.t
@@ -71,6 +71,13 @@ let%expect_test "server accepts notifications" =
     received notification
     "<opaque>" |}]
 
+let of_ref ref =
+  Fiber.Stream.Out.create (function
+    | None -> Fiber.return ()
+    | Some x ->
+      ref := x :: !ref;
+      Fiber.return ())
+
 let%expect_test "serving requests" =
   let id = `Int 1 in
   let request =
@@ -90,7 +97,7 @@ let%expect_test "serving requests" =
       let response = Jsonrpc.Response.ok r.id response_data in
       Fiber.return (Reply.now response, state)
     in
-    let out = Out.of_ref responses in
+    let out = of_ref responses in
     let jrpc = Jrpc.create ~name:"test" ~on_request (in_, out) () in
     let+ () = Jrpc.run jrpc in
     List.iter !responses ~f:(fun resp ->
@@ -231,7 +238,7 @@ let%expect_test "test from jsonrpc_test.ml" =
   in
   let reqs_in, reqs_out = pipe () in
   let chan =
-    let out = Out.of_ref responses in
+    let out = of_ref responses in
     (reqs_in, out)
   in
   let session = Jrpc.create ~on_notification ~on_request ~name:"test" chan () in
