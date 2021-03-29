@@ -32,7 +32,6 @@ possible and does not make any assumptions about IO.
   (jsonrpc (= :version))
   yojson
   ppx_yojson_conv_lib
-  cppo
   uutf
   csexp
   (odoc :with-doc)
