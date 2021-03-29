@@ -71,26 +71,6 @@ let%expect_test "server accepts notifications" =
     received notification
     "<opaque>" |}]
 
-let%expect_test "stopped fiber" =
-  let run () =
-    let in_ = In.create (fun () -> Fiber.never) in
-    let jrpc = Jrpc.create ~name:"test" (in_, no_output ()) () in
-    print_endline "running";
-    let running = Jrpc.run jrpc in
-    Fiber.fork_and_join_unit
-      (fun () ->
-        print_endline "stopping";
-        Jrpc.stop jrpc)
-      (fun () -> running)
-  in
-  Fiber_test.test Dyn.Encoder.opaque (run ());
-  print_endline "stopped";
-  [%expect {|
-    running
-    stopping
-    "<opaque>"
-    stopped |}]
-
 let%expect_test "serving requests" =
   let id = `Int 1 in
   let request =
@@ -204,9 +184,13 @@ let%expect_test "concurrent requests" =
     waitee: received request
     { "id": 100, "method": "shutdown", "jsonrpc": "2.0" }
     waitee: stopping
+    waitee: stopped
     waiter: received response:
     { "id": 100, "jsonrpc": "2.0", "result": 42 }
     waiter: stopping
+    waiter: stopped
+    initial request response:
+    { "id": "initial", "jsonrpc": "2.0", "result": null }
     [FAIL] unexpected Never raised |}]
 
 let%expect_test "test from jsonrpc_test.ml" =

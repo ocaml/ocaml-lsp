@@ -66,7 +66,6 @@ struct
     ; on_request : ('state, Id.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
-    ; stop_requested : unit Fiber.Ivar.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
@@ -116,15 +115,7 @@ struct
 
   let stopped t = Fiber.Ivar.read t.stopped
 
-  let stop t =
-    let open Fiber.O in
-    let* res = Fiber.Ivar.peek t.stop_requested in
-    Fiber.fork_and_join_unit
-      (fun () ->
-        match res with
-        | Some _ -> Fiber.return ()
-        | None -> Fiber.Ivar.fill t.stop_requested ())
-      (fun () -> stopped t)
+  let stop t = Chan.close t.chan `Read
 
   let close t =
     Fiber.fork_and_join_unit
@@ -135,7 +126,6 @@ struct
       (fun () -> Fiber.Ivar.fill t.stopped ())
 
   let run t =
-    let stop_requested = Fiber.Ivar.read t.stop_requested in
     let open Fiber.O in
     let send_response resp =
       log t (fun () ->
@@ -145,17 +135,10 @@ struct
     let rec loop () =
       t.tick <- t.tick + 1;
       log t (fun () -> Log.msg "new tick" [ ("tick", `Int t.tick) ]);
-      let* res =
-        Fiber.fork_and_race
-          (fun () -> Chan.recv t.chan)
-          (fun () -> stop_requested)
-      in
+      let* res = Chan.recv t.chan in
       match res with
-      | Either.Right () ->
-        log t (fun () -> Log.msg "shutdown granted" []);
-        Fiber.return ()
-      | Left None -> Fiber.return ()
-      | Left (Some packet) -> (
+      | None -> Fiber.return ()
+      | Some packet -> (
         match packet with
         | Message r -> on_message r
         | Response r -> Fiber.fork_and_join_unit (fun () -> on_response r) loop)
@@ -234,7 +217,6 @@ struct
     ; on_request
     ; on_notification
     ; pending = Table.create (module Id) 10
-    ; stop_requested = Fiber.Ivar.create ()
     ; stopped = Fiber.Ivar.create ()
     ; name
     ; running = false

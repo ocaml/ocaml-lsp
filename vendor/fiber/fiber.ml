@@ -597,23 +597,3 @@ let run t ~iter =
           loop ()
       in
       loop ())
-
-let fork_and_race fa fb k =
-  let state = ref Nothing_yet in
-  EC.add_refs 1;
-  EC.apply fa () (fun a ->
-      match !state with
-      | Nothing_yet ->
-        EC.deref ();
-        state := Got_a ();
-        k (Left a)
-      | Got_a () -> assert false
-      | Got_b () -> ());
-  fb () (fun b ->
-      match !state with
-      | Nothing_yet ->
-        EC.deref ();
-        state := Got_b ();
-        k (Right b)
-      | Got_a () -> ()
-      | Got_b () -> assert false)

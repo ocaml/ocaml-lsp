@@ -256,5 +256,3 @@ type fill = Fill : 'a Ivar.t * 'a -> fill
     the scheduler, it should block waiting for an event and return an ivar to
     fill. *)
 val run : 'a t -> iter:(unit -> fill) -> 'a
-
-val fork_and_race : (unit -> 'a t) -> (unit -> 'b t) -> ('a, 'b) Either.t t
