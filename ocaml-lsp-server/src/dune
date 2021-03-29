@@ -2,7 +2,6 @@
  (name main)
  (package ocaml-lsp-server)
  (public_name ocamllsp)
- (preprocess future_syntax)
  (libraries cmdliner dune-build-info fiber fiber_unix jsonrpc lsp lsp_fiber
    merlin.analysis merlin.kernel merlin.merlin_utils merlin.parsing
    merlin.query_commands merlin.query_protocol merlin.specific merlin.typing

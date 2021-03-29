@@ -19,7 +19,6 @@ depends: [
   "dune" {>= "2.5"}
   "yojson"
   "stdlib-shims"
-  "ocaml-syntax-shims"
   "ppx_yojson_conv_lib"
   "result" {>= "1.5"}
   "odoc" {with-doc}

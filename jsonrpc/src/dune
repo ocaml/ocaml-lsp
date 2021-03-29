@@ -1,4 +1,3 @@
 (library
  (public_name jsonrpc)
- (libraries ppx_yojson_conv_lib result yojson)
- (preprocess future_syntax))
+ (libraries ppx_yojson_conv_lib result yojson))

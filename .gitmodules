@@ -6,9 +6,6 @@ ignore = dirty
 [submodule "vendor/cmdliner"]
 path = ocaml-lsp-server/vendor/cmdliner
 url = https://github.com/dbuenzli/cmdliner.git
-[submodule "ocaml-syntax-shims"]
-path = ocaml-lsp-server/vendor/ocaml-syntax-shims
-url = https://github.com/ocaml-ppx/ocaml-syntax-shims
 [submodule "vendor/uutf"]
 path = ocaml-lsp-server/vendor/uutf
 url = https://github.com/dune-universe/uutf.git

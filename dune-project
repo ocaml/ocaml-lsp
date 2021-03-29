@@ -32,7 +32,6 @@ possible and does not make any assumptions about IO.
   (jsonrpc (= :version))
   yojson
   ppx_yojson_conv_lib
-  ocaml-syntax-shims
   cppo
   uutf
   csexp
@@ -66,7 +65,6 @@ possible and does not make any assumptions about IO.
  (depends
   yojson
   stdlib-shims
-  ocaml-syntax-shims
   ppx_yojson_conv_lib
   (result (>= 1.5))
   (odoc :with-doc)

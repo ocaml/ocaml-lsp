@@ -25,7 +25,6 @@ depends: [
   "jsonrpc" {= version}
   "yojson"
   "ppx_yojson_conv_lib"
-  "ocaml-syntax-shims"
   "cppo"
   "uutf"
   "csexp"

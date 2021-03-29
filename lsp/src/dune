@@ -5,7 +5,6 @@
  (public_name lsp)
  (libraries jsonrpc ppx_yojson_conv_lib result stdune threads.posix uutf
    yojson)
- (preprocess future_syntax)
  (lint
   (pps ppx_yojson_conv)))
 
