@@ -37,7 +37,7 @@ possible and does not make any assumptions about IO.
   (menhir :with-test)
   (cinaps :with-test)
   (ppx_expect (and :with-test (>= v0.14.0)))
-  (ocaml (>= 4.06))))
+  (ocaml (>= 4.08))))
 
 (package
  (name ocaml-lsp-server)
@@ -60,6 +60,7 @@ possible and does not make any assumptions about IO.
  (synopsis "Jsonrpc protocol implemenation")
  (description "See https://www.jsonrpc.org/specification")
  (depends
+  (ocaml (>= 4.08))
   yojson
   ppx_yojson_conv_lib
   (result (>= 1.5))
