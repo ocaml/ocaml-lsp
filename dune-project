@@ -63,6 +63,5 @@ possible and does not make any assumptions about IO.
   (ocaml (>= 4.08))
   yojson
   ppx_yojson_conv_lib
-  (result (>= 1.5))
   (odoc :with-doc)
   (ocaml (>= 4.06))))
