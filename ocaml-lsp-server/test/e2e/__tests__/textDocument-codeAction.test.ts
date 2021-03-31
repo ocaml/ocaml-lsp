@@ -66,6 +66,30 @@ let f (x : t) = x
         kind: "destruct",
         title: "Destruct",
       },
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "(x : type t = Foo of int | Bar of bool)",
+                range: {
+                  end: {
+                    character: 17,
+                    line: 2,
+                  },
+                  start: {
+                    character: 16,
+                    line: 2,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        isPreferred: false,
+        kind: "annotate",
+        title: "Annotate",
+      },
     ]);
   });
 
@@ -140,6 +164,69 @@ let f (x : t) = x
         },
         kind: "inferred_intf",
         title: "Insert inferred interface",
+      },
+    ]);
+  });
+
+  it("can annotate a value", async () => {
+    await openDocument(
+      outdent`
+type t = Foo of int | Bar of bool
+
+let f x = Foo x
+`,
+      "file:///test.ml",
+    );
+    let start = Types.Position.create(2, 6);
+    let end = Types.Position.create(2, 7);
+    let actions = await codeAction("file:///test.ml", start, end);
+    expect(actions).toMatchObject([
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "0 |_",
+                range: {
+                  end: {
+                    character: 7,
+                    line: 2,
+                  },
+                  start: {
+                    character: 6,
+                    line: 2,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        kind: "destruct",
+        title: "Destruct",
+      },
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "(x : int)",
+                range: {
+                  end: {
+                    character: 7,
+                    line: 2,
+                  },
+                  start: {
+                    character: 6,
+                    line: 2,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        isPreferred: false,
+        kind: "annotate",
+        title: "Annotate",
       },
     ]);
   });

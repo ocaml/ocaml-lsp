@@ -16,6 +16,7 @@ let initialize_info : InitializeResult.t =
     let codeActionKinds =
       [ CodeActionKind.Other Action_destruct.action_kind
       ; CodeActionKind.Other Action_inferred_intf.action_kind
+      ; CodeActionKind.Other Action_annotate.action_kind
       ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
@@ -199,6 +200,8 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
         , fun () -> Action_destruct.code_action doc params )
       ; ( CodeActionKind.Other Action_inferred_intf.action_kind
         , fun () -> Action_inferred_intf.code_action doc state params )
+      ; ( CodeActionKind.Other Action_annotate.action_kind
+        , fun () -> Action_annotate.code_action doc params )
       ]
   in
   let open Result.O in
