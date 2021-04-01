@@ -31,7 +31,15 @@ let code_action doc (params : CodeActionParams.t) =
     Query_protocol.Type_enclosing (None, start, None)
   in
   let open Fiber.O in
-  let+ res = Document.dispatch doc command in
+  let+ res =
+    Document.with_pipeline doc (fun pipeline ->
+        let config = Mpipeline.final_config pipeline in
+        let config =
+          { config with query = { config.query with verbosity = 0 } }
+        in
+        let pipeline = Mpipeline.make config (Document.source doc) in
+        Query_commands.dispatch pipeline command)
+  in
   match res with
   | Ok []
   | Ok ((_, `Index _, _) :: _) ->

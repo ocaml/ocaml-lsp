@@ -71,7 +71,7 @@ let f (x : t) = x
           changes: {
             "file:///test.ml": [
               {
-                newText: "(x : type t = Foo of int | Bar of bool)",
+                newText: "(x : t)",
                 range: {
                   end: {
                     character: 17,
