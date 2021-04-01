@@ -42,7 +42,7 @@ let f (x : t) = x
     let start = Types.Position.create(2, 16);
     let end = Types.Position.create(2, 17);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toMatchObject([
+    expect(actions).toEqual(expect.arrayContaining([
       {
         edit: {
           changes: {
@@ -63,34 +63,11 @@ let f (x : t) = x
             ],
           },
         },
+        isPreferred: false,
         kind: "destruct",
         title: "Destruct",
-      },
-      {
-        edit: {
-          changes: {
-            "file:///test.ml": [
-              {
-                newText: "(x : t)",
-                range: {
-                  end: {
-                    character: 17,
-                    line: 2,
-                  },
-                  start: {
-                    character: 16,
-                    line: 2,
-                  },
-                },
-              },
-            ],
-          },
-        },
-        isPreferred: false,
-        kind: "annotate",
-        title: "Annotate",
-      },
-    ]);
+      }
+    ]));
   });
 
   it("can infer module interfaces", async () => {
@@ -180,30 +157,7 @@ let f x = Foo x
     let start = Types.Position.create(2, 6);
     let end = Types.Position.create(2, 7);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toMatchObject([
-      {
-        edit: {
-          changes: {
-            "file:///test.ml": [
-              {
-                newText: "0 |_",
-                range: {
-                  end: {
-                    character: 7,
-                    line: 2,
-                  },
-                  start: {
-                    character: 6,
-                    line: 2,
-                  },
-                },
-              },
-            ],
-          },
-        },
-        kind: "destruct",
-        title: "Destruct",
-      },
+    expect(actions).toEqual(expect.arrayContaining([
       {
         edit: {
           changes: {
@@ -228,7 +182,7 @@ let f x = Foo x
         kind: "annotate",
         title: "Annotate",
       },
-    ]);
+    ]));
   });
 
   it("can annotate a toplevel value", async () => {
@@ -282,30 +236,7 @@ let () =
     let start = Types.Position.create(3, 15);
     let end = Types.Position.create(3, 16);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toMatchObject([
-      {
-        edit: {
-          changes: {
-            "file:///test.ml": [
-              {
-                newText: "(match i with | 0 -> (??) | _ -> (??))",
-                range: {
-                  end: {
-                    character: 16,
-                    line: 3,
-                  },
-                  start: {
-                    character: 15,
-                    line: 3,
-                  },
-                },
-              },
-            ],
-          },
-        },
-        kind: "destruct",
-        title: "Destruct",
-      },
+    expect(actions).toEqual(expect.arrayContaining([
       {
         edit: {
           changes: {
@@ -330,6 +261,6 @@ let () =
         kind: "annotate",
         title: "Annotate",
       },
-    ]);
+    ]));
   });
 });
