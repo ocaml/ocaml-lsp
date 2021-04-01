@@ -263,4 +263,44 @@ let () =
       },
     ]));
   });
+
+  it("can annotate a variant with its name only", async () => {
+    await openDocument(
+      outdent`
+type t = Foo of int | Bar of bool
+
+let f (x : t) = x
+`,
+      "file:///test.ml",
+    );
+    let start = Types.Position.create(2, 16);
+    let end = Types.Position.create(2, 17);
+    let actions = await codeAction("file:///test.ml", start, end);
+    expect(actions).toEqual(expect.arrayContaining([
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "(x : t)",
+                range: {
+                  end: {
+                    character: 17,
+                    line: 2,
+                  },
+                  start: {
+                    character: 16,
+                    line: 2,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        isPreferred: false,
+        kind: "annotate",
+        title: "Annotate",
+      },
+    ]));
+  });
 });
