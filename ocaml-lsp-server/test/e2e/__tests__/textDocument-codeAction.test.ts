@@ -303,4 +303,44 @@ let f (x : t) = x
       },
     ]));
   });
+
+  it("does not annotate in a non expression context", async () => {
+    await openDocument(
+      outdent`
+type x =
+   | Foo of int
+   | Baz of string
+`,
+      "file:///test.ml",
+    );
+    let start = Types.Position.create(2, 5);
+    let end = Types.Position.create(2, 6);
+    let actions = await codeAction("file:///test.ml", start, end);
+    expect(actions).toEqual(expect.arrayContaining([
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "(Baz : string -> x)",
+                range: {
+                  end: {
+                    character: 8,
+                    line: 2,
+                  },
+                  start: {
+                    character: 5,
+                    line: 2,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        isPreferred: false,
+        kind: "annotate",
+        title: "Annotate",
+      },
+    ]));
+  });
 });
