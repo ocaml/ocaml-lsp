@@ -168,7 +168,7 @@ let f (x : t) = x
     ]);
   });
 
-  it("can annotate a value", async () => {
+  it("can annotate a function argument", async () => {
     await openDocument(
       outdent`
 type t = Foo of int | Bar of bool
@@ -218,6 +218,108 @@ let f x = Foo x
                   start: {
                     character: 6,
                     line: 2,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        isPreferred: false,
+        kind: "annotate",
+        title: "Annotate",
+      },
+    ]);
+  });
+
+  it("can annotate a toplevel value", async () => {
+    await openDocument(
+      outdent`
+let iiii = 3 + 4
+`,
+      "file:///test.ml",
+    );
+    let start = Types.Position.create(0, 4);
+    let end = Types.Position.create(0, 5);
+    let actions = await codeAction("file:///test.ml", start, end);
+    expect(actions).toMatchObject([
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "(iiii : int)",
+                range: {
+                  end: {
+                    character: 8,
+                    line: 0,
+                  },
+                  start: {
+                    character: 4,
+                    line: 0,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        isPreferred: false,
+        kind: "annotate",
+        title: "Annotate",
+      },
+    ]);
+  });
+
+  it("can annotate an argument in a function call", async () => {
+    await openDocument(
+      outdent`
+let f x = x + 1
+let () =
+  let i = 8 in
+  print_int (f i)
+`,
+      "file:///test.ml",
+    );
+    let start = Types.Position.create(3, 15);
+    let end = Types.Position.create(3, 16);
+    let actions = await codeAction("file:///test.ml", start, end);
+    expect(actions).toMatchObject([
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "(match i with | 0 -> (??) | _ -> (??))",
+                range: {
+                  end: {
+                    character: 16,
+                    line: 3,
+                  },
+                  start: {
+                    character: 15,
+                    line: 3,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        kind: "destruct",
+        title: "Destruct",
+      },
+      {
+        edit: {
+          changes: {
+            "file:///test.ml": [
+              {
+                newText: "(i : int)",
+                range: {
+                  end: {
+                    character: 16,
+                    line: 3,
+                  },
+                  start: {
+                    character: 15,
+                    line: 3,
                   },
                 },
               },
