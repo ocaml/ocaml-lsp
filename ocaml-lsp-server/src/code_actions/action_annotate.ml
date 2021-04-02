@@ -2,16 +2,15 @@ open Import
 
 let action_kind = "annotate"
 
-let check_context doc pos_start =
-  Document.with_pipeline doc (fun pipeline ->
-      let pos_start = Mpipeline.get_lexing_pos pipeline pos_start in
-      let typer = Mpipeline.typer_result pipeline in
-      let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
-      match Mbrowse.enclosing pos_start [ browse ] with
-      | (_, (Expression _ | Pattern _)) :: _ -> `Valid
-      | _ :: _
-      | [] ->
-        `Invalid)
+let check_typeable_context pipeline pos_start =
+  let pos_start = Mpipeline.get_lexing_pos pipeline pos_start in
+  let typer = Mpipeline.typer_result pipeline in
+  let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
+  match Mbrowse.enclosing pos_start [ browse ] with
+  | (_, (Expression _ | Pattern _)) :: _ -> `Valid
+  | _ :: _
+  | [] ->
+    `Invalid
 
 let get_source_text doc (loc : Loc.t) =
   let open Option.O in
@@ -39,25 +38,25 @@ let code_action doc (params : CodeActionParams.t) =
   let open Fiber.O in
   let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
   let pos_start = Position.logical params.range.start in
-  let* context = check_context doc pos_start in
-  match context with
-  | Error e -> Fiber.return (Error (Jsonrpc.Response.Error.of_exn e))
-  | Ok `Invalid -> Fiber.return (Ok None)
-  | Ok `Valid -> (
-    let command = Query_protocol.Type_enclosing (None, pos_start, None) in
-    let+ res =
-      Document.with_pipeline doc (fun pipeline ->
+  let+ res =
+    Document.with_pipeline doc (fun pipeline ->
+        let context = check_typeable_context pipeline pos_start in
+        match context with
+        | `Invalid -> None
+        | `Valid ->
+          let command = Query_protocol.Type_enclosing (None, pos_start, None) in
           let config = Mpipeline.final_config pipeline in
           let config =
             { config with query = { config.query with verbosity = 0 } }
           in
           let pipeline = Mpipeline.make config (Document.source doc) in
-          Query_commands.dispatch pipeline command)
-    in
-    match res with
-    | Ok []
-    | Ok ((_, `Index _, _) :: _) ->
-      Ok None
-    | Ok ((location, `String value, _) :: _) ->
-      Ok (code_action_of_type_enclosing uri doc (location, value))
-    | Error e -> Error (Jsonrpc.Response.Error.of_exn e))
+          Some (Query_commands.dispatch pipeline command))
+  in
+  match res with
+  | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
+  | Ok None
+  | Ok (Some [])
+  | Ok (Some ((_, `Index _, _) :: _)) ->
+    Ok None
+  | Ok (Some ((location, `String value, _) :: _)) ->
+    Ok (code_action_of_type_enclosing uri doc (location, value))
