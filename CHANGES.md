@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Code action to annotate a value with its type (#397)
+
 # 1.5.0 (03/18/2020)
 
 - Support 4.12 and drop support for all earlier versions
