@@ -3,6 +3,36 @@
 ## Features
 
 - Code action to annotate a value with its type (#397)
+- Code action to qualify ("put module name in identifiers") and unqualify ("remove module name from identifiers") module names in identifiers (#399)
+
+Starting from:
+
+```ocaml
+open Unix
+
+let times = Unix.times ()
+let f x = x.Unix.tms_stime, x.Unix.tms_utime
+```
+
+Calling "remove module name from identifiers" with the cursor on the open statement will produce:
+
+```ocaml
+open Unix
+
+let times = times ()
+let f x = x.tms_stime, x.tms_utime
+```
+
+Calling "put module name in identifiers" will restore:
+
+```ocaml
+open Unix
+
+let times = Unix.times ()
+let f x = x.Unix.tms_stime, x.Unix.tms_utime
+```
+
+(the example is taken and adapted from ocaml-merlin docs)
 
 # 1.5.0 (03/18/2020)
 
