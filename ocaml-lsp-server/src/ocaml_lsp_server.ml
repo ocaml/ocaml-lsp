@@ -22,6 +22,8 @@ let initialize_info : InitializeResult.t =
       ; CodeActionKind.Other Action_inferred_intf.action_kind
       ; CodeActionKind.Other Action_type_annotate.action_kind
       ; CodeActionKind.Other Action_construct.action_kind
+      ; CodeActionKind.Other Action_refactor_open.unqualify.action_kind
+      ; CodeActionKind.Other Action_refactor_open.qualify.action_kind
       ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
@@ -282,6 +284,10 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
         , fun () -> Action_type_annotate.code_action doc params )
       ; ( CodeActionKind.Other Action_construct.action_kind
         , fun () -> Action_construct.code_action doc params )
+      ; ( CodeActionKind.Other Action_refactor_open.unqualify.action_kind
+        , fun () -> Action_refactor_open.unqualify.run doc params )
+      ; ( CodeActionKind.Other Action_refactor_open.qualify.action_kind
+        , fun () -> Action_refactor_open.qualify.run doc params )
       ]
   in
   let code_action_results = List.filter_opt code_action_results in

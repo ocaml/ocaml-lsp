@@ -445,4 +445,160 @@ let x = _
       }
     `);
   });
+
+  type refactorOpenTestSpec = {
+    documentUri?: string;
+    documentText: string;
+    queryStartPos: Types.Position;
+    queryEndPos: Types.Position;
+    codeActionTitle: string;
+  };
+
+  // this removes some repetition in code for testing `refactor-open` code actions
+  // it specifically doesn't include `expect(...).toMatchInlineSnapshot` to be able to
+  // capture correct output (the snapshot) from jest automatically
+  // (similar to ppx_expect promotion with correct output)
+  async function testRefactorOpen({
+    documentUri,
+    documentText,
+    queryStartPos,
+    queryEndPos,
+    codeActionTitle,
+  }: refactorOpenTestSpec) {
+    documentUri = documentUri ? documentUri : "file:///test.ml";
+
+    await openDocument(documentText, documentUri);
+
+    let codeActions: Types.CodeAction[] = await codeAction(
+      documentUri,
+      queryStartPos,
+      queryEndPos,
+    );
+
+    let specificCodeActions = codeActions.filter(
+      (codeAction: Types.CodeAction) => codeAction.title === codeActionTitle,
+    );
+
+    return specificCodeActions;
+  }
+
+  it("refactor-open unqualify in-file module", async () => {
+    let specificCodeActions = await testRefactorOpen({
+      documentText: outdent`
+      module M = struct
+        let a = 1
+        let f x = x + 1
+      end
+
+      open M
+
+      let y = M.f M.a
+      `,
+      queryStartPos: Types.Position.create(6, 5),
+      queryEndPos: Types.Position.create(6, 5),
+      codeActionTitle: "Remove module name from identifiers",
+    });
+
+    expect(specificCodeActions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "edit": Object {
+            "changes": Object {
+              "file:///test.ml": Array [
+                Object {
+                  "newText": "f",
+                  "range": Object {
+                    "end": Object {
+                      "character": 11,
+                      "line": 7,
+                    },
+                    "start": Object {
+                      "character": 8,
+                      "line": 7,
+                    },
+                  },
+                },
+                Object {
+                  "newText": "a",
+                  "range": Object {
+                    "end": Object {
+                      "character": 15,
+                      "line": 7,
+                    },
+                    "start": Object {
+                      "character": 12,
+                      "line": 7,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          "isPreferred": false,
+          "kind": "remove module name from identifiers",
+          "title": "Remove module name from identifiers",
+        },
+      ]
+    `);
+  });
+
+  it("refactor-open qualify in-file module", async () => {
+    let specificCodeActions = await testRefactorOpen({
+      documentText: outdent`
+      module M = struct
+        let a = 1
+        let f x = x + 1
+      end
+
+      open M
+
+      let y = f a
+      `,
+      queryStartPos: Types.Position.create(6, 5),
+      queryEndPos: Types.Position.create(6, 5),
+      codeActionTitle: "Put module name in identifiers",
+    });
+
+    expect(specificCodeActions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "edit": Object {
+            "changes": Object {
+              "file:///test.ml": Array [
+                Object {
+                  "newText": "M.f",
+                  "range": Object {
+                    "end": Object {
+                      "character": 9,
+                      "line": 7,
+                    },
+                    "start": Object {
+                      "character": 8,
+                      "line": 7,
+                    },
+                  },
+                },
+                Object {
+                  "newText": "M.a",
+                  "range": Object {
+                    "end": Object {
+                      "character": 11,
+                      "line": 7,
+                    },
+                    "start": Object {
+                      "character": 10,
+                      "line": 7,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          "isPreferred": false,
+          "kind": "put module name in identifiers",
+          "title": "Put module name in identifiers",
+        },
+      ]
+    `);
+  });
 });
