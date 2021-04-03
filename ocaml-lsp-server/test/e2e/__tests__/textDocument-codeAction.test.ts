@@ -147,7 +147,7 @@ let f (x : t) = x
     ]);
   });
 
-  it("can annotate a function argument", async () => {
+  it("can type-annotate a function argument", async () => {
     await openDocument(
       outdent`
 type t = Foo of int | Bar of bool
@@ -182,14 +182,14 @@ let f x = Foo x
             },
           },
           isPreferred: false,
-          kind: "annotate",
-          title: "Annotate",
+          kind: "type-annotate",
+          title: "Type-annotate",
         },
       ]),
     );
   });
 
-  it("can annotate a toplevel value", async () => {
+  it("can type-annotate a toplevel value", async () => {
     await openDocument(
       outdent`
 let iiii = 3 + 4
@@ -221,13 +221,13 @@ let iiii = 3 + 4
           },
         },
         isPreferred: false,
-        kind: "annotate",
-        title: "Annotate",
+        kind: "type-annotate",
+        title: "Type-annotate",
       },
     ]);
   });
 
-  it("can annotate an argument in a function call", async () => {
+  it("can type-annotate an argument in a function call", async () => {
     await openDocument(
       outdent`
 let f x = x + 1
@@ -263,14 +263,14 @@ let () =
             },
           },
           isPreferred: false,
-          kind: "annotate",
-          title: "Annotate",
+          kind: "type-annotate",
+          title: "Type-annotate",
         },
       ]),
     );
   });
 
-  it("can annotate a variant with its name only", async () => {
+  it("can type-annotate a variant with its name only", async () => {
     await openDocument(
       outdent`
 type t = Foo of int | Bar of bool
@@ -305,14 +305,14 @@ let f (x : t) = x
             },
           },
           isPreferred: false,
-          kind: "annotate",
-          title: "Annotate",
+          kind: "type-annotate",
+          title: "Type-annotate",
         },
       ]),
     );
   });
 
-  it("does not annotate in a non expression context", async () => {
+  it("does not type-annotate in a non expression context", async () => {
     await openDocument(
       outdent`
 type x =
