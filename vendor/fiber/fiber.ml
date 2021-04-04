@@ -757,19 +757,10 @@ module Stream = struct
   end
 
   module Out = struct
-    type nonrec 'a t =
-      { mutable write : 'a option -> unit t
-      ; mutable writing : bool
-      }
-
-    let lock t =
-      if t.writing then Code_error.raise "Fiber.Stream.Out: already writing" [];
-      t.writing <- true
-
-    let unlock t = t.writing <- false
+    type nonrec 'a t = { mutable write : 'a option -> unit t }
 
     let create write =
-      let t = { write; writing = false } in
+      let t = { write } in
       let write x =
         if Option.is_none x then
           t.write <-
@@ -782,38 +773,31 @@ module Stream = struct
       t.write <- write;
       t
 
-    let write t x =
-      lock t;
-      let+ () = t.write x in
-      unlock t
+    let write t x = t.write x
 
     let null () = create (fun _ -> return ())
   end
 
-  let connect i o =
+  let connect i (o : _ Out.t) =
     In.lock i;
-    Out.lock o;
     let rec go () =
       let* a = i.read () in
       let* () = o.write a in
       match a with
       | None ->
         In.unlock i;
-        Out.unlock o;
         return ()
       | Some _ -> go ()
     in
     go ()
 
-  let supply i o =
+  let supply i (o : _ Out.t) =
     In.lock i;
-    Out.lock o;
     let rec go () =
       let* a = i.read () in
       match a with
       | None ->
         In.unlock i;
-        Out.unlock o;
         return ()
       | Some _ ->
         let* () = o.write a in
