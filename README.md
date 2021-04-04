@@ -120,13 +120,13 @@ $ make test
 ```
 
 Note that tests require [Node.js](https://nodejs.org/en/) and
-[Yarn][https://yarnpkg.com/lang/en/] installed.
+[Yarn](https://yarnpkg.com/lang/en/) installed.
 
 ## Relationship to Other Tools
 
 The lsp server uses merlin under the hood, but users are not required to have
 merlin installed. We vendor merlin because we currently heavily depend on some
-implementation details of merlin that make infeasible to upgrade the lsp server
+implementation details of merlin that make it infeasible to upgrade the lsp server
 and merlin independently.
 
 ## History
