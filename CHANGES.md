@@ -1,5 +1,9 @@
 # 1.6.1 (05/03/2020)
 
+## Features
+
+- Get diagnostics (warning and error messages) on a file save (#438)
+
 ## Fixes
 
 - Switch `verbosity` from 1 to 0. This is the same default that merlin uses.

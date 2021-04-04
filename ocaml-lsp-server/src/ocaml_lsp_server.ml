@@ -25,7 +25,7 @@ let initialize_info : InitializeResult.t =
     `TextDocumentSyncOptions
       (TextDocumentSyncOptions.create ~openClose:true
          ~change:TextDocumentSyncKind.Incremental ~willSave:false
-         ~willSaveWaitUntil:false ())
+         ~save:(`Bool true) ~willSaveWaitUntil:false ())
   in
   let codeLensProvider = CodeLensOptions.create ~resolveProvider:false () in
   let completionProvider =
@@ -801,7 +801,20 @@ let on_notification server (notification : Client_notification.t) :
        after receiving this notification *)
     let configuration = Configuration.update state.configuration req in
     Fiber.return { state with configuration }
-  | DidSaveTextDocument _
+  | DidSaveTextDocument { textDocument = { uri }; _ } -> (
+    let open Fiber.O in
+    let state = Server.state server in
+    match Document_store.get_opt state.store uri with
+    | None ->
+      ( Log.log ~section:"on receive DidSaveTextDocument" @@ fun () ->
+        Log.msg "saved document is not in the store" [] );
+      Fiber.return state
+    | Some doc ->
+      (* we need new pipeline to get updated errors *)
+      let* doc = Document.doc_with_new_merlin_pipeline doc in
+      Document_store.put store doc;
+      let+ () = send_diagnostics server doc in
+      state)
   | WillSaveTextDocument _
   | ChangeWorkspaceFolders _
   | Initialized
