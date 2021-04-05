@@ -1,6 +1,6 @@
 open Import
 
-let action_kind = "annotate"
+let action_kind = "type-annotate"
 
 let check_typeable_context pipeline pos_start =
   let pos_start = Mpipeline.get_lexing_pos pipeline pos_start in
