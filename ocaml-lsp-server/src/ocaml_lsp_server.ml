@@ -511,8 +511,9 @@ let rename (state : State.t)
     in
     if documentChanges then
       let textDocument =
-        VersionedTextDocumentIdentifier.create ~uri ~version ()
+        OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
       in
+      let edits = List.map edits ~f:(fun e -> `TextEdit e) in
       WorkspaceEdit.create
         ~documentChanges:
           [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
@@ -818,7 +819,7 @@ let on_notification server (notification : Client_notification.t) :
       Fiber.return state
     | Ok prev_doc ->
       let open Fiber.O in
-      let* doc = Document.update_text ?version prev_doc contentChanges in
+      let* doc = Document.update_text ~version prev_doc contentChanges in
       Document_store.put store doc;
       let+ () = send_diagnostics server doc in
       state)

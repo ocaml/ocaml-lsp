@@ -4,6 +4,18 @@ open! Ts_types
 (* TypeScript to OCaml conversion pipeline. The goal of this pipeline is to do
    the conversion in logical stages. Unfortunately, this doesn't quite work *)
 
+let skipped_ts_decls =
+  [ "InitializedParams"
+  ; "NotificationMessage"
+  ; "RequestMessage"
+  ; "ResponseError"
+  ; "DocumentUri"
+  ; "ResponseMessage"
+  ; "Message"
+  ; "ErrorCodes"
+  ; "MarkedString"
+  ]
+
 (* The preprocessing stage maps over the typescript AST. It should only do very
    simple clean ups *)
 let preprocess =
@@ -13,10 +25,6 @@ let preprocess =
     in
     String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
   in
-  let module M = struct
-    exception Skip
-  end in
-  let open M in
   let traverse =
     object (self)
       inherit Resolved.map as super
@@ -47,6 +55,10 @@ let preprocess =
             let data = Resolved.Single { typ; optional } in
             super#field { x with data }
           | _ -> super#field x
+        else if x.name = "to" then
+          super#field { x with name = "to_" }
+        else if x.name = "external" then
+          super#field { x with name = "external_" }
         else
           super#field x
 
@@ -68,19 +80,8 @@ let preprocess =
 
       (* all toplevel declarations that we decide to skip *)
       method! t x =
-        match x.name with
-        | "InitializedParams"
-        | "NotificationMessage"
-        | "RequestMessage"
-        | "ResponseError"
-        | "ResponseMessage"
-        | "Message"
-        | "DocumentUri"
-        | "MarkedString" ->
-          raise_notrace Skip
-        | name ->
-          current_name <- Some name;
-          super#t x
+        current_name <- Some x.name;
+        super#t x
 
       method! interface i =
         (* we don't handle partial results or progress notifications params (for
@@ -109,9 +110,7 @@ let preprocess =
         super#interface { i with extends; fields }
     end
   in
-  fun i ->
-    try Some (traverse#t i) with
-    | Skip -> None
+  fun i -> traverse#t i
 
 module Expanded = struct
   (** The expanded form is still working with typescript types. However, all
@@ -172,7 +171,8 @@ module Expanded = struct
     | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
 
   let of_ts (r : Resolved.t) : t =
-    { Ml.Module.name = r.name; bindings = bindings r }
+    let name = String.capitalize_ascii r.name in
+    { Ml.Module.name; bindings = bindings r }
 end
 
 module Json : sig
@@ -632,6 +632,8 @@ end = struct
   let make_typ name t =
     let rec type_ (t : Resolved.typ) =
       match t with
+      | Ident Uinteger ->
+        Type.int (* XXX shall we use a dedicated uinteger eventually? *)
       | Ident Number -> Type.int
       | Ident String -> Type.string
       | Ident Bool -> Type.bool
@@ -695,6 +697,8 @@ end = struct
                  | Ident (Resolved r) -> (r.name, [ type_ t ])
                  | Tuple [ Ident Number; Ident Number ] ->
                    ("Offset", [ type_ t ])
+                 | Tuple [ Ident Uinteger; Ident Uinteger ] ->
+                   ("Offset", [ type_ t ])
                  | Literal (String x) -> (x, [])
                  | _ -> raise Exit
                in
@@ -755,10 +759,12 @@ end = struct
           super#field env f
 
         method! poly_variant env constrs =
-          let name = Option.value_exn env in
-          let replacement = Ml.Type.name name in
-          let constrs, m = self#fold_left_map ~f:(self#constr env) constrs in
-          (replacement, self#plus m [ { Named.name; data = constrs } ])
+          match env with
+          | None -> super#poly_variant env constrs
+          | Some name ->
+            let replacement = Ml.Type.name name in
+            let constrs, m = self#fold_left_map ~f:(self#constr env) constrs in
+            (replacement, self#plus m [ { Named.name; data = constrs } ])
       end
     in
     extract#decl None s
@@ -906,9 +912,16 @@ end = struct
             | None -> (typ_, [])
             | Some (f, typ_) -> (typ_, literal_wrapper f d.name)
           in
+          let json_convs_for_t =
+            match d.data with
+            | Alias (Poly_variant data) ->
+              poly_enum_conv { d with Named.data }
+              |> List.map ~f:(Named.map ~f:(fun v -> Ml.Module.Value v))
+            | _ -> []
+          in
           poly_vars_and_convs
           @ [ { typ_ with data = Ml.Module.Type_decl typ_.data } ]
-          @ Create.impl_of_type typ_ @ literal_wrapper)
+          @ json_convs_for_t @ Create.impl_of_type typ_ @ literal_wrapper)
     in
     let module_ bindings = { Ml.Module.name; bindings } in
     { Ml.Kind.intf = module_ intf; impl = module_ impl }
@@ -937,24 +950,26 @@ let of_typescript (ts : Resolved.t list) =
       [ ("cycle", Dyn.Encoder.(list string) cycle) ]
   | Ok ts ->
     List.filter_map ts ~f:(fun (t : Resolved.t) ->
-        match t.data with
-        | Enum_anon data ->
-          (* "open" enums need an `Other constructor *)
-          let allow_other = t.name = "CodeActionKind" in
-          let data =
-            List.filter_map data ~f:(fun (constr, v) ->
-                match v with
-                | Literal l -> Some (constr, l)
-                | Alias _ ->
-                  (* TODO we don't handle these for now *)
-                  None)
-          in
-          Some (Enum.module_ ~allow_other { t with data })
-        | _ ->
-          let open Option.O in
-          let+ pped = preprocess t in
-          let mod_ = Expanded.of_ts pped in
-          Gen.module_ mod_)
+        if List.mem skipped_ts_decls t.name ~equal:String.equal then
+          None
+        else
+          match t.data with
+          | Enum_anon data ->
+            (* "open" enums need an `Other constructor *)
+            let allow_other = t.name = "CodeActionKind" in
+            let data =
+              List.filter_map data ~f:(fun (constr, v) ->
+                  match v with
+                  | Literal l -> Some (constr, l)
+                  | Alias _ ->
+                    (* TODO we don't handle these for now *)
+                    None)
+            in
+            Some (Enum.module_ ~allow_other { t with data })
+          | _ ->
+            let pped = preprocess t in
+            let mod_ = Expanded.of_ts pped in
+            Some (Gen.module_ mod_))
 
 let output modules ~kind out =
   let open Ml.Kind in

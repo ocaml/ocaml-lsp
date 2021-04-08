@@ -3826,7 +3826,7 @@ export type TextDocumentContentChangeEvent = {
 	/**
 	 * The range of the document that changed.
 	 */
-	range: Range;
+	range?: Range;
 
 	/**
 	 * The optional length of the range that got replaced.
@@ -3839,12 +3839,7 @@ export type TextDocumentContentChangeEvent = {
 	 * The new text for the provided range.
 	 */
 	text: string;
-} | {
-	/**
-	 * The new text of the whole document.
-	 */
-	text: string;
-};
+}
 ```
 
 #### <a href="#textDocument_willSave" name="textDocument_willSave" class="anchor">WillSaveTextDocument Notification (:arrow_right:)</a>
@@ -7105,7 +7100,7 @@ export interface FoldingRange {
 	 * 'Fold all comments'. See [FoldingRangeKind](#FoldingRangeKind) for an
 	 * enumeration of standardized kinds.
 	 */
-	kind?: string;
+	kind?: FoldingRangeKind;
 }
 ```
 

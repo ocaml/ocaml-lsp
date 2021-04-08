@@ -122,7 +122,7 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
 let item index full_entry ~compl_info =
   let range, (entry : Query_protocol.Compl.entry) = full_entry in
   let kind = completion_kind entry.kind in
-  let textEdit = Some { TextEdit.range; newText = entry.name } in
+  let textEdit = Some (`TextEdit { TextEdit.range; newText = entry.name }) in
   CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
     ~deprecated:
       entry.deprecated

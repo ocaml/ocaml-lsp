@@ -61,6 +61,8 @@ module type S = sig
 
       method interface : interface -> interface
 
+      method enum_anon : Enum.t -> Enum.t
+
       method field : field -> field
 
       method t : t -> t
@@ -185,12 +187,14 @@ struct
         | Sum ts -> Sum (List.map ts ~f:self#typ)
         | Record ts -> Record (List.map ts ~f:self#field)
 
+      method enum_anon (t : Enum.t) = t
+
       method t (t : t) =
         let data =
           match t.data with
           | Interface i -> Interface (self#interface i)
           | Type t -> Type (self#typ t)
-          | Enum_anon _ -> t.data
+          | Enum_anon t -> Enum_anon (self#enum_anon t)
         in
         { t with data }
     end
@@ -220,6 +224,7 @@ module type Prim_intf = sig
     | String
     | Bool
     | Number
+    | Uinteger
     | Any
     | Object
     | List
@@ -238,6 +243,7 @@ struct
     | String
     | Bool
     | Number
+    | Uinteger
     | Any
     | Object
     | List
@@ -250,6 +256,7 @@ struct
     | "string" -> String
     | "boolean" -> Bool
     | "number" -> Number
+    | "uinteger" -> Uinteger
     | "any" -> Any
     | "array" -> List
     | "unknown"

@@ -60,6 +60,8 @@ module CompletionItem = CompletionItem
 module CompletionList = CompletionList
 module CompletionParams = CompletionParams
 module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
+module OptionalVersionedTextDocumentIdentifier =
+  OptionalVersionedTextDocumentIdentifier
 module TextDocumentEdit = TextDocumentEdit
 module FoldingRange = FoldingRange
 module SelectionRange = SelectionRange

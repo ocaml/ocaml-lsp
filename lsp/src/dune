@@ -9,5 +9,5 @@
   (pps ppx_yojson_conv)))
 
 (cinaps
- (files types.mli types.ml)
+ (files types.ml types.mli)
  (libraries lsp_gen))

@@ -8,6 +8,9 @@
   (progn
    (echo "let _3_15 = {spec|")
    (echo "%{read:specifications/specification-3-15.md}")
+   (echo "|spec}")
+   (echo "let _3_16 = {spec|")
+   (echo "%{read:specifications/specification-3-16.md}")
    (echo "|spec}"))))
 
 (executable
