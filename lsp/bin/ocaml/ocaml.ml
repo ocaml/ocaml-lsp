@@ -1,6 +1,11 @@
 open! Import
 open! Ts_types
 
+(* TypeScript to OCaml conversion pipeline. The goal of this pipeline is to do
+   the conversion in logical stages. Unfortunately, this doesn't quite work *)
+
+(* The preprocessing stage maps over the typescript AST. It should only do very
+   simple clean ups *)
 let preprocess =
   let union_fields l1 l2 ~f =
     let of_map =
@@ -46,6 +51,8 @@ let preprocess =
           super#field x
 
       method! typ x =
+        (* XXX what does this to? I don't see any sums of records in
+           TextDocumentContentChangeEvent *)
         match x with
         | Sum [ Resolved.Record f1; Record f2 ]
           when self#name = "TextDocumentContentChangeEvent" ->
@@ -59,6 +66,7 @@ let preprocess =
           super#typ t
         | t -> super#typ t
 
+      (* all toplevel declarations that we decide to skip *)
       method! t x =
         match x.name with
         | "InitializedParams"
@@ -74,6 +82,8 @@ let preprocess =
           super#t x
 
       method! interface i =
+        (* we don't handle partial results or progress notifications params (for
+           now) *)
         let extends =
           List.filter i.extends ~f:(fun x ->
               match x with
@@ -103,6 +113,10 @@ let preprocess =
     | Skip -> None
 
 module Expanded = struct
+  (** The expanded form is still working with typescript types. However, all
+      "anonymous" records and sums have been hoisted to the toplevel. So there
+      is a 1-1 correspondence to the OCaml typse we are going to generate *)
+
   [@@@ocaml.warning "-37"]
 
   type binding =
@@ -113,6 +127,7 @@ module Expanded = struct
 
   type t = binding Ml.Module.t
 
+  (** Every anonymous record *)
   let new_binding_of_typ (x : Resolved.typ) : binding option =
     match x with
     | Record [ { Named.name = _; data = Pattern _ } ] -> None
@@ -159,7 +174,23 @@ module Expanded = struct
     { Ml.Module.name = r.name; bindings = bindings r }
 end
 
-module Json = struct
+module Json : sig
+  val pat_of_literal : Literal.t -> Ml.Expr.pat
+
+  val json_error_pat : string -> Ml.Expr.pat * Ml.Expr.t
+
+  val of_json : name:string -> Ml.Expr.t -> Ml.Expr.toplevel Named.t
+
+  val to_json : name:string -> Ml.Expr.t -> Ml.Expr.toplevel Named.t
+
+  val constr_of_literal : Literal.t -> Ml.Expr.t
+
+  val is_json_constr : Ml.Type.constr -> bool
+
+  module Name : sig
+    val conv : [ `Of | `To ] -> string -> string
+  end
+end = struct
   let pat_of_literal (t : Literal.t) : Ml.Expr.pat =
     let open Ml.Expr in
     let tag, args =
@@ -216,7 +247,20 @@ module Json = struct
     { Named.name; data }
 end
 
-module Module = struct
+module Module : sig
+  open Ml
+
+  type t = (Module.sig_ Module.t, Module.impl Module.t) Kind.pair
+
+  val add_private_values : t -> Expr.toplevel Named.t list -> t
+
+  val type_decls : string -> Type.decl Named.t list Kind.Map.t -> t
+
+  val add_json_conv_for_t :
+    t -> (Module.sig_ Module.t, Module.impl Module.t) Kind.pair
+
+  val pp : t -> (unit Pp.t, unit Pp.t) Kind.pair
+end = struct
   module Module = Ml.Module
 
   type t = (Module.sig_ Module.t, Module.impl Module.t) Ml.Kind.pair
@@ -264,7 +308,12 @@ let pp_file pp ch =
   Pp.to_fmt fmt pp;
   Format.pp_print_flush fmt ()
 
-module Create = struct
+module Create : sig
+  (* Generate create functions with optional/labeled arguments *)
+  val intf_of_type : Ml.Type.decl Named.t -> Ml.Module.sig_ Named.t list
+
+  val impl_of_type : Ml.Type.decl Named.t -> Ml.Module.impl Named.t list
+end = struct
   let f_name name =
     if name = "t" then
       "create"
@@ -341,7 +390,20 @@ module Create = struct
     | _ -> []
 end
 
-module Enum = struct
+module Enum : sig
+  (* Convert simple enums to/from json *)
+
+  val conv :
+       allow_other:bool
+    -> poly:bool
+    -> (string * Literal.t) list Named.t
+    -> Ml.Expr.toplevel Named.t list
+
+  val module_ :
+       allow_other:bool
+    -> (string * Literal.t) list Named.t
+    -> (Ml.Module.sig_ Ml.Module.t, Ml.Module.impl Ml.Module.t) Ml.Kind.pair
+end = struct
   let of_json ~allow_other ~poly { Named.name; data = constrs } =
     let open Ml.Expr in
     let body =
@@ -523,7 +585,16 @@ module Poly_variant = struct
     Json.of_json ~name expr
 end
 
-module Mapper = struct
+module Mapper : sig
+  (* Convert typescript types to OCaml types *)
+
+  val make_typ : string -> Resolved.typ -> Ml.Type.t
+
+  val record_ : string -> Resolved.field list -> Ml.Type.decl Named.t
+
+  val extract_poly_vars :
+    Ml.Type.decl -> Ml.Type.decl * Ml.Type.constr list Named.t list
+end = struct
   module Type = Ml.Type
 
   let is_same_as_json =
@@ -543,6 +614,8 @@ module Mapper = struct
     in
     fun cs -> List.equal ( = ) constrs (sort cs)
 
+  (* Any type that includes null needs to be extracted to be converted to an
+     option *)
   let remove_null cs =
     let is_null x =
       match x with
@@ -589,6 +662,7 @@ module Mapper = struct
         | `Null_removed [] -> assert false
         | `Null_removed cs -> Type.Optional (sum cs)
     and simplify_record (fields : Resolved.field list) =
+      (* A record with only a pattern field is simplified to an association list *)
       match fields with
       | [ { Named.name = _; data = Pattern { pat; typ } } ] ->
         let key = type_ pat in
@@ -689,7 +763,9 @@ module Mapper = struct
     extract#decl None s
 end
 
-module Gen = struct
+module Gen : sig
+  val module_ : Expanded.binding Ml.Module.t -> Module.t
+end = struct
   module Type = Ml.Type
 
   let type_ { Named.name; data = typ } =
@@ -753,13 +829,15 @@ module Gen = struct
     | _ -> None
 
   let literal_wrapper ((field : Ml.Type.field), lit) name =
+    (* Some json representations require an extra "kind" field set to some
+       string constant *)
     let open Ml.Expr in
     let args = List.map ~f:(fun x -> Ml.Arg.Unnamed (Create x)) in
     let to_ =
       let a =
         [ String field.name
         ; String lit
-        ; Ident (Json.Name.to_ name)
+        ; Ident (Json.Name.conv `To name)
         ; Ident name
         ]
       in
@@ -770,7 +848,7 @@ module Gen = struct
         [ String name
         ; String field.name
         ; String lit
-        ; Ident (Json.Name.of_ name)
+        ; Ident (Json.Name.conv `Of name)
         ; Ident "json"
         ]
       in
@@ -835,6 +913,7 @@ module Gen = struct
     { Ml.Kind.intf = module_ intf; impl = module_ impl }
 end
 
+(* extract all resovled identifiers *)
 class idents =
   object
     inherit [Resolved.t list] Resolved.fold
@@ -851,11 +930,15 @@ let of_typescript (ts : Resolved.t list) =
       ~key:(fun (x : Resolved.t) -> x.name)
       ~deps:(fun (x : Resolved.t) -> (new idents)#t x ~init:[])
   with
-  | Error _ -> Code_error.raise "Unexpected cycle" []
+  | Error cycle ->
+    let cycle = List.map cycle ~f:(fun (x : Resolved.t) -> x.name) in
+    Code_error.raise "Unexpected cycle"
+      [ ("cycle", Dyn.Encoder.(list string) cycle) ]
   | Ok ts ->
     List.filter_map ts ~f:(fun (t : Resolved.t) ->
         match t.data with
         | Enum_anon data ->
+          (* "open" enums need an `Other constructor *)
           let allow_other = t.name = "CodeActionKind" in
           Some (Enum.module_ ~allow_other { t with data })
         | _ ->

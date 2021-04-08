@@ -1,4 +1,4 @@
-(** Generation ocaml code *)
+(** Helpers to generate OCaml code. Consider merging with ML *)
 
 open Import
 

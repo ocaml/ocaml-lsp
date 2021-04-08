@@ -1,3 +1,5 @@
+(* Representation of the typescript defined spec we're working with *)
+
 open Import
 
 module Literal = struct
@@ -12,6 +14,7 @@ module Enum = struct
 end
 
 module type S = sig
+  (** Kept abstract for resolved vs. unresolved trees *)
   type ident
 
   type field_def =
@@ -190,6 +193,7 @@ struct
 end
 
 module Unresolved = struct
+  (** In the unresolved AST, all identifiers are just strings *)
   include Make (String)
 
   let enum ~name ~constrs : Enum.t Named.t = { Named.name; data = constrs }

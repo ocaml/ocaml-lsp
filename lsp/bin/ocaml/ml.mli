@@ -1,3 +1,5 @@
+(** Representation of OCaml code used for generation *)
+
 open Import
 
 module Kind : sig
@@ -29,6 +31,8 @@ module Kind : sig
 end
 
 module Arg : sig
+  (** Represent arrow types and argument patterns *)
+
   type 'e t =
     | Unnamed of 'e
     | Labeled of string * 'e
@@ -119,12 +123,20 @@ module Type : sig
 
   val void : t
 
+  (** Fold and map over a type expression.
+
+      ['m] is the type of monoid summarized.
+
+      ['env] is a custom value threaded through the path. Parent nodes can use
+      this to give child nodes context *)
   class virtual ['env, 'm] mapreduce :
     object ('self)
       method virtual empty : 'm
 
       method virtual plus : 'm -> 'm -> 'm
 
+      (** doesn't really to be here, but putting it here avoids passing [empty]
+          and [plus] to a general purpose [fold_left_map]*)
       method private fold_left_map :
         'a. f:('a -> 'a * 'm) -> 'a list -> 'a list * 'm
 
@@ -163,8 +175,8 @@ module Type : sig
 end
 
 module Expr : sig
-  [@@@warning "-30"]
-
+  (** An (untyped) ocaml expression. It is the responsibility of the generator
+      to create well typed expressions *)
   type expr =
     | Let of pat * expr * expr
     | Match of expr * (pat * expr) list
@@ -173,6 +185,7 @@ module Expr : sig
     | Create of expr prim
     | Assert_false
 
+  (* patterns or constructors, depending on ['e] *)
   and 'e prim =
     | Unit
     | Bool of bool
@@ -186,29 +199,35 @@ module Expr : sig
     | Constr of 'e constr
 
   and pat =
-    | Wildcard
+    | Wildcard  (** [_ -> ] *)
     | Pat of pat prim
 
   and 'e record_ = (string * 'e) list
 
   and 'e constr =
-    { tag : string
-    ; poly : bool
+    { tag : string  (** the tag in a tagged union *)
+    ; poly : bool  (** polymorphic variant? *)
     ; args : 'e list
     }
 
   type t = expr
 
+  (** [ _ -> assert false ] *)
   val assert_false_clause : pat * expr
 
+  (** toplevel declartion (without the name) *)
   type toplevel =
     { pat : (string Arg.t * Type.t) list
-    ; type_ : Type.t
+          (** paterns and their types. types should be optional but they really
+              help the error messages if the generated code is incorrect *)
+    ; type_ : Type.t  (** useful to annotate the return types *)
     ; body : t
     }
 end
 
 module Module : sig
+  (** Generate OCaml modules with JS converters *)
+
   type 'a t =
     { name : string
     ; bindings : 'a Named.t list
