@@ -5,7 +5,6 @@ let action_kind = "inferred_intf"
 let code_action_of_intf uri intf range =
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range; newText = intf } in
-    let uri = Uri.to_string uri in
     WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
   let title = String.capitalize_ascii "Insert inferred interface" in

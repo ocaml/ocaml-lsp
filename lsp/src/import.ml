@@ -255,7 +255,7 @@ module Json = struct
   end
 
   module Assoc = struct
-    type ('a, 'b) t = ('a * 'b) list constraint 'a = string
+    type ('a, 'b) t = ('a * 'b) list
 
     let yojson_of_t f g xs =
       let f k =

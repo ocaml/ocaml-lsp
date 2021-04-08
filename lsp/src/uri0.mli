@@ -1,6 +1,8 @@
 open! Import
 
-include Json.Jsonable.S
+type t = private string
+
+include Json.Jsonable.S with type t := t
 
 val equal : t -> t -> bool
 

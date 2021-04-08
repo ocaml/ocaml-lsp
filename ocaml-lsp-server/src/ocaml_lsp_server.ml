@@ -79,7 +79,7 @@ let task_if_running (state : State.t) ~f =
 
 let send_diagnostics ?diagnostics rpc doc =
   let state : State.t = Server.state rpc in
-  let uri = Document.uri doc |> Lsp.Uri.to_string in
+  let uri = Document.uri doc in
   let create_diagnostic ?severity range message =
     Diagnostic.create ?severity ~range ~message ~source:"ocamllsp" ()
   in
@@ -182,7 +182,7 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
 let code_action (state : State.t) (params : CodeActionParams.t) =
   let open Fiber.Result.O in
   let store = state.store in
-  let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
+  let uri = params.textDocument.uri in
   let* doc = Fiber.return (Document_store.get store uri) in
   let code_action (kind, f) =
     match params.context.only with
@@ -279,7 +279,7 @@ let location_of_merlin_loc uri = function
              | None -> uri
              | Some path -> Uri.of_path path
            in
-           let locs = [ { Location.uri = Uri.to_string uri; range } ] in
+           let locs = [ { Location.uri; range } ] in
            `Location locs)
 
 let format_doc ~markdown ~doc =
@@ -342,7 +342,6 @@ let query_type doc pos =
 
 let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
   let store = state.store in
-  let uri = Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
   let pos = Position.logical position in
@@ -369,7 +368,6 @@ let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
 let signature_help (state : State.t)
     { SignatureHelpParams.textDocument = { uri }; position; context = _ } =
   let store = state.store in
-  let uri = Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
   let pos = Position.logical position in
@@ -427,7 +425,6 @@ let signature_help (state : State.t)
 
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri } } =
-  let uri = Uri.t_of_yojson (`String uri) in
   let store = state.store in
   let open Fiber.Result.O in
   let* doc = Fiber.return @@ Document_store.get store uri in
@@ -460,7 +457,6 @@ let text_document_lens (state : State.t)
 
 let folding_range (state : State.t)
     { FoldingRangeParams.textDocument = { uri } } =
-  let uri = Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let command = Query_protocol.Outline in
@@ -492,7 +488,6 @@ let folding_range (state : State.t)
 let rename (state : State.t)
     { RenameParams.textDocument = { uri }; position; newName } =
   let open Fiber.Result.O in
-  let uri = Uri.t_of_yojson (`String uri) in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let command =
     Query_protocol.Occurrences (`Ident_at (Position.logical position))
@@ -514,7 +509,6 @@ let rename (state : State.t)
          let* edit = workspace.workspaceEdit in
          edit.documentChanges)
     in
-    let uri = Uri.to_string uri in
     if documentChanges then
       let textDocument =
         VersionedTextDocumentIdentifier.create ~uri ~version ()
@@ -554,7 +548,6 @@ let selection_range (state : State.t)
     in
     nearest_range
   in
-  let uri = Uri.t_of_yojson (`String uri) in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let open Fiber.O in
@@ -570,7 +563,6 @@ let selection_range (state : State.t)
 let references (state : State.t)
     { ReferenceParams.textDocument = { uri }; position; context = _ } =
   let open Fiber.Result.O in
-  let uri = Uri.t_of_yojson (`String uri) in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let command =
     Query_protocol.Occurrences (`Ident_at (Position.logical position))
@@ -581,14 +573,12 @@ let references (state : State.t)
     List.map locs ~f:(fun loc ->
         let range = Range.of_loc loc in
         (* using original uri because merlin is looking only in local file *)
-        let uri = Uri.to_string uri in
         { Location.uri; range })
   in
   Ok (Some lsp_locs)
 
 let definition_query (state : State.t) uri position merlin_request =
   let open Fiber.Result.O in
-  let uri = Uri.t_of_yojson (`String uri) in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let position = Position.logical position in
   let command = merlin_request position in
@@ -600,7 +590,6 @@ let definition_query (state : State.t) uri position merlin_request =
 let highlight (state : State.t)
     { DocumentHighlightParams.textDocument = { uri }; position } =
   let open Fiber.Result.O in
-  let uri = Uri.t_of_yojson (`String uri) in
   let store = state.store in
   let* doc = Fiber.return (Document_store.get store uri) in
   let command =
@@ -618,7 +607,6 @@ let highlight (state : State.t)
   Ok (Some lsp_locs)
 
 let document_symbol (state : State.t) uri =
-  let uri = Uri.t_of_yojson (`String uri) in
   let store = state.store in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
@@ -654,7 +642,6 @@ let ocaml_on_request :
   | Client_request.Shutdown -> now ()
   | Client_request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
     -> (
-    let uri = Uri.t_of_yojson (`String uri) in
     match Document_store.get_opt store uri with
     | None -> now None
     | Some doc -> now (Some (Msource.text (Document.source doc))))
@@ -694,7 +681,6 @@ let ocaml_on_request :
       { textDocument = { uri }; position; context = _ } ->
     later
       (fun _ () ->
-        let uri = Uri.t_of_yojson (`String uri) in
         let open Fiber.Result.O in
         let* doc = Fiber.return (Document_store.get store uri) in
         let+ resp = Compl.complete doc position in
@@ -704,7 +690,6 @@ let ocaml_on_request :
       { textDocument = { uri }; position } ->
     later
       (fun _ () ->
-        let uri = Uri.t_of_yojson (`String uri) in
         let open Fiber.Result.O in
         let* doc = Fiber.return (Document_store.get store uri) in
         let command =
@@ -751,7 +736,6 @@ let ocaml_on_request :
     later
       (fun _ () ->
         let open Fiber.Result.O in
-        let uri = Uri.t_of_yojson (`String uri) in
         let* doc = Fiber.return (Document_store.get store uri) in
         Formatter.run rpc doc)
       ()
@@ -773,7 +757,7 @@ let on_request :
     let* td =
       Client_request.text_document req (fun ~meth:_ ~params:_ -> None)
     in
-    let uri = Uri.t_of_yojson (`String td.uri) in
+    let uri = td.uri in
     let+ doc = Document_store.get_opt store uri in
     Document.syntax doc
   in
@@ -821,7 +805,6 @@ let on_notification server (notification : Client_notification.t) :
     let+ () = send_diagnostics server doc in
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
-    let uri = Uri.t_of_yojson (`String uri) in
     let doc = Document_store.get_opt store uri in
     let open Fiber.O in
     let* () = send_diagnostics ~diagnostics:[] server (Option.value_exn doc) in
@@ -829,7 +812,6 @@ let on_notification server (notification : Client_notification.t) :
     state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges }
     -> (
-    let uri = Uri.t_of_yojson (`String uri) in
     match Document_store.get store uri with
     | Error e ->
       Format.eprintf "uri doesn't exist %s@.%!" e.message;

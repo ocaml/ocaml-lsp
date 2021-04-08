@@ -3,7 +3,7 @@ open Import
 module Resolve = struct
   type t = CompletionParams.t
 
-  let uri (t : t) = Uri.t_of_yojson (`String t.textDocument.uri)
+  let uri (t : t) = t.textDocument.uri
 
   let yojson_of_t = CompletionParams.yojson_of_t
 
@@ -167,9 +167,7 @@ let complete doc lsp_position =
               ; deprecated = false (* TODO this is wrong *)
               } ))
   in
-  let textDocument =
-    TextDocumentIdentifier.create ~uri:(Document.uri doc |> Lsp.Uri.to_string)
-  in
+  let textDocument = TextDocumentIdentifier.create ~uri:(Document.uri doc) in
   let compl_info =
     CompletionParams.create ~textDocument ~position:lsp_position ()
     |> CompletionParams.yojson_of_t

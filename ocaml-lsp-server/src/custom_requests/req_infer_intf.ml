@@ -7,9 +7,10 @@ let meth = "ocamllsp/inferIntf"
 let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
     =
   match params with
-  | Some (`List [ (`String (_ : DocumentUri.t) as json_uri) ]) -> (
+  | Some (`List [ json_uri ]) -> (
+    let json_uri = DocumentUri.t_of_yojson json_uri in
     let open Fiber.O in
-    match Document_store.get_opt state.store (Uri.t_of_yojson json_uri) with
+    match Document_store.get_opt state.store json_uri with
     | None ->
       Fiber.return
       @@ Error

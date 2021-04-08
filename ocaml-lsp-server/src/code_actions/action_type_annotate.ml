@@ -27,7 +27,6 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
   let newText = Printf.sprintf "(%s : %s)" original_text typ in
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
-    let uri = Uri.to_string uri in
     WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
   let title = String.capitalize_ascii action_kind in
@@ -36,7 +35,6 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
 
 let code_action doc (params : CodeActionParams.t) =
   let open Fiber.O in
-  let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
   let pos_start = Position.logical params.range.start in
   let+ res =
     Document.with_pipeline doc (fun pipeline ->
@@ -59,4 +57,6 @@ let code_action doc (params : CodeActionParams.t) =
   | Ok (Some ((_, `Index _, _) :: _)) ->
     Ok None
   | Ok (Some ((location, `String value, _) :: _)) ->
-    Ok (code_action_of_type_enclosing uri doc (location, value))
+    Ok
+      (code_action_of_type_enclosing params.textDocument.uri doc
+         (location, value))

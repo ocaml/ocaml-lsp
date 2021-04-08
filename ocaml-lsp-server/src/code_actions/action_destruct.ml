@@ -5,7 +5,6 @@ let action_kind = "destruct"
 let code_action_of_case_analysis uri (loc, newText) =
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
-    let uri = Uri.to_string uri in
     WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
   in
   let title = String.capitalize_ascii action_kind in
@@ -13,7 +12,7 @@ let code_action_of_case_analysis uri (loc, newText) =
     ~isPreferred:false ()
 
 let code_action doc (params : CodeActionParams.t) =
-  let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
+  let uri = params.textDocument.uri in
   match Document.kind doc with
   | Intf -> Fiber.return (Ok None)
   | Impl -> (
