@@ -699,8 +699,6 @@ end = struct
                  | Ident List ->
                    ("List", [ type_ t ])
                  | Ident (Resolved r) -> (r.name, [ type_ t ])
-                 | Tuple [ Ident Number; Ident Number ] ->
-                   ("Offset", [ type_ t ])
                  | Tuple [ Ident Uinteger; Ident Uinteger ] ->
                    ("Offset", [ type_ t ])
                  | Literal (String x) -> (x, [])
