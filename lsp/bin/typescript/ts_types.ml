@@ -248,6 +248,7 @@ struct
     | "number" -> Number
     | "any" -> Any
     | "array" -> List
+    | "unknown"
     | "object" -> Object
     | _ -> resolve s
 end
