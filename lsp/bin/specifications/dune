@@ -9,6 +9,15 @@
    3-15.errors
    (run ../gen.exe --out test --md %{deps}))))
 
+(rule
+ (alias runtest)
+ (mode promote)
+ (deps ./specification-3-16.md)
+ (action
+  (with-stdout-to
+   3-16.errors
+   (run ../gen.exe --out test --md %{deps}))))
+
 ; (rule
 ;  (alias runtest)
 ;  (mode promote)
