@@ -4,6 +4,8 @@ open! Ts_types
 (* TypeScript to OCaml conversion pipeline. The goal of this pipeline is to do
    the conversion in logical stages. Unfortunately, this doesn't quite work *)
 
+(* These declarations are all excluded because we don't support them or their
+   definitions are hand written *)
 let skipped_ts_decls =
   [ "InitializedParams"
   ; "NotificationMessage"
@@ -15,6 +17,13 @@ let skipped_ts_decls =
   ; "ErrorCodes"
   ; "MarkedString"
   ]
+
+(* Rename fields that don't adhere to OCaml's lexical conventions *)
+let renamed_fields = [ ("to", "to_"); ("external", "external_") ]
+
+(* Super classes to remove because we handle their concerns differently (or not
+   at all) *)
+let removed_super_classes = [ "WorkDoneProgressParams"; "PartialResultParams" ]
 
 (* The preprocessing stage maps over the typescript AST. It should only do very
    simple clean ups *)
@@ -37,30 +46,29 @@ let preprocess =
         | Some n -> n
 
       method! field x =
-        if x.name = "documentChanges" then
-          (* This gross hack is needed for the documentChanges field. We can
-             ignore the first constructor since it's completely representable
-             with the second one. *)
-          match x.data with
-          | Single
-              { typ =
-                  Sum
-                    [ Resolved.List
-                        (Ident
-                          (Resolved { Named.name = "TextDocumentEdit"; _ }))
-                    ; (List _ as typ)
-                    ]
-              ; optional
-              } ->
-            let data = Resolved.Single { typ; optional } in
-            super#field { x with data }
-          | _ -> super#field x
-        else if x.name = "to" then
-          super#field { x with name = "to_" }
-        else if x.name = "external" then
-          super#field { x with name = "external_" }
-        else
-          super#field x
+        match List.assoc renamed_fields x.name with
+        | Some name -> super#field { x with name }
+        | None ->
+          if x.name = "documentChanges" then
+            (* This gross hack is needed for the documentChanges field. We can
+               ignore the first constructor since it's completely representable
+               with the second one. *)
+            match x.data with
+            | Single
+                { typ =
+                    Sum
+                      [ Resolved.List
+                          (Ident
+                            (Resolved { Named.name = "TextDocumentEdit"; _ }))
+                      ; (List _ as typ)
+                      ]
+                ; optional
+                } ->
+              let data = Resolved.Single { typ; optional } in
+              super#field { x with data }
+            | _ -> super#field x
+          else
+            super#field x
 
       method! typ x =
         (* XXX what does this to? I don't see any sums of records in
@@ -89,12 +97,8 @@ let preprocess =
         let extends =
           List.filter i.extends ~f:(fun x ->
               match x with
-              | Prim.Resolved r -> (
-                match r.name with
-                | "WorkDoneProgressParams"
-                | "PartialResultParams" ->
-                  false
-                | _ -> true)
+              | Prim.Resolved r ->
+                not (List.mem removed_super_classes r.name ~equal:String.equal)
               | _ -> true)
         in
         let fields =
