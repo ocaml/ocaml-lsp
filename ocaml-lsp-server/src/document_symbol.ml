@@ -23,10 +23,7 @@ let rec symbol item =
     ~selectionRange:range ~children ()
 
 let rec symbol_info ?containerName uri item =
-  let location =
-    let uri = Uri.to_string uri in
-    { Location.uri; range = range item }
-  in
+  let location = { Location.uri; range = range item } in
   let info =
     let kind = outline_kind item.outline_kind in
     SymbolInformation.create ~name:item.Query_protocol.outline_name ~kind

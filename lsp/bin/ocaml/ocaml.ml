@@ -75,6 +75,7 @@ let preprocess =
         | "ResponseError"
         | "ResponseMessage"
         | "Message"
+        | "DocumentUri"
         | "MarkedString" ->
           raise_notrace Skip
         | name ->

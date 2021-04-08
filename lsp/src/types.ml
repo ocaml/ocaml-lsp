@@ -25,6 +25,8 @@ module MarkedString = struct
     | _ -> Json.error "invalid MarkedString" json
 end
 
+module DocumentUri = Uri0
+
 (*$ Lsp_gen.print_ml () *)
 
 module DeleteFileOptions = struct
@@ -139,22 +141,6 @@ module DeleteFileOptions = struct
   let create ?(recursive : bool option) ?(ignoreIfNotExists : bool option)
       (() : unit) : t =
     { recursive; ignoreIfNotExists }
-end
-
-module DocumentUri = struct
-  type t = string [@@deriving_inline yojson]
-
-  let _ = fun (_ : t) -> ()
-
-  let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
-  let _ = t_of_yojson
-
-  let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
-  let _ = yojson_of_t
-
-  [@@@end]
 end
 
 module DeleteFile = struct

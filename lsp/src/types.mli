@@ -9,6 +9,8 @@ module MarkedString : sig
   include Json.Jsonable.S with type t := t
 end
 
+module DocumentUri : module type of Uri0 with type t = Uri0.t
+
 (*$ Lsp_gen.print_mli () *)
 
 module DeleteFileOptions : sig
@@ -20,12 +22,6 @@ module DeleteFileOptions : sig
   include Json.Jsonable.S with type t := t
 
   val create : ?recursive:bool -> ?ignoreIfNotExists:bool -> unit -> t
-end
-
-module DocumentUri : sig
-  type t = string
-
-  include Json.Jsonable.S with type t := t
 end
 
 module DeleteFile : sig
