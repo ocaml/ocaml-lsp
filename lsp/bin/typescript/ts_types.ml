@@ -10,7 +10,11 @@ module Literal = struct
 end
 
 module Enum = struct
-  type t = (string * Literal.t) list
+  type case =
+    | Literal of Literal.t
+    | Alias of string
+
+  type t = (string * case) list
 end
 
 module type S = sig
@@ -249,7 +253,8 @@ struct
     | "any" -> Any
     | "array" -> List
     | "unknown"
-    | "object" -> Object
+    | "object" ->
+      Object
     | _ -> resolve s
 end
 

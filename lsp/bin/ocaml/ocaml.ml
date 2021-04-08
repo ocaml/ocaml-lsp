@@ -941,6 +941,14 @@ let of_typescript (ts : Resolved.t list) =
         | Enum_anon data ->
           (* "open" enums need an `Other constructor *)
           let allow_other = t.name = "CodeActionKind" in
+          let data =
+            List.filter_map data ~f:(fun (constr, v) ->
+                match v with
+                | Literal l -> Some (constr, l)
+                | Alias _ ->
+                  (* TODO we don't handle these for now *)
+                  None)
+          in
           Some (Enum.module_ ~allow_other { t with data })
         | _ ->
           let open Option.O in
