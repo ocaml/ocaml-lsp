@@ -586,9 +586,7 @@ module Module = struct
     let bindings =
       Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data } ->
           match (data : sig_) with
-          | Value t ->
-            Pp.concat
-              [ Pp.textf "val %s :" name; Pp.space; Type.pp ~kind:Intf t ]
+          | Value t -> W.Sig.val_ name [ Type.pp ~kind:Intf t ]
           | Type_decl t ->
             Pp.concat
               [ Pp.textf "type %s =" name

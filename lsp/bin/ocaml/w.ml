@@ -23,12 +23,6 @@ let surround delim a =
   in
   Pp.concat [ start; a; finish ]
 
-module Name = struct
-  let to_json t = sprintf "yojson_of_%s" t
-
-  let of_json t = sprintf "%s_of_yojson" t
-end
-
 module Json = struct
   let invalid_pat name =
     (ident "json", Pp.textf "Json.error \"invalid %s\" json" name)
@@ -198,14 +192,6 @@ module Sig = struct
     Pp.concat [ textf "val %s : " name; b; Pp.newline ]
 
   let assoc k v = Pp.concat [ Type.tuple [ k; v ]; Pp.space; i "list" ]
-
-  module Json = struct
-    let arr typ = [ i typ; i Json.typ ]
-
-    let to_json typ = val_ (Name.to_json typ) (arr typ)
-
-    let of_json typ = val_ (Name.of_json typ) (List.rev (arr typ))
-  end
 end
 
 let warnings codes = seq (textf "[@@@warning %S]" codes) newline

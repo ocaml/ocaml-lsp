@@ -82,14 +82,6 @@ module Sig : sig
   val val_ : string -> w list -> w
 
   val assoc : w -> w -> w
-
-  module Json : sig
-    val arr : string -> w list
-
-    val to_json : string -> w
-
-    val of_json : string -> w
-  end
 end
 
 val warnings : string -> w
