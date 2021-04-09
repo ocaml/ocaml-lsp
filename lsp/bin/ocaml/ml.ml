@@ -587,12 +587,7 @@ module Module = struct
       Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data } ->
           match (data : sig_) with
           | Value t -> W.Sig.val_ name [ Type.pp ~kind:Intf t ]
-          | Type_decl t ->
-            Pp.concat
-              [ Pp.textf "type %s =" name
-              ; Pp.space
-              ; Type.pp_decl' ~kind:Intf t
-              ]
+          | Type_decl t -> W.Type.decl name (Type.pp_decl' ~kind:Intf t)
           | Json_conv_sig ->
             Pp.textf "include Json.Jsonable.S with type t := %s" name)
     in
@@ -602,11 +597,8 @@ module Module = struct
     let bindings =
       Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data = v } ->
           match v with
-          | Type_decl t ->
-            let lhs = Pp.textf "type %s =" name in
-            let rhs = Type.pp_decl' ~kind:Impl t in
-            Pp.concat [ lhs; Pp.space; rhs ]
-          | Value decl -> Expr.pp_toplevel ~kind:Impl name decl)
+          | Value decl -> Expr.pp_toplevel ~kind:Impl name decl
+          | Type_decl t -> W.Type.decl name (Type.pp_decl' ~kind:Impl t))
     in
     W.module_ (name :> string) bindings
 end
