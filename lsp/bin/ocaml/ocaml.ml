@@ -560,7 +560,8 @@ end = struct
         in
         let constrs =
           if allow_other then
-            (* [String] is a hack but it doesn't matter *)
+            (* [String] is a hack. It could be a differnt type, but it isn't in
+               practice *)
             constrs @ [ Ml.Type.constr ~name:"Other" [ Ml.Type.Prim String ] ]
           else
             constrs
@@ -1044,28 +1045,38 @@ let of_typescript (ts : Resolved.t list) =
     Code_error.raise "Unexpected cycle"
       [ ("cycle", Dyn.Encoder.(list string) cycle) ]
   | Ok ts ->
-    List.filter_map ts ~f:(fun (t : Resolved.t) ->
-        if List.mem skipped_ts_decls t.name ~equal:String.equal then
-          None
-        else
-          match t.data with
-          | Enum_anon data ->
-            (* "open" enums need an `Other constructor *)
-            let allow_other = t.name = "CodeActionKind" in
-            let data =
-              List.filter_map data ~f:(fun (constr, v) ->
-                  match v with
-                  | Literal l -> Some (constr, l)
-                  | Alias _ ->
-                    (* TODO we don't handle these for now *)
-                    None)
-            in
-            Some (Enum.module_ ~allow_other { t with data })
-          | Interface _
-          | Type _ ->
-            let pped = preprocess t in
-            let mod_ = Expanded.of_ts pped in
-            Some (Gen.module_ mod_))
+    let simple_enums, everything_else =
+      List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
+          if List.mem skipped_ts_decls t.name ~equal:String.equal then
+            Skip
+          else
+            match t.data with
+            | Enum_anon data -> Left { t with data }
+            | Interface _
+            | Type _ ->
+              Right t)
+    in
+    let simple_enums =
+      List.map simple_enums ~f:(fun (t : _ Named.t) ->
+          (* "open" enums need an `Other constructor *)
+          let allow_other = t.name = "CodeActionKind" in
+          let data =
+            List.filter_map t.data ~f:(fun (constr, v) ->
+                match (v : Ts_types.Enum.case) with
+                | Literal l -> Some (constr, l)
+                | Alias _ ->
+                  (* TODO we don't handle these for now *)
+                  None)
+          in
+          Enum.module_ ~allow_other { t with data })
+    in
+    let everything_else =
+      List.map everything_else ~f:(fun (t : _ Named.t) ->
+          let pped = preprocess t in
+          let mod_ = Expanded.of_ts pped in
+          Gen.module_ mod_)
+    in
+    simple_enums @ everything_else
     |> List.map ~f:(fun decl ->
            Module.add_json_conv_for_t decl |> Module.use_json_conv_types)
 

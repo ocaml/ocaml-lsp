@@ -28,6 +28,664 @@ end
 module DocumentUri = Uri0
 
 (*$ Lsp_gen.print_ml () *)
+module SymbolTag = struct
+  type t = Deprecated
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Deprecated -> `Int 1
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Deprecated
+    | _ -> Json.error "t" json
+end
+
+module SymbolKind = struct
+  type t =
+    | File
+    | Module
+    | Namespace
+    | Package
+    | Class
+    | Method
+    | Property
+    | Field
+    | Constructor
+    | Enum
+    | Interface
+    | Function
+    | Variable
+    | Constant
+    | String
+    | Number
+    | Boolean
+    | Array
+    | Object
+    | Key
+    | Null
+    | EnumMember
+    | Struct
+    | Event
+    | Operator
+    | TypeParameter
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | File -> `Int 1
+    | Module -> `Int 2
+    | Namespace -> `Int 3
+    | Package -> `Int 4
+    | Class -> `Int 5
+    | Method -> `Int 6
+    | Property -> `Int 7
+    | Field -> `Int 8
+    | Constructor -> `Int 9
+    | Enum -> `Int 10
+    | Interface -> `Int 11
+    | Function -> `Int 12
+    | Variable -> `Int 13
+    | Constant -> `Int 14
+    | String -> `Int 15
+    | Number -> `Int 16
+    | Boolean -> `Int 17
+    | Array -> `Int 18
+    | Object -> `Int 19
+    | Key -> `Int 20
+    | Null -> `Int 21
+    | EnumMember -> `Int 22
+    | Struct -> `Int 23
+    | Event -> `Int 24
+    | Operator -> `Int 25
+    | TypeParameter -> `Int 26
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> File
+    | `Int 2 -> Module
+    | `Int 3 -> Namespace
+    | `Int 4 -> Package
+    | `Int 5 -> Class
+    | `Int 6 -> Method
+    | `Int 7 -> Property
+    | `Int 8 -> Field
+    | `Int 9 -> Constructor
+    | `Int 10 -> Enum
+    | `Int 11 -> Interface
+    | `Int 12 -> Function
+    | `Int 13 -> Variable
+    | `Int 14 -> Constant
+    | `Int 15 -> String
+    | `Int 16 -> Number
+    | `Int 17 -> Boolean
+    | `Int 18 -> Array
+    | `Int 19 -> Object
+    | `Int 20 -> Key
+    | `Int 21 -> Null
+    | `Int 22 -> EnumMember
+    | `Int 23 -> Struct
+    | `Int 24 -> Event
+    | `Int 25 -> Operator
+    | `Int 26 -> TypeParameter
+    | _ -> Json.error "t" json
+end
+
+module TokenFormat = struct
+  type t = Relative
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Relative -> `String "relative"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "relative" -> Relative
+    | _ -> Json.error "t" json
+end
+
+module DiagnosticTag = struct
+  type t =
+    | Unnecessary
+    | Deprecated
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Unnecessary -> `Int 1
+    | Deprecated -> `Int 2
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Unnecessary
+    | `Int 2 -> Deprecated
+    | _ -> Json.error "t" json
+end
+
+module PrepareSupportDefaultBehavior = struct
+  type t = Identifier
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Identifier -> `Int 1
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Identifier
+    | _ -> Json.error "t" json
+end
+
+module CodeActionKind = struct
+  type t =
+    | Empty
+    | QuickFix
+    | Refactor
+    | RefactorExtract
+    | RefactorInline
+    | RefactorRewrite
+    | Source
+    | SourceOrganizeImports
+    | Other of string
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Empty -> `String ""
+    | QuickFix -> `String "quickfix"
+    | Refactor -> `String "refactor"
+    | RefactorExtract -> `String "refactor.extract"
+    | RefactorInline -> `String "refactor.inline"
+    | RefactorRewrite -> `String "refactor.rewrite"
+    | Source -> `String "source"
+    | SourceOrganizeImports -> `String "source.organizeImports"
+    | Other s -> `String s
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "" -> Empty
+    | `String "quickfix" -> QuickFix
+    | `String "refactor" -> Refactor
+    | `String "refactor.extract" -> RefactorExtract
+    | `String "refactor.inline" -> RefactorInline
+    | `String "refactor.rewrite" -> RefactorRewrite
+    | `String "source" -> Source
+    | `String "source.organizeImports" -> SourceOrganizeImports
+    | `String s -> Other s
+    | _ -> Json.error "t" json
+end
+
+module MarkupKind = struct
+  type t =
+    | PlainText
+    | Markdown
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | PlainText -> `String "plaintext"
+    | Markdown -> `String "markdown"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "plaintext" -> PlainText
+    | `String "markdown" -> Markdown
+    | _ -> Json.error "t" json
+end
+
+module CompletionItemKind = struct
+  type t =
+    | Text
+    | Method
+    | Function
+    | Constructor
+    | Field
+    | Variable
+    | Class
+    | Interface
+    | Module
+    | Property
+    | Unit
+    | Value
+    | Enum
+    | Keyword
+    | Snippet
+    | Color
+    | File
+    | Reference
+    | Folder
+    | EnumMember
+    | Constant
+    | Struct
+    | Event
+    | Operator
+    | TypeParameter
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Text -> `Int 1
+    | Method -> `Int 2
+    | Function -> `Int 3
+    | Constructor -> `Int 4
+    | Field -> `Int 5
+    | Variable -> `Int 6
+    | Class -> `Int 7
+    | Interface -> `Int 8
+    | Module -> `Int 9
+    | Property -> `Int 10
+    | Unit -> `Int 11
+    | Value -> `Int 12
+    | Enum -> `Int 13
+    | Keyword -> `Int 14
+    | Snippet -> `Int 15
+    | Color -> `Int 16
+    | File -> `Int 17
+    | Reference -> `Int 18
+    | Folder -> `Int 19
+    | EnumMember -> `Int 20
+    | Constant -> `Int 21
+    | Struct -> `Int 22
+    | Event -> `Int 23
+    | Operator -> `Int 24
+    | TypeParameter -> `Int 25
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Text
+    | `Int 2 -> Method
+    | `Int 3 -> Function
+    | `Int 4 -> Constructor
+    | `Int 5 -> Field
+    | `Int 6 -> Variable
+    | `Int 7 -> Class
+    | `Int 8 -> Interface
+    | `Int 9 -> Module
+    | `Int 10 -> Property
+    | `Int 11 -> Unit
+    | `Int 12 -> Value
+    | `Int 13 -> Enum
+    | `Int 14 -> Keyword
+    | `Int 15 -> Snippet
+    | `Int 16 -> Color
+    | `Int 17 -> File
+    | `Int 18 -> Reference
+    | `Int 19 -> Folder
+    | `Int 20 -> EnumMember
+    | `Int 21 -> Constant
+    | `Int 22 -> Struct
+    | `Int 23 -> Event
+    | `Int 24 -> Operator
+    | `Int 25 -> TypeParameter
+    | _ -> Json.error "t" json
+end
+
+module InsertTextMode = struct
+  type t =
+    | AsIs
+    | AdjustIndentation
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | AsIs -> `Int 1
+    | AdjustIndentation -> `Int 2
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> AsIs
+    | `Int 2 -> AdjustIndentation
+    | _ -> Json.error "t" json
+end
+
+module CompletionItemTag = struct
+  type t = Deprecated
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Deprecated -> `Int 1
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Deprecated
+    | _ -> Json.error "t" json
+end
+
+module FailureHandlingKind = struct
+  type t =
+    | Abort
+    | Transactional
+    | TextOnlyTransactional
+    | Undo
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Abort -> `String "abort"
+    | Transactional -> `String "transactional"
+    | TextOnlyTransactional -> `String "textOnlyTransactional"
+    | Undo -> `String "undo"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "abort" -> Abort
+    | `String "transactional" -> Transactional
+    | `String "textOnlyTransactional" -> TextOnlyTransactional
+    | `String "undo" -> Undo
+    | _ -> Json.error "t" json
+end
+
+module ResourceOperationKind = struct
+  type t =
+    | Create
+    | Rename
+    | Delete
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Create -> `String "create"
+    | Rename -> `String "rename"
+    | Delete -> `String "delete"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "create" -> Create
+    | `String "rename" -> Rename
+    | `String "delete" -> Delete
+    | _ -> Json.error "t" json
+end
+
+module DiagnosticSeverity = struct
+  type t =
+    | Error
+    | Warning
+    | Information
+    | Hint
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Error -> `Int 1
+    | Warning -> `Int 2
+    | Information -> `Int 3
+    | Hint -> `Int 4
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Error
+    | `Int 2 -> Warning
+    | `Int 3 -> Information
+    | `Int 4 -> Hint
+    | _ -> Json.error "t" json
+end
+
+module CompletionTriggerKind = struct
+  type t =
+    | Invoked
+    | TriggerCharacter
+    | TriggerForIncompleteCompletions
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Invoked -> `Int 1
+    | TriggerCharacter -> `Int 2
+    | TriggerForIncompleteCompletions -> `Int 3
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Invoked
+    | `Int 2 -> TriggerCharacter
+    | `Int 3 -> TriggerForIncompleteCompletions
+    | _ -> Json.error "t" json
+end
+
+module InsertTextFormat = struct
+  type t =
+    | PlainText
+    | Snippet
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | PlainText -> `Int 1
+    | Snippet -> `Int 2
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> PlainText
+    | `Int 2 -> Snippet
+    | _ -> Json.error "t" json
+end
+
+module DocumentHighlightKind = struct
+  type t =
+    | Text
+    | Read
+    | Write
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Text -> `Int 1
+    | Read -> `Int 2
+    | Write -> `Int 3
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Text
+    | `Int 2 -> Read
+    | `Int 3 -> Write
+    | _ -> Json.error "t" json
+end
+
+module FileChangeType = struct
+  type t =
+    | Created
+    | Changed
+    | Deleted
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Created -> `Int 1
+    | Changed -> `Int 2
+    | Deleted -> `Int 3
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Created
+    | `Int 2 -> Changed
+    | `Int 3 -> Deleted
+    | _ -> Json.error "t" json
+end
+
+module FileOperationPatternKind = struct
+  type t =
+    | File
+    | Folder
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | File -> `String "file"
+    | Folder -> `String "folder"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "file" -> File
+    | `String "folder" -> Folder
+    | _ -> Json.error "t" json
+end
+
+module FoldingRangeKind = struct
+  type t =
+    | Comment
+    | Imports
+    | Region
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Comment -> `String "comment"
+    | Imports -> `String "imports"
+    | Region -> `String "region"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "comment" -> Comment
+    | `String "imports" -> Imports
+    | `String "region" -> Region
+    | _ -> Json.error "t" json
+end
+
+module InitializeError = struct
+  type t = UnknownProtocolVersion
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | UnknownProtocolVersion -> `Int 1
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> UnknownProtocolVersion
+    | _ -> Json.error "t" json
+end
+
+module TextDocumentSyncKind = struct
+  type t =
+    | None
+    | Full
+    | Incremental
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | None -> `Int 0
+    | Full -> `Int 1
+    | Incremental -> `Int 2
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 0 -> None
+    | `Int 1 -> Full
+    | `Int 2 -> Incremental
+    | _ -> Json.error "t" json
+end
+
+module MessageType = struct
+  type t =
+    | Error
+    | Warning
+    | Info
+    | Log
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Error -> `Int 1
+    | Warning -> `Int 2
+    | Info -> `Int 3
+    | Log -> `Int 4
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Error
+    | `Int 2 -> Warning
+    | `Int 3 -> Info
+    | `Int 4 -> Log
+    | _ -> Json.error "t" json
+end
+
+module MonikerKind = struct
+  type t =
+    | Import
+    | Export
+    | Local
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Import -> `String "import"
+    | Export -> `String "export"
+    | Local -> `String "local"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "import" -> Import
+    | `String "export" -> Export
+    | `String "local" -> Local
+    | _ -> Json.error "t" json
+end
+
+module UniquenessLevel = struct
+  type t =
+    | Document
+    | Project
+    | Group
+    | Scheme
+    | Global
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Document -> `String "document"
+    | Project -> `String "project"
+    | Group -> `String "group"
+    | Scheme -> `String "scheme"
+    | Global -> `String "global"
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "document" -> Document
+    | `String "project" -> Project
+    | `String "group" -> Group
+    | `String "scheme" -> Scheme
+    | `String "global" -> Global
+    | _ -> Json.error "t" json
+end
+
+module SignatureHelpTriggerKind = struct
+  type t =
+    | Invoked
+    | TriggerCharacter
+    | ContentChange
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Invoked -> `Int 1
+    | TriggerCharacter -> `Int 2
+    | ContentChange -> `Int 3
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Invoked
+    | `Int 2 -> TriggerCharacter
+    | `Int 3 -> ContentChange
+    | _ -> Json.error "t" json
+end
+
+module TextDocumentSaveReason = struct
+  type t =
+    | Manual
+    | AfterDelay
+    | FocusOut
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Manual -> `Int 1
+    | AfterDelay -> `Int 2
+    | FocusOut -> `Int 3
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Manual
+    | `Int 2 -> AfterDelay
+    | `Int 3 -> FocusOut
+    | _ -> Json.error "t" json
+end
+
+module WatchKind = struct
+  type t =
+    | Create
+    | Change
+    | Delete
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Create -> `Int 1
+    | Change -> `Int 2
+    | Delete -> `Int 4
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `Int 1 -> Create
+    | `Int 2 -> Change
+    | `Int 4 -> Delete
+    | _ -> Json.error "t" json
+end
+
 module ChangeAnnotationIdentifier = struct
   type t = string [@@deriving_inline yojson]
 
@@ -2275,108 +2933,6 @@ module CallHierarchyClientCapabilities = struct
 
   let create ?(dynamicRegistration : bool option) (() : unit) : t =
     { dynamicRegistration }
-end
-
-module SymbolTag = struct
-  type t = Deprecated
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Deprecated -> `Int 1
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Deprecated
-    | _ -> Json.error "t" json
-end
-
-module SymbolKind = struct
-  type t =
-    | File
-    | Module
-    | Namespace
-    | Package
-    | Class
-    | Method
-    | Property
-    | Field
-    | Constructor
-    | Enum
-    | Interface
-    | Function
-    | Variable
-    | Constant
-    | String
-    | Number
-    | Boolean
-    | Array
-    | Object
-    | Key
-    | Null
-    | EnumMember
-    | Struct
-    | Event
-    | Operator
-    | TypeParameter
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | File -> `Int 1
-    | Module -> `Int 2
-    | Namespace -> `Int 3
-    | Package -> `Int 4
-    | Class -> `Int 5
-    | Method -> `Int 6
-    | Property -> `Int 7
-    | Field -> `Int 8
-    | Constructor -> `Int 9
-    | Enum -> `Int 10
-    | Interface -> `Int 11
-    | Function -> `Int 12
-    | Variable -> `Int 13
-    | Constant -> `Int 14
-    | String -> `Int 15
-    | Number -> `Int 16
-    | Boolean -> `Int 17
-    | Array -> `Int 18
-    | Object -> `Int 19
-    | Key -> `Int 20
-    | Null -> `Int 21
-    | EnumMember -> `Int 22
-    | Struct -> `Int 23
-    | Event -> `Int 24
-    | Operator -> `Int 25
-    | TypeParameter -> `Int 26
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> File
-    | `Int 2 -> Module
-    | `Int 3 -> Namespace
-    | `Int 4 -> Package
-    | `Int 5 -> Class
-    | `Int 6 -> Method
-    | `Int 7 -> Property
-    | `Int 8 -> Field
-    | `Int 9 -> Constructor
-    | `Int 10 -> Enum
-    | `Int 11 -> Interface
-    | `Int 12 -> Function
-    | `Int 13 -> Variable
-    | `Int 14 -> Constant
-    | `Int 15 -> String
-    | `Int 16 -> Number
-    | `Int 17 -> Boolean
-    | `Int 18 -> Array
-    | `Int 19 -> Object
-    | `Int 20 -> Key
-    | `Int 21 -> Null
-    | `Int 22 -> EnumMember
-    | `Int 23 -> Struct
-    | `Int 24 -> Event
-    | `Int 25 -> Operator
-    | `Int 26 -> TypeParameter
-    | _ -> Json.error "t" json
 end
 
 module CallHierarchyItem = struct
@@ -4674,19 +5230,6 @@ module MonikerClientCapabilities = struct
     { dynamicRegistration }
 end
 
-module TokenFormat = struct
-  type t = Relative
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Relative -> `String "relative"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "relative" -> Relative
-    | _ -> Json.error "t" json
-end
-
 module SemanticTokensClientCapabilities = struct
   type requests =
     { range : unit Json.Nullable_option.t
@@ -5370,23 +5913,6 @@ module FoldingRangeClientCapabilities = struct
     { dynamicRegistration; rangeLimit; lineFoldingOnly }
 end
 
-module DiagnosticTag = struct
-  type t =
-    | Unnecessary
-    | Deprecated
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Unnecessary -> `Int 1
-    | Deprecated -> `Int 2
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Unnecessary
-    | `Int 2 -> Deprecated
-    | _ -> Json.error "t" json
-end
-
 module PublishDiagnosticsClientCapabilities = struct
   type tagSupport = { valueSet : DiagnosticTag.t list }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -5680,19 +6206,6 @@ module PublishDiagnosticsClientCapabilities = struct
     ; codeDescriptionSupport
     ; dataSupport
     }
-end
-
-module PrepareSupportDefaultBehavior = struct
-  type t = Identifier
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Identifier -> `Int 1
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Identifier
-    | _ -> Json.error "t" json
 end
 
 module RenameClientCapabilities = struct
@@ -6441,44 +6954,6 @@ module CodeLensClientCapabilities = struct
 
   let create ?(dynamicRegistration : bool option) (() : unit) : t =
     { dynamicRegistration }
-end
-
-module CodeActionKind = struct
-  type t =
-    | Empty
-    | QuickFix
-    | Refactor
-    | RefactorExtract
-    | RefactorInline
-    | RefactorRewrite
-    | Source
-    | SourceOrganizeImports
-    | Other of string
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Empty -> `String ""
-    | QuickFix -> `String "quickfix"
-    | Refactor -> `String "refactor"
-    | RefactorExtract -> `String "refactor.extract"
-    | RefactorInline -> `String "refactor.inline"
-    | RefactorRewrite -> `String "refactor.rewrite"
-    | Source -> `String "source"
-    | SourceOrganizeImports -> `String "source.organizeImports"
-    | Other s -> `String s
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "" -> Empty
-    | `String "quickfix" -> QuickFix
-    | `String "refactor" -> Refactor
-    | `String "refactor.extract" -> RefactorExtract
-    | `String "refactor.inline" -> RefactorInline
-    | `String "refactor.rewrite" -> RefactorRewrite
-    | `String "source" -> Source
-    | `String "source.organizeImports" -> SourceOrganizeImports
-    | `String s -> Other s
-    | _ -> Json.error "t" json
 end
 
 module CodeActionClientCapabilities = struct
@@ -8030,23 +8505,6 @@ module DeclarationClientCapabilities = struct
     { dynamicRegistration; linkSupport }
 end
 
-module MarkupKind = struct
-  type t =
-    | PlainText
-    | Markdown
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | PlainText -> `String "plaintext"
-    | Markdown -> `String "markdown"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "plaintext" -> PlainText
-    | `String "markdown" -> Markdown
-    | _ -> Json.error "t" json
-end
-
 module SignatureHelpClientCapabilities = struct
   type parameterInformation =
     { labelOffsetSupport : bool Json.Nullable_option.t
@@ -8563,122 +9021,6 @@ module HoverClientCapabilities = struct
   let create ?(dynamicRegistration : bool option)
       ?(contentFormat : MarkupKind.t list option) (() : unit) : t =
     { dynamicRegistration; contentFormat }
-end
-
-module CompletionItemKind = struct
-  type t =
-    | Text
-    | Method
-    | Function
-    | Constructor
-    | Field
-    | Variable
-    | Class
-    | Interface
-    | Module
-    | Property
-    | Unit
-    | Value
-    | Enum
-    | Keyword
-    | Snippet
-    | Color
-    | File
-    | Reference
-    | Folder
-    | EnumMember
-    | Constant
-    | Struct
-    | Event
-    | Operator
-    | TypeParameter
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Text -> `Int 1
-    | Method -> `Int 2
-    | Function -> `Int 3
-    | Constructor -> `Int 4
-    | Field -> `Int 5
-    | Variable -> `Int 6
-    | Class -> `Int 7
-    | Interface -> `Int 8
-    | Module -> `Int 9
-    | Property -> `Int 10
-    | Unit -> `Int 11
-    | Value -> `Int 12
-    | Enum -> `Int 13
-    | Keyword -> `Int 14
-    | Snippet -> `Int 15
-    | Color -> `Int 16
-    | File -> `Int 17
-    | Reference -> `Int 18
-    | Folder -> `Int 19
-    | EnumMember -> `Int 20
-    | Constant -> `Int 21
-    | Struct -> `Int 22
-    | Event -> `Int 23
-    | Operator -> `Int 24
-    | TypeParameter -> `Int 25
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Text
-    | `Int 2 -> Method
-    | `Int 3 -> Function
-    | `Int 4 -> Constructor
-    | `Int 5 -> Field
-    | `Int 6 -> Variable
-    | `Int 7 -> Class
-    | `Int 8 -> Interface
-    | `Int 9 -> Module
-    | `Int 10 -> Property
-    | `Int 11 -> Unit
-    | `Int 12 -> Value
-    | `Int 13 -> Enum
-    | `Int 14 -> Keyword
-    | `Int 15 -> Snippet
-    | `Int 16 -> Color
-    | `Int 17 -> File
-    | `Int 18 -> Reference
-    | `Int 19 -> Folder
-    | `Int 20 -> EnumMember
-    | `Int 21 -> Constant
-    | `Int 22 -> Struct
-    | `Int 23 -> Event
-    | `Int 24 -> Operator
-    | `Int 25 -> TypeParameter
-    | _ -> Json.error "t" json
-end
-
-module InsertTextMode = struct
-  type t =
-    | AsIs
-    | AdjustIndentation
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | AsIs -> `Int 1
-    | AdjustIndentation -> `Int 2
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> AsIs
-    | `Int 2 -> AdjustIndentation
-    | _ -> Json.error "t" json
-end
-
-module CompletionItemTag = struct
-  type t = Deprecated
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Deprecated -> `Int 1
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Deprecated
-    | _ -> Json.error "t" json
 end
 
 module CompletionClientCapabilities = struct
@@ -11423,49 +11765,6 @@ module DidChangeConfigurationClientCapabilities = struct
     { dynamicRegistration }
 end
 
-module FailureHandlingKind = struct
-  type t =
-    | Abort
-    | Transactional
-    | TextOnlyTransactional
-    | Undo
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Abort -> `String "abort"
-    | Transactional -> `String "transactional"
-    | TextOnlyTransactional -> `String "textOnlyTransactional"
-    | Undo -> `String "undo"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "abort" -> Abort
-    | `String "transactional" -> Transactional
-    | `String "textOnlyTransactional" -> TextOnlyTransactional
-    | `String "undo" -> Undo
-    | _ -> Json.error "t" json
-end
-
-module ResourceOperationKind = struct
-  type t =
-    | Create
-    | Rename
-    | Delete
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Create -> `String "create"
-    | Rename -> `String "rename"
-    | Delete -> `String "delete"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "create" -> Create
-    | `String "rename" -> Rename
-    | `String "delete" -> Delete
-    | _ -> Json.error "t" json
-end
-
 module WorkspaceEditClientCapabilities = struct
   type changeAnnotationSupport =
     { groupsOnLabel : bool Json.Nullable_option.t
@@ -13373,29 +13672,6 @@ module CodeDescription = struct
   [@@@end]
 
   let create ~(href : URI.t) : t = { href }
-end
-
-module DiagnosticSeverity = struct
-  type t =
-    | Error
-    | Warning
-    | Information
-    | Hint
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Error -> `Int 1
-    | Warning -> `Int 2
-    | Information -> `Int 3
-    | Hint -> `Int 4
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Error
-    | `Int 2 -> Warning
-    | `Int 3 -> Information
-    | `Int 4 -> Hint
-    | _ -> Json.error "t" json
 end
 
 module Diagnostic = struct
@@ -15681,26 +15957,6 @@ module ColorPresentationParams = struct
     { textDocument; color; range }
 end
 
-module CompletionTriggerKind = struct
-  type t =
-    | Invoked
-    | TriggerCharacter
-    | TriggerForIncompleteCompletions
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Invoked -> `Int 1
-    | TriggerCharacter -> `Int 2
-    | TriggerForIncompleteCompletions -> `Int 3
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Invoked
-    | `Int 2 -> TriggerCharacter
-    | `Int 3 -> TriggerForIncompleteCompletions
-    | _ -> Json.error "t" json
-end
-
 module CompletionContext = struct
   type t =
     { triggerKind : CompletionTriggerKind.t
@@ -15933,23 +16189,6 @@ module InsertReplaceEdit = struct
 
   let create ~(newText : string) ~(insert : Range.t) ~(replace : Range.t) : t =
     { newText; insert; replace }
-end
-
-module InsertTextFormat = struct
-  type t =
-    | PlainText
-    | Snippet
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | PlainText -> `Int 1
-    | Snippet -> `Int 2
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> PlainText
-    | `Int 2 -> Snippet
-    | _ -> Json.error "t" json
 end
 
 module MarkupContent = struct
@@ -20758,26 +20997,6 @@ module DocumentFormattingRegistrationOptions = struct
     { documentSelector; workDoneProgress }
 end
 
-module DocumentHighlightKind = struct
-  type t =
-    | Text
-    | Read
-    | Write
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Text -> `Int 1
-    | Read -> `Int 2
-    | Write -> `Int 3
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Text
-    | `Int 2 -> Read
-    | `Int 3 -> Write
-    | _ -> Json.error "t" json
-end
-
 module DocumentHighlight = struct
   type t =
     { range : Range.t
@@ -23396,26 +23615,6 @@ module ExecuteCommandRegistrationOptions = struct
     { workDoneProgress; commands }
 end
 
-module FileChangeType = struct
-  type t =
-    | Created
-    | Changed
-    | Deleted
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Created -> `Int 1
-    | Changed -> `Int 2
-    | Deleted -> `Int 3
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Created
-    | `Int 2 -> Changed
-    | `Int 3 -> Deleted
-    | _ -> Json.error "t" json
-end
-
 module FileOperationPatternOptions = struct
   type t =
     { ignoreCase : bool Json.Nullable_option.t
@@ -23496,23 +23695,6 @@ module FileOperationPatternOptions = struct
   [@@@end]
 
   let create ?(ignoreCase : bool option) (() : unit) : t = { ignoreCase }
-end
-
-module FileOperationPatternKind = struct
-  type t =
-    | File
-    | Folder
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | File -> `String "file"
-    | Folder -> `String "folder"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "file" -> File
-    | `String "folder" -> Folder
-    | _ -> Json.error "t" json
 end
 
 module FileOperationPattern = struct
@@ -23945,26 +24127,6 @@ module FileRename = struct
   [@@@end]
 
   let create ~(oldUri : string) ~(newUri : string) : t = { oldUri; newUri }
-end
-
-module FoldingRangeKind = struct
-  type t =
-    | Comment
-    | Imports
-    | Region
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Comment -> `String "comment"
-    | Imports -> `String "imports"
-    | Region -> `String "region"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "comment" -> Comment
-    | `String "imports" -> Imports
-    | `String "region" -> Region
-    | _ -> Json.error "t" json
 end
 
 module FoldingRange = struct
@@ -25232,19 +25394,6 @@ module ImplementationRegistrationOptions = struct
   let create ?(documentSelector : DocumentSelector.t option)
       ?(workDoneProgress : bool option) ?(id : string option) (() : unit) : t =
     { documentSelector; workDoneProgress; id }
-end
-
-module InitializeError = struct
-  type t = UnknownProtocolVersion
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | UnknownProtocolVersion -> `Int 1
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> UnknownProtocolVersion
-    | _ -> Json.error "t" json
 end
 
 module TraceValue = struct
@@ -27689,26 +27838,6 @@ module SignatureHelpOptions = struct
       ?(triggerCharacters : string list option)
       ?(retriggerCharacters : string list option) (() : unit) : t =
     { workDoneProgress; triggerCharacters; retriggerCharacters }
-end
-
-module TextDocumentSyncKind = struct
-  type t =
-    | None
-    | Full
-    | Incremental
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | None -> `Int 0
-    | Full -> `Int 1
-    | Incremental -> `Int 2
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 0 -> None
-    | `Int 1 -> Full
-    | `Int 2 -> Incremental
-    | _ -> Json.error "t" json
 end
 
 module SaveOptions = struct
@@ -30531,29 +30660,6 @@ module LocationLink = struct
     { originSelectionRange; targetUri; targetRange; targetSelectionRange }
 end
 
-module MessageType = struct
-  type t =
-    | Error
-    | Warning
-    | Info
-    | Log
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Error -> `Int 1
-    | Warning -> `Int 2
-    | Info -> `Int 3
-    | Log -> `Int 4
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Error
-    | `Int 2 -> Warning
-    | `Int 3 -> Info
-    | `Int 4 -> Log
-    | _ -> Json.error "t" json
-end
-
 module LogMessageParams = struct
   type t =
     { type_ : MessageType.t [@key "type"]
@@ -30837,52 +30943,6 @@ module MessageActionItem = struct
   [@@@end]
 
   let create ~(title : string) : t = { title }
-end
-
-module MonikerKind = struct
-  type t =
-    | Import
-    | Export
-    | Local
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Import -> `String "import"
-    | Export -> `String "export"
-    | Local -> `String "local"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "import" -> Import
-    | `String "export" -> Export
-    | `String "local" -> Local
-    | _ -> Json.error "t" json
-end
-
-module UniquenessLevel = struct
-  type t =
-    | Document
-    | Project
-    | Group
-    | Scheme
-    | Global
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Document -> `String "document"
-    | Project -> `String "project"
-    | Group -> `String "group"
-    | Scheme -> `String "scheme"
-    | Global -> `String "global"
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String "document" -> Document
-    | `String "project" -> Project
-    | `String "group" -> Group
-    | `String "scheme" -> Scheme
-    | `String "global" -> Global
-    | _ -> Json.error "t" json
 end
 
 module Moniker = struct
@@ -34398,26 +34458,6 @@ module SignatureHelp = struct
     { signatures; activeSignature; activeParameter }
 end
 
-module SignatureHelpTriggerKind = struct
-  type t =
-    | Invoked
-    | TriggerCharacter
-    | ContentChange
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Invoked -> `Int 1
-    | TriggerCharacter -> `Int 2
-    | ContentChange -> `Int 3
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Invoked
-    | `Int 2 -> TriggerCharacter
-    | `Int 3 -> ContentChange
-    | _ -> Json.error "t" json
-end
-
 module SignatureHelpContext = struct
   type t =
     { triggerKind : SignatureHelpTriggerKind.t
@@ -35248,26 +35288,6 @@ module TextDocumentChangeRegistrationOptions = struct
     { documentSelector; syncKind }
 end
 
-module TextDocumentSaveReason = struct
-  type t =
-    | Manual
-    | AfterDelay
-    | FocusOut
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Manual -> `Int 1
-    | AfterDelay -> `Int 2
-    | FocusOut -> `Int 3
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Manual
-    | `Int 2 -> AfterDelay
-    | `Int 3 -> FocusOut
-    | _ -> Json.error "t" json
-end
-
 module TextDocumentSaveRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
@@ -35662,26 +35682,6 @@ module UnregistrationParams = struct
 
   let create ~(unregisterations : Unregistration.t list) : t =
     { unregisterations }
-end
-
-module WatchKind = struct
-  type t =
-    | Create
-    | Change
-    | Delete
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | Create -> `Int 1
-    | Change -> `Int 2
-    | Delete -> `Int 4
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `Int 1 -> Create
-    | `Int 2 -> Change
-    | `Int 4 -> Delete
-    | _ -> Json.error "t" json
 end
 
 module WillSaveTextDocumentParams = struct
