@@ -256,15 +256,7 @@ module Type = struct
     | Named v -> Type.name v
     | App (f, xs) -> Type.app (pp ~kind f) (List.map ~f:(pp ~kind) xs)
     | Tuple t -> Type.tuple (List.map ~f:(pp ~kind) t)
-    | Optional t ->
-      let name =
-        match (kind, t) with
-        | Impl, Named "Json.t"
-        | Intf, _ ->
-          "option"
-        | Impl, _ -> "Json.Nullable_option.t"
-      in
-      pp ~kind (App (Named name, [ t ]))
+    | Optional t -> pp ~kind (App (Named "option", [ t ]))
     | List t -> pp ~kind (App (Named "list", [ t ]))
     | Poly_variant constrs ->
       List.map constrs ~f:(fun { name; args } ->

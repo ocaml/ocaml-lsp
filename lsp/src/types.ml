@@ -25720,12 +25720,11 @@ module InitializeParams = struct
   [@@@end]
 
   let create ?(processId : Integer.t option) ?(clientInfo : clientInfo option)
-      ?(locale : string option)
-      ?(rootPath : string Json.Nullable_option.t option)
+      ?(locale : string option) ?(rootPath : string option option)
       ?(rootUri : DocumentUri.t option) ?(initializationOptions : Json.t option)
       ~(capabilities : ClientCapabilities.t) ?(trace : TraceValue.t option)
-      ?(workspaceFolders : WorkspaceFolder.t list Json.Nullable_option.t option)
-      (() : unit) : t =
+      ?(workspaceFolders : WorkspaceFolder.t list option option) (() : unit) : t
+      =
     { processId
     ; clientInfo
     ; locale

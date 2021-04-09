@@ -261,7 +261,11 @@ module Module : sig
 
   val type_decls : Module.Name.t -> Type.decl Named.t list Kind.Map.t -> t
 
+  (** Add include Json.Jsonable.t signatures *)
   val add_json_conv_for_t : t -> t
+
+  (** Use Json.Nullable_option.t where appropriate *)
+  val use_nullable_option : t -> t
 
   val pp : t -> unit Pp.t Kind.Map.t
 end = struct
@@ -304,6 +308,37 @@ end = struct
     in
     let intf = { t.intf with bindings = t.intf.bindings @ [ conv_t ] } in
     { t with intf }
+
+  let use_nullable_option =
+    let map =
+      object (self)
+        inherit [unit, unit] Ml.Type.mapreduce as super
+
+        method empty = ()
+
+        method plus () () = ()
+
+        method! optional x t =
+          match t with
+          | Named "Json.t" -> super#optional x t
+          | _ -> self#t x (Ml.Type.App (Named "Json.Nullable_option.t", [ t ]))
+      end
+    in
+    fun (t : t) ->
+      let impl =
+        let bindings =
+          List.map t.impl.bindings ~f:(fun (x : _ Named.t) ->
+              let data =
+                match x.data with
+                | Ml.Module.Type_decl decl ->
+                  Ml.Module.Type_decl (map#decl () decl |> fst)
+                | x -> x
+              in
+              { x with data })
+        in
+        { t.impl with bindings }
+      in
+      { t with impl }
 
   let pp (t : t) ~kind =
     match (kind : Ml.Kind.t) with
@@ -978,7 +1013,8 @@ let of_typescript (ts : Resolved.t list) =
             let pped = preprocess t in
             let mod_ = Expanded.of_ts pped in
             Some (Gen.module_ mod_))
-    |> List.map ~f:Module.add_json_conv_for_t
+    |> List.map ~f:(fun decl ->
+           Module.add_json_conv_for_t decl |> Module.use_nullable_option)
 
 let output modules ~kind out =
   let open Ml.Kind in
