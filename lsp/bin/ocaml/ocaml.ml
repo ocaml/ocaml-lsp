@@ -152,15 +152,17 @@ module Expanded = struct
     end
 
   let bindings (r : Resolved.t) =
-    let t = { r with name = "t" } in
     let t : binding Named.t =
-      match r.data with
-      | Enum_anon _ -> assert false
-      | Interface i -> { t with data = Interface i }
-      | Type typ -> (
-        match new_binding_of_typ typ with
-        | Some data -> { t with data }
-        | None -> { t with data = Alias typ })
+      let data =
+        match r.data with
+        | Enum_anon _ -> assert false
+        | Interface i -> Interface i
+        | Type typ -> (
+          match new_binding_of_typ typ with
+          | Some data -> data
+          | None -> Alias typ)
+      in
+      { data; name = "t" }
     in
     let init = [ t ] in
     match r.data with
