@@ -79,6 +79,8 @@ end
 module Sig : sig
   val module_ : string -> w -> w
 
+  val include_ : string -> (w * w) list -> w
+
   val val_ : string -> w list -> w
 
   val assoc : w -> w -> w

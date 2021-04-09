@@ -243,7 +243,7 @@ module Module : sig
   type sig_ =
     | Value of Type.t
     | Type_decl of Type.decl
-    | Json_conv_sig
+    | Include of Name.t * (Type.t * Type.t) list
 
   type impl =
     | Type_decl of Type.decl

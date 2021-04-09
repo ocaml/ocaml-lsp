@@ -295,7 +295,13 @@ end = struct
     { t with impl }
 
   let add_json_conv_for_t (t : t) =
-    let conv_t = { Named.name = "t"; data = Module.Json_conv_sig } in
+    let conv_t =
+      { Named.name = "t"
+      ; data =
+          Ml.Module.Include
+            (Module.Name.of_string "Json.Jsonable.S", [ (Named "t", Named "t") ])
+      }
+    in
     let intf = { t.intf with bindings = t.intf.bindings @ [ conv_t ] } in
     { t with intf }
 

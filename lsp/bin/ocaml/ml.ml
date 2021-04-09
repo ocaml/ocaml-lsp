@@ -576,7 +576,7 @@ module Module = struct
   type sig_ =
     | Value of Type.t
     | Type_decl of Type.decl
-    | Json_conv_sig
+    | Include of Name.t * (Type.t * Type.t) list
 
   type impl =
     | Type_decl of Type.decl
@@ -588,8 +588,11 @@ module Module = struct
           match (data : sig_) with
           | Value t -> W.Sig.val_ name [ Type.pp ~kind:Intf t ]
           | Type_decl t -> W.Type.decl name (Type.pp_decl' ~kind:Intf t)
-          | Json_conv_sig ->
-            Pp.textf "include Json.Jsonable.S with type t := %s" name)
+          | Include (mod_, destructive_subs) ->
+            List.map destructive_subs ~f:(fun (l, r) ->
+                let f = Type.pp ~kind:Intf in
+                (f l, f r))
+            |> W.Sig.include_ (mod_ :> string))
     in
     W.Sig.module_ (name :> string) bindings
 

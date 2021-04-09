@@ -186,6 +186,26 @@ let gen_module kw name body =
 module Sig = struct
   let module_ name body = gen_module ": sig" name body
 
+  let include_ name destructive_subs =
+    let inc_ = Pp.textf "include %s" name in
+    match destructive_subs with
+    | [] -> inc_
+    | substs ->
+      let substs =
+        let sep = Pp.text " and " in
+        Pp.concat_map ~sep substs ~f:(fun (l, r) ->
+            Pp.concat
+              [ Pp.text "type"
+              ; Pp.space
+              ; l
+              ; Pp.space
+              ; Pp.verbatim ":="
+              ; Pp.space
+              ; r
+              ])
+      in
+      Pp.concat [ inc_; Pp.space; Pp.text "with"; Pp.space; substs ]
+
   let val_ name b =
     let sep = Pp.concat [ space; i "->"; space ] in
     let b = Pp.concat ~sep b in
