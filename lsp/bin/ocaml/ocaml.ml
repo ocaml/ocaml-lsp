@@ -267,6 +267,8 @@ module Module : sig
   (** Use Json.Nullable_option or Json.Assoc.t where appropriate *)
   val use_json_conv_types : t -> t
 
+  val rename_invalid_fields : Ml.Kind.t -> Type.decl -> Type.decl
+
   val pp : t -> unit Pp.t Kind.Map.t
 end = struct
   module Module = Ml.Module
@@ -309,9 +311,39 @@ end = struct
     let intf = { t.intf with bindings = t.intf.bindings @ [ conv_t ] } in
     { t with intf }
 
+  let rename_invalid_fields =
+    let map (kind : Ml.Kind.t) =
+      let open Ml.Type in
+      object (self)
+        inherit [unit, unit] Ml.Type.mapreduce as super
+
+        method empty = ()
+
+        method plus () () = ()
+
+        method! field x f =
+          let f =
+            if Ml.is_kw f.name then
+              let attrs =
+                match kind with
+                | Impl -> Attr ("key", [ sprintf "%S" f.name ]) :: f.attrs
+                | Intf -> f.attrs
+              in
+              { f with name = f.name ^ "_"; attrs }
+            else
+              f
+          in
+          super#field x f
+
+        method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
+      end
+    in
+    fun kind t -> (map kind)#decl () t |> fst
+
   let use_json_conv_types =
     let map =
       let open Ml.Type in
+      let json = Named "Json.t" in
       object (self)
         inherit [unit, unit] Ml.Type.mapreduce as super
 
@@ -323,6 +355,31 @@ end = struct
           match t with
           | Named "Json.t" -> super#optional x t
           | _ -> self#t x (App (Named "Json.Nullable_option.t", [ t ]))
+
+        method! field x f =
+          let f =
+            match f.typ with
+            | Optional t ->
+              if t = json then
+                { f with attrs = Attr ("yojson.option", []) :: f.attrs }
+              else
+                { f with
+                  attrs =
+                    Attr ("default", [ "None" ])
+                    :: Attr ("yojson_drop_default", [ "( = )" ]) :: f.attrs
+                }
+            | _ -> f
+          in
+          let f =
+            if Ml.is_kw f.name then
+              { f with
+                name = f.name ^ "_"
+              ; attrs = Attr ("key", [ sprintf "%S" f.name ]) :: f.attrs
+              }
+            else
+              f
+          in
+          super#field x f
 
         method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
       end
@@ -924,6 +981,9 @@ end = struct
     in
     let intf : Ml.Module.sig_ Named.t list =
       List.concat_map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+          let td =
+            { td with data = Module.rename_invalid_fields Intf td.data }
+          in
           let type_ =
             match literal_field td with
             | None -> td
@@ -956,6 +1016,9 @@ end = struct
             match literal_field typ_ with
             | None -> (typ_, [])
             | Some (f, typ_) -> (typ_, literal_wrapper f d.name)
+          in
+          let typ_ =
+            { typ_ with data = Module.rename_invalid_fields Impl typ_.data }
           in
           let json_convs_for_t =
             match d.data with

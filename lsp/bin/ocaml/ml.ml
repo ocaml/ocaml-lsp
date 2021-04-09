@@ -30,6 +30,15 @@ module Kind = struct
   end
 end
 
+let is_kw = function
+  | "type"
+  | "method"
+  | "end"
+  | "to"
+  | "external" ->
+    true
+  | _ -> false
+
 module Arg = struct
   type 'e t =
     | Unnamed of 'e
@@ -40,14 +49,6 @@ end
 module Type = struct
   [@@@warning "-30"]
 
-  let ident = function
-    | "type" -> "type_"
-    | "method" -> "method_"
-    | "end" -> "end_"
-    | "to" -> "to_"
-    | "external" -> "external_"
-    | s -> s
-
   type prim =
     | Unit
     | String
@@ -55,8 +56,7 @@ module Type = struct
     | Bool
 
   type attr =
-    | Option
-    | Key of string
+    | Attr of string * string list
     | Omitted of string
   (* [Omitted] fields are just there for parinsg literal fields like "kind":
      "foo". They are skipped when creating declarations. *)
@@ -181,20 +181,7 @@ module Type = struct
         | Variant v -> self#variant env v
     end
 
-  let field typ ~name =
-    let ident = ident name in
-    let attrs =
-      if ident = name then
-        []
-      else
-        [ Key name ]
-    in
-    let attrs =
-      match typ with
-      | Optional _ -> Option :: attrs
-      | _ -> attrs
-    in
-    { name = ident; typ; attrs }
+  let field typ ~name = { name; typ; attrs = [] }
 
   let fun_ args t =
     List.fold_right args ~init:t ~f:(fun arg acc -> Fun (arg, acc))
@@ -317,17 +304,8 @@ module Type = struct
                   | Impl -> attrs
                 in
                 List.concat_map attrs ~f:(function
-                  | Omitted _ -> assert false
-                  | Option ->
-                    if typ = Optional json then
-                      [ W.Attr.make "yojson.option" [] ]
-                    else
-                      [ W.Attr.make "default" [ Pp.verbatim "None" ]
-                      ; W.Attr.make "yojson_drop_default"
-                          [ Pp.verbatim "( = )" ]
-                      ]
-                  | Key s ->
-                    [ W.Attr.make "key" [ Pp.verbatim (sprintf "%S" s) ] ])
+                  | Attr (a, r) -> [ W.Attr.make a (List.map ~f:Pp.verbatim r) ]
+                  | _ -> assert false)
               in
               Type.field_attrs ~field ~attrs
             in

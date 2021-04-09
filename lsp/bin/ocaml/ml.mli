@@ -2,6 +2,8 @@
 
 open Import
 
+val is_kw : string -> bool
+
 module Kind : sig
   type t =
     | Intf
@@ -42,7 +44,9 @@ end
 module Type : sig
   [@@@warning "-30"]
 
-  type attr
+  type attr =
+    | Attr of string * string list
+    | Omitted of string
 
   type prim =
     | Unit
