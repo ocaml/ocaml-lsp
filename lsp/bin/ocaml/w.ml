@@ -217,24 +217,3 @@ let opens names =
 let module_ name body = gen_module "= struct" name body
 
 let record fields = Gen.record ~delim:"=" fields
-
-let match_ e clauses =
-  let clauses =
-    let sep = Pp.concat [ Pp.newline; i "| " ] in
-    Pp.concat_map ~sep clauses ~f:(fun (l, r) -> Gen.clause ~delim:"->" l r)
-  in
-  Pp.concat [ Pp.textf "match %s with" e; Pp.newline; clauses ]
-
-let to_json t body =
-  Pp.concat
-    [ Pp.textf "let %s (json : Json.t) : t =" (Name.to_json t)
-    ; Pp.newline
-    ; Pp.hovbox ~indent:2 body
-    ]
-
-let of_json t body =
-  Pp.concat
-    [ Pp.textf "let %s (t : t) : Json.t =" (Name.of_json t)
-    ; Pp.newline
-    ; Pp.hovbox ~indent:2 body
-    ]

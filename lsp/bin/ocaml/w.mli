@@ -94,14 +94,8 @@ end
 
 val warnings : string -> w
 
-val match_ : string -> (w * w) list -> w
-
 val module_ : string -> w -> w
 
 val opens : string list -> w
-
-val of_json : string -> w -> w
-
-val to_json : string -> w -> w
 
 val record : (string * w) list -> w
