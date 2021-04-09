@@ -44,6 +44,8 @@ module Type = struct
     | "type" -> "type_"
     | "method" -> "method_"
     | "end" -> "end_"
+    | "to" -> "to_"
+    | "external" -> "external_"
     | s -> s
 
   type prim =

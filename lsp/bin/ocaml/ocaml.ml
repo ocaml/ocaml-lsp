@@ -19,7 +19,7 @@ let skipped_ts_decls =
   ]
 
 (* Rename fields that don't adhere to OCaml's lexical conventions *)
-let renamed_fields = [ ("to", "to_"); ("external", "external_") ]
+let renamed_fields = []
 
 (* Super classes to remove because we handle their concerns differently (or not
    at all) *)

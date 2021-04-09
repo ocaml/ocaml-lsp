@@ -3198,7 +3198,7 @@ end
 
 module CallHierarchyOutgoingCall = struct
   type t =
-    { to_ : CallHierarchyItem.t
+    { to_ : CallHierarchyItem.t [@key "to"]
     ; fromRanges : Range.t list
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -3216,7 +3216,7 @@ module CallHierarchyOutgoingCall = struct
        let rec iter = function
          | (field_name, _field_yojson) :: tail ->
            (match field_name with
-           | "to_" -> (
+           | "to" -> (
              match Ppx_yojson_conv_lib.( ! ) to__field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue = CallHierarchyItem.t_of_yojson _field_yojson in
@@ -3283,7 +3283,7 @@ module CallHierarchyOutgoingCall = struct
        in
        let bnds =
          let arg = CallHierarchyItem.yojson_of_t v_to_ in
-         ("to_", arg) :: bnds
+         ("to", arg) :: bnds
        in
        `Assoc bnds
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -33599,7 +33599,7 @@ module ShowDocumentParams = struct
   type t =
     { uri : URI.t
     ; external_ : bool Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )] [@key "external"]
     ; takeFocus : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; selection : Range.t Json.Nullable_option.t
@@ -33629,7 +33629,7 @@ module ShowDocumentParams = struct
                uri_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-           | "external_" -> (
+           | "external" -> (
              match Ppx_yojson_conv_lib.( ! ) external__field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
@@ -33748,7 +33748,7 @@ module ShowDocumentParams = struct
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_external_
            in
-           let bnd = ("external_", arg) in
+           let bnd = ("external", arg) in
            bnd :: bnds
        in
        let bnds =
