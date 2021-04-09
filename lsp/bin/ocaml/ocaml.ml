@@ -261,10 +261,9 @@ module Module : sig
 
   val type_decls : Module.Name.t -> Type.decl Named.t list Kind.Map.t -> t
 
-  val add_json_conv_for_t :
-    t -> (Module.sig_ Module.t, Module.impl Module.t) Kind.pair
+  val add_json_conv_for_t : t -> t
 
-  val pp : t -> (unit Pp.t, unit Pp.t) Kind.pair
+  val pp : t -> unit Pp.t Kind.Map.t
 end = struct
   module Module = Ml.Module
 
@@ -396,7 +395,8 @@ end = struct
 end
 
 module Enum : sig
-  (* Convert simple enums to/from json *)
+  (* Convert simple enums. Because enums are so simple, we go straight from TS
+     to generated Ml *)
 
   val conv :
        allow_other:bool
@@ -486,7 +486,6 @@ end = struct
       Module.type_decls (Ml.Module.Name.of_string name) type_decls
     in
     Module.add_private_values module_ json_bindings
-    |> Module.add_json_conv_for_t
 end
 
 module Poly_variant = struct
@@ -886,11 +885,9 @@ end = struct
             | None -> td
             | Some (_, typ_) -> typ_
           in
-
           [ { td with
               Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
             }
-          ; { td with data = Json_conv_sig }
           ]
           @ Create.intf_of_type type_)
     in
@@ -970,10 +967,12 @@ let of_typescript (ts : Resolved.t list) =
                     None)
             in
             Some (Enum.module_ ~allow_other { t with data })
-          | _ ->
+          | Interface _
+          | Type _ ->
             let pped = preprocess t in
             let mod_ = Expanded.of_ts pped in
             Some (Gen.module_ mod_))
+    |> List.map ~f:Module.add_json_conv_for_t
 
 let output modules ~kind out =
   let open Ml.Kind in
