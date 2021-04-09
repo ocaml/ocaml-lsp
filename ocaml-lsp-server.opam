@@ -16,7 +16,7 @@ license: "ISC"
 homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
-  "dune" {>= "2.5"}
+  "dune" {>= "2.7"}
   "yojson"
   "ppx_yojson_conv_lib"
   "dune-build-info"
