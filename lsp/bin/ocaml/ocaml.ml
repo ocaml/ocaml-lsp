@@ -370,15 +370,6 @@ end = struct
                 }
             | _ -> f
           in
-          let f =
-            if Ml.is_kw f.name then
-              { f with
-                name = f.name ^ "_"
-              ; attrs = Attr ("key", [ sprintf "%S" f.name ]) :: f.attrs
-              }
-            else
-              f
-          in
           super#field x f
 
         method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
