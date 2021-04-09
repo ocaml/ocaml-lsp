@@ -58,6 +58,8 @@ module Type = struct
     | Option
     | Key of string
     | Omitted of string
+  (* [Omitted] fields are just there for parinsg literal fields like "kind":
+     "foo". They are skipped when creating declarations. *)
 
   type t =
     | Named of string
