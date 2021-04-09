@@ -18,9 +18,6 @@ let skipped_ts_decls =
   ; "MarkedString"
   ]
 
-(* Rename fields that don't adhere to OCaml's lexical conventions *)
-let renamed_fields = []
-
 (* Super classes to remove because we handle their concerns differently (or not
    at all) *)
 let removed_super_classes = [ "WorkDoneProgressParams"; "PartialResultParams" ]
@@ -46,29 +43,26 @@ let preprocess =
         | Some n -> n
 
       method! field x =
-        match List.assoc renamed_fields x.name with
-        | Some name -> super#field { x with name }
-        | None ->
-          if x.name = "documentChanges" then
-            (* This gross hack is needed for the documentChanges field. We can
-               ignore the first constructor since it's completely representable
-               with the second one. *)
-            match x.data with
-            | Single
-                { typ =
-                    Sum
-                      [ Resolved.List
-                          (Ident
-                            (Resolved { Named.name = "TextDocumentEdit"; _ }))
-                      ; (List _ as typ)
-                      ]
-                ; optional
-                } ->
-              let data = Resolved.Single { typ; optional } in
-              super#field { x with data }
-            | _ -> super#field x
-          else
-            super#field x
+        if x.name = "documentChanges" then
+          (* This gross hack is needed for the documentChanges field. We can
+             ignore the first constructor since it's completely representable
+             with the second one. *)
+          match x.data with
+          | Single
+              { typ =
+                  Sum
+                    [ Resolved.List
+                        (Ident
+                          (Resolved { Named.name = "TextDocumentEdit"; _ }))
+                    ; (List _ as typ)
+                    ]
+              ; optional
+              } ->
+            let data = Resolved.Single { typ; optional } in
+            super#field { x with data }
+          | _ -> super#field x
+        else
+          super#field x
 
       method! typ x =
         (* XXX what does this to? I don't see any sums of records in
