@@ -268,6 +268,13 @@ module Type = struct
       List.map constrs ~f:(fun { name; args } ->
           (name, List.map args ~f:(pp ~kind)))
       |> Type.poly
+    | Assoc (k, v) ->
+      let t =
+        match kind with
+        | Intf -> List (Tuple [ k; v ])
+        | Impl -> App (Named "Json.Assoc.t", [ k; v ])
+      in
+      pp t ~kind
     | Fun (a, r) -> (
       match a with
       | Arg.Unnamed t ->
@@ -291,10 +298,6 @@ module Type = struct
           ; Pp.space
           ; pp ~kind r
           ])
-    | Assoc (k, v) -> (
-      match kind with
-      | Intf -> pp (List (Tuple [ k; v ])) ~kind
-      | Impl -> pp (App (Named "Json.Assoc.t", [ k; v ])) ~kind)
 
   let pp_decl' ~(kind : Kind.t) (a : decl) =
     match a with
@@ -303,6 +306,9 @@ module Type = struct
       match (a, kind) with
       | (List _ | Named _ | Prim _), Impl -> W.Type.deriving ~record:false pp
       | _, _ -> pp)
+    | Variant v ->
+      List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))
+      |> Type.variant
     | Record r -> (
       let r =
         List.filter_map r ~f:(fun { name; typ; attrs } ->
@@ -341,9 +347,6 @@ module Type = struct
       match kind with
       | Intf -> r
       | Impl -> W.Type.deriving r ~record:true)
-    | Variant v ->
-      List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))
-      |> Type.variant
 
   let pp_decl ~name ~kind (a : decl) : W.t =
     let body = pp_decl' ~kind a in
