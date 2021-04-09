@@ -1953,9 +1953,9 @@ module WorkspaceEdit = struct
 
   [@@@end]
 
-  let create ?(changes : (DocumentUri.t, TextEdit.t list) Json.Assoc.t option)
+  let create ?(changes : (DocumentUri.t * TextEdit.t list) list option)
       ?(documentChanges : documentChanges list option)
-      ?(changeAnnotations : (string, ChangeAnnotation.t) Json.Assoc.t option)
+      ?(changeAnnotations : (string * ChangeAnnotation.t) list option)
       (() : unit) : t =
     { changes; documentChanges; changeAnnotations }
 end

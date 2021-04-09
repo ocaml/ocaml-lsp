@@ -17,5 +17,7 @@
 
 (library
  (name lsp_gen)
+ (instrumentation
+  (backend bisect_ppx))
  (modules :standard \ gen)
  (libraries stdune))

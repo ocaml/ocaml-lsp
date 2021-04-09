@@ -264,8 +264,8 @@ module Module : sig
   (** Add include Json.Jsonable.t signatures *)
   val add_json_conv_for_t : t -> t
 
-  (** Use Json.Nullable_option.t where appropriate *)
-  val use_nullable_option : t -> t
+  (** Use Json.Nullable_option or Json.Assoc.t where appropriate *)
+  val use_json_conv_types : t -> t
 
   val pp : t -> unit Pp.t Kind.Map.t
 end = struct
@@ -309,8 +309,9 @@ end = struct
     let intf = { t.intf with bindings = t.intf.bindings @ [ conv_t ] } in
     { t with intf }
 
-  let use_nullable_option =
+  let use_json_conv_types =
     let map =
+      let open Ml.Type in
       object (self)
         inherit [unit, unit] Ml.Type.mapreduce as super
 
@@ -321,7 +322,9 @@ end = struct
         method! optional x t =
           match t with
           | Named "Json.t" -> super#optional x t
-          | _ -> self#t x (Ml.Type.App (Named "Json.Nullable_option.t", [ t ]))
+          | _ -> self#t x (App (Named "Json.Nullable_option.t", [ t ]))
+
+        method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
       end
     in
     fun (t : t) ->
@@ -1014,7 +1017,7 @@ let of_typescript (ts : Resolved.t list) =
             let mod_ = Expanded.of_ts pped in
             Some (Gen.module_ mod_))
     |> List.map ~f:(fun decl ->
-           Module.add_json_conv_for_t decl |> Module.use_nullable_option)
+           Module.add_json_conv_for_t decl |> Module.use_json_conv_types)
 
 let output modules ~kind out =
   let open Ml.Kind in

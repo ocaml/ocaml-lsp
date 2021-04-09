@@ -263,11 +263,7 @@ module Type = struct
           (name, List.map args ~f:(pp ~kind)))
       |> Type.poly
     | Assoc (k, v) ->
-      let t =
-        match kind with
-        | Intf -> List (Tuple [ k; v ])
-        | Impl -> App (Named "Json.Assoc.t", [ k; v ])
-      in
+      let t = List (Tuple [ k; v ]) in
       pp t ~kind
     | Fun (a, r) -> (
       match a with
