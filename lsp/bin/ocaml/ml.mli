@@ -227,13 +227,18 @@ end
 
 module Module : sig
   (** Generate OCaml modules with JS converters *)
+  module Name : sig
+    type t = private string
+
+    val of_string : string -> t
+  end
 
   type 'a t =
-    { name : string
+    { name : Name.t
     ; bindings : 'a Named.t list
     }
 
-  val empty : string -> 'a t
+  val empty : Name.t -> 'a t
 
   type sig_ =
     | Value of Type.t

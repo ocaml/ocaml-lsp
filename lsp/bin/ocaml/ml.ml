@@ -547,8 +547,22 @@ module Expr = struct
 end
 
 module Module = struct
+  module Name : sig
+    type t = private string
+
+    val of_string : string -> t
+  end = struct
+    type t = string
+
+    let of_string s =
+      match s.[0] with
+      | 'a' .. 'z' ->
+        Code_error.raise "invalid module name" [ ("s", Dyn.Encoder.string s) ]
+      | _ -> s
+  end
+
   type 'a t =
-    { name : string
+    { name : Name.t
     ; bindings : 'a Named.t list
     }
 
@@ -579,7 +593,7 @@ module Module = struct
           | Json_conv_sig ->
             Pp.textf "include Json.Jsonable.S with type t := %s" name)
     in
-    W.Sig.module_ name bindings
+    W.Sig.module_ (name :> string) bindings
 
   let pp_impl { name; bindings } =
     let bindings =
@@ -591,5 +605,5 @@ module Module = struct
             Pp.concat [ lhs; Pp.space; rhs ]
           | Value decl -> Expr.pp_toplevel ~kind:Impl name decl)
     in
-    W.module_ name bindings
+    W.module_ (name :> string) bindings
 end

@@ -175,7 +175,7 @@ module Expanded = struct
     | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
 
   let of_ts (r : Resolved.t) : t =
-    let name = String.capitalize_ascii r.name in
+    let name = Ml.Module.Name.of_string (String.capitalize_ascii r.name) in
     { Ml.Module.name; bindings = bindings r }
 end
 
@@ -259,7 +259,7 @@ module Module : sig
 
   val add_private_values : t -> Expr.toplevel Named.t list -> t
 
-  val type_decls : string -> Type.decl Named.t list Kind.Map.t -> t
+  val type_decls : Module.Name.t -> Type.decl Named.t list Kind.Map.t -> t
 
   val add_json_conv_for_t :
     t -> (Module.sig_ Module.t, Module.impl Module.t) Kind.pair
@@ -482,7 +482,9 @@ end = struct
       { Named.name = "t"; data }
     in
     let type_decls = Ml.Kind.Map.make_both [ t ] in
-    let module_ = Module.type_decls name type_decls in
+    let module_ =
+      Module.type_decls (Ml.Module.Name.of_string name) type_decls
+    in
     Module.add_private_values module_ json_bindings
     |> Module.add_json_conv_for_t
 end
