@@ -91,16 +91,19 @@ let interface :=
 
 let const_constr :=
   | Const; name = Ident; Equal; ~ = lit; Semicolon;
-    { (name, lit)
+    { (name, Enum.Literal lit)
     }
   | Const; name = Ident; Colon; Ident; Equal; ~ = lit; Semicolon;
-    { (name, lit)
+    { (name, Enum.Literal lit)
     }
   | Const; name = Ident; Colon; lit; Equal; ~ = lit; Semicolon;
-    { (name, lit)
+    { (name, Enum.Literal lit)
+    }
+  | Const; name = Ident; Colon; Ident; Equal; alias_to = Ident; Semicolon;
+    { (name, Alias alias_to)
     }
 
-let enum_constr := name = Ident; Equal; v = lit; { (name, v) }
+let enum_constr := name = Ident; Equal; v = lit; { (name, Literal v) }
 let enum_constrs := separated_nonempty_list(Comma, enum_constr)
 
 let enum :=

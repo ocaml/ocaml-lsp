@@ -10,7 +10,11 @@ module Literal = struct
 end
 
 module Enum = struct
-  type t = (string * Literal.t) list
+  type case =
+    | Literal of Literal.t
+    | Alias of string
+
+  type t = (string * case) list
 end
 
 module type S = sig
@@ -56,6 +60,8 @@ module type S = sig
       method typ : typ -> typ
 
       method interface : interface -> interface
+
+      method enum_anon : Enum.t -> Enum.t
 
       method field : field -> field
 
@@ -181,12 +187,14 @@ struct
         | Sum ts -> Sum (List.map ts ~f:self#typ)
         | Record ts -> Record (List.map ts ~f:self#field)
 
+      method enum_anon (t : Enum.t) = t
+
       method t (t : t) =
         let data =
           match t.data with
           | Interface i -> Interface (self#interface i)
           | Type t -> Type (self#typ t)
-          | Enum_anon _ -> t.data
+          | Enum_anon t -> Enum_anon (self#enum_anon t)
         in
         { t with data }
     end
@@ -216,6 +224,7 @@ module type Prim_intf = sig
     | String
     | Bool
     | Number
+    | Uinteger
     | Any
     | Object
     | List
@@ -234,6 +243,7 @@ struct
     | String
     | Bool
     | Number
+    | Uinteger
     | Any
     | Object
     | List
@@ -246,9 +256,12 @@ struct
     | "string" -> String
     | "boolean" -> Bool
     | "number" -> Number
+    | "uinteger" -> Uinteger
     | "any" -> Any
     | "array" -> List
-    | "object" -> Object
+    | "unknown"
+    | "object" ->
+      Object
     | _ -> resolve s
 end
 

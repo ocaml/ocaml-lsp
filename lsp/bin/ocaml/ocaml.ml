@@ -4,6 +4,24 @@ open! Ts_types
 (* TypeScript to OCaml conversion pipeline. The goal of this pipeline is to do
    the conversion in logical stages. Unfortunately, this doesn't quite work *)
 
+(* These declarations are all excluded because we don't support them or their
+   definitions are hand written *)
+let skipped_ts_decls =
+  [ "InitializedParams"
+  ; "NotificationMessage"
+  ; "RequestMessage"
+  ; "ResponseError"
+  ; "DocumentUri"
+  ; "ResponseMessage"
+  ; "Message"
+  ; "ErrorCodes"
+  ; "MarkedString"
+  ]
+
+(* Super classes to remove because we handle their concerns differently (or not
+   at all) *)
+let removed_super_classes = [ "WorkDoneProgressParams"; "PartialResultParams" ]
+
 (* The preprocessing stage maps over the typescript AST. It should only do very
    simple clean ups *)
 let preprocess =
@@ -13,10 +31,6 @@ let preprocess =
     in
     String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
   in
-  let module M = struct
-    exception Skip
-  end in
-  let open M in
   let traverse =
     object (self)
       inherit Resolved.map as super
@@ -68,19 +82,8 @@ let preprocess =
 
       (* all toplevel declarations that we decide to skip *)
       method! t x =
-        match x.name with
-        | "InitializedParams"
-        | "NotificationMessage"
-        | "RequestMessage"
-        | "ResponseError"
-        | "ResponseMessage"
-        | "Message"
-        | "DocumentUri"
-        | "MarkedString" ->
-          raise_notrace Skip
-        | name ->
-          current_name <- Some name;
-          super#t x
+        current_name <- Some x.name;
+        super#t x
 
       method! interface i =
         (* we don't handle partial results or progress notifications params (for
@@ -88,12 +91,8 @@ let preprocess =
         let extends =
           List.filter i.extends ~f:(fun x ->
               match x with
-              | Prim.Resolved r -> (
-                match r.name with
-                | "WorkDoneProgressParams"
-                | "PartialResultParams" ->
-                  false
-                | _ -> true)
+              | Prim.Resolved r ->
+                not (List.mem removed_super_classes r.name ~equal:String.equal)
               | _ -> true)
         in
         let fields =
@@ -109,9 +108,7 @@ let preprocess =
         super#interface { i with extends; fields }
     end
   in
-  fun i ->
-    try Some (traverse#t i) with
-    | Skip -> None
+  fun i -> traverse#t i
 
 module Expanded = struct
   (** The expanded form is still working with typescript types. However, all
@@ -155,15 +152,17 @@ module Expanded = struct
     end
 
   let bindings (r : Resolved.t) =
-    let t = { r with name = "t" } in
     let t : binding Named.t =
-      match r.data with
-      | Enum_anon _ -> assert false
-      | Interface i -> { t with data = Interface i }
-      | Type typ -> (
-        match new_binding_of_typ typ with
-        | Some data -> { t with data }
-        | None -> { t with data = Alias typ })
+      let data =
+        match r.data with
+        | Enum_anon _ -> assert false
+        | Interface i -> Interface i
+        | Type typ -> (
+          match new_binding_of_typ typ with
+          | Some data -> data
+          | None -> Alias typ)
+      in
+      { data; name = "t" }
     in
     let init = [ t ] in
     match r.data with
@@ -172,7 +171,8 @@ module Expanded = struct
     | Interface intf -> (new discovered_types)#typ (Record intf.fields) ~init
 
   let of_ts (r : Resolved.t) : t =
-    { Ml.Module.name = r.name; bindings = bindings r }
+    let name = Ml.Module.Name.of_string (String.capitalize_ascii r.name) in
+    { Ml.Module.name; bindings = bindings r }
 end
 
 module Json : sig
@@ -255,12 +255,17 @@ module Module : sig
 
   val add_private_values : t -> Expr.toplevel Named.t list -> t
 
-  val type_decls : string -> Type.decl Named.t list Kind.Map.t -> t
+  val type_decls : Module.Name.t -> Type.decl Named.t list Kind.Map.t -> t
 
-  val add_json_conv_for_t :
-    t -> (Module.sig_ Module.t, Module.impl Module.t) Kind.pair
+  (** Add include Json.Jsonable.t signatures *)
+  val add_json_conv_for_t : t -> t
 
-  val pp : t -> (unit Pp.t, unit Pp.t) Kind.pair
+  (** Use Json.Nullable_option or Json.Assoc.t where appropriate *)
+  val use_json_conv_types : t -> t
+
+  val rename_invalid_fields : Ml.Kind.t -> Type.decl -> Type.decl
+
+  val pp : t -> unit Pp.t Kind.Map.t
 end = struct
   module Module = Ml.Module
 
@@ -292,9 +297,95 @@ end = struct
     { t with impl }
 
   let add_json_conv_for_t (t : t) =
-    let conv_t = { Named.name = "t"; data = Module.Json_conv_sig } in
+    let conv_t =
+      { Named.name = "t"
+      ; data =
+          Ml.Module.Include
+            (Module.Name.of_string "Json.Jsonable.S", [ (Named "t", Named "t") ])
+      }
+    in
     let intf = { t.intf with bindings = t.intf.bindings @ [ conv_t ] } in
     { t with intf }
+
+  let rename_invalid_fields =
+    let map (kind : Ml.Kind.t) =
+      let open Ml.Type in
+      object (self)
+        inherit [unit, unit] Ml.Type.mapreduce as super
+
+        method empty = ()
+
+        method plus () () = ()
+
+        method! field x f =
+          let f =
+            if Ml.is_kw f.name then
+              let attrs =
+                match kind with
+                | Impl -> Attr ("key", [ sprintf "%S" f.name ]) :: f.attrs
+                | Intf -> f.attrs
+              in
+              { f with name = f.name ^ "_"; attrs }
+            else
+              f
+          in
+          super#field x f
+
+        method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
+      end
+    in
+    fun kind t -> (map kind)#decl () t |> fst
+
+  let use_json_conv_types =
+    let map =
+      let open Ml.Type in
+      let json = Named "Json.t" in
+      object (self)
+        inherit [unit, unit] Ml.Type.mapreduce as super
+
+        method empty = ()
+
+        method plus () () = ()
+
+        method! optional x t =
+          match t with
+          | Named "Json.t" -> super#optional x t
+          | _ -> self#t x (App (Named "Json.Nullable_option.t", [ t ]))
+
+        method! field x f =
+          let f =
+            match f.typ with
+            | Optional t ->
+              if t = json then
+                { f with attrs = Attr ("yojson.option", []) :: f.attrs }
+              else
+                { f with
+                  attrs =
+                    Attr ("default", [ "None" ])
+                    :: Attr ("yojson_drop_default", [ "( = )" ]) :: f.attrs
+                }
+            | _ -> f
+          in
+          super#field x f
+
+        method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
+      end
+    in
+    fun (t : t) ->
+      let impl =
+        let bindings =
+          List.map t.impl.bindings ~f:(fun (x : _ Named.t) ->
+              let data =
+                match x.data with
+                | Ml.Module.Type_decl decl ->
+                  Ml.Module.Type_decl (map#decl () decl |> fst)
+                | x -> x
+              in
+              { x with data })
+        in
+        { t.impl with bindings }
+      in
+      { t with impl }
 
   let pp (t : t) ~kind =
     match (kind : Ml.Kind.t) with
@@ -392,7 +483,8 @@ end = struct
 end
 
 module Enum : sig
-  (* Convert simple enums to/from json *)
+  (* Convert simple enums. Because enums are so simple, we go straight from TS
+     to generated Ml *)
 
   val conv :
        allow_other:bool
@@ -468,7 +560,8 @@ end = struct
         in
         let constrs =
           if allow_other then
-            (* [String] is a hack but it doesn't matter *)
+            (* [String] is a hack. It could be a differnt type, but it isn't in
+               practice *)
             constrs @ [ Ml.Type.constr ~name:"Other" [ Ml.Type.Prim String ] ]
           else
             constrs
@@ -478,9 +571,10 @@ end = struct
       { Named.name = "t"; data }
     in
     let type_decls = Ml.Kind.Map.make_both [ t ] in
-    let module_ = Module.type_decls name type_decls in
+    let module_ =
+      Module.type_decls (Ml.Module.Name.of_string name) type_decls
+    in
     Module.add_private_values module_ json_bindings
-    |> Module.add_json_conv_for_t
 end
 
 module Poly_variant = struct
@@ -632,6 +726,8 @@ end = struct
   let make_typ name t =
     let rec type_ (t : Resolved.typ) =
       match t with
+      | Ident Uinteger ->
+        Type.int (* XXX shall we use a dedicated uinteger eventually? *)
       | Ident Number -> Type.int
       | Ident String -> Type.string
       | Ident Bool -> Type.bool
@@ -693,7 +789,7 @@ end = struct
                  | Ident List ->
                    ("List", [ type_ t ])
                  | Ident (Resolved r) -> (r.name, [ type_ t ])
-                 | Tuple [ Ident Number; Ident Number ] ->
+                 | Tuple [ Ident Uinteger; Ident Uinteger ] ->
                    ("Offset", [ type_ t ])
                  | Literal (String x) -> (x, [])
                  | _ -> raise Exit
@@ -755,10 +851,12 @@ end = struct
           super#field env f
 
         method! poly_variant env constrs =
-          let name = Option.value_exn env in
-          let replacement = Ml.Type.name name in
-          let constrs, m = self#fold_left_map ~f:(self#constr env) constrs in
-          (replacement, self#plus m [ { Named.name; data = constrs } ])
+          match env with
+          | None -> super#poly_variant env constrs
+          | Some name ->
+            let replacement = Ml.Type.name name in
+            let constrs, m = self#fold_left_map ~f:(self#constr env) constrs in
+            (replacement, self#plus m [ { Named.name; data = constrs } ])
       end
     in
     extract#decl None s
@@ -871,16 +969,17 @@ end = struct
     in
     let intf : Ml.Module.sig_ Named.t list =
       List.concat_map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
+          let td =
+            { td with data = Module.rename_invalid_fields Intf td.data }
+          in
           let type_ =
             match literal_field td with
             | None -> td
             | Some (_, typ_) -> typ_
           in
-
           [ { td with
               Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
             }
-          ; { td with data = Json_conv_sig }
           ]
           @ Create.intf_of_type type_)
     in
@@ -906,9 +1005,19 @@ end = struct
             | None -> (typ_, [])
             | Some (f, typ_) -> (typ_, literal_wrapper f d.name)
           in
+          let typ_ =
+            { typ_ with data = Module.rename_invalid_fields Impl typ_.data }
+          in
+          let json_convs_for_t =
+            match d.data with
+            | Alias (Poly_variant data) ->
+              poly_enum_conv { d with Named.data }
+              |> List.map ~f:(Named.map ~f:(fun v -> Ml.Module.Value v))
+            | _ -> []
+          in
           poly_vars_and_convs
           @ [ { typ_ with data = Ml.Module.Type_decl typ_.data } ]
-          @ Create.impl_of_type typ_ @ literal_wrapper)
+          @ json_convs_for_t @ Create.impl_of_type typ_ @ literal_wrapper)
     in
     let module_ bindings = { Ml.Module.name; bindings } in
     { Ml.Kind.intf = module_ intf; impl = module_ impl }
@@ -936,17 +1045,40 @@ let of_typescript (ts : Resolved.t list) =
     Code_error.raise "Unexpected cycle"
       [ ("cycle", Dyn.Encoder.(list string) cycle) ]
   | Ok ts ->
-    List.filter_map ts ~f:(fun (t : Resolved.t) ->
-        match t.data with
-        | Enum_anon data ->
+    let simple_enums, everything_else =
+      List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
+          if List.mem skipped_ts_decls t.name ~equal:String.equal then
+            Skip
+          else
+            match t.data with
+            | Enum_anon data -> Left { t with data }
+            | Interface _
+            | Type _ ->
+              Right t)
+    in
+    let simple_enums =
+      List.map simple_enums ~f:(fun (t : _ Named.t) ->
           (* "open" enums need an `Other constructor *)
           let allow_other = t.name = "CodeActionKind" in
-          Some (Enum.module_ ~allow_other { t with data })
-        | _ ->
-          let open Option.O in
-          let+ pped = preprocess t in
+          let data =
+            List.filter_map t.data ~f:(fun (constr, v) ->
+                match (v : Ts_types.Enum.case) with
+                | Literal l -> Some (constr, l)
+                | Alias _ ->
+                  (* TODO we don't handle these for now *)
+                  None)
+          in
+          Enum.module_ ~allow_other { t with data })
+    in
+    let everything_else =
+      List.map everything_else ~f:(fun (t : _ Named.t) ->
+          let pped = preprocess t in
           let mod_ = Expanded.of_ts pped in
           Gen.module_ mod_)
+    in
+    simple_enums @ everything_else
+    |> List.map ~f:(fun decl ->
+           Module.add_json_conv_for_t decl |> Module.use_json_conv_types)
 
 let output modules ~kind out =
   let open Ml.Kind in

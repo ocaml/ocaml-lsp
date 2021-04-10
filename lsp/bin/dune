@@ -6,8 +6,8 @@
  (with-stdout-to
   spec.ml
   (progn
-   (echo "let _3_15 = {spec|")
-   (echo "%{read:specifications/specification-3-15.md}")
+   (echo "let _3_16 = {spec|")
+   (echo "%{read:specifications/specification-3-16.md}")
    (echo "|spec}"))))
 
 (executable
@@ -17,5 +17,7 @@
 
 (library
  (name lsp_gen)
+ (instrumentation
+  (backend bisect_ppx))
  (modules :standard \ gen)
  (libraries stdune))

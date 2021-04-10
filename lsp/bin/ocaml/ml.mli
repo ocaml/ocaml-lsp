@@ -2,6 +2,8 @@
 
 open Import
 
+val is_kw : string -> bool
+
 module Kind : sig
   type t =
     | Intf
@@ -42,7 +44,9 @@ end
 module Type : sig
   [@@@warning "-30"]
 
-  type attr
+  type attr =
+    | Attr of string * string list
+    | Omitted of string
 
   type prim =
     | Unit
@@ -227,18 +231,23 @@ end
 
 module Module : sig
   (** Generate OCaml modules with JS converters *)
+  module Name : sig
+    type t = private string
+
+    val of_string : string -> t
+  end
 
   type 'a t =
-    { name : string
+    { name : Name.t
     ; bindings : 'a Named.t list
     }
 
-  val empty : string -> 'a t
+  val empty : Name.t -> 'a t
 
   type sig_ =
     | Value of Type.t
     | Type_decl of Type.decl
-    | Json_conv_sig
+    | Include of Name.t * (Type.t * Type.t) list
 
   type impl =
     | Type_decl of Type.decl

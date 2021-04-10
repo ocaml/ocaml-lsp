@@ -79,29 +79,17 @@ end
 module Sig : sig
   val module_ : string -> w -> w
 
+  val include_ : string -> (w * w) list -> w
+
   val val_ : string -> w list -> w
 
   val assoc : w -> w -> w
-
-  module Json : sig
-    val arr : string -> w list
-
-    val to_json : string -> w
-
-    val of_json : string -> w
-  end
 end
 
 val warnings : string -> w
 
-val match_ : string -> (w * w) list -> w
-
 val module_ : string -> w -> w
 
 val opens : string list -> w
-
-val of_json : string -> w -> w
-
-val to_json : string -> w -> w
 
 val record : (string * w) list -> w

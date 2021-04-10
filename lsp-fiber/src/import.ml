@@ -23,52 +23,6 @@ include Fiber_unix
 module String = struct
   include Stdune.String
 
-  let first_double_underscore_end s =
-    let len = String.length s in
-    let rec aux i =
-      if i > len - 2 then
-        raise Not_found
-      else if s.[i] = '_' && s.[i + 1] = '_' then
-        i + 1
-      else
-        aux (i + 1)
-    in
-    aux 0
-
-  let no_double_underscore s =
-    try
-      ignore (first_double_underscore_end s);
-      false
-    with
-    | Not_found -> true
-
-  let trim = function
-    | "" -> ""
-    | str ->
-      let l = String.length str in
-      let is_space = function
-        | ' '
-        | '\n'
-        | '\t'
-        | '\r' ->
-          true
-        | _ -> false
-      in
-      let r0 = ref 0
-      and rl = ref l in
-      while !r0 < l && is_space str.[!r0] do
-        incr r0
-      done;
-      let r0 = !r0 in
-      while !rl > r0 && is_space str.[!rl - 1] do
-        decr rl
-      done;
-      let rl = !rl in
-      if r0 = 0 && rl = l then
-        str
-      else
-        sub str ~pos:r0 ~len:(rl - r0)
-
   let print () s = Printf.sprintf "%S" s
 
   let next_occurrence ~pattern text from =
@@ -182,60 +136,6 @@ module Json = struct
       | json -> Some (f json)
   end
 
-  module Of = struct
-    let list = Ppx_yojson_conv_lib.Yojson_conv.list_of_yojson
-
-    let pair f g json =
-      match json with
-      | `List [ x; y ] -> (f x, g y)
-      | json -> error "pair" json
-
-    let int_pair =
-      let int = Ppx_yojson_conv_lib.Yojson_conv.int_of_yojson in
-      pair int int
-
-    let untagged_union (type a) name (xs : (t -> a) list) (json : t) : a =
-      match
-        List.find_map xs ~f:(fun conv ->
-            try Some (conv json) with
-            | Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (_, _) -> None)
-      with
-      | None -> error name json
-      | Some x -> x
-
-    let literal_field (type a) (name : string) (k : string) (v : string)
-        (f : t -> a) (json : t) : a =
-      match json with
-      | `Assoc xs -> (
-        let ks, xs =
-          List.partition_map xs ~f:(fun (k', v') ->
-              if k = k' then
-                if `String v = v' then
-                  Left k
-                else
-                  error (sprintf "%s: incorrect key %s" name k) json
-              else
-                Right (k', v'))
-        in
-        match ks with
-        | [] -> error (sprintf "%s: key %s not found" name k) json
-        | [ _ ] -> f (`Assoc xs)
-        | _ :: _ -> error (sprintf "%s: multiple keys %s" name k) json)
-      | _ -> error (sprintf "%s: not a record (key: %s)" name k) json
-  end
-
-  module To = struct
-    let list f xs = `List (List.map ~f xs)
-
-    let literal_field (type a) (k : string) (v : string) (f : a -> t) (t : a) :
-        t =
-      match f t with
-      | `Assoc xs -> `Assoc ((k, `String v) :: xs)
-      | _ -> Code_error.raise "To.literal_field" []
-
-    let int_pair (x, y) = `List [ `Int x; `Int y ]
-  end
-
   module Nullable_option = struct
     type 'a t = 'a option
 
@@ -246,24 +146,6 @@ module Json = struct
     let yojson_of_t f = function
       | None -> assert false
       | Some s -> f s
-  end
-
-  module Assoc = struct
-    type ('a, 'b) t = ('a * 'b) list constraint 'a = string
-
-    let yojson_of_t f g xs =
-      let f k =
-        match f k with
-        | `String s -> s
-        | json -> error "Json.Assoc.yojson_of_t not a string key" json
-      in
-      `Assoc (List.map xs ~f:(fun (k, v) -> (f k, g v)))
-
-    let t_of_yojson f g json =
-      let f s = f (`String s) in
-      match json with
-      | `Assoc xs -> List.map xs ~f:(fun (k, v) -> (f k, g v))
-      | _ -> error "Json.Assoc.t_of_yojson: not an object" json
   end
 
   module Void = struct

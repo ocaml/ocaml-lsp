@@ -11,7 +11,7 @@ module DebugEcho = struct
       (let _tp_loc = "lsp/src/extension.ml.DebugEcho.T.t" in
        function
        | `Assoc field_yojsons as yojson -> (
-         let message_field = ref None
+         let message_field = ref Ppx_yojson_conv_lib.Option.None
          and duplicates = ref []
          and extra = ref [] in
          let rec iter = function
@@ -19,10 +19,10 @@ module DebugEcho = struct
              (match field_name with
              | "message" -> (
                match Ppx_yojson_conv_lib.( ! ) message_field with
-               | None ->
+               | Ppx_yojson_conv_lib.Option.None ->
                  let fvalue = string_of_yojson _field_yojson in
-                 message_field := Some fvalue
-               | Some _ ->
+                 message_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
                  duplicates :=
                    field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
              | _ ->
@@ -50,13 +50,14 @@ module DebugEcho = struct
                yojson
            | [] -> (
              match Ppx_yojson_conv_lib.( ! ) message_field with
-             | Some message_value -> { message = message_value }
+             | Ppx_yojson_conv_lib.Option.Some message_value ->
+               { message = message_value }
              | _ ->
                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                  _tp_loc yojson
                  [ ( Ppx_yojson_conv_lib.poly_equal
                        (Ppx_yojson_conv_lib.( ! ) message_field)
-                       None
+                       Ppx_yojson_conv_lib.Option.None
                    , "message" )
                  ])))
        | _ as yojson ->

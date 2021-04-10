@@ -30,6 +30,15 @@ module Kind = struct
   end
 end
 
+let is_kw = function
+  | "type"
+  | "method"
+  | "end"
+  | "to"
+  | "external" ->
+    true
+  | _ -> false
+
 module Arg = struct
   type 'e t =
     | Unnamed of 'e
@@ -40,12 +49,6 @@ end
 module Type = struct
   [@@@warning "-30"]
 
-  let ident = function
-    | "type" -> "type_"
-    | "method" -> "method_"
-    | "end" -> "end_"
-    | s -> s
-
   type prim =
     | Unit
     | String
@@ -53,9 +56,10 @@ module Type = struct
     | Bool
 
   type attr =
-    | Option
-    | Key of string
+    | Attr of string * string list
     | Omitted of string
+  (* [Omitted] fields are just there for parinsg literal fields like "kind":
+     "foo". They are skipped when creating declarations. *)
 
   type t =
     | Named of string
@@ -177,20 +181,7 @@ module Type = struct
         | Variant v -> self#variant env v
     end
 
-  let field typ ~name =
-    let ident = ident name in
-    let attrs =
-      if ident = name then
-        []
-      else
-        [ Key name ]
-    in
-    let attrs =
-      match typ with
-      | Optional _ -> Option :: attrs
-      | _ -> attrs
-    in
-    { name = ident; typ; attrs }
+  let field typ ~name = { name; typ; attrs = [] }
 
   let fun_ args t =
     List.fold_right args ~init:t ~f:(fun arg acc -> Fun (arg, acc))
@@ -252,20 +243,15 @@ module Type = struct
     | Named v -> Type.name v
     | App (f, xs) -> Type.app (pp ~kind f) (List.map ~f:(pp ~kind) xs)
     | Tuple t -> Type.tuple (List.map ~f:(pp ~kind) t)
-    | Optional t ->
-      let name =
-        match (kind, t) with
-        | Impl, Named "Json.t"
-        | Intf, _ ->
-          "option"
-        | Impl, _ -> "Json.Nullable_option.t"
-      in
-      pp ~kind (App (Named name, [ t ]))
+    | Optional t -> pp ~kind (App (Named "option", [ t ]))
     | List t -> pp ~kind (App (Named "list", [ t ]))
     | Poly_variant constrs ->
       List.map constrs ~f:(fun { name; args } ->
           (name, List.map args ~f:(pp ~kind)))
       |> Type.poly
+    | Assoc (k, v) ->
+      let t = List (Tuple [ k; v ]) in
+      pp t ~kind
     | Fun (a, r) -> (
       match a with
       | Arg.Unnamed t ->
@@ -289,10 +275,6 @@ module Type = struct
           ; Pp.space
           ; pp ~kind r
           ])
-    | Assoc (k, v) -> (
-      match kind with
-      | Intf -> pp (List (Tuple [ k; v ])) ~kind
-      | Impl -> pp (App (Named "Json.Assoc.t", [ k; v ])) ~kind)
 
   let pp_decl' ~(kind : Kind.t) (a : decl) =
     match a with
@@ -301,6 +283,9 @@ module Type = struct
       match (a, kind) with
       | (List _ | Named _ | Prim _), Impl -> W.Type.deriving ~record:false pp
       | _, _ -> pp)
+    | Variant v ->
+      List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))
+      |> Type.variant
     | Record r -> (
       let r =
         List.filter_map r ~f:(fun { name; typ; attrs } ->
@@ -319,17 +304,8 @@ module Type = struct
                   | Impl -> attrs
                 in
                 List.concat_map attrs ~f:(function
-                  | Omitted _ -> assert false
-                  | Option ->
-                    if typ = Optional json then
-                      [ W.Attr.make "yojson.option" [] ]
-                    else
-                      [ W.Attr.make "default" [ Pp.verbatim "None" ]
-                      ; W.Attr.make "yojson_drop_default"
-                          [ Pp.verbatim "( = )" ]
-                      ]
-                  | Key s ->
-                    [ W.Attr.make "key" [ Pp.verbatim (sprintf "%S" s) ] ])
+                  | Attr (a, r) -> [ W.Attr.make a (List.map ~f:Pp.verbatim r) ]
+                  | _ -> assert false)
               in
               Type.field_attrs ~field ~attrs
             in
@@ -339,9 +315,6 @@ module Type = struct
       match kind with
       | Intf -> r
       | Impl -> W.Type.deriving r ~record:true)
-    | Variant v ->
-      List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))
-      |> Type.variant
 
   let pp_decl ~name ~kind (a : decl) : W.t =
     let body = pp_decl' ~kind a in
@@ -545,8 +518,22 @@ module Expr = struct
 end
 
 module Module = struct
+  module Name : sig
+    type t = private string
+
+    val of_string : string -> t
+  end = struct
+    type t = string
+
+    let of_string s =
+      match s.[0] with
+      | 'a' .. 'z' ->
+        Code_error.raise "invalid module name" [ ("s", Dyn.Encoder.string s) ]
+      | _ -> s
+  end
+
   type 'a t =
-    { name : string
+    { name : Name.t
     ; bindings : 'a Named.t list
     }
 
@@ -555,7 +542,7 @@ module Module = struct
   type sig_ =
     | Value of Type.t
     | Type_decl of Type.decl
-    | Json_conv_sig
+    | Include of Name.t * (Type.t * Type.t) list
 
   type impl =
     | Type_decl of Type.decl
@@ -565,29 +552,22 @@ module Module = struct
     let bindings =
       Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data } ->
           match (data : sig_) with
-          | Value t ->
-            Pp.concat
-              [ Pp.textf "val %s :" name; Pp.space; Type.pp ~kind:Intf t ]
-          | Type_decl t ->
-            Pp.concat
-              [ Pp.textf "type %s =" name
-              ; Pp.space
-              ; Type.pp_decl' ~kind:Intf t
-              ]
-          | Json_conv_sig ->
-            Pp.textf "include Json.Jsonable.S with type t := %s" name)
+          | Value t -> W.Sig.val_ name [ Type.pp ~kind:Intf t ]
+          | Type_decl t -> W.Type.decl name (Type.pp_decl' ~kind:Intf t)
+          | Include (mod_, destructive_subs) ->
+            List.map destructive_subs ~f:(fun (l, r) ->
+                let f = Type.pp ~kind:Intf in
+                (f l, f r))
+            |> W.Sig.include_ (mod_ :> string))
     in
-    W.Sig.module_ name bindings
+    W.Sig.module_ (name :> string) bindings
 
   let pp_impl { name; bindings } =
     let bindings =
       Pp.concat_map bindings ~sep:Pp.newline ~f:(fun { name; data = v } ->
           match v with
-          | Type_decl t ->
-            let lhs = Pp.textf "type %s =" name in
-            let rhs = Type.pp_decl' ~kind:Impl t in
-            Pp.concat [ lhs; Pp.space; rhs ]
-          | Value decl -> Expr.pp_toplevel ~kind:Impl name decl)
+          | Value decl -> Expr.pp_toplevel ~kind:Impl name decl
+          | Type_decl t -> W.Type.decl name (Type.pp_decl' ~kind:Impl t))
     in
-    W.module_ name bindings
+    W.module_ (name :> string) bindings
 end
