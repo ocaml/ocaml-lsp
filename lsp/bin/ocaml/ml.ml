@@ -46,6 +46,23 @@ module Arg = struct
     | Optional of string * 'e
 end
 
+module Path = struct
+  type t =
+    | Ident of string
+    | Dot of t * string
+    | Apply of t * t
+
+  let rec to_string = function
+    | Ident s -> s
+    | Dot (t, s) -> to_string t ^ "." ^ s
+    | Apply (f, x) -> to_string f ^ "(" ^ to_string x ^ ")"
+
+  let rec pp = function
+    | Ident s -> Pp.verbatim s
+    | Dot (s, p) -> Pp.concat [ pp s; Pp.verbatim "."; Pp.verbatim p ]
+    | Apply (s, p) -> Pp.concat [ pp s; W.surround `Paren (pp p) ]
+end
+
 module Type = struct
   [@@@warning "-30"]
 
@@ -56,7 +73,7 @@ module Type = struct
     | Bool
 
   type t =
-    | Named of string
+    | Path of Path.t
     | Var of string
     | Prim of prim
     | Tuple of t list
@@ -99,7 +116,7 @@ module Type = struct
         in
         (Tuple r, s)
 
-      method named _ n = (Named n, self#empty)
+      method path _ p = (Path p, self#empty)
 
       method var _ n = (Var n, self#empty)
 
@@ -125,7 +142,7 @@ module Type = struct
 
       method t env this =
         match (this : t) with
-        | Named n -> self#named env n
+        | Path p -> self#path env p
         | Var v -> self#var env v
         | Prim p -> self#prim env p
         | Tuple t -> self#tuple env t
@@ -186,13 +203,13 @@ module Type = struct
 
   let assoc_list ~key ~data = Assoc (key, data)
 
-  let t = Named "t"
+  let t = Path (Ident "t")
 
-  let module_t m = Named (String.capitalize_ascii m ^ ".t")
+  let module_t m = Path (Dot (Ident (String.capitalize_ascii m), "t"))
 
   let string = Prim String
 
-  let name s = Named s
+  let name s = Path (Ident s)
 
   let int = Prim Int
 
@@ -207,11 +224,13 @@ module Type = struct
     Poly_variant
       (List.map constrs ~f:(fun constr -> { name = constr; args = [] }))
 
-  let json = Named "Json.t"
+  let json = Path (Dot (Ident "Json", "t"))
 
   let unit = Prim Unit
 
-  let void = Named "Json.Void.t"
+  let void =
+    let void = Path.Dot (Ident "Json", "Void") in
+    Path (Dot (void, "t"))
 
   module Type = W.Type
 
@@ -226,11 +245,11 @@ module Type = struct
     match a with
     | Prim p -> pp_prim p
     | Var v -> Type.var v
-    | Named v -> Type.name v
+    | Path p -> Path.pp p
     | App (f, xs) -> Type.app (pp ~kind f) (List.map ~f:(pp ~kind) xs)
     | Tuple t -> Type.tuple (List.map ~f:(pp ~kind) t)
-    | Optional t -> pp ~kind (App (Named "option", [ t ]))
-    | List t -> pp ~kind (App (Named "list", [ t ]))
+    | Optional t -> pp ~kind (App (Path (Ident "option"), [ t ]))
+    | List t -> pp ~kind (App (Path (Ident "list"), [ t ]))
     | Poly_variant constrs ->
       List.map constrs ~f:(fun { name; args } ->
           (name, List.map args ~f:(pp ~kind)))
@@ -267,7 +286,7 @@ module Type = struct
     | Alias a -> (
       let pp = pp ~kind a in
       match (a, kind) with
-      | (List _ | Named _ | Prim _), Impl -> W.Type.deriving ~record:false pp
+      | (List _ | Path _ | Prim _), Impl -> W.Type.deriving ~record:false pp
       | _, _ -> pp)
     | Variant v ->
       List.map v ~f:(fun { name; args } -> (name, List.map ~f:(pp ~kind) args))

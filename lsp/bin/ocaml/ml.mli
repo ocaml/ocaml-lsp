@@ -41,6 +41,15 @@ module Arg : sig
     | Optional of string * 'e
 end
 
+module Path : sig
+  type t =
+    | Ident of string
+    | Dot of t * string
+    | Apply of t * t
+
+  val to_string : t -> string
+end
+
 module Type : sig
   [@@@warning "-30"]
 
@@ -51,7 +60,7 @@ module Type : sig
     | Bool
 
   type t =
-    | Named of string
+    | Path of Path.t
     | Var of string
     | Prim of prim
     | Tuple of t list
@@ -148,7 +157,7 @@ module Type : sig
 
       method list : 'env -> t -> t * 'm
 
-      method named : 'env -> string -> t * 'm
+      method path : 'env -> Path.t -> t * 'm
 
       method optional : 'env -> t -> t * 'm
 
@@ -187,6 +196,7 @@ module Expr : sig
     | Bool of bool
     | Int of int
     | String of string
+    (* This should be Path.t as well *)
     | Ident of string
     | Cons of 'e * 'e prim
     | List of 'e list

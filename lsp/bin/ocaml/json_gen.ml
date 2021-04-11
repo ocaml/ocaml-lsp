@@ -1,7 +1,7 @@
 open! Import
 open Ml
 
-let json_t = Type.Named "Json.t"
+let json_t = Type.Path (Dot (Ident "Json", "t"))
 
 let pat_of_literal (t : Ts_types.Literal.t) : Expr.pat =
   let open Expr in
@@ -61,8 +61,8 @@ let add_json_conv_for_t (sig_ : Module.sig_ Module.t) =
   let conv_t =
     { Named.name = "t"
     ; data =
-        Module.Include
-          (Module.Name.of_string "Json.Jsonable.S", [ (Named "t", Named "t") ])
+        (let t = Type.Path (Path.Ident "t") in
+         Module.Include (Module.Name.of_string "Json.Jsonable.S", [ (t, t) ]))
     }
   in
   { sig_ with bindings = sig_.bindings @ [ conv_t ] }
@@ -140,12 +140,13 @@ module Poly_variant = struct
     { json_constrs; untagged_constrs }
 
   let conv_of_constr target (utc : Ml.Type.constr) =
-    let conv (name : string) =
-      let conv name = Name.conv target name in
-      match String.rsplit2 ~on:'.' name with
-      | None -> conv name
-      | Some (module_, name) -> sprintf "%s.%s" module_ (conv name)
+    let rec conv (p : Ml.Path.t) =
+      match p with
+      | Ident name -> Ml.Path.Ident (Name.conv target name)
+      | Dot (s, name) -> Ml.Path.Dot (s, Name.conv target name)
+      | Apply (s, y) -> Path.Apply (s, conv y)
     in
+    let conv p = Ml.Path.to_string (conv p) in
     let open Ml.Expr in
     let json_mod n =
       match target with
@@ -154,8 +155,8 @@ module Poly_variant = struct
     in
     let conv t = Create (Ident (conv t)) in
     match (utc.args : Ml.Type.t list) with
-    | [ Named t ] -> conv t
-    | [ List (Named t) ] -> App (Create (json_mod "list"), [ Unnamed (conv t) ])
+    | [ Path p ] -> conv p
+    | [ List (Path p) ] -> App (Create (json_mod "list"), [ Unnamed (conv p) ])
     | [ Tuple [ Prim Int; Prim Int ] ] -> Create (json_mod "int_pair")
     | [] -> assert false
     | _ ->

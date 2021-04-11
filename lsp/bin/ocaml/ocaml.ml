@@ -222,6 +222,8 @@ end = struct
     let impl = { t.impl with bindings = t.impl.bindings @ bindings } in
     { t with impl }
 
+  let json_assoc_t = Ml.Path.Dot (Dot (Ident "Json", "Assoc"), "t")
+
   let rename_invalid_fields =
     let map (kind : Ml.Kind.t) =
       let open Ml.Type in
@@ -246,7 +248,7 @@ end = struct
           in
           super#field x f
 
-        method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
+        method! assoc x k v = self#t x (App (Path json_assoc_t, [ k; v ]))
       end
     in
     fun kind t -> (map kind)#decl () t |> fst
@@ -265,7 +267,10 @@ end = struct
           if t = Json_gen.json_t then
             super#optional x t
           else
-            self#t x (App (Named "Json.Nullable_option.t", [ t ]))
+            let opt =
+              Ml.Path.Dot (Dot (Ident "Json", "Nullable_option"), "t")
+            in
+            self#t x (App (Path opt, [ t ]))
 
         method! field x f =
           let f =
@@ -283,7 +288,7 @@ end = struct
           in
           super#field x f
 
-        method! assoc x k v = self#t x (App (Named "Json.Assoc.t", [ k; v ]))
+        method! assoc x k v = self#t x (App (Path json_assoc_t, [ k; v ]))
       end
     in
     fun (t : t) ->
