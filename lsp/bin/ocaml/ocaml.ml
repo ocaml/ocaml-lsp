@@ -175,78 +175,7 @@ module Expanded = struct
     { Ml.Module.name; bindings = bindings r }
 end
 
-module Json : sig
-  val pat_of_literal : Literal.t -> Ml.Expr.pat
-
-  val json_error_pat : string -> Ml.Expr.pat * Ml.Expr.t
-
-  val of_json : name:string -> Ml.Expr.t -> Ml.Expr.toplevel Named.t
-
-  val to_json : name:string -> Ml.Expr.t -> Ml.Expr.toplevel Named.t
-
-  val constr_of_literal : Literal.t -> Ml.Expr.t
-
-  val is_json_constr : Ml.Type.constr -> bool
-
-  module Name : sig
-    val conv : [ `Of | `To ] -> string -> string
-  end
-end = struct
-  let pat_of_literal (t : Literal.t) : Ml.Expr.pat =
-    let open Ml.Expr in
-    let tag, args =
-      match t with
-      | Literal.String s -> ("String", Pat (Ml.Expr.String s))
-      | Int i -> ("Int", Pat (Ml.Expr.Int i))
-      | Float _ -> assert false
-    in
-    Pat (Constr { poly = true; tag; args = [ args ] })
-
-  let constr_of_literal (t : Literal.t) : Ml.Expr.t =
-    let open Ml.Expr in
-    let tag, args =
-      match t with
-      | Literal.String s -> ("String", Create (Ml.Expr.String s))
-      | Int i -> ("Int", Create (Ml.Expr.Int i))
-      | Float _ -> assert false
-    in
-    Create (Constr { poly = true; tag; args = [ args ] })
-
-  let json_error_pat name =
-    let open Ml.Expr in
-    ( Wildcard
-    , App
-        ( Create (Ident "Json.error")
-        , [ Unnamed (Create (String name)); Unnamed (Create (Ident "json")) ] )
-    )
-
-  let is_json_constr (constr : Ml.Type.constr) =
-    List.mem [ "String"; "Int"; "Bool" ] constr.name ~equal:String.equal
-
-  module Name = struct
-    let of_ = sprintf "%s_of_yojson"
-
-    let to_ = sprintf "yojson_of_%s"
-
-    let conv = function
-      | `To -> to_
-      | `Of -> of_
-  end
-
-  open Ml.Arg
-
-  let of_json ~name expr =
-    let pat = [ (Unnamed "json", Ml.Type.json) ] in
-    let data = { Ml.Expr.pat; type_ = Ml.Type.name name; body = expr } in
-    let name = Name.of_ name in
-    { Named.name; data }
-
-  let to_json ~name expr =
-    let pat = [ (Unnamed name, Ml.Type.name name) ] in
-    let data = { Ml.Expr.pat; type_ = Ml.Type.json; body = expr } in
-    let name = Name.to_ name in
-    { Named.name; data }
-end
+module Json = Json_gen
 
 module Module : sig
   open Ml
@@ -256,9 +185,6 @@ module Module : sig
   val add_private_values : t -> Expr.toplevel Named.t list -> t
 
   val type_decls : Module.Name.t -> Type.decl Named.t list Kind.Map.t -> t
-
-  (** Add include Json.Jsonable.t signatures *)
-  val add_json_conv_for_t : t -> t
 
   (** Use Json.Nullable_option or Json.Assoc.t where appropriate *)
   val use_json_conv_types : t -> t
@@ -296,17 +222,6 @@ end = struct
     let impl = { t.impl with bindings = t.impl.bindings @ bindings } in
     { t with impl }
 
-  let add_json_conv_for_t (t : t) =
-    let conv_t =
-      { Named.name = "t"
-      ; data =
-          Ml.Module.Include
-            (Module.Name.of_string "Json.Jsonable.S", [ (Named "t", Named "t") ])
-      }
-    in
-    let intf = { t.intf with bindings = t.intf.bindings @ [ conv_t ] } in
-    { t with intf }
-
   let rename_invalid_fields =
     let map (kind : Ml.Kind.t) =
       let open Ml.Type in
@@ -322,7 +237,7 @@ end = struct
             if Ml.is_kw f.name then
               let attrs =
                 match kind with
-                | Impl -> Attr ("key", [ sprintf "%S" f.name ]) :: f.attrs
+                | Impl -> ("key", [ sprintf "%S" f.name ]) :: f.attrs
                 | Intf -> f.attrs
               in
               { f with name = f.name ^ "_"; attrs }
@@ -339,7 +254,6 @@ end = struct
   let use_json_conv_types =
     let map =
       let open Ml.Type in
-      let json = Named "Json.t" in
       object (self)
         inherit [unit, unit] Ml.Type.mapreduce as super
 
@@ -348,21 +262,22 @@ end = struct
         method plus () () = ()
 
         method! optional x t =
-          match t with
-          | Named "Json.t" -> super#optional x t
-          | _ -> self#t x (App (Named "Json.Nullable_option.t", [ t ]))
+          if t = Json_gen.json_t then
+            super#optional x t
+          else
+            self#t x (App (Named "Json.Nullable_option.t", [ t ]))
 
         method! field x f =
           let f =
             match f.typ with
             | Optional t ->
-              if t = json then
-                { f with attrs = Attr ("yojson.option", []) :: f.attrs }
+              if t = Json_gen.json_t then
+                { f with attrs = ("yojson.option", []) :: f.attrs }
               else
                 { f with
                   attrs =
-                    Attr ("default", [ "None" ])
-                    :: Attr ("yojson_drop_default", [ "( = )" ]) :: f.attrs
+                    ("default", [ "None" ])
+                    :: ("yojson_drop_default", [ "( = )" ]) :: f.attrs
                 }
             | _ -> f
           in
@@ -482,214 +397,52 @@ end = struct
     | _ -> []
 end
 
-module Enum : sig
-  (* Convert simple enums. Because enums are so simple, we go straight from TS
-     to generated Ml *)
-
-  val conv :
-       allow_other:bool
-    -> poly:bool
-    -> (string * Literal.t) list Named.t
-    -> Ml.Expr.toplevel Named.t list
-
-  val module_ :
-       allow_other:bool
-    -> (string * Literal.t) list Named.t
-    -> (Ml.Module.sig_ Ml.Module.t, Ml.Module.impl Ml.Module.t) Ml.Kind.pair
-end = struct
-  let of_json ~allow_other ~poly { Named.name; data = constrs } =
-    let open Ml.Expr in
-    let body =
-      let clauses =
-        List.map constrs ~f:(fun (constr, literal) ->
-            let pat = Json.pat_of_literal literal in
-            let tag = constr in
-            (pat, Create (Constr { tag; poly; args = [] })))
+let enum_module ~allow_other ({ Named.name; data = constrs } as t) =
+  let json_bindings =
+    Json_gen.Enum.conv ~allow_other ~poly:false { t with name = "t" }
+  in
+  let t =
+    let data =
+      let constrs =
+        List.map constrs ~f:(fun (name, _) -> Ml.Type.constr ~name [])
       in
-      let clauses =
+      let constrs =
         if allow_other then
-          let s = Ident "s" in
-          let pat =
-            Pat (Constr { tag = "String"; poly = true; args = [ Pat s ] })
-          in
-          let make =
-            Create (Constr { tag = "Other"; poly; args = [ Create s ] })
-          in
-          clauses @ [ (pat, make) ]
+          (* [String] is a hack. It could be a differnt type, but it isn't in
+             practice *)
+          constrs @ [ Ml.Type.constr ~name:"Other" [ Ml.Type.Prim String ] ]
         else
-          clauses
+          constrs
       in
-      Match (Create (Ident "json"), clauses @ [ Json.json_error_pat name ])
+      Ml.Type.Variant constrs
     in
-    Json.of_json ~name body
-
-  let to_json ~allow_other ~poly { Named.name; data = constrs } =
-    let open Ml.Expr in
-    let body =
-      let clauses =
-        List.map constrs ~f:(fun (constr, literal) ->
-            let pat = Pat (Constr { tag = constr; poly; args = [] }) in
-            (pat, Json.constr_of_literal literal))
-      in
-      let clauses =
-        if allow_other then
-          let s = Ident "s" in
-          let pat = Pat (Constr { tag = "Other"; poly; args = [ Pat s ] }) in
-          let make =
-            Create (Constr { tag = "String"; poly = true; args = [ Create s ] })
-          in
-          clauses @ [ (pat, make) ]
-        else
-          clauses
-      in
-      Match (Create (Ident name), clauses)
-    in
-    Json.to_json ~name body
-
-  let conv ~allow_other ~poly t =
-    let to_json = to_json ~allow_other ~poly t in
-    let of_json = of_json ~allow_other ~poly t in
-    [ to_json; of_json ]
-
-  let module_ ~allow_other ({ Named.name; data = constrs } as t) =
-    let json_bindings = conv ~allow_other ~poly:false { t with name = "t" } in
-    let t =
-      let data =
-        let constrs =
-          List.map constrs ~f:(fun (name, _) -> Ml.Type.constr ~name [])
-        in
-        let constrs =
-          if allow_other then
-            (* [String] is a hack. It could be a differnt type, but it isn't in
-               practice *)
-            constrs @ [ Ml.Type.constr ~name:"Other" [ Ml.Type.Prim String ] ]
-          else
-            constrs
-        in
-        Ml.Type.Variant constrs
-      in
-      { Named.name = "t"; data }
-    in
-    let type_decls = Ml.Kind.Map.make_both [ t ] in
-    let module_ =
-      Module.type_decls (Ml.Module.Name.of_string name) type_decls
-    in
-    Module.add_private_values module_ json_bindings
-end
-
-module Poly_variant = struct
-  type constrs =
-    { json_constrs : Ml.Type.constr list
-    ; untagged_constrs : Ml.Type.constr list
-    }
-
-  let split_clauses constrs =
-    let json_constrs, untagged_constrs =
-      List.partition_map constrs ~f:(fun x ->
-          if Json.is_json_constr x then
-            Left x
-          else
-            Right x)
-    in
-    { json_constrs; untagged_constrs }
-
-  let conv_of_constr target (utc : Ml.Type.constr) =
-    let conv (name : string) =
-      let conv name = Json.Name.conv target name in
-      match String.rsplit2 ~on:'.' name with
-      | None -> conv name
-      | Some (module_, name) -> sprintf "%s.%s" module_ (conv name)
-    in
-    let open Ml.Expr in
-    let json_mod n =
-      match target with
-      | `To -> Ident ("Json.To." ^ n)
-      | `Of -> Ident ("Json.Of." ^ n)
-    in
-    let conv t = Create (Ident (conv t)) in
-    match (utc.args : Ml.Type.t list) with
-    | [ Named t ] -> conv t
-    | [ List (Named t) ] -> App (Create (json_mod "list"), [ Unnamed (conv t) ])
-    | [ Tuple [ Prim Int; Prim Int ] ] -> Create (json_mod "int_pair")
-    | [] -> assert false
-    | _ ->
-      Code_error.raise "untagged" [ ("utc.name", Dyn.Encoder.string utc.name) ]
-
-  let json_clauses json_constrs =
-    List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
-        let open Ml.Expr in
-        let constr arg = Constr { tag = c.name; poly = true; args = [ arg ] } in
-        let pat = Pat (constr (Pat (Ident "j"))) in
-        let expr : t = Create (constr (Create (Ident "j"))) in
-        (pat, expr))
-
-  let to_json { Named.name; data = constrs } =
-    let { json_constrs; untagged_constrs } = split_clauses constrs in
-    let open Ml.Expr in
-    let json_clauses = json_clauses json_constrs in
-    let untagged_clauses =
-      List.map untagged_constrs ~f:(fun (utc : Ml.Type.constr) ->
-          let constr arg =
-            Constr { tag = utc.name; poly = true; args = [ arg ] }
-          in
-          let pat = Pat (constr (Pat (Ident "s"))) in
-          let expr =
-            App (conv_of_constr `To utc, [ Unnamed (Create (Ident "s")) ])
-          in
-          (pat, expr))
-    in
-    let expr = Match (Create (Ident name), json_clauses @ untagged_clauses) in
-    Json.to_json ~name expr
-
-  let of_json { Named.name; data = constrs } =
-    let { json_constrs; untagged_constrs } = split_clauses constrs in
-    let open Ml.Expr in
-    let clauses = json_clauses json_constrs in
-    let untagged =
-      let args =
-        let constrs =
-          List.map untagged_constrs ~f:(fun (utc : Ml.Type.constr) ->
-              let create =
-                let of_json =
-                  App
-                    (conv_of_constr `Of utc, [ Unnamed (Create (Ident "json")) ])
-                in
-                Create
-                  (Constr { tag = utc.name; poly = true; args = [ of_json ] })
-              in
-              Fun ([ Unnamed (Pat (Ident "json")) ], create))
-        in
-        Create (List constrs)
-      in
-      App
-        ( Create (Ident "Json.Of.untagged_union")
-        , [ Unnamed (Create (String name))
-          ; Unnamed args
-          ; Unnamed (Create (Ident "json"))
-          ] )
-    in
-    let expr =
-      match (json_constrs, untagged_constrs) with
-      | [], [] -> assert false
-      | [], _ -> untagged
-      | _, [] ->
-        Match (Create (Ident "json"), clauses @ [ Json.json_error_pat name ])
-      | _ :: _, _ :: _ ->
-        Match (Create (Ident "json"), clauses @ [ (Wildcard, untagged) ])
-    in
-    Json.of_json ~name expr
-end
+    { Named.name = "t"; data }
+  in
+  let type_decls = Ml.Kind.Map.make_both [ t ] in
+  let module_ = Module.type_decls (Ml.Module.Name.of_string name) type_decls in
+  Module.add_private_values module_ json_bindings
 
 module Mapper : sig
   (* Convert typescript types to OCaml types *)
 
-  val make_typ : string -> Resolved.typ -> Ml.Type.t
+  val make_typ : Resolved.typ Named.t -> Ml.Type.t
 
-  val record_ : string -> Resolved.field list -> Ml.Type.decl Named.t
+  type literal_field =
+    { field_name : string
+    ; literal_value : string
+    }
+
+  val record_ :
+    Resolved.field list Named.t -> Ml.Type.decl Named.t * literal_field list
 
   val extract_poly_vars :
     Ml.Type.decl -> Ml.Type.decl * Ml.Type.constr list Named.t list
 end = struct
+  type literal_field =
+    { field_name : string
+    ; literal_value : string
+    }
+
   module Type = Ml.Type
 
   let is_same_as_json =
@@ -723,7 +476,7 @@ end = struct
     | _ :: _ :: _ -> assert false
     | [ _ ] -> `Null_removed non_nulls
 
-  let make_typ name t =
+  let make_typ { Named.name; data = t } =
     let rec type_ (t : Resolved.typ) =
       match t with
       | Ident Uinteger ->
@@ -803,37 +556,39 @@ end = struct
   let make_field (field : Resolved.field) =
     match field.data with
     | Pattern { pat; typ } ->
-      let key = make_typ field.name pat in
-      let data = make_typ field.name typ in
+      let key = make_typ { Named.name = field.name; data = pat } in
+      let data = make_typ { Named.name = field.name; data = typ } in
       let typ = Type.assoc_list ~key ~data in
-      Ml.Type.field typ ~name:field.name
+      Left (Ml.Type.field typ ~name:field.name)
     | Resolved.Single { typ = Literal s; optional = false } ->
-      let literal =
+      let literal_value =
         match s with
         | String s -> s
         | _ -> assert false
       in
-      Type.kind_field ~literal
+      Right { literal_value; field_name = field.name }
     | Resolved.Single { typ; optional } ->
-      let typ = make_typ field.name typ in
+      let typ = make_typ { Named.name = field.name; data = typ } in
       let typ =
         if optional then
           Type.Optional typ
         else
           typ
       in
-      Ml.Type.field typ ~name:field.name
+      Left (Ml.Type.field typ ~name:field.name)
 
-  let record_ name (fields : Resolved.field list) =
-    let data =
+  let record_ { Named.name; data = (fields : Resolved.field list) } =
+    let data, literals =
       match fields with
       | [ { Named.name; data = Pattern { pat; typ } } ] ->
-        let key = make_typ name pat in
-        let data = make_typ name typ in
-        Type.Alias (Type.assoc_list ~key ~data)
-      | _ -> Type.Record (List.map fields ~f:make_field)
+        let key = make_typ { Named.name; data = pat } in
+        let data = make_typ { Named.name; data = typ } in
+        (Type.Alias (Type.assoc_list ~key ~data), [])
+      | _ ->
+        let fields, literals = List.partition_map fields ~f:make_field in
+        (Type.Record fields, literals)
     in
-    { Named.name; data }
+    ({ Named.name; data }, literals)
 
   let extract_poly_vars s =
     let extract =
@@ -867,18 +622,19 @@ module Gen : sig
 end = struct
   module Type = Ml.Type
 
-  let type_ { Named.name; data = typ } =
+  let type_ ({ Named.name; data = _ } as t) =
     let main_type =
-      let typ = Mapper.make_typ name typ in
+      let typ = Mapper.make_typ t in
       { Named.name; data = Type.Alias typ }
     in
     [ main_type ]
 
-  let record { Named.name; data = fields } =
-    let main_type = Mapper.record_ name fields in
+  let record ({ Named.name = _; data = fields } as t) =
+    let main_type, literals = Mapper.record_ t in
+    (* why do we need this check at all? *)
     match fields with
-    | [] -> []
-    | _ :: _ -> [ main_type ]
+    | [] -> None
+    | _ :: _ -> Some (main_type, literals)
 
   let interface_fields (i : Resolved.interface) =
     let rec interface init (i : Resolved.interface) =
@@ -908,84 +664,53 @@ end = struct
       List.map t.data ~f:(fun (c : Ml.Type.constr) ->
           (c.name, Literal.String c.name))
       |> Named.set_data t
-      |> Enum.conv ~allow_other:false ~poly:true
+      |> Json_gen.Enum.conv ~allow_other:false ~poly:true
     else
-      [ Poly_variant.of_json t; Poly_variant.to_json t ]
-
-  let literal_field { Named.name; data = typ_ } =
-    match (typ_ : Ml.Type.decl) with
-    | Record fs -> (
-      match
-        List.partition_map fs ~f:(fun f ->
-            match Ml.Type.get_kind f with
-            | None -> Right f
-            | Some lit -> Left (f, lit))
-      with
-      | [], _ -> None
-      | [ (field, lit) ], normal_fields ->
-        Some ((field, lit), { Named.name; data = Ml.Type.Record normal_fields })
-      | _ -> assert false)
-    | _ -> None
-
-  let literal_wrapper ((field : Ml.Type.field), lit) name =
-    (* Some json representations require an extra "kind" field set to some
-       string constant *)
-    let open Ml.Expr in
-    let args = List.map ~f:(fun x -> Ml.Arg.Unnamed (Create x)) in
-    let to_ =
-      let a =
-        [ String field.name
-        ; String lit
-        ; Ident (Json.Name.conv `To name)
-        ; Ident name
-        ]
-      in
-      App (Create (Ident "Json.To.literal_field"), args a)
-    in
-    let of_ =
-      let a =
-        [ String name
-        ; String field.name
-        ; String lit
-        ; Ident (Json.Name.conv `Of name)
-        ; Ident "json"
-        ]
-      in
-      App (Create (Ident "Json.Of.literal_field"), args a)
-    in
-    [ Json.to_json ~name to_; Json.of_json ~name of_ ]
-    |> List.map ~f:(Named.map ~f:(fun v -> Ml.Module.Value v))
+      [ Json_gen.Poly_variant.of_json t; Json_gen.Poly_variant.to_json t ]
 
   (* This is the more complex case *)
 
   let module_ { Ml.Module.name; bindings } : Module.t =
     let type_decls =
+      let add_record = function
+        | None -> []
+        | Some (decl, literals) -> [ `Record (decl, literals) ]
+      in
+      let add_else = List.map ~f:(fun x -> `Type x) in
       List.concat_map bindings ~f:(fun (r : Expanded.binding Named.t) ->
           match r.data with
-          | Record data -> record { r with data }
-          | Interface data -> record { r with data = interface_fields data }
-          | Poly_enum data -> poly_enum { r with data }
-          | Alias data -> type_ { r with data })
+          | Record data -> record { r with data } |> add_record
+          | Interface data ->
+            record { r with data = interface_fields data } |> add_record
+          | Poly_enum data -> poly_enum { r with data } |> add_else
+          | Alias data -> type_ { r with data } |> add_else)
     in
     let intf : Ml.Module.sig_ Named.t list =
-      List.concat_map type_decls ~f:(fun (td : Ml.Type.decl Named.t) ->
-          let td =
-            { td with data = Module.rename_invalid_fields Intf td.data }
-          in
-          let type_ =
-            match literal_field td with
-            | None -> td
-            | Some (_, typ_) -> typ_
-          in
-          [ { td with
-              Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
-            }
-          ]
-          @ Create.intf_of_type type_)
+      List.map type_decls ~f:(function
+        | `Record (t, _) -> t
+        | `Type t -> t)
+      |> List.concat_map ~f:(fun (td : Ml.Type.decl Named.t) ->
+             let td =
+               { td with data = Module.rename_invalid_fields Intf td.data }
+             in
+             [ { td with
+                 Named.data = (Ml.Module.Type_decl td.data : Ml.Module.sig_)
+               }
+             ]
+             @ Create.intf_of_type td)
     in
     let impl : Ml.Module.impl Named.t list =
       (* TODO we should make sure to handle duplicate variants extracted *)
       List.concat_map type_decls ~f:(fun d ->
+          let d, literal_wrapper =
+            match d with
+            | `Record (l, [ lw ]) -> (l, Some lw)
+            | `Record (l, []) -> (l, None)
+            | `Record (_, _ :: _) ->
+              assert false
+              (* we don't support multiple literals in a single record for now *)
+            | `Type l -> (l, None)
+          in
           let typ_, poly_vars = Mapper.extract_poly_vars (Named.data d) in
           let poly_vars_and_convs =
             List.concat_map poly_vars ~f:(fun pv ->
@@ -999,11 +724,13 @@ end = struct
                 in
                 decl :: json_conv)
           in
-          let typ_, literal_wrapper =
-            let typ_ = { d with data = typ_ } in
-            match literal_field typ_ with
-            | None -> (typ_, [])
-            | Some (f, typ_) -> (typ_, literal_wrapper f d.name)
+          let typ_ = { d with data = typ_ } in
+          let literal_wrapper =
+            match literal_wrapper with
+            | None -> []
+            | Some { field_name; literal_value } ->
+              Json_gen.make_literal_wrapper_conv ~field_name ~literal_value
+                ~type_name:typ_.name
           in
           let typ_ =
             { typ_ with data = Module.rename_invalid_fields Impl typ_.data }
@@ -1068,7 +795,7 @@ let of_typescript (ts : Resolved.t list) =
                   (* TODO we don't handle these for now *)
                   None)
           in
-          Enum.module_ ~allow_other { t with data })
+          enum_module ~allow_other { t with data })
     in
     let everything_else =
       List.map everything_else ~f:(fun (t : _ Named.t) ->
@@ -1077,8 +804,12 @@ let of_typescript (ts : Resolved.t list) =
           Gen.module_ mod_)
     in
     simple_enums @ everything_else
-    |> List.map ~f:(fun decl ->
-           Module.add_json_conv_for_t decl |> Module.use_json_conv_types)
+    |> List.map ~f:(fun (decl : _ Ml.Kind.pair) ->
+           let decl =
+             let intf = Json_gen.add_json_conv_for_t decl.intf in
+             { decl with intf }
+           in
+           Module.use_json_conv_types decl)
 
 let output modules ~kind out =
   let open Ml.Kind in

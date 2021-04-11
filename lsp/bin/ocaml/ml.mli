@@ -44,10 +44,6 @@ end
 module Type : sig
   [@@@warning "-30"]
 
-  type attr =
-    | Attr of string * string list
-    | Omitted of string
-
   type prim =
     | Unit
     | String
@@ -69,7 +65,7 @@ module Type : sig
   and field =
     { name : string
     ; typ : t
-    ; attrs : attr list
+    ; attrs : (string * string list) list
     }
 
   and constr =
@@ -92,10 +88,6 @@ module Type : sig
   val pp : t -> kind:Kind.t -> unit Pp.t
 
   val field : t -> name:string -> field
-
-  val kind_field : literal:string -> field
-
-  val get_kind : field -> string option
 
   val constr : t list -> name:string -> constr
 

@@ -55,12 +55,6 @@ module Type = struct
     | Int
     | Bool
 
-  type attr =
-    | Attr of string * string list
-    | Omitted of string
-  (* [Omitted] fields are just there for parinsg literal fields like "kind":
-     "foo". They are skipped when creating declarations. *)
-
   type t =
     | Named of string
     | Var of string
@@ -81,7 +75,7 @@ module Type = struct
   and field =
     { name : string
     ; typ : t
-    ; attrs : attr list
+    ; attrs : (string * string list) list
     }
 
   type decl =
@@ -219,14 +213,6 @@ module Type = struct
 
   let void = Named "Json.Void.t"
 
-  let kind_field ~literal =
-    { name = "kind"; typ = void; attrs = [ Omitted literal ] }
-
-  let get_kind f =
-    match f.attrs with
-    | [ Omitted l ] -> Some l
-    | _ -> None
-
   module Type = W.Type
 
   let pp_prim (p : prim) : W.t =
@@ -288,13 +274,7 @@ module Type = struct
       |> Type.variant
     | Record r -> (
       let r =
-        List.filter_map r ~f:(fun { name; typ; attrs } ->
-            let open Option.O in
-            let+ attrs =
-              match attrs with
-              | [ Omitted _ ] -> None
-              | a -> Some a
-            in
+        List.map r ~f:(fun { name; typ; attrs } ->
             let def =
               let field = pp ~kind typ in
               let attrs =
@@ -303,9 +283,8 @@ module Type = struct
                   | Intf -> []
                   | Impl -> attrs
                 in
-                List.concat_map attrs ~f:(function
-                  | Attr (a, r) -> [ W.Attr.make a (List.map ~f:Pp.verbatim r) ]
-                  | _ -> assert false)
+                List.concat_map attrs ~f:(fun (a, r) ->
+                    [ W.Attr.make a (List.map ~f:Pp.verbatim r) ])
               in
               Type.field_attrs ~field ~attrs
             in
@@ -325,12 +304,12 @@ module Expr = struct
   [@@@ocaml.warning "-30-32-37"]
 
   type expr =
-    | Let of pat * expr * expr
-    | Match of expr * (pat * expr) list
-    | Fun of pat Arg.t list * expr
-    | App of expr * expr Arg.t list
-    | Create of expr prim
-    | Assert_false
+    | Let of pat * expr * expr  (** let pat = e1 in e2 *)
+    | Match of expr * (pat * expr) list  (** match e1 with [p -> e]* *)
+    | Fun of pat Arg.t list * expr  (** fun p2 p2 .. -> e *)
+    | App of expr * expr Arg.t list  (** f e1 e2 .. *)
+    | Create of expr prim  (** Literal/Primitive *)
+    | Assert_false  (** assert false *)
 
   and 'e prim =
     | Unit
