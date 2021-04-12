@@ -37,7 +37,6 @@ let pipe () =
 
 let test make_client make_server =
   Printexc.record_backtrace false;
-  (Lsp.Import.Log.level := fun _ -> true);
   let client_in, server_out = pipe () in
   let server_in, client_out = pipe () in
   let scheduler = Scheduler.create () in
@@ -206,7 +205,8 @@ end
 
 let%expect_test "ent to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
-  [%expect{|
+  [%expect
+    {|
     client: waiting for initialization
     server: initializing server
     server: returning initialization result

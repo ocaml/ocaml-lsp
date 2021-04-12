@@ -154,29 +154,13 @@ let send_diagnostics ?diagnostics rpc doc =
           Server.notification rpc notif))
 
 let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
-  let log_consumer (section, title, text) =
-    if title <> Logger.Title.LocalDebug then
-      let type_, text =
-        match title with
-        | Error -> (MessageType.Error, text)
-        | Warning -> (Warning, text)
-        | Info -> (Info, text)
-        | Debug -> (Log, Printf.sprintf "debug: %s" text)
-        | Notify -> (Log, Printf.sprintf "notify: %s" text)
-        | Custom s -> (Log, Printf.sprintf "%s: %s" s text)
-        | LocalDebug -> failwith "impossible"
-      in
-      let message = Printf.sprintf "[%s] %s" section text in
-      let notif = Server_notification.LogMessage { message; type_ } in
-      let (_ : _ Fiber.t) =
-        let state : State.t = Server.state rpc in
-        task_if_running state ~f:(fun () -> Server.notification rpc notif)
-      in
-      ()
-  in
-  Logger.register_consumer log_consumer;
-  let state = Server.state rpc in
+  let state : State.t = Server.state rpc in
   let state = { state with init = Initialized ip.capabilities } in
+  let state =
+    match ip.trace with
+    | None -> state
+    | Some trace -> { state with trace }
+  in
   (initialize_info, state)
 
 let code_action (state : State.t) (params : CodeActionParams.t) =
@@ -831,7 +815,7 @@ let on_notification server (notification : Client_notification.t) :
       let+ () = send_diagnostics server doc in
       state)
   | CancelRequest _ ->
-    log ~title:Logger.Title.Warning "ignoring cancellation";
+    Log.log ~section:"debug" (fun () -> Log.msg "ignoring cancellation" []);
     Fiber.return state
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
@@ -845,19 +829,18 @@ let on_notification server (notification : Client_notification.t) :
   | WorkDoneProgressCancel _
   | Exit ->
     Fiber.return state
-  | Unknown_notification req -> (
-    match req.method_ with
-    | "$/setTraceNotification"
-    | _ ->
-      (match req.params with
-      | None ->
-        log ~title:Logger.Title.Warning "unknown notification: %s" req.method_
-      | Some json ->
-        log ~title:Logger.Title.Warning "unknown notification: %s %a"
-          req.method_
-          (fun () -> Json.to_pretty_string)
-          (json :> Json.t));
-      Fiber.return state)
+  | SetTrace { value } -> Fiber.return { state with trace = value }
+  | Unknown_notification req ->
+    let open Fiber.O in
+    let+ () =
+      task_if_running state ~f:(fun () ->
+          let log =
+            LogMessageParams.create ~type_:Error
+              ~message:("Unknown notication " ^ req.method_)
+          in
+          Server.notification server (Server_notification.LogMessage log))
+    in
+    state
 
 let start () =
   let store = Document_store.make () in
@@ -881,6 +864,7 @@ let start () =
       ; scheduler
       ; configuration
       ; detached
+      ; trace = `Off
       }
   in
   Fiber.fork_and_join_unit
@@ -891,9 +875,8 @@ let start () =
         (fun () -> Document_store.close store)
         (fun () -> Fiber.Pool.stop detached))
     (fun () -> Fiber.Pool.run detached)
-  |> Scheduler.run scheduler;
-  log ~title:Logger.Title.Info "exiting"
+  |> Scheduler.run scheduler
 
-let run ~log_file =
+let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Logger.with_log_file ~sections:[ "ocamllsp"; "lsp" ] log_file start
+  start ()

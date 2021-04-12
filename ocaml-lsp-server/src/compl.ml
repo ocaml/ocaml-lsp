@@ -137,7 +137,8 @@ let complete doc lsp_position =
   let prefix =
     prefix_of_position ~short_path:false (Document.source doc) position
   in
-  log ~title:Logger.Title.Debug "completion prefix: |%s|" prefix;
+  Log.log ~section:"debug" (fun () ->
+      Log.msg "completion prefix" [ ("prefix", `String prefix) ]);
 
   Document.with_pipeline_exn doc @@ fun pipeline ->
   let completion =

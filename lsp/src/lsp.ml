@@ -3,7 +3,6 @@ module Client_request = Client_request
 module Extension = Extension
 module Header = Header
 module Import = Import
-module Logger = Logger
 module Server_notification = Server_notification
 module Server_request = Server_request
 module Snippet = Snippet
