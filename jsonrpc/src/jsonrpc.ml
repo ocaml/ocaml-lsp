@@ -213,6 +213,13 @@ module Response = struct
 
     exception E of t
 
+    let () =
+      Printexc.register_printer (function
+        | E t ->
+          Some
+            ("jsonrpc response error " ^ Json.to_pretty_string (yojson_of_t t))
+        | _ -> None)
+
     let raise t = raise (E t)
 
     let make ?data ~code ~message () = { data; code; message }
