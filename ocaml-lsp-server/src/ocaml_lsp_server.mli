@@ -1,1 +1,1 @@
-val run : log_file:string option -> unit
+val run : unit -> unit

@@ -36,7 +36,7 @@ export const toURI = (s) => {
 
 export const start = (opts?: cp.SpawnOptions) => {
   opts = opts || {
-    env: { ...process.env, OCAML_LSP_SERVER_LOG: "-" },
+    env: { ...process.env },
   };
   let childProcess = cp.spawn(serverPath, [], opts);
 

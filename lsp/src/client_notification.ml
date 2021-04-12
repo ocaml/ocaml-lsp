@@ -13,6 +13,7 @@ type t =
   | Exit
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
+  | SetTrace of SetTraceParams.t
   | Unknown_notification of Jsonrpc.Message.notification
 
 let method_ = function
@@ -25,6 +26,7 @@ let method_ = function
   | ChangeConfiguration _ -> "workspace/didChangeConfiguration"
   | WillSaveTextDocument _ -> "textDocument/willSave"
   | DidSaveTextDocument _ -> "textDocument/didSave"
+  | SetTrace _ -> "$/setTrace"
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
   | Unknown_notification _ -> assert false
@@ -49,6 +51,7 @@ let yojson_of_t = function
   | CancelRequest params -> Some (Cancel_request.yojson_of_t params)
   | WorkDoneProgressCancel params ->
     Some (WorkDoneProgressCancelParams.yojson_of_t params)
+  | SetTrace params -> Some (SetTraceParams.yojson_of_t params)
   | Unknown_notification _ -> assert false
 
 let of_jsonrpc (r : Jsonrpc.Message.notification) =
@@ -85,6 +88,9 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
       Json.message_params r WorkDoneProgressCancelParams.t_of_yojson
     in
     WorkDoneProgressCancel params
+  | "$/setTrace" ->
+    Json.message_params r SetTraceParams.t_of_yojson >>| fun params ->
+    SetTrace params
   | _ -> Ok (Unknown_notification r)
 
 let to_jsonrpc t =

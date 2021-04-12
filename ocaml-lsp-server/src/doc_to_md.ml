@@ -1,8 +1,6 @@
 open Import
 module Oct = Octavius
 
-let { Logger.log } = Logger.for_section "doc_to_md"
-
 let ocaml = "ocaml"
 
 let to_inline_code code = Omd.Code (ocaml, code)
@@ -152,7 +150,8 @@ let translate doc : t =
   match Oct.parse (Lexing.from_string doc) with
   | Error e ->
     let msg = Oct.Errors.message e.error in
-    log ~title:Logger.Title.Notify "invalid doc comments %s" msg;
+    Log.log ~section:"debug" (fun () ->
+        Log.msg "invalid doc comments" [ ("msg", `String msg) ]);
     Raw (Omd.to_markdown [ Raw doc ])
   | Ok doc ->
     let doc = comment_to_markdown doc in
