@@ -148,6 +148,7 @@ struct
           Log.msg "sending response" [ ("response", Response.yojson_of_t resp) ]);
       Chan.send t.chan (Response resp)
     in
+    let later = Fiber.Pool.create () in
     let rec loop () =
       t.tick <- t.tick + 1;
       log t (fun () -> Log.msg "new tick" [ ("tick", `Int t.tick) ]);
@@ -157,7 +158,9 @@ struct
       | Some packet -> (
         match packet with
         | Message r -> on_message r
-        | Response r -> Fiber.fork_and_join_unit (fun () -> on_response r) loop)
+        | Response r ->
+          let* () = Fiber.Pool.task later ~f:(fun () -> on_response r) in
+          loop ())
     and on_message (r : _ Message.t) =
       log t (fun () ->
           let what =
@@ -187,23 +190,27 @@ struct
       let jsonrpc_resp = response_of_result r.id result in
       match jsonrpc_resp with
       | Error resp ->
-        Fiber.fork_and_join_unit (fun () -> send_response resp) loop
+        let* () = Fiber.Pool.task later ~f:(fun () -> send_response resp) in
+        loop ()
       | Ok (reply, state) ->
         t.state <- state;
         let sender = Sender.make r.id send_response in
-        Fiber.fork_and_join_unit loop (fun () ->
-            let* resp =
-              Fiber.collect_errors (fun () -> Reply.send reply sender)
-            in
-            match (sender.called, resp) with
-            | false, Ok () -> Code_error.raise "must send response" []
-            | true, Ok () -> Fiber.return ()
-            | true, Error _ ->
-              (* TODO we should log *)
-              Fiber.return ()
-            | false, Error exns ->
-              let resp = response_error_of_exns r.id exns in
-              Sender.send sender resp)
+        let* () =
+          Fiber.Pool.task later ~f:(fun () ->
+              let* resp =
+                Fiber.collect_errors (fun () -> Reply.send reply sender)
+              in
+              match (sender.called, resp) with
+              | false, Ok () -> Code_error.raise "must send response" []
+              | true, Ok () -> Fiber.return ()
+              | true, Error _ ->
+                (* TODO we should log *)
+                Fiber.return ()
+              | false, Error exns ->
+                let resp = response_error_of_exns r.id exns in
+                Sender.send sender resp)
+        in
+        loop ()
     and on_notification (r : unit Message.t) : unit Fiber.t =
       let* res = Fiber.collect_errors (fun () -> t.on_notification (t, r)) in
       match res with
@@ -220,7 +227,13 @@ struct
         loop ()
     in
     t.running <- true;
-    let* () = loop () in
+    let* () =
+      Fiber.fork_and_join_unit
+        (fun () ->
+          let* () = loop () in
+          Fiber.Pool.stop later)
+        (fun () -> Fiber.Pool.run later)
+    in
     close t
 
   let on_notification_fail ctx =

@@ -191,12 +191,14 @@ let%expect_test "concurrent requests" =
     { "id": "initial", "method": "init", "jsonrpc": "2.0" }
     waiter: sending response
     waiter: making request
-    initial request response:
-    { "id": "initial", "jsonrpc": "2.0", "result": null }
     waitee: received request
     { "id": 100, "method": "shutdown", "jsonrpc": "2.0" }
+    initial request response:
+    { "id": "initial", "jsonrpc": "2.0", "result": null }
     waitee: stopping
     waitee: stopped
+    waiter: received response:
+    { "id": 100, "jsonrpc": "2.0", "result": 42 }
     [FAIL] unexpected Never raised |}]
 
 let%expect_test "test from jsonrpc_test.ml" =
@@ -266,5 +268,5 @@ let%expect_test "test from jsonrpc_test.ml" =
     Error:
     [ { exn = "(Failure \"special failure\")"; backtrace = "" } ]
     "<opaque>"
-    { "id": "testing", "jsonrpc": "2.0", "result": 2 }
-    { "id": 10, "jsonrpc": "2.0", "result": 1 } |}]
+    { "id": 10, "jsonrpc": "2.0", "result": 1 }
+    { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
