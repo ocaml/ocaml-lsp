@@ -10,6 +10,8 @@ module Json = struct
 
   let error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
 
+  let to_pretty_string (t : t) = Yojson.Safe.pretty_to_string ~std:false t
+
   module Jsonable = Ppx_yojson_conv_lib.Yojsonable
 
   let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
