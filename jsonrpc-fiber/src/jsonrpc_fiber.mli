@@ -15,6 +15,9 @@ module Reply : sig
   val later : ((Response.t -> unit Fiber.t) -> unit Fiber.t) -> t
 end
 
+(** Raised when the server is shutdown and a pending request will not complete. *)
+exception Stopped of Message.request
+
 (** IO free implementation of the jsonrpc protocol. We stay completely agnostic
     of transport by only dealing with abstract jsonrpc packets *)
 module Make (Chan : sig

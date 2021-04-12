@@ -126,6 +126,8 @@ let%expect_test "concurrent requests" =
       print (Message { request with id = Some request.id });
       let response =
         Reply.later (fun send ->
+            print_endline "waiter: sending response";
+            let* () = send (Jsonrpc.Response.ok request.id `Null) in
             print_endline "waiter: making request";
             let* response =
               let request =
@@ -187,17 +189,14 @@ let%expect_test "concurrent requests" =
     initial: waitee requests from waiter
     waiter: received request
     { "id": "initial", "method": "init", "jsonrpc": "2.0" }
+    waiter: sending response
     waiter: making request
+    initial request response:
+    { "id": "initial", "jsonrpc": "2.0", "result": null }
     waitee: received request
     { "id": 100, "method": "shutdown", "jsonrpc": "2.0" }
     waitee: stopping
     waitee: stopped
-    waiter: received response:
-    { "id": 100, "jsonrpc": "2.0", "result": 42 }
-    waiter: stopping
-    waiter: stopped
-    initial request response:
-    { "id": "initial", "jsonrpc": "2.0", "result": null }
     [FAIL] unexpected Never raised |}]
 
 let%expect_test "test from jsonrpc_test.ml" =

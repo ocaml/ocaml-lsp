@@ -36,6 +36,17 @@ module Sender = struct
     )
 end
 
+exception Stopped of Message.request
+
+let () =
+  Printexc.register_printer (function
+    | Stopped req ->
+      let json = Message.yojson_of_request req in
+      Some
+        ("Session closed. Request will not be answered. "
+       ^ Json.to_pretty_string json)
+    | _ -> None)
+
 module Reply = struct
   type t =
     | Now of Response.t
@@ -65,12 +76,13 @@ struct
     { chan : Chan.t
     ; on_request : ('state, Id.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
-    ; pending : (Id.t, Response.t Fiber.Ivar.t) Table.t
+    ; pending : (Id.t, (Response.t, [ `Stopped ]) result Fiber.Ivar.t) Table.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
     ; mutable tick : int
     ; mutable state : 'state
+    ; stop_pending_requests : unit Fiber.t Lazy.t
     }
 
   and ('a, 'id) context = 'a t * 'id Message.t
@@ -115,15 +127,19 @@ struct
 
   let stopped t = Fiber.Ivar.read t.stopped
 
-  let stop t = Chan.close t.chan `Read
+  let stop t =
+    Fiber.fork_and_join_unit
+      (fun () -> Chan.close t.chan `Read)
+      (fun () -> Lazy.force t.stop_pending_requests)
 
   let close t =
-    Fiber.fork_and_join_unit
-      (fun () ->
-        Fiber.fork_and_join_unit
-          (fun () -> Chan.close t.chan `Read)
-          (fun () -> Chan.close t.chan `Write))
-      (fun () -> Fiber.Ivar.fill t.stopped ())
+    Fiber.parallel_iter
+      ~f:(fun f -> f ())
+      [ (fun () -> Chan.close t.chan `Read)
+      ; (fun () -> Chan.close t.chan `Write)
+      ; (fun () -> Fiber.Ivar.fill t.stopped ())
+      ; (fun () -> Lazy.force t.stop_pending_requests)
+      ]
 
   let run t =
     let open Fiber.O in
@@ -165,7 +181,7 @@ struct
       | Some ivar ->
         log "acknowledged";
         Table.remove t.pending r.id;
-        Fiber.Ivar.fill ivar r
+        Fiber.Ivar.fill ivar (Ok r)
     and on_request (r : Id.t Message.t) =
       let* result = Fiber.collect_errors (fun () -> t.on_request (t, r)) in
       let jsonrpc_resp = response_of_result r.id result in
@@ -211,17 +227,26 @@ struct
     let state = Context.state ctx in
     Fiber.return (Notify.Continue, state)
 
+  let make_stop_pending_requests pending =
+    lazy
+      (let to_cancel = Table.fold pending ~init:[] ~f:(fun x acc -> x :: acc) in
+       Table.clear pending;
+       Fiber.parallel_iter to_cancel ~f:(fun ivar ->
+           Fiber.Ivar.fill ivar (Error `Stopped)))
+
   let create ?(on_request = on_request_fail)
       ?(on_notification = on_notification_fail) ~name chan state =
+    let pending = Table.create (module Id) 10 in
     { chan
     ; on_request
     ; on_notification
-    ; pending = Table.create (module Id) 10
+    ; pending
     ; stopped = Fiber.Ivar.create ()
     ; name
     ; running = false
     ; tick = 0
     ; state
+    ; stop_pending_requests = make_stop_pending_requests pending
     }
 
   let notification t (req : Message.notification) =
@@ -238,5 +263,8 @@ struct
     in
     let ivar = Fiber.Ivar.create () in
     Table.add_exn t.pending req.id ivar;
-    Fiber.Ivar.read ivar
+    let+ res = Fiber.Ivar.read ivar in
+    match res with
+    | Ok s -> s
+    | Error `Stopped -> raise (Stopped req)
 end
