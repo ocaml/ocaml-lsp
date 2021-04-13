@@ -12,4 +12,8 @@ type error =
 
 val message : error -> string
 
-val run : Document.t -> (string, error) Result.t
+val run :
+     Scheduler.t
+  -> Scheduler.thread
+  -> Document.t
+  -> (string, error) result Fiber.t

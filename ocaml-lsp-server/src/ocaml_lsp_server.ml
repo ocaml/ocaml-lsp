@@ -207,7 +207,10 @@ module Formatter = struct
     make_error ~code ~message ()
 
   let run rpc doc =
-    match Fmt.run doc with
+    let open Fiber.O in
+    let { State.scheduler; ocamlformat = thread; _ } = Server.state rpc in
+    let* res = Fmt.run scheduler thread doc in
+    match res with
     | Result.Error e ->
       let message = Fmt.message e in
       let error = jsonrpc_error e in
@@ -821,10 +824,12 @@ let start () =
   let detached = Fiber.Pool.create () in
   let server =
     let merlin = Scheduler.create_thread scheduler in
+    let ocamlformat = Scheduler.create_thread scheduler in
     Server.make handler stream
       { store
       ; init = Uninitialized
       ; merlin
+      ; ocamlformat
       ; scheduler
       ; configuration
       ; detached
