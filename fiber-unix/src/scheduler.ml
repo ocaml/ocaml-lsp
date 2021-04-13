@@ -95,6 +95,15 @@ end
 
 module Timer_id = Id.Make ()
 
+type process =
+  { pid : Pid.t
+  ; ivar : Unix.process_status Fiber.Ivar.t
+  }
+
+type process_state =
+  | Running of process
+  | Zombie of Unix.process_status
+
 type t =
   { mutable events_pending : int
   ; events : event Queue.t
@@ -111,6 +120,7 @@ type t =
   ; mutable waker : Thread.t
   ; (* TODO Replace with Removable_queue *)
     timers : (Timer_id.t, active_timer ref) Table.t
+  ; process_watcher : process_watcher Lazy.t
   }
 
 and event =
@@ -139,6 +149,14 @@ and active_timer =
   { scheduled : float
   ; ivar : [ `Resolved | `Cancelled ] Fiber.Ivar.t
   ; parent : timer
+  }
+
+and process_watcher =
+  { mutex : Mutex.t
+  ; something_is_running : Condition.t
+  ; table : (Pid.t, process_state) Table.t
+  ; process_scheduler : t
+  ; mutable running_count : int
   }
 
 let add_events t = function
@@ -225,28 +243,6 @@ let wake_loop t =
   in
   loop None
 
-let create () =
-  let t =
-    { events_pending = 0
-    ; events = Queue.create ()
-    ; events_mutex = Mutex.create ()
-    ; time_mutex = Mutex.create ()
-    ; event_ready = Condition.create ()
-    ; earliest_next_mutex = Mutex.create ()
-    ; earliest_next = None
-    ; earliest_next_barrier = Barrier.create ()
-    ; threads = []
-    ; timers = Table.create (module Timer_id) 10
-    ; timers_available = Condition.create ()
-    ; timers_available_mutex = Mutex.create ()
-    ; time = Thread.self ()
-    ; waker = Thread.self ()
-    }
-  in
-  t.time <- Thread.create time_loop t;
-  t.waker <- Thread.create wake_loop t;
-  t
-
 let create_thread scheduler =
   let worker =
     let do_ (Pending (f, ivar)) =
@@ -314,10 +310,6 @@ let cancel_timers t =
           false));
   Fiber.parallel_iter !timers ~f:(fun ivar -> Fiber.Ivar.fill ivar `Cancelled)
 
-let cleanup t =
-  Barrier.close t.earliest_next_barrier;
-  List.iter t.threads ~f:stop
-
 type run_error =
   | Never
   | Abort_requested
@@ -378,26 +370,6 @@ let iter (t : t) =
   ) else
     event_next t
 
-let run_result : 'a. t -> 'a Fiber.t -> ('a, _) result =
- fun t f ->
-  let f = Fiber.Var.set me t (fun () -> f) in
-  let iter () = iter t in
-  let res =
-    match Fiber.run f ~iter with
-    | exception Abort err -> Error err
-    | exception exn -> Error (Exn exn)
-    | res ->
-      assert (t.events_pending = 0);
-      Ok res
-  in
-  cleanup t;
-  res
-
-let run t f =
-  match run_result t f with
-  | Ok s -> s
-  | Error e -> raise (Abort e)
-
 let create_timer t ~delay =
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }
 
@@ -455,3 +427,174 @@ let cancel_timer (timer : timer) =
 let abort t =
   (* TODO proper cleanup *)
   add_events t [ Abort ]
+
+module Process_watcher : sig
+  val init : t -> process_watcher
+
+  (** Register a new running process. *)
+  val register : process_watcher -> process -> unit
+
+  (** Send the following signal to all running processes. *)
+  val killall : process_watcher -> int -> unit
+end = struct
+  module Process_table : sig
+    val add : process_watcher -> process -> unit
+
+    val remove : process_watcher -> pid:Pid.t -> Unix.process_status -> unit
+
+    val running_count : process_watcher -> int
+
+    val iter : process_watcher -> f:(process -> unit) -> unit
+  end = struct
+    let add t job =
+      match Table.find t.table job.pid with
+      | None ->
+        Table.set t.table job.pid (Running job);
+        t.running_count <- t.running_count + 1;
+        if t.running_count = 1 then Condition.signal t.something_is_running
+      | Some (Zombie status) ->
+        Table.remove t.table job.pid;
+        add_events t.process_scheduler [ Job_completed (status, job.ivar) ]
+      | Some (Running _) -> assert false
+
+    let remove t ~pid status =
+      match Table.find t.table pid with
+      | None -> Table.set t.table pid (Zombie status)
+      | Some (Running job) ->
+        t.running_count <- t.running_count - 1;
+        Table.remove t.table pid;
+        add_events t.process_scheduler [ Job_completed (status, job.ivar) ]
+      | Some (Zombie _) -> assert false
+
+    let iter t ~f =
+      Table.iter t.table ~f:(fun data ->
+          match data with
+          | Running job -> f job
+          | Zombie _ -> ())
+
+    let running_count t = t.running_count
+  end
+
+  let register t process =
+    add_pending_events t.process_scheduler 1;
+    Mutex.lock t.mutex;
+    Process_table.add t process;
+    Mutex.unlock t.mutex
+
+  let killall t signal =
+    Mutex.lock t.mutex;
+    Process_table.iter t ~f:(fun job ->
+        try Unix.kill (Pid.to_int job.pid) signal with
+        | Unix.Unix_error _ -> ());
+    Mutex.unlock t.mutex
+
+  exception Finished of process * Unix.process_status
+
+  let wait_nonblocking_win32 t =
+    try
+      Process_table.iter t ~f:(fun job ->
+          let pid, status = Unix.waitpid [ WNOHANG ] (Pid.to_int job.pid) in
+          if pid <> 0 then raise_notrace (Finished (job, status)));
+      false
+    with
+    | Finished (job, status) ->
+      (* We need to do the [Unix.waitpid] and remove the process while holding
+         the lock, otherwise the pid might be reused in between. *)
+      Process_table.remove t ~pid:job.pid status;
+      true
+
+  let wait_win32 t =
+    while not (wait_nonblocking_win32 t) do
+      Mutex.unlock t.mutex;
+      Thread.delay 0.001;
+      Mutex.lock t.mutex
+    done
+
+  let wait_unix t =
+    Mutex.unlock t.mutex;
+    let pid, status = Unix.wait () in
+    Mutex.lock t.mutex;
+    let pid = Pid.of_int pid in
+    Process_table.remove t ~pid status
+
+  let wait =
+    if Sys.win32 then
+      wait_win32
+    else
+      wait_unix
+
+  let run t =
+    Mutex.lock t.mutex;
+    while true do
+      while Process_table.running_count t = 0 do
+        Condition.wait t.something_is_running t.mutex
+      done;
+      wait t
+    done
+
+  let init process_scheduler =
+    let t =
+      { mutex = Mutex.create ()
+      ; something_is_running = Condition.create ()
+      ; table = Table.create (module Pid) 128
+      ; running_count = 0
+      ; process_scheduler
+      }
+    in
+    ignore (Thread.create run t : Thread.t);
+    t
+end
+
+let cleanup t =
+  Barrier.close t.earliest_next_barrier;
+  List.iter t.threads ~f:stop;
+  if Lazy.is_val t.process_watcher then
+    Process_watcher.killall (Lazy.force t.process_watcher) Sys.sigkill
+
+let wait_for_process t pid =
+  let ivar = Fiber.Ivar.create () in
+  Process_watcher.register (Lazy.force t.process_watcher) { pid; ivar };
+  Fiber.Ivar.read ivar
+
+let run_result : 'a. t -> 'a Fiber.t -> ('a, _) result =
+ fun t f ->
+  let f = Fiber.Var.set me t (fun () -> f) in
+  let iter () = iter t in
+  let res =
+    match Fiber.run f ~iter with
+    | exception Abort err -> Error err
+    | exception exn -> Error (Exn exn)
+    | res ->
+      assert (t.events_pending = 0);
+      Ok res
+  in
+  cleanup t;
+  res
+
+let run t f =
+  match run_result t f with
+  | Ok s -> s
+  | Error e -> raise (Abort e)
+
+let create () =
+  let rec t =
+    { events_pending = 0
+    ; events = Queue.create ()
+    ; events_mutex = Mutex.create ()
+    ; time_mutex = Mutex.create ()
+    ; event_ready = Condition.create ()
+    ; earliest_next_mutex = Mutex.create ()
+    ; earliest_next = None
+    ; earliest_next_barrier = Barrier.create ()
+    ; threads = []
+    ; timers = Table.create (module Timer_id) 10
+    ; timers_available = Condition.create ()
+    ; timers_available_mutex = Mutex.create ()
+    ; time = Thread.self ()
+    ; waker = Thread.self ()
+    ; process_watcher
+    }
+  and process_watcher = lazy (Process_watcher.init t) in
+  t.time <- Thread.create time_loop t;
+  t.waker <- Thread.create wake_loop t;
+  t
