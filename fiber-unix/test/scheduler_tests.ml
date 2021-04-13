@@ -207,3 +207,39 @@ let%expect_test "multiple timers" =
     timer 2
     timer 1
     timer 0 |}]
+
+let%expect_test "run process" =
+  let s = S.create () in
+  let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
+  let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
+  let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
+  Unix.close stdin_o;
+  let pid =
+    Stdune.Pid.of_int
+      (Unix.create_process "echo" [| "echo"; "foo" |] stdin_i stdout_o stderr_o)
+  in
+  Unix.close stdin_i;
+  Unix.close stdout_o;
+  Unix.close stderr_o;
+  let stdout, stderr =
+    let stdout_in = Unix.in_channel_of_descr stdout_i in
+    let stderr_in = Unix.in_channel_of_descr stderr_i in
+    let stdout = Stdune.Io.read_all stdout_in in
+    let stderr = Stdune.Io.read_all stderr_in in
+    (stdout, stderr)
+  in
+  let run () =
+    let+ res = S.wait_for_process s pid in
+    print_endline ("stdout: " ^ stdout);
+    print_endline ("stderr: " ^ stderr);
+    printf "code: %s"
+      (match res with
+      | Unix.WEXITED n -> string_of_int n
+      | _ -> "<signal>")
+  in
+  test s run;
+  [%expect {|
+    stdout: foo
+
+    stderr:
+    code: 0 |}]
