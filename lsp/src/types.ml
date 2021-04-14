@@ -5036,10 +5036,108 @@ module MonikerClientCapabilities = struct
 end
 
 module SemanticTokensClientCapabilities = struct
+  type full =
+    { delta : bool Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : full) -> ()
+
+  let full_of_yojson =
+    (let _tp_loc = "lsp/src/types.ml.SemanticTokensClientCapabilities.full" in
+     function
+     | `Assoc field_yojsons as yojson -> (
+       let delta_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "delta" -> (
+             match Ppx_yojson_conv_lib.( ! ) delta_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
+               in
+               delta_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
+         | [] ->
+           let delta_value = Ppx_yojson_conv_lib.( ! ) delta_field in
+           { delta =
+               (match delta_value with
+               | Ppx_yojson_conv_lib.Option.None -> None
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> full)
+
+  let _ = full_of_yojson
+
+  let yojson_of_full =
+    (function
+     | { delta = v_delta } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         if None = v_delta then
+           bnds
+         else
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_bool) v_delta
+           in
+           let bnd = ("delta", arg) in
+           bnd :: bnds
+       in
+       `Assoc bnds
+      : full -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_full
+
+  [@@@end]
+
+  let create_full ?(delta : bool option) (() : unit) : full = { delta }
+
+  type full =
+    [ `Bool of bool
+    | `Full of full
+    ]
+
+  let full_of_yojson (json : Json.t) : full =
+    match json with
+    | `Bool j -> `Bool j
+    | _ ->
+      Json.Of.untagged_union "full"
+        [ (fun json -> `Full (full_of_yojson json)) ]
+        json
+
+  let yojson_of_full (full : full) : Json.t =
+    match full with
+    | `Bool j -> `Bool j
+    | `Full s -> yojson_of_full s
+
   type requests =
     { range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; full : unit Json.Nullable_option.t
+    ; full : full Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -5072,7 +5170,7 @@ module SemanticTokensClientCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) full_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson unit_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson full_of_yojson _field_yojson
                in
                full_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -5122,7 +5220,7 @@ module SemanticTokensClientCapabilities = struct
          if None = v_full then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_unit) v_full in
+           let arg = (Json.Nullable_option.yojson_of_t yojson_of_full) v_full in
            let bnd = ("full", arg) in
            bnd :: bnds
        in
@@ -5143,7 +5241,7 @@ module SemanticTokensClientCapabilities = struct
 
   [@@@end]
 
-  let create_requests ?(range : bool option) ?(full : unit option) (() : unit) :
+  let create_requests ?(range : bool option) ?(full : full option) (() : unit) :
       requests =
     { range; full }
 
@@ -26196,13 +26294,111 @@ module SemanticTokensLegend = struct
 end
 
 module SemanticTokensOptions = struct
+  type full =
+    { delta : bool Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : full) -> ()
+
+  let full_of_yojson =
+    (let _tp_loc = "lsp/src/types.ml.SemanticTokensOptions.full" in
+     function
+     | `Assoc field_yojsons as yojson -> (
+       let delta_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "delta" -> (
+             match Ppx_yojson_conv_lib.( ! ) delta_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
+               in
+               delta_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
+         | [] ->
+           let delta_value = Ppx_yojson_conv_lib.( ! ) delta_field in
+           { delta =
+               (match delta_value with
+               | Ppx_yojson_conv_lib.Option.None -> None
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> full)
+
+  let _ = full_of_yojson
+
+  let yojson_of_full =
+    (function
+     | { delta = v_delta } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         if None = v_delta then
+           bnds
+         else
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_bool) v_delta
+           in
+           let bnd = ("delta", arg) in
+           bnd :: bnds
+       in
+       `Assoc bnds
+      : full -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_full
+
+  [@@@end]
+
+  let create_full ?(delta : bool option) (() : unit) : full = { delta }
+
+  type full =
+    [ `Bool of bool
+    | `Full of full
+    ]
+
+  let full_of_yojson (json : Json.t) : full =
+    match json with
+    | `Bool j -> `Bool j
+    | _ ->
+      Json.Of.untagged_union "full"
+        [ (fun json -> `Full (full_of_yojson json)) ]
+        json
+
+  let yojson_of_full (full : full) : Json.t =
+    match full with
+    | `Bool j -> `Bool j
+    | `Full s -> yojson_of_full s
+
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; legend : SemanticTokensLegend.t
     ; range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; full : unit Json.Nullable_option.t
+    ; full : full Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -26251,7 +26447,7 @@ module SemanticTokensOptions = struct
              match Ppx_yojson_conv_lib.( ! ) full_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson unit_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson full_of_yojson _field_yojson
                in
                full_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -26324,7 +26520,7 @@ module SemanticTokensOptions = struct
          if None = v_full then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_unit) v_full in
+           let arg = (Json.Nullable_option.yojson_of_t yojson_of_full) v_full in
            let bnd = ("full", arg) in
            bnd :: bnds
        in
@@ -26362,11 +26558,29 @@ module SemanticTokensOptions = struct
 
   let create ?(workDoneProgress : bool option)
       ~(legend : SemanticTokensLegend.t) ?(range : bool option)
-      ?(full : unit option) (() : unit) : t =
+      ?(full : full option) (() : unit) : t =
     { workDoneProgress; legend; range; full }
 end
 
 module SemanticTokensRegistrationOptions = struct
+  type full =
+    [ `Bool of bool
+    | `Full of full
+    ]
+
+  let full_of_yojson (json : Json.t) : full =
+    match json with
+    | `Bool j -> `Bool j
+    | _ ->
+      Json.Of.untagged_union "full"
+        [ (fun json -> `Full (full_of_yojson json)) ]
+        json
+
+  let yojson_of_full (full : full) : Json.t =
+    match full with
+    | `Bool j -> `Bool j
+    | `Full s -> yojson_of_full s
+
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -26375,7 +26589,7 @@ module SemanticTokensRegistrationOptions = struct
     ; legend : SemanticTokensLegend.t
     ; range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; full : unit Json.Nullable_option.t
+    ; full : full Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -26438,7 +26652,7 @@ module SemanticTokensRegistrationOptions = struct
              match Ppx_yojson_conv_lib.( ! ) full_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson unit_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson full_of_yojson _field_yojson
                in
                full_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -26542,7 +26756,7 @@ module SemanticTokensRegistrationOptions = struct
          if None = v_full then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_unit) v_full in
+           let arg = (Json.Nullable_option.yojson_of_t yojson_of_full) v_full in
            let bnd = ("full", arg) in
            bnd :: bnds
        in
@@ -26591,7 +26805,7 @@ module SemanticTokensRegistrationOptions = struct
 
   let create ?(documentSelector : DocumentSelector.t option)
       ?(workDoneProgress : bool option) ~(legend : SemanticTokensLegend.t)
-      ?(range : bool option) ?(full : unit option) ?(id : string option)
+      ?(range : bool option) ?(full : full option) ?(id : string option)
       (() : unit) : t =
     { documentSelector; workDoneProgress; legend; range; full; id }
 end

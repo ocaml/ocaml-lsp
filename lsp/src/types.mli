@@ -765,12 +765,17 @@ module MonikerClientCapabilities : sig
 end
 
 module SemanticTokensClientCapabilities : sig
+  type full = { delta : bool option }
+
+  val create_full : ?delta:bool -> unit -> full
+
   type requests =
     { range : bool option
-    ; full : unit option
+    ; full : [ `Bool of bool | `Full of full ] option
     }
 
-  val create_requests : ?range:bool -> ?full:unit -> unit -> requests
+  val create_requests :
+    ?range:bool -> ?full:[ `Bool of bool | `Full of full ] -> unit -> requests
 
   type t =
     { dynamicRegistration : bool option
@@ -2805,18 +2810,22 @@ module SemanticTokensLegend : sig
 end
 
 module SemanticTokensOptions : sig
+  type full = { delta : bool option }
+
+  val create_full : ?delta:bool -> unit -> full
+
   type t =
     { workDoneProgress : bool option
     ; legend : SemanticTokensLegend.t
     ; range : bool option
-    ; full : unit option
+    ; full : [ `Bool of bool | `Full of full ] option
     }
 
   val create :
        ?workDoneProgress:bool
     -> legend:SemanticTokensLegend.t
     -> ?range:bool
-    -> ?full:unit
+    -> ?full:[ `Bool of bool | `Full of full ]
     -> unit
     -> t
 
@@ -2829,7 +2838,7 @@ module SemanticTokensRegistrationOptions : sig
     ; workDoneProgress : bool option
     ; legend : SemanticTokensLegend.t
     ; range : bool option
-    ; full : unit option
+    ; full : [ `Bool of bool | `Full of full ] option
     ; id : string option
     }
 
@@ -2838,7 +2847,7 @@ module SemanticTokensRegistrationOptions : sig
     -> ?workDoneProgress:bool
     -> legend:SemanticTokensLegend.t
     -> ?range:bool
-    -> ?full:unit
+    -> ?full:[ `Bool of bool | `Full of full ]
     -> ?id:string
     -> unit
     -> t

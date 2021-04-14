@@ -283,32 +283,14 @@ module Unresolved = struct
     { Named.name; data = Single { optional; typ } }
 end
 
-module type Prim_intf = sig
-  type resolved
+module Ident = struct
+  module T = Stdune.Id.Make ()
 
-  type t =
-    | Null
-    | String
-    | Bool
-    | Number
-    | Uinteger
-    | Any
-    | Object
-    | List
-    | Self
-    | Resolved of resolved
-
-  val to_dyn : t -> Dyn.t
-
-  val of_string : string -> resolve:(string -> t) -> t
+  include T
+  module Top_closure = Top_closure.Make (T.Set) (Stdune.Monad.Id)
 end
 
-module Prim_make (Resolved : sig
-  type t
-
-  val to_dyn : t -> Dyn.t
-end) =
-struct
+module Prim = struct
   type t =
     | Null
     | String
@@ -319,7 +301,7 @@ struct
     | Object
     | List
     | Self
-    | Resolved of Resolved.t
+    | Resolved of Ident.t
 
   let to_dyn =
     let open Stdune.Dyn.Encoder in
@@ -333,7 +315,7 @@ struct
     | Object -> constr "Object" []
     | List -> constr "List" []
     | Self -> constr "Self" []
-    | Resolved r -> constr "Resolved" [ Resolved.to_dyn r ]
+    | Resolved r -> constr "Resolved" [ Ident.to_dyn r ]
 
   let of_string s ~resolve =
     match String.lowercase_ascii s with
@@ -350,8 +332,7 @@ struct
     | _ -> resolve s
 end
 
-module rec Resolved : (S with type ident := Prim.t) = Make (Prim)
-and Prim : (Prim_intf with type resolved := Resolved.t) = Prim_make (Resolved)
+module Resolved = Make (Prim)
 
 let subst unresolved =
   object
@@ -359,6 +340,7 @@ let subst unresolved =
 
     val inside = None
 
+    (* Resolve self references. *)
     method inside s = {<inside = Some s>}
 
     method resolve n =
@@ -396,7 +378,7 @@ let subst unresolved =
       {<params>}
   end
 
-let rec resolve_all ts ~(names : Unresolved.t String.Map.t) : Resolved.t list =
+let rec resolve_all ts ~(names : Ident.t String.Map.t) : Resolved.t list =
   let names = subst names in
   List.map ts ~f:(resolve ~names)
 
@@ -409,14 +391,14 @@ and resolve (t : Unresolved.t) ~names : Resolved.t =
   in
   { t with Named.data }
 
-and resolve_ident i ~names =
+and resolve_ident i ~names : Prim.t =
   Prim.of_string i ~resolve:(fun s ->
       match names#resolve s with
       | `Resolved s -> s
       | `Self -> Self
-      | `Unresolved s -> Resolved (resolve s ~names))
+      | `Unresolved s -> Resolved s)
 
-and resolve_type t ~names : Resolved.typ =
+and resolve_type (t : Unresolved.typ) ~names : Resolved.typ =
   match t with
   | Literal l -> Literal l
   | Ident i -> Ident (resolve_ident ~names i)

@@ -8,23 +8,25 @@ type test =
   }
 
 let name_table (defns : Unresolved.t list) =
-  List.map defns ~f:(fun (def : _ Named.t) -> (def.name, def))
-  |> String.Map.of_list_reducei ~f:(fun name v1 v2 ->
+  List.map defns ~f:(fun (def : _ Named.t) ->
+      (def.name, (def, Ts_types.Ident.gen ())))
+  |> String.Map.of_list_reducei ~f:(fun name (v1, id1) (v2, id2) ->
          let open Unresolved in
          match (v1.Named.data, v2.data) with
-         | Enum_anon _, _ -> v1
-         | _, Enum_anon _ -> v2
+         | Enum_anon _, _ -> (v1, id1)
+         | _, Enum_anon _ -> (v2, id2)
          | _, _ ->
            if v1 = v2 then
-             v1
+             (v1, id1)
            else
              let open Dyn.Encoder in
              Code_error.raise "definition conflict" [ ("name", string name) ])
 
 let resolve_all (defns : Unresolved.t list) =
   let names = name_table defns in
-  let defns = String.Map.values names in
-  Ts_types.resolve_all unresolved ~names
+  let defns = String.Map.values names |> List.map ~f:fst in
+  let names = String.Map.map ~f:snd names in
+  (Ts_types.resolve_all defns ~names, names)
 
 let test_snippets s =
   let fails, succs =

@@ -440,10 +440,31 @@ let enum_module ~allow_other ({ Named.name; data = constrs } as t) =
   let module_ = Module.type_decls (Ml.Module.Name.of_string name) type_decls in
   Module.add_private_values module_ json_bindings
 
+module Entities = struct
+  type t = (Ident.t * Resolved.t) list
+
+  let find db e : _ Named.t = Option.value_exn (List.assoc db e)
+
+  let of_map map ts =
+    List.map ts ~f:(fun (r : Resolved.t) -> (String.Map.find_exn map r.name, r))
+
+  let rev_find (db : t) (resolved : Resolved.t) : Ident.t =
+    match
+      List.filter_map db ~f:(fun (id, r) ->
+          if r.name = resolved.name then
+            Some id
+          else
+            None)
+    with
+    | [] -> Code_error.raise "rev_find: resolved not found" []
+    | [ x ] -> x
+    | _ :: _ -> Code_error.raise "re_vind: duplicate entries" []
+end
+
 module Mapper : sig
   (* Convert typescript types to OCaml types *)
 
-  val make_typ : Resolved.typ Named.t -> Ml.Type.t
+  val make_typ : Entities.t -> Resolved.typ Named.t -> Ml.Type.t
 
   type literal_field =
     { field_name : string
@@ -451,7 +472,9 @@ module Mapper : sig
     }
 
   val record_ :
-    Resolved.field list Named.t -> Ml.Type.decl Named.t * literal_field list
+       Entities.t
+    -> Resolved.field list Named.t
+    -> Ml.Type.decl Named.t * literal_field list
 
   val extract_poly_vars :
     Ml.Type.decl -> Ml.Type.decl * Ml.Type.constr list Named.t list
@@ -494,7 +517,7 @@ end = struct
     | _ :: _ :: _ -> assert false
     | [ _ ] -> `Null_removed non_nulls
 
-  let make_typ { Named.name; data = t } =
+  let make_typ db { Named.name; data = t } =
     let rec type_ topmost_field_name (t : Resolved.typ) =
       match t with
       | Ident Uinteger ->
@@ -508,7 +531,7 @@ end = struct
       | Ident Self -> Type.t (* XXX wrong *)
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
-      | Ident (Resolved r) -> Type.module_t r.name
+      | Ident (Resolved r) -> Type.module_t (Entities.find db r).name
       | List t -> Type.list (type_ topmost_field_name t)
       | Tuple ts -> Type.Tuple (List.map ~f:(type_ topmost_field_name) ts)
       | Sum s -> sum topmost_field_name s
@@ -561,7 +584,7 @@ end = struct
                  | List _
                  | Ident List ->
                    ("List", [ type_ t ])
-                 | Ident (Resolved r) -> (r.name, [ type_ t ])
+                 | Ident (Resolved r) -> ((Entities.find db r).name, [ type_ t ])
                  | Tuple [ Ident Uinteger; Ident Uinteger ] ->
                    ("Offset", [ type_ t ])
                  | Literal (String x) -> (x, [])
@@ -578,11 +601,11 @@ end = struct
     in
     type_ (Some name) t
 
-  let make_field (field : Resolved.field) =
+  let make_field db (field : Resolved.field) =
     match field.data with
     | Pattern { pat; typ } ->
-      let key = make_typ { Named.name = field.name; data = pat } in
-      let data = make_typ { Named.name = field.name; data = typ } in
+      let key = make_typ db { Named.name = field.name; data = pat } in
+      let data = make_typ db { Named.name = field.name; data = typ } in
       let typ = Type.assoc_list ~key ~data in
       Left (Ml.Type.field typ ~name:field.name)
     | Resolved.Single { typ = Literal s; optional = false } ->
@@ -593,7 +616,7 @@ end = struct
       in
       Right { literal_value; field_name = field.name }
     | Resolved.Single { typ; optional } ->
-      let typ = make_typ { Named.name = field.name; data = typ } in
+      let typ = make_typ db { Named.name = field.name; data = typ } in
       let typ =
         if optional then
           Type.Optional typ
@@ -602,15 +625,15 @@ end = struct
       in
       Left (Ml.Type.field typ ~name:field.name)
 
-  let record_ { Named.name; data = (fields : Resolved.field list) } =
+  let record_ db { Named.name; data = (fields : Resolved.field list) } =
     let data, literals =
       match fields with
       | [ { Named.name; data = Pattern { pat; typ } } ] ->
-        let key = make_typ { Named.name; data = pat } in
-        let data = make_typ { Named.name; data = typ } in
+        let key = make_typ db { Named.name; data = pat } in
+        let data = make_typ db { Named.name; data = typ } in
         (Type.Alias (Type.assoc_list ~key ~data), [])
       | _ ->
-        let fields, literals = List.partition_map fields ~f:make_field in
+        let fields, literals = List.partition_map fields ~f:(make_field db) in
         (Type.Record fields, literals)
     in
     ({ Named.name; data }, literals)
@@ -643,30 +666,30 @@ end = struct
 end
 
 module Gen : sig
-  val module_ : Expanded.binding Ml.Module.t -> Module.t
+  val module_ : Entities.t -> Expanded.binding Ml.Module.t -> Module.t
 end = struct
   module Type = Ml.Type
 
-  let type_ ({ Named.name; data = _ } as t) =
+  let type_ db ({ Named.name; data = _ } as t) =
     let main_type =
-      let typ = Mapper.make_typ t in
+      let typ = Mapper.make_typ db t in
       { Named.name; data = Type.Alias typ }
     in
     [ main_type ]
 
-  let record ({ Named.name = _; data = fields } as t) =
-    let main_type, literals = Mapper.record_ t in
+  let record db ({ Named.name = _; data = fields } as t) =
+    let main_type, literals = Mapper.record_ db t in
     (* why do we need this check at all? *)
     match fields with
     | [] -> None
     | _ :: _ -> Some (main_type, literals)
 
-  let interface_fields (i : Resolved.interface) =
+  let interface_fields db (i : Resolved.interface) =
     let rec interface init (i : Resolved.interface) =
       let init =
         List.fold_left i.extends ~init ~f:(fun init a ->
             match a with
-            | Prim.Resolved r -> type_ init r.data
+            | Prim.Resolved r -> type_ init (Entities.find db r).data
             | _ -> assert false)
       in
       init @ i.fields
@@ -695,7 +718,7 @@ end = struct
 
   (* This is the more complex case *)
 
-  let module_ { Ml.Module.name; bindings } : Module.t =
+  let module_ db { Ml.Module.name; bindings } : Module.t =
     let type_decls =
       let add_record = function
         | None -> []
@@ -704,17 +727,18 @@ end = struct
       let add_else = List.map ~f:(fun x -> `Type x) in
       List.concat_map bindings ~f:(fun (r : Expanded.binding Named.t) ->
           match r.data with
-          | Record data -> record { r with data } |> add_record
+          | Record data -> record db { r with data } |> add_record
           | Interface data ->
-            record { r with data = interface_fields data } |> add_record
+            record db { r with data = interface_fields db data } |> add_record
           | Poly_enum data -> poly_enum { r with data } |> add_else
-          | Alias data -> type_ { r with data } |> add_else)
+          | Alias data -> type_ db { r with data } |> add_else)
     in
     let intf : Ml.Module.sig_ Named.t list =
       List.map type_decls ~f:(function
         | `Record (t, _) -> t
         | `Type t -> t)
       |> List.concat_map ~f:(fun (td : Ml.Type.decl Named.t) ->
+             Format.eprintf ">>> %s.%s@.%!" (name :> string) td.name;
              let td =
                { td with data = Module.rename_invalid_fields Intf td.data }
              in
@@ -778,7 +802,7 @@ end
 (* extract all resovled identifiers *)
 class idents =
   object
-    inherit [Resolved.t list] Resolved.fold
+    inherit [Ident.t list] Resolved.fold
 
     method! ident i ~init =
       match i with
@@ -788,19 +812,21 @@ class idents =
 
 let resolve_and_pp_typescript (ts : Unresolved.t list) =
   let ts = List.map ts ~f:preprocess in
-  let ts = Typescript.resolve_all ts in
+  let ts, db = Typescript.resolve_all ts in
+  let db = Entities.of_map db ts in
   match
-    Top_closure.String.top_closure ts
-      ~key:(fun (x : Resolved.t) -> x.name)
-      ~deps:(fun (x : Resolved.t) -> (new idents)#t x ~init:[])
+    let idents = new idents in
+    Ident.Top_closure.top_closure ts
+      ~key:(fun x -> Entities.rev_find db x)
+      ~deps:(fun x -> idents#t x ~init:[] |> List.map ~f:(Entities.find db))
   with
   | Error cycle ->
     let cycle = List.map cycle ~f:(fun (x : Resolved.t) -> x.name) in
     Code_error.raise "Unexpected cycle"
       [ ("cycle", Dyn.Encoder.(list string) cycle) ]
-  | Ok ts -> ts
+  | Ok ts -> (db, ts)
 
-let of_resolved_typescript (ts : Resolved.t list) =
+let of_resolved_typescript db (ts : Resolved.t list) =
   let simple_enums, everything_else =
     List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
         if List.mem skipped_ts_decls t.name ~equal:String.equal then
@@ -829,7 +855,7 @@ let of_resolved_typescript (ts : Resolved.t list) =
   let everything_else =
     List.map everything_else ~f:(fun (t : _ Named.t) ->
         let mod_ = Expanded.of_ts t in
-        Gen.module_ mod_)
+        Gen.module_ db mod_)
   in
   simple_enums @ everything_else
   |> List.map ~f:(fun (decl : _ Ml.Kind.pair) ->
@@ -839,7 +865,9 @@ let of_resolved_typescript (ts : Resolved.t list) =
          in
          Module.use_json_conv_types decl)
 
-let of_typescript ts = resolve_and_pp_typescript ts |> of_resolved_typescript
+let of_typescript ts =
+  let db, ts = resolve_and_pp_typescript ts in
+  of_resolved_typescript db ts
 
 let output modules ~kind out =
   let open Ml.Kind in
