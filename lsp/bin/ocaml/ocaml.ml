@@ -31,9 +31,10 @@ let preprocess =
     in
     String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
   in
+  let open Unresolved in
   let traverse =
     object (self)
-      inherit Resolved.map as super
+      inherit Unresolved.map as super
 
       val mutable current_name = None
 
@@ -59,16 +60,10 @@ let preprocess =
              with the second one. *)
           match x.data with
           | Single
-              { typ =
-                  Sum
-                    [ Resolved.List
-                        (Ident
-                          (Resolved { Named.name = "TextDocumentEdit"; _ }))
-                    ; (List _ as typ)
-                    ]
+              { typ = Sum [ List (Ident "TextDocumentEdit"); (List _ as typ) ]
               ; optional
               } ->
-            let data = Resolved.Single { typ; optional } in
+            let data = Single { typ; optional } in
             super#field { x with data }
           | _ -> super#field x
         else
@@ -78,10 +73,10 @@ let preprocess =
         (* XXX what does this to? I don't see any sums of records in
            TextDocumentContentChangeEvent *)
         match x with
-        | Sum [ Resolved.Record f1; Record f2 ]
+        | Sum [ Record f1; Record f2 ]
           when self#name = "TextDocumentContentChangeEvent" ->
           let t =
-            Resolved.Record
+            Record
               (union_fields f1 f2 ~f:(fun k t1 t2 ->
                    assert (k = "text");
                    assert (t1 = t2);
@@ -99,16 +94,13 @@ let preprocess =
         (* we don't handle partial results or progress notifications params (for
            now) *)
         let extends =
-          List.filter i.extends ~f:(fun x ->
-              match x with
-              | Prim.Resolved r ->
-                not (List.mem removed_super_classes r.name ~equal:String.equal)
-              | _ -> true)
+          List.filter i.extends ~f:(fun name ->
+              not (List.mem removed_super_classes name ~equal:String.equal))
         in
         let fields =
           (* We ignore this field until we switch to our own code gen. *)
           if self#name = "FormattingOptions" then
-            List.filter i.fields ~f:(fun (f : Resolved.field) ->
+            List.filter i.fields ~f:(fun (f : field) ->
                 match f.data with
                 | Pattern _ when f.name = "key" -> false
                 | _ -> true)
@@ -776,7 +768,9 @@ class idents =
       | _ -> init
   end
 
-let of_typescript (ts : Resolved.t list) =
+let resolve_and_pp_typescript (ts : Unresolved.t list) =
+  let ts = List.map ts ~f:preprocess in
+  let ts = Typescript.resolve_all ts in
   match
     Top_closure.String.top_closure ts
       ~key:(fun (x : Resolved.t) -> x.name)
@@ -786,45 +780,48 @@ let of_typescript (ts : Resolved.t list) =
     let cycle = List.map cycle ~f:(fun (x : Resolved.t) -> x.name) in
     Code_error.raise "Unexpected cycle"
       [ ("cycle", Dyn.Encoder.(list string) cycle) ]
-  | Ok ts ->
-    let ts = List.map ts ~f:preprocess in
-    let simple_enums, everything_else =
-      List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
-          if List.mem skipped_ts_decls t.name ~equal:String.equal then
-            Skip
-          else
-            match t.data with
-            | Enum_anon data -> Left { t with data }
-            | Interface _
-            | Type _ ->
-              Right t)
-    in
-    let simple_enums =
-      List.map simple_enums ~f:(fun (t : _ Named.t) ->
-          (* "open" enums need an `Other constructor *)
-          let allow_other = t.name = "CodeActionKind" in
-          let data =
-            List.filter_map t.data ~f:(fun (constr, v) ->
-                match (v : Ts_types.Enum.case) with
-                | Literal l -> Some (constr, l)
-                | Alias _ ->
-                  (* TODO we don't handle these for now *)
-                  None)
-          in
-          enum_module ~allow_other { t with data })
-    in
-    let everything_else =
-      List.map everything_else ~f:(fun (t : _ Named.t) ->
-          let mod_ = Expanded.of_ts t in
-          Gen.module_ mod_)
-    in
-    simple_enums @ everything_else
-    |> List.map ~f:(fun (decl : _ Ml.Kind.pair) ->
-           let decl =
-             let intf = Json_gen.add_json_conv_for_t decl.intf in
-             { decl with intf }
-           in
-           Module.use_json_conv_types decl)
+  | Ok ts -> ts
+
+let of_resolved_typescript (ts : Resolved.t list) =
+  let simple_enums, everything_else =
+    List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
+        if List.mem skipped_ts_decls t.name ~equal:String.equal then
+          Skip
+        else
+          match t.data with
+          | Enum_anon data -> Left { t with data }
+          | Interface _
+          | Type _ ->
+            Right t)
+  in
+  let simple_enums =
+    List.map simple_enums ~f:(fun (t : _ Named.t) ->
+        (* "open" enums need an `Other constructor *)
+        let allow_other = t.name = "CodeActionKind" in
+        let data =
+          List.filter_map t.data ~f:(fun (constr, v) ->
+              match (v : Ts_types.Enum.case) with
+              | Literal l -> Some (constr, l)
+              | Alias _ ->
+                (* TODO we don't handle these for now *)
+                None)
+        in
+        enum_module ~allow_other { t with data })
+  in
+  let everything_else =
+    List.map everything_else ~f:(fun (t : _ Named.t) ->
+        let mod_ = Expanded.of_ts t in
+        Gen.module_ mod_)
+  in
+  simple_enums @ everything_else
+  |> List.map ~f:(fun (decl : _ Ml.Kind.pair) ->
+         let decl =
+           let intf = Json_gen.add_json_conv_for_t decl.intf in
+           { decl with intf }
+         in
+         Module.use_json_conv_types decl)
+
+let of_typescript ts = resolve_and_pp_typescript ts |> of_resolved_typescript
 
 let output modules ~kind out =
   let open Ml.Kind in

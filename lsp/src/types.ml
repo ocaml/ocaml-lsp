@@ -3288,201 +3288,6 @@ module CallHierarchyIncomingCall = struct
     { from; fromRanges }
 end
 
-module ProgressToken = struct
-  type t =
-    [ `Integer of Integer.t
-    | `String of string
-    ]
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String j -> `String j
-    | _ ->
-      Json.Of.untagged_union "t"
-        [ (fun json -> `Integer (Integer.t_of_yojson json)) ]
-        json
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | `String j -> `String j
-    | `Integer s -> Integer.yojson_of_t s
-end
-
-module PartialResultParams = struct
-  type t =
-    { partialResultToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : t) -> ()
-
-  let t_of_yojson =
-    (let _tp_loc = "lsp/src/types.ml.PartialResultParams.t" in
-     function
-     | `Assoc field_yojsons as yojson -> (
-       let partialResultToken_field = ref Ppx_yojson_conv_lib.Option.None
-       and duplicates = ref []
-       and extra = ref [] in
-       let rec iter = function
-         | (field_name, _field_yojson) :: tail ->
-           (match field_name with
-           | "partialResultToken" -> (
-             match Ppx_yojson_conv_lib.( ! ) partialResultToken_field with
-             | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue =
-                 Json.Nullable_option.t_of_yojson ProgressToken.t_of_yojson
-                   _field_yojson
-               in
-               partialResultToken_field :=
-                 Ppx_yojson_conv_lib.Option.Some fvalue
-             | Ppx_yojson_conv_lib.Option.Some _ ->
-               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-           | _ -> ());
-           iter tail
-         | [] -> ()
-       in
-       iter field_yojsons;
-       match Ppx_yojson_conv_lib.( ! ) duplicates with
-       | _ :: _ ->
-         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-           (Ppx_yojson_conv_lib.( ! ) duplicates)
-           yojson
-       | [] -> (
-         match Ppx_yojson_conv_lib.( ! ) extra with
-         | _ :: _ ->
-           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-             (Ppx_yojson_conv_lib.( ! ) extra)
-             yojson
-         | [] ->
-           let partialResultToken_value =
-             Ppx_yojson_conv_lib.( ! ) partialResultToken_field
-           in
-           { partialResultToken =
-               (match partialResultToken_value with
-               | Ppx_yojson_conv_lib.Option.None -> None
-               | Ppx_yojson_conv_lib.Option.Some v -> v)
-           }))
-     | _ as yojson ->
-       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-         yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
-  let _ = t_of_yojson
-
-  let yojson_of_t =
-    (function
-     | { partialResultToken = v_partialResultToken } ->
-       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-       let bnds =
-         if None = v_partialResultToken then
-           bnds
-         else
-           let arg =
-             (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
-               v_partialResultToken
-           in
-           let bnd = ("partialResultToken", arg) in
-           bnd :: bnds
-       in
-       `Assoc bnds
-      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
-  let _ = yojson_of_t
-
-  [@@@end]
-
-  let create ?(partialResultToken : ProgressToken.t option) (() : unit) : t =
-    { partialResultToken }
-end
-
-module WorkDoneProgressParams = struct
-  type t =
-    { workDoneToken : ProgressToken.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : t) -> ()
-
-  let t_of_yojson =
-    (let _tp_loc = "lsp/src/types.ml.WorkDoneProgressParams.t" in
-     function
-     | `Assoc field_yojsons as yojson -> (
-       let workDoneToken_field = ref Ppx_yojson_conv_lib.Option.None
-       and duplicates = ref []
-       and extra = ref [] in
-       let rec iter = function
-         | (field_name, _field_yojson) :: tail ->
-           (match field_name with
-           | "workDoneToken" -> (
-             match Ppx_yojson_conv_lib.( ! ) workDoneToken_field with
-             | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue =
-                 Json.Nullable_option.t_of_yojson ProgressToken.t_of_yojson
-                   _field_yojson
-               in
-               workDoneToken_field := Ppx_yojson_conv_lib.Option.Some fvalue
-             | Ppx_yojson_conv_lib.Option.Some _ ->
-               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-           | _ -> ());
-           iter tail
-         | [] -> ()
-       in
-       iter field_yojsons;
-       match Ppx_yojson_conv_lib.( ! ) duplicates with
-       | _ :: _ ->
-         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-           (Ppx_yojson_conv_lib.( ! ) duplicates)
-           yojson
-       | [] -> (
-         match Ppx_yojson_conv_lib.( ! ) extra with
-         | _ :: _ ->
-           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-             (Ppx_yojson_conv_lib.( ! ) extra)
-             yojson
-         | [] ->
-           let workDoneToken_value =
-             Ppx_yojson_conv_lib.( ! ) workDoneToken_field
-           in
-           { workDoneToken =
-               (match workDoneToken_value with
-               | Ppx_yojson_conv_lib.Option.None -> None
-               | Ppx_yojson_conv_lib.Option.Some v -> v)
-           }))
-     | _ as yojson ->
-       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-         yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
-  let _ = t_of_yojson
-
-  let yojson_of_t =
-    (function
-     | { workDoneToken = v_workDoneToken } ->
-       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-       let bnds =
-         if None = v_workDoneToken then
-           bnds
-         else
-           let arg =
-             (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
-               v_workDoneToken
-           in
-           let bnd = ("workDoneToken", arg) in
-           bnd :: bnds
-       in
-       `Assoc bnds
-      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
-  let _ = yojson_of_t
-
-  [@@@end]
-
-  let create ?(workDoneToken : ProgressToken.t option) (() : unit) : t =
-    { workDoneToken }
-end
-
 module CallHierarchyIncomingCallsParams = struct
   type t = { item : CallHierarchyItem.t }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -5231,19 +5036,8 @@ module MonikerClientCapabilities = struct
 end
 
 module SemanticTokensClientCapabilities = struct
-  type range = [ `Bool of bool ]
-
-  let range_of_yojson (json : Json.t) : range =
-    match json with
-    | `Bool j -> `Bool j
-    | _ -> Json.error "range" json
-
-  let yojson_of_range (range : range) : Json.t =
-    match range with
-    | `Bool j -> `Bool j
-
   type requests =
-    { range : range Json.Nullable_option.t
+    { range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; full : unit Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -5269,7 +5063,7 @@ module SemanticTokensClientCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) range_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson range_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
                in
                range_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -5337,7 +5131,7 @@ module SemanticTokensClientCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_range) v_range
+             (Json.Nullable_option.yojson_of_t yojson_of_bool) v_range
            in
            let bnd = ("range", arg) in
            bnd :: bnds
@@ -5349,8 +5143,8 @@ module SemanticTokensClientCapabilities = struct
 
   [@@@end]
 
-  let create_requests ?(range : range option) ?(full : unit option) (() : unit)
-      : requests =
+  let create_requests ?(range : bool option) ?(full : unit option) (() : unit) :
+      requests =
     { range; full }
 
   type t =
@@ -26402,22 +26196,11 @@ module SemanticTokensLegend = struct
 end
 
 module SemanticTokensOptions = struct
-  type range = [ `Bool of bool ]
-
-  let range_of_yojson (json : Json.t) : range =
-    match json with
-    | `Bool j -> `Bool j
-    | _ -> Json.error "range" json
-
-  let yojson_of_range (range : range) : Json.t =
-    match range with
-    | `Bool j -> `Bool j
-
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; legend : SemanticTokensLegend.t
-    ; range : range Json.Nullable_option.t
+    ; range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; full : unit Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -26459,7 +26242,7 @@ module SemanticTokensOptions = struct
              match Ppx_yojson_conv_lib.( ! ) range_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson range_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
                in
                range_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -26550,7 +26333,7 @@ module SemanticTokensOptions = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_range) v_range
+             (Json.Nullable_option.yojson_of_t yojson_of_bool) v_range
            in
            let bnd = ("range", arg) in
            bnd :: bnds
@@ -26578,7 +26361,7 @@ module SemanticTokensOptions = struct
   [@@@end]
 
   let create ?(workDoneProgress : bool option)
-      ~(legend : SemanticTokensLegend.t) ?(range : range option)
+      ~(legend : SemanticTokensLegend.t) ?(range : bool option)
       ?(full : unit option) (() : unit) : t =
     { workDoneProgress; legend; range; full }
 end
@@ -26590,7 +26373,7 @@ module SemanticTokensRegistrationOptions = struct
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; legend : SemanticTokensLegend.t
-    ; range : unit Json.Nullable_option.t
+    ; range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; full : unit Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -26646,7 +26429,7 @@ module SemanticTokensRegistrationOptions = struct
              match Ppx_yojson_conv_lib.( ! ) range_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson unit_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
                in
                range_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -26768,7 +26551,7 @@ module SemanticTokensRegistrationOptions = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_unit) v_range
+             (Json.Nullable_option.yojson_of_t yojson_of_bool) v_range
            in
            let bnd = ("range", arg) in
            bnd :: bnds
@@ -26808,7 +26591,7 @@ module SemanticTokensRegistrationOptions = struct
 
   let create ?(documentSelector : DocumentSelector.t option)
       ?(workDoneProgress : bool option) ~(legend : SemanticTokensLegend.t)
-      ?(range : unit option) ?(full : unit option) ?(id : string option)
+      ?(range : bool option) ?(full : unit option) ?(id : string option)
       (() : unit) : t =
     { documentSelector; workDoneProgress; legend; range; full; id }
 end
@@ -31371,6 +31154,114 @@ module ParameterInformation = struct
   let create ~(label : label) ?(documentation : documentation option)
       (() : unit) : t =
     { label; documentation }
+end
+
+module ProgressToken = struct
+  type t =
+    [ `Integer of Integer.t
+    | `String of string
+    ]
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String j -> `String j
+    | _ ->
+      Json.Of.untagged_union "t"
+        [ (fun json -> `Integer (Integer.t_of_yojson json)) ]
+        json
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | `String j -> `String j
+    | `Integer s -> Integer.yojson_of_t s
+end
+
+module PartialResultParams = struct
+  type t =
+    { partialResultToken : ProgressToken.t Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    (let _tp_loc = "lsp/src/types.ml.PartialResultParams.t" in
+     function
+     | `Assoc field_yojsons as yojson -> (
+       let partialResultToken_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "partialResultToken" -> (
+             match Ppx_yojson_conv_lib.( ! ) partialResultToken_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson ProgressToken.t_of_yojson
+                   _field_yojson
+               in
+               partialResultToken_field :=
+                 Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
+         | [] ->
+           let partialResultToken_value =
+             Ppx_yojson_conv_lib.( ! ) partialResultToken_field
+           in
+           { partialResultToken =
+               (match partialResultToken_value with
+               | Ppx_yojson_conv_lib.Option.None -> None
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    (function
+     | { partialResultToken = v_partialResultToken } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         if None = v_partialResultToken then
+           bnds
+         else
+           let arg =
+             (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
+               v_partialResultToken
+           in
+           let bnd = ("partialResultToken", arg) in
+           bnd :: bnds
+       in
+       `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let create ?(partialResultToken : ProgressToken.t option) (() : unit) : t =
+    { partialResultToken }
 end
 
 module PrepareRenameParams = struct
@@ -36222,6 +36113,93 @@ module WorkDoneProgressEnd = struct
 
   let t_of_yojson (json : Json.t) : t =
     Json.Of.literal_field "t" "kind" "end" t_of_yojson json
+end
+
+module WorkDoneProgressParams = struct
+  type t =
+    { workDoneToken : ProgressToken.t Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    (let _tp_loc = "lsp/src/types.ml.WorkDoneProgressParams.t" in
+     function
+     | `Assoc field_yojsons as yojson -> (
+       let workDoneToken_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "workDoneToken" -> (
+             match Ppx_yojson_conv_lib.( ! ) workDoneToken_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson ProgressToken.t_of_yojson
+                   _field_yojson
+               in
+               workDoneToken_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
+         | [] ->
+           let workDoneToken_value =
+             Ppx_yojson_conv_lib.( ! ) workDoneToken_field
+           in
+           { workDoneToken =
+               (match workDoneToken_value with
+               | Ppx_yojson_conv_lib.Option.None -> None
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    (function
+     | { workDoneToken = v_workDoneToken } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         if None = v_workDoneToken then
+           bnds
+         else
+           let arg =
+             (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
+               v_workDoneToken
+           in
+           let bnd = ("workDoneToken", arg) in
+           bnd :: bnds
+       in
+       `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let create ?(workDoneToken : ProgressToken.t option) (() : unit) : t =
+    { workDoneToken }
 end
 
 module WorkDoneProgressReport = struct

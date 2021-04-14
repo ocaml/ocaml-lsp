@@ -588,31 +588,6 @@ module CallHierarchyIncomingCall : sig
   include Json.Jsonable.S with type t := t
 end
 
-module ProgressToken : sig
-  type t =
-    [ `Integer of Integer.t
-    | `String of string
-    ]
-
-  include Json.Jsonable.S with type t := t
-end
-
-module PartialResultParams : sig
-  type t = { partialResultToken : ProgressToken.t option }
-
-  val create : ?partialResultToken:ProgressToken.t -> unit -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module WorkDoneProgressParams : sig
-  type t = { workDoneToken : ProgressToken.t option }
-
-  val create : ?workDoneToken:ProgressToken.t -> unit -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
 module CallHierarchyIncomingCallsParams : sig
   type t = { item : CallHierarchyItem.t }
 
@@ -791,12 +766,11 @@ end
 
 module SemanticTokensClientCapabilities : sig
   type requests =
-    { range : [ `Bool of bool ] option
+    { range : bool option
     ; full : unit option
     }
 
-  val create_requests :
-    ?range:[ `Bool of bool ] -> ?full:unit -> unit -> requests
+  val create_requests : ?range:bool -> ?full:unit -> unit -> requests
 
   type t =
     { dynamicRegistration : bool option
@@ -2834,14 +2808,14 @@ module SemanticTokensOptions : sig
   type t =
     { workDoneProgress : bool option
     ; legend : SemanticTokensLegend.t
-    ; range : [ `Bool of bool ] option
+    ; range : bool option
     ; full : unit option
     }
 
   val create :
        ?workDoneProgress:bool
     -> legend:SemanticTokensLegend.t
-    -> ?range:[ `Bool of bool ]
+    -> ?range:bool
     -> ?full:unit
     -> unit
     -> t
@@ -2854,7 +2828,7 @@ module SemanticTokensRegistrationOptions : sig
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option
     ; legend : SemanticTokensLegend.t
-    ; range : unit option
+    ; range : bool option
     ; full : unit option
     ; id : string option
     }
@@ -2863,7 +2837,7 @@ module SemanticTokensRegistrationOptions : sig
        ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> legend:SemanticTokensLegend.t
-    -> ?range:unit
+    -> ?range:bool
     -> ?full:unit
     -> ?id:string
     -> unit
@@ -3387,6 +3361,23 @@ module ParameterInformation : sig
     -> ?documentation:[ `String of string | `MarkupContent of MarkupContent.t ]
     -> unit
     -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module ProgressToken : sig
+  type t =
+    [ `Integer of Integer.t
+    | `String of string
+    ]
+
+  include Json.Jsonable.S with type t := t
+end
+
+module PartialResultParams : sig
+  type t = { partialResultToken : ProgressToken.t option }
+
+  val create : ?partialResultToken:ProgressToken.t -> unit -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3920,6 +3911,14 @@ module WorkDoneProgressEnd : sig
   type t = { message : string option }
 
   val create : ?message:string -> unit -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module WorkDoneProgressParams : sig
+  type t = { workDoneToken : ProgressToken.t option }
+
+  val create : ?workDoneToken:ProgressToken.t -> unit -> t
 
   include Json.Jsonable.S with type t := t
 end
