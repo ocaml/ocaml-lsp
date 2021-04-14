@@ -787,6 +787,7 @@ let of_typescript (ts : Resolved.t list) =
     Code_error.raise "Unexpected cycle"
       [ ("cycle", Dyn.Encoder.(list string) cycle) ]
   | Ok ts ->
+    let ts = List.map ts ~f:preprocess in
     let simple_enums, everything_else =
       List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
           if List.mem skipped_ts_decls t.name ~equal:String.equal then
@@ -814,8 +815,7 @@ let of_typescript (ts : Resolved.t list) =
     in
     let everything_else =
       List.map everything_else ~f:(fun (t : _ Named.t) ->
-          let pped = preprocess t in
-          let mod_ = Expanded.of_ts pped in
+          let mod_ = Expanded.of_ts t in
           Gen.module_ mod_)
     in
     simple_enums @ everything_else
