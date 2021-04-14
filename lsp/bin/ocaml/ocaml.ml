@@ -43,10 +43,14 @@ let preprocess =
         | Some n -> n
 
       method! sum vars =
-        Sum
-          (List.filter_map vars ~f:(function
+        match
+          List.filter_map vars ~f:(function
             | Record [] -> None
-            | _ as t -> Some (super#typ t)))
+            | _ as t -> Some (self#typ t))
+        with
+        | [] -> assert false
+        | [ t ] -> t
+        | ts -> Sum ts
 
       method! field x =
         if x.name = "documentChanges" then
