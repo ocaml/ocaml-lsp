@@ -7,6 +7,13 @@ module Literal = struct
     | String of string
     | Int of int
     | Float of float
+
+  let to_dyn =
+    let open Stdune.Dyn.Encoder in
+    function
+    | String s -> string s
+    | Int i -> int i
+    | Float f -> float f
 end
 
 module Enum = struct
@@ -14,7 +21,17 @@ module Enum = struct
     | Literal of Literal.t
     | Alias of string
 
+  let dyn_of_case =
+    let open Stdune.Dyn.Encoder in
+    function
+    | Literal l -> constr "Literal" [ Literal.to_dyn l ]
+    | Alias l -> constr "Alias" [ string l ]
+
   type t = (string * case) list
+
+  let to_dyn t =
+    let open Stdune.Dyn.Encoder in
+    list (fun (name, case) -> pair string dyn_of_case (name, case)) t
 end
 
 module type S = sig
@@ -55,6 +72,12 @@ module type S = sig
 
   and t = decl Named.t
 
+  val to_dyn : t -> Stdune.Dyn.t
+
+  val dyn_of_typ : typ -> Stdune.Dyn.t
+
+  val dyn_of_field : field -> Stdune.Dyn.t
+
   class map :
     object
       method typ : typ -> typ
@@ -84,6 +107,8 @@ end
 
 module Make (Ident : sig
   type t
+
+  val to_dyn : t -> Dyn.t
 end) =
 struct
   type field_def =
@@ -119,6 +144,44 @@ struct
     | Enum_anon of Enum.t
 
   and t = decl Named.t
+
+  let rec dyn_of_typ =
+    let open Stdune.Dyn.Encoder in
+    function
+    | Literal l -> constr "Literal" [ Literal.to_dyn l ]
+    | Ident l -> constr "Ident" [ Ident.to_dyn l ]
+    | Sum l -> constr "Sum" (List.map ~f:dyn_of_typ l)
+    | List l -> constr "List" [ dyn_of_typ l ]
+    | Tuple l -> constr "Tuple" (List.map ~f:dyn_of_typ l)
+    | App (f, x) -> constr "App" [ dyn_of_typ f; dyn_of_typ x ]
+    | Record fs -> constr "Record" (List.map fs ~f:dyn_of_field)
+
+  and field_def_of_dyn =
+    let open Stdune.Dyn.Encoder in
+    function
+    | Single { optional; typ } ->
+      record [ ("optional", bool optional); ("typ", dyn_of_typ typ) ]
+    | Pattern { pat : typ; typ : typ } ->
+      record [ ("pat", dyn_of_typ pat); ("typ", dyn_of_typ typ) ]
+
+  and dyn_of_field f = Named.to_dyn field_def_of_dyn f
+
+  let dyn_of_interface { extends; fields; params } =
+    let open Stdune.Dyn.Encoder in
+    record
+      [ ("extends", (list Ident.to_dyn) extends)
+      ; ("fields", (list dyn_of_field) fields)
+      ; ("params", (list string) params)
+      ]
+
+  let dyn_of_decl =
+    let open Stdune.Dyn.Encoder in
+    function
+    | Interface i -> constr "Interface" [ dyn_of_interface i ]
+    | Type t -> constr "Type" [ dyn_of_typ t ]
+    | Enum_anon t -> constr "Enum_anon" [ Enum.to_dyn t ]
+
+  let to_dyn t = Named.to_dyn dyn_of_decl t
 
   class ['a] fold =
     object (self)
@@ -235,11 +298,15 @@ module type Prim_intf = sig
     | Self
     | Resolved of resolved
 
+  val to_dyn : t -> Dyn.t
+
   val of_string : string -> resolve:(string -> t) -> t
 end
 
 module Prim_make (Resolved : sig
   type t
+
+  val to_dyn : t -> Dyn.t
 end) =
 struct
   type t =
@@ -253,6 +320,20 @@ struct
     | List
     | Self
     | Resolved of Resolved.t
+
+  let to_dyn =
+    let open Stdune.Dyn.Encoder in
+    function
+    | Null -> constr "Null" []
+    | String -> constr "String" []
+    | Bool -> constr "Bool" []
+    | Number -> constr "Number" []
+    | Uinteger -> constr "Uinteger" []
+    | Any -> constr "Any" []
+    | Object -> constr "Object" []
+    | List -> constr "List" []
+    | Self -> constr "Self" []
+    | Resolved r -> constr "Resolved" [ Resolved.to_dyn r ]
 
   let of_string s ~resolve =
     match String.lowercase_ascii s with
