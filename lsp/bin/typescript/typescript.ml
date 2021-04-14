@@ -24,23 +24,6 @@ let name_table (defns : Unresolved.t list) =
 let resolve_all (defns : Unresolved.t list) =
   let names = name_table defns in
   let defns = String.Map.values names in
-  let rename_change_field =
-    object
-      inherit Unresolved.map as super
-
-      method! field x =
-        if x.name = "change" then
-          match x.data with
-          | Single { typ = Ident "number"; optional = true } ->
-            let typ = Unresolved.Ident "TextDocumentSyncKind" in
-            let data = Unresolved.Single { typ; optional = true } in
-            super#field { x with data }
-          | _ -> super#field x
-        else
-          super#field x
-    end
-  in
-  let unresolved = List.map defns ~f:rename_change_field#t in
   Ts_types.resolve_all unresolved ~names
 
 let test_snippets s =

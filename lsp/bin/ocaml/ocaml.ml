@@ -66,6 +66,13 @@ let preprocess =
             let data = Single { typ; optional } in
             super#field { x with data }
           | _ -> super#field x
+        else if x.name = "change" then
+          match x.data with
+          | Single { typ = Ident "number"; optional = true } ->
+            let typ = Ident "TextDocumentSyncKind" in
+            let data = Single { typ; optional = true } in
+            super#field { x with data }
+          | _ -> super#field x
         else
           super#field x
 
