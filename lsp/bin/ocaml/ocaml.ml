@@ -129,9 +129,13 @@ module Expanded = struct
 
   (** Every anonymous record *)
   let new_binding_of_typ (x : Resolved.typ) : binding option =
+    let record = function
+      | [ { Named.name = _; data = Resolved.Pattern _ } ] -> None
+      | f -> Some (Record f)
+    in
     match x with
-    | Record [ { Named.name = _; data = Pattern _ } ] -> None
-    | Record d -> Some (Record d)
+    | Record d -> record d
+    | Sum [ _; Record d ] -> record d
     | _ -> None
 
   class discovered_types =
@@ -484,7 +488,7 @@ end = struct
     | [ _ ] -> `Null_removed non_nulls
 
   let make_typ { Named.name; data = t } =
-    let rec type_ (t : Resolved.typ) =
+    let rec type_ topmost_field_name (t : Resolved.typ) =
       match t with
       | Ident Uinteger ->
         Type.int (* XXX shall we use a dedicated uinteger eventually? *)
@@ -498,14 +502,14 @@ end = struct
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
       | Ident (Resolved r) -> Type.module_t r.name
-      | List t -> Type.list (type_ t)
-      | Tuple ts -> Type.Tuple (List.map ~f:type_ ts)
-      | Sum s -> sum s
+      | List t -> Type.list (type_ topmost_field_name t)
+      | Tuple ts -> Type.Tuple (List.map ~f:(type_ topmost_field_name) ts)
+      | Sum s -> sum topmost_field_name s
       | App _
       | Literal _ ->
         Type.void
       | Record r -> record r
-    and sum s =
+    and sum topmost_field_name s =
       if is_same_as_json s then
         Type.json
       else
@@ -514,23 +518,25 @@ end = struct
           if is_same_as_id s then
             id
           else
-            poly s
-        | `Null_removed [ s ] -> Type.Optional (type_ s)
+            poly topmost_field_name s
+        | `Null_removed [ s ] -> Type.Optional (type_ topmost_field_name s)
         | `Null_removed [] -> assert false
-        | `Null_removed cs -> Type.Optional (sum cs)
+        | `Null_removed cs -> Type.Optional (sum topmost_field_name cs)
     and simplify_record (fields : Resolved.field list) =
       (* A record with only a pattern field is simplified to an association list *)
       match fields with
-      | [ { Named.name = _; data = Pattern { pat; typ } } ] ->
-        let key = type_ pat in
-        let data = type_ typ in
+      | [ { Named.name; data = Pattern { pat; typ } } ] ->
+        let topmost_field_name = Some name in
+        let key = type_ topmost_field_name pat in
+        let data = type_ topmost_field_name typ in
         Some (Type.assoc_list ~key ~data)
       | _ -> None
     and record fields =
       match simplify_record fields with
       | None -> Type.name name
       | Some a -> a
-    and poly s : Ml.Type.t =
+    and poly topmost_field_name s : Ml.Type.t =
+      let type_ = type_ topmost_field_name in
       try
         Type.Poly_variant
           (List.map s ~f:(fun t ->
@@ -552,13 +558,18 @@ end = struct
                  | Tuple [ Ident Uinteger; Ident Uinteger ] ->
                    ("Offset", [ type_ t ])
                  | Literal (String x) -> (x, [])
+                 | Record _ ->
+                   let topmost_field_name =
+                     Option.value_exn topmost_field_name
+                   in
+                   (topmost_field_name, [ type_ t ])
                  | _ -> raise Exit
                in
                Type.constr ~name constrs))
       with
       | Exit -> Type.unit
     in
-    type_ t
+    type_ (Some name) t
 
   let make_field (field : Resolved.field) =
     match field.data with
