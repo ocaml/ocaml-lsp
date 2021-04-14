@@ -12,6 +12,285 @@ end
 module DocumentUri : module type of Uri0 with type t = Uri0.t
 
 (*$ Lsp_gen.print_mli () *)
+module SymbolTag : sig
+  type t = Deprecated
+
+  include Json.Jsonable.S with type t := t
+end
+
+module SymbolKind : sig
+  type t =
+    | File
+    | Module
+    | Namespace
+    | Package
+    | Class
+    | Method
+    | Property
+    | Field
+    | Constructor
+    | Enum
+    | Interface
+    | Function
+    | Variable
+    | Constant
+    | String
+    | Number
+    | Boolean
+    | Array
+    | Object
+    | Key
+    | Null
+    | EnumMember
+    | Struct
+    | Event
+    | Operator
+    | TypeParameter
+
+  include Json.Jsonable.S with type t := t
+end
+
+module TokenFormat : sig
+  type t = Relative
+
+  include Json.Jsonable.S with type t := t
+end
+
+module DiagnosticTag : sig
+  type t =
+    | Unnecessary
+    | Deprecated
+
+  include Json.Jsonable.S with type t := t
+end
+
+module PrepareSupportDefaultBehavior : sig
+  type t = Identifier
+
+  include Json.Jsonable.S with type t := t
+end
+
+module CodeActionKind : sig
+  type t =
+    | Empty
+    | QuickFix
+    | Refactor
+    | RefactorExtract
+    | RefactorInline
+    | RefactorRewrite
+    | Source
+    | SourceOrganizeImports
+    | Other of string
+
+  include Json.Jsonable.S with type t := t
+end
+
+module MarkupKind : sig
+  type t =
+    | PlainText
+    | Markdown
+
+  include Json.Jsonable.S with type t := t
+end
+
+module CompletionItemKind : sig
+  type t =
+    | Text
+    | Method
+    | Function
+    | Constructor
+    | Field
+    | Variable
+    | Class
+    | Interface
+    | Module
+    | Property
+    | Unit
+    | Value
+    | Enum
+    | Keyword
+    | Snippet
+    | Color
+    | File
+    | Reference
+    | Folder
+    | EnumMember
+    | Constant
+    | Struct
+    | Event
+    | Operator
+    | TypeParameter
+
+  include Json.Jsonable.S with type t := t
+end
+
+module InsertTextMode : sig
+  type t =
+    | AsIs
+    | AdjustIndentation
+
+  include Json.Jsonable.S with type t := t
+end
+
+module CompletionItemTag : sig
+  type t = Deprecated
+
+  include Json.Jsonable.S with type t := t
+end
+
+module FailureHandlingKind : sig
+  type t =
+    | Abort
+    | Transactional
+    | TextOnlyTransactional
+    | Undo
+
+  include Json.Jsonable.S with type t := t
+end
+
+module ResourceOperationKind : sig
+  type t =
+    | Create
+    | Rename
+    | Delete
+
+  include Json.Jsonable.S with type t := t
+end
+
+module DiagnosticSeverity : sig
+  type t =
+    | Error
+    | Warning
+    | Information
+    | Hint
+
+  include Json.Jsonable.S with type t := t
+end
+
+module CompletionTriggerKind : sig
+  type t =
+    | Invoked
+    | TriggerCharacter
+    | TriggerForIncompleteCompletions
+
+  include Json.Jsonable.S with type t := t
+end
+
+module InsertTextFormat : sig
+  type t =
+    | PlainText
+    | Snippet
+
+  include Json.Jsonable.S with type t := t
+end
+
+module DocumentHighlightKind : sig
+  type t =
+    | Text
+    | Read
+    | Write
+
+  include Json.Jsonable.S with type t := t
+end
+
+module FileChangeType : sig
+  type t =
+    | Created
+    | Changed
+    | Deleted
+
+  include Json.Jsonable.S with type t := t
+end
+
+module FileOperationPatternKind : sig
+  type t =
+    | File
+    | Folder
+
+  include Json.Jsonable.S with type t := t
+end
+
+module FoldingRangeKind : sig
+  type t =
+    | Comment
+    | Imports
+    | Region
+
+  include Json.Jsonable.S with type t := t
+end
+
+module InitializeError : sig
+  type t = UnknownProtocolVersion
+
+  include Json.Jsonable.S with type t := t
+end
+
+module TextDocumentSyncKind : sig
+  type t =
+    | None
+    | Full
+    | Incremental
+
+  include Json.Jsonable.S with type t := t
+end
+
+module MessageType : sig
+  type t =
+    | Error
+    | Warning
+    | Info
+    | Log
+
+  include Json.Jsonable.S with type t := t
+end
+
+module MonikerKind : sig
+  type t =
+    | Import
+    | Export
+    | Local
+
+  include Json.Jsonable.S with type t := t
+end
+
+module UniquenessLevel : sig
+  type t =
+    | Document
+    | Project
+    | Group
+    | Scheme
+    | Global
+
+  include Json.Jsonable.S with type t := t
+end
+
+module SignatureHelpTriggerKind : sig
+  type t =
+    | Invoked
+    | TriggerCharacter
+    | ContentChange
+
+  include Json.Jsonable.S with type t := t
+end
+
+module TextDocumentSaveReason : sig
+  type t =
+    | Manual
+    | AfterDelay
+    | FocusOut
+
+  include Json.Jsonable.S with type t := t
+end
+
+module WatchKind : sig
+  type t =
+    | Create
+    | Change
+    | Delete
+
+  include Json.Jsonable.S with type t := t
+end
+
 module ChangeAnnotationIdentifier : sig
   type t = string
 
@@ -271,44 +550,6 @@ module CallHierarchyClientCapabilities : sig
   include Json.Jsonable.S with type t := t
 end
 
-module SymbolTag : sig
-  type t = Deprecated
-
-  include Json.Jsonable.S with type t := t
-end
-
-module SymbolKind : sig
-  type t =
-    | File
-    | Module
-    | Namespace
-    | Package
-    | Class
-    | Method
-    | Property
-    | Field
-    | Constructor
-    | Enum
-    | Interface
-    | Function
-    | Variable
-    | Constant
-    | String
-    | Number
-    | Boolean
-    | Array
-    | Object
-    | Key
-    | Null
-    | EnumMember
-    | Struct
-    | Event
-    | Operator
-    | TypeParameter
-
-  include Json.Jsonable.S with type t := t
-end
-
 module CallHierarchyItem : sig
   type t =
     { name : string
@@ -548,19 +789,14 @@ module MonikerClientCapabilities : sig
   include Json.Jsonable.S with type t := t
 end
 
-module TokenFormat : sig
-  type t = Relative
-
-  include Json.Jsonable.S with type t := t
-end
-
 module SemanticTokensClientCapabilities : sig
   type requests =
-    { range : unit option
+    { range : [ `Bool of bool ] option
     ; full : unit option
     }
 
-  val create_requests : ?range:unit -> ?full:unit -> unit -> requests
+  val create_requests :
+    ?range:[ `Bool of bool ] -> ?full:unit -> unit -> requests
 
   type t =
     { dynamicRegistration : bool option
@@ -619,14 +855,6 @@ module FoldingRangeClientCapabilities : sig
   include Json.Jsonable.S with type t := t
 end
 
-module DiagnosticTag : sig
-  type t =
-    | Unnecessary
-    | Deprecated
-
-  include Json.Jsonable.S with type t := t
-end
-
 module PublishDiagnosticsClientCapabilities : sig
   type tagSupport = { valueSet : DiagnosticTag.t list }
 
@@ -648,12 +876,6 @@ module PublishDiagnosticsClientCapabilities : sig
     -> ?dataSupport:bool
     -> unit
     -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module PrepareSupportDefaultBehavior : sig
-  type t = Identifier
 
   include Json.Jsonable.S with type t := t
 end
@@ -724,21 +946,6 @@ module CodeLensClientCapabilities : sig
   type t = { dynamicRegistration : bool option }
 
   val create : ?dynamicRegistration:bool -> unit -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module CodeActionKind : sig
-  type t =
-    | Empty
-    | QuickFix
-    | Refactor
-    | RefactorExtract
-    | RefactorInline
-    | RefactorRewrite
-    | Source
-    | SourceOrganizeImports
-    | Other of string
 
   include Json.Jsonable.S with type t := t
 end
@@ -870,14 +1077,6 @@ module DeclarationClientCapabilities : sig
   include Json.Jsonable.S with type t := t
 end
 
-module MarkupKind : sig
-  type t =
-    | PlainText
-    | Markdown
-
-  include Json.Jsonable.S with type t := t
-end
-
 module SignatureHelpClientCapabilities : sig
   type parameterInformation = { labelOffsetSupport : bool option }
 
@@ -921,51 +1120,6 @@ module HoverClientCapabilities : sig
 
   val create :
     ?dynamicRegistration:bool -> ?contentFormat:MarkupKind.t list -> unit -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module CompletionItemKind : sig
-  type t =
-    | Text
-    | Method
-    | Function
-    | Constructor
-    | Field
-    | Variable
-    | Class
-    | Interface
-    | Module
-    | Property
-    | Unit
-    | Value
-    | Enum
-    | Keyword
-    | Snippet
-    | Color
-    | File
-    | Reference
-    | Folder
-    | EnumMember
-    | Constant
-    | Struct
-    | Event
-    | Operator
-    | TypeParameter
-
-  include Json.Jsonable.S with type t := t
-end
-
-module InsertTextMode : sig
-  type t =
-    | AsIs
-    | AdjustIndentation
-
-  include Json.Jsonable.S with type t := t
-end
-
-module CompletionItemTag : sig
-  type t = Deprecated
 
   include Json.Jsonable.S with type t := t
 end
@@ -1179,25 +1333,6 @@ module DidChangeConfigurationClientCapabilities : sig
   include Json.Jsonable.S with type t := t
 end
 
-module FailureHandlingKind : sig
-  type t =
-    | Abort
-    | Transactional
-    | TextOnlyTransactional
-    | Undo
-
-  include Json.Jsonable.S with type t := t
-end
-
-module ResourceOperationKind : sig
-  type t =
-    | Create
-    | Rename
-    | Delete
-
-  include Json.Jsonable.S with type t := t
-end
-
 module WorkspaceEditClientCapabilities : sig
   type changeAnnotationSupport = { groupsOnLabel : bool option }
 
@@ -1364,16 +1499,6 @@ module CodeDescription : sig
   type t = { href : URI.t }
 
   val create : href:URI.t -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module DiagnosticSeverity : sig
-  type t =
-    | Error
-    | Warning
-    | Information
-    | Hint
 
   include Json.Jsonable.S with type t := t
 end
@@ -1611,15 +1736,6 @@ module ColorPresentationParams : sig
   include Json.Jsonable.S with type t := t
 end
 
-module CompletionTriggerKind : sig
-  type t =
-    | Invoked
-    | TriggerCharacter
-    | TriggerForIncompleteCompletions
-
-  include Json.Jsonable.S with type t := t
-end
-
 module CompletionContext : sig
   type t =
     { triggerKind : CompletionTriggerKind.t
@@ -1640,14 +1756,6 @@ module InsertReplaceEdit : sig
     }
 
   val create : newText:string -> insert:Range.t -> replace:Range.t -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module InsertTextFormat : sig
-  type t =
-    | PlainText
-    | Snippet
 
   include Json.Jsonable.S with type t := t
 end
@@ -2144,15 +2252,6 @@ module DocumentFormattingRegistrationOptions : sig
   include Json.Jsonable.S with type t := t
 end
 
-module DocumentHighlightKind : sig
-  type t =
-    | Text
-    | Read
-    | Write
-
-  include Json.Jsonable.S with type t := t
-end
-
 module DocumentHighlight : sig
   type t =
     { range : Range.t
@@ -2432,27 +2531,10 @@ module ExecuteCommandRegistrationOptions : sig
   include Json.Jsonable.S with type t := t
 end
 
-module FileChangeType : sig
-  type t =
-    | Created
-    | Changed
-    | Deleted
-
-  include Json.Jsonable.S with type t := t
-end
-
 module FileOperationPatternOptions : sig
   type t = { ignoreCase : bool option }
 
   val create : ?ignoreCase:bool -> unit -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module FileOperationPatternKind : sig
-  type t =
-    | File
-    | Folder
 
   include Json.Jsonable.S with type t := t
 end
@@ -2500,15 +2582,6 @@ module FileRename : sig
     }
 
   val create : oldUri:string -> newUri:string -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module FoldingRangeKind : sig
-  type t =
-    | Comment
-    | Imports
-    | Region
 
   include Json.Jsonable.S with type t := t
 end
@@ -2657,12 +2730,6 @@ module ImplementationRegistrationOptions : sig
   include Json.Jsonable.S with type t := t
 end
 
-module InitializeError : sig
-  type t = UnknownProtocolVersion
-
-  include Json.Jsonable.S with type t := t
-end
-
 module TraceValue : sig
   type t =
     [ `Off
@@ -2767,14 +2834,14 @@ module SemanticTokensOptions : sig
   type t =
     { workDoneProgress : bool option
     ; legend : SemanticTokensLegend.t
-    ; range : unit option
+    ; range : [ `Bool of bool ] option
     ; full : unit option
     }
 
   val create :
        ?workDoneProgress:bool
     -> legend:SemanticTokensLegend.t
-    -> ?range:unit
+    -> ?range:[ `Bool of bool ]
     -> ?full:unit
     -> unit
     -> t
@@ -2912,15 +2979,6 @@ module SignatureHelpOptions : sig
     -> ?retriggerCharacters:string list
     -> unit
     -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module TextDocumentSyncKind : sig
-  type t =
-    | None
-    | Full
-    | Incremental
 
   include Json.Jsonable.S with type t := t
 end
@@ -3257,16 +3315,6 @@ module LocationLink : sig
   include Json.Jsonable.S with type t := t
 end
 
-module MessageType : sig
-  type t =
-    | Error
-    | Warning
-    | Info
-    | Log
-
-  include Json.Jsonable.S with type t := t
-end
-
 module LogMessageParams : sig
   type t =
     { type_ : MessageType.t
@@ -3293,26 +3341,6 @@ module MessageActionItem : sig
   type t = { title : string }
 
   val create : title:string -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module MonikerKind : sig
-  type t =
-    | Import
-    | Export
-    | Local
-
-  include Json.Jsonable.S with type t := t
-end
-
-module UniquenessLevel : sig
-  type t =
-    | Document
-    | Project
-    | Group
-    | Scheme
-    | Global
 
   include Json.Jsonable.S with type t := t
 end
@@ -3704,15 +3732,6 @@ module SignatureHelp : sig
   include Json.Jsonable.S with type t := t
 end
 
-module SignatureHelpTriggerKind : sig
-  type t =
-    | Invoked
-    | TriggerCharacter
-    | ContentChange
-
-  include Json.Jsonable.S with type t := t
-end
-
 module SignatureHelpContext : sig
   type t =
     { triggerKind : SignatureHelpTriggerKind.t
@@ -3806,15 +3825,6 @@ module TextDocumentChangeRegistrationOptions : sig
   include Json.Jsonable.S with type t := t
 end
 
-module TextDocumentSaveReason : sig
-  type t =
-    | Manual
-    | AfterDelay
-    | FocusOut
-
-  include Json.Jsonable.S with type t := t
-end
-
 module TextDocumentSaveRegistrationOptions : sig
   type t =
     { documentSelector : DocumentSelector.t option
@@ -3853,15 +3863,6 @@ module UnregistrationParams : sig
   type t = { unregisterations : Unregistration.t list }
 
   val create : unregisterations:Unregistration.t list -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module WatchKind : sig
-  type t =
-    | Create
-    | Change
-    | Delete
 
   include Json.Jsonable.S with type t := t
 end

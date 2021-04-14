@@ -5231,8 +5231,19 @@ module MonikerClientCapabilities = struct
 end
 
 module SemanticTokensClientCapabilities = struct
+  type range = [ `Bool of bool ]
+
+  let range_of_yojson (json : Json.t) : range =
+    match json with
+    | `Bool j -> `Bool j
+    | _ -> Json.error "range" json
+
+  let yojson_of_range (range : range) : Json.t =
+    match range with
+    | `Bool j -> `Bool j
+
   type requests =
-    { range : unit Json.Nullable_option.t
+    { range : range Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; full : unit Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -5258,7 +5269,7 @@ module SemanticTokensClientCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) range_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson unit_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson range_of_yojson _field_yojson
                in
                range_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -5326,7 +5337,7 @@ module SemanticTokensClientCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_unit) v_range
+             (Json.Nullable_option.yojson_of_t yojson_of_range) v_range
            in
            let bnd = ("range", arg) in
            bnd :: bnds
@@ -5338,8 +5349,8 @@ module SemanticTokensClientCapabilities = struct
 
   [@@@end]
 
-  let create_requests ?(range : unit option) ?(full : unit option) (() : unit) :
-      requests =
+  let create_requests ?(range : range option) ?(full : unit option) (() : unit)
+      : requests =
     { range; full }
 
   type t =
@@ -26391,11 +26402,22 @@ module SemanticTokensLegend = struct
 end
 
 module SemanticTokensOptions = struct
+  type range = [ `Bool of bool ]
+
+  let range_of_yojson (json : Json.t) : range =
+    match json with
+    | `Bool j -> `Bool j
+    | _ -> Json.error "range" json
+
+  let yojson_of_range (range : range) : Json.t =
+    match range with
+    | `Bool j -> `Bool j
+
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; legend : SemanticTokensLegend.t
-    ; range : unit Json.Nullable_option.t
+    ; range : range Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; full : unit Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -26437,7 +26459,7 @@ module SemanticTokensOptions = struct
              match Ppx_yojson_conv_lib.( ! ) range_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson unit_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson range_of_yojson _field_yojson
                in
                range_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -26528,7 +26550,7 @@ module SemanticTokensOptions = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_unit) v_range
+             (Json.Nullable_option.yojson_of_t yojson_of_range) v_range
            in
            let bnd = ("range", arg) in
            bnd :: bnds
@@ -26556,7 +26578,7 @@ module SemanticTokensOptions = struct
   [@@@end]
 
   let create ?(workDoneProgress : bool option)
-      ~(legend : SemanticTokensLegend.t) ?(range : unit option)
+      ~(legend : SemanticTokensLegend.t) ?(range : range option)
       ?(full : unit option) (() : unit) : t =
     { workDoneProgress; legend; range; full }
 end

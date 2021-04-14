@@ -59,6 +59,8 @@ module type S = sig
     object
       method typ : typ -> typ
 
+      method sum : typ list -> typ
+
       method interface : interface -> interface
 
       method enum_anon : Enum.t -> Enum.t
@@ -174,6 +176,8 @@ struct
         let fields = List.map ~f:self#field i.fields in
         { i with fields }
 
+      method sum (constrs : typ list) = Sum (List.map constrs ~f:self#typ)
+
       method typ (t : typ) =
         match t with
         | Literal i -> Literal i
@@ -184,7 +188,7 @@ struct
           App (x, y)
         | List t -> List (self#typ t)
         | Tuple ts -> Tuple (List.map ts ~f:self#typ)
-        | Sum ts -> Sum (List.map ts ~f:self#typ)
+        | Sum ts -> self#sum ts
         | Record ts -> Record (List.map ts ~f:self#field)
 
       method enum_anon (t : Enum.t) = t

@@ -42,6 +42,12 @@ let preprocess =
         | None -> assert false
         | Some n -> n
 
+      method! sum vars =
+        Sum
+          (List.filter_map vars ~f:(function
+            | Record [] -> None
+            | _ as t -> Some (super#typ t)))
+
       method! field x =
         if x.name = "documentChanges" then
           (* This gross hack is needed for the documentChanges field. We can
