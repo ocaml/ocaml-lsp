@@ -24,6 +24,7 @@ type _ t =
   | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
   | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
+  | TextDocumentMoniker : MonikerParams.t -> Moniker.t list option t
   | DocumentSymbol :
       DocumentSymbolParams.t
       -> [ `DocumentSymbol of DocumentSymbol.t list
@@ -133,6 +134,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t (Json.To.list DocumentHighlight.yojson_of_t) result
   | TextDocumentFoldingRange _, result ->
     Json.Option.yojson_of_t (Json.To.list FoldingRange.yojson_of_t) result
+  | TextDocumentMoniker _, result ->
+    Json.Option.yojson_of_t (Json.To.list Moniker.yojson_of_t) result
   | SignatureHelp _, result -> SignatureHelp.yojson_of_t result
   | CodeAction _, result -> CodeActionResult.yojson_of_t result
   | CodeActionResolve _, result -> CodeAction.yojson_of_t result
@@ -262,6 +265,9 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
   | "textDocument/linkedEditingRange" ->
     parse LinkedEditingRangeParams.t_of_yojson >>| fun params ->
     E (LinkedEditingRange params)
+  | "textDocument/moniker" ->
+    parse MonikerParams.t_of_yojson >>| fun params ->
+    E (TextDocumentMoniker params)
   | meth -> Ok (E (UnknownRequest { meth; params = r.params }))
 
 let method_ (type a) (t : a t) =
@@ -312,6 +318,7 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | TextDocumentReferences r -> Some r.textDocument
   | TextDocumentHighlight r -> Some r.textDocument
   | TextDocumentFoldingRange r -> Some r.textDocument
+  | TextDocumentMoniker r -> Some r.textDocument
   | SignatureHelp r -> Some r.textDocument
   | CodeAction r -> Some r.textDocument
   | CodeActionResolve _ -> None

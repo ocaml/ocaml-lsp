@@ -24,6 +24,7 @@ type _ t =
   | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
   | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
+  | TextDocumentMoniker : MonikerParams.t -> Moniker.t list option t
   | DocumentSymbol :
       DocumentSymbolParams.t
       -> [ `DocumentSymbol of DocumentSymbol.t list

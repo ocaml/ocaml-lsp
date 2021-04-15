@@ -744,6 +744,7 @@ let ocaml_on_request :
       ()
   | Client_request.TextDocumentOnTypeFormatting _ -> now None
   | Client_request.SelectionRange req -> later selection_range req
+  | Client_request.TextDocumentMoniker _ -> not_supported
   | Client_request.SemanticTokensFull _ -> not_supported
   | Client_request.SemanticTokensDelta _ -> not_supported
   | Client_request.SemanticTokensRange _ -> not_supported
