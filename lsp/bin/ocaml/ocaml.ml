@@ -720,7 +720,6 @@ end = struct
         | `Record (t, _) -> t
         | `Type t -> t)
       |> List.concat_map ~f:(fun (td : Ml.Type.decl Named.t) ->
-             Format.eprintf ">>> %s.%s@.%!" (name :> string) td.name;
              let td =
                { td with data = Module.rename_invalid_fields Intf td.data }
              in
@@ -743,10 +742,6 @@ end = struct
             | `Type l -> (l, None)
           in
           let typ_, poly_vars = Mapper.extract_poly_vars (Named.data d) in
-          if poly_vars <> [] then
-            Format.eprintf "poly_vars: %s@.%!"
-              (List.map poly_vars ~f:(fun pv -> pv.Named.name)
-              |> String.concat ~sep:" ");
           let poly_vars_and_convs =
             List.concat_map poly_vars ~f:(fun pv ->
                 let decl =
