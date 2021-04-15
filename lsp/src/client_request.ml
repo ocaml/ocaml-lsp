@@ -47,6 +47,7 @@ type _ t =
       -> FoldingRange.t list option t
   | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
+  | CodeActionResolve : CodeAction.t -> CodeAction.t t
   | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t
@@ -113,6 +114,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t (Json.To.list FoldingRange.yojson_of_t) result
   | SignatureHelp _, result -> SignatureHelp.yojson_of_t result
   | CodeAction _, result -> CodeActionResult.yojson_of_t result
+  | CodeActionResolve _, result -> CodeAction.yojson_of_t result
   | CompletionItemResolve _, result -> CompletionItem.yojson_of_t result
   | WillSaveWaitUntilTextDocument _, result ->
     Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
@@ -183,6 +185,8 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
     E (SignatureHelp params)
   | "textDocument/codeAction" ->
     parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
+  | "codeAction/resolve" ->
+    parse CodeAction.t_of_yojson >>| fun params -> E (CodeActionResolve params)
   | "debug/echo" ->
     parse DebugEcho.Params.t_of_yojson >>| fun params -> E (DebugEcho params)
   | "debug/textDocument/get" ->
@@ -270,6 +274,7 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | TextDocumentFoldingRange r -> Some r.textDocument
   | SignatureHelp r -> Some r.textDocument
   | CodeAction r -> Some r.textDocument
+  | CodeActionResolve _ -> None
   | WillSaveWaitUntilTextDocument r -> Some r.textDocument
   | TextDocumentFormatting r -> Some r.textDocument
   | TextDocumentOnTypeFormatting r -> Some r.textDocument

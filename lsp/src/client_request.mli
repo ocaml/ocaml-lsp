@@ -47,6 +47,7 @@ type _ t =
       -> FoldingRange.t list option t
   | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
+  | CodeActionResolve : CodeAction.t -> CodeAction.t t
   | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t
   | WillSaveWaitUntilTextDocument :
       WillSaveTextDocumentParams.t

@@ -714,6 +714,7 @@ let ocaml_on_request :
   | Client_request.TextDocumentLink _ -> now None
   | Client_request.WillSaveWaitUntilTextDocument _ -> now None
   | Client_request.CodeAction params -> later code_action params
+  | Client_request.CodeActionResolve ca -> now ca
   | Client_request.CompletionItemResolve ci ->
     later
       (fun state () ->
