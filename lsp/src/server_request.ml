@@ -12,6 +12,7 @@ type _ t =
   | ShowMessageRequest :
       ShowMessageRequestParams.t
       -> MessageActionItem.t option t
+  | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | UnknownRequest : string * Jsonrpc.Message.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
@@ -24,6 +25,7 @@ let method_ (type a) (t : a t) =
   | ClientRegisterCapability _ -> "client/registerCapability"
   | ClientUnregisterCapability _ -> "client/unregisterCapability"
   | ShowMessageRequest _ -> "window/showMessageRequest"
+  | WorkDoneProgressCreate _ -> "window/workDoneProgress/create"
   | UnknownRequest _ -> assert false
 
 let params (type a) (t : a t) =
@@ -36,6 +38,8 @@ let params (type a) (t : a t) =
     | ClientUnregisterCapability params ->
       UnregistrationParams.yojson_of_t params
     | ShowMessageRequest params -> ShowMessageRequestParams.yojson_of_t params
+    | WorkDoneProgressCreate params ->
+      WorkDoneProgressCreateParams.yojson_of_t params
     | UnknownRequest (_, _) -> assert false)
 
 let to_jsonrpc_request t ~id =
@@ -63,6 +67,9 @@ let of_jsonrpc (r : Jsonrpc.Message.request) : (packed, string) Result.t =
   | "window/showMessageRequest" ->
     let+ params = parse ShowMessageRequestParams.t_of_yojson in
     E (ShowMessageRequest params)
+  | "window/workDoneProgress/create" ->
+    let+ params = parse WorkDoneProgressCreateParams.t_of_yojson in
+    E (WorkDoneProgressCreate params)
   | m -> Ok (E (UnknownRequest (m, r.params)))
 
 let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
@@ -74,6 +81,7 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   | ClientRegisterCapability _, () -> `Null
   | ClientUnregisterCapability _, () -> `Null
   | ShowMessageRequest _, None -> `Null
+  | WorkDoneProgressCreate _, () -> `Null
   | ShowMessageRequest _, r ->
     Json.Conv.yojson_of_option MessageActionItem.yojson_of_t r
   | UnknownRequest (_, _), json -> json
@@ -87,4 +95,5 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | ClientRegisterCapability _ -> unit_of_yojson json
   | ClientUnregisterCapability _ -> unit_of_yojson json
   | ShowMessageRequest _ -> option_of_yojson MessageActionItem.t_of_yojson json
+  | WorkDoneProgressCreate _ -> unit_of_yojson json
   | UnknownRequest (_, _) -> json
