@@ -340,7 +340,8 @@ let query_type doc pos =
     None
   | (location, `String value, _) :: _ -> Some (location, value)
 
-let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
+let hover (state : State.t) { HoverParams.textDocument = { uri }; position; _ }
+    =
   let store = state.store in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
@@ -366,7 +367,7 @@ let hover (state : State.t) { HoverParams.textDocument = { uri }; position } =
     Ok (Some resp)
 
 let signature_help (state : State.t)
-    { SignatureHelpParams.textDocument = { uri }; position; context = _ } =
+    { SignatureHelpParams.textDocument = { uri }; position; _ } =
   let store = state.store in
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get store uri) in
@@ -424,7 +425,7 @@ let signature_help (state : State.t)
     Ok help
 
 let text_document_lens (state : State.t)
-    { CodeLensParams.textDocument = { uri } } =
+    { CodeLensParams.textDocument = { uri }; _ } =
   let store = state.store in
   let open Fiber.Result.O in
   let* doc = Fiber.return @@ Document_store.get store uri in
@@ -456,7 +457,7 @@ let text_document_lens (state : State.t)
     Ok symbol_infos
 
 let folding_range (state : State.t)
-    { FoldingRangeParams.textDocument = { uri } } =
+    { FoldingRangeParams.textDocument = { uri }; _ } =
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let command = Query_protocol.Outline in
@@ -486,7 +487,7 @@ let folding_range (state : State.t)
   Ok (Some folds)
 
 let rename (state : State.t)
-    { RenameParams.textDocument = { uri }; position; newName } =
+    { RenameParams.textDocument = { uri }; position; newName; _ } =
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let command =
@@ -524,7 +525,7 @@ let rename (state : State.t)
   Ok workspace_edits
 
 let selection_range (state : State.t)
-    { SelectionRangeParams.textDocument = { uri }; positions } =
+    { SelectionRangeParams.textDocument = { uri }; positions; _ } =
   let selection_range_of_shapes (cursor_position : Position.t)
       (shapes : Query_protocol.shape list) : SelectionRange.t option =
     let rec ranges_of_shape parent s =
@@ -562,7 +563,7 @@ let selection_range (state : State.t)
   Ok (List.filter_opt ranges)
 
 let references (state : State.t)
-    { ReferenceParams.textDocument = { uri }; position; context = _ } =
+    { ReferenceParams.textDocument = { uri }; position; _ } =
   let open Fiber.Result.O in
   let* doc = Fiber.return (Document_store.get state.store uri) in
   let command =
@@ -589,7 +590,7 @@ let definition_query (state : State.t) uri position merlin_request =
   Ok result
 
 let highlight (state : State.t)
-    { DocumentHighlightParams.textDocument = { uri }; position } =
+    { DocumentHighlightParams.textDocument = { uri }; position; _ } =
   let open Fiber.Result.O in
   let store = state.store in
   let* doc = Fiber.return (Document_store.get store uri) in
@@ -655,7 +656,7 @@ let ocaml_on_request :
   | Client_request.TextDocumentCodeLens req -> later text_document_lens req
   | Client_request.TextDocumentHighlight req -> later highlight req
   | Client_request.WorkspaceSymbol _ -> now None
-  | Client_request.DocumentSymbol { textDocument = { uri } } ->
+  | Client_request.DocumentSymbol { textDocument = { uri }; _ } ->
     later document_symbol uri
   | Client_request.TextDocumentDeclaration { textDocument = { uri }; position }
     ->
@@ -664,22 +665,22 @@ let ocaml_on_request :
         definition_query state uri position (fun pos ->
             Query_protocol.Locate (None, `MLI, pos)))
       ()
-  | Client_request.TextDocumentDefinition { textDocument = { uri }; position }
-    ->
+  | Client_request.TextDocumentDefinition
+      { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
         definition_query state uri position (fun pos ->
             Query_protocol.Locate (None, `ML, pos)))
       ()
   | Client_request.TextDocumentTypeDefinition
-      { textDocument = { uri }; position } ->
+      { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
         definition_query state uri position (fun pos ->
             Query_protocol.Locate_type pos))
       ()
   | Client_request.TextDocumentCompletion
-      { textDocument = { uri }; position; context = _ } ->
+      { textDocument = { uri }; position; _ } ->
     later
       (fun _ () ->
         let open Fiber.Result.O in
@@ -733,7 +734,7 @@ let ocaml_on_request :
         Fiber.return @@ Ok compl)
       ()
   | Client_request.TextDocumentFormatting
-      { textDocument = { uri }; options = _ } ->
+      { textDocument = { uri }; options = _; _ } ->
     later
       (fun _ () ->
         let open Fiber.Result.O in

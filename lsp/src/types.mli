@@ -588,10 +588,44 @@ module CallHierarchyIncomingCall : sig
   include Json.Jsonable.S with type t := t
 end
 
-module CallHierarchyIncomingCallsParams : sig
-  type t = { item : CallHierarchyItem.t }
+module ProgressToken : sig
+  type t =
+    [ `Integer of Integer.t
+    | `String of string
+    ]
 
-  val create : item:CallHierarchyItem.t -> t
+  include Json.Jsonable.S with type t := t
+end
+
+module PartialResultParams : sig
+  type t = { partialResultToken : ProgressToken.t option }
+
+  val create : ?partialResultToken:ProgressToken.t -> unit -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module WorkDoneProgressParams : sig
+  type t = { workDoneToken : ProgressToken.t option }
+
+  val create : ?workDoneToken:ProgressToken.t -> unit -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module CallHierarchyIncomingCallsParams : sig
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; item : CallHierarchyItem.t
+    }
+
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> item:CallHierarchyItem.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -624,9 +658,18 @@ module CallHierarchyOutgoingCall : sig
 end
 
 module CallHierarchyOutgoingCallsParams : sig
-  type t = { item : CallHierarchyItem.t }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; item : CallHierarchyItem.t
+    }
 
-  val create : item:CallHierarchyItem.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> item:CallHierarchyItem.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -646,9 +689,15 @@ module CallHierarchyPrepareParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -1573,15 +1622,20 @@ end
 
 module CodeActionParams : sig
   type t =
-    { textDocument : TextDocumentIdentifier.t
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; context : CodeActionContext.t
     }
 
   val create :
-       textDocument:TextDocumentIdentifier.t
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
     -> range:Range.t
     -> context:CodeActionContext.t
+    -> unit
     -> t
 
   include Json.Jsonable.S with type t := t
@@ -1630,9 +1684,18 @@ module CodeLensOptions : sig
 end
 
 module CodeLensParams : sig
-  type t = { textDocument : TextDocumentIdentifier.t }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
+    }
 
-  val create : textDocument:TextDocumentIdentifier.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -1704,13 +1767,21 @@ end
 
 module ColorPresentationParams : sig
   type t =
-    { textDocument : TextDocumentIdentifier.t
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
     ; color : Color.t
     ; range : Range.t
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t -> color:Color.t -> range:Range.t -> t
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> color:Color.t
+    -> range:Range.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -1833,12 +1904,16 @@ module CompletionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     ; context : CompletionContext.t option
     }
 
   val create :
        textDocument:TextDocumentIdentifier.t
     -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
     -> ?context:CompletionContext.t
     -> unit
     -> t
@@ -1914,9 +1989,17 @@ module DeclarationParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -1950,9 +2033,17 @@ module DefinitionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2154,9 +2245,18 @@ module DocumentColorOptions : sig
 end
 
 module DocumentColorParams : sig
-  type t = { textDocument : TextDocumentIdentifier.t }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
+    }
 
-  val create : textDocument:TextDocumentIdentifier.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2209,12 +2309,17 @@ end
 
 module DocumentFormattingParams : sig
   type t =
-    { textDocument : TextDocumentIdentifier.t
+    { workDoneToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
     ; options : FormattingOptions.t
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t -> options:FormattingOptions.t -> t
+       ?workDoneToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> options:FormattingOptions.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2254,9 +2359,17 @@ module DocumentHighlightParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2304,9 +2417,18 @@ module DocumentLinkOptions : sig
 end
 
 module DocumentLinkParams : sig
-  type t = { textDocument : TextDocumentIdentifier.t }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
+    }
 
-  val create : textDocument:TextDocumentIdentifier.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2388,15 +2510,18 @@ end
 
 module DocumentRangeFormattingParams : sig
   type t =
-    { textDocument : TextDocumentIdentifier.t
+    { workDoneToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     ; options : FormattingOptions.t
     }
 
   val create :
-       textDocument:TextDocumentIdentifier.t
+       ?workDoneToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
     -> range:Range.t
     -> options:FormattingOptions.t
+    -> unit
     -> t
 
   include Json.Jsonable.S with type t := t
@@ -2453,9 +2578,18 @@ module DocumentSymbolOptions : sig
 end
 
 module DocumentSymbolParams : sig
-  type t = { textDocument : TextDocumentIdentifier.t }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
+    }
 
-  val create : textDocument:TextDocumentIdentifier.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2490,11 +2624,17 @@ end
 
 module ExecuteCommandParams : sig
   type t =
-    { command : string
+    { workDoneToken : ProgressToken.t option
+    ; command : string
     ; arguments : Json.t list option
     }
 
-  val create : command:string -> ?arguments:Json.t list -> unit -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> command:string
+    -> ?arguments:Json.t list
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2595,9 +2735,18 @@ module FoldingRangeOptions : sig
 end
 
 module FoldingRangeParams : sig
-  type t = { textDocument : TextDocumentIdentifier.t }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
+    }
 
-  val create : textDocument:TextDocumentIdentifier.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2654,9 +2803,15 @@ module HoverParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2685,9 +2840,17 @@ module ImplementationParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -2728,7 +2891,8 @@ module InitializeParams : sig
   val create_clientInfo : name:string -> ?version:string -> unit -> clientInfo
 
   type t =
-    { processId : Integer.t option
+    { workDoneToken : ProgressToken.t option
+    ; processId : Integer.t option
     ; clientInfo : clientInfo option
     ; locale : string option
     ; rootPath : string option option
@@ -2740,7 +2904,8 @@ module InitializeParams : sig
     }
 
   val create :
-       ?processId:Integer.t
+       ?workDoneToken:ProgressToken.t
+    -> ?processId:Integer.t
     -> ?clientInfo:clientInfo
     -> ?locale:string
     -> ?rootPath:string option
@@ -3265,9 +3430,15 @@ module LinkedEditingRangeParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3355,9 +3526,17 @@ module MonikerParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3374,23 +3553,6 @@ module ParameterInformation : sig
     -> ?documentation:[ `String of string | `MarkupContent of MarkupContent.t ]
     -> unit
     -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module ProgressToken : sig
-  type t =
-    [ `Integer of Integer.t
-    | `String of string
-    ]
-
-  include Json.Jsonable.S with type t := t
-end
-
-module PartialResultParams : sig
-  type t = { partialResultToken : ProgressToken.t option }
-
-  val create : ?partialResultToken:ProgressToken.t -> unit -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3446,13 +3608,18 @@ module ReferenceParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     ; context : ReferenceContext.t
     }
 
   val create :
        textDocument:TextDocumentIdentifier.t
     -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
     -> context:ReferenceContext.t
+    -> unit
     -> t
 
   include Json.Jsonable.S with type t := t
@@ -3503,13 +3670,16 @@ module RenameParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
     ; newName : string
     }
 
   val create :
        textDocument:TextDocumentIdentifier.t
     -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
     -> newName:string
+    -> unit
     -> t
 
   include Json.Jsonable.S with type t := t
@@ -3545,12 +3715,19 @@ end
 
 module SelectionRangeParams : sig
   type t =
-    { textDocument : TextDocumentIdentifier.t
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
     ; positions : Position.t list
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t -> positions:Position.t list -> t
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> positions:Position.t list
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3591,12 +3768,19 @@ end
 
 module SemanticTokensDeltaParams : sig
   type t =
-    { textDocument : TextDocumentIdentifier.t
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
     ; previousResultId : string
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t -> previousResultId:string -> t
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> previousResultId:string
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3610,9 +3794,18 @@ module SemanticTokensDeltaPartialResult : sig
 end
 
 module SemanticTokensParams : sig
-  type t = { textDocument : TextDocumentIdentifier.t }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
+    }
 
-  val create : textDocument:TextDocumentIdentifier.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3627,11 +3820,19 @@ end
 
 module SemanticTokensRangeParams : sig
   type t =
-    { textDocument : TextDocumentIdentifier.t
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; textDocument : TextDocumentIdentifier.t
     ; range : Range.t
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> range:Range.t -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> textDocument:TextDocumentIdentifier.t
+    -> range:Range.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3759,12 +3960,14 @@ module SignatureHelpParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
     ; context : SignatureHelpContext.t option
     }
 
   val create :
        textDocument:TextDocumentIdentifier.t
     -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
     -> ?context:SignatureHelpContext.t
     -> unit
     -> t
@@ -3845,9 +4048,17 @@ module TypeDefinitionParams : sig
   type t =
     { textDocument : TextDocumentIdentifier.t
     ; position : Position.t
+    ; workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
     }
 
-  val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
+  val create :
+       textDocument:TextDocumentIdentifier.t
+    -> position:Position.t
+    -> ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3928,14 +4139,6 @@ module WorkDoneProgressEnd : sig
   include Json.Jsonable.S with type t := t
 end
 
-module WorkDoneProgressParams : sig
-  type t = { workDoneToken : ProgressToken.t option }
-
-  val create : ?workDoneToken:ProgressToken.t -> unit -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
 module WorkDoneProgressReport : sig
   type t =
     { cancellable : bool option
@@ -3950,9 +4153,18 @@ module WorkDoneProgressReport : sig
 end
 
 module WorkspaceSymbolParams : sig
-  type t = { query : string }
+  type t =
+    { workDoneToken : ProgressToken.t option
+    ; partialResultToken : ProgressToken.t option
+    ; query : string
+    }
 
-  val create : query:string -> t
+  val create :
+       ?workDoneToken:ProgressToken.t
+    -> ?partialResultToken:ProgressToken.t
+    -> query:string
+    -> unit
+    -> t
 
   include Json.Jsonable.S with type t := t
 end

@@ -20,7 +20,7 @@ let skipped_ts_decls =
 
 (* Super classes to remove because we handle their concerns differently (or not
    at all) *)
-let removed_super_classes = [ "WorkDoneProgressParams"; "PartialResultParams" ]
+let removed_super_classes = []
 
 (* The preprocessing stage maps over the typescript AST. It should only do very
    simple clean ups *)
