@@ -13,6 +13,7 @@ type _ t =
       ShowMessageRequestParams.t
       -> MessageActionItem.t option t
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
+  | CodeLensRefresh : unit t
   | UnknownRequest : string * Jsonrpc.Message.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
@@ -26,6 +27,7 @@ let method_ (type a) (t : a t) =
   | ClientUnregisterCapability _ -> "client/unregisterCapability"
   | ShowMessageRequest _ -> "window/showMessageRequest"
   | WorkDoneProgressCreate _ -> "window/workDoneProgress/create"
+  | CodeLensRefresh -> "workspace/codeLens/refresh"
   | UnknownRequest _ -> assert false
 
 let params (type a) (t : a t) =
@@ -40,6 +42,7 @@ let params (type a) (t : a t) =
     | ShowMessageRequest params -> ShowMessageRequestParams.yojson_of_t params
     | WorkDoneProgressCreate params ->
       WorkDoneProgressCreateParams.yojson_of_t params
+    | CodeLensRefresh -> `Null
     | UnknownRequest (_, _) -> assert false)
 
 let to_jsonrpc_request t ~id =
@@ -70,6 +73,7 @@ let of_jsonrpc (r : Jsonrpc.Message.request) : (packed, string) Result.t =
   | "window/workDoneProgress/create" ->
     let+ params = parse WorkDoneProgressCreateParams.t_of_yojson in
     E (WorkDoneProgressCreate params)
+  | "workspace/codeLens/refresh" -> Ok (E CodeLensRefresh)
   | m -> Ok (E (UnknownRequest (m, r.params)))
 
 let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
@@ -84,6 +88,7 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   | WorkDoneProgressCreate _, () -> `Null
   | ShowMessageRequest _, r ->
     Json.Conv.yojson_of_option MessageActionItem.yojson_of_t r
+  | CodeLensRefresh, _ -> `Null
   | UnknownRequest (_, _), json -> json
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
@@ -96,4 +101,5 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | ClientUnregisterCapability _ -> unit_of_yojson json
   | ShowMessageRequest _ -> option_of_yojson MessageActionItem.t_of_yojson json
   | WorkDoneProgressCreate _ -> unit_of_yojson json
+  | CodeLensRefresh -> unit_of_yojson json
   | UnknownRequest (_, _) -> json
