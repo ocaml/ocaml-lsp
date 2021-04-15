@@ -684,24 +684,6 @@ end = struct
     | [] -> None
     | _ :: _ -> Some (main_type, literals)
 
-  let interface_fields db (i : Resolved.interface) =
-    let rec interface init (i : Resolved.interface) =
-      let init =
-        List.fold_left i.extends ~init ~f:(fun init a ->
-            match a with
-            | Prim.Resolved r -> type_ init (Entities.find db r).data
-            | _ -> assert false)
-      in
-      init @ i.fields
-    and type_ init (i : Resolved.decl) : Resolved.field list =
-      match i with
-      | Enum_anon _ -> assert false
-      | Type (Record fields) -> List.rev_append fields init
-      | Type _ -> assert false
-      | Interface i -> interface init i
-    in
-    interface [] i
-
   let poly_enum { Named.name; data = _ } : Type.decl Named.t list =
     [ { Named.name; data = Type.Alias Type.unit } ]
 
@@ -729,7 +711,7 @@ end = struct
           match r.data with
           | Record data -> record db { r with data } |> add_record
           | Interface data ->
-            record db { r with data = interface_fields db data } |> add_record
+            record db { r with data = data.fields } |> add_record
           | Poly_enum data -> poly_enum { r with data } |> add_else
           | Alias data -> type_ db { r with data } |> add_else)
     in
@@ -761,6 +743,10 @@ end = struct
             | `Type l -> (l, None)
           in
           let typ_, poly_vars = Mapper.extract_poly_vars (Named.data d) in
+          if poly_vars <> [] then
+            Format.eprintf "poly_vars: %s@.%!"
+              (List.map poly_vars ~f:(fun pv -> pv.Named.name)
+              |> String.concat ~sep:" ");
           let poly_vars_and_convs =
             List.concat_map poly_vars ~f:(fun pv ->
                 let decl =
@@ -799,6 +785,35 @@ end = struct
     { Ml.Kind.intf = module_ intf; impl = module_ impl }
 end
 
+let expand_super_classes db ts =
+  let interface_fields (i : Resolved.interface) =
+    let rec interface init (i : Resolved.interface) =
+      let init =
+        List.fold_left i.extends ~init ~f:(fun init a ->
+            match a with
+            | Prim.Resolved r -> type_ init (Entities.find db r).data
+            | _ -> assert false)
+      in
+      init @ i.fields
+    and type_ init (i : Resolved.decl) : Resolved.field list =
+      match i with
+      | Enum_anon _ -> assert false
+      | Type (Record fields) -> List.rev_append fields init
+      | Type _ -> assert false
+      | Interface i -> interface init i
+    in
+    interface [] i
+  in
+  List.map ts ~f:(fun (r : Resolved.t) ->
+      let data =
+        match r.data with
+        | Interface i ->
+          let fields = interface_fields i in
+          Resolved.Interface { i with fields; extends = [] }
+        | r -> r
+      in
+      { r with data })
+
 (* extract all resovled identifiers *)
 class idents =
   object
@@ -827,6 +842,7 @@ let resolve_and_pp_typescript (ts : Unresolved.t list) =
   | Ok ts -> (db, ts)
 
 let of_resolved_typescript db (ts : Resolved.t list) =
+  let ts = expand_super_classes db ts in
   let simple_enums, everything_else =
     List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
         if List.mem skipped_ts_decls t.name ~equal:String.equal then
