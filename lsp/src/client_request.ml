@@ -75,6 +75,9 @@ type _ t =
   | SemanticTokensRange :
       SemanticTokensRangeParams.t
       -> SemanticTokens.t option t
+  | LinkedEditingRange :
+      LinkedEditingRangeParams.t
+      -> LinkedEditingRanges.t option t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Message.Structured.t option
@@ -156,6 +159,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | SemanticTokensDelta _, result -> yojson_of_SemanticTokensDelta result
   | SemanticTokensRange _, result ->
     Json.Option.yojson_of_t SemanticTokens.yojson_of_t result
+  | LinkedEditingRange _, result ->
+    Json.Option.yojson_of_t LinkedEditingRanges.yojson_of_t result
   | ExecuteCommand _, result -> result
   | UnknownRequest _, resp -> resp
 
@@ -254,6 +259,9 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
   | "textDocument/semanticTokens/range" ->
     parse SemanticTokensRangeParams.t_of_yojson >>| fun params ->
     E (SemanticTokensRange params)
+  | "textDocument/linkedEditingRange" ->
+    parse LinkedEditingRangeParams.t_of_yojson >>| fun params ->
+    E (LinkedEditingRange params)
   | meth -> Ok (E (UnknownRequest { meth; params = r.params }))
 
 let method_ (type a) (t : a t) =
@@ -316,4 +324,5 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | SemanticTokensFull r -> Some r.textDocument
   | SemanticTokensDelta r -> Some r.textDocument
   | SemanticTokensRange r -> Some r.textDocument
+  | LinkedEditingRange r -> Some r.textDocument
   | UnknownRequest { meth; params } -> f ~meth ~params

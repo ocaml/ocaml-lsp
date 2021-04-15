@@ -75,6 +75,9 @@ type _ t =
   | SemanticTokensRange :
       SemanticTokensRangeParams.t
       -> SemanticTokens.t option t
+  | LinkedEditingRange :
+      LinkedEditingRangeParams.t
+      -> LinkedEditingRanges.t option t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Message.Structured.t option
