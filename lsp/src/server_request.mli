@@ -14,6 +14,7 @@ type _ t =
       -> MessageActionItem.t option t
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | CodeLensRefresh : unit t
+  | SemanticTokensRefresh : unit t
   | UnknownRequest : string * Jsonrpc.Message.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed

@@ -64,6 +64,17 @@ type _ t =
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
+  | SemanticTokensFull : SemanticTokensParams.t -> SemanticTokens.t option t
+  | SemanticTokensDelta :
+      SemanticTokensDeltaParams.t
+      -> [ `SemanticTokens of SemanticTokens.t
+         | `SemanticTokensDelta of SemanticTokensDelta.t
+         ]
+         option
+         t
+  | SemanticTokensRange :
+      SemanticTokensRangeParams.t
+      -> SemanticTokens.t option t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Message.Structured.t option

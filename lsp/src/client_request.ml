@@ -64,6 +64,17 @@ type _ t =
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
   | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
+  | SemanticTokensFull : SemanticTokensParams.t -> SemanticTokens.t option t
+  | SemanticTokensDelta :
+      SemanticTokensDeltaParams.t
+      -> [ `SemanticTokens of SemanticTokens.t
+         | `SemanticTokensDelta of SemanticTokensDelta.t
+         ]
+         option
+         t
+  | SemanticTokensRange :
+      SemanticTokensRangeParams.t
+      -> SemanticTokens.t option t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Message.Structured.t option
@@ -82,6 +93,13 @@ let yojson_of_Completion ds : Json.t =
     (function
       | `CompletionList cs -> CompletionList.yojson_of_t cs
       | `List xs -> `List (List.map xs ~f:CompletionItem.yojson_of_t))
+    ds
+
+let yojson_of_SemanticTokensDelta ds : Json.t =
+  Json.Option.yojson_of_t
+    (function
+      | `SemanticTokens st -> SemanticTokens.yojson_of_t st
+      | `SemanticTokensDelta st -> SemanticTokensDelta.yojson_of_t st)
     ds
 
 let yojson_of_result (type a) (req : a t) (result : a) =
@@ -133,6 +151,11 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.To.list ColorInformation.yojson_of_t result
   | SelectionRange _, result ->
     Json.yojson_of_list SelectionRange.yojson_of_t result
+  | SemanticTokensFull _, result ->
+    Json.Option.yojson_of_t SemanticTokens.yojson_of_t result
+  | SemanticTokensDelta _, result -> yojson_of_SemanticTokensDelta result
+  | SemanticTokensRange _, result ->
+    Json.Option.yojson_of_t SemanticTokens.yojson_of_t result
   | ExecuteCommand _, result -> result
   | UnknownRequest _, resp -> resp
 
@@ -222,6 +245,15 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
   | "workspace/executeCommand" ->
     parse ExecuteCommandParams.t_of_yojson >>| fun params ->
     E (ExecuteCommand params)
+  | "textDocument/semanticTokens/full" ->
+    parse SemanticTokensParams.t_of_yojson >>| fun params ->
+    E (SemanticTokensFull params)
+  | "textDocument/semanticTokens/full/delta" ->
+    parse SemanticTokensDeltaParams.t_of_yojson >>| fun params ->
+    E (SemanticTokensDelta params)
+  | "textDocument/semanticTokens/range" ->
+    parse SemanticTokensRangeParams.t_of_yojson >>| fun params ->
+    E (SemanticTokensRange params)
   | meth -> Ok (E (UnknownRequest { meth; params = r.params }))
 
 let method_ (type a) (t : a t) =
@@ -281,4 +313,7 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | TextDocumentColorPresentation r -> Some r.textDocument
   | TextDocumentColor r -> Some r.textDocument
   | SelectionRange r -> Some r.textDocument
+  | SemanticTokensFull r -> Some r.textDocument
+  | SemanticTokensDelta r -> Some r.textDocument
+  | SemanticTokensRange r -> Some r.textDocument
   | UnknownRequest { meth; params } -> f ~meth ~params
