@@ -2833,6 +2833,10 @@ module SemanticTokensOptions : sig
 end
 
 module SemanticTokensRegistrationOptions : sig
+  type full = { delta : bool option }
+
+  val create_full : ?delta:bool -> unit -> full
+
   type t =
     { documentSelector : DocumentSelector.t option
     ; workDoneProgress : bool option

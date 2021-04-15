@@ -2288,26 +2288,26 @@ module OptionalVersionedTextDocumentIdentifier = struct
 end
 
 module TextDocumentEdit = struct
-  type edits =
+  type edits_pvar =
     [ `TextEdit of TextEdit.t
     | `AnnotatedTextEdit of AnnotatedTextEdit.t
     ]
 
-  let edits_of_yojson (json : Json.t) : edits =
-    Json.Of.untagged_union "edits"
+  let edits_pvar_of_yojson (json : Json.t) : edits_pvar =
+    Json.Of.untagged_union "edits_pvar"
       [ (fun json -> `TextEdit (TextEdit.t_of_yojson json))
       ; (fun json -> `AnnotatedTextEdit (AnnotatedTextEdit.t_of_yojson json))
       ]
       json
 
-  let yojson_of_edits (edits : edits) : Json.t =
-    match edits with
+  let yojson_of_edits_pvar (edits_pvar : edits_pvar) : Json.t =
+    match edits_pvar with
     | `TextEdit s -> TextEdit.yojson_of_t s
     | `AnnotatedTextEdit s -> AnnotatedTextEdit.yojson_of_t s
 
   type t =
     { textDocument : OptionalVersionedTextDocumentIdentifier.t
-    ; edits : edits list
+    ; edits : edits_pvar list
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -2337,7 +2337,7 @@ module TextDocumentEdit = struct
            | "edits" -> (
              match Ppx_yojson_conv_lib.( ! ) edits_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = list_of_yojson edits_of_yojson _field_yojson in
+               let fvalue = list_of_yojson edits_pvar_of_yojson _field_yojson in
                edits_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -2389,7 +2389,7 @@ module TextDocumentEdit = struct
      | { textDocument = v_textDocument; edits = v_edits } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         let arg = yojson_of_list yojson_of_edits v_edits in
+         let arg = yojson_of_list yojson_of_edits_pvar v_edits in
          ("edits", arg) :: bnds
        in
        let bnds =
@@ -2406,20 +2406,20 @@ module TextDocumentEdit = struct
   [@@@end]
 
   let create ~(textDocument : OptionalVersionedTextDocumentIdentifier.t)
-      ~(edits : edits list) : t =
+      ~(edits : edits_pvar list) : t =
     { textDocument; edits }
 end
 
 module WorkspaceEdit = struct
-  type documentChanges =
+  type documentChanges_pvar =
     [ `TextDocumentEdit of TextDocumentEdit.t
     | `CreateFile of CreateFile.t
     | `RenameFile of RenameFile.t
     | `DeleteFile of DeleteFile.t
     ]
 
-  let documentChanges_of_yojson (json : Json.t) : documentChanges =
-    Json.Of.untagged_union "documentChanges"
+  let documentChanges_pvar_of_yojson (json : Json.t) : documentChanges_pvar =
+    Json.Of.untagged_union "documentChanges_pvar"
       [ (fun json -> `TextDocumentEdit (TextDocumentEdit.t_of_yojson json))
       ; (fun json -> `CreateFile (CreateFile.t_of_yojson json))
       ; (fun json -> `RenameFile (RenameFile.t_of_yojson json))
@@ -2427,8 +2427,9 @@ module WorkspaceEdit = struct
       ]
       json
 
-  let yojson_of_documentChanges (documentChanges : documentChanges) : Json.t =
-    match documentChanges with
+  let yojson_of_documentChanges_pvar
+      (documentChanges_pvar : documentChanges_pvar) : Json.t =
+    match documentChanges_pvar with
     | `TextDocumentEdit s -> TextDocumentEdit.yojson_of_t s
     | `CreateFile s -> CreateFile.yojson_of_t s
     | `RenameFile s -> RenameFile.yojson_of_t s
@@ -2438,7 +2439,7 @@ module WorkspaceEdit = struct
     { changes :
         (DocumentUri.t, TextEdit.t list) Json.Assoc.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; documentChanges : documentChanges list Json.Nullable_option.t
+    ; documentChanges : documentChanges_pvar list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; changeAnnotations :
         (string, ChangeAnnotation.t) Json.Assoc.t Json.Nullable_option.t
@@ -2477,7 +2478,7 @@ module WorkspaceEdit = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   (list_of_yojson documentChanges_of_yojson)
+                   (list_of_yojson documentChanges_pvar_of_yojson)
                    _field_yojson
                in
                documentChanges_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -2563,7 +2564,7 @@ module WorkspaceEdit = struct
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
-                (yojson_of_list yojson_of_documentChanges))
+                (yojson_of_list yojson_of_documentChanges_pvar))
                v_documentChanges
            in
            let bnd = ("documentChanges", arg) in
@@ -2590,7 +2591,7 @@ module WorkspaceEdit = struct
   [@@@end]
 
   let create ?(changes : (DocumentUri.t, TextEdit.t list) Json.Assoc.t option)
-      ?(documentChanges : documentChanges list option)
+      ?(documentChanges : documentChanges_pvar list option)
       ?(changeAnnotations : (string, ChangeAnnotation.t) Json.Assoc.t option)
       (() : unit) : t =
     { changes; documentChanges; changeAnnotations }
@@ -4385,25 +4386,26 @@ module CallHierarchyRegistrationOptions = struct
 end
 
 module CancelParams = struct
-  type id =
+  type id_pvar =
     [ `Integer of Integer.t
     | `String of string
     ]
 
-  let id_of_yojson (json : Json.t) : id =
+  let id_pvar_of_yojson (json : Json.t) : id_pvar =
     match json with
     | `String j -> `String j
     | _ ->
-      Json.Of.untagged_union "id"
+      Json.Of.untagged_union "id_pvar"
         [ (fun json -> `Integer (Integer.t_of_yojson json)) ]
         json
 
-  let yojson_of_id (id : id) : Json.t =
-    match id with
+  let yojson_of_id_pvar (id_pvar : id_pvar) : Json.t =
+    match id_pvar with
     | `String j -> `String j
     | `Integer s -> Integer.yojson_of_t s
 
-  type t = { id : id } [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+  type t = { id : id_pvar }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
 
@@ -4420,7 +4422,7 @@ module CancelParams = struct
            | "id" -> (
              match Ppx_yojson_conv_lib.( ! ) id_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = id_of_yojson _field_yojson in
+               let fvalue = id_pvar_of_yojson _field_yojson in
                id_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -4463,7 +4465,7 @@ module CancelParams = struct
      | { id = v_id } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         let arg = yojson_of_id v_id in
+         let arg = yojson_of_id_pvar v_id in
          ("id", arg) :: bnds
        in
        `Assoc bnds
@@ -4473,7 +4475,7 @@ module CancelParams = struct
 
   [@@@end]
 
-  let create ~(id : id) : t = { id }
+  let create ~(id : id_pvar) : t = { id }
 end
 
 module MarkdownClientCapabilities = struct
@@ -5116,28 +5118,28 @@ module SemanticTokensClientCapabilities = struct
 
   let create_full ?(delta : bool option) (() : unit) : full = { delta }
 
-  type full =
+  type full_pvar =
     [ `Bool of bool
     | `Full of full
     ]
 
-  let full_of_yojson (json : Json.t) : full =
+  let full_pvar_of_yojson (json : Json.t) : full_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "full"
+      Json.Of.untagged_union "full_pvar"
         [ (fun json -> `Full (full_of_yojson json)) ]
         json
 
-  let yojson_of_full (full : full) : Json.t =
-    match full with
+  let yojson_of_full_pvar (full_pvar : full_pvar) : Json.t =
+    match full_pvar with
     | `Bool j -> `Bool j
     | `Full s -> yojson_of_full s
 
   type requests =
     { range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; full : full Json.Nullable_option.t
+    ; full : full_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -5170,7 +5172,8 @@ module SemanticTokensClientCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) full_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson full_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson full_pvar_of_yojson
+                   _field_yojson
                in
                full_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -5220,7 +5223,9 @@ module SemanticTokensClientCapabilities = struct
          if None = v_full then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_full) v_full in
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_full_pvar) v_full
+           in
            let bnd = ("full", arg) in
            bnd :: bnds
        in
@@ -5241,8 +5246,8 @@ module SemanticTokensClientCapabilities = struct
 
   [@@@end]
 
-  let create_requests ?(range : bool option) ?(full : full option) (() : unit) :
-      requests =
+  let create_requests ?(range : bool option) ?(full : full_pvar option)
+      (() : unit) : requests =
     { range; full }
 
   type t =
@@ -13578,21 +13583,21 @@ module CodeDescription = struct
 end
 
 module Diagnostic = struct
-  type code =
+  type code_pvar =
     [ `Integer of Integer.t
     | `String of string
     ]
 
-  let code_of_yojson (json : Json.t) : code =
+  let code_pvar_of_yojson (json : Json.t) : code_pvar =
     match json with
     | `String j -> `String j
     | _ ->
-      Json.Of.untagged_union "code"
+      Json.Of.untagged_union "code_pvar"
         [ (fun json -> `Integer (Integer.t_of_yojson json)) ]
         json
 
-  let yojson_of_code (code : code) : Json.t =
-    match code with
+  let yojson_of_code_pvar (code_pvar : code_pvar) : Json.t =
+    match code_pvar with
     | `String j -> `String j
     | `Integer s -> Integer.yojson_of_t s
 
@@ -13600,7 +13605,7 @@ module Diagnostic = struct
     { range : Range.t
     ; severity : DiagnosticSeverity.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; code : code Json.Nullable_option.t
+    ; code : code_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; codeDescription : CodeDescription.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -13657,7 +13662,8 @@ module Diagnostic = struct
              match Ppx_yojson_conv_lib.( ! ) code_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson code_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson code_pvar_of_yojson
+                   _field_yojson
                in
                code_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -13876,7 +13882,9 @@ module Diagnostic = struct
          if None = v_code then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_code) v_code in
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_code_pvar) v_code
+           in
            let bnd = ("code", arg) in
            bnd :: bnds
        in
@@ -13903,7 +13911,7 @@ module Diagnostic = struct
   [@@@end]
 
   let create ~(range : Range.t) ?(severity : DiagnosticSeverity.t option)
-      ?(code : code option) ?(codeDescription : CodeDescription.t option)
+      ?(code : code_pvar option) ?(codeDescription : CodeDescription.t option)
       ?(source : string option) ~(message : string)
       ?(tags : DiagnosticTag.t list option)
       ?(relatedInformation : DiagnosticRelatedInformation.t list option)
@@ -16194,38 +16202,39 @@ module MarkupContent = struct
 end
 
 module CompletionItem = struct
-  type documentation =
+  type documentation_pvar =
     [ `String of string
     | `MarkupContent of MarkupContent.t
     ]
 
-  let documentation_of_yojson (json : Json.t) : documentation =
+  let documentation_pvar_of_yojson (json : Json.t) : documentation_pvar =
     match json with
     | `String j -> `String j
     | _ ->
-      Json.Of.untagged_union "documentation"
+      Json.Of.untagged_union "documentation_pvar"
         [ (fun json -> `MarkupContent (MarkupContent.t_of_yojson json)) ]
         json
 
-  let yojson_of_documentation (documentation : documentation) : Json.t =
-    match documentation with
+  let yojson_of_documentation_pvar (documentation_pvar : documentation_pvar) :
+      Json.t =
+    match documentation_pvar with
     | `String j -> `String j
     | `MarkupContent s -> MarkupContent.yojson_of_t s
 
-  type textEdit =
+  type textEdit_pvar =
     [ `TextEdit of TextEdit.t
     | `InsertReplaceEdit of InsertReplaceEdit.t
     ]
 
-  let textEdit_of_yojson (json : Json.t) : textEdit =
-    Json.Of.untagged_union "textEdit"
+  let textEdit_pvar_of_yojson (json : Json.t) : textEdit_pvar =
+    Json.Of.untagged_union "textEdit_pvar"
       [ (fun json -> `TextEdit (TextEdit.t_of_yojson json))
       ; (fun json -> `InsertReplaceEdit (InsertReplaceEdit.t_of_yojson json))
       ]
       json
 
-  let yojson_of_textEdit (textEdit : textEdit) : Json.t =
-    match textEdit with
+  let yojson_of_textEdit_pvar (textEdit_pvar : textEdit_pvar) : Json.t =
+    match textEdit_pvar with
     | `TextEdit s -> TextEdit.yojson_of_t s
     | `InsertReplaceEdit s -> InsertReplaceEdit.yojson_of_t s
 
@@ -16237,7 +16246,7 @@ module CompletionItem = struct
           [@default None] [@yojson_drop_default ( = )]
     ; detail : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; documentation : documentation Json.Nullable_option.t
+    ; documentation : documentation_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; deprecated : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -16253,7 +16262,7 @@ module CompletionItem = struct
           [@default None] [@yojson_drop_default ( = )]
     ; insertTextMode : InsertTextMode.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; textEdit : textEdit Json.Nullable_option.t
+    ; textEdit : textEdit_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; additionalTextEdits : TextEdit.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -16334,7 +16343,7 @@ module CompletionItem = struct
              match Ppx_yojson_conv_lib.( ! ) documentation_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson documentation_of_yojson
+                 Json.Nullable_option.t_of_yojson documentation_pvar_of_yojson
                    _field_yojson
                in
                documentation_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -16409,7 +16418,7 @@ module CompletionItem = struct
              match Ppx_yojson_conv_lib.( ! ) textEdit_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson textEdit_of_yojson
+                 Json.Nullable_option.t_of_yojson textEdit_pvar_of_yojson
                    _field_yojson
                in
                textEdit_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -16654,7 +16663,8 @@ module CompletionItem = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_textEdit) v_textEdit
+             (Json.Nullable_option.yojson_of_t yojson_of_textEdit_pvar)
+               v_textEdit
            in
            let bnd = ("textEdit", arg) in
            bnd :: bnds
@@ -16736,7 +16746,7 @@ module CompletionItem = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_documentation)
+             (Json.Nullable_option.yojson_of_t yojson_of_documentation_pvar)
                v_documentation
            in
            let bnd = ("documentation", arg) in
@@ -16788,11 +16798,12 @@ module CompletionItem = struct
 
   let create ~(label : string) ?(kind : CompletionItemKind.t option)
       ?(tags : CompletionItemTag.t list option) ?(detail : string option)
-      ?(documentation : documentation option) ?(deprecated : bool option)
+      ?(documentation : documentation_pvar option) ?(deprecated : bool option)
       ?(preselect : bool option) ?(sortText : string option)
       ?(filterText : string option) ?(insertText : string option)
       ?(insertTextFormat : InsertTextFormat.t option)
-      ?(insertTextMode : InsertTextMode.t option) ?(textEdit : textEdit option)
+      ?(insertTextMode : InsertTextMode.t option)
+      ?(textEdit : textEdit_pvar option)
       ?(additionalTextEdits : TextEdit.t list option)
       ?(commitCharacters : string list option) ?(command : Command.t option)
       ?(data : Json.t option) (() : unit) : t =
@@ -24534,28 +24545,28 @@ module FoldingRangeRegistrationOptions = struct
 end
 
 module Hover = struct
-  type contents =
+  type contents_pvar =
     [ `MarkedString of MarkedString.t
     | `List of MarkedString.t list
     | `MarkupContent of MarkupContent.t
     ]
 
-  let contents_of_yojson (json : Json.t) : contents =
-    Json.Of.untagged_union "contents"
+  let contents_pvar_of_yojson (json : Json.t) : contents_pvar =
+    Json.Of.untagged_union "contents_pvar"
       [ (fun json -> `MarkedString (MarkedString.t_of_yojson json))
       ; (fun json -> `List (Json.Of.list MarkedString.t_of_yojson json))
       ; (fun json -> `MarkupContent (MarkupContent.t_of_yojson json))
       ]
       json
 
-  let yojson_of_contents (contents : contents) : Json.t =
-    match contents with
+  let yojson_of_contents_pvar (contents_pvar : contents_pvar) : Json.t =
+    match contents_pvar with
     | `MarkedString s -> MarkedString.yojson_of_t s
     | `List s -> Json.To.list MarkedString.yojson_of_t s
     | `MarkupContent s -> MarkupContent.yojson_of_t s
 
   type t =
-    { contents : contents
+    { contents : contents_pvar
     ; range : Range.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -24577,7 +24588,7 @@ module Hover = struct
            | "contents" -> (
              match Ppx_yojson_conv_lib.( ! ) contents_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = contents_of_yojson _field_yojson in
+               let fvalue = contents_pvar_of_yojson _field_yojson in
                contents_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -24649,7 +24660,7 @@ module Hover = struct
            bnd :: bnds
        in
        let bnds =
-         let arg = yojson_of_contents v_contents in
+         let arg = yojson_of_contents_pvar v_contents in
          ("contents", arg) :: bnds
        in
        `Assoc bnds
@@ -24659,7 +24670,8 @@ module Hover = struct
 
   [@@@end]
 
-  let create ~(contents : contents) ?(range : Range.t option) (() : unit) : t =
+  let create ~(contents : contents_pvar) ?(range : Range.t option) (() : unit) :
+      t =
     { contents; range }
 end
 
@@ -25768,27 +25780,28 @@ module InitializeParams = struct
 end
 
 module WorkspaceFoldersServerCapabilities = struct
-  type changeNotifications =
+  type changeNotifications_pvar =
     [ `String of string
     | `Bool of bool
     ]
 
-  let changeNotifications_of_yojson (json : Json.t) : changeNotifications =
+  let changeNotifications_pvar_of_yojson (json : Json.t) :
+      changeNotifications_pvar =
     match json with
     | `String j -> `String j
     | `Bool j -> `Bool j
-    | _ -> Json.error "changeNotifications" json
+    | _ -> Json.error "changeNotifications_pvar" json
 
-  let yojson_of_changeNotifications (changeNotifications : changeNotifications)
-      : Json.t =
-    match changeNotifications with
+  let yojson_of_changeNotifications_pvar
+      (changeNotifications_pvar : changeNotifications_pvar) : Json.t =
+    match changeNotifications_pvar with
     | `String j -> `String j
     | `Bool j -> `Bool j
 
   type t =
     { supported : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; changeNotifications : changeNotifications Json.Nullable_option.t
+    ; changeNotifications : changeNotifications_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -25819,8 +25832,8 @@ module WorkspaceFoldersServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) changeNotifications_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson changeNotifications_of_yojson
-                   _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   changeNotifications_pvar_of_yojson _field_yojson
                in
                changeNotifications_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -25873,7 +25886,8 @@ module WorkspaceFoldersServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_changeNotifications)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_changeNotifications_pvar)
                v_changeNotifications
            in
            let bnd = ("changeNotifications", arg) in
@@ -25897,7 +25911,7 @@ module WorkspaceFoldersServerCapabilities = struct
   [@@@end]
 
   let create ?(supported : bool option)
-      ?(changeNotifications : changeNotifications option) (() : unit) : t =
+      ?(changeNotifications : changeNotifications_pvar option) (() : unit) : t =
     { supported; changeNotifications }
 end
 
@@ -26374,21 +26388,21 @@ module SemanticTokensOptions = struct
 
   let create_full ?(delta : bool option) (() : unit) : full = { delta }
 
-  type full =
+  type full_pvar =
     [ `Bool of bool
     | `Full of full
     ]
 
-  let full_of_yojson (json : Json.t) : full =
+  let full_pvar_of_yojson (json : Json.t) : full_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "full"
+      Json.Of.untagged_union "full_pvar"
         [ (fun json -> `Full (full_of_yojson json)) ]
         json
 
-  let yojson_of_full (full : full) : Json.t =
-    match full with
+  let yojson_of_full_pvar (full_pvar : full_pvar) : Json.t =
+    match full_pvar with
     | `Bool j -> `Bool j
     | `Full s -> yojson_of_full s
 
@@ -26398,7 +26412,7 @@ module SemanticTokensOptions = struct
     ; legend : SemanticTokensLegend.t
     ; range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; full : full Json.Nullable_option.t
+    ; full : full_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -26447,7 +26461,8 @@ module SemanticTokensOptions = struct
              match Ppx_yojson_conv_lib.( ! ) full_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson full_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson full_pvar_of_yojson
+                   _field_yojson
                in
                full_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -26520,7 +26535,9 @@ module SemanticTokensOptions = struct
          if None = v_full then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_full) v_full in
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_full_pvar) v_full
+           in
            let bnd = ("full", arg) in
            bnd :: bnds
        in
@@ -26558,26 +26575,106 @@ module SemanticTokensOptions = struct
 
   let create ?(workDoneProgress : bool option)
       ~(legend : SemanticTokensLegend.t) ?(range : bool option)
-      ?(full : full option) (() : unit) : t =
+      ?(full : full_pvar option) (() : unit) : t =
     { workDoneProgress; legend; range; full }
 end
 
 module SemanticTokensRegistrationOptions = struct
   type full =
+    { delta : bool Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : full) -> ()
+
+  let full_of_yojson =
+    (let _tp_loc = "lsp/src/types.ml.SemanticTokensRegistrationOptions.full" in
+     function
+     | `Assoc field_yojsons as yojson -> (
+       let delta_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "delta" -> (
+             match Ppx_yojson_conv_lib.( ! ) delta_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
+               in
+               delta_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
+         | [] ->
+           let delta_value = Ppx_yojson_conv_lib.( ! ) delta_field in
+           { delta =
+               (match delta_value with
+               | Ppx_yojson_conv_lib.Option.None -> None
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> full)
+
+  let _ = full_of_yojson
+
+  let yojson_of_full =
+    (function
+     | { delta = v_delta } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         if None = v_delta then
+           bnds
+         else
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_bool) v_delta
+           in
+           let bnd = ("delta", arg) in
+           bnd :: bnds
+       in
+       `Assoc bnds
+      : full -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_full
+
+  [@@@end]
+
+  let create_full ?(delta : bool option) (() : unit) : full = { delta }
+
+  type full_pvar =
     [ `Bool of bool
     | `Full of full
     ]
 
-  let full_of_yojson (json : Json.t) : full =
+  let full_pvar_of_yojson (json : Json.t) : full_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "full"
+      Json.Of.untagged_union "full_pvar"
         [ (fun json -> `Full (full_of_yojson json)) ]
         json
 
-  let yojson_of_full (full : full) : Json.t =
-    match full with
+  let yojson_of_full_pvar (full_pvar : full_pvar) : Json.t =
+    match full_pvar with
     | `Bool j -> `Bool j
     | `Full s -> yojson_of_full s
 
@@ -26589,7 +26686,7 @@ module SemanticTokensRegistrationOptions = struct
     ; legend : SemanticTokensLegend.t
     ; range : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; full : full Json.Nullable_option.t
+    ; full : full_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -26652,7 +26749,8 @@ module SemanticTokensRegistrationOptions = struct
              match Ppx_yojson_conv_lib.( ! ) full_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson full_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson full_pvar_of_yojson
+                   _field_yojson
                in
                full_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -26756,7 +26854,9 @@ module SemanticTokensRegistrationOptions = struct
          if None = v_full then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_full) v_full in
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_full_pvar) v_full
+           in
            let bnd = ("full", arg) in
            bnd :: bnds
        in
@@ -26805,7 +26905,7 @@ module SemanticTokensRegistrationOptions = struct
 
   let create ?(documentSelector : DocumentSelector.t option)
       ?(workDoneProgress : bool option) ~(legend : SemanticTokensLegend.t)
-      ?(range : bool option) ?(full : full option) ?(id : string option)
+      ?(range : bool option) ?(full : full_pvar option) ?(id : string option)
       (() : unit) : t =
     { documentSelector; workDoneProgress; legend; range; full; id }
 end
@@ -27944,21 +28044,21 @@ module SaveOptions = struct
 end
 
 module TextDocumentSyncOptions = struct
-  type save =
+  type save_pvar =
     [ `Bool of bool
     | `SaveOptions of SaveOptions.t
     ]
 
-  let save_of_yojson (json : Json.t) : save =
+  let save_pvar_of_yojson (json : Json.t) : save_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "save"
+      Json.Of.untagged_union "save_pvar"
         [ (fun json -> `SaveOptions (SaveOptions.t_of_yojson json)) ]
         json
 
-  let yojson_of_save (save : save) : Json.t =
-    match save with
+  let yojson_of_save_pvar (save_pvar : save_pvar) : Json.t =
+    match save_pvar with
     | `Bool j -> `Bool j
     | `SaveOptions s -> SaveOptions.yojson_of_t s
 
@@ -27971,7 +28071,7 @@ module TextDocumentSyncOptions = struct
           [@default None] [@yojson_drop_default ( = )]
     ; willSaveWaitUntil : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; save : save Json.Nullable_option.t
+    ; save : save_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -28033,7 +28133,8 @@ module TextDocumentSyncOptions = struct
              match Ppx_yojson_conv_lib.( ! ) save_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson save_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson save_pvar_of_yojson
+                   _field_yojson
                in
                save_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -28107,7 +28208,9 @@ module TextDocumentSyncOptions = struct
          if None = v_save then
            bnds
          else
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_save) v_save in
+           let arg =
+             (Json.Nullable_option.yojson_of_t yojson_of_save_pvar) v_save
+           in
            let bnd = ("save", arg) in
            bnd :: bnds
        in
@@ -28162,7 +28265,8 @@ module TextDocumentSyncOptions = struct
 
   let create ?(openClose : bool option)
       ?(change : TextDocumentSyncKind.t option) ?(willSave : bool option)
-      ?(willSaveWaitUntil : bool option) ?(save : save option) (() : unit) : t =
+      ?(willSaveWaitUntil : bool option) ?(save : save_pvar option) (() : unit)
+      : t =
     { openClose; change; willSave; willSaveWaitUntil; save }
 end
 
@@ -28541,13 +28645,13 @@ module ServerCapabilities = struct
       ?(fileOperations : fileOperations option) (() : unit) : workspace =
     { workspaceFolders; fileOperations }
 
-  type textDocumentSync =
+  type textDocumentSync_pvar =
     [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
     | `TextDocumentSyncKind of TextDocumentSyncKind.t
     ]
 
-  let textDocumentSync_of_yojson (json : Json.t) : textDocumentSync =
-    Json.Of.untagged_union "textDocumentSync"
+  let textDocumentSync_pvar_of_yojson (json : Json.t) : textDocumentSync_pvar =
+    Json.Of.untagged_union "textDocumentSync_pvar"
       [ (fun json ->
           `TextDocumentSyncOptions (TextDocumentSyncOptions.t_of_yojson json))
       ; (fun json ->
@@ -28555,41 +28659,43 @@ module ServerCapabilities = struct
       ]
       json
 
-  let yojson_of_textDocumentSync (textDocumentSync : textDocumentSync) : Json.t
-      =
-    match textDocumentSync with
+  let yojson_of_textDocumentSync_pvar
+      (textDocumentSync_pvar : textDocumentSync_pvar) : Json.t =
+    match textDocumentSync_pvar with
     | `TextDocumentSyncOptions s -> TextDocumentSyncOptions.yojson_of_t s
     | `TextDocumentSyncKind s -> TextDocumentSyncKind.yojson_of_t s
 
-  type hoverProvider =
+  type hoverProvider_pvar =
     [ `Bool of bool
     | `HoverOptions of HoverOptions.t
     ]
 
-  let hoverProvider_of_yojson (json : Json.t) : hoverProvider =
+  let hoverProvider_pvar_of_yojson (json : Json.t) : hoverProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "hoverProvider"
+      Json.Of.untagged_union "hoverProvider_pvar"
         [ (fun json -> `HoverOptions (HoverOptions.t_of_yojson json)) ]
         json
 
-  let yojson_of_hoverProvider (hoverProvider : hoverProvider) : Json.t =
-    match hoverProvider with
+  let yojson_of_hoverProvider_pvar (hoverProvider_pvar : hoverProvider_pvar) :
+      Json.t =
+    match hoverProvider_pvar with
     | `Bool j -> `Bool j
     | `HoverOptions s -> HoverOptions.yojson_of_t s
 
-  type declarationProvider =
+  type declarationProvider_pvar =
     [ `Bool of bool
     | `DeclarationOptions of DeclarationOptions.t
     | `DeclarationRegistrationOptions of DeclarationRegistrationOptions.t
     ]
 
-  let declarationProvider_of_yojson (json : Json.t) : declarationProvider =
+  let declarationProvider_pvar_of_yojson (json : Json.t) :
+      declarationProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "declarationProvider"
+      Json.Of.untagged_union "declarationProvider_pvar"
         [ (fun json ->
             `DeclarationOptions (DeclarationOptions.t_of_yojson json))
         ; (fun json ->
@@ -28598,46 +28704,47 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_declarationProvider (declarationProvider : declarationProvider)
-      : Json.t =
-    match declarationProvider with
+  let yojson_of_declarationProvider_pvar
+      (declarationProvider_pvar : declarationProvider_pvar) : Json.t =
+    match declarationProvider_pvar with
     | `Bool j -> `Bool j
     | `DeclarationOptions s -> DeclarationOptions.yojson_of_t s
     | `DeclarationRegistrationOptions s ->
       DeclarationRegistrationOptions.yojson_of_t s
 
-  type definitionProvider =
+  type definitionProvider_pvar =
     [ `Bool of bool
     | `DefinitionOptions of DefinitionOptions.t
     ]
 
-  let definitionProvider_of_yojson (json : Json.t) : definitionProvider =
+  let definitionProvider_pvar_of_yojson (json : Json.t) :
+      definitionProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "definitionProvider"
+      Json.Of.untagged_union "definitionProvider_pvar"
         [ (fun json -> `DefinitionOptions (DefinitionOptions.t_of_yojson json))
         ]
         json
 
-  let yojson_of_definitionProvider (definitionProvider : definitionProvider) :
-      Json.t =
-    match definitionProvider with
+  let yojson_of_definitionProvider_pvar
+      (definitionProvider_pvar : definitionProvider_pvar) : Json.t =
+    match definitionProvider_pvar with
     | `Bool j -> `Bool j
     | `DefinitionOptions s -> DefinitionOptions.yojson_of_t s
 
-  type typeDefinitionProvider =
+  type typeDefinitionProvider_pvar =
     [ `Bool of bool
     | `TypeDefinitionOptions of TypeDefinitionOptions.t
     | `TypeDefinitionRegistrationOptions of TypeDefinitionRegistrationOptions.t
     ]
 
-  let typeDefinitionProvider_of_yojson (json : Json.t) : typeDefinitionProvider
-      =
+  let typeDefinitionProvider_pvar_of_yojson (json : Json.t) :
+      typeDefinitionProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "typeDefinitionProvider"
+      Json.Of.untagged_union "typeDefinitionProvider_pvar"
         [ (fun json ->
             `TypeDefinitionOptions (TypeDefinitionOptions.t_of_yojson json))
         ; (fun json ->
@@ -28646,26 +28753,26 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_typeDefinitionProvider
-      (typeDefinitionProvider : typeDefinitionProvider) : Json.t =
-    match typeDefinitionProvider with
+  let yojson_of_typeDefinitionProvider_pvar
+      (typeDefinitionProvider_pvar : typeDefinitionProvider_pvar) : Json.t =
+    match typeDefinitionProvider_pvar with
     | `Bool j -> `Bool j
     | `TypeDefinitionOptions s -> TypeDefinitionOptions.yojson_of_t s
     | `TypeDefinitionRegistrationOptions s ->
       TypeDefinitionRegistrationOptions.yojson_of_t s
 
-  type implementationProvider =
+  type implementationProvider_pvar =
     [ `Bool of bool
     | `ImplementationOptions of ImplementationOptions.t
     | `ImplementationRegistrationOptions of ImplementationRegistrationOptions.t
     ]
 
-  let implementationProvider_of_yojson (json : Json.t) : implementationProvider
-      =
+  let implementationProvider_pvar_of_yojson (json : Json.t) :
+      implementationProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "implementationProvider"
+      Json.Of.untagged_union "implementationProvider_pvar"
         [ (fun json ->
             `ImplementationOptions (ImplementationOptions.t_of_yojson json))
         ; (fun json ->
@@ -28674,109 +28781,112 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_implementationProvider
-      (implementationProvider : implementationProvider) : Json.t =
-    match implementationProvider with
+  let yojson_of_implementationProvider_pvar
+      (implementationProvider_pvar : implementationProvider_pvar) : Json.t =
+    match implementationProvider_pvar with
     | `Bool j -> `Bool j
     | `ImplementationOptions s -> ImplementationOptions.yojson_of_t s
     | `ImplementationRegistrationOptions s ->
       ImplementationRegistrationOptions.yojson_of_t s
 
-  type referencesProvider =
+  type referencesProvider_pvar =
     [ `Bool of bool
     | `ReferenceOptions of ReferenceOptions.t
     ]
 
-  let referencesProvider_of_yojson (json : Json.t) : referencesProvider =
+  let referencesProvider_pvar_of_yojson (json : Json.t) :
+      referencesProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "referencesProvider"
+      Json.Of.untagged_union "referencesProvider_pvar"
         [ (fun json -> `ReferenceOptions (ReferenceOptions.t_of_yojson json)) ]
         json
 
-  let yojson_of_referencesProvider (referencesProvider : referencesProvider) :
-      Json.t =
-    match referencesProvider with
+  let yojson_of_referencesProvider_pvar
+      (referencesProvider_pvar : referencesProvider_pvar) : Json.t =
+    match referencesProvider_pvar with
     | `Bool j -> `Bool j
     | `ReferenceOptions s -> ReferenceOptions.yojson_of_t s
 
-  type documentHighlightProvider =
+  type documentHighlightProvider_pvar =
     [ `Bool of bool
     | `DocumentHighlightOptions of DocumentHighlightOptions.t
     ]
 
-  let documentHighlightProvider_of_yojson (json : Json.t) :
-      documentHighlightProvider =
+  let documentHighlightProvider_pvar_of_yojson (json : Json.t) :
+      documentHighlightProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "documentHighlightProvider"
+      Json.Of.untagged_union "documentHighlightProvider_pvar"
         [ (fun json ->
             `DocumentHighlightOptions
               (DocumentHighlightOptions.t_of_yojson json))
         ]
         json
 
-  let yojson_of_documentHighlightProvider
-      (documentHighlightProvider : documentHighlightProvider) : Json.t =
-    match documentHighlightProvider with
+  let yojson_of_documentHighlightProvider_pvar
+      (documentHighlightProvider_pvar : documentHighlightProvider_pvar) : Json.t
+      =
+    match documentHighlightProvider_pvar with
     | `Bool j -> `Bool j
     | `DocumentHighlightOptions s -> DocumentHighlightOptions.yojson_of_t s
 
-  type documentSymbolProvider =
+  type documentSymbolProvider_pvar =
     [ `Bool of bool
     | `DocumentSymbolOptions of DocumentSymbolOptions.t
     ]
 
-  let documentSymbolProvider_of_yojson (json : Json.t) : documentSymbolProvider
-      =
+  let documentSymbolProvider_pvar_of_yojson (json : Json.t) :
+      documentSymbolProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "documentSymbolProvider"
+      Json.Of.untagged_union "documentSymbolProvider_pvar"
         [ (fun json ->
             `DocumentSymbolOptions (DocumentSymbolOptions.t_of_yojson json))
         ]
         json
 
-  let yojson_of_documentSymbolProvider
-      (documentSymbolProvider : documentSymbolProvider) : Json.t =
-    match documentSymbolProvider with
+  let yojson_of_documentSymbolProvider_pvar
+      (documentSymbolProvider_pvar : documentSymbolProvider_pvar) : Json.t =
+    match documentSymbolProvider_pvar with
     | `Bool j -> `Bool j
     | `DocumentSymbolOptions s -> DocumentSymbolOptions.yojson_of_t s
 
-  type codeActionProvider =
+  type codeActionProvider_pvar =
     [ `Bool of bool
     | `CodeActionOptions of CodeActionOptions.t
     ]
 
-  let codeActionProvider_of_yojson (json : Json.t) : codeActionProvider =
+  let codeActionProvider_pvar_of_yojson (json : Json.t) :
+      codeActionProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "codeActionProvider"
+      Json.Of.untagged_union "codeActionProvider_pvar"
         [ (fun json -> `CodeActionOptions (CodeActionOptions.t_of_yojson json))
         ]
         json
 
-  let yojson_of_codeActionProvider (codeActionProvider : codeActionProvider) :
-      Json.t =
-    match codeActionProvider with
+  let yojson_of_codeActionProvider_pvar
+      (codeActionProvider_pvar : codeActionProvider_pvar) : Json.t =
+    match codeActionProvider_pvar with
     | `Bool j -> `Bool j
     | `CodeActionOptions s -> CodeActionOptions.yojson_of_t s
 
-  type colorProvider =
+  type colorProvider_pvar =
     [ `Bool of bool
     | `DocumentColorOptions of DocumentColorOptions.t
     | `DocumentColorRegistrationOptions of DocumentColorRegistrationOptions.t
     ]
 
-  let colorProvider_of_yojson (json : Json.t) : colorProvider =
+  let colorProvider_pvar_of_yojson (json : Json.t) : colorProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "colorProvider"
+      Json.Of.untagged_union "colorProvider_pvar"
         [ (fun json ->
             `DocumentColorOptions (DocumentColorOptions.t_of_yojson json))
         ; (fun json ->
@@ -28785,90 +28895,94 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_colorProvider (colorProvider : colorProvider) : Json.t =
-    match colorProvider with
+  let yojson_of_colorProvider_pvar (colorProvider_pvar : colorProvider_pvar) :
+      Json.t =
+    match colorProvider_pvar with
     | `Bool j -> `Bool j
     | `DocumentColorOptions s -> DocumentColorOptions.yojson_of_t s
     | `DocumentColorRegistrationOptions s ->
       DocumentColorRegistrationOptions.yojson_of_t s
 
-  type documentFormattingProvider =
+  type documentFormattingProvider_pvar =
     [ `Bool of bool
     | `DocumentFormattingOptions of DocumentFormattingOptions.t
     ]
 
-  let documentFormattingProvider_of_yojson (json : Json.t) :
-      documentFormattingProvider =
+  let documentFormattingProvider_pvar_of_yojson (json : Json.t) :
+      documentFormattingProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "documentFormattingProvider"
+      Json.Of.untagged_union "documentFormattingProvider_pvar"
         [ (fun json ->
             `DocumentFormattingOptions
               (DocumentFormattingOptions.t_of_yojson json))
         ]
         json
 
-  let yojson_of_documentFormattingProvider
-      (documentFormattingProvider : documentFormattingProvider) : Json.t =
-    match documentFormattingProvider with
+  let yojson_of_documentFormattingProvider_pvar
+      (documentFormattingProvider_pvar : documentFormattingProvider_pvar) :
+      Json.t =
+    match documentFormattingProvider_pvar with
     | `Bool j -> `Bool j
     | `DocumentFormattingOptions s -> DocumentFormattingOptions.yojson_of_t s
 
-  type documentRangeFormattingProvider =
+  type documentRangeFormattingProvider_pvar =
     [ `Bool of bool
     | `DocumentRangeFormattingOptions of DocumentRangeFormattingOptions.t
     ]
 
-  let documentRangeFormattingProvider_of_yojson (json : Json.t) :
-      documentRangeFormattingProvider =
+  let documentRangeFormattingProvider_pvar_of_yojson (json : Json.t) :
+      documentRangeFormattingProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "documentRangeFormattingProvider"
+      Json.Of.untagged_union "documentRangeFormattingProvider_pvar"
         [ (fun json ->
             `DocumentRangeFormattingOptions
               (DocumentRangeFormattingOptions.t_of_yojson json))
         ]
         json
 
-  let yojson_of_documentRangeFormattingProvider
-      (documentRangeFormattingProvider : documentRangeFormattingProvider) :
-      Json.t =
-    match documentRangeFormattingProvider with
+  let yojson_of_documentRangeFormattingProvider_pvar
+      (documentRangeFormattingProvider_pvar :
+        documentRangeFormattingProvider_pvar) : Json.t =
+    match documentRangeFormattingProvider_pvar with
     | `Bool j -> `Bool j
     | `DocumentRangeFormattingOptions s ->
       DocumentRangeFormattingOptions.yojson_of_t s
 
-  type renameProvider =
+  type renameProvider_pvar =
     [ `Bool of bool
     | `RenameOptions of RenameOptions.t
     ]
 
-  let renameProvider_of_yojson (json : Json.t) : renameProvider =
+  let renameProvider_pvar_of_yojson (json : Json.t) : renameProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "renameProvider"
+      Json.Of.untagged_union "renameProvider_pvar"
         [ (fun json -> `RenameOptions (RenameOptions.t_of_yojson json)) ]
         json
 
-  let yojson_of_renameProvider (renameProvider : renameProvider) : Json.t =
-    match renameProvider with
+  let yojson_of_renameProvider_pvar (renameProvider_pvar : renameProvider_pvar)
+      : Json.t =
+    match renameProvider_pvar with
     | `Bool j -> `Bool j
     | `RenameOptions s -> RenameOptions.yojson_of_t s
 
-  type foldingRangeProvider =
+  type foldingRangeProvider_pvar =
     [ `Bool of bool
     | `FoldingRangeOptions of FoldingRangeOptions.t
     | `FoldingRangeRegistrationOptions of FoldingRangeRegistrationOptions.t
     ]
 
-  let foldingRangeProvider_of_yojson (json : Json.t) : foldingRangeProvider =
+  let foldingRangeProvider_pvar_of_yojson (json : Json.t) :
+      foldingRangeProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "foldingRangeProvider"
+      Json.Of.untagged_union "foldingRangeProvider_pvar"
         [ (fun json ->
             `FoldingRangeOptions (FoldingRangeOptions.t_of_yojson json))
         ; (fun json ->
@@ -28877,26 +28991,26 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_foldingRangeProvider
-      (foldingRangeProvider : foldingRangeProvider) : Json.t =
-    match foldingRangeProvider with
+  let yojson_of_foldingRangeProvider_pvar
+      (foldingRangeProvider_pvar : foldingRangeProvider_pvar) : Json.t =
+    match foldingRangeProvider_pvar with
     | `Bool j -> `Bool j
     | `FoldingRangeOptions s -> FoldingRangeOptions.yojson_of_t s
     | `FoldingRangeRegistrationOptions s ->
       FoldingRangeRegistrationOptions.yojson_of_t s
 
-  type selectionRangeProvider =
+  type selectionRangeProvider_pvar =
     [ `Bool of bool
     | `SelectionRangeOptions of SelectionRangeOptions.t
     | `SelectionRangeRegistrationOptions of SelectionRangeRegistrationOptions.t
     ]
 
-  let selectionRangeProvider_of_yojson (json : Json.t) : selectionRangeProvider
-      =
+  let selectionRangeProvider_pvar_of_yojson (json : Json.t) :
+      selectionRangeProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "selectionRangeProvider"
+      Json.Of.untagged_union "selectionRangeProvider_pvar"
         [ (fun json ->
             `SelectionRangeOptions (SelectionRangeOptions.t_of_yojson json))
         ; (fun json ->
@@ -28905,27 +29019,27 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_selectionRangeProvider
-      (selectionRangeProvider : selectionRangeProvider) : Json.t =
-    match selectionRangeProvider with
+  let yojson_of_selectionRangeProvider_pvar
+      (selectionRangeProvider_pvar : selectionRangeProvider_pvar) : Json.t =
+    match selectionRangeProvider_pvar with
     | `Bool j -> `Bool j
     | `SelectionRangeOptions s -> SelectionRangeOptions.yojson_of_t s
     | `SelectionRangeRegistrationOptions s ->
       SelectionRangeRegistrationOptions.yojson_of_t s
 
-  type linkedEditingRangeProvider =
+  type linkedEditingRangeProvider_pvar =
     [ `Bool of bool
     | `LinkedEditingRangeOptions of LinkedEditingRangeOptions.t
     | `LinkedEditingRangeRegistrationOptions of
       LinkedEditingRangeRegistrationOptions.t
     ]
 
-  let linkedEditingRangeProvider_of_yojson (json : Json.t) :
-      linkedEditingRangeProvider =
+  let linkedEditingRangeProvider_pvar_of_yojson (json : Json.t) :
+      linkedEditingRangeProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "linkedEditingRangeProvider"
+      Json.Of.untagged_union "linkedEditingRangeProvider_pvar"
         [ (fun json ->
             `LinkedEditingRangeOptions
               (LinkedEditingRangeOptions.t_of_yojson json))
@@ -28935,25 +29049,27 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_linkedEditingRangeProvider
-      (linkedEditingRangeProvider : linkedEditingRangeProvider) : Json.t =
-    match linkedEditingRangeProvider with
+  let yojson_of_linkedEditingRangeProvider_pvar
+      (linkedEditingRangeProvider_pvar : linkedEditingRangeProvider_pvar) :
+      Json.t =
+    match linkedEditingRangeProvider_pvar with
     | `Bool j -> `Bool j
     | `LinkedEditingRangeOptions s -> LinkedEditingRangeOptions.yojson_of_t s
     | `LinkedEditingRangeRegistrationOptions s ->
       LinkedEditingRangeRegistrationOptions.yojson_of_t s
 
-  type callHierarchyProvider =
+  type callHierarchyProvider_pvar =
     [ `Bool of bool
     | `CallHierarchyOptions of CallHierarchyOptions.t
     | `CallHierarchyRegistrationOptions of CallHierarchyRegistrationOptions.t
     ]
 
-  let callHierarchyProvider_of_yojson (json : Json.t) : callHierarchyProvider =
+  let callHierarchyProvider_pvar_of_yojson (json : Json.t) :
+      callHierarchyProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "callHierarchyProvider"
+      Json.Of.untagged_union "callHierarchyProvider_pvar"
         [ (fun json ->
             `CallHierarchyOptions (CallHierarchyOptions.t_of_yojson json))
         ; (fun json ->
@@ -28962,22 +29078,22 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_callHierarchyProvider
-      (callHierarchyProvider : callHierarchyProvider) : Json.t =
-    match callHierarchyProvider with
+  let yojson_of_callHierarchyProvider_pvar
+      (callHierarchyProvider_pvar : callHierarchyProvider_pvar) : Json.t =
+    match callHierarchyProvider_pvar with
     | `Bool j -> `Bool j
     | `CallHierarchyOptions s -> CallHierarchyOptions.yojson_of_t s
     | `CallHierarchyRegistrationOptions s ->
       CallHierarchyRegistrationOptions.yojson_of_t s
 
-  type semanticTokensProvider =
+  type semanticTokensProvider_pvar =
     [ `SemanticTokensOptions of SemanticTokensOptions.t
     | `SemanticTokensRegistrationOptions of SemanticTokensRegistrationOptions.t
     ]
 
-  let semanticTokensProvider_of_yojson (json : Json.t) : semanticTokensProvider
-      =
-    Json.Of.untagged_union "semanticTokensProvider"
+  let semanticTokensProvider_pvar_of_yojson (json : Json.t) :
+      semanticTokensProvider_pvar =
+    Json.Of.untagged_union "semanticTokensProvider_pvar"
       [ (fun json ->
           `SemanticTokensOptions (SemanticTokensOptions.t_of_yojson json))
       ; (fun json ->
@@ -28986,24 +29102,24 @@ module ServerCapabilities = struct
       ]
       json
 
-  let yojson_of_semanticTokensProvider
-      (semanticTokensProvider : semanticTokensProvider) : Json.t =
-    match semanticTokensProvider with
+  let yojson_of_semanticTokensProvider_pvar
+      (semanticTokensProvider_pvar : semanticTokensProvider_pvar) : Json.t =
+    match semanticTokensProvider_pvar with
     | `SemanticTokensOptions s -> SemanticTokensOptions.yojson_of_t s
     | `SemanticTokensRegistrationOptions s ->
       SemanticTokensRegistrationOptions.yojson_of_t s
 
-  type monikerProvider =
+  type monikerProvider_pvar =
     [ `Bool of bool
     | `MonikerOptions of MonikerOptions.t
     | `MonikerRegistrationOptions of MonikerRegistrationOptions.t
     ]
 
-  let monikerProvider_of_yojson (json : Json.t) : monikerProvider =
+  let monikerProvider_pvar_of_yojson (json : Json.t) : monikerProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "monikerProvider"
+      Json.Of.untagged_union "monikerProvider_pvar"
         [ (fun json -> `MonikerOptions (MonikerOptions.t_of_yojson json))
         ; (fun json ->
             `MonikerRegistrationOptions
@@ -29011,93 +29127,100 @@ module ServerCapabilities = struct
         ]
         json
 
-  let yojson_of_monikerProvider (monikerProvider : monikerProvider) : Json.t =
-    match monikerProvider with
+  let yojson_of_monikerProvider_pvar
+      (monikerProvider_pvar : monikerProvider_pvar) : Json.t =
+    match monikerProvider_pvar with
     | `Bool j -> `Bool j
     | `MonikerOptions s -> MonikerOptions.yojson_of_t s
     | `MonikerRegistrationOptions s -> MonikerRegistrationOptions.yojson_of_t s
 
-  type workspaceSymbolProvider =
+  type workspaceSymbolProvider_pvar =
     [ `Bool of bool
     | `WorkspaceSymbolOptions of WorkspaceSymbolOptions.t
     ]
 
-  let workspaceSymbolProvider_of_yojson (json : Json.t) :
-      workspaceSymbolProvider =
+  let workspaceSymbolProvider_pvar_of_yojson (json : Json.t) :
+      workspaceSymbolProvider_pvar =
     match json with
     | `Bool j -> `Bool j
     | _ ->
-      Json.Of.untagged_union "workspaceSymbolProvider"
+      Json.Of.untagged_union "workspaceSymbolProvider_pvar"
         [ (fun json ->
             `WorkspaceSymbolOptions (WorkspaceSymbolOptions.t_of_yojson json))
         ]
         json
 
-  let yojson_of_workspaceSymbolProvider
-      (workspaceSymbolProvider : workspaceSymbolProvider) : Json.t =
-    match workspaceSymbolProvider with
+  let yojson_of_workspaceSymbolProvider_pvar
+      (workspaceSymbolProvider_pvar : workspaceSymbolProvider_pvar) : Json.t =
+    match workspaceSymbolProvider_pvar with
     | `Bool j -> `Bool j
     | `WorkspaceSymbolOptions s -> WorkspaceSymbolOptions.yojson_of_t s
 
   type t =
-    { textDocumentSync : textDocumentSync Json.Nullable_option.t
+    { textDocumentSync : textDocumentSync_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; completionProvider : CompletionOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; hoverProvider : hoverProvider Json.Nullable_option.t
+    ; hoverProvider : hoverProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; signatureHelpProvider : SignatureHelpOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; declarationProvider : declarationProvider Json.Nullable_option.t
+    ; declarationProvider : declarationProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; definitionProvider : definitionProvider Json.Nullable_option.t
+    ; definitionProvider : definitionProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; typeDefinitionProvider : typeDefinitionProvider Json.Nullable_option.t
+    ; typeDefinitionProvider :
+        typeDefinitionProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; implementationProvider : implementationProvider Json.Nullable_option.t
+    ; implementationProvider :
+        implementationProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; referencesProvider : referencesProvider Json.Nullable_option.t
+    ; referencesProvider : referencesProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentHighlightProvider :
-        documentHighlightProvider Json.Nullable_option.t
+        documentHighlightProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; documentSymbolProvider : documentSymbolProvider Json.Nullable_option.t
+    ; documentSymbolProvider :
+        documentSymbolProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; codeActionProvider : codeActionProvider Json.Nullable_option.t
+    ; codeActionProvider : codeActionProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; codeLensProvider : CodeLensOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentLinkProvider : DocumentLinkOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; colorProvider : colorProvider Json.Nullable_option.t
+    ; colorProvider : colorProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentFormattingProvider :
-        documentFormattingProvider Json.Nullable_option.t
+        documentFormattingProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentRangeFormattingProvider :
-        documentRangeFormattingProvider Json.Nullable_option.t
+        documentRangeFormattingProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentOnTypeFormattingProvider :
         DocumentOnTypeFormattingOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; renameProvider : renameProvider Json.Nullable_option.t
+    ; renameProvider : renameProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; foldingRangeProvider : foldingRangeProvider Json.Nullable_option.t
+    ; foldingRangeProvider : foldingRangeProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; executeCommandProvider : ExecuteCommandOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; selectionRangeProvider : selectionRangeProvider Json.Nullable_option.t
+    ; selectionRangeProvider :
+        selectionRangeProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; linkedEditingRangeProvider :
-        linkedEditingRangeProvider Json.Nullable_option.t
+        linkedEditingRangeProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; callHierarchyProvider : callHierarchyProvider Json.Nullable_option.t
+    ; callHierarchyProvider : callHierarchyProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; semanticTokensProvider : semanticTokensProvider Json.Nullable_option.t
+    ; semanticTokensProvider :
+        semanticTokensProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; monikerProvider : monikerProvider Json.Nullable_option.t
+    ; monikerProvider : monikerProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; workspaceSymbolProvider : workspaceSymbolProvider Json.Nullable_option.t
+    ; workspaceSymbolProvider :
+        workspaceSymbolProvider_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workspace : workspace Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -29153,8 +29276,8 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) textDocumentSync_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson textDocumentSync_of_yojson
-                   _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   textDocumentSync_pvar_of_yojson _field_yojson
                in
                textDocumentSync_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -29174,7 +29297,7 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) hoverProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson hoverProvider_of_yojson
+                 Json.Nullable_option.t_of_yojson hoverProvider_pvar_of_yojson
                    _field_yojson
                in
                hoverProvider_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29195,8 +29318,8 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) declarationProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson declarationProvider_of_yojson
-                   _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   declarationProvider_pvar_of_yojson _field_yojson
                in
                declarationProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29206,8 +29329,8 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) definitionProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson definitionProvider_of_yojson
-                   _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   definitionProvider_pvar_of_yojson _field_yojson
                in
                definitionProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29218,7 +29341,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   typeDefinitionProvider_of_yojson _field_yojson
+                   typeDefinitionProvider_pvar_of_yojson _field_yojson
                in
                typeDefinitionProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29229,7 +29352,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   implementationProvider_of_yojson _field_yojson
+                   implementationProvider_pvar_of_yojson _field_yojson
                in
                implementationProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29239,8 +29362,8 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) referencesProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson referencesProvider_of_yojson
-                   _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   referencesProvider_pvar_of_yojson _field_yojson
                in
                referencesProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29253,7 +29376,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   documentHighlightProvider_of_yojson _field_yojson
+                   documentHighlightProvider_pvar_of_yojson _field_yojson
                in
                documentHighlightProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29264,7 +29387,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   documentSymbolProvider_of_yojson _field_yojson
+                   documentSymbolProvider_pvar_of_yojson _field_yojson
                in
                documentSymbolProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29274,8 +29397,8 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) codeActionProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson codeActionProvider_of_yojson
-                   _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   codeActionProvider_pvar_of_yojson _field_yojson
                in
                codeActionProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29306,7 +29429,7 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) colorProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson colorProvider_of_yojson
+                 Json.Nullable_option.t_of_yojson colorProvider_pvar_of_yojson
                    _field_yojson
                in
                colorProvider_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29319,7 +29442,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   documentFormattingProvider_of_yojson _field_yojson
+                   documentFormattingProvider_pvar_of_yojson _field_yojson
                in
                documentFormattingProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29332,7 +29455,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   documentRangeFormattingProvider_of_yojson _field_yojson
+                   documentRangeFormattingProvider_pvar_of_yojson _field_yojson
                in
                documentRangeFormattingProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29355,7 +29478,7 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) renameProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson renameProvider_of_yojson
+                 Json.Nullable_option.t_of_yojson renameProvider_pvar_of_yojson
                    _field_yojson
                in
                renameProvider_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29365,8 +29488,8 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) foldingRangeProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson foldingRangeProvider_of_yojson
-                   _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   foldingRangeProvider_pvar_of_yojson _field_yojson
                in
                foldingRangeProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29388,7 +29511,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   selectionRangeProvider_of_yojson _field_yojson
+                   selectionRangeProvider_pvar_of_yojson _field_yojson
                in
                selectionRangeProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29401,7 +29524,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   linkedEditingRangeProvider_of_yojson _field_yojson
+                   linkedEditingRangeProvider_pvar_of_yojson _field_yojson
                in
                linkedEditingRangeProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29412,7 +29535,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   callHierarchyProvider_of_yojson _field_yojson
+                   callHierarchyProvider_pvar_of_yojson _field_yojson
                in
                callHierarchyProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29423,7 +29546,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   semanticTokensProvider_of_yojson _field_yojson
+                   semanticTokensProvider_pvar_of_yojson _field_yojson
                in
                semanticTokensProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29433,7 +29556,7 @@ module ServerCapabilities = struct
              match Ppx_yojson_conv_lib.( ! ) monikerProvider_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson monikerProvider_of_yojson
+                 Json.Nullable_option.t_of_yojson monikerProvider_pvar_of_yojson
                    _field_yojson
                in
                monikerProvider_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29444,7 +29567,7 @@ module ServerCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   workspaceSymbolProvider_of_yojson _field_yojson
+                   workspaceSymbolProvider_pvar_of_yojson _field_yojson
                in
                workspaceSymbolProvider_field :=
                  Ppx_yojson_conv_lib.Option.Some fvalue
@@ -29720,7 +29843,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_workspaceSymbolProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_workspaceSymbolProvider_pvar)
                v_workspaceSymbolProvider
            in
            let bnd = ("workspaceSymbolProvider", arg) in
@@ -29731,7 +29855,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_monikerProvider)
+             (Json.Nullable_option.yojson_of_t yojson_of_monikerProvider_pvar)
                v_monikerProvider
            in
            let bnd = ("monikerProvider", arg) in
@@ -29742,7 +29866,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_semanticTokensProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_semanticTokensProvider_pvar)
                v_semanticTokensProvider
            in
            let bnd = ("semanticTokensProvider", arg) in
@@ -29753,7 +29878,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_callHierarchyProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_callHierarchyProvider_pvar)
                v_callHierarchyProvider
            in
            let bnd = ("callHierarchyProvider", arg) in
@@ -29765,7 +29891,7 @@ module ServerCapabilities = struct
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
-                yojson_of_linkedEditingRangeProvider)
+                yojson_of_linkedEditingRangeProvider_pvar)
                v_linkedEditingRangeProvider
            in
            let bnd = ("linkedEditingRangeProvider", arg) in
@@ -29776,7 +29902,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_selectionRangeProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_selectionRangeProvider_pvar)
                v_selectionRangeProvider
            in
            let bnd = ("selectionRangeProvider", arg) in
@@ -29798,7 +29925,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_foldingRangeProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_foldingRangeProvider_pvar)
                v_foldingRangeProvider
            in
            let bnd = ("foldingRangeProvider", arg) in
@@ -29809,7 +29937,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_renameProvider)
+             (Json.Nullable_option.yojson_of_t yojson_of_renameProvider_pvar)
                v_renameProvider
            in
            let bnd = ("renameProvider", arg) in
@@ -29833,7 +29961,7 @@ module ServerCapabilities = struct
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
-                yojson_of_documentRangeFormattingProvider)
+                yojson_of_documentRangeFormattingProvider_pvar)
                v_documentRangeFormattingProvider
            in
            let bnd = ("documentRangeFormattingProvider", arg) in
@@ -29845,7 +29973,7 @@ module ServerCapabilities = struct
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
-                yojson_of_documentFormattingProvider)
+                yojson_of_documentFormattingProvider_pvar)
                v_documentFormattingProvider
            in
            let bnd = ("documentFormattingProvider", arg) in
@@ -29856,7 +29984,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_colorProvider)
+             (Json.Nullable_option.yojson_of_t yojson_of_colorProvider_pvar)
                v_colorProvider
            in
            let bnd = ("colorProvider", arg) in
@@ -29889,7 +30017,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_codeActionProvider)
+             (Json.Nullable_option.yojson_of_t yojson_of_codeActionProvider_pvar)
                v_codeActionProvider
            in
            let bnd = ("codeActionProvider", arg) in
@@ -29900,7 +30028,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_documentSymbolProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_documentSymbolProvider_pvar)
                v_documentSymbolProvider
            in
            let bnd = ("documentSymbolProvider", arg) in
@@ -29912,7 +30041,7 @@ module ServerCapabilities = struct
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
-                yojson_of_documentHighlightProvider)
+                yojson_of_documentHighlightProvider_pvar)
                v_documentHighlightProvider
            in
            let bnd = ("documentHighlightProvider", arg) in
@@ -29923,7 +30052,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_referencesProvider)
+             (Json.Nullable_option.yojson_of_t yojson_of_referencesProvider_pvar)
                v_referencesProvider
            in
            let bnd = ("referencesProvider", arg) in
@@ -29934,7 +30063,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_implementationProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_implementationProvider_pvar)
                v_implementationProvider
            in
            let bnd = ("implementationProvider", arg) in
@@ -29945,7 +30075,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_typeDefinitionProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_typeDefinitionProvider_pvar)
                v_typeDefinitionProvider
            in
            let bnd = ("typeDefinitionProvider", arg) in
@@ -29956,7 +30087,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_definitionProvider)
+             (Json.Nullable_option.yojson_of_t yojson_of_definitionProvider_pvar)
                v_definitionProvider
            in
            let bnd = ("definitionProvider", arg) in
@@ -29967,7 +30098,8 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_declarationProvider)
+             (Json.Nullable_option.yojson_of_t
+                yojson_of_declarationProvider_pvar)
                v_declarationProvider
            in
            let bnd = ("declarationProvider", arg) in
@@ -29989,7 +30121,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_hoverProvider)
+             (Json.Nullable_option.yojson_of_t yojson_of_hoverProvider_pvar)
                v_hoverProvider
            in
            let bnd = ("hoverProvider", arg) in
@@ -30011,7 +30143,7 @@ module ServerCapabilities = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_textDocumentSync)
+             (Json.Nullable_option.yojson_of_t yojson_of_textDocumentSync_pvar)
                v_textDocumentSync
            in
            let bnd = ("textDocumentSync", arg) in
@@ -30024,35 +30156,35 @@ module ServerCapabilities = struct
 
   [@@@end]
 
-  let create ?(textDocumentSync : textDocumentSync option)
+  let create ?(textDocumentSync : textDocumentSync_pvar option)
       ?(completionProvider : CompletionOptions.t option)
-      ?(hoverProvider : hoverProvider option)
+      ?(hoverProvider : hoverProvider_pvar option)
       ?(signatureHelpProvider : SignatureHelpOptions.t option)
-      ?(declarationProvider : declarationProvider option)
-      ?(definitionProvider : definitionProvider option)
-      ?(typeDefinitionProvider : typeDefinitionProvider option)
-      ?(implementationProvider : implementationProvider option)
-      ?(referencesProvider : referencesProvider option)
-      ?(documentHighlightProvider : documentHighlightProvider option)
-      ?(documentSymbolProvider : documentSymbolProvider option)
-      ?(codeActionProvider : codeActionProvider option)
+      ?(declarationProvider : declarationProvider_pvar option)
+      ?(definitionProvider : definitionProvider_pvar option)
+      ?(typeDefinitionProvider : typeDefinitionProvider_pvar option)
+      ?(implementationProvider : implementationProvider_pvar option)
+      ?(referencesProvider : referencesProvider_pvar option)
+      ?(documentHighlightProvider : documentHighlightProvider_pvar option)
+      ?(documentSymbolProvider : documentSymbolProvider_pvar option)
+      ?(codeActionProvider : codeActionProvider_pvar option)
       ?(codeLensProvider : CodeLensOptions.t option)
       ?(documentLinkProvider : DocumentLinkOptions.t option)
-      ?(colorProvider : colorProvider option)
-      ?(documentFormattingProvider : documentFormattingProvider option)
+      ?(colorProvider : colorProvider_pvar option)
+      ?(documentFormattingProvider : documentFormattingProvider_pvar option)
       ?(documentRangeFormattingProvider :
-         documentRangeFormattingProvider option)
+         documentRangeFormattingProvider_pvar option)
       ?(documentOnTypeFormattingProvider :
          DocumentOnTypeFormattingOptions.t option)
-      ?(renameProvider : renameProvider option)
-      ?(foldingRangeProvider : foldingRangeProvider option)
+      ?(renameProvider : renameProvider_pvar option)
+      ?(foldingRangeProvider : foldingRangeProvider_pvar option)
       ?(executeCommandProvider : ExecuteCommandOptions.t option)
-      ?(selectionRangeProvider : selectionRangeProvider option)
-      ?(linkedEditingRangeProvider : linkedEditingRangeProvider option)
-      ?(callHierarchyProvider : callHierarchyProvider option)
-      ?(semanticTokensProvider : semanticTokensProvider option)
-      ?(monikerProvider : monikerProvider option)
-      ?(workspaceSymbolProvider : workspaceSymbolProvider option)
+      ?(selectionRangeProvider : selectionRangeProvider_pvar option)
+      ?(linkedEditingRangeProvider : linkedEditingRangeProvider_pvar option)
+      ?(callHierarchyProvider : callHierarchyProvider_pvar option)
+      ?(semanticTokensProvider : semanticTokensProvider_pvar option)
+      ?(monikerProvider : monikerProvider_pvar option)
+      ?(workspaceSymbolProvider : workspaceSymbolProvider_pvar option)
       ?(workspace : workspace option) ?(experimental : Json.t option)
       (() : unit) : t =
     { textDocumentSync
@@ -31223,45 +31355,46 @@ module MonikerParams = struct
 end
 
 module ParameterInformation = struct
-  type label =
+  type label_pvar =
     [ `String of string
     | `Offset of int * int
     ]
 
-  let label_of_yojson (json : Json.t) : label =
+  let label_pvar_of_yojson (json : Json.t) : label_pvar =
     match json with
     | `String j -> `String j
     | _ ->
-      Json.Of.untagged_union "label"
+      Json.Of.untagged_union "label_pvar"
         [ (fun json -> `Offset (Json.Of.int_pair json)) ]
         json
 
-  let yojson_of_label (label : label) : Json.t =
-    match label with
+  let yojson_of_label_pvar (label_pvar : label_pvar) : Json.t =
+    match label_pvar with
     | `String j -> `String j
     | `Offset s -> Json.To.int_pair s
 
-  type documentation =
+  type documentation_pvar =
     [ `String of string
     | `MarkupContent of MarkupContent.t
     ]
 
-  let documentation_of_yojson (json : Json.t) : documentation =
+  let documentation_pvar_of_yojson (json : Json.t) : documentation_pvar =
     match json with
     | `String j -> `String j
     | _ ->
-      Json.Of.untagged_union "documentation"
+      Json.Of.untagged_union "documentation_pvar"
         [ (fun json -> `MarkupContent (MarkupContent.t_of_yojson json)) ]
         json
 
-  let yojson_of_documentation (documentation : documentation) : Json.t =
-    match documentation with
+  let yojson_of_documentation_pvar (documentation_pvar : documentation_pvar) :
+      Json.t =
+    match documentation_pvar with
     | `String j -> `String j
     | `MarkupContent s -> MarkupContent.yojson_of_t s
 
   type t =
-    { label : label
-    ; documentation : documentation Json.Nullable_option.t
+    { label : label_pvar
+    ; documentation : documentation_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -31282,7 +31415,7 @@ module ParameterInformation = struct
            | "label" -> (
              match Ppx_yojson_conv_lib.( ! ) label_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = label_of_yojson _field_yojson in
+               let fvalue = label_pvar_of_yojson _field_yojson in
                label_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -31290,7 +31423,7 @@ module ParameterInformation = struct
              match Ppx_yojson_conv_lib.( ! ) documentation_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson documentation_of_yojson
+                 Json.Nullable_option.t_of_yojson documentation_pvar_of_yojson
                    _field_yojson
                in
                documentation_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -31348,14 +31481,14 @@ module ParameterInformation = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_documentation)
+             (Json.Nullable_option.yojson_of_t yojson_of_documentation_pvar)
                v_documentation
            in
            let bnd = ("documentation", arg) in
            bnd :: bnds
        in
        let bnds =
-         let arg = yojson_of_label v_label in
+         let arg = yojson_of_label_pvar v_label in
          ("label", arg) :: bnds
        in
        `Assoc bnds
@@ -31365,7 +31498,7 @@ module ParameterInformation = struct
 
   [@@@end]
 
-  let create ~(label : label) ?(documentation : documentation option)
+  let create ~(label : label_pvar) ?(documentation : documentation_pvar option)
       (() : unit) : t =
     { label; documentation }
 end
@@ -34243,27 +34376,28 @@ module ShowMessageRequestParams = struct
 end
 
 module SignatureInformation = struct
-  type documentation =
+  type documentation_pvar =
     [ `String of string
     | `MarkupContent of MarkupContent.t
     ]
 
-  let documentation_of_yojson (json : Json.t) : documentation =
+  let documentation_pvar_of_yojson (json : Json.t) : documentation_pvar =
     match json with
     | `String j -> `String j
     | _ ->
-      Json.Of.untagged_union "documentation"
+      Json.Of.untagged_union "documentation_pvar"
         [ (fun json -> `MarkupContent (MarkupContent.t_of_yojson json)) ]
         json
 
-  let yojson_of_documentation (documentation : documentation) : Json.t =
-    match documentation with
+  let yojson_of_documentation_pvar (documentation_pvar : documentation_pvar) :
+      Json.t =
+    match documentation_pvar with
     | `String j -> `String j
     | `MarkupContent s -> MarkupContent.yojson_of_t s
 
   type t =
     { label : string
-    ; documentation : documentation Json.Nullable_option.t
+    ; documentation : documentation_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; parameters : ParameterInformation.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -34298,7 +34432,7 @@ module SignatureInformation = struct
              match Ppx_yojson_conv_lib.( ! ) documentation_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson documentation_of_yojson
+                 Json.Nullable_option.t_of_yojson documentation_pvar_of_yojson
                    _field_yojson
                in
                documentation_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -34415,7 +34549,7 @@ module SignatureInformation = struct
            bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_documentation)
+             (Json.Nullable_option.yojson_of_t yojson_of_documentation_pvar)
                v_documentation
            in
            let bnd = ("documentation", arg) in
@@ -34432,7 +34566,7 @@ module SignatureInformation = struct
 
   [@@@end]
 
-  let create ~(label : string) ?(documentation : documentation option)
+  let create ~(label : string) ?(documentation : documentation_pvar option)
       ?(parameters : ParameterInformation.t list option)
       ?(activeParameter : int option) (() : unit) : t =
     { label; documentation; parameters; activeParameter }

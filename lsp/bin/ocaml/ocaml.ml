@@ -202,6 +202,7 @@ module Module : sig
   (** Use Json.Nullable_option or Json.Assoc.t where appropriate *)
   val use_json_conv_types : t -> t
 
+  (** Rename fields that are also OCaml keywords *)
   val rename_invalid_fields : Ml.Kind.t -> Type.decl -> Type.decl
 
   val pp : t -> unit Pp.t Kind.Map.t
@@ -471,11 +472,15 @@ module Mapper : sig
     ; literal_value : string
     }
 
+  (** Map a TS record into an OCaml record. Literal valued fields such as kind:
+      'foo' are extracted into a separate list *)
   val record_ :
        Entities.t
     -> Resolved.field list Named.t
     -> Ml.Type.decl Named.t * literal_field list
 
+  (** Extract all untagged unions in field position. These will be turned into
+      polymorphic variants using a naming scheme for the tags. *)
   val extract_poly_vars :
     Ml.Type.decl -> Ml.Type.decl * Ml.Type.constr list Named.t list
 end = struct
@@ -657,6 +662,9 @@ end = struct
           match env with
           | None -> super#poly_variant env constrs
           | Some name ->
+            (* This hack is needed to avoid collision with user visible types
+               that we might introduce *)
+            let name = name ^ "_pvar" in
             let replacement = Ml.Type.name name in
             let constrs, m = self#fold_left_map ~f:(self#constr env) constrs in
             (replacement, self#plus m [ { Named.name; data = constrs } ])
