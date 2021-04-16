@@ -100,14 +100,19 @@ struct
   let log t = Log.log ~section:t.name
 
   let response_error_of_exns id exns =
-    let data =
-      Json.yojson_of_list
-        (fun e -> e |> Exn_with_backtrace.to_dyn |> Json.of_dyn)
-        exns
-    in
     let error =
-      Response.Error.make ~code:InternalError ~data
-        ~message:"uncaught exception" ()
+      match exns with
+      | [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E e; backtrace = _ }
+        ] ->
+        e
+      | exns ->
+        let data =
+          Json.yojson_of_list
+            (fun e -> e |> Exn_with_backtrace.to_dyn |> Json.of_dyn)
+            exns
+        in
+        Response.Error.make ~code:InternalError ~data
+          ~message:"uncaught exception" ()
     in
     Response.error id error
 
