@@ -7,7 +7,7 @@ let client_capabilities (state : State.t) =
 
 let make_error = Jsonrpc.Response.Error.make
 
-let not_supported =
+let not_supported () =
   Jsonrpc.Response.Error.raise
     (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
@@ -596,7 +596,6 @@ let ocaml_on_request :
             k resp)
       , state )
   in
-  let not_supported = Fiber.return (Reply.now not_supported, state) in
   match req with
   | Client_request.Initialize ip ->
     let res, state = on_initialize rpc ip in
@@ -668,7 +667,7 @@ let ocaml_on_request :
   | Client_request.TextDocumentRename req -> later rename req
   | Client_request.TextDocumentFoldingRange req -> later folding_range req
   | Client_request.SignatureHelp req -> later signature_help req
-  | Client_request.ExecuteCommand _ -> not_supported
+  | Client_request.ExecuteCommand _ -> not_supported ()
   | Client_request.TextDocumentLinkResolve l -> now l
   | Client_request.TextDocumentLink _ -> now None
   | Client_request.WillSaveWaitUntilTextDocument _ -> now None
@@ -700,11 +699,11 @@ let ocaml_on_request :
       ()
   | Client_request.TextDocumentOnTypeFormatting _ -> now None
   | Client_request.SelectionRange req -> later selection_range req
-  | Client_request.TextDocumentMoniker _ -> not_supported
-  | Client_request.SemanticTokensFull _ -> not_supported
-  | Client_request.SemanticTokensDelta _ -> not_supported
-  | Client_request.SemanticTokensRange _ -> not_supported
-  | Client_request.LinkedEditingRange _ -> not_supported
+  | Client_request.TextDocumentMoniker _ -> not_supported ()
+  | Client_request.SemanticTokensFull _ -> not_supported ()
+  | Client_request.SemanticTokensDelta _ -> not_supported ()
+  | Client_request.SemanticTokensRange _ -> not_supported ()
+  | Client_request.LinkedEditingRange _ -> not_supported ()
   | Client_request.UnknownRequest _ ->
     Jsonrpc.Response.Error.raise
       (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
@@ -748,7 +747,7 @@ let on_request :
         , state ))
   | _ -> (
     match syntax with
-    | Some (Ocamllex | Menhir) -> Fiber.return (Reply.now not_supported, state)
+    | Some (Ocamllex | Menhir) -> not_supported ()
     | _ -> ocaml_on_request server req)
 
 let on_notification server (notification : Client_notification.t) :
