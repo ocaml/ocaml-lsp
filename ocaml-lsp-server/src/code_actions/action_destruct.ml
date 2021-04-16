@@ -14,7 +14,7 @@ let code_action_of_case_analysis uri (loc, newText) =
 let code_action doc (params : CodeActionParams.t) =
   let uri = params.textDocument.uri in
   match Document.kind doc with
-  | Intf -> Fiber.return (Ok None)
+  | Intf -> Fiber.return None
   | Impl -> (
     let command =
       let start = Position.logical params.range.start in
@@ -24,11 +24,11 @@ let code_action doc (params : CodeActionParams.t) =
     let open Fiber.O in
     let+ res = Document.dispatch doc command in
     match res with
-    | Ok res -> Ok (Some (code_action_of_case_analysis uri res))
+    | Ok res -> Some (code_action_of_case_analysis uri res)
     | Error
         ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
         | Merlin_analysis.Destruct.Not_allowed _
         | Merlin_analysis.Destruct.Useless_refine
         | Merlin_analysis.Destruct.Nothing_to_do ) ->
-      Ok None
-    | Error exn -> Error (Jsonrpc.Response.Error.of_exn exn))
+      None
+    | Error exn -> raise exn)

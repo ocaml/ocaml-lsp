@@ -4,21 +4,15 @@ module Session = Jsonrpc_fiber.Make (Fiber_io)
 
 module Reply = struct
   type 'r t =
-    | Now of ('r, Jsonrpc.Response.Error.t) result
-    | Later of
-        (   (('r, Jsonrpc.Response.Error.t) result -> unit Fiber.t)
-         -> unit Fiber.t)
+    | Now of 'r
+    | Later of (('r -> unit Fiber.t) -> unit Fiber.t)
 
   let now r = Now r
 
   let later f = Later f
 
   let to_jsonrpc t id to_json : Jsonrpc_fiber.Reply.t =
-    let f x =
-      match x with
-      | Error e -> Jsonrpc.Response.error id e
-      | Ok x -> Jsonrpc.Response.ok id (to_json x)
-    in
+    let f x = Jsonrpc.Response.ok id (to_json x) in
     match t with
     | Now r -> Jsonrpc_fiber.Reply.now (f r)
     | Later k -> Jsonrpc_fiber.Reply.later (fun send -> k (fun r -> send (f r)))
@@ -94,8 +88,7 @@ module type S = sig
 
   val stop : _ t -> unit Fiber.t
 
-  val request :
-    _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
+  val request : _ t -> 'resp out_request -> 'resp Fiber.t
 
   val notification : _ t -> out_notification -> unit Fiber.t
 
@@ -250,8 +243,7 @@ struct
     Fdecl.set t.session session;
     t
 
-  let request (type r) (t : _ t) (req : r Out_request.t) :
-      (r, Jsonrpc.Response.Error.t) result Fiber.t =
+  let request (type r) (t : _ t) (req : r Out_request.t) : r Fiber.t =
     let id = `Int t.req_id in
     let jsonrpc_request =
       t.req_id <- t.req_id + 1;
@@ -259,7 +251,9 @@ struct
     in
     let open Fiber.O in
     let+ resp = Session.request (Fdecl.get t.session) jsonrpc_request in
-    resp.result |> Result.map ~f:(Out_request.response_of_json req)
+    match resp.result |> Result.map ~f:(Out_request.response_of_json req) with
+    | Ok s -> s
+    | Error e -> raise (Jsonrpc.Response.Error.E e)
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
@@ -318,16 +312,10 @@ module Client = struct
     let init () =
       let* resp = request t (Client_request.Initialize p) in
       Log.log ~section:"client" (fun () ->
-          let resp =
-            match resp with
-            | Ok s -> InitializeResult.yojson_of_t s
-            | Error s -> Jsonrpc.Response.Error.yojson_of_t s
-          in
+          let resp = InitializeResult.yojson_of_t resp in
           Log.msg "initialized" [ ("resp", resp) ]);
       t.state <- Running;
-      match resp with
-      | Ok resp -> Fiber.Ivar.fill t.initialized resp
-      | Error _ -> Fiber.return ()
+      Fiber.Ivar.fill t.initialized resp
     in
     Fiber.fork_and_join_unit (fun () -> loop) init
 end
@@ -369,18 +357,16 @@ module Server = struct
       ) else
         let code = Response.Error.Code.InvalidRequest in
         let message = "already initialized" in
-        let state = state t in
-        Fiber.return
-          ( Reply.now (Error (Jsonrpc.Response.Error.make ~code ~message ()))
-          , state )
+        raise
+          (Jsonrpc.Response.Error.E
+             (Jsonrpc.Response.Error.make ~code ~message ()))
     | Client_request.E _ ->
       if t.state = Waiting_for_init then
         let code = Response.Error.Code.ServerNotInitialized in
         let message = "not initialized" in
-        let state = state t in
-        Fiber.return
-          ( Reply.now (Error (Jsonrpc.Response.Error.make ~code ~message ()))
-          , state )
+        raise
+          (Jsonrpc.Response.Error.E
+             (Jsonrpc.Response.Error.make ~code ~message ()))
       else
         handler.h_on_request.on_request t in_r
 

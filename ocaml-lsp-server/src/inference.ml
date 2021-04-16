@@ -6,7 +6,7 @@ let infer_intf_for_impl doc =
     Code_error.raise
       "expected an implementation document, got an interface instead" []
   | Impl ->
-    Document.with_pipeline doc (fun pipeline ->
+    Document.with_pipeline_exn doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
         let pos = Mpipeline.get_lexing_pos pipeline `Start in
         let env, _ = Mbrowse.leaf_node (Mtyper.node_at typer pos) in
@@ -51,7 +51,7 @@ let force_open_document (state : State.t) uri =
   doc
 
 let infer_intf ~force_open_impl (state : State.t) doc =
-  let open Fiber.Result.O in
+  let open Fiber.O in
   match Document.kind doc with
   | Impl -> Code_error.raise "the provided document is not an interface." []
   | Intf ->
@@ -62,7 +62,7 @@ let infer_intf ~force_open_impl (state : State.t) doc =
       | None, false ->
         Code_error.raise
           "The implementation for this interface has not been open." []
-      | None, true -> force_open_document state impl_uri |> Fiber.Result.lift
-      | Some impl, _ -> Fiber.Result.return impl
+      | None, true -> force_open_document state impl_uri
+      | Some impl, _ -> Fiber.return impl
     in
     infer_intf_for_impl impl

@@ -1,4 +1,3 @@
-open Import
 open Jsonrpc
 
 module Notify : sig

@@ -174,7 +174,7 @@ let complete doc lsp_position =
     |> CompletionParams.yojson_of_t
   in
   let items = List.mapi ~f:(item ~compl_info) items in
-  Ok (`CompletionList { CompletionList.isIncomplete = false; items })
+  `CompletionList { CompletionList.isIncomplete = false; items }
 
 let format_doc ~markdown doc =
   match markdown with
@@ -212,4 +212,4 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
   let+ documentation = query_doc doc @@ Position.logical position in
   let documentation = Option.map ~f:(format_doc ~markdown) documentation in
   let compl = { compl with documentation; data = None } in
-  Ok compl
+  compl

@@ -64,14 +64,10 @@ let test make_client make_server =
   print_endline "[TEST] finished"
 
 module End_to_end_client = struct
-  let on_request (type a) s (_ : a Server_request.t) =
-    let state = Client.state s in
-    Fiber.return
-      ( Rpc.Reply.now
-          (Error
-             (Jsonrpc.Response.Error.make ~message:"not implemented"
-                ~code:InternalError ()))
-      , state )
+  let on_request (type a) _ (_ : a Server_request.t) =
+    Jsonrpc.Response.Error.raise
+      (Jsonrpc.Response.Error.make ~message:"not implemented"
+         ~code:InternalError ())
 
   let on_notification (client : _ Client.t) n =
     let open Fiber.O in
@@ -100,19 +96,15 @@ module End_to_end_client = struct
         Client_request.ExecuteCommand
           (ExecuteCommandParams.create ~command:"foo" ())
       in
-      let* resp = Client.request client req in
       Format.eprintf "client: sending request@.%!";
-      match resp with
-      | Error _ -> failwith "unexpected failure running command"
-      | Ok json ->
-        Format.eprintf
-          "client: Successfully executed command with result:@.%s@."
-          (Json.to_string json);
-        Format.eprintf
-          "client: waiting to receive notification before shutdown @.%!";
-        let* () = Fiber.Ivar.read received_notification in
-        Format.eprintf "client: sending request to shutdown@.%!";
-        Client.notification client Exit
+      let* json = Client.request client req in
+      Format.eprintf "client: Successfully executed command with result:@.%s@."
+        (Json.to_string json);
+      Format.eprintf
+        "client: waiting to receive notification before shutdown @.%!";
+      let* () = Fiber.Ivar.read received_notification in
+      Format.eprintf "client: sending request to shutdown@.%!";
+      Client.notification client Exit
     in
     Fiber.fork_and_join_unit init (fun () -> running)
 end
@@ -135,8 +127,7 @@ module End_to_end_server = struct
         let result = InitializeResult.create ~capabilities () in
         Format.eprintf "server: initializing server@.";
         Format.eprintf "server: returning initialization result@.%!";
-        Fiber.return
-          (Rpc.Reply.now (Ok result), (scheduler, (Initialized, detached)))
+        Fiber.return (Rpc.Reply.now result, (scheduler, (Initialized, detached)))
       | Client_request.ExecuteCommand _ ->
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
@@ -173,14 +164,11 @@ module End_to_end_server = struct
               loop 2 (Fiber.return (Ok ())))
         in
         let+ () = Fiber.Pool.stop detached in
-        (Rpc.Reply.now (Ok result), state)
+        (Rpc.Reply.now result, state)
       | _ ->
-        Fiber.return
-          ( Rpc.Reply.now
-              (Error
-                 (Jsonrpc.Response.Error.make ~code:InternalError
-                    ~message:"not supported" ()))
-          , state )
+        Jsonrpc.Response.Error.raise
+          (Jsonrpc.Response.Error.make ~code:InternalError
+             ~message:"not supported" ())
     in
     { Server.Handler.on_request }
 

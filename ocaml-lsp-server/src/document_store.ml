@@ -10,9 +10,9 @@ let get_opt store = Table.find store
 
 let get store uri =
   match Table.find store uri with
-  | Some doc -> Ok doc
+  | Some doc -> doc
   | None ->
-    Error
+    Jsonrpc.Response.Error.raise
       (Jsonrpc.Response.Error.make ~code:InvalidRequest
          ~message:(Format.asprintf "no document found with uri: %a" Uri.pp uri)
          ())
