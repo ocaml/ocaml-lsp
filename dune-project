@@ -32,7 +32,6 @@ possible and does not make any assumptions about IO.
   yojson
   ppx_yojson_conv_lib
   uutf
-  csexp
   (odoc :with-doc)
   (menhir :with-test)
   (cinaps :with-test)
