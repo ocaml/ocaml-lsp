@@ -99,26 +99,16 @@ struct
 
   let log t = Log.log ~section:t.name
 
-  let response_error_of_exns id exns =
+  let response_of_exn id (exn : Exn_with_backtrace.t) =
     let error =
-      match exns with
-      | [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E e; backtrace = _ }
-        ] ->
-        e
-      | exns ->
-        let data =
-          Json.yojson_of_list
-            (fun e -> e |> Exn_with_backtrace.to_dyn |> Json.of_dyn)
-            exns
-        in
+      match exn.exn with
+      | Jsonrpc.Response.Error.E resp -> resp
+      | _ ->
+        let data = exn |> Exn_with_backtrace.to_dyn |> Json.of_dyn in
         Response.Error.make ~code:InternalError ~data
           ~message:"uncaught exception" ()
     in
     Response.error id error
-
-  let response_of_result id = function
-    | Ok x -> Ok x
-    | Error exns -> Error (response_error_of_exns id exns)
 
   let on_request_fail ctx : (Reply.t * _) Fiber.t =
     let req : Message.request = Context.message ctx in
@@ -191,29 +181,42 @@ struct
         Table.remove t.pending r.id;
         Fiber.Ivar.fill ivar (Ok r)
     and on_request (r : Id.t Message.t) =
-      let* result = Fiber.collect_errors (fun () -> t.on_request (t, r)) in
-      let jsonrpc_resp = response_of_result r.id result in
-      match jsonrpc_resp with
-      | Error resp ->
-        let* () = Fiber.Pool.task later ~f:(fun () -> send_response resp) in
-        loop ()
+      let* result =
+        let sent = ref false in
+        Fiber.map_reduce_errors
+          (module Stdune.Monoid.Unit)
+          ~on_error:(fun exn_bt ->
+            if !sent then
+              (* TODO log *)
+              Fiber.return ()
+            else
+              let response = response_of_exn r.id exn_bt in
+              sent := true;
+              Fiber.Pool.task later ~f:(fun () -> send_response response))
+          (fun () -> t.on_request (t, r))
+      in
+      match result with
+      | Error () -> loop ()
       | Ok (reply, state) ->
         t.state <- state;
         let sender = Sender.make r.id send_response in
         let* () =
           Fiber.Pool.task later ~f:(fun () ->
-              let* resp =
-                Fiber.collect_errors (fun () -> Reply.send reply sender)
+              let+ res =
+                Fiber.map_reduce_errors
+                  (module Stdune.Monoid.Unit)
+                  (fun () -> Reply.send reply sender)
+                  ~on_error:(fun exn_bt ->
+                    if sender.called then
+                      (* TODO we should log *)
+                      Fiber.return ()
+                    else
+                      let resp = response_of_exn r.id exn_bt in
+                      Sender.send sender resp)
               in
-              match (sender.called, resp) with
-              | false, Ok () -> Code_error.raise "must send response" []
-              | true, Ok () -> Fiber.return ()
-              | true, Error _ ->
-                (* TODO we should log *)
-                Fiber.return ()
-              | false, Error exns ->
-                let resp = response_error_of_exns r.id exns in
-                Sender.send sender resp)
+              match res with
+              | Ok () -> ()
+              | Error () -> ())
         in
         loop ()
     and on_notification (r : unit Message.t) : unit Fiber.t =

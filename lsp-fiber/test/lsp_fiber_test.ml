@@ -195,23 +195,23 @@ let%expect_test "ent to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
   [%expect
     {|
-    client: waiting for initialization
-    server: initializing server
-    server: returning initialization result
-    client: server initialized. sending request
-    server: executing command
-    server: sending message notification to client
-    server: scheduling show message
-    server: scheduling show message
-    client: sending request
-    client: Successfully executed command with result:
-    "successful execution"
-    client: waiting to receive notification before shutdown
-    server: sending show message notification
-    server: 0 ran
-    client: received notification
-    window/showMessage
-    client: filled received_notification
-    client: sending request to shutdown
-    Successful termination of test
-    [TEST] finished |}]
+  client: waiting for initialization
+  server: initializing server
+  server: returning initialization result
+  client: server initialized. sending request
+  client: sending request
+  server: executing command
+  server: sending message notification to client
+  server: scheduling show message
+  server: scheduling show message
+  client: Successfully executed command with result:
+  "successful execution"
+  client: waiting to receive notification before shutdown
+  server: sending show message notification
+  server: 0 ran
+  client: received notification
+  window/showMessage
+  client: filled received_notification
+  client: sending request to shutdown
+  Successful termination of test
+  [TEST] finished |}]
