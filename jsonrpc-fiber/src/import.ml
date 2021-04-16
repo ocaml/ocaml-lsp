@@ -181,31 +181,6 @@ module Json = struct
   end
 end
 
-module Fiber = struct
-  include Fiber
-
-  module Result = struct
-    type nonrec ('a, 'e) t = ('a, 'e) result Fiber.t
-
-    let lift x = Fiber.map x ~f:(fun x -> Ok x)
-
-    let return x = Fiber.return (Ok x)
-
-    let ( >>= ) x f =
-      Fiber.bind
-        ~f:(function
-          | Error _ as e -> Fiber.return e
-          | Ok x -> f x)
-        x
-
-    module O = struct
-      let ( let+ ) x f = Fiber.map ~f:(Result.map ~f) x
-
-      let ( let* ) x f = x >>= f
-    end
-  end
-end
-
 module Log = struct
   let level : (string option -> bool) ref = ref (fun _ -> false)
 

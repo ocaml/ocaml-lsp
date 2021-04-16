@@ -51,12 +51,10 @@ let code_action doc (params : CodeActionParams.t) =
           Some (Query_commands.dispatch pipeline command))
   in
   match res with
-  | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
+  | Error e -> raise e
   | Ok None
   | Ok (Some [])
   | Ok (Some ((_, `Index _, _) :: _)) ->
-    Ok None
+    None
   | Ok (Some ((location, `String value, _) :: _)) ->
-    Ok
-      (code_action_of_type_enclosing params.textDocument.uri doc
-         (location, value))
+    code_action_of_type_enclosing params.textDocument.uri doc (location, value)

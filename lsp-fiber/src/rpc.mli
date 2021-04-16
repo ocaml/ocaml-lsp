@@ -1,14 +1,11 @@
 open! Import
-open Jsonrpc
 
 module Reply : sig
   type 'resp t
 
-  val now : ('r, Jsonrpc.Response.Error.t) result -> 'r t
+  val now : 'r -> 'r t
 
-  val later :
-       ((('r, Jsonrpc.Response.Error.t) result -> unit Fiber.t) -> unit Fiber.t)
-    -> 'r t
+  val later : (('r -> unit Fiber.t) -> unit Fiber.t) -> 'r t
 end
 
 module type S = sig
@@ -46,8 +43,7 @@ module type S = sig
 
   val stop : 'state t -> unit Fiber.t
 
-  val request :
-    _ t -> 'resp out_request -> ('resp, Response.Error.t) result Fiber.t
+  val request : _ t -> 'resp out_request -> 'resp Fiber.t
 
   val notification : _ t -> out_notification -> unit Fiber.t
 

@@ -13,10 +13,7 @@ module Resolve : sig
 end
 
 val complete :
-     Document.t
-  -> Position.t
-  -> ([> `CompletionList of CompletionList.t ], Jsonrpc.Response.Error.t) result
-     Fiber.t
+  Document.t -> Position.t -> [> `CompletionList of CompletionList.t ] Fiber.t
 
 (** creates a server response for ["completionItem/resolve"] *)
 val resolve :
@@ -25,7 +22,7 @@ val resolve :
   -> Resolve.t
   -> (Document.t -> [> `Logical of int * int ] -> string option Fiber.t)
   -> markdown:bool
-  -> (CompletionItem.t, Jsonrpc.Response.Error.t) result Fiber.t
+  -> CompletionItem.t Fiber.t
 
 val prefix_of_position :
   short_path:bool -> Msource.t -> [< Msource.position ] -> string

@@ -12,27 +12,22 @@ let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
     let open Fiber.O in
     match Document_store.get_opt state.store json_uri with
     | None ->
-      Fiber.return
-      @@ Error
-           (Jsonrpc.Response.Error.make ~code:InvalidParams
-              ~message:
-                "ocamllsp/inferIntf received a URI for an unloaded file. Load \
-                 the file first."
-              ())
-    | Some impl -> (
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make ~code:InvalidParams
+           ~message:
+             "ocamllsp/inferIntf received a URI for an unloaded file. Load the \
+              file first."
+           ())
+    | Some impl ->
       let+ intf = Inference.infer_intf_for_impl impl in
-      match intf with
-      | Error e -> Error (Jsonrpc.Response.Error.of_exn e)
-      | Ok intf -> Ok (Json.t_of_yojson (`String intf))))
+      Json.t_of_yojson (`String intf))
   | Some json ->
-    Fiber.return
-    @@ Error
-         (Jsonrpc.Response.Error.make ~code:InvalidRequest
-            ~message:"The input parameter for ocamllsp/inferIntf is invalid"
-            ~data:(`Assoc [ ("param", (json :> Json.t)) ])
-            ())
+    Jsonrpc.Response.Error.raise
+      (Jsonrpc.Response.Error.make ~code:InvalidRequest
+         ~message:"The input parameter for ocamllsp/inferIntf is invalid"
+         ~data:(`Assoc [ ("param", (json :> Json.t)) ])
+         ())
   | None ->
-    Fiber.return
-    @@ Error
-         (Jsonrpc.Response.Error.make ~code:InvalidRequest
-            ~message:"ocamllsp/inferIntf must receive param: DocumentUri.t" ())
+    Jsonrpc.Response.Error.raise
+      (Jsonrpc.Response.Error.make ~code:InvalidRequest
+         ~message:"ocamllsp/inferIntf must receive param: DocumentUri.t" ())
