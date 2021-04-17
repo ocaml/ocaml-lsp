@@ -11,6 +11,26 @@ end
 
 module DocumentUri : module type of Uri0 with type t = Uri0.t
 
+module ProgressToken : sig
+  type t =
+    [ `Int of int
+    | `String of string
+    ]
+
+  include Json.Jsonable.S with type t := t
+end
+
+module ProgressParams : sig
+  type 'a t =
+    { token : ProgressToken.t
+    ; value : 'a
+    }
+
+  val create : token:ProgressToken.t -> value:'a -> 'a t
+
+  include Json.Jsonable.S1 with type 'a t := 'a t
+end
+
 (*$ Lsp_gen.print_mli () *)
 module SymbolTag : sig
   type t = Deprecated
@@ -584,15 +604,6 @@ module CallHierarchyIncomingCall : sig
     }
 
   val create : from:CallHierarchyItem.t -> fromRanges:Range.t list -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module ProgressToken : sig
-  type t =
-    [ `Integer of Integer.t
-    | `String of string
-    ]
 
   include Json.Jsonable.S with type t := t
 end
@@ -3564,17 +3575,6 @@ module PrepareRenameParams : sig
     }
 
   val create : textDocument:TextDocumentIdentifier.t -> position:Position.t -> t
-
-  include Json.Jsonable.S with type t := t
-end
-
-module ProgressParams : sig
-  type t =
-    { token : ProgressToken.t
-    ; value : unit
-    }
-
-  val create : token:ProgressToken.t -> value:unit -> t
 
   include Json.Jsonable.S with type t := t
 end

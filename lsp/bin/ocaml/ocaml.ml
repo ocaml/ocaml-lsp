@@ -16,6 +16,8 @@ let skipped_ts_decls =
   ; "Message"
   ; "ErrorCodes"
   ; "MarkedString"
+  ; "ProgressToken"
+  ; "ProgressParams"
   ]
 
 (* Super classes to remove because we handle their concerns differently (or not

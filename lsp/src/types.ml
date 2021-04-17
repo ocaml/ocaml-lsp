@@ -27,6 +27,124 @@ end
 
 module DocumentUri = Uri0
 
+module ProgressToken = struct
+  type t =
+    [ `Int of int
+    | `String of string
+    ]
+
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String j -> `String j
+    | `Int i -> `Int i
+    | _ -> Json.error "invalid ProgressToken" json
+
+  let yojson_of_t (t : t) : Json.t = (t :> Json.t)
+end
+
+module ProgressParams = struct
+  type 'a t =
+    { token : ProgressToken.t
+    ; value : 'a
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : 'a t) -> ()
+
+  let t_of_yojson :
+        'a.    (Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a)
+        -> Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a t =
+    let _tp_loc = "lsp/src/types.ml.ProgressParams.t" in
+    fun _of_a -> function
+      | `Assoc field_yojsons as yojson -> (
+        let token_field = ref Ppx_yojson_conv_lib.Option.None
+        and value_field = ref Ppx_yojson_conv_lib.Option.None
+        and duplicates = ref []
+        and extra = ref [] in
+        let rec iter = function
+          | (field_name, _field_yojson) :: tail ->
+            (match field_name with
+            | "token" -> (
+              match Ppx_yojson_conv_lib.( ! ) token_field with
+              | Ppx_yojson_conv_lib.Option.None ->
+                let fvalue = ProgressToken.t_of_yojson _field_yojson in
+                token_field := Ppx_yojson_conv_lib.Option.Some fvalue
+              | Ppx_yojson_conv_lib.Option.Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | "value" -> (
+              match Ppx_yojson_conv_lib.( ! ) value_field with
+              | Ppx_yojson_conv_lib.Option.None ->
+                let fvalue = _of_a _field_yojson in
+                value_field := Ppx_yojson_conv_lib.Option.Some fvalue
+              | Ppx_yojson_conv_lib.Option.Some _ ->
+                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates
+              )
+            | _ -> ());
+            iter tail
+          | [] -> ()
+        in
+        iter field_yojsons;
+        match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] -> (
+          match Ppx_yojson_conv_lib.( ! ) extra with
+          | _ :: _ ->
+            Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+              (Ppx_yojson_conv_lib.( ! ) extra)
+              yojson
+          | [] -> (
+            match
+              ( Ppx_yojson_conv_lib.( ! ) token_field
+              , Ppx_yojson_conv_lib.( ! ) value_field )
+            with
+            | ( Ppx_yojson_conv_lib.Option.Some token_value
+              , Ppx_yojson_conv_lib.Option.Some value_value ) ->
+              { token = token_value; value = value_value }
+            | _ ->
+              Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                _tp_loc yojson
+                [ ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) token_field)
+                      Ppx_yojson_conv_lib.Option.None
+                  , "token" )
+                ; ( Ppx_yojson_conv_lib.poly_equal
+                      (Ppx_yojson_conv_lib.( ! ) value_field)
+                      Ppx_yojson_conv_lib.Option.None
+                  , "value" )
+                ])))
+      | _ as yojson ->
+        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+          yojson
+
+  let _ = t_of_yojson
+
+  let yojson_of_t :
+        'a.    ('a -> Ppx_yojson_conv_lib.Yojson.Safe.t) -> 'a t
+        -> Ppx_yojson_conv_lib.Yojson.Safe.t =
+   fun _of_a -> function
+    | { token = v_token; value = v_value } ->
+      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+      let bnds =
+        let arg = _of_a v_value in
+        ("value", arg) :: bnds
+      in
+      let bnds =
+        let arg = ProgressToken.yojson_of_t v_token in
+        ("token", arg) :: bnds
+      in
+      `Assoc bnds
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let create ~(token : ProgressToken.t) ~value = { token; value }
+end
+
 (*$ Lsp_gen.print_ml () *)
 module SymbolTag = struct
   type t = Deprecated
@@ -3287,26 +3405,6 @@ module CallHierarchyIncomingCall = struct
 
   let create ~(from : CallHierarchyItem.t) ~(fromRanges : Range.t list) : t =
     { from; fromRanges }
-end
-
-module ProgressToken = struct
-  type t =
-    [ `Integer of Integer.t
-    | `String of string
-    ]
-
-  let t_of_yojson (json : Json.t) : t =
-    match json with
-    | `String j -> `String j
-    | _ ->
-      Json.Of.untagged_union "t"
-        [ (fun json -> `Integer (Integer.t_of_yojson json)) ]
-        json
-
-  let yojson_of_t (t : t) : Json.t =
-    match t with
-    | `String j -> `String j
-    | `Integer s -> Integer.yojson_of_t s
 end
 
 module PartialResultParams = struct
@@ -33085,105 +33183,6 @@ module PrepareRenameParams = struct
   let create ~(textDocument : TextDocumentIdentifier.t) ~(position : Position.t)
       : t =
     { textDocument; position }
-end
-
-module ProgressParams = struct
-  type t =
-    { token : ProgressToken.t
-    ; value : unit
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : t) -> ()
-
-  let t_of_yojson =
-    (let _tp_loc = "lsp/src/types.ml.ProgressParams.t" in
-     function
-     | `Assoc field_yojsons as yojson -> (
-       let token_field = ref Ppx_yojson_conv_lib.Option.None
-       and value_field = ref Ppx_yojson_conv_lib.Option.None
-       and duplicates = ref []
-       and extra = ref [] in
-       let rec iter = function
-         | (field_name, _field_yojson) :: tail ->
-           (match field_name with
-           | "token" -> (
-             match Ppx_yojson_conv_lib.( ! ) token_field with
-             | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = ProgressToken.t_of_yojson _field_yojson in
-               token_field := Ppx_yojson_conv_lib.Option.Some fvalue
-             | Ppx_yojson_conv_lib.Option.Some _ ->
-               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-           | "value" -> (
-             match Ppx_yojson_conv_lib.( ! ) value_field with
-             | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = unit_of_yojson _field_yojson in
-               value_field := Ppx_yojson_conv_lib.Option.Some fvalue
-             | Ppx_yojson_conv_lib.Option.Some _ ->
-               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-           | _ -> ());
-           iter tail
-         | [] -> ()
-       in
-       iter field_yojsons;
-       match Ppx_yojson_conv_lib.( ! ) duplicates with
-       | _ :: _ ->
-         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
-           (Ppx_yojson_conv_lib.( ! ) duplicates)
-           yojson
-       | [] -> (
-         match Ppx_yojson_conv_lib.( ! ) extra with
-         | _ :: _ ->
-           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
-             (Ppx_yojson_conv_lib.( ! ) extra)
-             yojson
-         | [] -> (
-           match
-             ( Ppx_yojson_conv_lib.( ! ) token_field
-             , Ppx_yojson_conv_lib.( ! ) value_field )
-           with
-           | ( Ppx_yojson_conv_lib.Option.Some token_value
-             , Ppx_yojson_conv_lib.Option.Some value_value ) ->
-             { token = token_value; value = value_value }
-           | _ ->
-             Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-               _tp_loc yojson
-               [ ( Ppx_yojson_conv_lib.poly_equal
-                     (Ppx_yojson_conv_lib.( ! ) token_field)
-                     Ppx_yojson_conv_lib.Option.None
-                 , "token" )
-               ; ( Ppx_yojson_conv_lib.poly_equal
-                     (Ppx_yojson_conv_lib.( ! ) value_field)
-                     Ppx_yojson_conv_lib.Option.None
-                 , "value" )
-               ])))
-     | _ as yojson ->
-       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-         yojson
-      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
-  let _ = t_of_yojson
-
-  let yojson_of_t =
-    (function
-     | { token = v_token; value = v_value } ->
-       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-       let bnds =
-         let arg = yojson_of_unit v_value in
-         ("value", arg) :: bnds
-       in
-       let bnds =
-         let arg = ProgressToken.yojson_of_t v_token in
-         ("token", arg) :: bnds
-       in
-       `Assoc bnds
-      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
-  let _ = yojson_of_t
-
-  [@@@end]
-
-  let create ~(token : ProgressToken.t) ~(value : unit) : t = { token; value }
 end
 
 module PublishDiagnosticsParams = struct
