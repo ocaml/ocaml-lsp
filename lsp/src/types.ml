@@ -33090,7 +33090,7 @@ end
 module ProgressParams = struct
   type t =
     { token : ProgressToken.t
-    ; value : Json.t
+    ; value : unit
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -33117,7 +33117,7 @@ module ProgressParams = struct
            | "value" -> (
              match Ppx_yojson_conv_lib.( ! ) value_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = Json.t_of_yojson _field_yojson in
+               let fvalue = unit_of_yojson _field_yojson in
                value_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -33169,7 +33169,7 @@ module ProgressParams = struct
      | { token = v_token; value = v_value } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         let arg = Json.yojson_of_t v_value in
+         let arg = yojson_of_unit v_value in
          ("value", arg) :: bnds
        in
        let bnds =
@@ -33183,7 +33183,7 @@ module ProgressParams = struct
 
   [@@@end]
 
-  let create ~(token : ProgressToken.t) ~(value : Json.t) : t = { token; value }
+  let create ~(token : ProgressToken.t) ~(value : unit) : t = { token; value }
 end
 
 module PublishDiagnosticsParams = struct

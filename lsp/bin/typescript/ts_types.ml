@@ -62,7 +62,7 @@ module type S = sig
   and interface =
     { extends : ident list
     ; fields : field list
-    ; params : string list
+    ; params : ident list
     }
 
   and decl =
@@ -135,7 +135,7 @@ struct
   and interface =
     { extends : Ident.t list
     ; fields : field list
-    ; params : string list
+    ; params : Ident.t list
     }
 
   and decl =
@@ -171,7 +171,7 @@ struct
     record
       [ ("extends", (list Ident.to_dyn) extends)
       ; ("fields", (list dyn_of_field) fields)
-      ; ("params", (list string) params)
+      ; ("params", (list Ident.to_dyn) params)
       ]
 
   let dyn_of_decl =
@@ -284,10 +284,43 @@ module Unresolved = struct
 end
 
 module Ident = struct
-  module T = Stdune.Id.Make ()
+  module Id = Stdune.Id.Make ()
+
+  type kind =
+    | Type_variable
+    | Name
+
+  let dyn_of_kind =
+    let open Dyn.Encoder in
+    function
+    | Type_variable -> string "type_variable"
+    | Name -> string "Name"
+
+  module T = struct
+    type t =
+      { id : Id.t
+      ; name : string
+      ; kind : kind
+      }
+
+    let to_dyn { id; name; kind } =
+      let open Dyn.Encoder in
+      record
+        [ ("id", Id.to_dyn id)
+        ; ("name", String name)
+        ; ("kind", dyn_of_kind kind)
+        ]
+
+    let compare t { id; name = _; kind = _ } = Id.compare t.id id
+  end
 
   include T
-  module Top_closure = Top_closure.Make (T.Set) (Stdune.Monad.Id)
+
+  let make kind name = { id = Id.gen (); name; kind }
+
+  module C = Comparable.Make (T)
+  module Set = C.Set
+  module Top_closure = Top_closure.Make (Set) (Stdune.Monad.Id)
 end
 
 module Prim = struct
@@ -411,12 +444,13 @@ and resolve_type (t : Unresolved.typ) ~names : Resolved.typ =
 and resolve_interface i ~names : Resolved.interface =
   let names = names#inside i.name in
   let i = i.data in
+  let params = List.map ~f:(Ident.make Type_variable) i.params in
   { extends = List.map ~f:(resolve_ident ~names) i.extends
-  ; params = i.params
+  ; params = List.map params ~f:(fun i -> Prim.Resolved i)
   ; fields =
       (let names =
-         List.fold_left ~init:names i.params ~f:(fun acc x ->
-             acc#push x Prim.Any)
+         List.fold_left ~init:names params ~f:(fun acc (x : Ident.t) ->
+             acc#push x.name (Prim.Resolved x))
        in
        List.map ~f:(resolve_field ~names) i.fields)
   }

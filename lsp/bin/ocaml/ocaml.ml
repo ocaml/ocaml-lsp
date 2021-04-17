@@ -98,8 +98,6 @@ let preprocess =
         super#t x
 
       method! interface i =
-        (* we don't handle partial results or progress notifications params (for
-           now) *)
         let extends =
           List.filter i.extends ~f:(fun name ->
               not (List.mem removed_super_classes name ~equal:String.equal))
@@ -444,7 +442,11 @@ let enum_module ~allow_other ({ Named.name; data = constrs } as t) =
 module Entities = struct
   type t = (Ident.t * Resolved.t) list
 
-  let find db e : _ Named.t = Option.value_exn (List.assoc db e)
+  let find db e : _ Named.t =
+    match List.assoc db e with
+    | Some s -> s
+    | None ->
+      Code_error.raise "Entities.find: unable to find" [ ("e", Ident.to_dyn e) ]
 
   let of_map map ts =
     List.map ts ~f:(fun (r : Resolved.t) -> (String.Map.find_exn map r.name, r))
@@ -536,7 +538,10 @@ end = struct
       | Ident Self -> Type.t (* XXX wrong *)
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
-      | Ident (Resolved r) -> Type.module_t (Entities.find db r).name
+      | Ident (Resolved r) -> (
+        match r.kind with
+        | Type_variable -> Type.unit
+        | Name -> Type.module_t (Entities.find db r).name)
       | List t -> Type.list (type_ topmost_field_name t)
       | Tuple ts -> Type.Tuple (List.map ~f:(type_ topmost_field_name) ts)
       | Sum s -> sum topmost_field_name s
@@ -818,13 +823,16 @@ let expand_super_classes db ts =
       { r with data })
 
 (* extract all resovled identifiers *)
-class idents =
+class name_idents =
   object
     inherit [Ident.t list] Resolved.fold
 
     method! ident i ~init =
       match i with
-      | Resolved r -> r :: init
+      | Resolved r -> (
+        match r.kind with
+        | Name -> r :: init
+        | Type_variable -> init)
       | _ -> init
   end
 
@@ -833,7 +841,7 @@ let resolve_and_pp_typescript (ts : Unresolved.t list) =
   let ts, db = Typescript.resolve_all ts in
   let db = Entities.of_map db ts in
   match
-    let idents = new idents in
+    let idents = new name_idents in
     Ident.Top_closure.top_closure ts
       ~key:(fun x -> Entities.rev_find db x)
       ~deps:(fun x -> idents#t x ~init:[] |> List.map ~f:(Entities.find db))

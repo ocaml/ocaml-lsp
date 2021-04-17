@@ -3571,10 +3571,10 @@ end
 module ProgressParams : sig
   type t =
     { token : ProgressToken.t
-    ; value : Json.t
+    ; value : unit
     }
 
-  val create : token:ProgressToken.t -> value:Json.t -> t
+  val create : token:ProgressToken.t -> value:unit -> t
 
   include Json.Jsonable.S with type t := t
 end
