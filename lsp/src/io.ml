@@ -1,5 +1,5 @@
-open Import
 open Jsonrpc
+open Import
 
 type t =
   { ic : in_channel

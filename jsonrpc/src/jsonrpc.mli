@@ -1,5 +1,35 @@
 (** Jsonrpc implementation *)
-open Import
+
+module Json : sig
+  type t =
+    [ `Assoc of (string * t) list
+    | `Bool of bool
+    | `Float of float
+    | `Int of int
+    | `Intlit of string
+    | `List of t list
+    | `Null
+    | `String of string
+    | `Tuple of t list
+    | `Variant of string * t option
+    ]
+
+  (** Raised when conversions from json fail *)
+  exception Of_json of (string * t)
+
+  module Jsonable : sig
+    module type S = sig
+      type json
+
+      type t
+
+      val yojson_of_t : t -> json
+
+      val t_of_yojson : json -> t
+    end
+    with type json := t
+  end
+end
 
 module Id : sig
   type t =
@@ -31,8 +61,6 @@ module Message : sig
     ; method_ : string
     ; params : Structured.t option
     }
-
-  val params : _ t -> (Json.t -> 'a) -> ('a, string) Result.t
 
   val create : ?params:Structured.t -> id:'id -> method_:string -> unit -> 'id t
 

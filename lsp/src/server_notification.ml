@@ -59,25 +59,23 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
   let open Result.O in
   match r.method_ with
   | "window/showMessage" ->
-    let+ params = Jsonrpc.Message.params r ShowMessageParams.t_of_yojson in
+    let+ params = Json.message_params r ShowMessageParams.t_of_yojson in
     ShowMessage params
   | "textDocument/publishDiagnostics" ->
-    let+ params =
-      Jsonrpc.Message.params r PublishDiagnosticsParams.t_of_yojson
-    in
+    let+ params = Json.message_params r PublishDiagnosticsParams.t_of_yojson in
     PublishDiagnostics params
   | "window/logMessage" ->
-    let+ params = Jsonrpc.Message.params r ShowMessageParams.t_of_yojson in
+    let+ params = Json.message_params r ShowMessageParams.t_of_yojson in
     LogMessage params
   | "telemetry/event" ->
-    let+ params = Jsonrpc.Message.params r (fun x -> x) in
+    let+ params = Json.message_params r (fun x -> x) in
     TelemetryNotification params
   | "$/progress" ->
     let+ params =
-      Jsonrpc.Message.params r (ProgressParams.t_of_yojson Progress.t_of_yojson)
+      Json.message_params r (ProgressParams.t_of_yojson Progress.t_of_yojson)
     in
     WorkDoneProgress params
   | m when m = Cancel_request.meth_ ->
-    let+ params = Jsonrpc.Message.params r Cancel_request.t_of_yojson in
+    let+ params = Json.message_params r Cancel_request.t_of_yojson in
     CancelRequest params
   | _ -> Ok (Unknown_notification r)

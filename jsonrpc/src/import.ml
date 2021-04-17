@@ -6,20 +6,51 @@ module Option = struct
 end
 
 module Json = struct
-  type t = Yojson.Safe.t
+  type t =
+    [ `Assoc of (string * t) list
+    | `Bool of bool
+    | `Float of float
+    | `Int of int
+    | `Intlit of string
+    | `List of t list
+    | `Null
+    | `String of string
+    | `Tuple of t list
+    | `Variant of string * t option
+    ]
 
-  let error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
+  exception Of_json of (string * t)
 
-  let to_pretty_string (t : t) = Yojson.Safe.pretty_to_string ~std:false t
+  let () =
+    Printexc.register_printer (function
+      | Of_json (msg, _) -> Some ("Jsonrpc: json conversion failed: " ^ msg)
+      | _ -> None)
 
-  module Jsonable = Ppx_yojson_conv_lib.Yojsonable
+  let error msg json = raise (Of_json (msg, json))
+
+  module Jsonable = struct
+    module type S = sig
+      type json
+
+      type t
+
+      val yojson_of_t : t -> json
+
+      val t_of_yojson : json -> t
+    end
+    with type json := t
+  end
 
   let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
 
   let field_exn fields name conv =
     match field fields name conv with
     | Some f -> f
-    | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
+    | None -> error ("Jsonrpc.Result.t: missing field " ^ name) (`Assoc fields)
 
-  module Conv = Ppx_yojson_conv_lib.Yojson_conv
+  module Conv = struct
+    let string_of_yojson = function
+      | `String s -> s
+      | json -> error "expected string" json
+  end
 end

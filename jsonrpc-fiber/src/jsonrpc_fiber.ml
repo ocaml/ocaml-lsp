@@ -1,5 +1,5 @@
-open Import
 open Jsonrpc
+open Import
 
 module Id = struct
   include Id

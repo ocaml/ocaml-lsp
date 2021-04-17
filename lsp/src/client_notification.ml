@@ -51,34 +51,34 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
   let open Result.O in
   match r.method_ with
   | "textDocument/didOpen" ->
-    Jsonrpc.Message.params r DidOpenTextDocumentParams.t_of_yojson
+    Json.message_params r DidOpenTextDocumentParams.t_of_yojson
     >>| fun params -> TextDocumentDidOpen params
   | "textDocument/didChange" ->
-    Jsonrpc.Message.params r DidChangeTextDocumentParams.t_of_yojson
+    Json.message_params r DidChangeTextDocumentParams.t_of_yojson
     >>| fun params -> TextDocumentDidChange params
   | "textDocument/didClose" ->
-    Jsonrpc.Message.params r DidCloseTextDocumentParams.t_of_yojson
+    Json.message_params r DidCloseTextDocumentParams.t_of_yojson
     >>| fun params -> TextDocumentDidClose params
   | "exit" -> Ok Exit
   | "initialized" -> Ok Initialized
   | "workspace/didChangeWorkspaceFolders" ->
-    Jsonrpc.Message.params r DidChangeWorkspaceFoldersParams.t_of_yojson
+    Json.message_params r DidChangeWorkspaceFoldersParams.t_of_yojson
     >>| fun params -> ChangeWorkspaceFolders params
   | "workspace/didChangeConfiguration" ->
-    Jsonrpc.Message.params r DidChangeConfigurationParams.t_of_yojson
+    Json.message_params r DidChangeConfigurationParams.t_of_yojson
     >>| fun params -> ChangeConfiguration params
   | "textDocument/willSave" ->
-    Jsonrpc.Message.params r WillSaveTextDocumentParams.t_of_yojson
+    Json.message_params r WillSaveTextDocumentParams.t_of_yojson
     >>| fun params -> WillSaveTextDocument params
   | "textDocument/didSave" ->
-    Jsonrpc.Message.params r DidSaveTextDocumentParams.t_of_yojson
+    Json.message_params r DidSaveTextDocumentParams.t_of_yojson
     >>| fun params -> DidSaveTextDocument params
   | m when m = Cancel_request.meth_ ->
-    let+ params = Jsonrpc.Message.params r Cancel_request.t_of_yojson in
+    let+ params = Json.message_params r Cancel_request.t_of_yojson in
     CancelRequest params
   | "window/workDoneProgress/cancel" ->
     let+ params =
-      Jsonrpc.Message.params r WorkDoneProgressCancelParams.t_of_yojson
+      Json.message_params r WorkDoneProgressCancelParams.t_of_yojson
     in
     WorkDoneProgressCancel params
   | _ -> Ok (Unknown_notification r)

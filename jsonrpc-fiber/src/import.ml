@@ -11,7 +11,6 @@ module Result = Stdune.Result
 module Code_error = Code_error
 module Or_exn = Or_exn
 module Table = Table
-module Id = Id
 module Exn_with_backtrace = Exn_with_backtrace
 module Queue = Queue
 include Fiber_unix
@@ -233,3 +232,10 @@ module Log = struct
 end
 
 let sprintf = Stdune.sprintf
+
+let () =
+  Printexc.register_printer (function
+    | Jsonrpc.Response.Error.E t ->
+      let json = Jsonrpc.Response.Error.yojson_of_t t in
+      Some ("jsonrpc response error " ^ Json.to_pretty_string (json :> Json.t))
+    | _ -> None)

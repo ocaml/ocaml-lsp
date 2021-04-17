@@ -1,5 +1,6 @@
 open Import
 open Json.Conv
+module Json = Json
 
 module Id = struct
   type t =
@@ -100,23 +101,6 @@ module Message = struct
         Json.error "invalid version" json
     | _ -> Json.error "invalid request" json
 
-  let read_json_params f v =
-    match f (Structured.to_json v) with
-    | r -> Ok r
-    | exception Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _)
-      ->
-      Error msg
-
-  let require_params json =
-    match json with
-    | None -> Error "params are required"
-    | Some params -> Ok params
-
-  let params t f =
-    match require_params t.params with
-    | Error e -> Error e
-    | Ok x -> read_json_params f x
-
   let yojson_of_either t : Json.t = yojson_of_t (Option.map ~f:Id.yojson_of_t) t
 
   type request = Id.t t
@@ -212,13 +196,6 @@ module Response = struct
       | _ -> Json.error "Jsonrpc.Response.t" json
 
     exception E of t
-
-    let () =
-      Printexc.register_printer (function
-        | E t ->
-          Some
-            ("jsonrpc response error " ^ Json.to_pretty_string (yojson_of_t t))
-        | _ -> None)
 
     let raise t = raise (E t)
 

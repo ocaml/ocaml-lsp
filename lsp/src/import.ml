@@ -173,7 +173,9 @@ module Json = struct
     let ( <|> ) c1 c2 json =
       match c1 json with
       | s -> s
-      | exception Conv.Of_yojson_error (_, _) -> c2 json
+      | (exception Jsonrpc.Json.Of_json (_, _))
+      | (exception Conv.Of_yojson_error (_, _)) ->
+        c2 json
   end
 
   module Option = struct
@@ -279,6 +281,23 @@ module Json = struct
 
     let yojson_of_t (_ : t) = assert false
   end
+
+  let read_json_params f v =
+    match f (Jsonrpc.Message.Structured.to_json v) with
+    | r -> Ok r
+    | exception Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _)
+      ->
+      Error msg
+
+  let require_params json =
+    match json with
+    | None -> Error "params are required"
+    | Some params -> Ok params
+
+  let message_params (t : _ Jsonrpc.Message.t) f =
+    match require_params t.params with
+    | Error e -> Error e
+    | Ok x -> read_json_params f x
 end
 
 module Log = struct
