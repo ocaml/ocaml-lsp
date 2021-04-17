@@ -30,21 +30,25 @@ let method_ = function
   | Unknown_notification _ -> assert false
 
 let yojson_of_t = function
-  | TextDocumentDidOpen params -> DidOpenTextDocumentParams.yojson_of_t params
+  | TextDocumentDidOpen params ->
+    Some (DidOpenTextDocumentParams.yojson_of_t params)
   | TextDocumentDidChange params ->
-    DidChangeTextDocumentParams.yojson_of_t params
-  | TextDocumentDidClose params -> DidCloseTextDocumentParams.yojson_of_t params
-  | Exit -> `Null
-  | Initialized -> `Null
+    Some (DidChangeTextDocumentParams.yojson_of_t params)
+  | TextDocumentDidClose params ->
+    Some (DidCloseTextDocumentParams.yojson_of_t params)
+  | Exit -> None
+  | Initialized -> None
   | ChangeWorkspaceFolders params ->
-    DidChangeWorkspaceFoldersParams.yojson_of_t params
+    Some (DidChangeWorkspaceFoldersParams.yojson_of_t params)
   | ChangeConfiguration params ->
-    DidChangeConfigurationParams.yojson_of_t params
-  | WillSaveTextDocument params -> WillSaveTextDocumentParams.yojson_of_t params
-  | DidSaveTextDocument params -> DidSaveTextDocumentParams.yojson_of_t params
-  | CancelRequest params -> Cancel_request.yojson_of_t params
+    Some (DidChangeConfigurationParams.yojson_of_t params)
+  | WillSaveTextDocument params ->
+    Some (WillSaveTextDocumentParams.yojson_of_t params)
+  | DidSaveTextDocument params ->
+    Some (DidSaveTextDocumentParams.yojson_of_t params)
+  | CancelRequest params -> Some (Cancel_request.yojson_of_t params)
   | WorkDoneProgressCancel params ->
-    WorkDoneProgressCancelParams.yojson_of_t params
+    Some (WorkDoneProgressCancelParams.yojson_of_t params)
   | Unknown_notification _ -> assert false
 
 let of_jsonrpc (r : Jsonrpc.Message.notification) =
@@ -85,5 +89,7 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
 
 let to_jsonrpc t =
   let method_ = method_ t in
-  let params = Some (Jsonrpc.Message.Structured.of_json (yojson_of_t t)) in
+  let params =
+    yojson_of_t t |> Option.map ~f:Jsonrpc.Message.Structured.of_json
+  in
   { Jsonrpc.Message.id = (); params; method_ }

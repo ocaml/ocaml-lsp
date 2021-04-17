@@ -205,28 +205,29 @@ module End_to_end_server = struct
 end
 
 let%expect_test "ent to end run of lsp tests" =
+  Lsp_fiber.Import.Log.level := (fun _ -> true);
   test End_to_end_client.run End_to_end_server.run;
-  [%expect.unreachable]
-  [@@expect.uncaught_exn
-    {|
-  ("Abort: Ppx_yojson_conv_lib__Yojson_conv.Of_yojson_error(_, 870828711)")
-  Trailing output
-  ---------------
-  client: waiting for initialization
-  server: initializing server
-  server: returning initialization result
-  client: server initialized. sending request
-  server: executing command
-  server: sending message notification to client
-  server: scheduling show message
-  server: scheduling show message
-  client: sending request
-  client: Successfully executed command with result:
-  "successful execution"
-  client: waiting to receive notification before shutdown
-  server: sending show message notification
-  server: 0 ran
-  client: received notification
-  window/showMessage
-  client: filled received_notification
-  client: sending request to shutdown |}]
+  [%expect{|
+    client: waiting for initialization
+    server: initializing server
+    server: returning initialization result
+    [client] initialized
+    { "resp": { "capabilities": {} } }
+    client: server initialized. sending request
+    server: executing command
+    server: sending message notification to client
+    server: scheduling show message
+    server: scheduling show message
+    client: sending request
+    client: Successfully executed command with result:
+    "successful execution"
+    client: waiting to receive notification before shutdown
+    server: sending show message notification
+    server: 0 ran
+    client: received notification
+    window/showMessage
+    client: filled received_notification
+    client: sending request to shutdown
+    [server] received exit notification
+    Successful termination of test
+    [TEST] finished |}]
