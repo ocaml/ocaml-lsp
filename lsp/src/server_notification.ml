@@ -7,7 +7,6 @@ type t =
   | LogMessage of ShowMessageParams.t
   | TelemetryNotification of Json.t
   | CancelRequest of Jsonrpc.Id.t
-  | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | Unknown_notification of Jsonrpc.Message.notification
 
 let method_ = function
@@ -16,7 +15,6 @@ let method_ = function
   | LogMessage _ -> "window/logMessage"
   | TelemetryNotification _ -> "telemetry/event"
   | CancelRequest _ -> Cancel_request.meth_
-  | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
   | Unknown_notification _ -> assert false
 
 let yojson_of_t = function
@@ -26,8 +24,6 @@ let yojson_of_t = function
   | PublishDiagnostics params -> PublishDiagnosticsParams.yojson_of_t params
   | TelemetryNotification params -> params
   | CancelRequest params -> Cancel_request.yojson_of_t params
-  | WorkDoneProgressCancel params ->
-    WorkDoneProgressCancelParams.yojson_of_t params
   | Unknown_notification _ -> assert false
 
 let to_jsonrpc t =
@@ -55,9 +51,4 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
   | m when m = Cancel_request.meth_ ->
     let+ params = Jsonrpc.Message.params r Cancel_request.t_of_yojson in
     CancelRequest params
-  | "window/workDoneProgress/cancel" ->
-    let+ params =
-      Jsonrpc.Message.params r WorkDoneProgressCancelParams.t_of_yojson
-    in
-    WorkDoneProgressCancel params
   | _ -> Ok (Unknown_notification r)

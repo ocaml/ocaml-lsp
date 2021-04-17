@@ -842,6 +842,7 @@ let on_notification server (notification : Client_notification.t) :
   | WillSaveTextDocument _
   | ChangeWorkspaceFolders _
   | Initialized
+  | WorkDoneProgressCancel _
   | Exit ->
     Fiber.return state
   | Unknown_notification req -> (
