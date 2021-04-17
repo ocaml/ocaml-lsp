@@ -209,7 +209,7 @@ let%expect_test "ent to end run of lsp tests" =
   [%expect.unreachable]
   [@@expect.uncaught_exn
     {|
-  ("Fiber_unix__Scheduler.Abort(_)")
+  ("Abort: Ppx_yojson_conv_lib__Yojson_conv.Of_yojson_error(_, 870828711)")
   Trailing output
   ---------------
   client: waiting for initialization

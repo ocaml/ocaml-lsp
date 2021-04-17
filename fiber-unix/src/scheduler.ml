@@ -323,6 +323,13 @@ type run_error =
 
 exception Abort of run_error
 
+let () =
+  Printexc.register_printer (function
+    | Abort Never -> Some "Abort: Never"
+    | Abort Abort_requested -> Some "Abort: requested"
+    | Abort (Exn exn) -> Some ("Abort: " ^ Printexc.to_string exn)
+    | _ -> None)
+
 let event_next (t : t) : Fiber.fill =
   with_mutex t.events_mutex ~f:(fun () ->
       while Queue.is_empty t.events do
