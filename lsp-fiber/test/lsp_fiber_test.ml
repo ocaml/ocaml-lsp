@@ -205,14 +205,11 @@ module End_to_end_server = struct
 end
 
 let%expect_test "ent to end run of lsp tests" =
-  Lsp_fiber.Import.Log.level := (fun _ -> true);
   test End_to_end_client.run End_to_end_server.run;
   [%expect{|
     client: waiting for initialization
     server: initializing server
     server: returning initialization result
-    [client] initialized
-    { "resp": { "capabilities": {} } }
     client: server initialized. sending request
     server: executing command
     server: sending message notification to client
@@ -228,6 +225,5 @@ let%expect_test "ent to end run of lsp tests" =
     window/showMessage
     client: filled received_notification
     client: sending request to shutdown
-    [server] received exit notification
     Successful termination of test
     [TEST] finished |}]
