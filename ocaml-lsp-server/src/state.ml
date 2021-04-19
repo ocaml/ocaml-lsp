@@ -12,5 +12,5 @@ type t =
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
   ; trace : TraceValue.t
-  ; ocamlformat : Scheduler.thread
+  ; ocamlformat : Fmt.t
   }
