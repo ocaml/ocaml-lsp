@@ -6,7 +6,20 @@ type command_result =
   ; status : Unix.process_status
   }
 
-let run_command scheduler thread bin stdin_value args : command_result Fiber.t =
+type t =
+  { stdin : Scheduler.thread Lazy.t
+  ; stderr : Scheduler.thread Lazy.t
+  ; stdout : Scheduler.thread Lazy.t
+  ; scheduler : Scheduler.t
+  }
+
+let create scheduler =
+  let stdout = lazy (Scheduler.create_thread scheduler) in
+  let stderr = lazy (Scheduler.create_thread scheduler) in
+  let stdin = lazy (Scheduler.create_thread scheduler) in
+  { stdout; stderr; stdin; scheduler }
+
+let run_command state bin stdin_value args : command_result Fiber.t =
   let open Fiber.O in
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
   let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
@@ -18,26 +31,30 @@ let run_command scheduler thread bin stdin_value args : command_result Fiber.t =
   Unix.close stdin_i;
   Unix.close stdout_o;
   Unix.close stderr_o;
-  let task =
-    Scheduler.async_exn thread (fun () ->
+  let stdin () =
+    Scheduler.async_exn (Lazy.force state.stdin) (fun () ->
         let out_chan = Unix.out_channel_of_descr stdin_o in
         output_string out_chan stdin_value;
         flush out_chan;
-        close_out out_chan;
-        let stdout_in = Unix.in_channel_of_descr stdout_i in
-        let stderr_in = Unix.in_channel_of_descr stderr_i in
-        let stdout = Stdune.Io.read_all stdout_in in
-        close_in_noerr stdout_in;
-        let stderr = Stdune.Io.read_all stderr_in in
-        close_in_noerr stderr_in;
-        (stdout, stderr))
+        close_out out_chan)
+    |> Scheduler.await_no_cancel |> Fiber.map ~f:Result.ok_exn
   in
+  let read th from =
+    Scheduler.async_exn th (fun () ->
+        let in_ = Unix.in_channel_of_descr from in
+        let contents = Stdune.Io.read_all in_ in
+        close_in_noerr in_;
+        contents)
+    |> Scheduler.await_no_cancel |> Fiber.map ~f:Result.ok_exn
+  in
+  let stdout () = read (Lazy.force state.stdout) stdout_i in
+  let stderr () = read (Lazy.force state.stderr) stderr_i in
   let+ status, (stdout, stderr) =
     Fiber.fork_and_join
-      (fun () -> Scheduler.wait_for_process scheduler pid)
+      (fun () -> Scheduler.wait_for_process state.scheduler pid)
       (fun () ->
-        let+ res = Scheduler.await_no_cancel task in
-        Result.ok_exn res)
+        Fiber.fork_and_join_unit stdin (fun () ->
+            Fiber.fork_and_join stdout stderr))
   in
   { stdout; stderr; status }
 
@@ -91,15 +108,15 @@ let formatter doc =
   | Ocaml -> Ok (Ocaml (Document.uri doc))
   | Reason -> Ok (Reason (Document.kind doc))
 
-let exec scheduler thread bin args stdin =
+let exec state bin args stdin =
   let refmt = Fpath.to_string bin in
   let open Fiber.O in
-  let+ res = run_command scheduler thread refmt stdin args in
+  let+ res = run_command state refmt stdin args in
   match res.status with
   | Unix.WEXITED 0 -> Result.Ok res.stdout
   | _ -> Result.Error (Unexpected_result { message = res.stderr })
 
-let run scheduler thread doc : (string, error) result Fiber.t =
+let run state doc : (string, error) result Fiber.t =
   let res =
     let open Result.O in
     let* formatter = formatter doc in
@@ -109,4 +126,4 @@ let run scheduler thread doc : (string, error) result Fiber.t =
   in
   match res with
   | Error e -> Fiber.return (Error e)
-  | Ok (binary, args, contents) -> exec scheduler thread binary args contents
+  | Ok (binary, args, contents) -> exec state binary args contents
