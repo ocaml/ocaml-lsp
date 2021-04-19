@@ -19,7 +19,6 @@ depends: [
   "dune" {>= "2.7"}
   "ocaml" {>= "4.08"}
   "odoc" {with-doc}
-  "ocaml" {>= "4.06"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [

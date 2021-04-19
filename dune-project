@@ -60,5 +60,4 @@ possible and does not make any assumptions about IO.
  (description "See https://www.jsonrpc.org/specification")
  (depends
   (ocaml (>= 4.08))
-  (odoc :with-doc)
-  (ocaml (>= 4.06))))
+  (odoc :with-doc)))
