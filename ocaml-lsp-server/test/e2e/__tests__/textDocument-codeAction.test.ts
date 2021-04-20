@@ -49,7 +49,7 @@ let f (x : t) = x
             changes: {
               "file:///test.ml": [
                 {
-                  newText: "match x with | Foo _ -> (??) | Bar _ -> (??)",
+                  newText: "match x with | Foo _ -> _ | Bar _ -> _",
                   range: {
                     end: {
                       character: 17,
