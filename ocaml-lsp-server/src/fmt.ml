@@ -32,20 +32,30 @@ let run_command state bin stdin_value args : command_result Fiber.t =
   Unix.close stdout_o;
   Unix.close stderr_o;
   let stdin () =
-    Scheduler.async_exn (Lazy.force state.stdin) (fun () ->
-        let out_chan = Unix.out_channel_of_descr stdin_o in
-        output_string out_chan stdin_value;
-        flush out_chan;
-        close_out out_chan)
-    |> Scheduler.await_no_cancel |> Fiber.map ~f:Result.ok_exn
+    let+ res =
+      Scheduler.async_exn (Lazy.force state.stdin) (fun () ->
+          let out_chan = Unix.out_channel_of_descr stdin_o in
+          output_string out_chan stdin_value;
+          flush out_chan;
+          close_out out_chan)
+      |> Scheduler.await_no_cancel
+    in
+    match res with
+    | Ok s -> s
+    | Error e -> Exn_with_backtrace.reraise e
   in
   let read th from =
-    Scheduler.async_exn th (fun () ->
-        let in_ = Unix.in_channel_of_descr from in
-        let contents = Stdune.Io.read_all in_ in
-        close_in_noerr in_;
-        contents)
-    |> Scheduler.await_no_cancel |> Fiber.map ~f:Result.ok_exn
+    let+ res =
+      Scheduler.async_exn th (fun () ->
+          let in_ = Unix.in_channel_of_descr from in
+          let contents = Stdune.Io.read_all in_ in
+          close_in_noerr in_;
+          contents)
+      |> Scheduler.await_no_cancel
+    in
+    match res with
+    | Ok s -> s
+    | Error e -> Exn_with_backtrace.reraise e
   in
   let stdout () = read (Lazy.force state.stdout) stdout_i in
   let stderr () = read (Lazy.force state.stderr) stderr_i in
