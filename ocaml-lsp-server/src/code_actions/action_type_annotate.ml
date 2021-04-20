@@ -51,7 +51,7 @@ let code_action doc (params : CodeActionParams.t) =
           Some (Query_commands.dispatch pipeline command))
   in
   match res with
-  | Error e -> raise e
+  | Error e -> Exn_with_backtrace.reraise e
   | Ok None
   | Ok (Some [])
   | Ok (Some ((_, `Index _, _) :: _)) ->
