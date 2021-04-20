@@ -26,9 +26,12 @@ let code_action doc (params : CodeActionParams.t) =
     match res with
     | Ok res -> Some (code_action_of_case_analysis uri res)
     | Error
-        ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
-        | Merlin_analysis.Destruct.Not_allowed _
-        | Merlin_analysis.Destruct.Useless_refine
-        | Merlin_analysis.Destruct.Nothing_to_do ) ->
+        { exn =
+            ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
+            | Merlin_analysis.Destruct.Not_allowed _
+            | Merlin_analysis.Destruct.Useless_refine
+            | Merlin_analysis.Destruct.Nothing_to_do )
+        ; backtrace = _
+        } ->
       None
-    | Error exn -> raise exn)
+    | Error exn -> Exn_with_backtrace.reraise exn)

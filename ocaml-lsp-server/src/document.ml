@@ -121,7 +121,9 @@ let with_pipeline (doc : t) f =
 let with_pipeline_exn doc f =
   let open Fiber.O in
   let+ res = with_pipeline doc f in
-  Result.ok_exn res
+  match res with
+  | Ok s -> s
+  | Error exn -> Exn_with_backtrace.reraise exn
 
 let version doc = Text_document.version doc.tdoc
 
@@ -149,7 +151,11 @@ let make_pipeline thread tdoc =
         in
         Mpipeline.make config source)
   in
-  await async_make_pipeline |> Fiber.map ~f:Result.ok_exn
+  let open Fiber.O in
+  let+ res = await async_make_pipeline in
+  match res with
+  | Ok s -> s
+  | Error e -> Exn_with_backtrace.reraise e
 
 let make timer merlin_thread tdoc =
   let tdoc = Text_document.make tdoc in

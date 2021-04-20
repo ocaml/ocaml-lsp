@@ -10,6 +10,7 @@ module String = Stdune.String
 module List = Stdune.List
 module Result = Stdune.Result
 module Poly = Stdune.Poly
+module Exn_with_backtrace = Stdune.Exn_with_backtrace
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
 module Server = Lsp_fiber.Server

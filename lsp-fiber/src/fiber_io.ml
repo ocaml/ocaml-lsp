@@ -44,7 +44,11 @@ let make s io =
                 res)
           in
           let+ res = Scheduler.await_no_cancel task in
-          let res = Result.ok_exn res in
+          let res =
+            match res with
+            | Ok s -> s
+            | Error exn -> Exn_with_backtrace.reraise exn
+          in
           (match res with
           | None -> close_in in_thread
           | Some _ -> ());
@@ -61,7 +65,7 @@ let make s io =
               Log.msg "dropped write"
                 [ ("packet", Jsonrpc.yojson_of_packet packet) ]);
           Fiber.return ()
-        | Some thread, _ ->
+        | Some thread, _ -> (
           let+ res =
             Scheduler.async_exn thread
               (match t with
@@ -72,7 +76,9 @@ let make s io =
           (match t with
           | None -> close_out out_thread
           | Some _ -> ());
-          Result.ok_exn res)
+          match res with
+          | Ok s -> s
+          | Error exn -> Exn_with_backtrace.reraise exn))
   in
   { in_; out; in_thread; out_thread; io }
 
@@ -82,11 +88,13 @@ let close (t : t) what =
   | `Read -> (
     match !(t.in_thread) with
     | None -> Fiber.return ()
-    | Some thread ->
+    | Some thread -> (
       let open Fiber.O in
       let+ close =
         Scheduler.async_exn thread (fun () -> Io.close_in t.io)
         |> Scheduler.await_no_cancel
       in
       close_in t.in_thread;
-      Result.ok_exn close)
+      match close with
+      | Ok s -> s
+      | Error exn -> Exn_with_backtrace.reraise exn))

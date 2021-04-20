@@ -120,7 +120,8 @@ and event =
 
 and job =
   | Pending :
-      (unit -> 'a) * ('a, [ `Exn of Exn.t | `Canceled ]) result Fiber.Ivar.t
+      (unit -> 'a)
+      * ('a, [ `Exn of Exn_with_backtrace.t | `Canceled ]) result Fiber.Ivar.t
       -> job
 
 and thread =
@@ -250,7 +251,7 @@ let create_thread scheduler =
   let worker =
     let do_ (Pending (f, ivar)) =
       let res =
-        match Result.try_with f with
+        match Exn_with_backtrace.try_with f with
         | Ok x -> Ok x
         | Error exn -> Error (`Exn exn)
       in
@@ -268,7 +269,8 @@ let add_pending_events t by =
       assert (t.events_pending >= 0))
 
 type 'a task =
-  { ivar : ('a, [ `Exn of Exn.t | `Canceled ]) result Fiber.Ivar.t
+  { ivar :
+      ('a, [ `Exn of Exn_with_backtrace.t | `Canceled ]) result Fiber.Ivar.t
   ; task : Worker.task
   }
 
