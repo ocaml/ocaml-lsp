@@ -39,7 +39,8 @@ module type S = sig
 
   val state : 'a t -> 'a
 
-  val make : 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
+  val make :
+    ?tracer:Tracer.t -> 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
 
   val stop : 'state t -> unit Fiber.t
 

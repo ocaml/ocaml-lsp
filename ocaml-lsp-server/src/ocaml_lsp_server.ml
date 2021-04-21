@@ -159,7 +159,7 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   let state =
     match ip.trace with
     | None -> state
-    | Some trace -> { state with trace }
+    | Some client_trace_verbosity -> { state with client_trace_verbosity }
   in
   (initialize_info, state)
 
@@ -730,6 +730,7 @@ let on_request :
     match
       [ (Req_switch_impl_intf.meth, Req_switch_impl_intf.on_request)
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
+      ; (Req_dump_trace.meth, Req_dump_trace.on_request)
       ]
       |> List.assoc_opt meth
     with
@@ -793,7 +794,8 @@ let on_notification server (notification : Client_notification.t) :
   | WorkDoneProgressCancel _
   | Exit ->
     Fiber.return state
-  | SetTrace { value } -> Fiber.return { state with trace = value }
+  | SetTrace { value } ->
+    Fiber.return { state with client_trace_verbosity = value }
   | Unknown_notification req ->
     let open Fiber.O in
     let+ () =
@@ -819,16 +821,20 @@ let start () =
   in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
+  let tracer =
+    Tracer.create ~max_n_last_events:1000 (Tracer.trace_layers ~lsp:() ())
+  in
   let server =
     let merlin = Scheduler.create_thread scheduler in
-    Server.make handler stream
+    Server.make ~tracer handler stream
       { store
       ; init = Uninitialized
       ; merlin
       ; scheduler
       ; configuration
       ; detached
-      ; trace = `Off
+      ; client_trace_verbosity = `Off
+      ; tracer = Some tracer
       }
   in
   Fiber.fork_and_join_unit

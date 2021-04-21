@@ -11,5 +11,6 @@ type t =
   ; scheduler : Scheduler.t
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
-  ; trace : TraceValue.t
+  ; client_trace_verbosity : TraceValue.t
+  ; tracer : Tracer.t option
   }
