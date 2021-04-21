@@ -12,4 +12,5 @@ type t =
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
   ; client_trace_verbosity : TraceValue.t
+  ; tracer : Tracer.t option
   }

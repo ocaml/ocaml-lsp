@@ -820,9 +820,12 @@ let start () =
   in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
+  let tracer =
+    Tracer.create ~max_n_last_events:1000 (Tracer.trace_layers ~lsp:() ())
+  in
   let server =
     let merlin = Scheduler.create_thread scheduler in
-    Server.make handler stream
+    Server.make ~tracer handler stream
       { store
       ; init = Uninitialized
       ; merlin
@@ -830,6 +833,7 @@ let start () =
       ; configuration
       ; detached
       ; client_trace_verbosity = `Off
+      ; tracer = Some tracer
       }
   in
   Fiber.fork_and_join_unit
