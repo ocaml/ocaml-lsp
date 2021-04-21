@@ -236,4 +236,80 @@ describe("textDocument/hover", () => {
       },
     });
   });
+
+  it("regression test for #343", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      textDocument: {
+        hover: {
+          dynamicRegistration: true,
+          contentFormat: ["markdown", "plaintext"],
+        },
+        moniker: {},
+      },
+    });
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "ocaml",
+        0,
+        outdent`
+          type t = s
+          and s = string
+          type 'a fib = ('a -> unit) -> unit
+       `,
+      ),
+    });
+
+    let hover1 = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(1, 4),
+    });
+
+    expect(hover1).toMatchInlineSnapshot(`
+      Object {
+        "contents": Object {
+          "kind": "markdown",
+          "value": "\`\`\`ocaml
+      type s = string
+      \`\`\`",
+        },
+        "range": Object {
+          "end": Object {
+            "character": 14,
+            "line": 1,
+          },
+          "start": Object {
+            "character": 0,
+            "line": 1,
+          },
+        },
+      }
+    `);
+
+    let hover2 = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(2, 9),
+    });
+
+    expect(hover2).toMatchInlineSnapshot(`
+      Object {
+        "contents": Object {
+          "kind": "markdown",
+          "value": "\`\`\`ocaml
+      type 'a fib = ('a -> unit) -> unit
+      \`\`\`",
+        },
+        "range": Object {
+          "end": Object {
+            "character": 34,
+            "line": 2,
+          },
+          "start": Object {
+            "character": 0,
+            "line": 2,
+          },
+        },
+      }
+    `);
+  });
 });
