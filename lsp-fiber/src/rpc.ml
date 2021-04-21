@@ -188,13 +188,17 @@ struct
     let open Fiber.O in
     let on_request (ctx : (state, Id.t) Session.Context.t) =
       let req = Session.Context.message ctx in
+      Tracer.trace_lsp_recv_req t.tracer ~id:req.id ~meth:req.method_
+        ~params:(req.params :> Yojson.Safe.t option);
       let state = Session.Context.state ctx in
       match In_request.of_jsonrpc req with
       | Error message ->
         let code = Jsonrpc.Response.Error.Code.InvalidParams in
         let error = Jsonrpc.Response.Error.make ~code ~message () in
-        Fiber.return
-          (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
+        let response = Jsonrpc.Response.error req.id error in
+        Tracer.trace_lsp_send_resp t.tracer ~id:req.id ~meth:req.method_
+          ~resp:(Response.yojson_of_t response);
+        Fiber.return (Jsonrpc_fiber.Reply.now response, state)
       | Ok (In_request.E r) ->
         let cancel = Cancel.create () in
         Table.set t.pending req.id cancel;
@@ -209,7 +213,11 @@ struct
               Fiber.return ())
         in
         let reply =
-          Reply.to_jsonrpc response req.id (In_request.yojson_of_result r)
+          Reply.to_jsonrpc response req.id (fun k ->
+              let res = In_request.yojson_of_result r k in
+              Tracer.trace_lsp_send_resp t.tracer ~id:req.id ~meth:req.method_
+                ~resp:res;
+              res)
         in
         (reply, state)
     in
