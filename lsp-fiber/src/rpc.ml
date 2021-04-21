@@ -88,7 +88,8 @@ module type S = sig
 
   val state : 'a t -> 'a
 
-  val make : 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
+  val make :
+    ?tracer:Tracer.t -> 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
 
   val stop : _ t -> unit Fiber.t
 
@@ -163,6 +164,7 @@ struct
     ; mutable req_id : int
     ; pending : (Jsonrpc.Id.t, Cancel.t) Table.t
     ; detached : Fiber.Pool.t
+    ; tracer : Tracer.t option
     }
 
   and 'state on_request =
@@ -242,7 +244,7 @@ struct
     in
     (on_request, on_notification)
 
-  let make ~name h_on_request h_on_notification io state =
+  let make ?tracer ~name h_on_request h_on_notification io state =
     let t =
       { io
       ; state = Waiting_for_init
@@ -251,6 +253,7 @@ struct
       ; req_id = 1
       ; pending = Table.create (module Jrpc_id) 32
       ; detached = Fiber.Pool.create ()
+      ; tracer
       }
     in
     let session =
@@ -347,9 +350,9 @@ module Client = struct
       let+ res = handler.h_on_notification t n in
       (Jsonrpc_fiber.Notify.Continue, res)
 
-  let make handler io =
+  let make ?tracer handler io =
     let h_on_notification = h_on_notification handler in
-    make ~name:"client" handler.h_on_request h_on_notification io
+    make ?tracer ~name:"client" handler.h_on_request h_on_notification io
 
   let start (t : _ t) (p : InitializeParams.t) =
     assert (t.state = Waiting_for_init);
@@ -416,12 +419,12 @@ module Server = struct
       else
         handler.h_on_request.on_request t in_r
 
-  let make (type s) (handler : s Handler.t) io (initial_state : s) =
+  let make (type s) ?tracer (handler : s Handler.t) io (initial_state : s) =
     let h_on_request : _ Handler.on_request =
       { Handler.on_request = (fun t x -> on_request handler t x) }
     in
     let h_on_notification = h_on_notification handler in
-    make ~name:"server" h_on_request h_on_notification io initial_state
+    make ?tracer ~name:"server" h_on_request h_on_notification io initial_state
 
   let start t = start_loop t
 end
