@@ -23,12 +23,12 @@ let constr_of_literal (t : Ts_types.Literal.t) : Expr.t =
   in
   Create (Constr { poly = true; tag; args = [ args ] })
 
-let json_error_pat name =
+let json_error_pat msg =
   let open Expr in
   ( Wildcard
   , App
       ( Create (Ident "Json.error")
-      , [ Unnamed (Create (String name)); Unnamed (Create (Ident "json")) ] ) )
+      , [ Unnamed (Create (String msg)); Unnamed (Create (Ident "json")) ] ) )
 
 let is_json_constr (constr : Type.constr) =
   List.mem [ "String"; "Int"; "Bool" ] constr.name ~equal:String.equal
@@ -90,7 +90,13 @@ module Enum = struct
         else
           clauses
       in
-      Match (Create (Ident "json"), clauses @ [ json_error_pat name ])
+      let msg =
+        sprintf "Invalid value. Expected one of: %s"
+          (List.map constrs ~f:(fun (_, literal) ->
+               Ts_types.Literal.to_maybe_quoted_string literal)
+          |> String.concat ~sep:", ")
+      in
+      Match (Create (Ident "json"), clauses @ [ json_error_pat msg ])
     in
     of_json ~name body
 

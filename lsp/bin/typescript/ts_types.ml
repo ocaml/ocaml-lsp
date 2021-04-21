@@ -8,6 +8,11 @@ module Literal = struct
     | Int of int
     | Float of float
 
+  let to_maybe_quoted_string = function
+    | String s -> sprintf "%S" s
+    | Int i -> string_of_int i
+    | Float f -> string_of_float f
+
   let to_dyn =
     let open Stdune.Dyn.Encoder in
     function

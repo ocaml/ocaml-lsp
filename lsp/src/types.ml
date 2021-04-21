@@ -156,7 +156,7 @@ module SymbolTag = struct
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `Int 1 -> Deprecated
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of:\n1" json
 end
 
 module SymbolKind = struct
@@ -245,7 +245,12 @@ module SymbolKind = struct
     | `Int 24 -> Event
     | `Int 25 -> Operator
     | `Int 26 -> TypeParameter
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value.\n\
+         Expected one of: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, \
+         16, 17,\n\
+         18, 19, 20, 21, 22, 23, 24, 25, 26" json
 end
 
 module TokenFormat = struct
@@ -258,7 +263,7 @@ module TokenFormat = struct
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `String "relative" -> Relative
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value.\nExpected one of: \"relative\"" json
 end
 
 module DiagnosticTag = struct
@@ -275,7 +280,7 @@ module DiagnosticTag = struct
     match json with
     | `Int 1 -> Unnecessary
     | `Int 2 -> Deprecated
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2" json
 end
 
 module PrepareSupportDefaultBehavior = struct
@@ -288,7 +293,7 @@ module PrepareSupportDefaultBehavior = struct
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `Int 1 -> Identifier
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of:\n1" json
 end
 
 module CodeActionKind = struct
@@ -326,7 +331,13 @@ module CodeActionKind = struct
     | `String "source" -> Source
     | `String "source.organizeImports" -> SourceOrganizeImports
     | `String s -> Other s
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of: \"\", \"quickfix\", \"refactor\",\n\
+         \"refactor.extract\", \"refactor.inline\", \"refactor.rewrite\", \
+         \"source\",\n\
+         \"source.organizeImports\""
+        json
 end
 
 module MarkupKind = struct
@@ -343,7 +354,9 @@ module MarkupKind = struct
     match json with
     | `String "plaintext" -> PlainText
     | `String "markdown" -> Markdown
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error "Invalid value. Expected one of: \"plaintext\", \"markdown\""
+        json
 end
 
 module CompletionItemKind = struct
@@ -429,7 +442,13 @@ module CompletionItemKind = struct
     | `Int 23 -> Event
     | `Int 24 -> Operator
     | `Int 25 -> TypeParameter
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of: 1, 2, 3,\n\
+         4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, \
+         23, 24,\n\
+         25"
+        json
 end
 
 module InsertTextMode = struct
@@ -446,7 +465,7 @@ module InsertTextMode = struct
     match json with
     | `Int 1 -> AsIs
     | `Int 2 -> AdjustIndentation
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2" json
 end
 
 module CompletionItemTag = struct
@@ -459,7 +478,7 @@ module CompletionItemTag = struct
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `Int 1 -> Deprecated
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of:\n1" json
 end
 
 module FailureHandlingKind = struct
@@ -482,7 +501,10 @@ module FailureHandlingKind = struct
     | `String "transactional" -> Transactional
     | `String "textOnlyTransactional" -> TextOnlyTransactional
     | `String "undo" -> Undo
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of: \"abort\", \"transactional\",\n\
+         \"textOnlyTransactional\", \"undo\"" json
 end
 
 module ResourceOperationKind = struct
@@ -502,7 +524,10 @@ module ResourceOperationKind = struct
     | `String "create" -> Create
     | `String "rename" -> Rename
     | `String "delete" -> Delete
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of:\n\"create\", \"rename\", \"delete\""
+        json
 end
 
 module DiagnosticSeverity = struct
@@ -525,7 +550,7 @@ module DiagnosticSeverity = struct
     | `Int 2 -> Warning
     | `Int 3 -> Information
     | `Int 4 -> Hint
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2, 3, 4" json
 end
 
 module CompletionTriggerKind = struct
@@ -545,7 +570,7 @@ module CompletionTriggerKind = struct
     | `Int 1 -> Invoked
     | `Int 2 -> TriggerCharacter
     | `Int 3 -> TriggerForIncompleteCompletions
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected\none of: 1, 2, 3" json
 end
 
 module InsertTextFormat = struct
@@ -562,7 +587,7 @@ module InsertTextFormat = struct
     match json with
     | `Int 1 -> PlainText
     | `Int 2 -> Snippet
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid\nvalue. Expected one of: 1, 2" json
 end
 
 module DocumentHighlightKind = struct
@@ -582,7 +607,7 @@ module DocumentHighlightKind = struct
     | `Int 1 -> Text
     | `Int 2 -> Read
     | `Int 3 -> Write
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2, 3" json
 end
 
 module FileChangeType = struct
@@ -602,7 +627,7 @@ module FileChangeType = struct
     | `Int 1 -> Created
     | `Int 2 -> Changed
     | `Int 3 -> Deleted
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2, 3" json
 end
 
 module FileOperationPatternKind = struct
@@ -619,7 +644,8 @@ module FileOperationPatternKind = struct
     match json with
     | `String "file" -> File
     | `String "folder" -> Folder
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error "Invalid value. Expected one of: \"file\", \"folder\"" json
 end
 
 module FoldingRangeKind = struct
@@ -639,7 +665,10 @@ module FoldingRangeKind = struct
     | `String "comment" -> Comment
     | `String "imports" -> Imports
     | `String "region" -> Region
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of:\n\"comment\", \"imports\", \"region\""
+        json
 end
 
 module InitializeError = struct
@@ -652,7 +681,7 @@ module InitializeError = struct
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `Int 1 -> UnknownProtocolVersion
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value.\nExpected one of: 1" json
 end
 
 module TextDocumentSyncKind = struct
@@ -672,7 +701,7 @@ module TextDocumentSyncKind = struct
     | `Int 0 -> None
     | `Int 1 -> Full
     | `Int 2 -> Incremental
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 0, 1, 2" json
 end
 
 module MessageType = struct
@@ -695,7 +724,7 @@ module MessageType = struct
     | `Int 2 -> Warning
     | `Int 3 -> Info
     | `Int 4 -> Log
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2, 3, 4" json
 end
 
 module MonikerKind = struct
@@ -715,7 +744,10 @@ module MonikerKind = struct
     | `String "import" -> Import
     | `String "export" -> Export
     | `String "local" -> Local
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of:\n\"import\", \"export\", \"local\""
+        json
 end
 
 module UniquenessLevel = struct
@@ -741,7 +773,12 @@ module UniquenessLevel = struct
     | `String "group" -> Group
     | `String "scheme" -> Scheme
     | `String "global" -> Global
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value.\n\
+         Expected one of: \"document\", \"project\", \"group\", \"scheme\",\n\
+         \"global\""
+        json
 end
 
 module SignatureHelpTriggerKind = struct
@@ -761,7 +798,7 @@ module SignatureHelpTriggerKind = struct
     | `Int 1 -> Invoked
     | `Int 2 -> TriggerCharacter
     | `Int 3 -> ContentChange
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2, 3" json
 end
 
 module TextDocumentSaveReason = struct
@@ -781,7 +818,7 @@ module TextDocumentSaveReason = struct
     | `Int 1 -> Manual
     | `Int 2 -> AfterDelay
     | `Int 3 -> FocusOut
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2, 3" json
 end
 
 module WatchKind = struct
@@ -801,7 +838,7 @@ module WatchKind = struct
     | `Int 1 -> Create
     | `Int 2 -> Change
     | `Int 4 -> Delete
-    | _ -> Json.error "t" json
+    | _ -> Json.error "Invalid value. Expected one of: 1, 2, 4" json
 end
 
 module ChangeAnnotationIdentifier = struct
@@ -26774,7 +26811,10 @@ module TraceValue = struct
     | `String "off" -> `Off
     | `String "message" -> `Message
     | `String "verbose" -> `Verbose
-    | _ -> Json.error "t" json
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of:\n\"off\", \"message\", \"verbose\""
+        json
 end
 
 module InitializeParams = struct
