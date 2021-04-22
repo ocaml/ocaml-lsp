@@ -2886,7 +2886,7 @@ end
 module TraceValue : sig
   type t =
     [ `Off
-    | `Message
+    | `Messages
     | `Verbose
     ]
 
