@@ -1653,7 +1653,7 @@ A `TraceValue` represents the level of verbosity with which the server systemati
 The initial trace value is set by the client at initialization and can be modified later using the [$/setTrace](#setTrace) notification.
 
 ```typescript
-export type TraceValue = 'off' | 'message' | 'verbose';
+export type TraceValue = 'off' | 'messages' | 'verbose';
 ```
 
 ### Actual Protocol

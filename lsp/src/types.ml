@@ -26796,24 +26796,24 @@ end
 module TraceValue = struct
   type t =
     [ `Off
-    | `Message
+    | `Messages
     | `Verbose
     ]
 
   let yojson_of_t (t : t) : Json.t =
     match t with
     | `Off -> `String "off"
-    | `Message -> `String "message"
+    | `Messages -> `String "messages"
     | `Verbose -> `String "verbose"
 
   let t_of_yojson (json : Json.t) : t =
     match json with
     | `String "off" -> `Off
-    | `String "message" -> `Message
+    | `String "messages" -> `Messages
     | `String "verbose" -> `Verbose
     | _ ->
       Json.error
-        "Invalid value. Expected one of:\n\"off\", \"message\", \"verbose\""
+        "Invalid value. Expected one of:\n\"off\", \"messages\", \"verbose\""
         json
 end
 
