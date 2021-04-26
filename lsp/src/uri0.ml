@@ -28,13 +28,9 @@ let proto =
   | true -> "file:///"
   | false -> "file://"
 
-let to_path (uri : t) =
-  let path =
-    match String.drop_prefix ~prefix:proto uri with
-    | Some path -> path
-    | None -> uri
-  in
-  path
+let to_path t =
+  let t = Uri_lexer.of_string t in
+  t.path
   |> String.replace_all ~pattern:"\\" ~with_:"/"
   |> String.replace_all ~pattern:"%3A" ~with_:":"
   |> String.replace_all ~pattern:"%5C" ~with_:"/"

@@ -1,0 +1,18 @@
+(library
+ (name lsp_tests)
+ (enabled_if
+  (>= %{ocaml_version} 4.08))
+ (inline_tests)
+ (libraries
+  stdune
+  lsp
+  yojson
+  ;; This is because of the (implicit_transitive_deps false)
+  ;; in dune-project
+  base
+  ppx_expect.common
+  ppx_expect.config
+  ppx_expect.config_types
+  ppx_inline_test.config)
+ (preprocess
+  (pps ppx_expect)))

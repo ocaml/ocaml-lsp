@@ -183,20 +183,7 @@ let dispatch_exn (doc : t) command =
 let close t = Scheduler.cancel_timer t.timer
 
 let get_impl_intf_counterparts uri =
-  let uri_s = Uri.to_string uri in
-  let fpath =
-    match String.lsplit2 ~on:':' uri_s with
-    | Some (scheme, path) ->
-      if scheme = "file" then
-        Uri.t_of_yojson (`String uri_s) |> Uri.to_path
-      else
-        path
-    | _ ->
-      let data = `Assoc [ ("uri", `String uri_s) ] in
-      Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make ~data ~code:InvalidRequest
-           ~message:"provided file URI (param) doesn't follow URI spec" ())
-  in
+  let fpath = Uri.to_path uri in
   let fname = Filename.basename fpath in
   let ml, mli, eliom, eliomi, re, rei, mll, mly =
     ("ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly")
