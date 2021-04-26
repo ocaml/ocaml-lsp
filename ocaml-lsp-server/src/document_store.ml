@@ -14,7 +14,8 @@ let get store uri =
   | None ->
     Jsonrpc.Response.Error.raise
       (Jsonrpc.Response.Error.make ~code:InvalidRequest
-         ~message:(Format.asprintf "no document found with uri: %a" Uri.pp uri)
+         ~message:
+           (Format.asprintf "no document found with uri: %s" (Uri.to_string uri))
          ())
 
 let remove_document store uri =
