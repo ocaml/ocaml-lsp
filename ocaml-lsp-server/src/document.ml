@@ -191,9 +191,12 @@ let get_impl_intf_counterparts uri =
         Uri.t_of_yojson (`String uri_s) |> Uri.to_path
       else
         path
-    | _ ->
+    | spec ->
+      let data =
+        `Assoc [ ("spec", `List (List.map spec ~f:(fun x -> `String x))) ]
+      in
       Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make ~code:InvalidRequest
+        (Jsonrpc.Response.Error.make ~data ~code:InvalidRequest
            ~message:"provided file URI (param) doesn't follow URI spec" ())
   in
   let fname = Filename.basename fpath in
