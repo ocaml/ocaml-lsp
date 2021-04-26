@@ -55,8 +55,9 @@ let read ic =
     match input_line ic with
     | "\r" -> (acc, mark_content_type)
     | line -> (
-      match String.split_on_char ~sep:':' line with
-      | [ k; v ] ->
+      match String.lsplit2 ~on:':' line with
+      | None -> loop acc mark_content_type
+      | Some (k, v) ->
         let k = String.lowercase_ascii (String.trim k) in
         if
           k = Key.content_length_lowercase
@@ -76,8 +77,7 @@ let read ic =
         then
           loop { acc with content_type = String.trim v } true
         else
-          loop acc mark_content_type
-      | _ -> loop acc mark_content_type)
+          loop acc mark_content_type)
   in
   let t, mark_content_type = loop empty false in
   if t.content_length = empty.content_length then
