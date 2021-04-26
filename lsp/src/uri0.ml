@@ -1,35 +1,38 @@
 open Import
-open Json.Conv
 
-type t = string [@@deriving_inline yojson]
+type t = Uri_lexer.t =
+  { scheme : string option
+  ; authority : string
+  ; path : string
+  }
 
-let _ = fun (_ : t) -> ()
+let t_of_yojson json = Json.Conv.string_of_yojson json |> Uri_lexer.of_string
 
-let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+let to_string { scheme; authority; path } =
+  let b = Buffer.create 64 in
+  Option.iter scheme ~f:(fun s ->
+      Buffer.add_string b s;
+      Buffer.add_char b ':');
+  Buffer.add_string b "//";
+  Buffer.add_string b authority;
+  Buffer.add_string b path;
+  Buffer.contents b
 
-let _ = t_of_yojson
+let yojson_of_t t = `String (to_string t)
 
-let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+let equal = Poly.equal
 
-let _ = yojson_of_t
+let hash = Poly.hash
 
-[@@@end]
-
-let equal = String.equal
-
-let hash = String.hash
-
-let to_dyn = String.to_dyn
-
-let to_string uri = uri
-
-let proto =
-  match Sys.win32 with
-  | true -> "file:///"
-  | false -> "file://"
+let to_dyn { scheme; authority; path } =
+  let open Dyn.Encoder in
+  record
+    [ ("scheme", (option string) scheme)
+    ; ("authority", string authority)
+    ; ("path", string path)
+    ]
 
 let to_path t =
-  let t = Uri_lexer.of_string t in
   t.path
   |> String.replace_all ~pattern:"\\" ~with_:"/"
   |> String.replace_all ~pattern:"%3A" ~with_:":"
@@ -41,6 +44,4 @@ let of_path (path : string) =
     |> String.replace_all ~pattern:"\\" ~with_:"/"
     |> String.replace_all ~pattern:":" ~with_:"%3A"
   in
-  proto ^ path
-
-let pp fmt uri = Format.fprintf fmt "%s" uri
+  { path; scheme = Some "file"; authority = "" }

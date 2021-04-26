@@ -14,6 +14,7 @@ module Id = Id
 module Result = Stdune.Result
 module Exn_with_backtrace = Exn_with_backtrace
 module Queue = Queue
+module Poly = Stdune.Poly
 
 module String = struct
   include Stdune.String
