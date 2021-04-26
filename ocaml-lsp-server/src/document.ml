@@ -185,16 +185,14 @@ let close t = Scheduler.cancel_timer t.timer
 let get_impl_intf_counterparts uri =
   let uri_s = Uri.to_string uri in
   let fpath =
-    match String.split ~on:':' uri_s with
-    | [ scheme; path ] ->
+    match String.lsplit2 ~on:':' uri_s with
+    | Some (scheme, path) ->
       if scheme = "file" then
         Uri.t_of_yojson (`String uri_s) |> Uri.to_path
       else
         path
-    | spec ->
-      let data =
-        `Assoc [ ("spec", `List (List.map spec ~f:(fun x -> `String x))) ]
-      in
+    | _ ->
+      let data = `Assoc [ ("uri", `String uri_s) ] in
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make ~data ~code:InvalidRequest
            ~message:"provided file URI (param) doesn't follow URI spec" ())
