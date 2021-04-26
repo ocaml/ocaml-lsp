@@ -27,7 +27,7 @@ lock: ## Generate the lock files
 
 .PHONY: test
 test-ocaml: ## Run the unit tests
-	dune build @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
+	dune build @lsp/test/runtest @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
 
 .PHONY: promote
 promote:

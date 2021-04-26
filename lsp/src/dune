@@ -11,3 +11,5 @@
 (cinaps
  (files types.ml types.mli)
  (libraries lsp_gen))
+
+(ocamllex uri_lexer)
