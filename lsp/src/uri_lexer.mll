@@ -11,6 +11,7 @@ rule path = parse
 and path1 buf = parse
 | '\\' { Buffer.add_char buf '/' ; path1 buf lexbuf }
 | "%5" ['c' 'C'] { Buffer.add_char buf '/' ; path1 buf lexbuf }
+| "%3" ['a' 'A'] { Buffer.add_char buf ':' ; path1 buf lexbuf }
 | _ as c { Buffer.add_char buf c ; path1 buf lexbuf }
 | eof { Buffer.contents buf }
 
