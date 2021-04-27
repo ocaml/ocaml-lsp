@@ -312,4 +312,44 @@ describe("textDocument/hover", () => {
       }
     `);
   });
+
+  it("regression test for #403", async () => {
+    languageServer = await LanguageServer.startAndInitialize();
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "ocaml",
+        0,
+        outdent`
+type foo = int
+
+let x : foo = 1
+`,
+      ),
+    });
+
+    let result = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(2, 4),
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "contents": Object {
+          "kind": "plaintext",
+          "value": "int",
+        },
+        "range": Object {
+          "end": Object {
+            "character": 5,
+            "line": 2,
+          },
+          "start": Object {
+            "character": 4,
+            "line": 2,
+          },
+        },
+      }
+    `);
+  });
 });
