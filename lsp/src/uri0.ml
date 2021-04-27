@@ -39,6 +39,7 @@ let to_path t =
     |> String.replace_all ~pattern:"\\" ~with_:"/"
     |> String.replace_all ~pattern:"%5C" ~with_:"/"
     |> String.replace_all ~pattern:"%3A" ~with_:":"
+    |> String.replace_all ~pattern:"%20" ~with_:" "
   in
   if Sys.win32 then
     path
