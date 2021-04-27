@@ -6,16 +6,28 @@ type t =
   }
 }
 
-rule uri = parse
+rule path = parse
+| '/'? { path1 (Buffer.create 12) lexbuf }
+and path1 buf = parse
+| '\\' { Buffer.add_char buf '/' ; path1 buf lexbuf }
+| "%5C" { Buffer.add_char buf '/' ; path1 buf lexbuf }
+| _ as c { Buffer.add_char buf c ; path1 buf lexbuf }
+| eof { Buffer.contents buf }
+
+and uri = parse
 | ([^ ':']+) as scheme ':' { uri1 (Some scheme) lexbuf }
 | "" { uri1 None lexbuf }
 and uri1 scheme = parse
 | "//" ([^ '/']* as authority) { uri2 scheme authority lexbuf }
 | "" { uri2 scheme "" lexbuf }
 and uri2 scheme authority = parse
-| '/'? ((_ *) as path) eof { { scheme ; authority ; path } }
+| "" { { scheme ; authority ; path = path lexbuf } }
 
 {
+  let escape_path s =
+    let lexbuf = Lexing.from_string s in
+    path lexbuf
+
   let of_string s =
     let lexbuf = Lexing.from_string s in
     uri lexbuf

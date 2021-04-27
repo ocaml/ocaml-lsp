@@ -45,8 +45,5 @@ let to_path t =
     Filename.concat "/" path
 
 let of_path (path : string) =
-  let path =
-    String.drop_prefix ~prefix:"/" path |> Option.value ~default:path
-  in
-  let path = String.replace_all ~pattern:"\\" ~with_:"/" path in
+  let path = Uri_lexer.escape_path path in
   { path; scheme = Some "file"; authority = "" }
