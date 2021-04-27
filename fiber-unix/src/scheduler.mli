@@ -7,7 +7,7 @@ val create : unit -> t
 type run_error =
   | Never
   | Abort_requested
-  | Exn of Exn.t
+  | Exn of Exn_with_backtrace.t
 
 val run_result : t -> 'a Fiber.t -> ('a, run_error) result
 

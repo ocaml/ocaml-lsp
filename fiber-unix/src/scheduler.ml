@@ -313,7 +313,7 @@ let cancel_timers t =
 type run_error =
   | Never
   | Abort_requested
-  | Exn of Exn.t
+  | Exn of Exn_with_backtrace.t
 
 exception Abort of run_error
 
@@ -321,7 +321,9 @@ let () =
   Printexc.register_printer (function
     | Abort Never -> Some "Abort: Never"
     | Abort Abort_requested -> Some "Abort: requested"
-    | Abort (Exn exn) -> Some ("Abort: " ^ Printexc.to_string exn)
+    | Abort (Exn exn) ->
+      Some
+        ("Abort: " ^ Format.asprintf "%a@." Exn_with_backtrace.pp_uncaught exn)
     | _ -> None)
 
 let event_next (t : t) : Fiber.fill =
@@ -563,7 +565,9 @@ let run_result : 'a. t -> 'a Fiber.t -> ('a, _) result =
   let res =
     match Fiber.run f ~iter with
     | exception Abort err -> Error err
-    | exception exn -> Error (Exn exn)
+    | exception exn ->
+      let exn = Exn_with_backtrace.capture exn in
+      Error (Exn exn)
     | res ->
       assert (t.events_pending = 0);
       Ok res
