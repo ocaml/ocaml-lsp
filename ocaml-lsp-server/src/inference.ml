@@ -38,7 +38,7 @@ let language_id_of_fname s =
 let force_open_document (state : State.t) uri =
   let open Fiber.O in
   let filename = Uri.to_path uri in
-  let text = Io.read_file (Fpath.of_string filename) in
+  let text = Io.String_path.read_file filename in
   let delay = Configuration.diagnostics_delay state.configuration in
   let timer = Scheduler.create_timer state.scheduler ~delay in
   let languageId = language_id_of_fname filename in
