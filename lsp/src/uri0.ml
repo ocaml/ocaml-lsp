@@ -15,6 +15,7 @@ let to_string { scheme; authority; path } =
       Buffer.add_char b ':');
   Buffer.add_string b "//";
   Buffer.add_string b authority;
+  if not (String.is_prefix path ~prefix:"/") then Buffer.add_char b '/';
   Buffer.add_string b path;
   Buffer.contents b
 
@@ -33,15 +34,19 @@ let to_dyn { scheme; authority; path } =
     ]
 
 let to_path t =
-  t.path
-  |> String.replace_all ~pattern:"\\" ~with_:"/"
-  |> String.replace_all ~pattern:"%3A" ~with_:":"
-  |> String.replace_all ~pattern:"%5C" ~with_:"/"
+  let path =
+    t.path
+    |> String.replace_all ~pattern:"\\" ~with_:"/"
+    |> String.replace_all ~pattern:"%5C" ~with_:"/"
+  in
+  if Sys.win32 then
+    path
+  else
+    Filename.concat "/" path
 
 let of_path (path : string) =
   let path =
-    path
-    |> String.replace_all ~pattern:"\\" ~with_:"/"
-    |> String.replace_all ~pattern:":" ~with_:"%3A"
+    String.drop_prefix ~prefix:"/" path |> Option.value ~default:path
   in
+  let path = String.replace_all ~pattern:"\\" ~with_:"/" path in
   { path; scheme = Some "file"; authority = "" }
