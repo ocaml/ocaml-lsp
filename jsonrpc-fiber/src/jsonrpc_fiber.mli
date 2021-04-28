@@ -1,5 +1,3 @@
-open Jsonrpc
-
 module Notify : sig
   type t =
     | Stop
@@ -9,22 +7,22 @@ end
 module Reply : sig
   type t
 
-  val now : Response.t -> t
+  val now : Jsonrpc.Response.t -> t
 
-  val later : ((Response.t -> unit Fiber.t) -> unit Fiber.t) -> t
+  val later : ((Jsonrpc.Response.t -> unit Fiber.t) -> unit Fiber.t) -> t
 end
 
 (** Raised when the server is shutdown and a pending request will not complete. *)
-exception Stopped of Message.request
+exception Stopped of Jsonrpc.Message.request
 
 (** IO free implementation of the jsonrpc protocol. We stay completely agnostic
     of transport by only dealing with abstract jsonrpc packets *)
 module Make (Chan : sig
   type t
 
-  val send : t -> packet -> unit Fiber.t
+  val send : t -> Jsonrpc.packet -> unit Fiber.t
 
-  val recv : t -> packet option Fiber.t
+  val recv : t -> Jsonrpc.packet option Fiber.t
 
   val close : t -> [ `Read | `Write ] -> unit Fiber.t
 end) : sig
@@ -35,7 +33,7 @@ end) : sig
 
     type 'a session
 
-    val message : (_, 'req) t -> 'req Message.t
+    val message : (_, 'req) t -> 'req Jsonrpc.Message.t
 
     val state : ('a, _) t -> 'a
 
@@ -44,7 +42,8 @@ end) : sig
   with type 'a session := 'a t
 
   val create :
-       ?on_request:(('state, Id.t) Context.t -> (Reply.t * 'state) Fiber.t)
+       ?on_request:
+         (('state, Jsonrpc.Id.t) Context.t -> (Reply.t * 'state) Fiber.t)
     -> ?on_notification:
          (('state, unit) Context.t -> (Notify.t * 'state) Fiber.t)
     -> name:string
@@ -60,7 +59,7 @@ end) : sig
 
   val run : _ t -> unit Fiber.t
 
-  val notification : _ t -> Message.notification -> unit Fiber.t
+  val notification : _ t -> Jsonrpc.Message.notification -> unit Fiber.t
 
-  val request : _ t -> Message.request -> Response.t Fiber.t
+  val request : _ t -> Jsonrpc.Message.request -> Jsonrpc.Response.t Fiber.t
 end

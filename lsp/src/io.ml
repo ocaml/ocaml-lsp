@@ -1,4 +1,3 @@
-open Jsonrpc
 open Import
 
 type t =
@@ -19,7 +18,7 @@ let make ic oc =
   set_binary_mode_out oc true;
   { ic; oc }
 
-let send { oc; ic = _ } (packet : packet) =
+let send { oc; ic = _ } (packet : Jsonrpc.packet) =
   let json = Jsonrpc.yojson_of_packet packet in
   let data = Json.to_string json in
   let content_length = String.length data in
@@ -46,10 +45,10 @@ let read_content ic =
 let read { ic; oc = _ } : Json.t option =
   read_content ic |> Option.map ~f:Json.of_string
 
-let read (t : t) : packet option =
+let read (t : t) : Jsonrpc.packet option =
   let open Option.O in
   let+ json = read t in
   let open Json.O in
-  let req json = Message (Jsonrpc.Message.either_of_yojson json) in
-  let resp json = Response (Jsonrpc.Response.t_of_yojson json) in
+  let req json = Jsonrpc.Message (Jsonrpc.Message.either_of_yojson json) in
+  let resp json = Jsonrpc.Response (Jsonrpc.Response.t_of_yojson json) in
   (req <|> resp) json

@@ -1,5 +1,6 @@
 open Import
-open Jsonrpc
+module Id = Jsonrpc.Id
+module Response = Jsonrpc.Response
 module Session = Jsonrpc_fiber.Make (Fiber_io)
 
 module Reply = struct

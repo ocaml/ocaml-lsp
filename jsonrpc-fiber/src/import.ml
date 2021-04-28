@@ -14,6 +14,11 @@ module Table = Table
 module Exn_with_backtrace = Exn_with_backtrace
 module Queue = Queue
 include Fiber_unix
+module Id = Jsonrpc.Id
+module Message = Jsonrpc.Message
+module Response = Jsonrpc.Response
+
+type packet = Jsonrpc.packet
 
 module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t
