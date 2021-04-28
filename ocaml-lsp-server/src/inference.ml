@@ -8,15 +8,15 @@ let infer_intf_for_impl doc =
   | Impl ->
     Document.with_pipeline_exn doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
-        let pos = Mpipeline.get_lexing_pos pipeline `Start in
-        let env, _ = Mbrowse.leaf_node (Mtyper.node_at typer pos) in
         let sig_ : Types.signature =
           let typedtree = Mtyper.get_typedtree typer in
           match typedtree with
           | `Interface _ -> assert false
           | `Implementation doc -> doc.str_type
         in
-        Printtyp.wrap_printing_env env (fun () ->
+        let verbosity = (Mpipeline.final_config pipeline).query.verbosity in
+        let module Printtyp = Merlin_analysis.Type_utils.Printtyp in
+        Printtyp.wrap_printing_env ~verbosity Env.empty (fun () ->
             Format.asprintf "%a@." Printtyp.signature sig_))
 
 let language_id_of_fname s =
