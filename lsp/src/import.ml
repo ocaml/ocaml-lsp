@@ -131,7 +131,7 @@ module Json = struct
   let field_exn fields name conv =
     match field fields name conv with
     | Some f -> f
-    | None -> error "Jsonrpc.Result.t: missing field" (`Assoc fields)
+    | None -> error ("missing field" ^ name) (`Assoc fields)
 
   let rec of_dyn (t : Dyn.t) : t =
     match t with
