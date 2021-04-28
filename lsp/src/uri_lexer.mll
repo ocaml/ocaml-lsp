@@ -12,8 +12,8 @@ and path1 buf = parse
 | '\\' { Buffer.add_char buf '/' ; path1 buf lexbuf }
 | "%5" ['c' 'C'] { Buffer.add_char buf '/' ; path1 buf lexbuf }
 | "%3" ['a' 'A'] { Buffer.add_char buf ':' ; path1 buf lexbuf }
-| "%3" ['d' 'D'] { Buffer.add_char buf '=' ; path1 lex lexbuf }
-| "%3" ['f' 'F'] { Buffer.add_char buf '?' ; path1 lex lexbuf }
+| "%3" ['d' 'D'] { Buffer.add_char buf '=' ; path1 buf lexbuf }
+| "%3" ['f' 'F'] { Buffer.add_char buf '?' ; path1 buf lexbuf }
 | "%20" { Buffer.add_char buf ' ' ; path1 buf lexbuf }
 | _ as c { Buffer.add_char buf c ; path1 buf lexbuf }
 | eof { Buffer.contents buf }
