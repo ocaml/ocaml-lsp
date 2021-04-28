@@ -135,7 +135,8 @@ let make_config uri =
   let directory = Filename.dirname path in
   let mconfig =
     { mconfig with
-      query = { mconfig.query with verbosity = 1; filename; directory }
+      ocaml = { mconfig.ocaml with real_paths = false }
+    ; query = { mconfig.query with verbosity = 1; filename; directory }
     }
   in
   Mconfig.get_external_config path mconfig

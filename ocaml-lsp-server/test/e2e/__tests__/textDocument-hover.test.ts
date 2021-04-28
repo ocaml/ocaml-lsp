@@ -270,7 +270,7 @@ describe("textDocument/hover", () => {
         "contents": Object {
           "kind": "markdown",
           "value": "\`\`\`ocaml
-      type s = string
+      type s = t
       \`\`\`",
         },
         "range": Object {
@@ -337,7 +337,7 @@ let x : foo = 1
       Object {
         "contents": Object {
           "kind": "plaintext",
-          "value": "int",
+          "value": "foo",
         },
         "range": Object {
           "end": Object {
