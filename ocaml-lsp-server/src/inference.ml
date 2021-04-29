@@ -14,9 +14,10 @@ let infer_intf_for_impl doc =
           | `Interface _ -> assert false
           | `Implementation doc -> doc.str_type
         in
+        let env = Mtyper.initial_env typer in
         let verbosity = (Mpipeline.final_config pipeline).query.verbosity in
         let module Printtyp = Merlin_analysis.Type_utils.Printtyp in
-        Printtyp.wrap_printing_env ~verbosity Env.empty (fun () ->
+        Printtyp.wrap_printing_env ~verbosity env (fun () ->
             Format.asprintf "%a@." Printtyp.signature sig_))
 
 let language_id_of_fname s =
