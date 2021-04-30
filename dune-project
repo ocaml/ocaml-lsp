@@ -31,6 +31,7 @@ possible and does not make any assumptions about IO.
   (jsonrpc (= :version))
   yojson
   ppx_yojson_conv_lib
+  csexp ;; needed by stdune
   uutf
   (odoc :with-doc)
   (menhir :with-test)

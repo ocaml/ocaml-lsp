@@ -24,6 +24,7 @@ depends: [
   "jsonrpc" {= version}
   "yojson"
   "ppx_yojson_conv_lib"
+  "csexp"
   "uutf"
   "odoc" {with-doc}
   "menhir" {with-test}
