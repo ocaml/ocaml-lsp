@@ -51,7 +51,6 @@ possible and does not make any assumptions about IO.
   (csexp (>= 1.2.3))
   (result (>= 1.5))
   (ocamlformat :with-test)
-  (ocamlfind (>= 1.5.2))
   (odoc :with-doc)
   (ocaml (and (>= 4.12) (< 4.13)))))
 
