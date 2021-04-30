@@ -11,6 +11,8 @@
 - Correctly parse project paths with spaces and other special characters that
   must be escaped.
 
+- Print types with `-short-paths` even if the project wasn't built yet
+
 # 1.5.0 (03/18/2020)
 
 - Support 4.12 and drop support for all earlier versions
