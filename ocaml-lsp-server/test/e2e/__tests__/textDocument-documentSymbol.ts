@@ -105,11 +105,13 @@ describe("textDocument/documentSymbol", () => {
 
   it("returns a hierarchy of symbols", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        documentSymbol: {
-          hierarchicalDocumentSymbolSupport: true,
+      capabilities: {
+        textDocument: {
+          documentSymbol: {
+            hierarchicalDocumentSymbolSupport: true,
+          },
+          moniker: {},
         },
-        moniker: {},
       },
     });
     await openDocument(outdent`

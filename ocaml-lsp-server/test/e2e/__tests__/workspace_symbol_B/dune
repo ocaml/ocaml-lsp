@@ -1,0 +1,3 @@
+(library
+ (flags :standard -w -32-38-27)
+ (name lib))

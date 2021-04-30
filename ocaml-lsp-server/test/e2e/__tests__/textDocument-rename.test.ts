@@ -39,7 +39,9 @@ describe("textDocument/rename", () => {
 
   it("can reject invalid rename request", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      workspace: { workspaceEdit: { documentChanges: false } },
+      capabilities: {
+        workspace: { workspaceEdit: { documentChanges: false } },
+      },
     });
 
     await openDocument(outdent`
@@ -54,7 +56,9 @@ describe("textDocument/rename", () => {
 
   it("allows valid rename request", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      workspace: { workspaceEdit: { documentChanges: false } },
+      capabilities: {
+        workspace: { workspaceEdit: { documentChanges: false } },
+      },
     });
 
     await openDocument(outdent`
@@ -72,7 +76,9 @@ describe("textDocument/rename", () => {
 
   it("rename value in a file without documentChanges capability", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      workspace: { workspaceEdit: { documentChanges: false } },
+      capabilities: {
+        workspace: { workspaceEdit: { documentChanges: false } },
+      },
     });
 
     await openDocument(outdent`
@@ -119,7 +125,9 @@ describe("textDocument/rename", () => {
 
   it("rename value in a file with documentChanges capability", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      workspace: { workspaceEdit: { documentChanges: true } },
+      capabilities: {
+        workspace: { workspaceEdit: { documentChanges: true } },
+      },
     });
 
     await openDocument(outdent`

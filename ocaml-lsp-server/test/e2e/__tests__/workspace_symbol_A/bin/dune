@@ -1,0 +1,6 @@
+(executable
+ (name main)
+ (package main)
+ (flags :standard -w -32)
+ (public_name main)
+ (libraries lib))
