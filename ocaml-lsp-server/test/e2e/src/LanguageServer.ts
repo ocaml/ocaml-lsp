@@ -57,17 +57,16 @@ export const start = (opts?: cp.SpawnOptions) => {
 };
 
 export const startAndInitialize = async (
-  capabilities?: Partial<Protocol.ClientCapabilities>,
+  initializeParameters: Partial<Protocol.InitializeParams> = {},
 ) => {
   let languageServer = start();
 
-  capabilities = capabilities || {};
-
-  let initializeParameters: Protocol.InitializeParams = {
+  initializeParameters = {
     processId: process.pid,
     rootUri: toURI(path.join(__dirname, "..")),
-    capabilities: capabilities,
     workspaceFolders: [],
+    capabilities: {},
+    ...initializeParameters,
   };
 
   await languageServer.sendRequest(

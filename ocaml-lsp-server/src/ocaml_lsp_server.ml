@@ -1,9 +1,11 @@
 open Import
 
-let client_capabilities (state : State.t) =
+let init_params (state : State.t) =
   match state.init with
   | Uninitialized -> assert false
-  | Initialized c -> c.capabilities
+  | Initialized init -> init
+
+let client_capabilities (state : State.t) = (init_params state).capabilities
 
 let make_error = Jsonrpc.Response.Error.make
 
@@ -60,7 +62,8 @@ let initialize_info : InitializeResult.t =
       ~referencesProvider:(`Bool true) ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
-      ~foldingRangeProvider:(`Bool true) ~experimental ~renameProvider ()
+      ~workspaceSymbolProvider:(`Bool true) ~foldingRangeProvider:(`Bool true)
+      ~experimental ~renameProvider ()
   in
   let serverInfo =
     let version = Version.get () in
@@ -561,6 +564,56 @@ let definition_query server (state : State.t) uri position merlin_request =
     in
     None
 
+let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
+    =
+  let symbols, errors =
+    let workspaces =
+      let init_params = init_params state in
+      (* WorkspaceFolders has the most priority. Then rootUri and finally
+         rootPath *)
+      let root_uri = init_params.rootUri in
+      let root_path = init_params.rootPath in
+      match (init_params.workspaceFolders, root_uri, root_path) with
+      | Some (Some workspace_folders), _, _ -> workspace_folders
+      | _, Some root_uri, _ ->
+        [ WorkspaceFolder.create ~uri:root_uri
+            ~name:(Filename.basename (Uri.to_path root_uri))
+        ]
+      | _, _, Some (Some root_path) ->
+        [ WorkspaceFolder.create ~uri:(Uri.of_path root_path)
+            ~name:(Filename.basename root_path)
+        ]
+      | _ ->
+        let cwd = Sys.getcwd () in
+        [ WorkspaceFolder.create ~uri:(Uri.of_path cwd)
+            ~name:(Filename.basename cwd)
+        ]
+    in
+    let symbols_results = Workspace_symbol.run params workspaces in
+    List.partition_map symbols_results ~f:(function
+      | Ok r -> Left r
+      | Error e -> Right e)
+  in
+  let open Fiber.O in
+  let+ () =
+    match errors with
+    | [] -> Fiber.return ()
+    | _ :: _ ->
+      let msg =
+        let message =
+          List.map errors ~f:(function
+              | Workspace_symbol.Build_dir_not_found workspace_name ->
+              workspace_name)
+          |> String.concat ~sep:", "
+          |> sprintf "No build directory found in workspace(s): %s"
+        in
+        ShowMessageParams.create ~message ~type_:Warning
+      in
+      task_if_running state ~f:(fun () ->
+          Server.notification server (ShowMessage msg))
+  in
+  Some (List.concat symbols)
+
 let highlight (state : State.t)
     { DocumentHighlightParams.textDocument = { uri }; position; _ } =
   let store = state.store in
@@ -623,7 +676,8 @@ let ocaml_on_request :
   | Client_request.TextDocumentCodeLensResolve codeLens -> now codeLens
   | Client_request.TextDocumentCodeLens req -> later text_document_lens req
   | Client_request.TextDocumentHighlight req -> later highlight req
-  | Client_request.WorkspaceSymbol _ -> now None
+  | Client_request.WorkspaceSymbol req ->
+    later (fun state () -> workspace_symbol rpc state req) ()
   | Client_request.DocumentSymbol { textDocument = { uri }; _ } ->
     later document_symbol uri
   | Client_request.TextDocumentDeclaration { textDocument = { uri }; position }

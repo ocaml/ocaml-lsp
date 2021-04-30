@@ -30,14 +30,16 @@ describe_opt("textDocument/completion", () => {
 
   beforeEach(async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        moniker: {},
-        signatureHelp: {
-          dynamicRegistration: true,
-          signatureInformation: {
-            documentationFormat: ["markdown", "plaintext"],
-            parameterInformation: {
-              labelOffsetSupport: true,
+      capabilities: {
+        textDocument: {
+          moniker: {},
+          signatureHelp: {
+            dynamicRegistration: true,
+            signatureInformation: {
+              documentationFormat: ["markdown", "plaintext"],
+              parameterInformation: {
+                labelOffsetSupport: true,
+              },
             },
           },
         },

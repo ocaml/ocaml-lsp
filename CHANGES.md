@@ -4,6 +4,8 @@
 
 - Add sub-errors as "related" information in diagnostics (#457)
 
+- Add support for navigating to a symbol inside a workspace (#398)
+
 # 1.6.1 (05/17/2020)
 
 ## Fixes

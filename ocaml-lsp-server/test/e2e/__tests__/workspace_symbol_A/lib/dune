@@ -1,0 +1,5 @@
+(library
+ (public_name lib)
+ (modules_without_implementation libTypes)
+ (flags :standard -w -32-38-27-34)
+ (name lib))

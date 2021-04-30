@@ -37,12 +37,14 @@ describe("textDocument/hover", () => {
 
   it("returns type inferred under cursor (markdown formatting)", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        hover: {
-          dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"],
+      capabilities: {
+        textDocument: {
+          hover: {
+            dynamicRegistration: true,
+            contentFormat: ["markdown", "plaintext"],
+          },
+          moniker: {},
         },
-        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -70,12 +72,14 @@ describe("textDocument/hover", () => {
 
   it("returns type inferred under cursor with documentation", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        hover: {
-          dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"],
+      capabilities: {
+        textDocument: {
+          hover: {
+            dynamicRegistration: true,
+            contentFormat: ["markdown", "plaintext"],
+          },
+          moniker: {},
         },
-        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -112,12 +116,14 @@ describe("textDocument/hover", () => {
 
   it("returns type inferred under cursor with documentation with tags (markdown formatting)", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        hover: {
-          dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"],
+      capabilities: {
+        textDocument: {
+          hover: {
+            dynamicRegistration: true,
+            contentFormat: ["markdown", "plaintext"],
+          },
+          moniker: {},
         },
-        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -198,12 +204,14 @@ describe("textDocument/hover", () => {
 
   it("returns good type when cursor is between values", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        hover: {
-          dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"],
+      capabilities: {
+        textDocument: {
+          hover: {
+            dynamicRegistration: true,
+            contentFormat: ["markdown", "plaintext"],
+          },
+          moniker: {},
         },
-        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -239,12 +247,14 @@ describe("textDocument/hover", () => {
 
   it("regression test for #343", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        hover: {
-          dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"],
+      capabilities: {
+        textDocument: {
+          hover: {
+            dynamicRegistration: true,
+            contentFormat: ["markdown", "plaintext"],
+          },
+          moniker: {},
         },
-        moniker: {},
       },
     });
     await languageServer.sendNotification("textDocument/didOpen", {
@@ -355,12 +365,14 @@ let x : foo = 1
 
   it("FIXME: reproduce [#344](https://github.com/ocaml/ocaml-lsp/issues/344)", async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      textDocument: {
-        hover: {
-          dynamicRegistration: true,
-          contentFormat: ["markdown", "plaintext"],
+      capabilities: {
+        textDocument: {
+          hover: {
+            dynamicRegistration: true,
+            contentFormat: ["markdown", "plaintext"],
+          },
+          moniker: {},
         },
-        moniker: {},
       },
     });
 
