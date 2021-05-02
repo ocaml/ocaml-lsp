@@ -245,25 +245,32 @@ let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
       let set = Option.value format ~default:[ MarkupKind.Markdown ] in
       List.mem set MarkupKind.Markdown ~equal:Poly.equal)
 
-let location_of_merlin_loc uri = function
-  | `At_origin
-  | `Builtin _
-  | `File_not_found _
-  | `Invalid_context
-  | `Not_found _
-  | `Not_in_env _ ->
-    None
+let location_of_merlin_loc uri : _ -> (_, string) result = function
+  | `At_origin -> Ok None
+  | `Builtin _ -> Ok None
+  | `File_not_found s -> Error (sprintf "File_not_found: %s" s)
+  | `Invalid_context -> Ok None
+  | `Not_found (ident, where) ->
+    let msg = sprintf "%s not found." ident in
+    let msg =
+      match where with
+      | None -> msg
+      | Some w -> sprintf "%s last looked in %s" msg w
+    in
+    Error msg
+  | `Not_in_env m -> Error (sprintf "not in environment: %s" m)
   | `Found (path, lex_position) ->
-    Position.of_lexical_position lex_position
-    |> Option.map ~f:(fun position ->
-           let range = { Range.start = position; end_ = position } in
-           let uri =
-             match path with
-             | None -> uri
-             | Some path -> Uri.of_path path
-           in
-           let locs = [ { Location.uri; range } ] in
-           `Location locs)
+    Ok
+      (Position.of_lexical_position lex_position
+      |> Option.map ~f:(fun position ->
+             let range = { Range.start = position; end_ = position } in
+             let uri =
+               match path with
+               | None -> uri
+               | Some path -> Uri.of_path path
+             in
+             let locs = [ { Location.uri; range } ] in
+             `Location locs))
 
 let format_doc ~markdown ~doc =
   `MarkupContent
@@ -547,13 +554,29 @@ let references (state : State.t)
          (* using original uri because merlin is looking only in local file *)
          { Location.uri; range }))
 
-let definition_query (state : State.t) uri position merlin_request =
+let definition_query server (state : State.t) uri position merlin_request =
   let doc = Document_store.get state.store uri in
   let position = Position.logical position in
   let command = merlin_request position in
   let open Fiber.O in
-  let+ result = Document.dispatch_exn doc command in
-  location_of_merlin_loc uri result
+  let* result = Document.dispatch_exn doc command in
+  match location_of_merlin_loc uri result with
+  | Ok s ->
+    let* () =
+      task_if_running state ~f:(fun () ->
+          let message = "log message params" in
+          let log = LogMessageParams.create ~type_:Error ~message in
+          Server.notification server (Server_notification.LogMessage log))
+    in
+    Fiber.return s
+  | Error message ->
+    let+ () =
+      task_if_running state ~f:(fun () ->
+          let message = sprintf "Locate failed. %s" message in
+          let log = LogMessageParams.create ~type_:Error ~message in
+          Server.notification server (Server_notification.LogMessage log))
+    in
+    None
 
 let highlight (state : State.t)
     { DocumentHighlightParams.textDocument = { uri }; position; _ } =
@@ -624,21 +647,21 @@ let ocaml_on_request :
     ->
     later
       (fun state () ->
-        definition_query state uri position (fun pos ->
+        definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate (None, `MLI, pos)))
       ()
   | Client_request.TextDocumentDefinition
       { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
-        definition_query state uri position (fun pos ->
+        definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate (None, `ML, pos)))
       ()
   | Client_request.TextDocumentTypeDefinition
       { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
-        definition_query state uri position (fun pos ->
+        definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate_type pos))
       ()
   | Client_request.TextDocumentCompletion
