@@ -16,4 +16,4 @@ type error =
 
 val message : error -> string
 
-val run : t -> Document.t -> (string, error) result Fiber.t
+val run : t -> Document.t -> (TextEdit.t list, error) result Fiber.t

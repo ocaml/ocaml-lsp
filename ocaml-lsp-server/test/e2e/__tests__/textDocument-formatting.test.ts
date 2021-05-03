@@ -64,7 +64,7 @@ maybeDescribe("textDocument/formatting", () => {
         languageServer,
         "let rec gcd a b =\n" +
           "  match (a, b) with\n" +
-          "  | 0, n\n" +
+          "    | 0, n\n" +
           "  | n, 0 ->\n" +
           "    n\n" +
           "  | _, _ -> gcd a (b mod a)\n",
@@ -74,15 +74,30 @@ maybeDescribe("textDocument/formatting", () => {
       let result = await query(languageServer, name);
       expect(result).toMatchObject([
         {
-          newText:
-            "let rec gcd a b =\n" +
-            "  match (a, b) with\n" +
-            "  | 0, n\n" +
-            "  | n, 0 ->\n" +
-            "    n\n" +
-            "  | _, _ -> gcd a (b mod a)\n",
+          range: { start: { character: 0, line: 2 }, end: { character: 0, line: 3 } },
+          newText: "  | 0, n\n"
         },
       ]);
+    });
+
+    it("leaves unchanged files alone", async () => {
+      languageServer = await LanguageServer.startAndInitialize();
+
+      let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
+
+      await openDocument(
+        languageServer,
+        "let rec gcd a b =\n" +
+          "  match (a, b) with\n" +
+          "  | 0, n\n" +
+          "  | n, 0 ->\n" +
+          "    n\n" +
+          "  | _, _ -> gcd a (b mod a)\n",
+        name,
+      );
+
+      let result = await query(languageServer, name);
+      expect(result).toMatchObject([]);
     });
 
     it("can format an ocaml intf file", async () => {
@@ -92,7 +107,7 @@ maybeDescribe("textDocument/formatting", () => {
 
       await openDocument(
         languageServer,
-        "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
+        "module Test :           sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
         name,
       );
 
@@ -100,8 +115,9 @@ maybeDescribe("textDocument/formatting", () => {
 
       expect(result).toMatchObject([
         {
+          range: { start: { character: 0, line: 0 }, end: { character: 0, line: 1 } },
           newText:
-            "module Test : sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
+            "module Test : sig\n",
         },
       ]);
     });
@@ -127,16 +143,7 @@ maybeDescribe("textDocument/formatting", () => {
       );
 
       let result = await query(languageServer, name);
-      expect(result).toMatchObject([
-        {
-          newText:
-            "let rec gcd a b = match (a, b) with\n" +
-            "  | 0, n\n" +
-            "  | n, 0 ->\n" +
-            "    n\n" +
-            "  | _, _ -> gcd a (b mod a)\n",
-        },
-      ]);
+      expect(result).toMatchObject([]);
     });
   });
 });
