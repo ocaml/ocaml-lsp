@@ -8,6 +8,7 @@ module Option = Stdune.Option
 module Table = Stdune.Table
 module String = Stdune.String
 module List = Stdune.List
+module Array = Stdune.Array
 module Result = Stdune.Result
 module Poly = Stdune.Poly
 module Exn_with_backtrace = Stdune.Exn_with_backtrace

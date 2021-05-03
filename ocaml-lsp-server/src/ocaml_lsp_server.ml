@@ -222,17 +222,7 @@ module Formatter = struct
             Server.notification rpc (ShowMessage msg))
       in
       Jsonrpc.Response.Error.raise error
-    | Result.Ok result ->
-      let pos line col = { Position.character = col; line } in
-      let range =
-        let start_pos = pos 0 0 in
-        match Msource.get_logical (Document.source doc) `End with
-        | `Logical (l, c) ->
-          let end_pos = pos l c in
-          { Range.start = start_pos; end_ = end_pos }
-      in
-      let change = { TextEdit.newText = result; range } in
-      Fiber.return (Some [ change ])
+    | Result.Ok result -> Fiber.return (Some result)
 end
 
 let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
@@ -863,6 +853,7 @@ let start () =
     (fun () ->
       let open Fiber.O in
       let* () = Server.start server in
+
       Fiber.fork_and_join_unit
         (fun () -> Document_store.close store)
         (fun () -> Fiber.Pool.stop detached))
