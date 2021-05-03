@@ -1,3 +1,10 @@
+# 1.6.1 (05/03/2020)
+
+## Fixes
+
+- Switch `verbosity` from 1 to 0. This is the same default that merlin uses.
+  The old value for verbosity (#433)
+
 # 1.6.0 (04/30/2020)
 
 ## Features
