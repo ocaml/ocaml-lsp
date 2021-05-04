@@ -22,6 +22,7 @@ open Lsp.Types
 module CompletionItemKind = CompletionItemKind
 module SymbolKind = SymbolKind
 module InitializeResult = InitializeResult
+module InitializeParams = InitializeParams
 module SignatureHelpOptions = SignatureHelpOptions
 module CodeActionOptions = CodeActionOptions
 module CodeLensOptions = CodeLensOptions

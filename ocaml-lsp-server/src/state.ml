@@ -13,4 +13,5 @@ type t =
   ; configuration : Configuration.t
   ; trace : TraceValue.t
   ; ocamlformat : Fmt.t
+  ; dune : Dune.t
   }
