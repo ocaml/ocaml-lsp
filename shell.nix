@@ -8,6 +8,7 @@ pkgs.mkShell {
   inputsFrom = [ jsonrpc lsp ocaml-lsp-server ];
   buildInputs = (with pkgs; [ yarn nodejs-14_x gnumake ]) ++ (with opam; [
     # dev
+    ocaml-lsp-server
     cinaps
     menhir
     ppx_yojson_conv
