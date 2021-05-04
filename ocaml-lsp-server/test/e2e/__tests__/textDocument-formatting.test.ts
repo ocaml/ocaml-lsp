@@ -74,8 +74,11 @@ maybeDescribe("textDocument/formatting", () => {
       let result = await query(languageServer, name);
       expect(result).toMatchObject([
         {
-          range: { start: { character: 0, line: 2 }, end: { character: 0, line: 3 } },
-          newText: "  | 0, n\n"
+          range: {
+            start: { character: 0, line: 2 },
+            end: { character: 0, line: 3 },
+          },
+          newText: "  | 0, n\n",
         },
       ]);
     });
@@ -115,9 +118,11 @@ maybeDescribe("textDocument/formatting", () => {
 
       expect(result).toMatchObject([
         {
-          range: { start: { character: 0, line: 0 }, end: { character: 0, line: 1 } },
-          newText:
-            "module Test : sig\n",
+          range: {
+            start: { character: 0, line: 0 },
+            end: { character: 0, line: 1 },
+          },
+          newText: "module Test : sig\n",
         },
       ]);
     });
