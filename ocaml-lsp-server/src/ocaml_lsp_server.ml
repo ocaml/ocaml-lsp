@@ -835,6 +835,7 @@ let start () =
   in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
+  let dune = Dune.create scheduler in
   let server =
     let merlin = Scheduler.create_thread scheduler in
     let ocamlformat = Fmt.create scheduler in
@@ -846,18 +847,44 @@ let start () =
       ; scheduler
       ; configuration
       ; detached
+      ; dune
       ; trace = `Off
       }
   in
   Fiber.fork_and_join_unit
+    (fun () -> Fiber.Pool.run detached)
     (fun () ->
       let open Fiber.O in
-      let* () = Server.start server in
-
+      let* () =
+        Fiber.fork_and_join_unit
+          (fun () -> Server.start server)
+          (fun () ->
+            let* state = Dune.state dune in
+            let message =
+              match state with
+              | Binary_not_found ->
+                Some "Dune must be installed for project functionality"
+              | Out_of_date ->
+                Some
+                  "Dune is out of date. Install dune >= 3.0 for project \
+                   functionality"
+              | Running -> None
+            in
+            match message with
+            | None -> Fiber.return ()
+            (* We disable the warnings because dune 3.0 isn't available yet *)
+            | Some _ when true -> Fiber.return ()
+            | Some message ->
+              let* (_ : InitializeParams.t) = Server.initialized server in
+              let state = Server.state server in
+              task_if_running state ~f:(fun () ->
+                  let log = LogMessageParams.create ~type_:Warning ~message in
+                  Server.notification server
+                    (Server_notification.LogMessage log)))
+      in
       Fiber.fork_and_join_unit
         (fun () -> Document_store.close store)
         (fun () -> Fiber.Pool.stop detached))
-    (fun () -> Fiber.Pool.run detached)
   |> Scheduler.run scheduler
 
 let run () =
