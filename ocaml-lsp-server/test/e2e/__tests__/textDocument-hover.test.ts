@@ -352,4 +352,134 @@ let x : foo = 1
       }
     `);
   });
+
+  it("FIXME: reproduce [#344](https://github.com/ocaml/ocaml-lsp/issues/344)", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      textDocument: {
+        hover: {
+          dynamicRegistration: true,
+          contentFormat: ["markdown", "plaintext"],
+        },
+        moniker: {},
+      },
+    });
+
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "ocaml",
+        0,
+        // the empty space below is necessary to reproduce the bug
+        outdent`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        let k = ()
+        let m = List.map
+        `,
+      ),
+    });
+
+    // here we see that all is ok
+    let hoverOverK = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(24, 4),
+    });
+
+    expect(hoverOverK).toMatchInlineSnapshot(`
+      Object {
+        "contents": Object {
+          "kind": "markdown",
+          "value": "\`\`\`ocaml
+      unit
+      \`\`\`",
+        },
+        "range": Object {
+          "end": Object {
+            "character": 5,
+            "line": 24,
+          },
+          "start": Object {
+            "character": 4,
+            "line": 24,
+          },
+        },
+      }
+    `);
+
+    // we trigger the bug
+    let autocompleteForListm = await languageServer.sendRequest(
+      "textDocument/hover",
+      {
+        textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+        position: Types.Position.create(25, 15),
+      },
+    );
+
+    let buggedHoverOverK = await languageServer.sendRequest(
+      "textDocument/hover",
+      {
+        textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+        position: Types.Position.create(24, 4),
+      },
+    );
+
+    // now the same hover as before comes with unrelated documentation
+    expect(buggedHoverOverK).toMatchInlineSnapshot(`
+      Object {
+        "contents": Object {
+          "kind": "markdown",
+          "value": "\`\`\`ocaml
+      unit
+      \`\`\`
+      ---
+      List operations.
+
+      Some functions are flagged as not tail-recursive. A tail-recursive
+      function uses constant stack space, while a non-tail-recursive function
+      uses stack space proportional to the length of its list argument, which
+      can be a problem with very long lists. When the function takes several
+      list arguments, an approximate formula giving stack usage \\\\(in some
+      unspecified constant unit\\\\) is shown in parentheses.
+
+      The above considerations can usually be ignored if your lists are not
+      longer than about 10000 elements.
+
+      The labeled version of this module can be used as described in the
+      \`StdLabels\` module.",
+        },
+        "range": Object {
+          "end": Object {
+            "character": 5,
+            "line": 24,
+          },
+          "start": Object {
+            "character": 4,
+            "line": 24,
+          },
+        },
+      }
+    `);
+  });
 });
