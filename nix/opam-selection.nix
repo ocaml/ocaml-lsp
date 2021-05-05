@@ -13,8 +13,8 @@ let
         {
           owner = "ocaml";
           repo = "opam-repository";
-          rev = "d90747963ba246b00526d08d26241e5654f418bf";
-          sha256 = "0yd9y0wxzhm91j6wja190saqlbz8mvjgv5078b5ipyfg61sap44h";
+          rev = "a884548d93b8a123cc59d711edf9694bdfbb8803";
+          sha256 = "1nhhh740qzy4qw4dxv560j7nxxqimlwimnbvrb7bm2rhrr8inywc";
         };
         src = (pkgs.fetchFromGitHub) fetch;
       };
