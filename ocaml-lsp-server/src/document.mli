@@ -47,8 +47,6 @@ val with_pipeline_exn : t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
 val version : t -> int
 
-val doc_with_new_merlin_pipeline : t -> t Fiber.t
-
 val update_text :
   ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t Fiber.t
 

@@ -165,11 +165,6 @@ let make timer merlin_thread tdoc =
   let+ pipeline = make_pipeline merlin_thread tdoc in
   { tdoc; pipeline; merlin = merlin_thread; timer }
 
-let doc_with_new_merlin_pipeline doc =
-  let open Fiber.O in
-  let+ pipeline = make_pipeline doc.merlin doc.tdoc in
-  { doc with pipeline }
-
 let update_text ?version doc changes =
   let tdoc =
     List.fold_left changes ~init:doc.tdoc ~f:(fun acc change ->

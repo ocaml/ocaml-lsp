@@ -811,8 +811,9 @@ let on_notification server (notification : Client_notification.t) :
         Log.msg "saved document is not in the store" [] );
       Fiber.return state
     | Some doc ->
-      (* we need new pipeline to get updated errors *)
-      let* doc = Document.doc_with_new_merlin_pipeline doc in
+      (* we need [update_text] with no changes to get a new merlin pipeline;
+         otherwise the diagnostics don't get updated *)
+      let* doc = Document.update_text doc [] in
       Document_store.put store doc;
       let+ () = send_diagnostics server doc in
       state)
