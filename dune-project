@@ -31,6 +31,7 @@ possible and does not make any assumptions about IO.
   (jsonrpc (= :version))
   yojson
   ppx_yojson_conv_lib
+  pp ;; needed by stdune
   csexp ;; needed by stdune
   uutf
   (odoc :with-doc)
@@ -48,6 +49,7 @@ possible and does not make any assumptions about IO.
   ppx_yojson_conv_lib
   dune-build-info
   dot-merlin-reader
+  pp
   (csexp (>= 1.2.3))
   (result (>= 1.5))
   (ocamlformat :with-test)

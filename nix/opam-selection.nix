@@ -13,8 +13,8 @@ let
         {
           owner = "ocaml";
           repo = "opam-repository";
-          rev = "9722f20a60d1cc64ef3e51a7b1d9277fe9629419";
-          sha256 = "0w5haqslldygypaplla0cqxp7rbm9c1p8rjyfcpjp5684wvnnbis";
+          rev = "739cf2af3cd24690081911128f756bc3c03a0fc1";
+          sha256 = "058pf724sdlhk2zykj1qqb59vmvn8fv3jzpc6gh3gq3dpam94m95";
         };
         src = (pkgs.fetchFromGitHub) fetch;
       };
@@ -329,6 +329,7 @@ in
         dune = selection.dune;
         jsonrpc = selection.jsonrpc;
         ocaml = selection.ocaml;
+        pp = selection.pp;
         ppx_yojson_conv_lib = selection.ppx_yojson_conv_lib;
         uutf = selection.uutf;
         yojson = selection.yojson;
@@ -481,6 +482,7 @@ in
         dune = selection.dune;
         dune-build-info = selection.dune-build-info;
         ocaml = selection.ocaml;
+        pp = selection.pp;
         ppx_yojson_conv_lib = selection.ppx_yojson_conv_lib;
         result = selection.result;
         yojson = selection.yojson;
@@ -567,6 +569,26 @@ in
         url = "https://github.com/ocaml-doc/octavius/archive/v1.2.2.tar.gz";
       };
       version = "1.2.2";
+    };
+    pp = 
+    {
+      opamInputs = 
+      {
+        dune = selection.dune;
+        ocaml = selection.ocaml;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        hash = "sha256:15wnb7ni8r05qv9zdfwky1bdg6n5k4d3w9sakmvacdibc17rpyp6";
+        package = "packages/pp/pp.1.1.2";
+      };
+      pname = "pp";
+      src = pkgs.fetchurl 
+      {
+        sha256 = "0mhxmzsraid4yw18zr6pyjfrhvf873ls8vfd1yapdfxijs6yk974";
+        url = "https://github.com/ocaml-dune/pp/releases/download/1.1.2/pp-1.1.2.tbz";
+      };
+      version = "1.1.2";
     };
     ppx_assert = 
     {
