@@ -1,4 +1,6 @@
 (vendored_dirs vendor)
 
+(data_only_dirs submodules)
+
 (rule
  (copy lsp.opam.template jsonrpc.opam.template))
