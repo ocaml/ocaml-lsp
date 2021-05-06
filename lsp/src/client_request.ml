@@ -174,99 +174,104 @@ let of_jsonrpc (r : Jsonrpc.Message.request) =
   let parse f = Json.message_params r f in
   match r.method_ with
   | "initialize" ->
-    parse InitializeParams.t_of_yojson >>| fun params -> E (Initialize params)
+    let+ params = parse InitializeParams.t_of_yojson in
+    E (Initialize params)
   | "shutdown" -> Ok (E Shutdown)
   | "textDocument/completion" ->
-    parse CompletionParams.t_of_yojson >>| fun params ->
+    let+ params = parse CompletionParams.t_of_yojson in
     E (TextDocumentCompletion params)
   | "completionItem/resolve" ->
-    parse CompletionItem.t_of_yojson >>| fun params ->
+    let+ params = parse CompletionItem.t_of_yojson in
     E (CompletionItemResolve params)
   | "textDocument/documentSymbol" ->
-    parse DocumentSymbolParams.t_of_yojson >>| fun params ->
+    let+ params = parse DocumentSymbolParams.t_of_yojson in
     E (DocumentSymbol params)
   | "textDocument/hover" ->
-    parse HoverParams.t_of_yojson >>| fun params -> E (TextDocumentHover params)
+    let+ params = parse HoverParams.t_of_yojson in
+    E (TextDocumentHover params)
   | "textDocument/definition" ->
-    parse DefinitionParams.t_of_yojson >>| fun params ->
+    let+ params = parse DefinitionParams.t_of_yojson in
     E (TextDocumentDefinition params)
   | "textDocument/typeDefinition" ->
-    parse TypeDefinitionParams.t_of_yojson >>| fun params ->
+    let+ params = parse TypeDefinitionParams.t_of_yojson in
     E (TextDocumentTypeDefinition params)
   | "textDocument/references" ->
-    parse ReferenceParams.t_of_yojson >>| fun params ->
+    let+ params = parse ReferenceParams.t_of_yojson in
     E (TextDocumentReferences params)
   | "textDocument/codeLens" ->
-    parse CodeLensParams.t_of_yojson >>| fun params ->
+    let+ params = parse CodeLensParams.t_of_yojson in
     E (TextDocumentCodeLens params)
   | "textDocument/prepareRename" ->
-    parse PrepareRenameParams.t_of_yojson >>| fun params ->
+    let+ params = parse PrepareRenameParams.t_of_yojson in
     E (TextDocumentPrepareRename params)
   | "textDocument/rename" ->
-    parse RenameParams.t_of_yojson >>| fun params ->
+    let+ params = parse RenameParams.t_of_yojson in
     E (TextDocumentRename params)
   | "textDocument/documentHighlight" ->
-    parse DocumentHighlightParams.t_of_yojson >>| fun params ->
+    let+ params = parse DocumentHighlightParams.t_of_yojson in
     E (TextDocumentHighlight params)
   | "textDocument/foldingRange" ->
-    parse FoldingRangeParams.t_of_yojson >>| fun params ->
+    let+ params = parse FoldingRangeParams.t_of_yojson in
     E (TextDocumentFoldingRange params)
   | "textDocument/signatureHelp" ->
-    parse SignatureHelpParams.t_of_yojson >>| fun params ->
+    let+ params = parse SignatureHelpParams.t_of_yojson in
     E (SignatureHelp params)
   | "textDocument/codeAction" ->
-    parse CodeActionParams.t_of_yojson >>| fun params -> E (CodeAction params)
+    let+ params = parse CodeActionParams.t_of_yojson in
+    E (CodeAction params)
   | "codeAction/resolve" ->
-    parse CodeAction.t_of_yojson >>| fun params -> E (CodeActionResolve params)
+    let+ params = parse CodeAction.t_of_yojson in
+    E (CodeActionResolve params)
   | "debug/echo" ->
-    parse DebugEcho.Params.t_of_yojson >>| fun params -> E (DebugEcho params)
+    let+ params = parse DebugEcho.Params.t_of_yojson in
+    E (DebugEcho params)
   | "debug/textDocument/get" ->
-    parse DebugTextDocumentGet.Params.t_of_yojson >>| fun params ->
+    let+ params = parse DebugTextDocumentGet.Params.t_of_yojson in
     E (DebugTextDocumentGet params)
   | "textDocument/onTypeFormatting" ->
-    parse DocumentOnTypeFormattingParams.t_of_yojson >>| fun params ->
+    let+ params = parse DocumentOnTypeFormattingParams.t_of_yojson in
     E (TextDocumentOnTypeFormatting params)
   | "textDocument/formatting" ->
-    parse DocumentFormattingParams.t_of_yojson >>| fun params ->
+    let+ params = parse DocumentFormattingParams.t_of_yojson in
     E (TextDocumentFormatting params)
   | "textDocument/documentLink" ->
-    parse DocumentLinkParams.t_of_yojson >>| fun params ->
+    let+ params = parse DocumentLinkParams.t_of_yojson in
     E (TextDocumentLink params)
   | "textDocument/resolve" ->
-    parse DocumentLink.t_of_yojson >>| fun params ->
+    let+ params = parse DocumentLink.t_of_yojson in
     E (TextDocumentLinkResolve params)
   | "workspace/symbol" ->
-    parse WorkspaceSymbolParams.t_of_yojson >>| fun params ->
+    let+ params = parse WorkspaceSymbolParams.t_of_yojson in
     E (WorkspaceSymbol params)
   | "textDocument/colorPresentation" ->
-    parse ColorPresentationParams.t_of_yojson >>| fun params ->
+    let+ params = parse ColorPresentationParams.t_of_yojson in
     E (TextDocumentColorPresentation params)
   | "textDocument/documentColor" ->
-    parse DocumentColorParams.t_of_yojson >>| fun params ->
+    let+ params = parse DocumentColorParams.t_of_yojson in
     E (TextDocumentColor params)
   | "textDocument/declaration" ->
-    parse TextDocumentPositionParams.t_of_yojson >>| fun params ->
+    let+ params = parse TextDocumentPositionParams.t_of_yojson in
     E (TextDocumentDeclaration params)
   | "textDocument/selectionRange" ->
-    parse SelectionRangeParams.t_of_yojson >>| fun params ->
+    let+ params = parse SelectionRangeParams.t_of_yojson in
     E (SelectionRange params)
   | "workspace/executeCommand" ->
-    parse ExecuteCommandParams.t_of_yojson >>| fun params ->
+    let+ params = parse ExecuteCommandParams.t_of_yojson in
     E (ExecuteCommand params)
   | "textDocument/semanticTokens/full" ->
-    parse SemanticTokensParams.t_of_yojson >>| fun params ->
+    let+ params = parse SemanticTokensParams.t_of_yojson in
     E (SemanticTokensFull params)
   | "textDocument/semanticTokens/full/delta" ->
-    parse SemanticTokensDeltaParams.t_of_yojson >>| fun params ->
+    let+ params = parse SemanticTokensDeltaParams.t_of_yojson in
     E (SemanticTokensDelta params)
   | "textDocument/semanticTokens/range" ->
-    parse SemanticTokensRangeParams.t_of_yojson >>| fun params ->
+    let+ params = parse SemanticTokensRangeParams.t_of_yojson in
     E (SemanticTokensRange params)
   | "textDocument/linkedEditingRange" ->
-    parse LinkedEditingRangeParams.t_of_yojson >>| fun params ->
+    let+ params = parse LinkedEditingRangeParams.t_of_yojson in
     E (LinkedEditingRange params)
   | "textDocument/moniker" ->
-    parse MonikerParams.t_of_yojson >>| fun params ->
+    let+ params = parse MonikerParams.t_of_yojson in
     E (TextDocumentMoniker params)
   | meth -> Ok (E (UnknownRequest { meth; params = r.params }))
 

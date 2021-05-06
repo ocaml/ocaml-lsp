@@ -10,9 +10,10 @@ let t_of_yojson json = Json.Conv.string_of_yojson json |> Uri_lexer.of_string
 
 let to_string { scheme; authority; path } =
   let b = Buffer.create 64 in
-  Option.iter scheme ~f:(fun s ->
-      Buffer.add_string b s;
-      Buffer.add_char b ':');
+  scheme
+  |> Option.iter (fun s ->
+         Buffer.add_string b s;
+         Buffer.add_char b ':');
   Buffer.add_string b "//";
   Buffer.add_string b authority;
   if not (String.is_prefix path ~prefix:"/") then Buffer.add_char b '/';
@@ -21,9 +22,9 @@ let to_string { scheme; authority; path } =
 
 let yojson_of_t t = `String (to_string t)
 
-let equal = Poly.equal
+let equal = ( = )
 
-let hash = Poly.hash
+let hash = Hashtbl.hash
 
 let to_dyn { scheme; authority; path } =
   let open Dyn.Encoder in

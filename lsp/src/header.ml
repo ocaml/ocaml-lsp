@@ -66,7 +66,7 @@ let read ic =
           loop
             { acc with
               content_length =
-                (match Int.of_string (String.trim v) with
+                (match int_of_string_opt (String.trim v) with
                 | Some i -> i
                 | None -> raise (Error (Invalid_header_line line)))
             }

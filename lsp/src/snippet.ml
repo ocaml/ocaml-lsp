@@ -43,10 +43,9 @@ let tabstop index = Tabstop (Some index, `None)
 let placeholder ?index content = Tabstop (index, `Placeholder content)
 
 let choice ?index values =
-  if List.is_empty values then
-    Code_error.raise "choice must have non empty values" []
-  else
-    Tabstop (index, `Choice values)
+  match values with
+  | [] -> Code_error.raise "choice must have non empty values" []
+  | _ -> Tabstop (index, `Choice values)
 
 let variable ?(opt = `None) var = Variable (var, opt)
 
@@ -88,7 +87,9 @@ let escape ?(in_choice = false) str =
     |> String.replace_all ~pattern:"," ~with_:"\\,"
     |> String.replace_all ~pattern:"|" ~with_:"\\|"
 
-type ctx = int * int Int.Map.t
+module Int_map = MoreLabels.Map.Make (Int)
+
+type ctx = int * int Int_map.t
 
 let pp_impl add_string (snippet : t) : unit =
   let open Format in
@@ -99,13 +100,13 @@ let pp_impl add_string (snippet : t) : unit =
       add_string (f n);
       (n + 1, m)
     | Some i -> (
-      match Int.Map.find m i with
+      match Int_map.find_opt i m with
       | Some j ->
         add_string (f j);
         (n, m)
       | None ->
         add_string (f n);
-        (n + 1, Int.Map.set m i n))
+        (n + 1, Int_map.add m ~key:i ~data:n))
   in
   let rec go ctx = function
     | Text s ->
@@ -140,7 +141,7 @@ let pp_impl add_string (snippet : t) : unit =
         |> add_string;
         ctx)
   in
-  go (1, Int.Map.empty) snippet |> ignore
+  go (1, Int_map.empty) snippet |> ignore
 
 let to_string t =
   let buf = Buffer.create 0 in

@@ -58,28 +58,38 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
   let open Result.O in
   match r.method_ with
   | "textDocument/didOpen" ->
-    Json.message_params r DidOpenTextDocumentParams.t_of_yojson
-    >>| fun params -> TextDocumentDidOpen params
+    let+ params = Json.message_params r DidOpenTextDocumentParams.t_of_yojson in
+    TextDocumentDidOpen params
   | "textDocument/didChange" ->
-    Json.message_params r DidChangeTextDocumentParams.t_of_yojson
-    >>| fun params -> TextDocumentDidChange params
+    let+ params =
+      Json.message_params r DidChangeTextDocumentParams.t_of_yojson
+    in
+    TextDocumentDidChange params
   | "textDocument/didClose" ->
-    Json.message_params r DidCloseTextDocumentParams.t_of_yojson
-    >>| fun params -> TextDocumentDidClose params
+    let+ params =
+      Json.message_params r DidCloseTextDocumentParams.t_of_yojson
+    in
+    TextDocumentDidClose params
   | "exit" -> Ok Exit
   | "initialized" -> Ok Initialized
   | "workspace/didChangeWorkspaceFolders" ->
-    Json.message_params r DidChangeWorkspaceFoldersParams.t_of_yojson
-    >>| fun params -> ChangeWorkspaceFolders params
+    let+ params =
+      Json.message_params r DidChangeWorkspaceFoldersParams.t_of_yojson
+    in
+    ChangeWorkspaceFolders params
   | "workspace/didChangeConfiguration" ->
-    Json.message_params r DidChangeConfigurationParams.t_of_yojson
-    >>| fun params -> ChangeConfiguration params
+    let+ params =
+      Json.message_params r DidChangeConfigurationParams.t_of_yojson
+    in
+    ChangeConfiguration params
   | "textDocument/willSave" ->
-    Json.message_params r WillSaveTextDocumentParams.t_of_yojson
-    >>| fun params -> WillSaveTextDocument params
+    let+ params =
+      Json.message_params r WillSaveTextDocumentParams.t_of_yojson
+    in
+    WillSaveTextDocument params
   | "textDocument/didSave" ->
-    Json.message_params r DidSaveTextDocumentParams.t_of_yojson
-    >>| fun params -> DidSaveTextDocument params
+    let+ params = Json.message_params r DidSaveTextDocumentParams.t_of_yojson in
+    DidSaveTextDocument params
   | m when m = Cancel_request.meth_ ->
     let+ params = Json.message_params r Cancel_request.t_of_yojson in
     CancelRequest params
@@ -89,13 +99,11 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
     in
     WorkDoneProgressCancel params
   | "$/setTrace" ->
-    Json.message_params r SetTraceParams.t_of_yojson >>| fun params ->
+    let+ params = Json.message_params r SetTraceParams.t_of_yojson in
     SetTrace params
   | _ -> Ok (Unknown_notification r)
 
 let to_jsonrpc t =
   let method_ = method_ t in
-  let params =
-    yojson_of_t t |> Option.map ~f:Jsonrpc.Message.Structured.of_json
-  in
+  let params = yojson_of_t t |> Option.map Jsonrpc.Message.Structured.of_json in
   { Jsonrpc.Message.id = (); params; method_ }

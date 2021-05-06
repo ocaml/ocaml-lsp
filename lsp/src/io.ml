@@ -43,10 +43,10 @@ let read_content ic =
     Some (Bytes.to_string buffer)
 
 let read { ic; oc = _ } : Json.t option =
-  read_content ic |> Option.map ~f:Json.of_string
+  read_content ic |> Option.map Json.of_string
 
 let read (t : t) : Jsonrpc.packet option =
-  let open Option.O in
+  let ( let+ ) x f = Option.map f x in
   let+ json = read t in
   let open Json.O in
   let req json = Jsonrpc.Message (Jsonrpc.Message.either_of_yojson json) in

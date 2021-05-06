@@ -1,69 +1,23 @@
-open Stdune
-module List = Stdune.List
-module Hashtbl = Stdune.Hashtbl
-module Option = Stdune.Option
-module Either = Stdune.Either
-module Int = Stdune.Int
+module List = ListLabels
+module Option = Stdlib.Option
+
+module Result = struct
+  include Stdlib.Result
+
+  module O = struct
+    let ( let+ ) x f = Stdlib.Result.map f x
+  end
+end
+
+(* TODO remove these last remnants of stdnue once there is something public
+   available *)
 module Dyn = Stdune.Dyn
-module Ordering = Stdune.Ordering
-module Exn = Stdune.Exn
-module Code_error = Code_error
-module Or_exn = Or_exn
-module Table = Table
-module Id = Id
-module Result = Stdune.Result
-module Exn_with_backtrace = Exn_with_backtrace
-module Queue = Queue
-module Poly = Stdune.Poly
+module Code_error = Stdune.Code_error
+
+let sprintf = Stdune.sprintf
 
 module String = struct
   include Stdune.String
-
-  let first_double_underscore_end s =
-    let len = String.length s in
-    let rec aux i =
-      if i > len - 2 then
-        raise Not_found
-      else if s.[i] = '_' && s.[i + 1] = '_' then
-        i + 1
-      else
-        aux (i + 1)
-    in
-    aux 0
-
-  let no_double_underscore s =
-    try
-      ignore (first_double_underscore_end s);
-      false
-    with
-    | Not_found -> true
-
-  let trim = function
-    | "" -> ""
-    | str ->
-      let l = String.length str in
-      let is_space = function
-        | ' '
-        | '\n'
-        | '\t'
-        | '\r' ->
-          true
-        | _ -> false
-      in
-      let r0 = ref 0
-      and rl = ref l in
-      while !r0 < l && is_space str.[!r0] do
-        incr r0
-      done;
-      let r0 = !r0 in
-      while !rl > r0 && is_space str.[!rl - 1] do
-        decr rl
-      done;
-      let rl = !rl in
-      if r0 = 0 && rl = l then
-        str
-      else
-        sub str ~pos:r0 ~len:(rl - r0)
 
   let print () s = Printf.sprintf "%S" s
 
@@ -126,7 +80,7 @@ module Json = struct
 
   module Jsonable = Ppx_yojson_conv_lib.Yojsonable
 
-  let field fields name conv = List.assoc_opt name fields |> Option.map ~f:conv
+  let field fields name conv = List.assoc_opt name fields |> Option.map conv
 
   let field_exn fields name conv =
     match field fields name conv with

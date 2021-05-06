@@ -1,4 +1,4 @@
-open Import
+open! Import
 open Types
 
 type t =
@@ -16,6 +16,6 @@ type t =
   | SetTrace of SetTraceParams.t
   | Unknown_notification of Jsonrpc.Message.notification
 
-val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) Result.t
+val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) result
 
 val to_jsonrpc : t -> Jsonrpc.Message.notification
