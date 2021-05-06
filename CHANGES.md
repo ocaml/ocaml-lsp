@@ -2,7 +2,11 @@
 
 ## Features
 
-- Get diagnostics (warning and error messages) on a file save (#438)
+- Get fresh diagnostics (warning and error messages) on a file save (#438)
+
+  Note: If you want the fresh diagnostics to take into account changes in other files, you
+  likely need to rebuild your project. An easy way to get automatic rebuilds is to run
+  `dune` in a watching mode, e.g.,[dune build --watch].
 
 ## Fixes
 
