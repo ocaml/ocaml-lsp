@@ -112,12 +112,9 @@ type t =
   ; event_ready : Condition.t
   ; timers_available : Condition.t
   ; timers_available_mutex : Mutex.t
-  ; earliest_next_mutex : Mutex.t
-  ; earliest_next_barrier : Barrier.t
-  ; mutable earliest_next : float option
+  ; timer_resolution : float
   ; mutable threads : thread list
   ; mutable time : Thread.t
-  ; mutable waker : Thread.t
   ; (* TODO Replace with Removable_queue *)
     timers : (Timer_id.t, active_timer ref) Table.t
   ; process_watcher : process_watcher Lazy.t
@@ -179,7 +176,6 @@ let signal_timers_available t =
 let time_loop t =
   let rec loop () =
     let to_run = ref [] in
-    let earliest_next = ref None in
     with_mutex t.time_mutex ~f:(fun () ->
         if not (is_empty t.timers) then
           let now = Unix.gettimeofday () in
@@ -189,14 +185,7 @@ let time_loop t =
                 active_timer.scheduled +. active_timer.parent.delay
               in
               let need_to_run = scheduled_at < now in
-              if need_to_run then
-                to_run := active_timer :: !to_run
-              else
-                earliest_next :=
-                  Some
-                    (match !earliest_next with
-                    | None -> scheduled_at
-                    | Some v -> min scheduled_at v);
+              if need_to_run then to_run := active_timer :: !to_run;
               not need_to_run));
     let to_run =
       List.sort !to_run ~compare:(fun x y ->
@@ -204,44 +193,10 @@ let time_loop t =
       |> List.map ~f:(fun x -> Scheduled x)
     in
     add_events t to_run;
-    Option.iter !earliest_next ~f:(fun s ->
-        with_mutex t.earliest_next_mutex ~f:(fun () ->
-            t.earliest_next <- Some s);
-        match Barrier.signal t.earliest_next_barrier with
-        | Ok () -> ()
-        | Error `Closed -> assert false);
-    with_mutex t.timers_available_mutex ~f:(fun () ->
-        Condition.wait t.timers_available t.timers_available_mutex);
+    Unix.sleepf t.timer_resolution;
     loop ()
   in
   loop ()
-
-let wake_loop t =
-  let rec loop timeout =
-    match Barrier.await t.earliest_next_barrier ?timeout with
-    | Error (`Closed (`Read b)) -> if b then signal_timers_available t
-    | Error `Timeout ->
-      signal_timers_available t;
-      loop None
-    | Ok () -> (
-      let wakeup_at =
-        with_mutex t.earliest_next_mutex ~f:(fun () ->
-            let v = t.earliest_next in
-            t.earliest_next <- None;
-            v)
-      in
-      let now = Unix.gettimeofday () in
-      match wakeup_at with
-      | None -> loop None
-      | Some wakeup_at ->
-        if now < wakeup_at then
-          loop (Some (wakeup_at -. now))
-        else (
-          signal_timers_available t;
-          loop None
-        ))
-  in
-  loop None
 
 let create_thread scheduler =
   let worker =
@@ -548,7 +503,6 @@ end = struct
 end
 
 let cleanup t =
-  Barrier.close t.earliest_next_barrier;
   List.iter t.threads ~f:stop;
   if Lazy.is_val t.process_watcher then
     Process_watcher.killall (Lazy.force t.process_watcher) Sys.sigkill
@@ -587,18 +541,14 @@ let create () =
     ; events_mutex = Mutex.create ()
     ; time_mutex = Mutex.create ()
     ; event_ready = Condition.create ()
-    ; earliest_next_mutex = Mutex.create ()
-    ; earliest_next = None
-    ; earliest_next_barrier = Barrier.create ()
+    ; timer_resolution = 0.1
     ; threads = []
     ; timers = Table.create (module Timer_id) 10
     ; timers_available = Condition.create ()
     ; timers_available_mutex = Mutex.create ()
     ; time = Thread.self ()
-    ; waker = Thread.self ()
     ; process_watcher
     }
   and process_watcher = lazy (Process_watcher.init t) in
   t.time <- Thread.create time_loop t;
-  t.waker <- Thread.create wake_loop t;
   t
