@@ -4,3 +4,38 @@
 
 (rule
  (copy lsp.opam.template jsonrpc.opam.template))
+
+(subdir
+ vendor
+ (subdir
+  fiber
+  (copy_files# %{workspace_root}/submodules/jbuilder/src/fiber/*.{ml,mli})
+  (library
+   (libraries stdune)
+   (name fiber)))
+ (subdir
+  stdune-unstable
+  (subdir
+   dune_filesystem_stubs
+   (copy_files#
+     %{workspace_root}/submodules/jbuilder/otherlibs/stdune-unstable/dune_filesystem_stubs/*.*)
+   (library
+    (name dune_filesystem_stubs)
+    (public_name lsp.filesystem_stubs)
+    (libraries)
+    (foreign_stubs
+     (language c)
+     (names readdir))))
+  (copy_files#
+    %{workspace_root}/submodules/jbuilder/otherlibs/stdune-unstable/*.*)
+  (library
+   (name stdune)
+   (libraries
+    unix
+    csexp
+    (re_export pp)
+    dune_filesystem_stubs)
+   (foreign_stubs
+    (language c)
+    (names fcntl_stubs wait3_stubs))
+   (public_name lsp.stdune))))
