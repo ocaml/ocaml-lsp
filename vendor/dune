@@ -20,7 +20,7 @@
 
 (library
  (name stdune)
- (libraries unix csexp pp dune_filesystem_stubs)
+ (libraries unix csexp (re_export pp) dune_filesystem_stubs)
  (foreign_stubs
   (language c)
   (names fcntl_stubs wait3_stubs))
