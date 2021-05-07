@@ -193,10 +193,10 @@ let%expect_test "concurrent requests" =
     waiter: making request
     waitee: received request
     { "id": 100, "method": "shutdown", "jsonrpc": "2.0" }
-    initial request response:
-    { "id": "initial", "jsonrpc": "2.0", "result": null }
     waitee: stopping
     waitee: stopped
+    initial request response:
+    { "id": "initial", "jsonrpc": "2.0", "result": null }
     waiter: received response:
     { "id": 100, "jsonrpc": "2.0", "result": 42 }
     [FAIL] unexpected Never raised |}]

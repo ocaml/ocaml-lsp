@@ -47,7 +47,7 @@ module type S = sig
 
   val notification : _ t -> out_notification -> unit Fiber.t
 
-  val on_cancel : (unit -> unit Fiber.t) -> unit
+  val on_cancel : (unit -> unit Fiber.t) -> unit Fiber.t
 end
 
 module Client : sig

@@ -25,7 +25,8 @@ end = struct
 
   let yield () =
     let ivar = Fiber.Ivar.create () in
-    let t = Fiber.Var.get_exn t_var in
+    let open Fiber.O in
+    let* t = Fiber.Var.get_exn t_var in
     Queue.push t ivar;
     Fiber.Ivar.read ivar
 
