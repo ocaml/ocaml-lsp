@@ -29,11 +29,12 @@ module Cancel = struct
   let var = Fiber.Var.create ()
 
   let register f =
-    Fiber.Var.get var
-    |> Option.iter ~f:(fun t ->
-           match !t with
-           | Pending p -> p.callbacks <- f :: p.callbacks
-           | Finished -> ())
+    let open Fiber.O in
+    let* scheduler = Fiber.Var.get_exn var in
+    (match !scheduler with
+    | Pending p -> p.callbacks <- f :: p.callbacks
+    | Finished -> ());
+    Fiber.return ()
 
   let create () = ref (Pending { callbacks = [] })
 
@@ -93,7 +94,7 @@ module type S = sig
 
   val notification : _ t -> out_notification -> unit Fiber.t
 
-  val on_cancel : (unit -> unit Fiber.t) -> unit
+  val on_cancel : (unit -> unit Fiber.t) -> unit Fiber.t
 end
 
 module type Request_intf = sig

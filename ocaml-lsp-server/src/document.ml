@@ -102,7 +102,7 @@ let source doc = Mpipeline.raw_source doc.pipeline
 
 let await task =
   let open Fiber.O in
-  let () = Server.on_cancel (fun () -> Scheduler.cancel_task task) in
+  let* () = Server.on_cancel (fun () -> Scheduler.cancel_task task) in
   let+ res = Scheduler.await task in
   match res with
   | Error `Canceled ->
