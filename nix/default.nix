@@ -8,7 +8,8 @@ let
     src = builtins.filterSource (path: type:
       if type == "directory" then
         (let name = baseNameOf path;
-        in name != "_boot" && name != ".git" && name != "_build")
+        in name != "_boot" && name != ".git" && name != "_build" && name
+        != "node_modules" && name != ".log")
       else
         true) ../.;
   };
