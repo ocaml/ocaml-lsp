@@ -1,4 +1,4 @@
-module List = ListLabels
+module List = Stdlib.ListLabels
 module Option = Stdlib.Option
 
 module Result = struct
