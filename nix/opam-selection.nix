@@ -13,8 +13,8 @@ let
         {
           owner = "ocaml";
           repo = "opam-repository";
-          rev = "a884548d93b8a123cc59d711edf9694bdfbb8803";
-          sha256 = "1nhhh740qzy4qw4dxv560j7nxxqimlwimnbvrb7bm2rhrr8inywc";
+          rev = "9722f20a60d1cc64ef3e51a7b1d9277fe9629419";
+          sha256 = "0w5haqslldygypaplla0cqxp7rbm9c1p8rjyfcpjp5684wvnnbis";
         };
         src = (pkgs.fetchFromGitHub) fetch;
       };
@@ -27,28 +27,6 @@ in
   repos = repos;
   selection = 
   {
-    astring = 
-    {
-      opamInputs = 
-      {
-        ocaml = selection.ocaml;
-        ocamlbuild = selection.ocamlbuild;
-        ocamlfind = selection.ocamlfind;
-        topkg = selection.topkg;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:1djnad9sq12idlakj069xvwm2nn7wqm137pqbxxai5frkgi08x74";
-        package = "packages/astring/astring.0.8.5";
-      };
-      pname = "astring";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "1ykhg9gd3iy7zsgyiy2p9b1wkpqg9irw5pvcqs3sphq71iir4ml6";
-        url = "https://erratique.ch/software/astring/releases/astring-0.8.5.tbz";
-      };
-      version = "0.8.5";
-    };
     base = 
     {
       opamInputs = 
@@ -139,24 +117,6 @@ in
         url = "https://github.com/ocaml-ppx/cinaps/archive/v0.15.1.tar.gz";
       };
       version = "v0.15.1";
-    };
-    cmdliner = 
-    {
-      opamInputs = {
-                     ocaml = selection.ocaml;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:05qlm4yp6124w2z10dpdchldfrmgmcr6h31rnxp8qs8mk0xzx48z";
-        package = "packages/cmdliner/cmdliner.1.0.4";
-      };
-      pname = "cmdliner";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "1h04q0zkasd0mw64ggh4y58lgzkhg6yhzy60lab8k8zq9ba96ajw";
-        url = "http://erratique.ch/software/cmdliner/releases/cmdliner-1.0.4.tbz";
-      };
-      version = "1.0.4";
     };
     cppo = 
     {
@@ -304,49 +264,6 @@ in
         url = "https://github.com/mjambon/easy-format/releases/download/1.3.2/easy-format-1.3.2.tbz";
       };
       version = "1.3.2";
-    };
-    fix = 
-    {
-      opamInputs = 
-      {
-        dune = selection.dune;
-        ocaml = selection.ocaml;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:0xqaxlp1jnpah5a07hjnswdsb8ck9cbhwmr0n2kp14cfri9l93za";
-        package = "packages/fix/fix.20201120";
-      };
-      pname = "fix";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "02xyn3wfcmz8if72y5pscy2imsnxv6s0fb0fvigjjdnknnd32wk9";
-        url = "https://gitlab.inria.fr/fpottier/fix/repository/20201120/archive.tar.gz";
-      };
-      version = "20201120";
-    };
-    fpath = 
-    {
-      opamInputs = 
-      {
-        astring = selection.astring;
-        ocaml = selection.ocaml;
-        ocamlbuild = selection.ocamlbuild;
-        ocamlfind = selection.ocamlfind;
-        topkg = selection.topkg;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:1pnskgw9fqq4kg1x4sc4vcv9rh0kksilx4qngwafpyss42mqq2i2";
-        package = "packages/fpath/fpath.0.7.3";
-      };
-      pname = "fpath";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "03z7mj0sqdz465rc4drj1gr88l9q3nfs374yssvdjdyhjbqqzc0j";
-        url = "https://erratique.ch/software/fpath/releases/fpath-0.7.3.tbz";
-      };
-      version = "0.7.3";
     };
     jane-street-headers = 
     {
@@ -593,26 +510,6 @@ in
       };
       version = "2.1.0";
     };
-    ocaml-version = 
-    {
-      opamInputs = 
-      {
-        dune = selection.dune;
-        ocaml = selection.ocaml;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:1varywl4g65g98i5ndxki8037v70756yyrikqx62hkqghs4ql804";
-        package = "packages/ocaml-version/ocaml-version.3.1.0";
-      };
-      pname = "ocaml-version";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "0pyy7hn6nzdgh98n5gvviilvpbmz1yc3cf9gfh925xyq15ma2yxc";
-        url = "https://github.com/ocurrent/ocaml-version/releases/download/v3.1.0/ocaml-version-v3.1.0.tbz";
-      };
-      version = "3.1.0";
-    };
     ocamlbuild = 
     {
       opamInputs = {
@@ -651,43 +548,6 @@ in
       };
       version = "1.9.1";
     };
-    ocamlformat = 
-    {
-      opamInputs = 
-      {
-        base = selection.base;
-        base-unix = selection.base-unix;
-        cmdliner = selection.cmdliner;
-        dune = selection.dune;
-        dune-build-info = selection.dune-build-info;
-        fix = selection.fix;
-        fpath = selection.fpath;
-        menhir = selection.menhir;
-        menhirLib = selection.menhirLib;
-        menhirSdk = selection.menhirSdk;
-        ocaml = selection.ocaml;
-        ocaml-migrate-parsetree = selection.ocaml-migrate-parsetree;
-        ocaml-version = selection.ocaml-version;
-        odoc = selection.odoc;
-        ppxlib = selection.ppxlib;
-        re = selection.re;
-        stdio = selection.stdio;
-        uuseg = selection.uuseg;
-        uutf = selection.uutf;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:1jg0y0c2w8in8bfnisd7rh1q7bgl19ingdwzydarn20lsl1vy4mx";
-        package = "packages/ocamlformat/ocamlformat.0.17.0";
-      };
-      pname = "ocamlformat";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "0f1lxp697yq61z8gqxjjaqd2ns8fd1vjfggn55x0gh9dx098p138";
-        url = "https://github.com/ocaml-ppx/ocamlformat/releases/download/0.17.0/ocamlformat-0.17.0.tbz";
-      };
-      version = "0.17.0";
-    };
     octavius = 
     {
       opamInputs = 
@@ -707,32 +567,6 @@ in
         url = "https://github.com/ocaml-doc/octavius/archive/v1.2.2.tar.gz";
       };
       version = "1.2.2";
-    };
-    odoc = 
-    {
-      opamInputs = 
-      {
-        astring = selection.astring;
-        cmdliner = selection.cmdliner;
-        cppo = selection.cppo;
-        dune = selection.dune;
-        fpath = selection.fpath;
-        ocaml = selection.ocaml;
-        result = selection.result;
-        tyxml = selection.tyxml;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:1bjl0qibn03gk0jr6nj4xa3xqwvxapw41k3hq0czcv383bigxa9c";
-        package = "packages/odoc/odoc.1.5.2";
-      };
-      pname = "odoc";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "0wa87h8q6izcc6rkzqn944vrb3hmc21lf0d0rmr8rhhbcvr66i6j";
-        url = "https://github.com/ocaml/odoc/releases/download/1.5.2/odoc-1.5.2.tbz";
-      };
-      version = "1.5.2";
     };
     ppx_assert = 
     {
@@ -1269,29 +1103,6 @@ in
       };
       version = "1.0.3";
     };
-    tyxml = 
-    {
-      opamInputs = 
-      {
-        dune = selection.dune;
-        ocaml = selection.ocaml;
-        re = selection.re;
-        seq = selection.seq;
-        uutf = selection.uutf;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:0fwxkanvfx49bar1xf2qkgjn2mfx2r2q5va7q3mp9qsar49n5xm4";
-        package = "packages/tyxml/tyxml.4.5.0";
-      };
-      pname = "tyxml";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "0s30f72m457c3gbdmdwbx7ls9zg806nvm83aiz9qkpglbppwr6n6";
-        url = "https://github.com/ocsigen/tyxml/releases/download/4.5.0/tyxml-4.5.0.tbz";
-      };
-      version = "4.5.0";
-    };
     uchar = 
     {
       opamInputs = 
@@ -1311,56 +1122,6 @@ in
         url = "https://github.com/ocaml/uchar/releases/download/v0.0.2/uchar-0.0.2.tbz";
       };
       version = "0.0.2";
-    };
-    uucp = 
-    {
-      opamInputs = 
-      {
-        cmdliner = selection.cmdliner or null;
-        ocaml = selection.ocaml;
-        ocamlbuild = selection.ocamlbuild;
-        ocamlfind = selection.ocamlfind;
-        topkg = selection.topkg;
-        uunf = selection.uunf or null;
-        uutf = selection.uutf or null;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:1c3i7g7vj4myychfaxw0q576wvm1d5ivj4r8n3d9gpqhswrrpmig";
-        package = "packages/uucp/uucp.13.0.0";
-      };
-      pname = "uucp";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "19kf8ypxaakacgg1dwwfzkc2zicaj88cmw11fw2z7zl24dn4gyiq";
-        url = "https://erratique.ch/software/uucp/releases/uucp-13.0.0.tbz";
-      };
-      version = "13.0.0";
-    };
-    uuseg = 
-    {
-      opamInputs = 
-      {
-        cmdliner = selection.cmdliner or null;
-        ocaml = selection.ocaml;
-        ocamlbuild = selection.ocamlbuild;
-        ocamlfind = selection.ocamlfind;
-        topkg = selection.topkg;
-        uucp = selection.uucp;
-        uutf = selection.uutf or null;
-      };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        hash = "sha256:12s9hqb0k949gj9qj4jbham7r6lra9jmdvy6zjws9wa7dr7rjhmk";
-        package = "packages/uuseg/uuseg.13.0.0";
-      };
-      pname = "uuseg";
-      src = pkgs.fetchurl 
-      {
-        sha256 = "1a635j8ra6p27g1ivfln3387lhwqmf6vq4r6bn7b6n1qsqyi1rls";
-        url = "https://erratique.ch/software/uuseg/releases/uuseg-13.0.0.tbz";
-      };
-      version = "13.0.0";
     };
     uutf = 
     {

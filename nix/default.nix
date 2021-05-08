@@ -5,7 +5,9 @@ let
   args = {
     inherit (pkgs.ocaml-ng.ocamlPackages_4_12) ocaml;
     selection = ./opam-selection.nix;
-    src = ../.;
+    src = builtins.filterSource (path: type:
+      type != "directory" || baseNameOf path != ".git" || baseNameOf path
+      != "_build") ../.;
   };
   opam-selection = opam2nix.build args;
   localPackages = let contents = builtins.attrNames (builtins.readDir ../.);
@@ -17,7 +19,6 @@ let
     "ppx_yojson_conv"
 
     # test deps
-    "ocamlformat=0.17.0"
     "ppx_expect"
   ]);
 
