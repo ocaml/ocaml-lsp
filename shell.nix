@@ -1,8 +1,8 @@
 let
   pkgs = (import <nixpkgs> { });
-  lsp = (import ./default.nix { });
+  local = (import ./default.nix { });
   inherit (pkgs) stdenv lib;
-in with lsp;
+in with local;
 
 pkgs.mkShell {
   inputsFrom = [ jsonrpc lsp ocaml-lsp-server ];
