@@ -6,12 +6,12 @@ let
     inherit (pkgs.ocaml-ng.ocamlPackages_4_12) ocaml;
     selection = ./opam-selection.nix;
     src = builtins.filterSource (path: type:
-      if type == "directory" then
-        (let name = baseNameOf path;
-        in name != "_boot" && name != ".git" && name != "_build" && name
-        != "node_modules" && name != ".log")
+      let name = baseNameOf path;
+      in if type == "directory" then
+        name != "_boot" && name != ".git" && name != "_build" && name
+        != "node_modules" && name != ".log"
       else
-        true) ../.;
+        (strings.hasSuffix ".opam" name || name == "unvendor.ml")) ../.;
   };
   opam-selection = opam2nix.build args;
   localPackages = let contents = builtins.attrNames (builtins.readDir ../.);
