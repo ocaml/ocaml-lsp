@@ -1,4 +1,17 @@
-module List = Stdlib.ListLabels
+module List = struct
+  include Stdlib.ListLabels
+
+  let partition_map ~f:p l =
+    let rec part left right = function
+      | [] -> (rev left, rev right)
+      | x :: l -> (
+        match p x with
+        | Either.Left v -> part (v :: left) right l
+        | Either.Right v -> part left (v :: right) l)
+    in
+    part [] [] l
+end
+
 module Option = Stdlib.Option
 
 module Result = struct
