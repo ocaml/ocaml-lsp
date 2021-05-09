@@ -8,8 +8,8 @@ let
     src = builtins.filterSource (path: type:
       let name = baseNameOf path;
       in if type == "directory" then
-        name != "_boot" && name != ".git" && name != "_build" && name
-        != "node_modules" && name != ".log"
+        name != ".git" && name != "_build" && name != "node_modules" && name
+        != ".log"
       else
         (strings.hasSuffix ".opam" name || name == "unvendor.ml")) ../.;
   };
