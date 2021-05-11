@@ -1,14 +1,13 @@
-(subdir fiber
- (copy_files# %{workspace_root}/submodules/jbuilder/otherlibs/dune-rpc/*.{ml,mli})
-
+(subdir dune-rpc
  (subdir private
   (library
    (name dune_rpc_private)
    (libraries stdune csexp))
 
   (ocamllex dbus_address)
-  (copy_files# %{workspace_root}/submodules/jbuilder/otherlibs/dune-rpc/private/*.{ml,mli}))
+  (copy_files# %{workspace_root}/submodules/jbuilder/otherlibs/dune-rpc/private/*.{ml,mli,mll}))
 
+ (copy_files %{workspace_root}/submodules/jbuilder/otherlibs/dune-rpc/*.{ml,mli})
  (library
   (name dune_rpc)
   (libraries stdune csexp (re_export dune_rpc_private))))
