@@ -1,4 +1,4 @@
-(vendored_dirs vendor submodules)
+(vendored_dirs vendor)
 
 (data_only_dirs submodules)
 
