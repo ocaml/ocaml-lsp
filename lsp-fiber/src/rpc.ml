@@ -30,11 +30,13 @@ module Cancel = struct
 
   let register f =
     let open Fiber.O in
-    let* scheduler = Fiber.Var.get_exn var in
-    (match !scheduler with
-    | Pending p -> p.callbacks <- f :: p.callbacks
-    | Finished -> ());
-    Fiber.return ()
+    let+ cancel = Fiber.Var.get var in
+    match cancel with
+    | None -> ()
+    | Some cancel -> (
+      match !cancel with
+      | Finished -> ()
+      | Pending p -> p.callbacks <- f :: p.callbacks)
 
   let create () = ref (Pending { callbacks = [] })
 
