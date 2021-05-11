@@ -11,6 +11,9 @@ module List = Stdune.List
 module Array = Stdune.Array
 module Result = Stdune.Result
 module Poly = Stdune.Poly
+module Fdecl = Stdune.Fdecl
+module Dyn = Stdune.Dyn
+module Comparable = Stdune.Comparable
 module Exn_with_backtrace = Stdune.Exn_with_backtrace
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
@@ -88,5 +91,7 @@ module TraceValue = TraceValue
 module SetTraceParams = SetTraceParams
 module LogMessageParams = LogMessageParams
 module Log = Lsp_fiber.Import.Log
+module Drpc = Dune_rpc.V1
+module Pid = Stdune.Pid
 
 let sprintf = Stdune.sprintf

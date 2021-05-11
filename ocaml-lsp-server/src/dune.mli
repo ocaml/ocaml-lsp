@@ -1,10 +1,13 @@
-type state =
+open! Import
+
+type run =
   | Binary_not_found
   | Out_of_date
-  | Running
 
 type t
 
-val state : t -> state Fiber.t
+val run : t -> (unit, run) result Fiber.t
 
-val create : unit -> t
+val create : Diagnostics.t -> t
+
+val stop : t -> unit Fiber.t

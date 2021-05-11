@@ -24,6 +24,8 @@ let yojson_of_t t = `String (to_string t)
 
 let equal = ( = )
 
+let compare (x : t) (y : t) = Stdlib.compare x y
+
 let hash = Hashtbl.hash
 
 let to_dyn { scheme; authority; path } =

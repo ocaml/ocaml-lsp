@@ -3,7 +3,7 @@ open Import
 let client_capabilities (state : State.t) =
   match state.init with
   | Uninitialized -> assert false
-  | Initialized c -> c
+  | Initialized c -> c.capabilities
 
 let make_error = Jsonrpc.Response.Error.make
 
@@ -77,102 +77,85 @@ let task_if_running (state : State.t) ~f =
   | false -> Fiber.return ()
   | true -> Fiber.Pool.task state.detached ~f
 
-let send_diagnostics ?diagnostics rpc doc =
+let set_diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let uri = Document.uri doc in
   let create_diagnostic ?relatedInformation ?severity range message =
     Diagnostic.create ?relatedInformation ?severity ~range ~message
       ~source:"ocamllsp" ()
   in
-  let create_publishDiagnostics ~version uri diagnostics =
-    Server_notification.PublishDiagnostics
-      (PublishDiagnosticsParams.create ?version ~uri ~diagnostics ())
-  in
-  match diagnostics with
-  | Some diagnostics ->
-    let notif = create_publishDiagnostics ~version:None uri diagnostics in
-    Server.notification rpc notif
-  | None -> (
-    let async send =
-      let open Fiber.O in
-      let+ () =
-        task_if_running state ~f:(fun () ->
-            let open Fiber.O in
-            let timer = Document.timer doc in
-            let+ res = Scheduler.schedule timer send in
-            match res with
-            | Error `Cancelled
-            | Ok () ->
-              ())
-      in
-      ()
-    in
-    match Document.syntax doc with
-    | Menhir
-    | Ocamllex ->
-      Fiber.return ()
-    | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
-      async (fun () ->
-          let no_reason_merlin =
-            let message =
-              sprintf "Could not detect %s. Please install reason"
-                ocamlmerlin_reason
-            in
-            create_diagnostic Range.first_line message
-          in
-          let notif =
-            create_publishDiagnostics ~version:None uri [ no_reason_merlin ]
-          in
-          Server.notification rpc notif)
-    | Reason
-    | Ocaml ->
-      async (fun () ->
+  let async send =
+    let open Fiber.O in
+    let+ () =
+      task_if_running state ~f:(fun () ->
           let open Fiber.O in
-          let* diagnostics =
-            let command =
-              Query_protocol.Errors
-                { lexing = true; parsing = true; typing = true }
-            in
-            Document.with_pipeline_exn doc (fun pipeline ->
-                let errors = Query_commands.dispatch pipeline command in
-                List.map errors ~f:(fun (error : Loc.error) ->
-                    let loc = Loc.loc_of_report error in
-                    let range = Range.of_loc loc in
-                    let severity =
-                      match error.source with
-                      | Warning -> DiagnosticSeverity.Warning
-                      | _ -> DiagnosticSeverity.Error
-                    in
-                    let message ppf m =
-                      String.trim (Format.asprintf "%a@." ppf m)
-                    in
-                    let relatedInformation =
-                      match error.sub with
-                      | [] -> None
-                      | _ :: _ ->
-                        Some
-                          (List.map error.sub ~f:(fun (sub : Loc.msg) ->
-                               let location =
-                                 let range = Range.of_loc sub.loc in
-                                 Location.create ~range ~uri
-                               in
-                               let message = message Loc.print_sub_msg sub in
-                               DiagnosticRelatedInformation.create ~location
-                                 ~message))
-                    in
-                    let message = message Loc.print_main error in
-                    create_diagnostic ?relatedInformation range message
-                      ~severity))
+          let timer = Document.timer doc in
+          let+ res = Scheduler.schedule timer send in
+          match res with
+          | Error `Cancelled
+          | Ok () ->
+            ())
+    in
+    ()
+  in
+  match Document.syntax doc with
+  | Menhir
+  | Ocamllex ->
+    Fiber.return ()
+  | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
+    let no_reason_merlin =
+      let message =
+        sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason
+      in
+      create_diagnostic Range.first_line message
+    in
+    Diagnostics.set state.diagnostics (`Merlin (uri, [ no_reason_merlin ]));
+    async (fun () -> Diagnostics.send state.diagnostics)
+  | Reason
+  | Ocaml ->
+    async (fun () ->
+        let open Fiber.O in
+        let* diagnostics =
+          let command =
+            Query_protocol.Errors
+              { lexing = true; parsing = true; typing = true }
           in
-          let notif =
-            let version = Some (Document.version doc) in
-            create_publishDiagnostics ~version uri diagnostics
-          in
-          Server.notification rpc notif))
+          Document.with_pipeline_exn doc (fun pipeline ->
+              let errors = Query_commands.dispatch pipeline command in
+              List.map errors ~f:(fun (error : Loc.error) ->
+                  let loc = Loc.loc_of_report error in
+                  let range = Range.of_loc loc in
+                  let severity =
+                    match error.source with
+                    | Warning -> DiagnosticSeverity.Warning
+                    | _ -> DiagnosticSeverity.Error
+                  in
+                  let message ppf m =
+                    String.trim (Format.asprintf "%a@." ppf m)
+                  in
+                  let relatedInformation =
+                    match error.sub with
+                    | [] -> None
+                    | _ :: _ ->
+                      Some
+                        (List.map error.sub ~f:(fun (sub : Loc.msg) ->
+                             let location =
+                               let range = Range.of_loc sub.loc in
+                               Location.create ~range ~uri
+                             in
+                             let message = message Loc.print_sub_msg sub in
+                             DiagnosticRelatedInformation.create ~location
+                               ~message))
+                  in
+                  let message = message Loc.print_main error in
+                  create_diagnostic ?relatedInformation range message ~severity))
+        in
+        Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
+        Diagnostics.send state.diagnostics)
 
-let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
+let on_initialize rpc (ip : InitializeParams.t) =
   let state : State.t = Server.state rpc in
-  let state = { state with init = Initialized ip.capabilities } in
+  let state = { state with init = Initialized ip } in
   let state =
     match ip.trace with
     | None -> state
@@ -789,20 +772,22 @@ let on_notification server (notification : Client_notification.t) :
       Document.make timer state.merlin params
     in
     Document_store.put store doc;
-    let+ () = send_diagnostics server doc in
+    let+ () = set_diagnostics server doc in
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
-    let doc = Document_store.get_opt store uri in
     let open Fiber.O in
-    let* () = send_diagnostics ~diagnostics:[] server (Option.value_exn doc) in
-    let+ () = Document_store.remove_document store uri in
+    let+ () =
+      Diagnostics.remove state.diagnostics (`Merlin uri);
+      let* () = Document_store.remove_document store uri in
+      task_if_running state ~f:(fun () -> Diagnostics.send state.diagnostics)
+    in
     state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
     let prev_doc = Document_store.get store uri in
     let open Fiber.O in
     let* doc = Document.update_text ~version prev_doc contentChanges in
     Document_store.put store doc;
-    let+ () = send_diagnostics server doc in
+    let+ () = set_diagnostics server doc in
     state
   | CancelRequest _ ->
     Log.log ~section:"debug" (fun () -> Log.msg "ignoring cancellation" []);
@@ -825,7 +810,7 @@ let on_notification server (notification : Client_notification.t) :
          otherwise the diagnostics don't get updated *)
       let* doc = Document.update_text doc [] in
       Document_store.put store doc;
-      let+ () = send_diagnostics server doc in
+      let+ () = set_diagnostics server doc in
       state)
   | WillSaveTextDocument _
   | ChangeWorkspaceFolders _
@@ -859,20 +844,42 @@ let start () =
   in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
-  let dune = Dune.create () in
+  let server = Fdecl.create Dyn.Encoder.opaque in
+  let diagnostics =
+    let workspace_root =
+      lazy
+        (let server = Fdecl.get server in
+         let state = Server.state server in
+         State.workspace_root state)
+    in
+    Diagnostics.create ~workspace_root (function
+      | [] -> Fiber.return ()
+      | diagnostics ->
+        let server = Fdecl.get server in
+        let state = Server.state server in
+        task_if_running state ~f:(fun () ->
+            let batch = Server.Batch.create server in
+            List.iter diagnostics ~f:(fun d ->
+                Server.Batch.notification batch (PublishDiagnostics d));
+            Server.Batch.submit batch))
+  in
+  let dune = Dune.create diagnostics in
   let* server =
     let+ merlin = Scheduler.create_thread () in
     let ocamlformat = Fmt.create () in
-    Server.make handler stream
-      { store
-      ; init = Uninitialized
-      ; merlin
-      ; ocamlformat
-      ; configuration
-      ; detached
-      ; dune
-      ; trace = `Off
-      }
+    Fdecl.set server
+      (Server.make handler stream
+         { store
+         ; init = Uninitialized
+         ; merlin
+         ; ocamlformat
+         ; configuration
+         ; detached
+         ; dune
+         ; trace = `Off
+         ; diagnostics
+         });
+    Fdecl.get server
   in
   Fiber.fork_and_join_unit
     (fun () -> Fiber.Pool.run detached)
@@ -881,16 +888,16 @@ let start () =
         Fiber.fork_and_join_unit
           (fun () -> Server.start server)
           (fun () ->
-            let* state = Dune.state dune in
+            let* state = Dune.run dune in
             let message =
               match state with
-              | Binary_not_found ->
+              | Error Binary_not_found ->
                 Some "Dune must be installed for project functionality"
-              | Out_of_date ->
+              | Error Out_of_date ->
                 Some
                   "Dune is out of date. Install dune >= 3.0 for project \
                    functionality"
-              | Running -> None
+              | Ok () -> None
             in
             match message with
             | None -> Fiber.return ()
@@ -904,9 +911,12 @@ let start () =
                   Server.notification server
                     (Server_notification.LogMessage log)))
       in
-      Fiber.fork_and_join_unit
-        (fun () -> Document_store.close store)
-        (fun () -> Fiber.Pool.stop detached))
+      Fiber.parallel_iter
+        ~f:(fun f -> f ())
+        [ (fun () -> Document_store.close store)
+        ; (fun () -> Fiber.Pool.stop detached)
+        ; (fun () -> Dune.stop dune)
+        ])
 
 let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
