@@ -2,7 +2,7 @@ open Import
 
 type init =
   | Uninitialized
-  | Initialized of ClientCapabilities.t
+  | Initialized of InitializeParams.t
 
 type t =
   { store : Document_store.t
@@ -12,5 +12,14 @@ type t =
   ; configuration : Configuration.t
   ; trace : TraceValue.t
   ; ocamlformat : Fmt.t
+  ; diagnostics : Diagnostics.t
   ; dune : Dune.t
   }
+
+let workspace_root t =
+  match t.init with
+  | Uninitialized -> assert false
+  | Initialized i -> (
+    match i.rootUri with
+    | None -> assert false
+    | Some uri -> uri)
