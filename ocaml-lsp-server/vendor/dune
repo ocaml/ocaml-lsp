@@ -5,9 +5,9 @@
    (libraries stdune csexp))
 
   (ocamllex dbus_address)
-  (copy_files# %{workspace_root}/submodules/jbuilder/otherlibs/dune-rpc/private/*.{ml,mli,mll}))
+  (copy_files# %{workspace_root}/submodules/dune/otherlibs/dune-rpc/private/*.{ml,mli,mll}))
 
- (copy_files %{workspace_root}/submodules/jbuilder/otherlibs/dune-rpc/*.{ml,mli})
+ (copy_files %{workspace_root}/submodules/dune/otherlibs/dune-rpc/*.{ml,mli})
  (library
   (name dune_rpc)
   (libraries stdune csexp (re_export dune_rpc_private))))

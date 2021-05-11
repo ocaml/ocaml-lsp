@@ -20,8 +20,8 @@ path = ocaml-lsp-server/vendor/omd
 url = https://github.com/ulugbekna/omd.git
 branch = ocaml-lsp
 ignore = dirty
-[submodule "submodules/jbuilder"]
-path = submodules/jbuilder
+[submodule "submodules/dune"]
+path = submodules/dune
 url = https://github.com/rgrinberg/jbuilder
 branch=lsp
 ignore=dirty
