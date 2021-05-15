@@ -83,13 +83,13 @@ let send_diagnostics ?diagnostics rpc doc =
   let create_diagnostic ?severity range message =
     Diagnostic.create ?severity ~range ~message ~source:"ocamllsp" ()
   in
-  let create_publishDiagnostics uri diagnostics =
+  let create_publishDiagnostics ~version uri diagnostics =
     Server_notification.PublishDiagnostics
-      (PublishDiagnosticsParams.create ~uri ~diagnostics ())
+      (PublishDiagnosticsParams.create ?version ~uri ~diagnostics ())
   in
   match diagnostics with
   | Some diagnostics ->
-    let notif = create_publishDiagnostics uri diagnostics in
+    let notif = create_publishDiagnostics ~version:None uri diagnostics in
     Server.notification rpc notif
   | None -> (
     let async send =
@@ -123,7 +123,9 @@ let send_diagnostics ?diagnostics rpc doc =
             in
             create_diagnostic range message
           in
-          let notif = create_publishDiagnostics uri [ no_reason_merlin ] in
+          let notif =
+            create_publishDiagnostics ~version:None uri [ no_reason_merlin ]
+          in
           Server.notification rpc notif)
     | Reason
     | Ocaml ->
@@ -150,7 +152,10 @@ let send_diagnostics ?diagnostics rpc doc =
                     in
                     create_diagnostic range message ~severity))
           in
-          let notif = create_publishDiagnostics uri diagnostics in
+          let notif =
+            let version = Some (Document.version doc) in
+            create_publishDiagnostics ~version uri diagnostics
+          in
           Server.notification rpc notif))
 
 let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
