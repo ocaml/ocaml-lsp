@@ -556,14 +556,7 @@ let definition_query server (state : State.t) uri position merlin_request =
   let open Fiber.O in
   let* result = Document.dispatch_exn doc command in
   match location_of_merlin_loc uri result with
-  | Ok s ->
-    let* () =
-      task_if_running state ~f:(fun () ->
-          let message = "log message params" in
-          let log = LogMessageParams.create ~type_:Error ~message in
-          Server.notification server (Server_notification.LogMessage log))
-    in
-    Fiber.return s
+  | Ok s -> Fiber.return s
   | Error message ->
     let+ () =
       task_if_running state ~f:(fun () ->
