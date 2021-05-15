@@ -27,7 +27,14 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
   let newText = Printf.sprintf "(%s : %s)" original_text typ in
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
-    WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
+    let version = Document.version doc in
+    let textDocument =
+      OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+    in
+    let edit =
+      TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ]
+    in
+    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
   in
   let title = String.capitalize_ascii action_kind in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
