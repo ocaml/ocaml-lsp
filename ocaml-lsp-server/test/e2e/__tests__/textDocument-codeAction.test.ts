@@ -42,34 +42,64 @@ let f (x : t) = x
     let start = Types.Position.create(2, 16);
     let end = Types.Position.create(2, 17);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toEqual(
-      expect.arrayContaining([
-        {
-          edit: {
-            changes: {
-              "file:///test.ml": [
-                {
-                  newText: "match x with | Foo _ -> _ | Bar _ -> _",
-                  range: {
-                    end: {
-                      character: 17,
-                      line: 2,
+    expect(actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "edits": Array [
+                  Object {
+                    "newText": "match x with | Foo _ -> _ | Bar _ -> _",
+                    "range": Object {
+                      "end": Object {
+                        "character": 17,
+                        "line": 2,
+                      },
+                      "start": Object {
+                        "character": 16,
+                        "line": 2,
+                      },
                     },
-                    start: {
-                      character: 16,
-                      line: 2,
+                  },
+                ],
+                "textDocument": Object {
+                  "uri": "file:///test.ml",
+                  "version": 0,
+                },
+              },
+            ],
+          },
+          "isPreferred": false,
+          "kind": "destruct",
+          "title": "Destruct",
+        },
+        Object {
+          "edit": Object {
+            "changes": Object {
+              "file:///test.ml": Array [
+                Object {
+                  "newText": "(x : t)",
+                  "range": Object {
+                    "end": Object {
+                      "character": 17,
+                      "line": 2,
+                    },
+                    "start": Object {
+                      "character": 16,
+                      "line": 2,
                     },
                   },
                 },
               ],
             },
           },
-          isPreferred: false,
-          kind: "destruct",
-          title: "Destruct",
+          "isPreferred": false,
+          "kind": "type-annotate",
+          "title": "Type-annotate",
         },
-      ]),
-    );
+      ]
+    `);
   });
 
   it("can infer module interfaces", async () => {
