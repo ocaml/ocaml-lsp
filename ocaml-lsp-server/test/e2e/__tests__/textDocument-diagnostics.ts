@@ -53,6 +53,7 @@ describe("textDocument/diagnostics", () => {
               },
             ],
             "uri": "file:///test.ml",
+            "version": 0,
           }
         `);
         resolve(null);
@@ -93,6 +94,7 @@ describe("textDocument/diagnostics", () => {
               },
             ],
             "uri": "file:///test.ml",
+            "version": 0,
           }
         `);
         resolve(null);
@@ -120,6 +122,7 @@ describe("textDocument/diagnostics", () => {
           Object {
             "diagnostics": Array [],
             "uri": "file:///test.ml",
+            "version": 0,
           }
         `);
         resolve(null);
