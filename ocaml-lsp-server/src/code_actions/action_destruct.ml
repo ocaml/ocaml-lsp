@@ -2,10 +2,17 @@ open Import
 
 let action_kind = "destruct"
 
-let code_action_of_case_analysis uri (loc, newText) =
+let code_action_of_case_analysis doc uri (loc, newText) =
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
-    WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
+    let version = Document.version doc in
+    let textDocument =
+      OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+    in
+    let edit =
+      TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ]
+    in
+    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
   in
   let title = String.capitalize_ascii action_kind in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
@@ -24,7 +31,7 @@ let code_action doc (params : CodeActionParams.t) =
     let open Fiber.O in
     let+ res = Document.dispatch doc command in
     match res with
-    | Ok res -> Some (code_action_of_case_analysis uri res)
+    | Ok res -> Some (code_action_of_case_analysis doc uri res)
     | Error
         { exn =
             ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
