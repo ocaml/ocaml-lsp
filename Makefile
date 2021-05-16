@@ -73,5 +73,6 @@ release: ## Release on Opam
 	dune-release opam pkg
 	dune-release opam submit
 
-nix/opam-selection.nix: Makefile
+.PHONY: nix/opam-selection.nix
+nix/opam-selection.nix:
 	nix-shell -A resolve default.nix
