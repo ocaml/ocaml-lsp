@@ -6,7 +6,7 @@ let test s f =
   let f =
     Fiber.with_error_handler f ~on_error:(fun exn ->
         Format.printf "%a@." Exn_with_backtrace.pp_uncaught exn;
-        Fiber.return ())
+        Exn_with_backtrace.reraise exn)
   in
   S.run s f
 

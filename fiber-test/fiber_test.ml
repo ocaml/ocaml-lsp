@@ -45,7 +45,7 @@ let test ?(expect_never = false) to_dyn f =
   let f =
     let on_error exn =
       Format.eprintf "%a@." Exn_with_backtrace.pp_uncaught exn;
-      Fiber.return ()
+      Exn_with_backtrace.reraise exn
     in
     Fiber.with_error_handler (fun () -> f) ~on_error
   in
