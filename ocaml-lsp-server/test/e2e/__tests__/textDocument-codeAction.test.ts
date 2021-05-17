@@ -8,6 +8,10 @@ function findAnnotateAction(actions) {
   return actions.find((action) => action.kind == "type-annotate");
 }
 
+function findInferredAction(actions) {
+  return actions.find((action) => action.kind == "inferred_intf");
+}
+
 describe("textDocument/codeAction", () => {
   let languageServer = null;
 
@@ -125,31 +129,40 @@ let f (x : t) = x
     let start = Types.Position.create(0, 0);
     let end = Types.Position.create(0, 0);
     let actions = await codeAction("file:///test.mli", start, end);
-    expect(actions).toMatchObject([
-      {
-        edit: {
-          changes: {
-            "file:///test.mli": [
-              {
-                newText: "type t = Foo of int | Bar of bool\nval f : t -> t\n",
-                range: {
-                  start: {
-                    character: 0,
-                    line: 0,
-                  },
-                  end: {
-                    character: 0,
-                    line: 0,
+    expect(findInferredAction(actions)).toMatchInlineSnapshot(`
+      Object {
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "type t = Foo of int | Bar of bool
+      val f : t -> t
+      ",
+                  "range": Object {
+                    "end": Object {
+                      "character": 0,
+                      "line": 0,
+                    },
+                    "start": Object {
+                      "character": 0,
+                      "line": 0,
+                    },
                   },
                 },
+              ],
+              "textDocument": Object {
+                "uri": "file:///test.mli",
+                "version": 0,
               },
-            ],
-          },
+            },
+          ],
         },
-        kind: "inferred_intf",
-        title: "Insert inferred interface",
-      },
-    ]);
+        "isPreferred": false,
+        "kind": "inferred_intf",
+        "title": "Insert inferred interface",
+      }
+    `);
   });
 
   it("opens the implementation if not in store", async () => {
@@ -160,31 +173,27 @@ let f (x : t) = x
     let start = Types.Position.create(0, 0);
     let end = Types.Position.create(0, 0);
     let actions = await codeAction(intfUri, start, end);
-    let changes = {};
-    changes[intfUri] = [
-      {
-        newText: "val x : int\n",
-        range: {
-          end: {
-            character: 0,
-            line: 0,
+    expect(findInferredAction(actions).edit.documentChanges.map((a) => a.edits))
+      .toMatchInlineSnapshot(`
+      Array [
+        Array [
+          Object {
+            "newText": "val x : int
+      ",
+            "range": Object {
+              "end": Object {
+                "character": 0,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 0,
+                "line": 0,
+              },
+            },
           },
-          start: {
-            character: 0,
-            line: 0,
-          },
-        },
-      },
-    ];
-    expect(actions).toMatchObject([
-      {
-        edit: {
-          changes: changes,
-        },
-        kind: "inferred_intf",
-        title: "Insert inferred interface",
-      },
-    ]);
+        ],
+      ]
+    `);
   });
 
   it("can type-annotate a function argument", async () => {
