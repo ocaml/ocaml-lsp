@@ -4,6 +4,10 @@ import * as LanguageServer from "../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
 
+function findAnnotateAction(actions) {
+  return actions.find((action) => action.kind == "type-annotate");
+}
+
 describe("textDocument/codeAction", () => {
   let languageServer = null;
 
@@ -76,23 +80,29 @@ let f (x : t) = x
         },
         Object {
           "edit": Object {
-            "changes": Object {
-              "file:///test.ml": Array [
-                Object {
-                  "newText": "(x : t)",
-                  "range": Object {
-                    "end": Object {
-                      "character": 17,
-                      "line": 2,
-                    },
-                    "start": Object {
-                      "character": 16,
-                      "line": 2,
+            "documentChanges": Array [
+              Object {
+                "edits": Array [
+                  Object {
+                    "newText": "(x : t)",
+                    "range": Object {
+                      "end": Object {
+                        "character": 17,
+                        "line": 2,
+                      },
+                      "start": Object {
+                        "character": 16,
+                        "line": 2,
+                      },
                     },
                   },
+                ],
+                "textDocument": Object {
+                  "uri": "file:///test.ml",
+                  "version": 0,
                 },
-              ],
-            },
+              },
+            ],
           },
           "isPreferred": false,
           "kind": "type-annotate",
@@ -189,34 +199,38 @@ let f x = Foo x
     let start = Types.Position.create(2, 6);
     let end = Types.Position.create(2, 7);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toEqual(
-      expect.arrayContaining([
-        {
-          edit: {
-            changes: {
-              "file:///test.ml": [
-                {
-                  newText: "(x : int)",
-                  range: {
-                    end: {
-                      character: 7,
-                      line: 2,
+    expect(findAnnotateAction(actions)).toMatchInlineSnapshot(`
+      Object {
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "(x : int)",
+                  "range": Object {
+                    "end": Object {
+                      "character": 7,
+                      "line": 2,
                     },
-                    start: {
-                      character: 6,
-                      line: 2,
+                    "start": Object {
+                      "character": 6,
+                      "line": 2,
                     },
                   },
                 },
               ],
+              "textDocument": Object {
+                "uri": "file:///test.ml",
+                "version": 0,
+              },
             },
-          },
-          isPreferred: false,
-          kind: "type-annotate",
-          title: "Type-annotate",
+          ],
         },
-      ]),
-    );
+        "isPreferred": false,
+        "kind": "type-annotate",
+        "title": "Type-annotate",
+      }
+    `);
   });
 
   it("can type-annotate a toplevel value", async () => {
@@ -229,32 +243,38 @@ let iiii = 3 + 4
     let start = Types.Position.create(0, 4);
     let end = Types.Position.create(0, 5);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toMatchObject([
-      {
-        edit: {
-          changes: {
-            "file:///test.ml": [
-              {
-                newText: "(iiii : int)",
-                range: {
-                  end: {
-                    character: 8,
-                    line: 0,
-                  },
-                  start: {
-                    character: 4,
-                    line: 0,
+    expect(findAnnotateAction(actions)).toMatchInlineSnapshot(`
+      Object {
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "(iiii : int)",
+                  "range": Object {
+                    "end": Object {
+                      "character": 8,
+                      "line": 0,
+                    },
+                    "start": Object {
+                      "character": 4,
+                      "line": 0,
+                    },
                   },
                 },
+              ],
+              "textDocument": Object {
+                "uri": "file:///test.ml",
+                "version": 0,
               },
-            ],
-          },
+            },
+          ],
         },
-        isPreferred: false,
-        kind: "type-annotate",
-        title: "Type-annotate",
-      },
-    ]);
+        "isPreferred": false,
+        "kind": "type-annotate",
+        "title": "Type-annotate",
+      }
+    `);
   });
 
   it("can type-annotate an argument in a function call", async () => {
@@ -270,34 +290,38 @@ let () =
     let start = Types.Position.create(3, 15);
     let end = Types.Position.create(3, 16);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toEqual(
-      expect.arrayContaining([
-        {
-          edit: {
-            changes: {
-              "file:///test.ml": [
-                {
-                  newText: "(i : int)",
-                  range: {
-                    end: {
-                      character: 16,
-                      line: 3,
+    expect(findAnnotateAction(actions)).toMatchInlineSnapshot(`
+      Object {
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "(i : int)",
+                  "range": Object {
+                    "end": Object {
+                      "character": 16,
+                      "line": 3,
                     },
-                    start: {
-                      character: 15,
-                      line: 3,
+                    "start": Object {
+                      "character": 15,
+                      "line": 3,
                     },
                   },
                 },
               ],
+              "textDocument": Object {
+                "uri": "file:///test.ml",
+                "version": 0,
+              },
             },
-          },
-          isPreferred: false,
-          kind: "type-annotate",
-          title: "Type-annotate",
+          ],
         },
-      ]),
-    );
+        "isPreferred": false,
+        "kind": "type-annotate",
+        "title": "Type-annotate",
+      }
+    `);
   });
 
   it("can type-annotate a variant with its name only", async () => {
@@ -312,34 +336,38 @@ let f (x : t) = x
     let start = Types.Position.create(2, 16);
     let end = Types.Position.create(2, 17);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toEqual(
-      expect.arrayContaining([
-        {
-          edit: {
-            changes: {
-              "file:///test.ml": [
-                {
-                  newText: "(x : t)",
-                  range: {
-                    end: {
-                      character: 17,
-                      line: 2,
+    expect(findAnnotateAction(actions)).toMatchInlineSnapshot(`
+      Object {
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "(x : t)",
+                  "range": Object {
+                    "end": Object {
+                      "character": 17,
+                      "line": 2,
                     },
-                    start: {
-                      character: 16,
-                      line: 2,
+                    "start": Object {
+                      "character": 16,
+                      "line": 2,
                     },
                   },
                 },
               ],
+              "textDocument": Object {
+                "uri": "file:///test.ml",
+                "version": 0,
+              },
             },
-          },
-          isPreferred: false,
-          kind: "type-annotate",
-          title: "Type-annotate",
+          ],
         },
-      ]),
-    );
+        "isPreferred": false,
+        "kind": "type-annotate",
+        "title": "Type-annotate",
+      }
+    `);
   });
 
   it("does not type-annotate in a non expression context", async () => {
