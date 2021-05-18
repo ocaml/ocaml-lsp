@@ -762,7 +762,9 @@ let on_request :
   | _ -> (
     match syntax with
     | Some (Ocamllex | Menhir) -> not_supported ()
-    | _ -> ocaml_on_request server req)
+    | Some (Ocaml | Reason)
+    | None ->
+      ocaml_on_request server req)
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
