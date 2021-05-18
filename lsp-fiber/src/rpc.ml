@@ -12,11 +12,16 @@ module Reply = struct
 
   let later f = Later f
 
-  let to_jsonrpc t id to_json : Jsonrpc_fiber.Reply.t =
+  let to_jsonrpc t id to_json trace : Jsonrpc_fiber.Reply.t =
     let f x = Jsonrpc.Response.ok id (to_json x) in
     match t with
     | Now r -> Jsonrpc_fiber.Reply.now (f r)
-    | Later k -> Jsonrpc_fiber.Reply.later (fun send -> k (fun r -> send (f r)))
+    | Later k ->
+      Jsonrpc_fiber.Reply.later (fun send ->
+          k (fun r ->
+              let resp = f r in
+              trace resp;
+              send resp))
 end
 
 module Cancel = struct
@@ -207,13 +212,15 @@ struct
     let open Fiber.O in
     let on_request (ctx : (state, Id.t) Session.Context.t) =
       let req = Session.Context.message ctx in
+      Tracer.Lsp.trace_recv_req t.tracer req;
       let state = Session.Context.state ctx in
       match In_request.of_jsonrpc req with
       | Error message ->
         let code = Jsonrpc.Response.Error.Code.InvalidParams in
         let error = Jsonrpc.Response.Error.make ~code ~message () in
-        Fiber.return
-          (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
+        let resp = Jsonrpc.Response.error req.id error in
+        Tracer.Lsp.trace_send_resp t.tracer ~method_:req.method_ resp;
+        (Jsonrpc_fiber.Reply.now resp, state) |> Fiber.return
       | Ok (In_request.E r) ->
         let cancel = Cancel.create () in
         Table.set t.pending req.id cancel;
@@ -229,6 +236,8 @@ struct
         in
         let reply =
           Reply.to_jsonrpc response req.id (In_request.yojson_of_result r)
+            (fun resp ->
+              Tracer.Lsp.trace_send_resp t.tracer ~method_:req.method_ resp)
         in
         (reply, state)
     in

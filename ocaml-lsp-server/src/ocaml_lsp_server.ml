@@ -851,10 +851,11 @@ let start () =
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
   let dune = Dune.create () in
+  let tracer = Tracer.create ~keep:(`Last_n_events 1000) in
   let* server =
     let+ merlin = Scheduler.create_thread () in
     let ocamlformat = Fmt.create () in
-    Server.make handler stream
+    Server.make ~tracer handler stream
       { store
       ; init = Uninitialized
       ; merlin
@@ -863,6 +864,7 @@ let start () =
       ; detached
       ; dune
       ; client_trace_verbosity = `Off
+      ; tracer = Some tracer
       }
   in
   Fiber.fork_and_join_unit

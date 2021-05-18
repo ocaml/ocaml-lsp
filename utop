@@ -1,0 +1,24 @@
+type 'a t =
+  { buf : 'a option array
+  ; mutable next_write_idx : int
+  }
+
+let create ~size =
+  let buf = Array.init size (fun _ -> None) in
+  let next_write_idx = 0 in
+  { buf; next_write_idx }
+
+let push_back ({ buf; next_write_idx } as t) elt =
+  buf.(next_write_idx) <- Some elt;
+  t.next_write_idx <- (next_write_idx + 1) mod Array.length buf
+
+let to_list { buf; next_write_idx } =
+  let rec loop ix stop_predicate acc =
+    if stop_predicate ix then
+      acc
+    else
+      loop (ix - 1) stop_predicate (Option.get buf.(ix) :: acc)
+  in
+  loop (next_write_idx - 1) (fun ix -> ix < 0) []
+  |> loop next_write_idx (fun ix -> ix == Array.length buf)
+

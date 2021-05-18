@@ -13,4 +13,5 @@ type t =
   ; client_trace_verbosity : TraceValue.t
   ; ocamlformat : Fmt.t
   ; dune : Dune.t
+  ; tracer : Tracer.t option
   }
