@@ -164,7 +164,7 @@ let on_initialize rpc (ip : Lsp.Types.InitializeParams.t) =
   let state =
     match ip.trace with
     | None -> state
-    | Some trace -> { state with trace }
+    | Some client_trace_verbosity -> { state with client_trace_verbosity }
   in
   (initialize_info, state)
 
@@ -823,7 +823,8 @@ let on_notification server (notification : Client_notification.t) :
   | WorkDoneProgressCancel _
   | Exit ->
     Fiber.return state
-  | SetTrace { value } -> Fiber.return { state with trace = value }
+  | SetTrace { value } ->
+    Fiber.return { state with client_trace_verbosity = value }
   | Unknown_notification req ->
     let open Fiber.O in
     let+ () =
@@ -861,7 +862,7 @@ let start () =
       ; configuration
       ; detached
       ; dune
-      ; trace = `Off
+      ; client_trace_verbosity = `Off
       }
   in
   Fiber.fork_and_join_unit

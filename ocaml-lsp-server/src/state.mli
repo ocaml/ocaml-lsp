@@ -10,7 +10,7 @@ type t =
   ; init : init
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
-  ; trace : TraceValue.t
+  ; client_trace_verbosity : TraceValue.t
   ; ocamlformat : Fmt.t
   ; dune : Dune.t
   }
