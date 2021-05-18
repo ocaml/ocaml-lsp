@@ -2,14 +2,11 @@ module List = ListLabels
 module String = StringLabels
 
 module Json = struct
-  type t =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `List of t list
-    | `Bool of bool
-    | `Assoc of (string * t) list
-    ]
+  module Ys = Yojson.Safe
+
+  type t = Ys.t
+
+  let to_string t = Ys.to_string ~std:true t
 end
 
 module Timestamp : sig
@@ -66,12 +63,11 @@ module Event = struct
 
   module Id = struct
     type t =
-      | Int of int
-      | String of string
+      [ `Int of int
+      | `String of string
+      ]
 
-    let to_json = function
-      | Int i -> `Int i
-      | String s -> `String s
+    let to_json r : Json.t = (r :> Json.t)
 
     let field id = ("id", to_json id)
   end
@@ -108,7 +104,7 @@ module Event = struct
         ; sort_index : int
         }
 
-  (* TODO support flow, samples, referemces, memory dumps *)
+  (* TODO support flow, samples, references, memory dumps *)
   type t =
     | Counter of common_fields * args * Id.t option
     | Duration_start of common_fields * args * Id.t option

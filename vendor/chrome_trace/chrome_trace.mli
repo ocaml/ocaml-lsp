@@ -8,15 +8,20 @@
     https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview *)
 
 module Json : sig
-  (** Simplifies JSON type *)
   type t =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `List of t list
+    [ `Assoc of (string * t) list
     | `Bool of bool
-    | `Assoc of (string * t) list
+    | `Float of float
+    | `Int of int
+    | `Intlit of string
+    | `List of t list
+    | `Null
+    | `String of string
+    | `Tuple of t list
+    | `Variant of string * t option
     ]
+
+  val to_string : t -> string
 end
 
 module Event : sig
@@ -32,8 +37,9 @@ module Event : sig
 
   module Id : sig
     type t =
-      | Int of int
-      | String of string
+      [ `Int of int
+      | `String of string
+      ]
   end
 
   type common_fields

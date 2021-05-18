@@ -1,4 +1,4 @@
 (library
  (name chrome_trace)
- (libraries unix)
+ (libraries unix yojson)
  (synopsis "Emit catapult trace files, compatible with chrome://tracing"))
