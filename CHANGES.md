@@ -1,17 +1,15 @@
-# 1.6.1 (05/03/2020)
-
-## Features
-
-- Get fresh diagnostics (warning and error messages) on a file save (#438)
-
-  Note: If you want the fresh diagnostics to take into account changes in other files, you
-  likely need to rebuild your project. An easy way to get automatic rebuilds is to run
-  `dune` in a watching mode, e.g.,[dune build --watch].
+# 1.6.1 (05/17/2020)
 
 ## Fixes
 
 - Switch `verbosity` from 1 to 0. This is the same default that merlin uses.
   The old value for verbosity (#433)
+
+- Get fresh diagnostics (warning and error messages) on a file save (#438)
+
+  Note: If you want the fresh diagnostics to take into account changes in other
+  files, you likely need to rebuild your project. An easy way to get automatic
+  rebuilds is to run `dune` in a watching mode, e.g.,[dune build --watch].
 
 # 1.6.0 (04/30/2020)
 
