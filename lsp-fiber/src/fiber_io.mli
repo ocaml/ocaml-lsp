@@ -11,4 +11,4 @@ val send : t -> Jsonrpc.packet -> unit Fiber.t
 
 val recv : t -> Jsonrpc.packet option Fiber.t
 
-val make : Scheduler.t -> Io.t -> t
+val make : Io.t -> t Fiber.t

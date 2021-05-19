@@ -17,7 +17,7 @@ type thread
 
 type 'a task
 
-val create_thread : t -> thread
+val create_thread : unit -> thread Fiber.t
 
 val await :
   'a task -> ('a, [ `Exn of Exn_with_backtrace.t | `Canceled ]) result Fiber.t
@@ -45,6 +45,6 @@ val cancel_timer : timer -> unit Fiber.t
 
 val cancel_timers : t -> unit Fiber.t
 
-val wait_for_process : t -> Pid.t -> Unix.process_status Fiber.t
+val wait_for_process : Pid.t -> Unix.process_status Fiber.t
 
 val abort : t -> unit

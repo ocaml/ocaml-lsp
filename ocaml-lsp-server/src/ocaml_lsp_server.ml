@@ -836,27 +836,26 @@ let on_notification server (notification : Client_notification.t) :
 
 let start () =
   let store = Document_store.make () in
-  let scheduler = Scheduler.create () in
   let handler =
     let on_request = { Server.Handler.on_request } in
     Server.Handler.make ~on_request ~on_notification ()
   in
-  let stream =
+  let open Fiber.O in
+  let* stream =
     let io = Lsp.Io.make stdin stdout in
-    Lsp_fiber.Fiber_io.make scheduler io
+    Lsp_fiber.Fiber_io.make io
   in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
-  let dune = Dune.create scheduler in
-  let server =
-    let merlin = Scheduler.create_thread scheduler in
-    let ocamlformat = Fmt.create scheduler in
+  let dune = Dune.create () in
+  let* server =
+    let+ merlin = Scheduler.create_thread () in
+    let ocamlformat = Fmt.create () in
     Server.make handler stream
       { store
       ; init = Uninitialized
       ; merlin
       ; ocamlformat
-      ; scheduler
       ; configuration
       ; detached
       ; dune
@@ -866,7 +865,6 @@ let start () =
   Fiber.fork_and_join_unit
     (fun () -> Fiber.Pool.run detached)
     (fun () ->
-      let open Fiber.O in
       let* () =
         Fiber.fork_and_join_unit
           (fun () -> Server.start server)
@@ -897,8 +895,7 @@ let start () =
       Fiber.fork_and_join_unit
         (fun () -> Document_store.close store)
         (fun () -> Fiber.Pool.stop detached))
-  |> Scheduler.run scheduler
 
 let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  start ()
+  Scheduler.run (Scheduler.create ()) (start ())

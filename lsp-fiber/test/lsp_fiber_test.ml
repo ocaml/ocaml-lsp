@@ -10,9 +10,9 @@ module Test = struct
     let run ?(capabilities = ClientCapabilities.create ()) ?on_request
         ?on_notification (scheduler, state) (in_, out) =
       let initialize = InitializeParams.create ~capabilities () in
-      let client =
+      let+ client =
         let io = Io.make in_ out in
-        let stream_io = Lsp_fiber.Fiber_io.make scheduler io in
+        let+ stream_io = Lsp_fiber.Fiber_io.make io in
         let handler = Client.Handler.make ?on_request ?on_notification () in
         Client.make handler stream_io (scheduler, state)
       in
@@ -21,9 +21,9 @@ module Test = struct
 
   module Server = struct
     let run ?on_request ?on_notification (scheduler, state) (in_, out) =
-      let server =
+      let+ server =
         let io = Io.make in_ out in
-        let stream_io = Fiber_io.make scheduler io in
+        let+ stream_io = Fiber_io.make io in
         let handler = Server.Handler.make ?on_request ?on_notification () in
         Server.make handler stream_io (scheduler, state)
       in
@@ -81,7 +81,7 @@ module End_to_end_client = struct
 
   let run scheduler io =
     let received_notification = Fiber.Ivar.create () in
-    let client, running =
+    let* client, running =
       let on_request = { Client.Handler.on_request } in
       Test.Client.run ~on_request ~on_notification
         (scheduler, received_notification)
@@ -179,7 +179,7 @@ module End_to_end_server = struct
 
   let run scheduler io =
     let detached = Fiber.Pool.create () in
-    let _server, running =
+    let* _server, running =
       Test.Server.run ~on_request ~on_notification
         (scheduler, (Started, detached))
         io

@@ -197,7 +197,8 @@ let time_loop t =
   in
   loop ()
 
-let create_thread scheduler =
+let create_thread () =
+  let+ scheduler = Fiber.Var.get_exn me in
   let worker =
     let do_ (Pending (f, ivar)) =
       let res =
@@ -507,11 +508,6 @@ let cleanup t =
   if Lazy.is_val t.process_watcher then
     Process_watcher.killall (Lazy.force t.process_watcher) Sys.sigkill
 
-let wait_for_process t pid =
-  let ivar = Fiber.Ivar.create () in
-  Process_watcher.register (Lazy.force t.process_watcher) { pid; ivar };
-  Fiber.Ivar.read ivar
-
 let run_result : 'a. t -> 'a Fiber.t -> ('a, _) result =
  fun t f ->
   let f = Fiber.Var.set me t (fun () -> f) in
@@ -552,3 +548,9 @@ let create () =
   and process_watcher = lazy (Process_watcher.init t) in
   t.time <- Thread.create time_loop t;
   t
+
+let wait_for_process pid =
+  let* t = Fiber.Var.get_exn me in
+  let ivar = Fiber.Ivar.create () in
+  Process_watcher.register (Lazy.force t.process_watcher) { pid; ivar };
+  Fiber.Ivar.read ivar
