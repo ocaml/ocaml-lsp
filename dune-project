@@ -38,7 +38,7 @@ possible and does not make any assumptions about IO.
   (menhir :with-test)
   (cinaps :with-test)
   (ppx_expect (and :with-test (>= v0.14.0)))
-  (ocaml (>= 4.08))))
+  (ocaml (>= 4.12))))
 
 (package
  (name ocaml-lsp-server)
