@@ -168,8 +168,6 @@ let is_empty table = Table.length table = 0
 
 let me = Fiber.Var.create ()
 
-let scheduler () = Fiber.Var.get_exn me
-
 let signal_timers_available t =
   with_mutex t.timers_available_mutex ~f:(fun () ->
       Condition.signal t.timers_available)

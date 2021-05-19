@@ -45,8 +45,6 @@ val cancel_timer : timer -> unit Fiber.t
 
 val cancel_timers : t -> unit Fiber.t
 
-val scheduler : unit -> t Fiber.t
-
 val wait_for_process : t -> Pid.t -> Unix.process_status Fiber.t
 
 val abort : t -> unit
