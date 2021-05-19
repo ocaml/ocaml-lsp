@@ -32,7 +32,7 @@ possible and does not make any assumptions about IO.
   yojson
   ppx_yojson_conv_lib
   pp ;; needed by stdune
-  csexp ;; needed by stdune
+  (csexp (>= 1.4)) ;; needed by stdune
   uutf
   (odoc :with-doc)
   (menhir :with-test)
@@ -50,7 +50,7 @@ possible and does not make any assumptions about IO.
   dune-build-info
   dot-merlin-reader
   pp
-  (csexp (>= 1.2.3))
+  (csexp (>= 1.4))
   (result (>= 1.5))
   (ocamlformat :with-test)
   (odoc :with-doc)

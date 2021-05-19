@@ -22,7 +22,7 @@ depends: [
   "dune-build-info"
   "dot-merlin-reader"
   "pp"
-  "csexp" {>= "1.2.3"}
+  "csexp" {>= "1.4"}
   "result" {>= "1.5"}
   "ocamlformat" {with-test}
   "odoc" {with-doc}
