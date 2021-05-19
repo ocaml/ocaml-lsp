@@ -42,9 +42,9 @@ let test make_client make_server =
   let scheduler = Scheduler.create () in
   let server () = make_server scheduler (server_in, server_out) in
   let client () = make_client scheduler (client_in, client_out) in
-  let run =
+  let run () =
     let delay = 3.0 in
-    let timer = Scheduler.create_timer scheduler ~delay in
+    let* timer = Scheduler.create_timer ~delay in
     Fiber.fork_and_join_unit
       (fun () ->
         let+ res =
@@ -60,7 +60,7 @@ let test make_client make_server =
         print_endline "Successful termination of test";
         Scheduler.cancel_timer timer)
   in
-  Scheduler.run scheduler run;
+  Scheduler.run scheduler (run ());
   print_endline "[TEST] finished"
 
 module End_to_end_client = struct
@@ -133,7 +133,7 @@ module End_to_end_server = struct
         let result = `String "successful execution" in
         let open Fiber.O in
         let* () =
-          let timer = Scheduler.create_timer scheduler ~delay:0.5 in
+          let* timer = Scheduler.create_timer ~delay:0.5 in
           Fiber.Pool.task detached ~f:(fun () ->
               Format.eprintf
                 "server: sending message notification to client@.%!";
@@ -176,8 +176,6 @@ module End_to_end_server = struct
     let state = Server.state self in
     Format.eprintf "server: Received notification@.%!";
     Fiber.return state
-
-  let handler = Server.Handler.make ~on_request ~on_notification ()
 
   let run scheduler io =
     let detached = Fiber.Pool.create () in

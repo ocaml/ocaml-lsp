@@ -34,7 +34,7 @@ val stop : thread -> unit
 
 type timer
 
-val create_timer : t -> delay:float -> timer
+val create_timer : delay:float -> timer Fiber.t
 
 val set_delay : timer -> delay:float -> unit
 

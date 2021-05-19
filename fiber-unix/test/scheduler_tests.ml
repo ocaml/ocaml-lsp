@@ -46,8 +46,8 @@ let%expect_test "run an async task and wait it for it to finish" =
 
 let%expect_test "create timer & schedule task" =
   let s = S.create () in
-  let timer = S.create_timer s ~delay:0.001 in
   let run () =
+    let* timer = S.create_timer ~delay:0.001 in
     print_endline "scheduling timer";
     let+ res =
       S.schedule timer (fun () ->
@@ -66,8 +66,8 @@ let%expect_test "create timer & schedule task" =
 
 let%expect_test "create timer & schedule task & cancel it" =
   let s = S.create () in
-  let timer = S.create_timer s ~delay:3.0 in
   let run () =
+    let* timer = S.create_timer ~delay:3.0 in
     print_endline "scheduling timer";
     let task =
       S.schedule timer (fun () ->
@@ -89,10 +89,10 @@ let%expect_test "create timer & schedule task & cancel it" =
 
 let%expect_test "create multiple timers" =
   let s = S.create () in
-  let timer () = S.create_timer s ~delay:0.001 in
+  let timer () = S.create_timer ~delay:0.001 in
   let run () =
     Fiber.sequential_iter [ 1; 2; 3 ] ~f:(fun i ->
-        let timer = timer () in
+        let* timer = timer () in
         printf "%d: scheduling timer\n" i;
         let+ res =
           S.schedule timer (fun () ->
@@ -118,12 +118,12 @@ let%expect_test "create multiple timers" =
 
 let%expect_test "create multiple timers" =
   let s = S.create () in
-  let timer () = S.create_timer s ~delay:0.001 in
+  let timer () = S.create_timer ~delay:0.001 in
   let run () =
     let counter = ref 0 in
     let+ () =
       Fiber.parallel_iter [ 1; 2; 3 ] ~f:(fun _ ->
-          let timer = timer () in
+          let* timer = timer () in
           let+ res =
             S.schedule timer (fun () ->
                 printf "timer. ";
@@ -141,8 +141,8 @@ let%expect_test "create multiple timers" =
 
 let%expect_test "tests rescheduling" =
   let s = S.create () in
-  let timer = S.create_timer s ~delay:0.05 in
   let run () =
+    let* timer = S.create_timer ~delay:0.05 in
     let counter = ref 0 in
     let+ () =
       Fiber.parallel_iter [ 1; 2; 3 ] ~f:(fun _ ->
@@ -163,8 +163,8 @@ let%expect_test "tests rescheduling" =
 let%expect_test "detached + timer" =
   let s = S.create () in
   let detached = Fiber.Pool.create () in
-  let timer = S.create_timer s ~delay:0.05 in
   let run () =
+    let* timer = S.create_timer ~delay:0.05 in
     Fiber.fork_and_join_unit
       (fun () ->
         let* () =
@@ -188,19 +188,19 @@ let%expect_test "detached + timer" =
 
 let%expect_test "multiple timers" =
   let s = S.create () in
-  let timer delay = S.create_timer s ~delay in
+  let timer delay = S.create_timer ~delay in
   let run () =
-    [ timer 0.06; timer 0.03; timer 0.01 ]
-    |> List.mapi ~f:(fun i timer ->
-           let+ res =
-             S.schedule timer (fun () ->
-                 printf "timer %d\n" i;
-                 Fiber.return ())
-           in
-           match res with
-           | Error `Cancelled -> assert false
-           | Ok () -> ())
-    |> Fiber.parallel_iter ~f:Fun.id
+    Fiber.parallel_map [ 0.3; 0.2; 0.1 ] ~f:timer
+    >>| List.mapi ~f:(fun i timer ->
+            let+ res =
+              S.schedule timer (fun () ->
+                  printf "timer %d\n" i;
+                  Fiber.return ())
+            in
+            match res with
+            | Error `Cancelled -> assert false
+            | Ok () -> ())
+    >>= Fiber.parallel_iter ~f:Fun.id
   in
   test s run;
   [%expect {|

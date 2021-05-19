@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 module Worker : sig
   (** Simple queue that is consumed by its own thread *)
@@ -327,7 +328,8 @@ let iter (t : t) =
   ) else
     event_next t
 
-let create_timer t ~delay =
+let create_timer ~delay =
+  let+ t = Fiber.Var.get_exn me in
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }
 
 let set_delay t ~delay = t.delay <- delay

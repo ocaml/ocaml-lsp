@@ -773,7 +773,7 @@ let on_notification server (notification : Client_notification.t) :
     let open Fiber.O in
     let* doc =
       let delay = Configuration.diagnostics_delay state.configuration in
-      let timer = Scheduler.create_timer state.scheduler ~delay in
+      let* timer = Scheduler.create_timer ~delay in
       Document.make timer state.merlin params
     in
     Document_store.put store doc;
