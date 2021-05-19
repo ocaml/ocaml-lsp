@@ -1,16 +1,13 @@
-open Import
+open! Import
 
 type state =
   | Binary_not_found
   | Out_of_date
   | Running
 
-type t =
-  { scheduler : Scheduler.t
-  ; state : state Fiber.Ivar.t
-  }
+type t = { state : state Fiber.Ivar.t }
 
-let create scheduler = { scheduler; state = Fiber.Ivar.create () }
+let create () = { state = Fiber.Ivar.create () }
 
 let state t : state Fiber.t =
   let open Fiber.O in
@@ -35,7 +32,7 @@ let state t : state Fiber.t =
         let args = Array.of_list [ bin; "rpc"; "--help=plain" ] in
         Unix.create_process bin args stdin stdout stderr |> Stdune.Pid.of_int
       in
-      let* status = Scheduler.wait_for_process t.scheduler pid in
+      let* status = Scheduler.wait_for_process pid in
       let state =
         match status with
         (* TODO actually turn on *)

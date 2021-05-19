@@ -21,11 +21,11 @@ let%expect_test "scheduler starts and runs a fiber" =
 
 let%expect_test "run an async task and wait it for it to finish" =
   let s = S.create () in
-  let th = S.create_thread s in
-  let async () =
-    S.async_exn th (fun () -> print_endline "running in a different thread")
-  in
   let run () =
+    let* th = S.create_thread () in
+    let async () =
+      S.async_exn th (fun () -> print_endline "running in a different thread")
+    in
     print_endline "running in scheduler";
     let task = async () in
     let+ res = S.await_no_cancel task in
@@ -229,7 +229,7 @@ let%expect_test "run process" =
     (stdout, stderr)
   in
   let run () =
-    let+ res = S.wait_for_process s pid in
+    let+ res = S.wait_for_process pid in
     print_endline ("stdout: " ^ stdout);
     print_endline ("stderr: " ^ stderr);
     printf "code: %s"

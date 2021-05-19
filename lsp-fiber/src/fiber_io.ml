@@ -1,5 +1,6 @@
 open Import
 open Fiber.Stream
+open Fiber.O
 
 type t =
   { in_ : Jsonrpc.packet In.t
@@ -27,8 +28,11 @@ let send t p = Out.write t.out (Some p)
 
 let recv t = In.read t.in_
 
-let make s io =
-  let in_thread = ref (Some (Scheduler.create_thread s)) in
+let make io =
+  let* in_thread =
+    let+ th = Scheduler.create_thread () in
+    ref (Some th)
+  in
   let in_ =
     In.create (fun () ->
         let open Fiber.O in
@@ -54,7 +58,10 @@ let make s io =
           | Some _ -> ());
           res)
   in
-  let out_thread = ref (Some (Scheduler.create_thread s)) in
+  let+ out_thread =
+    let+ th = Scheduler.create_thread () in
+    ref (Some th)
+  in
   let out =
     let open Fiber.O in
     Out.create (fun t ->

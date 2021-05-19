@@ -6,18 +6,43 @@ type command_result =
   ; status : Unix.process_status
   }
 
+module Lazy_fiber : sig
+  type 'a t
+
+  val create : (unit -> 'a Fiber.t) -> 'a t
+
+  val force : 'a t -> 'a Fiber.t
+end = struct
+  type 'a t =
+    { value : 'a Fiber.Ivar.t
+    ; mutable f : (unit -> 'a Fiber.t) option
+    }
+
+  let create f = { f = Some f; value = Fiber.Ivar.create () }
+
+  let force t =
+    let open Fiber.O in
+    let* v = Fiber.Ivar.peek t.value in
+    match v with
+    | Some s -> Fiber.return s
+    | None ->
+      let* v = (Option.value_exn t.f) () in
+      let+ () = Fiber.Ivar.fill t.value v in
+      t.f <- None;
+      v
+end
+
 type t =
-  { stdin : Scheduler.thread Lazy.t
-  ; stderr : Scheduler.thread Lazy.t
-  ; stdout : Scheduler.thread Lazy.t
-  ; scheduler : Scheduler.t
+  { stdin : Scheduler.thread Lazy_fiber.t
+  ; stderr : Scheduler.thread Lazy_fiber.t
+  ; stdout : Scheduler.thread Lazy_fiber.t
   }
 
-let create scheduler =
-  let stdout = lazy (Scheduler.create_thread scheduler) in
-  let stderr = lazy (Scheduler.create_thread scheduler) in
-  let stdin = lazy (Scheduler.create_thread scheduler) in
-  { stdout; stderr; stdin; scheduler }
+let create () =
+  let stdout = Lazy_fiber.create Scheduler.create_thread in
+  let stderr = Lazy_fiber.create Scheduler.create_thread in
+  let stdin = Lazy_fiber.create Scheduler.create_thread in
+  { stdout; stderr; stdin }
 
 let run_command state bin stdin_value args : command_result Fiber.t =
   let open Fiber.O in
@@ -33,7 +58,8 @@ let run_command state bin stdin_value args : command_result Fiber.t =
   Unix.close stderr_o;
   let stdin () =
     let+ res =
-      Scheduler.async_exn (Lazy.force state.stdin) (fun () ->
+      let* thread = Lazy_fiber.force state.stdin in
+      Scheduler.async_exn thread (fun () ->
           let out_chan = Unix.out_channel_of_descr stdin_o in
           output_string out_chan stdin_value;
           flush out_chan;
@@ -57,11 +83,17 @@ let run_command state bin stdin_value args : command_result Fiber.t =
     | Ok s -> s
     | Error e -> Exn_with_backtrace.reraise e
   in
-  let stdout () = read (Lazy.force state.stdout) stdout_i in
-  let stderr () = read (Lazy.force state.stderr) stderr_i in
+  let stdout () =
+    let* th = Lazy_fiber.force state.stdout in
+    read th stdout_i
+  in
+  let stderr () =
+    let* th = Lazy_fiber.force state.stderr in
+    read th stderr_i
+  in
   let+ status, (stdout, stderr) =
     Fiber.fork_and_join
-      (fun () -> Scheduler.wait_for_process state.scheduler pid)
+      (fun () -> Scheduler.wait_for_process pid)
       (fun () ->
         Fiber.fork_and_join_unit stdin (fun () ->
             Fiber.fork_and_join stdout stderr))

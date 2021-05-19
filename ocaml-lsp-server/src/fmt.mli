@@ -6,7 +6,7 @@ open Import
 
 type t
 
-val create : Scheduler.t -> t
+val create : unit -> t
 
 type error =
   | Unsupported_syntax of Document.Syntax.t
