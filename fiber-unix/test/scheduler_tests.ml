@@ -2,17 +2,16 @@ open! Import
 open Fiber.O
 module S = Fiber_unix.Scheduler
 
-let test s f =
+let test f =
   let f =
     Fiber.with_error_handler f ~on_error:(fun exn ->
         Format.printf "%a@." Exn_with_backtrace.pp_uncaught exn;
         Exn_with_backtrace.reraise exn)
   in
-  S.run s f
+  S.run f
 
 let%expect_test "scheduler starts and runs a fiber" =
-  let s = S.create () in
-  S.run s
+  S.run
     (Fiber.of_thunk (fun () ->
          print_endline "running";
          Fiber.return ()));
@@ -20,7 +19,6 @@ let%expect_test "scheduler starts and runs a fiber" =
     running |}]
 
 let%expect_test "run an async task and wait it for it to finish" =
-  let s = S.create () in
   let run () =
     let* th = S.create_thread () in
     let async () =
@@ -36,7 +34,7 @@ let%expect_test "run an async task and wait it for it to finish" =
       S.stop th;
       print_endline "stopped thread"
   in
-  S.run s (Fiber.of_thunk run);
+  S.run (Fiber.of_thunk run);
   [%expect
     {|
     running in scheduler
@@ -45,7 +43,6 @@ let%expect_test "run an async task and wait it for it to finish" =
     stopped thread |}]
 
 let%expect_test "create timer & schedule task" =
-  let s = S.create () in
   let run () =
     let* timer = S.create_timer ~delay:0.001 in
     print_endline "scheduling timer";
@@ -58,14 +55,13 @@ let%expect_test "create timer & schedule task" =
     | Error `Cancelled -> assert false
     | Ok () -> print_endline "timer done"
   in
-  test s run;
+  test run;
   [%expect {|
     scheduling timer
     timer running
     timer done |}]
 
 let%expect_test "create timer & schedule task & cancel it" =
-  let s = S.create () in
   let run () =
     let* timer = S.create_timer ~delay:3.0 in
     print_endline "scheduling timer";
@@ -82,13 +78,12 @@ let%expect_test "create timer & schedule task & cancel it" =
         | Ok () -> assert false)
       (fun () -> S.cancel_timer timer)
   in
-  test s run;
+  test run;
   [%expect {|
     scheduling timer
     timer cancelled successfully |}]
 
 let%expect_test "create multiple timers" =
-  let s = S.create () in
   let timer () = S.create_timer ~delay:0.001 in
   let run () =
     Fiber.sequential_iter [ 1; 2; 3 ] ~f:(fun i ->
@@ -103,7 +98,7 @@ let%expect_test "create multiple timers" =
         | Error `Cancelled -> assert false
         | Ok () -> printf "%d: timer done\n" i)
   in
-  test s run;
+  test run;
   [%expect
     {|
     1: scheduling timer
@@ -117,7 +112,6 @@ let%expect_test "create multiple timers" =
     3: timer done |}]
 
 let%expect_test "create multiple timers" =
-  let s = S.create () in
   let timer () = S.create_timer ~delay:0.001 in
   let run () =
     let counter = ref 0 in
@@ -135,12 +129,11 @@ let%expect_test "create multiple timers" =
     in
     printf "counter: %d\n" !counter
   in
-  test s run;
+  test run;
   [%expect {|
     timer. timer. timer. counter: 3 |}]
 
 let%expect_test "tests rescheduling" =
-  let s = S.create () in
   let run () =
     let* timer = S.create_timer ~delay:0.05 in
     let counter = ref 0 in
@@ -157,11 +150,10 @@ let%expect_test "tests rescheduling" =
     in
     printf "counter: %d\n" !counter
   in
-  test s run;
+  test run;
   [%expect {| cancel. cancel. timer. counter: 1 |}]
 
 let%expect_test "detached + timer" =
-  let s = S.create () in
   let detached = Fiber.Pool.create () in
   let run () =
     let* timer = S.create_timer ~delay:0.05 in
@@ -181,13 +173,12 @@ let%expect_test "detached + timer" =
         Fiber.Pool.stop detached)
       (fun () -> Fiber.Pool.run detached)
   in
-  test s run;
+  test run;
   [%expect {|
     inside timer
     timer finished |}]
 
 let%expect_test "multiple timers" =
-  let s = S.create () in
   let timer delay = S.create_timer ~delay in
   let run () =
     Fiber.parallel_map [ 0.3; 0.2; 0.1 ] ~f:timer
@@ -202,14 +193,13 @@ let%expect_test "multiple timers" =
             | Ok () -> ())
     >>= Fiber.parallel_iter ~f:Fun.id
   in
-  test s run;
+  test run;
   [%expect {|
     timer 2
     timer 1
     timer 0 |}]
 
 let%expect_test "run process" =
-  let s = S.create () in
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
   let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
   let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
@@ -237,7 +227,7 @@ let%expect_test "run process" =
       | Unix.WEXITED n -> string_of_int n
       | _ -> "<signal>")
   in
-  test s run;
+  test run;
   [%expect {|
     stdout: foo
 

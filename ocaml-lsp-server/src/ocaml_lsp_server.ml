@@ -898,4 +898,4 @@ let start () =
 
 let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Scheduler.run (Scheduler.create ()) (start ())
+  Scheduler.run (start ())

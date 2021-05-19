@@ -257,7 +257,8 @@ let async_exn t f =
 
 let stop (t : thread) = Worker.stop t.worker
 
-let cancel_timers t =
+let cancel_timers () =
+  let* t = Fiber.Var.get_exn me in
   let timers = ref [] in
   with_mutex t.time_mutex ~f:(fun () ->
       Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:timer ->
@@ -382,8 +383,9 @@ let cancel_timer (timer : timer) =
         t.events_pending <- t.events_pending - 1);
     Fiber.Ivar.fill ivar `Cancelled
 
-let abort t =
+let abort () =
   (* TODO proper cleanup *)
+  let+ t = Fiber.Var.get_exn me in
   add_events t [ Abort ]
 
 module Process_watcher : sig
@@ -508,28 +510,6 @@ let cleanup t =
   if Lazy.is_val t.process_watcher then
     Process_watcher.killall (Lazy.force t.process_watcher) Sys.sigkill
 
-let run_result : 'a. t -> 'a Fiber.t -> ('a, _) result =
- fun t f ->
-  let f = Fiber.Var.set me t (fun () -> f) in
-  let iter () = iter t in
-  let res =
-    match Fiber.run f ~iter with
-    | exception Abort err -> Error err
-    | exception exn ->
-      let exn = Exn_with_backtrace.capture exn in
-      Error (Exn exn)
-    | res ->
-      assert (t.events_pending = 0);
-      Ok res
-  in
-  cleanup t;
-  res
-
-let run t f =
-  match run_result t f with
-  | Ok s -> s
-  | Error e -> raise (Abort e)
-
 let create () =
   let rec t =
     { events_pending = 0
@@ -548,6 +528,29 @@ let create () =
   and process_watcher = lazy (Process_watcher.init t) in
   t.time <- Thread.create time_loop t;
   t
+
+let run_result : 'a. 'a Fiber.t -> ('a, _) result =
+ fun f ->
+  let t = create () in
+  let f = Fiber.Var.set me t (fun () -> f) in
+  let iter () = iter t in
+  let res =
+    match Fiber.run f ~iter with
+    | exception Abort err -> Error err
+    | exception exn ->
+      let exn = Exn_with_backtrace.capture exn in
+      Error (Exn exn)
+    | res ->
+      assert (t.events_pending = 0);
+      Ok res
+  in
+  cleanup t;
+  res
+
+let run f =
+  match run_result f with
+  | Ok s -> s
+  | Error e -> raise (Abort e)
 
 let wait_for_process pid =
   let* t = Fiber.Var.get_exn me in

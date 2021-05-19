@@ -1,17 +1,13 @@
 open Import
 
-type t
-
-val create : unit -> t
-
 type run_error =
   | Never
   | Abort_requested
   | Exn of Exn_with_backtrace.t
 
-val run_result : t -> 'a Fiber.t -> ('a, run_error) result
+val run_result : 'a Fiber.t -> ('a, run_error) result
 
-val run : t -> 'a Fiber.t -> 'a
+val run : 'a Fiber.t -> 'a
 
 type thread
 
@@ -43,8 +39,8 @@ val schedule :
 
 val cancel_timer : timer -> unit Fiber.t
 
-val cancel_timers : t -> unit Fiber.t
+val cancel_timers : unit -> unit Fiber.t
 
 val wait_for_process : Pid.t -> Unix.process_status Fiber.t
 
-val abort : t -> unit
+val abort : unit -> unit Fiber.t
