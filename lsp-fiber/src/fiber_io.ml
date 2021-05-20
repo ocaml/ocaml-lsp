@@ -4,7 +4,7 @@ open Fiber.O
 
 type t =
   { in_ : Jsonrpc.packet In.t
-  ; out : Jsonrpc.packet Out.t
+  ; out : Jsonrpc.packet list Out.t
   ; in_thread : Scheduler.thread option ref
   ; out_thread : Scheduler.thread option ref
   ; io : Io.t
@@ -67,17 +67,21 @@ let make io =
     Out.create (fun t ->
         match (!out_thread, t) with
         | None, None -> Fiber.return ()
-        | None, Some packet ->
-          Log.log ~section:"Stream_io" (fun () ->
-              Log.msg "dropped write"
-                [ ("packet", Jsonrpc.yojson_of_packet packet) ]);
+        | None, Some packets ->
+          List.iter packets ~f:(fun packet ->
+              Log.log ~section:"Stream_io" (fun () ->
+                  Log.msg "dropped write"
+                    [ ("packet", Jsonrpc.yojson_of_packet packet) ]));
           Fiber.return ()
         | Some thread, _ -> (
           let+ res =
             Scheduler.async_exn thread
               (match t with
               | None -> fun () -> Io.close_out io
-              | Some p -> fun () -> Io.send io p)
+              | Some p ->
+                fun () ->
+                  List.iter p ~f:(Io.send io);
+                  Io.flush io)
             |> Scheduler.await_no_cancel
           in
           (match t with

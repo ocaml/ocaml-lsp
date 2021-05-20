@@ -7,6 +7,8 @@ val read : t -> Jsonrpc.packet option
 
 val send : t -> Jsonrpc.packet -> unit
 
+val flush : t -> unit
+
 val close_in : t -> unit
 
 val close_out : t -> unit

@@ -24,8 +24,9 @@ let send { oc; ic = _ } (packet : Jsonrpc.packet) =
   let content_length = String.length data in
   let header = Header.create ~content_length in
   Header.write header oc;
-  output_string oc data;
-  flush oc
+  output_string oc data
+
+let flush { oc; ic = _ } = flush oc
 
 let read_content ic =
   match Header.read ic with
