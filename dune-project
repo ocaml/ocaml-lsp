@@ -30,7 +30,7 @@ possible and does not make any assumptions about IO.
  (depends
   (jsonrpc (= :version))
   yojson
-  ppx_yojson_conv_lib
+  (ppx_yojson_conv_lib (>= "v0.14"))
   pp ;; needed by stdune
   (csexp (>= 1.4)) ;; needed by stdune
   uutf
@@ -46,10 +46,10 @@ possible and does not make any assumptions about IO.
  (description "An LSP server for OCaml.")
  (depends
   yojson
-  ppx_yojson_conv_lib
+  (ppx_yojson_conv_lib (>= "v0.14"))
   dune-build-info
   dot-merlin-reader
-  pp
+  (pp (>= 1.1.2))
   (csexp (>= 1.4))
   (result (>= 1.5))
   (ocamlformat :with-test)
