@@ -64,7 +64,7 @@ end
 module Make (Chan : sig
   type t
 
-  val send : t -> packet -> unit Fiber.t
+  val send : t -> packet list -> unit Fiber.t
 
   val recv : t -> packet option Fiber.t
 
@@ -140,7 +140,7 @@ struct
     let send_response resp =
       log t (fun () ->
           Log.msg "sending response" [ ("response", Response.yojson_of_t resp) ]);
-      Chan.send t.chan (Response resp)
+      Chan.send t.chan [ Response resp ]
     in
     let later = Fiber.Pool.create () in
     let rec loop () =
@@ -272,14 +272,14 @@ struct
   let notification t (req : Message.notification) =
     if not t.running then Code_error.raise "jsonrpc must be running" [];
     let req = { req with Message.id = None } in
-    Chan.send t.chan (Message req)
+    Chan.send t.chan [ Message req ]
 
   let request t (req : Message.request) =
     if not t.running then Code_error.raise "jsonrpc must be running" [];
     let open Fiber.O in
     let* () =
       let req = { req with Message.id = Some req.id } in
-      Chan.send t.chan (Message req)
+      Chan.send t.chan [ Message req ]
     in
     let ivar = Fiber.Ivar.create () in
     Table.add_exn t.pending req.id ivar;
@@ -287,4 +287,41 @@ struct
     match res with
     | Ok s -> s
     | Error `Stopped -> raise (Stopped req)
+
+  module Batch = struct
+    type t =
+      [ `Notification of Message.notification
+      | `Request of
+        Message.request * (Response.t, [ `Stopped ]) result Fiber.Ivar.t
+      ]
+      list
+      ref
+
+    let create () = ref []
+
+    let notification t n = t := `Notification n :: !t
+
+    let request t r =
+      let ivar = Fiber.Ivar.create () in
+      t := `Request (r, ivar) :: !t;
+      let open Fiber.O in
+      let+ res = Fiber.Ivar.read ivar in
+      match res with
+      | Ok s -> s
+      | Error `Stopped -> raise (Stopped r)
+  end
+
+  let submit (t : _ t) (batch : Batch.t) =
+    let pending = !batch in
+    batch := [];
+    let pending, ivars =
+      List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) -> function
+        | `Notification n ->
+          (Jsonrpc.Message { n with Message.id = None } :: pending, ivars)
+        | `Request ((r : Message.request), ivar) ->
+          ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
+          , (r.id, ivar) :: ivars ))
+    in
+    List.iter ivars ~f:(fun (id, ivar) -> Table.add_exn t.pending id ivar);
+    Chan.send t.chan pending
 end

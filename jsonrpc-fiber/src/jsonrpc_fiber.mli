@@ -20,7 +20,7 @@ exception Stopped of Jsonrpc.Message.request
 module Make (Chan : sig
   type t
 
-  val send : t -> Jsonrpc.packet -> unit Fiber.t
+  val send : t -> Jsonrpc.packet list -> unit Fiber.t
 
   val recv : t -> Jsonrpc.packet option Fiber.t
 
@@ -62,4 +62,16 @@ end) : sig
   val notification : _ t -> Jsonrpc.Message.notification -> unit Fiber.t
 
   val request : _ t -> Jsonrpc.Message.request -> Jsonrpc.Response.t Fiber.t
+
+  module Batch : sig
+    type t
+
+    val create : unit -> t
+
+    val notification : t -> Jsonrpc.Message.notification -> unit
+
+    val request : t -> Jsonrpc.Message.request -> Jsonrpc.Response.t Fiber.t
+  end
+
+  val submit : _ t -> Batch.t -> unit Fiber.t
 end

@@ -12,7 +12,7 @@ module Stream_chan = struct
     | `Read -> Fiber.return ()
     | `Write -> Out.write o None
 
-  let send (_, o) p = Out.write o (Some p)
+  let send (_, o) p = Fiber.sequential_iter p ~f:(fun x -> Out.write o (Some x))
 
   let recv (i, _) = In.read i
 end
