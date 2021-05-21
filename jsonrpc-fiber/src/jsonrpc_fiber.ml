@@ -281,8 +281,11 @@ struct
     | Ok s -> s
     | Error `Stopped -> raise (Stopped req)
 
+  let check_running t =
+    if not t.running then Code_error.raise "jsonrpc must be running" []
+
   let request t (req : Message.request) =
-    if not t.running then Code_error.raise "jsonrpc must be running" [];
+    check_running t;
     let open Fiber.O in
     let* () =
       let req = { req with Message.id = Some req.id } in
@@ -312,6 +315,7 @@ struct
   end
 
   let submit (t : _ t) (batch : Batch.t) =
+    check_running t;
     let pending = !batch in
     batch := [];
     let pending, ivars =
