@@ -262,17 +262,20 @@ struct
     Fdecl.set t.session session;
     t
 
-  let request (type r) (t : _ t) (req : r Out_request.t) : r Fiber.t =
+  let gen_request (type r) (t : _ t) (req : r Out_request.t) k : r Fiber.t =
     let id = `Int t.req_id in
     let jsonrpc_request =
       t.req_id <- t.req_id + 1;
       Out_request.to_jsonrpc_request req ~id
     in
     let open Fiber.O in
-    let+ resp = Session.request (Fdecl.get t.session) jsonrpc_request in
+    let+ (resp : Jsonrpc.Response.t) = k jsonrpc_request in
     match resp.result |> Result.map ~f:(Out_request.response_of_json req) with
     | Ok s -> s
     | Error e -> raise (Jsonrpc.Response.Error.E e)
+
+  let request (type r) (t : _ t) (req : r Out_request.t) : r Fiber.t =
+    gen_request t req (Session.request (Fdecl.get t.session))
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
@@ -295,16 +298,7 @@ struct
 
     let request (t : t) req =
       let (E session) = t.session in
-      let id = `Int session.req_id in
-      let jsonrpc_request =
-        session.req_id <- session.req_id + 1;
-        Out_request.to_jsonrpc_request req ~id
-      in
-      let open Fiber.O in
-      let+ resp = Session.Batch.request t.batch jsonrpc_request in
-      match resp.result |> Result.map ~f:(Out_request.response_of_json req) with
-      | Ok s -> s
-      | Error e -> raise (Jsonrpc.Response.Error.E e)
+      gen_request session req (Session.Batch.request t.batch)
   end
 
   let submit t (batch : Batch.t) =
