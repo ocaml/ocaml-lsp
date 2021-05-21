@@ -97,6 +97,21 @@ module type S = sig
   val notification : _ t -> out_notification -> unit Fiber.t
 
   val on_cancel : (unit -> unit Fiber.t) -> unit Fiber.t
+
+  module Batch : sig
+    type t
+
+    type _ session
+
+    val create : _ session -> t
+
+    val notification : t -> out_notification -> unit
+
+    val request : t -> 'resp out_request -> 'resp Fiber.t
+  end
+  with type 'a session := 'a t
+
+  val submit : _ t -> Batch.t -> unit Fiber.t
 end
 
 module type Request_intf = sig
@@ -262,6 +277,39 @@ struct
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
     Session.notification (Fdecl.get t.session) jsonrpc_request
+
+  module Batch = struct
+    type session = E : 'a t -> session
+
+    type t =
+      { batch : Session.Batch.t
+      ; session : session
+      }
+
+    let create session =
+      { batch = Session.Batch.create (); session = E session }
+
+    let notification t n =
+      let n = Out_notification.to_jsonrpc n in
+      Session.Batch.notification t.batch n
+
+    let request (t : t) req =
+      let (E session) = t.session in
+      let id = `Int session.req_id in
+      let jsonrpc_request =
+        session.req_id <- session.req_id + 1;
+        Out_request.to_jsonrpc_request req ~id
+      in
+      let open Fiber.O in
+      let+ resp = Session.Batch.request t.batch jsonrpc_request in
+      match resp.result |> Result.map ~f:(Out_request.response_of_json req) with
+      | Ok s -> s
+      | Error e -> raise (Jsonrpc.Response.Error.E e)
+  end
+
+  let submit t (batch : Batch.t) =
+    let t = Fdecl.get t.session in
+    Session.submit t batch.batch
 
   let initialized t = Fiber.Ivar.read t.initialized
 
