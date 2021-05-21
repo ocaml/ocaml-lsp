@@ -274,6 +274,11 @@ struct
     let req = { req with Message.id = None } in
     Chan.send t.chan [ Message req ]
 
+  let register_request_ivar t id ivar =
+    match Table.find t.pending id with
+    | Some _ -> Code_error.raise "duplicate request id" []
+    | None -> Table.add_exn t.pending id ivar
+
   let read_request_ivar req ivar =
     let open Fiber.O in
     let+ res = Fiber.Ivar.read ivar in
@@ -292,7 +297,7 @@ struct
       Chan.send t.chan [ Message req ]
     in
     let ivar = Fiber.Ivar.create () in
-    Table.add_exn t.pending req.id ivar;
+    register_request_ivar t req.id ivar;
     read_request_ivar req ivar
 
   module Batch = struct
@@ -326,6 +331,6 @@ struct
           ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
           , (r.id, ivar) :: ivars ))
     in
-    List.iter ivars ~f:(fun (id, ivar) -> Table.add_exn t.pending id ivar);
+    List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
     Chan.send t.chan pending
 end
