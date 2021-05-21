@@ -274,6 +274,13 @@ struct
     let req = { req with Message.id = None } in
     Chan.send t.chan [ Message req ]
 
+  let read_request_ivar req ivar =
+    let open Fiber.O in
+    let+ res = Fiber.Ivar.read ivar in
+    match res with
+    | Ok s -> s
+    | Error `Stopped -> raise (Stopped req)
+
   let request t (req : Message.request) =
     if not t.running then Code_error.raise "jsonrpc must be running" [];
     let open Fiber.O in
@@ -283,10 +290,7 @@ struct
     in
     let ivar = Fiber.Ivar.create () in
     Table.add_exn t.pending req.id ivar;
-    let+ res = Fiber.Ivar.read ivar in
-    match res with
-    | Ok s -> s
-    | Error `Stopped -> raise (Stopped req)
+    read_request_ivar req ivar
 
   module Batch = struct
     type t =
@@ -304,11 +308,7 @@ struct
     let request t r =
       let ivar = Fiber.Ivar.create () in
       t := `Request (r, ivar) :: !t;
-      let open Fiber.O in
-      let+ res = Fiber.Ivar.read ivar in
-      match res with
-      | Ok s -> s
-      | Error `Stopped -> raise (Stopped r)
+      read_request_ivar r ivar
   end
 
   let submit (t : _ t) (batch : Batch.t) =
