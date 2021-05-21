@@ -108,10 +108,10 @@ module type S = sig
     val notification : t -> out_notification -> unit
 
     val request : t -> 'resp out_request -> 'resp Fiber.t
+
+    val submit : t -> unit Fiber.t
   end
   with type 'a session := 'a t
-
-  val submit : _ t -> Batch.t -> unit Fiber.t
 end
 
 module type Request_intf = sig
@@ -299,11 +299,11 @@ struct
     let request (t : t) req =
       let (E session) = t.session in
       gen_request session req (Session.Batch.request t.batch)
-  end
 
-  let submit t (batch : Batch.t) =
-    let t = Fdecl.get t.session in
-    Session.submit t batch.batch
+    let submit { session = E session; batch } =
+      let t = Fdecl.get session.session in
+      Session.submit t batch
+  end
 
   let initialized t = Fiber.Ivar.read t.initialized
 

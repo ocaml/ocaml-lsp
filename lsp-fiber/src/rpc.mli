@@ -59,10 +59,10 @@ module type S = sig
     val notification : t -> out_notification -> unit
 
     val request : t -> 'resp out_request -> 'resp Fiber.t
+
+    val submit : t -> unit Fiber.t
   end
   with type 'a session := 'a t
-
-  val submit : _ t -> Batch.t -> unit Fiber.t
 end
 
 module Client : sig

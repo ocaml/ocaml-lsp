@@ -269,8 +269,11 @@ struct
     ; stop_pending_requests = make_stop_pending_requests pending
     }
 
+  let check_running t =
+    if not t.running then Code_error.raise "jsonrpc must be running" []
+
   let notification t (req : Message.notification) =
-    if not t.running then Code_error.raise "jsonrpc must be running" [];
+    check_running t;
     let req = { req with Message.id = None } in
     Chan.send t.chan [ Message req ]
 
@@ -285,9 +288,6 @@ struct
     match res with
     | Ok s -> s
     | Error `Stopped -> raise (Stopped req)
-
-  let check_running t =
-    if not t.running then Code_error.raise "jsonrpc must be running" []
 
   let request t (req : Message.request) =
     check_running t;
