@@ -270,6 +270,7 @@ struct
     }
 
   let check_running t =
+    (* TODO we should also error out when making requests after a disconnect. *)
     if not t.running then Code_error.raise "jsonrpc must be running" []
 
   let notification t (req : Message.notification) =
