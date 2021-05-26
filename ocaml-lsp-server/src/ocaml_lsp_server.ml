@@ -744,6 +744,7 @@ let on_request :
     match
       [ (Req_switch_impl_intf.meth, Req_switch_impl_intf.on_request)
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
+      ; (Req_dump_trace.meth, Req_dump_trace.on_request)
       ]
       |> List.assoc_opt meth
     with
