@@ -1,3 +1,11 @@
+# CHANGELOG
+
+## Unreleased
+
+## Development
+
+- Implement an in-memory tracer that keeps unlimited or the last N events in memory
+
 # 1.6.1 (05/17/2020)
 
 ## Fixes
