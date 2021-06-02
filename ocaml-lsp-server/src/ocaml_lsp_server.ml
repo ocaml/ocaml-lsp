@@ -147,8 +147,7 @@ let send_diagnostics ?diagnostics rpc doc =
                       | _ -> DiagnosticSeverity.Error
                     in
                     let message =
-                      Loc.print_main Format.str_formatter error;
-                      String.trim (Format.flush_str_formatter ())
+                      String.trim (Format.asprintf "%a@." Loc.print_main error)
                     in
                     create_diagnostic range message ~severity))
           in
