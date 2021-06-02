@@ -27,6 +27,44 @@ describe("textDocument/diagnostics", () => {
     languageServer = null;
   });
 
+  it("has related diagnostics", async () => {
+    let receivedDiganostics = new Promise((resolve, _reject) =>
+      languageServer.onNotification((method, params) => {
+        expect(method).toMatchInlineSnapshot(
+          `"textDocument/publishDiagnostics"`,
+        );
+        expect(params).toMatchInlineSnapshot(`
+          Object {
+            "diagnostics": Array [
+              Object {
+                "message": "This comment contains an unterminated string literal",
+                "range": Object {
+                  "end": Object {
+                    "character": 2,
+                    "line": 0,
+                  },
+                  "start": Object {
+                    "character": 0,
+                    "line": 0,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+            ],
+            "uri": "file:///test.ml",
+            "version": 0,
+          }
+        `);
+        resolve(null);
+      }),
+    );
+    await openDocument(outdent`
+(* " *)
+    `);
+    await receivedDiganostics;
+  });
+
   it("unused values have diagnostic tags", async () => {
     let receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
