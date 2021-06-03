@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Add sub-errors as "related" information in diagnostics (#457)
+
 # 1.6.1 (05/17/2020)
 
 ## Fixes

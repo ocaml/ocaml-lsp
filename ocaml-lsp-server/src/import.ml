@@ -31,6 +31,7 @@ module TextDocumentSyncKind = TextDocumentSyncKind
 module CompletionOptions = CompletionOptions
 module ServerCapabilities = ServerCapabilities
 module Diagnostic = Diagnostic
+module DiagnosticRelatedInformation = DiagnosticRelatedInformation
 module PublishDiagnosticsParams = PublishDiagnosticsParams
 module MessageType = MessageType
 module WorkspaceEdit = WorkspaceEdit

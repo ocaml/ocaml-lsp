@@ -48,6 +48,24 @@ describe("textDocument/diagnostics", () => {
                     "line": 0,
                   },
                 },
+                "relatedInformation": Array [
+                  Object {
+                    "location": Object {
+                      "range": Object {
+                        "end": Object {
+                          "character": 4,
+                          "line": 0,
+                        },
+                        "start": Object {
+                          "character": 3,
+                          "line": 0,
+                        },
+                      },
+                      "uri": "file:///test.ml",
+                    },
+                    "message": "String literal begins here",
+                  },
+                ],
                 "severity": 1,
                 "source": "ocamllsp",
               },
