@@ -80,8 +80,9 @@ let task_if_running (state : State.t) ~f =
 let send_diagnostics ?diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let uri = Document.uri doc in
-  let create_diagnostic ?severity range message =
-    Diagnostic.create ?severity ~range ~message ~source:"ocamllsp" ()
+  let create_diagnostic ?relatedInformation ?severity range message =
+    Diagnostic.create ?relatedInformation ?severity ~range ~message
+      ~source:"ocamllsp" ()
   in
   let create_publishDiagnostics ~version uri diagnostics =
     Server_notification.PublishDiagnostics
@@ -146,10 +147,26 @@ let send_diagnostics ?diagnostics rpc doc =
                       | Warning -> DiagnosticSeverity.Warning
                       | _ -> DiagnosticSeverity.Error
                     in
-                    let message =
-                      String.trim (Format.asprintf "%a@." Loc.print_main error)
+                    let message ppf m =
+                      String.trim (Format.asprintf "%a@." ppf m)
                     in
-                    create_diagnostic range message ~severity))
+                    let relatedInformation =
+                      match error.sub with
+                      | [] -> None
+                      | _ :: _ ->
+                        Some
+                          (List.map error.sub ~f:(fun (sub : Loc.msg) ->
+                               let location =
+                                 let range = Range.of_loc sub.loc in
+                                 Location.create ~range ~uri
+                               in
+                               let message = message Loc.print_sub_msg sub in
+                               DiagnosticRelatedInformation.create ~location
+                                 ~message))
+                    in
+                    let message = message Loc.print_main error in
+                    create_diagnostic ?relatedInformation range message
+                      ~severity))
           in
           let notif =
             let version = Some (Document.version doc) in
