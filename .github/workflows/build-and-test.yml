@@ -24,6 +24,11 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Set git to use LF
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout code
         uses: actions/checkout@v2
         with:
@@ -61,12 +66,6 @@ jobs:
 
       - name: Run the unit tests
         run: opam exec -- make test-ocaml
-        if: always()
-        continue-on-error: ${{ matrix.os == 'windows-latest' }}
-        timeout-minutes: 1
 
       - name: Run the template integration tests
         run: opam exec -- make test-e2e
-        if: always()
-        continue-on-error: ${{ matrix.os == 'windows-latest' }}
-        timeout-minutes: 1
