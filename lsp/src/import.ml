@@ -109,6 +109,20 @@ module Json = struct
     | Map map ->
       `List (List.map map ~f:(fun (k, v) -> `List [ of_dyn k; of_dyn v ]))
 
+  let rec to_dyn (t : t) : Dyn.t =
+    match t with
+    | `String s -> String s
+    | `Int i -> Int i
+    | `Float f -> Float f
+    | `Bool f -> Bool f
+    | `Assoc o -> Record (List.map o ~f:(fun (k, v) -> (k, to_dyn v)))
+    | `List l -> List (List.map l ~f:to_dyn)
+    | `Tuple args -> Tuple (List.map args ~f:to_dyn)
+    | `Null -> Dyn.Variant ("Null", [])
+    | `Variant (name, Some arg) -> Variant (name, [ to_dyn arg ])
+    | `Variant (name, None) -> Variant (name, [])
+    | `Intlit s -> String s
+
   module Conv = struct
     include Ppx_yojson_conv_lib.Yojson_conv
   end
