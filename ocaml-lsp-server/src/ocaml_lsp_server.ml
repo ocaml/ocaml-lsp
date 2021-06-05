@@ -118,11 +118,7 @@ let send_diagnostics ?diagnostics rpc doc =
               sprintf "Could not detect %s. Please install reason"
                 ocamlmerlin_reason
             in
-            let range =
-              let pos = Position.create ~line:1 ~character:1 in
-              Range.create ~start:pos ~end_:pos
-            in
-            create_diagnostic range message
+            create_diagnostic Range.first_line message
           in
           let notif =
             create_publishDiagnostics ~version:None uri [ no_reason_merlin ]
