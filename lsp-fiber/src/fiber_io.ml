@@ -1,11 +1,8 @@
 open Import
-open Fiber.Stream
 open Fiber.O
 
 type t =
-  { in_ : Jsonrpc.packet In.t
-  ; out : Jsonrpc.packet list Out.t
-  ; in_thread : Scheduler.thread option ref
+  { in_thread : Scheduler.thread option ref
   ; out_thread : Scheduler.thread option ref
   ; io : Io.t
   }
@@ -24,78 +21,76 @@ let close_in in_thread =
     Scheduler.stop thread;
     in_thread := None
 
-let send t p = Out.write t.out (Some p)
+let send t packets =
+  match !(t.out_thread) with
+  | None ->
+    List.iter packets ~f:(fun packet ->
+        Log.log ~section:"Stream_io" (fun () ->
+            Log.msg "dropped write"
+              [ ("packet", Jsonrpc.yojson_of_packet packet) ]));
+    Fiber.return ()
+  | Some thread -> (
+    let+ res =
+      Scheduler.async_exn thread (fun () ->
+          List.iter packets ~f:(Io.send t.io);
+          Io.flush t.io)
+      |> Scheduler.await_no_cancel
+    in
+    match res with
+    | Ok s -> s
+    | Error exn -> Exn_with_backtrace.reraise exn)
 
-let recv t = In.read t.in_
+let close_write t =
+  match !(t.out_thread) with
+  | None -> Fiber.return ()
+  | Some thread -> (
+    let+ res =
+      Scheduler.async_exn thread (fun () -> Io.close_out t.io)
+      |> Scheduler.await_no_cancel
+    in
+    close_out t.out_thread;
+    match res with
+    | Ok s -> s
+    | Error exn -> Exn_with_backtrace.reraise exn)
+
+let recv t =
+  let open Fiber.O in
+  match !(t.in_thread) with
+  | None -> Fiber.return None
+  | Some thread ->
+    let task =
+      Scheduler.async_exn thread (fun () ->
+          let res = Io.read t.io in
+          (match res with
+          | None -> Io.close_in t.io
+          | Some _ -> ());
+          res)
+    in
+    let+ res = Scheduler.await_no_cancel task in
+    let res =
+      match res with
+      | Ok s -> s
+      | Error exn -> Exn_with_backtrace.reraise exn
+    in
+    (match res with
+    | None -> close_in t.in_thread
+    | Some _ -> ());
+    res
 
 let make io =
   let* in_thread =
     let+ th = Scheduler.create_thread () in
     ref (Some th)
   in
-  let in_ =
-    In.create (fun () ->
-        let open Fiber.O in
-        match !in_thread with
-        | None -> Fiber.return None
-        | Some thread ->
-          let task =
-            Scheduler.async_exn thread (fun () ->
-                let res = Io.read io in
-                (match res with
-                | None -> Io.close_in io
-                | Some _ -> ());
-                res)
-          in
-          let+ res = Scheduler.await_no_cancel task in
-          let res =
-            match res with
-            | Ok s -> s
-            | Error exn -> Exn_with_backtrace.reraise exn
-          in
-          (match res with
-          | None -> close_in in_thread
-          | Some _ -> ());
-          res)
-  in
   let+ out_thread =
     let+ th = Scheduler.create_thread () in
     ref (Some th)
   in
-  let out =
-    let open Fiber.O in
-    Out.create (fun t ->
-        match (!out_thread, t) with
-        | None, None -> Fiber.return ()
-        | None, Some packets ->
-          List.iter packets ~f:(fun packet ->
-              Log.log ~section:"Stream_io" (fun () ->
-                  Log.msg "dropped write"
-                    [ ("packet", Jsonrpc.yojson_of_packet packet) ]));
-          Fiber.return ()
-        | Some thread, _ -> (
-          let+ res =
-            Scheduler.async_exn thread
-              (match t with
-              | None -> fun () -> Io.close_out io
-              | Some p ->
-                fun () ->
-                  List.iter p ~f:(Io.send io);
-                  Io.flush io)
-            |> Scheduler.await_no_cancel
-          in
-          (match t with
-          | None -> close_out out_thread
-          | Some _ -> ());
-          match res with
-          | Ok s -> s
-          | Error exn -> Exn_with_backtrace.reraise exn))
-  in
-  { in_; out; in_thread; out_thread; io }
+  { in_thread; out_thread; io }
 
 let close (t : t) what =
   match what with
-  | `Write -> Out.write t.out None
+  | `Write -> close_write t
   | `Read -> (
     match !(t.in_thread) with
     | None -> Fiber.return ()
