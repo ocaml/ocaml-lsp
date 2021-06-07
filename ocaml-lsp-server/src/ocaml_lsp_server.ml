@@ -566,7 +566,8 @@ let definition_query server (state : State.t) uri position merlin_request =
 
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
-  let symbols, errors =
+  let open Fiber.O in
+  let* symbols, errors =
     let workspaces =
       let init_params = init_params state in
       (* WorkspaceFolders has the most priority. Then rootUri and finally
@@ -589,7 +590,17 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
             ~name:(Filename.basename cwd)
         ]
     in
-    let symbols_results = Workspace_symbol.run params workspaces in
+    let* thread = Lazy_fiber.force state.symbols_thread in
+    let+ symbols_results =
+      let+ res =
+        Scheduler.async_exn thread (fun () ->
+            Workspace_symbol.run params workspaces)
+        |> Scheduler.await_no_cancel
+      in
+      match res with
+      | Ok s -> s
+      | Error exn -> Exn_with_backtrace.reraise exn
+    in
     List.partition_map symbols_results ~f:(function
       | Ok r -> Left r
       | Error e -> Right e)
@@ -921,6 +932,7 @@ let start () =
   let* server =
     let+ merlin = Scheduler.create_thread () in
     let ocamlformat = Fmt.create () in
+    let symbols_thread = Lazy_fiber.create Scheduler.create_thread in
     Fdecl.set server
       (Server.make handler stream
          { store
@@ -932,6 +944,7 @@ let start () =
          ; dune
          ; trace = `Off
          ; diagnostics
+         ; symbols_thread
          });
     Fdecl.get server
   in
