@@ -35,8 +35,8 @@ end = struct
   let pid t = t.pid
 
   let write t sexp =
-    let+ res =
-      Scheduler.async_exn t.out_thread (fun () ->
+    match
+      Scheduler.async t.out_thread (fun () ->
           match sexp with
           | None ->
             close_in_noerr t.in_chan;
@@ -44,26 +44,33 @@ end = struct
           | Some sexps ->
             List.iter sexps ~f:(Csexp.to_channel t.out_chan);
             flush t.out_chan)
-      |> Scheduler.await_no_cancel
-    in
-    match res with
-    | Error e -> Exn_with_backtrace.reraise e
-    | Ok s -> s
+    with
+    | Error `Stopped ->
+      (* It's ok to ignore this write. It will be not cause a deadlock because
+         all pending requests will be cancelled. *)
+      Fiber.return ()
+    | Ok task -> (
+      let+ res = Scheduler.await_no_cancel task in
+      match res with
+      | Error e -> Exn_with_backtrace.reraise e
+      | Ok s -> s)
 
   let read t =
-    let+ res =
-      Scheduler.async_exn t.in_thread (fun () ->
+    match
+      Scheduler.async t.in_thread (fun () ->
           match Csexp.input_opt t.in_chan with
           | Error _
           | Ok None ->
             close_in_noerr t.in_chan;
             None
           | Ok (Some s) -> Some s)
-      |> Scheduler.await_no_cancel
-    in
-    match res with
-    | Error e -> Exn_with_backtrace.reraise e
-    | Ok s -> s
+    with
+    | Error `Stopped -> Fiber.return None
+    | Ok res -> (
+      let+ res = Scheduler.await_no_cancel res in
+      match res with
+      | Ok s -> s
+      | Error e -> Exn_with_backtrace.reraise e)
 
   let create dune =
     let args = Array.of_list [ dune; "rpc"; "init"; "--wait" ] in
