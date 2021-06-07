@@ -83,6 +83,8 @@ end = struct
 
   let run t =
     let+ (_ : Unix.process_status) = Scheduler.wait_for_process t.pid in
+    Scheduler.stop t.in_thread;
+    Scheduler.stop t.out_thread;
     ()
 end
 
