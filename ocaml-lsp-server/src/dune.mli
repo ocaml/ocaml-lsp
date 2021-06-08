@@ -8,6 +8,6 @@ type t
 
 val run : t -> (unit, run) result Fiber.t
 
-val create : Diagnostics.t -> t
+val create : Diagnostics.t -> Progress.t -> t
 
 val stop : t -> unit Fiber.t

@@ -974,7 +974,18 @@ let start () =
         Fiber.fork_and_join_unit
           (fun () -> Server.start server)
           (fun () ->
-            let* (_ : InitializeParams.t) = Server.initialized server in
+            let* (init_params : InitializeParams.t) =
+              Server.initialized server
+            in
+            let progress =
+              Progress.create init_params.capabilities
+                ~report_progress:(fun progress ->
+                  Server.notification server
+                    (Server_notification.WorkDoneProgress progress))
+                ~create_task:(fun task ->
+                  Server.request server
+                    (Server_request.WorkDoneProgressCreate task))
+            in
             let dune =
               let dune' = Dune.create diagnostics progress in
               dune := Some dune';
