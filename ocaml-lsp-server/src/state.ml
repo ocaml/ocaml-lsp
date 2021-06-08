@@ -14,7 +14,6 @@ type t =
   ; ocamlformat : Fmt.t
   ; diagnostics : Diagnostics.t
   ; symbols_thread : Scheduler.thread Lazy_fiber.t
-  ; dune : Dune.t
   }
 
 let workspace_root t =
