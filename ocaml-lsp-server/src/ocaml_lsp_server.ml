@@ -948,7 +948,6 @@ let start () =
                 Server.Batch.notification batch (PublishDiagnostics d));
             Server.Batch.submit batch))
   in
-  let dune = Dune.create diagnostics in
   let* server =
     let+ merlin = Scheduler.create_thread () in
     let ocamlformat = Fmt.create () in
@@ -961,13 +960,13 @@ let start () =
          ; ocamlformat
          ; configuration
          ; detached
-         ; dune
          ; trace = `Off
          ; diagnostics
          ; symbols_thread
          });
     Fdecl.get server
   in
+  let dune = ref None in
   Fiber.fork_and_join_unit
     (fun () -> Fiber.Pool.run detached)
     (fun () ->
@@ -975,6 +974,12 @@ let start () =
         Fiber.fork_and_join_unit
           (fun () -> Server.start server)
           (fun () ->
+            let* (_ : InitializeParams.t) = Server.initialized server in
+            let dune =
+              let dune' = Dune.create diagnostics progress in
+              dune := Some dune';
+              dune'
+            in
             let* state = Dune.run dune in
             let message =
               match state with
@@ -998,12 +1003,16 @@ let start () =
                   Server.notification server
                     (Server_notification.LogMessage log)))
       in
-      Fiber.parallel_iter
-        ~f:(fun f -> f ())
-        [ (fun () -> Document_store.close store)
-        ; (fun () -> Fiber.Pool.stop detached)
-        ; (fun () -> Dune.stop dune)
-        ])
+      let* () =
+        Fiber.parallel_iter
+          ~f:(fun f -> f ())
+          [ (fun () -> Document_store.close store)
+          ; (fun () -> Fiber.Pool.stop detached)
+          ]
+      in
+      match !dune with
+      | None -> Fiber.return ()
+      | Some dune -> Dune.stop dune)
 
 let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
