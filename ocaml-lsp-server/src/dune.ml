@@ -111,9 +111,13 @@ type run =
   | Out_of_date
 
 type state =
-  | Waiting_for_init of { diagnostics : Diagnostics.t }
+  | Waiting_for_init of
+      { diagnostics : Diagnostics.t
+      ; progress : Progress.t
+      }
   | Active of
       { diagnostics : Diagnostics.t
+      ; progress : Progress.t
       ; finish : unit Fiber.Ivar.t
       ; chan : Chan.t
       }
@@ -127,13 +131,14 @@ let stop (t : t) =
   | Waiting_for_init _ ->
     t := Closed;
     Fiber.return ()
-  | Active { finish; chan; diagnostics = _ } ->
+  | Active { finish; chan; progress = _; diagnostics = _ } ->
     t := Closed;
     let pid = Chan.pid chan in
     Unix.kill (Pid.to_int pid) Sys.sigstop;
     Fiber.Ivar.fill finish ()
 
-let create diagnostics = ref (Waiting_for_init { diagnostics })
+let create diagnostics progress =
+  ref (Waiting_for_init { diagnostics; progress })
 
 let lsp_of_dune uri dune =
   let module D = Drpc.Diagnostic in
@@ -178,13 +183,13 @@ let run_rpc (t : t) bin =
   match !t with
   | Closed -> Code_error.raise "dune already closed" []
   | Active _ -> Code_error.raise "dune alrady running" []
-  | Waiting_for_init { diagnostics } ->
+  | Waiting_for_init { diagnostics; progress } ->
     Diagnostics.update_dune_status diagnostics Disconnected;
     let open Fiber.O in
     let finish = Fiber.Ivar.create () in
     let* chan = Chan.create bin in
-    t := Active { diagnostics; finish; chan };
-    let+ () =
+    t := Active { diagnostics; finish; chan; progress };
+    let* () =
       Fiber.parallel_iter
         ~f:(fun f -> f ())
         [ (fun () -> Diagnostics.send diagnostics)
@@ -198,6 +203,13 @@ let run_rpc (t : t) bin =
               Drpc.Initialize.create ~id:(Drpc.Id.make (Atom "ocamllsp"))
             in
             let handler =
+              let build_event, build_progress =
+                if Progress.should_report_build_progress progress then
+                  Progress.
+                    (Some (build_event progress), Some (build_progress progress))
+                else
+                  (None, None)
+              in
               let diagnostic evs =
                 List.iter evs ~f:(fun (ev : Drpc.Diagnostic.Event.t) ->
                     let id =
@@ -220,19 +232,26 @@ let run_rpc (t : t) bin =
                         (`Dune (id, uri, lsp_of_dune uri d)));
                 Diagnostics.send diagnostics
               in
-              Client.Handler.create ~diagnostic ()
+              Client.Handler.create ?build_event ?build_progress ~diagnostic ()
             in
             Client.connect ~handler chan init ~f:(fun client ->
                 Diagnostics.update_dune_status diagnostics Connected;
-                let* () = Diagnostics.send diagnostics in
-                let sub = Drpc.Subscribe.Diagnostics in
                 let* () =
-                  Client.notification client Drpc.Notification.subscribe sub
+                  let sub what =
+                    Client.notification client Drpc.Notification.subscribe what
+                  in
+                  if Progress.should_report_build_progress progress then
+                    Fiber.fork_and_join_unit
+                      (fun () -> sub Diagnostics)
+                      (fun () -> sub Build_progress)
+                  else
+                    sub Diagnostics
                 in
                 Fiber.Ivar.read finish))
         ]
     in
-    t := Waiting_for_init { diagnostics }
+    t := Waiting_for_init { diagnostics; progress };
+    Progress.end_build_if_running progress
 
 let run t : (unit, run) result Fiber.t =
   match !t with
