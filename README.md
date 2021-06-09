@@ -103,7 +103,7 @@ git submodule update --init --recursive
 opam switch create . ocaml-base-compiler.4.12.0 --with-test
 
 # don't forget to set your environment to use the local switch
-eval ($opam env)
+eval $(opam env)
 
 # build
 make all
