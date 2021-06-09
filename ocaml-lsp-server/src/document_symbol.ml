@@ -34,6 +34,9 @@ let rec symbol_info ?containerName uri item =
   in
   info :: children
 
+let symbols_of_outline uri outline =
+  List.concat_map ~f:(symbol_info uri) outline
+
 let run (client_capabilities : ClientCapabilities.t) doc uri =
   let command = Query_protocol.Outline in
   let open Fiber.O in
@@ -52,7 +55,7 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
       let symbols = List.map outline ~f:symbol in
       `DocumentSymbol symbols
     | false ->
-      let symbols = List.concat_map ~f:(symbol_info uri) outline in
+      let symbols = symbols_of_outline uri outline in
       `SymbolInformation symbols
   in
   symbols
