@@ -95,5 +95,6 @@ module LogMessageParams = LogMessageParams
 module Log = Lsp_fiber.Import.Log
 module Drpc = Dune_rpc.V1
 module Pid = Stdune.Pid
+module Re = Re
 
 let sprintf = Stdune.sprintf
