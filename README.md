@@ -76,7 +76,7 @@ The server supports the following LSP requests:
 - [x] `textDocument/prepareRename`
 - [x] `textDocument/foldingRange`
 - [x] `textDocument/selectionRange`
-- [ ] `workspace/symbol`
+- [x] `workspace/symbol`
 
 Note that degrees of support for each LSP request are varying.
 
