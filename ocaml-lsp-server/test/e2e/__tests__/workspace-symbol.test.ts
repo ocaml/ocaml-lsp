@@ -33,9 +33,9 @@ let createWorkspaces = (names: string[]) => {
   };
 };
 
-let buildProject = (cwd : string): void => {
+let buildProject = (cwd: string): void => {
   child_process.execSync("dune build --root . @check", { cwd: cwd });
-}
+};
 
 describe("workspace/symbol", () => {
   let languageServer: Protocol.MessageConnection = null;
@@ -138,7 +138,6 @@ describe("workspace/symbol", () => {
     languageServer = await LanguageServer.startAndInitialize({
       workspaceFolders: [workspaceA.folder, workspaceB.folder],
     });
-
 
     buildProject(workspaceA.path);
     buildProject(workspaceB.path);
