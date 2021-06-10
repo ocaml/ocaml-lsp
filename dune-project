@@ -46,6 +46,7 @@ possible and does not make any assumptions about IO.
  (description "An LSP server for OCaml.")
  (depends
   yojson
+  re
   (ppx_yojson_conv_lib (>= "v0.14"))
   dune-build-info
   dot-merlin-reader
