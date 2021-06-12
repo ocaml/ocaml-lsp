@@ -1,8 +1,8 @@
 open Import
 
 type enabled =
-  (* TODO this needs to be mutexed *)
-  { mutable token : ProgressToken.t option
+  { (* TODO this needs to be mutexed *)
+    mutable token : ProgressToken.t option
   ; mutable build_counter : int
   ; report_progress :
       Server_notification.Progress.t ProgressParams.t -> unit Fiber.t

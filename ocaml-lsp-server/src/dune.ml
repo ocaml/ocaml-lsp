@@ -92,7 +92,8 @@ end = struct
     let+ (_ : Unix.process_status) = Scheduler.wait_for_process t.pid in
     Scheduler.stop t.in_thread;
     Scheduler.stop t.out_thread;
-    ()
+    close_out_noerr t.out_chan;
+    close_in_noerr t.in_chan
 end
 
 module Client =
