@@ -1,6 +1,11 @@
 open Import
 include Lsp.Types.Range
 
+let compare (x : t) (y : t) =
+  match Position.compare x.start y.start with
+  | (Lt | Gt) as r -> r
+  | Ordering.Eq -> Position.compare x.end_ y.end_
+
 (* Compares ranges by their lengths*)
 let compare_size (x : t) (y : t) =
   let dx = Position.(x.end_ - x.start) in
