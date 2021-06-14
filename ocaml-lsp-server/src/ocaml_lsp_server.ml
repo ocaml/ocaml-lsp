@@ -52,6 +52,7 @@ let initialize_info : InitializeResult.t =
               [ ("interfaceSpecificLangId", `Bool true)
               ; Req_switch_impl_intf.capability
               ; Req_infer_intf.capability
+              ; Req_next_hole.capability
               ] )
         ]
     in
