@@ -6,6 +6,26 @@
 
 - Add support for navigating to a symbol inside a workspace (#398)
 
+- Add support for jumping to the next typed hole
+  - Note: implemented as a custom request, this will require a language server client that
+    knows about this request. At the moment, only VS Code OCaml Platform client support is
+    planned.
+  - Merlin has a concept of "typed holes" that are syntactically represented as `_`. Files
+    that incorporate typed holes are not considered valid OCaml, but Merlin and OCaml-LSP
+    support them. One example when such typed holes can occur is when on "destructs" a
+    value, e.g., destructing `(Some 1)` will generate code
+
+    ```ocaml
+    match Some 1 with Some _ -> _ | None -> _
+    ```
+
+    While the first underscore is a valid "match-all"/wildcard pattern, the rest of
+    underscores are typed holes. It is reasonable that user wants to jump to such typed
+    holes to be able to edit them. One should note that at the time of this writing, there
+    is work on Merlin, which allows to generate real code for such typed holes
+    automatically based on the type of the hole and available values in the current
+    context.
+
 # 1.6.1 (05/17/2020)
 
 ## Fixes
