@@ -83,8 +83,8 @@ let task_if_running (state : State.t) ~f =
 let set_diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let uri = Document.uri doc in
-  let create_diagnostic ?relatedInformation ?severity range message =
-    Diagnostic.create ?relatedInformation ?severity ~range ~message
+  let create_diagnostic ?code ?relatedInformation ?severity range message =
+    Diagnostic.create ?code ?relatedInformation ?severity ~range ~message
       ~source:"ocamllsp" ()
   in
   let async send =
@@ -125,33 +125,54 @@ let set_diagnostics rpc doc =
           in
           Document.with_pipeline_exn doc (fun pipeline ->
               let errors = Query_commands.dispatch pipeline command in
-              List.map errors ~f:(fun (error : Loc.error) ->
-                  let loc = Loc.loc_of_report error in
-                  let range = Range.of_loc loc in
-                  let severity =
-                    match error.source with
-                    | Warning -> DiagnosticSeverity.Warning
-                    | _ -> DiagnosticSeverity.Error
-                  in
-                  let message ppf m =
-                    String.trim (Format.asprintf "%a@." ppf m)
-                  in
-                  let relatedInformation =
-                    match error.sub with
-                    | [] -> None
-                    | _ :: _ ->
-                      Some
-                        (List.map error.sub ~f:(fun (sub : Loc.msg) ->
-                             let location =
-                               let range = Range.of_loc sub.loc in
-                               Location.create ~range ~uri
-                             in
-                             let message = message Loc.print_sub_msg sub in
-                             DiagnosticRelatedInformation.create ~location
-                               ~message))
-                  in
-                  let message = message Loc.print_main error in
-                  create_diagnostic ?relatedInformation range message ~severity))
+              let merlin_diagnostics =
+                List.map errors ~f:(fun (error : Loc.error) ->
+                    let loc = Loc.loc_of_report error in
+                    let range = Range.of_loc loc in
+                    let severity =
+                      match error.source with
+                      | Warning -> DiagnosticSeverity.Warning
+                      | _ -> DiagnosticSeverity.Error
+                    in
+                    let message ppf m =
+                      String.trim (Format.asprintf "%a@." ppf m)
+                    in
+                    let relatedInformation =
+                      match error.sub with
+                      | [] -> None
+                      | _ :: _ ->
+                        Some
+                          (List.map error.sub ~f:(fun (sub : Loc.msg) ->
+                               let location =
+                                 let range = Range.of_loc sub.loc in
+                                 Location.create ~range ~uri
+                               in
+                               let message = message Loc.print_sub_msg sub in
+                               DiagnosticRelatedInformation.create ~location
+                                 ~message))
+                    in
+                    let message = message Loc.print_main error in
+                    create_diagnostic ?relatedInformation range message
+                      ~severity)
+              in
+              let holes_as_err_diags =
+                Query_commands.dispatch pipeline Holes
+                |> List.map ~f:(fun (loc, _type) ->
+                       let range = Range.of_loc loc in
+                       let severity = DiagnosticSeverity.Error in
+                       let message =
+                         "This is a typed hole.\n\
+                          If you meant to use a wildcard pattern, here an \
+                          expression is expected not a pattern. Your code will \
+                          not compile if you do not replace this with a valid \
+                          expression."
+                       in
+                       (* we set specific diagnostic code = "hole" to be able to
+                          filter through diagnostics easily *)
+                       create_diagnostic ~code:(`String "hole") range message
+                         ~severity)
+              in
+              List.append holes_as_err_diags merlin_diagnostics)
         in
         Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
         Diagnostics.send state.diagnostics)
