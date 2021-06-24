@@ -3,8 +3,9 @@ open Import
 let action_kind = "destruct"
 
 let code_action_of_case_analysis doc uri (loc, newText) =
+  let range : Range.t = Range.of_loc loc in
   let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
+    let textedit : TextEdit.t = { range; newText } in
     let version = Document.version doc in
     let textDocument =
       OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
@@ -15,8 +16,13 @@ let code_action_of_case_analysis doc uri (loc, newText) =
     WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
   in
   let title = String.capitalize_ascii action_kind in
+  let command =
+    Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
+      ~arguments:[ `Assoc [ ("position", Position.yojson_of_t range.start) ] ]
+      ()
+  in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
-    ~isPreferred:false ()
+    ~command ~isPreferred:false ()
 
 let code_action doc (params : CodeActionParams.t) =
   let uri = params.textDocument.uri in
