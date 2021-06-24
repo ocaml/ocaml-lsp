@@ -1,3 +1,18 @@
+# Unreleased 
+
+## Features 
+
+- Jump to the first hole on calling `Destruct` code action (only with client VSCode OCaml
+  Platform) (#468)
+
+  Example: when a user invokes `Destruct` code action on `Some 1`, this code is replaced
+  by `match Some 1 with None -> _ | Some _ -> _`, where the 1st and 3rd underscores
+  are "typed holes", a concept created by Merlin to be able to put "holes" in OCaml code.
+
+  With this change, now for VSCode OCaml Platform users, on such invocation of `Destruct`,
+  the cursor will jump to the first typed hole and select it, so that user can start
+  editing right away.
+
 # 1.7.0 (07/28/2021)
 
 ## Features
