@@ -53,6 +53,18 @@ let f (x : t) = x
     expect(actions).toMatchInlineSnapshot(`
       Array [
         Object {
+          "command": Object {
+            "arguments": Array [
+              Object {
+                "position": Object {
+                  "character": 16,
+                  "line": 2,
+                },
+              },
+            ],
+            "command": "ocaml.next-hole",
+            "title": "Jump to Next Hole",
+          },
           "edit": Object {
             "documentChanges": Array [
               Object {
