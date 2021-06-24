@@ -157,15 +157,12 @@ let set_diagnostics rpc doc =
               in
               let holes_as_err_diags =
                 Query_commands.dispatch pipeline Holes
-                |> List.map ~f:(fun (loc, _type) ->
+                |> List.map ~f:(fun (loc, typ) ->
                        let range = Range.of_loc loc in
                        let severity = DiagnosticSeverity.Error in
                        let message =
-                         "This is a typed hole.\n\
-                          If you meant to use a wildcard pattern, here an \
-                          expression is expected not a pattern. Your code will \
-                          not compile if you do not replace this with a valid \
-                          expression."
+                         "This typed hole should be replaced with an \
+                          expression of type " ^ typ
                        in
                        (* we set specific diagnostic code = "hole" to be able to
                           filter through diagnostics easily *)
