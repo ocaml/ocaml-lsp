@@ -187,4 +187,224 @@ describe("textDocument/diagnostics", () => {
 
     await receivedDiganostics;
   });
+
+  it("should have diagnostics for a hole only", async () => {
+    let receivedDiganostics = new Promise((resolve, _reject) =>
+      languageServer.onNotification((method, params) => {
+        expect(method).toMatchInlineSnapshot(
+          `"textDocument/publishDiagnostics"`,
+        );
+        expect(params).toMatchInlineSnapshot(`
+          Object {
+            "diagnostics": Array [
+              Object {
+                "code": "hole",
+                "message": "This typed hole should be replaced with an expression of type int",
+                "range": Object {
+                  "end": Object {
+                    "character": 15,
+                    "line": 0,
+                  },
+                  "start": Object {
+                    "character": 14,
+                    "line": 0,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+            ],
+            "uri": "file:///test.ml",
+          }
+        `);
+        resolve(null);
+      }),
+    );
+
+    await openDocument(outdent`
+      let a : int = _
+    `);
+
+    await receivedDiganostics;
+  });
+
+  it("should have diagnostics for holes only", async () => {
+    let receivedDiganostics = new Promise((resolve, _reject) =>
+      languageServer.onNotification((method, params) => {
+        expect(method).toMatchInlineSnapshot(
+          `"textDocument/publishDiagnostics"`,
+        );
+        expect(params).toMatchInlineSnapshot(`
+          Object {
+            "diagnostics": Array [
+              Object {
+                "code": "hole",
+                "message": "This typed hole should be replaced with an expression of type int",
+                "range": Object {
+                  "end": Object {
+                    "character": 16,
+                    "line": 0,
+                  },
+                  "start": Object {
+                    "character": 15,
+                    "line": 0,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+              Object {
+                "message": "Warning 26: unused variable b.",
+                "range": Object {
+                  "end": Object {
+                    "character": 5,
+                    "line": 1,
+                  },
+                  "start": Object {
+                    "character": 4,
+                    "line": 1,
+                  },
+                },
+                "severity": 2,
+                "source": "ocamllsp",
+              },
+              Object {
+                "code": "hole",
+                "message": "This typed hole should be replaced with an expression of type string",
+                "range": Object {
+                  "end": Object {
+                    "character": 44,
+                    "line": 1,
+                  },
+                  "start": Object {
+                    "character": 43,
+                    "line": 1,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+              Object {
+                "code": "hole",
+                "message": "This typed hole should be replaced with an expression of type string",
+                "range": Object {
+                  "end": Object {
+                    "character": 58,
+                    "line": 1,
+                  },
+                  "start": Object {
+                    "character": 57,
+                    "line": 1,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+            ],
+            "uri": "file:///test.ml",
+          }
+        `);
+        resolve(null);
+      }),
+    );
+
+    await openDocument(outdent`
+      let _a : int = _ in
+      let b : string = match Some 1 with None -> _ | Some _ -> _ in
+      ()
+    `);
+
+    await receivedDiganostics;
+  });
+
+  it("different diagnostics, including holes, sorted by range", async () => {
+    let receivedDiganostics = new Promise((resolve, _reject) =>
+      languageServer.onNotification((method, params) => {
+        expect(method).toMatchInlineSnapshot(
+          `"textDocument/publishDiagnostics"`,
+        );
+        expect(params).toMatchInlineSnapshot(`
+          Object {
+            "diagnostics": Array [
+              Object {
+                "message": "This expression has type unit but an expression was expected of type int",
+                "range": Object {
+                  "end": Object {
+                    "character": 42,
+                    "line": 1,
+                  },
+                  "start": Object {
+                    "character": 40,
+                    "line": 1,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+              Object {
+                "code": "hole",
+                "message": "This typed hole should be replaced with an expression of type 'a",
+                "range": Object {
+                  "end": Object {
+                    "character": 12,
+                    "line": 3,
+                  },
+                  "start": Object {
+                    "character": 11,
+                    "line": 3,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+              Object {
+                "code": "hole",
+                "message": "This typed hole should be replaced with an expression of type 'a",
+                "range": Object {
+                  "end": Object {
+                    "character": 12,
+                    "line": 4,
+                  },
+                  "start": Object {
+                    "character": 11,
+                    "line": 4,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+              Object {
+                "message": "This expression has type string but an expression was expected of type int",
+                "range": Object {
+                  "end": Object {
+                    "character": 9,
+                    "line": 5,
+                  },
+                  "start": Object {
+                    "character": 6,
+                    "line": 5,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+            ],
+            "uri": "file:///test.ml",
+          }
+        `);
+        resolve(null);
+      }),
+    );
+
+    await openDocument(outdent`
+      let _u =
+        let _i = List.map (fun i -> i) [1; 2; ()] in
+        let b = 234 in
+        let _k = _ in
+        let _c = _ in
+        b + "a"
+    `);
+
+    await receivedDiganostics;
+  });
 });

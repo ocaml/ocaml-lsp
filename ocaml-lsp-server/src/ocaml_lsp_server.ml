@@ -169,7 +169,9 @@ let set_diagnostics rpc doc =
                        create_diagnostic ~code:(`String "hole") range message
                          ~severity)
               in
-              List.append holes_as_err_diags merlin_diagnostics)
+              List.append holes_as_err_diags merlin_diagnostics
+              |> List.sort ~compare:(fun d1 d2 ->
+                     Range.compare d1.Diagnostic.range d2.Diagnostic.range))
         in
         Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
         Diagnostics.send state.diagnostics)
