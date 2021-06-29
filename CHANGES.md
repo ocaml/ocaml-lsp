@@ -6,6 +6,15 @@
 
 - Add support for navigating to a symbol inside a workspace (#398)
 
+- Show typed holes as errors 
+
+  Merlin has a concept of "typed holes" that are syntactically represented as `_`. Files
+  that incorporate typed holes are not considered valid OCaml, but Merlin and OCaml-LSP
+  support them. One example when such typed holes can occur is when on "destructs" a value,
+  e.g., destructing `(Some 1)` will generate code `match Some 1 with Some _ -> _ | None ->
+  _`. While the first underscore is a valid "match-all"/wildcard pattern, the rest of
+  underscores are typed holes.
+
 # 1.6.1 (05/17/2020)
 
 ## Fixes
