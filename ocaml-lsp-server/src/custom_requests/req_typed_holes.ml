@@ -4,13 +4,11 @@ let capability = ("handleTypedHoles", `Bool true)
 
 let meth = "ocamllsp/typedHoles"
 
-let failwith_err err = failwith @@ Printf.sprintf "%s: %s" meth err
-
 module Request_params = struct
   type t = Uri.t
 
   (* Request params must have the form as in the given string. *)
-  let docstring = "{ uri: <DocumentUri> }"
+  let expected_params = `Assoc [ ("uri", `String "<DocumentUri>") ]
 
   let t_of_structured_json params : t option =
     match params with
@@ -20,15 +18,26 @@ module Request_params = struct
     | _ -> None
 
   let parse_exn (params : Jsonrpc.Message.Structured.t option) : t =
+    let raise_invalid_params ?data ~message () =
+      Jsonrpc.Response.Error.raise
+      @@ Jsonrpc.Response.Error.make ?data
+           ~code:Jsonrpc.Response.Error.Code.InvalidParams ~message ()
+    in
     match params with
-    | None -> failwith_err "Expected a paramater, but didn't get one"
+    | None ->
+      raise_invalid_params ~message:"Expected params but received none" ()
     | Some params -> (
       match t_of_structured_json params with
       | Some uri -> uri
       | None ->
-        Printf.ksprintf failwith_err "Expected a parameter %s, but got %s"
-          docstring
-          (Json.to_string (params :> Json.t)))
+        let error_json =
+          `Assoc
+            [ ("params_expected", expected_params)
+            ; ("params_received", (params :> Json.t))
+            ]
+        in
+        raise_invalid_params ~message:"Unxpected parameter format"
+          ~data:error_json ())
 end
 
 let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
@@ -38,8 +47,13 @@ let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
   let doc = Document_store.get_opt store uri in
   match doc with
   | None ->
-    Printf.ksprintf failwith_err
-      "Document %s wasn't found in the document store" (Uri.to_string uri)
+    Jsonrpc.Response.Error.raise
+    @@ Jsonrpc.Response.Error.make
+         ~code:Jsonrpc.Response.Error.Code.InvalidParams
+         ~message:
+           (Printf.sprintf "Document %s wasn't found in the document store"
+              (Uri.to_string uri))
+         ()
   | Some doc ->
     let open Fiber.O in
     let+ holes = Document.dispatch_exn doc Holes in
