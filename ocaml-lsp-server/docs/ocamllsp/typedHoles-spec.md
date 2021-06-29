@@ -2,6 +2,11 @@
 
 ## Description
 
+### A note on stability: 
+
+OCaml-LSP does not guarantee stability for this custom request, meaning the core 
+contributors may change or remove this custom request, as they see necessary.
+
 ### What typed holes are
 
 Merlin has a concept of "typed holes" that are syntactically represented as `_`. Files
