@@ -13,6 +13,8 @@ let not_supported () =
   Jsonrpc.Response.Error.raise
     (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
+let enable_dune_rpc = false
+
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
@@ -972,49 +974,51 @@ let start () =
   Fiber.fork_and_join_unit
     (fun () -> Fiber.Pool.run detached)
     (fun () ->
+      let run_dune () =
+        let* (init_params : InitializeParams.t) = Server.initialized server in
+        let progress =
+          Progress.create init_params.capabilities
+            ~report_progress:(fun progress ->
+              Server.notification server
+                (Server_notification.WorkDoneProgress progress))
+            ~create_task:(fun task ->
+              Server.request server (Server_request.WorkDoneProgressCreate task))
+        in
+        let dune =
+          let dune' = Dune.create diagnostics progress in
+          dune := Some dune';
+          dune'
+        in
+        let* state = Dune.run dune in
+        let message =
+          match state with
+          | Error Binary_not_found ->
+            Some "Dune must be installed for project functionality"
+          | Error Out_of_date ->
+            Some
+              "Dune is out of date. Install dune >= 3.0 for project \
+               functionality"
+          | Ok () -> None
+        in
+        match message with
+        | None -> Fiber.return ()
+        (* We disable the warnings because dune 3.0 isn't available yet *)
+        | Some _ when true -> Fiber.return ()
+        | Some message ->
+          let* (_ : InitializeParams.t) = Server.initialized server in
+          let state = Server.state server in
+          task_if_running state ~f:(fun () ->
+              let log = LogMessageParams.create ~type_:Warning ~message in
+              Server.notification server (Server_notification.LogMessage log))
+      in
       let* () =
         Fiber.fork_and_join_unit
           (fun () -> Server.start server)
           (fun () ->
-            let* (init_params : InitializeParams.t) =
-              Server.initialized server
-            in
-            let progress =
-              Progress.create init_params.capabilities
-                ~report_progress:(fun progress ->
-                  Server.notification server
-                    (Server_notification.WorkDoneProgress progress))
-                ~create_task:(fun task ->
-                  Server.request server
-                    (Server_request.WorkDoneProgressCreate task))
-            in
-            let dune =
-              let dune' = Dune.create diagnostics progress in
-              dune := Some dune';
-              dune'
-            in
-            let* state = Dune.run dune in
-            let message =
-              match state with
-              | Error Binary_not_found ->
-                Some "Dune must be installed for project functionality"
-              | Error Out_of_date ->
-                Some
-                  "Dune is out of date. Install dune >= 3.0 for project \
-                   functionality"
-              | Ok () -> None
-            in
-            match message with
-            | None -> Fiber.return ()
-            (* We disable the warnings because dune 3.0 isn't available yet *)
-            | Some _ when true -> Fiber.return ()
-            | Some message ->
-              let* (_ : InitializeParams.t) = Server.initialized server in
-              let state = Server.state server in
-              task_if_running state ~f:(fun () ->
-                  let log = LogMessageParams.create ~type_:Warning ~message in
-                  Server.notification server
-                    (Server_notification.LogMessage log)))
+            if enable_dune_rpc then
+              run_dune ()
+            else
+              Fiber.return ())
       in
       let* () =
         Fiber.parallel_iter
