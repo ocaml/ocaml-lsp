@@ -152,15 +152,14 @@ let complete doc lsp_position =
   let prefix =
     prefix_of_position ~short_path:false (Document.source doc) position
   in
-  Log.log ~section:"debug" (fun () ->
-      Log.msg "completion prefix" [ ("prefix", `String prefix) ]);
 
-  Document.with_pipeline_exn doc @@ fun pipeline ->
-  let completion =
-    let complete =
-      Query_protocol.Complete_prefix (prefix, position, [], false, true)
-    in
-    Query_commands.dispatch pipeline complete
+  let open Fiber.O in
+  let+ (completion : Query_protocol.completions) =
+    Document.with_pipeline_exn doc (fun pipeline ->
+        let complete =
+          Query_protocol.Complete_prefix (prefix, position, [], false, true)
+        in
+        Query_commands.dispatch pipeline complete)
   in
   let short_range =
     range_prefix lsp_position
