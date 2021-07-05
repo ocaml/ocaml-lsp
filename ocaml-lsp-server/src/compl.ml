@@ -134,8 +134,8 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   in
   { Range.start; end_ = lsp_position }
 
-let item index full_entry ~compl_info =
-  let range, (entry : Query_protocol.Compl.entry) = full_entry in
+let make_completionItem index (entry : Query_protocol.Compl.entry) ~compl_info
+    ~range =
   let kind = completion_kind entry.kind in
   let textEdit = Some (`TextEdit { TextEdit.range; newText = entry.name }) in
   CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
@@ -146,48 +146,49 @@ let item index full_entry ~compl_info =
     ~sortText:(Printf.sprintf "%04d" index)
     ~data:compl_info ?textEdit ()
 
-let complete doc lsp_position =
-  let position = Position.logical lsp_position in
-
+let complete doc pos =
+  let position = Position.logical pos in
   let prefix =
     prefix_of_position ~short_path:false (Document.source doc) position
   in
-
   let open Fiber.O in
   let+ (completion : Query_protocol.completions) =
+    (* TODO: can't we use [Document.dispatch_exn] instead of
+       [Document.with_pipeline_exn] for conciseness? *)
     Document.with_pipeline_exn doc (fun pipeline ->
         let complete =
           Query_protocol.Complete_prefix (prefix, position, [], false, true)
         in
         Query_commands.dispatch pipeline complete)
   in
-  let short_range =
-    range_prefix lsp_position
+  let range =
+    range_prefix pos
       (prefix_of_position ~short_path:true (Document.source doc) position)
   in
-  let items =
-    completion.entries |> List.map ~f:(fun entry -> (short_range, entry))
-  in
-  let items =
+  let completion_entries =
     match completion.context with
-    | `Unknown -> items
+    | `Unknown -> completion.entries
     | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
-      items
+      completion.entries
       @ List.map labels ~f:(fun (name, typ) ->
-            ( short_range
-            , { Query_protocol.Compl.name
-              ; kind = `Label
-              ; desc = typ
-              ; info = ""
-              ; deprecated = false (* TODO this is wrong *)
-              } ))
+            { Query_protocol.Compl.name
+            ; kind = `Label
+            ; desc = typ
+            ; info = ""
+            ; deprecated = false (* TODO this is wrong *)
+            })
   in
-  let textDocument = TextDocumentIdentifier.create ~uri:(Document.uri doc) in
+  (* we need to json-ify completion params to put them in completion item's
+     [data] field to keep it across [textDocument/completion] and the following
+     [completionItem/resolve] requests *)
   let compl_info =
-    CompletionParams.create ~textDocument ~position:lsp_position ()
+    let textDocument = TextDocumentIdentifier.create ~uri:(Document.uri doc) in
+    CompletionParams.create ~textDocument ~position:pos ()
     |> CompletionParams.yojson_of_t
   in
-  let items = List.mapi ~f:(item ~compl_info) items in
+  let items =
+    List.mapi completion_entries ~f:(make_completionItem ~range ~compl_info)
+  in
   `CompletionList { CompletionList.isIncomplete = false; items }
 
 let format_doc ~markdown doc =
