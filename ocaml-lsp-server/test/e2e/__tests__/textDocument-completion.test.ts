@@ -12,7 +12,7 @@ describe_opt("textDocument/completion", () => {
   let languageServer = null;
 
   async function openDocument(source) {
-    await languageServer.sendNotification("textDocument/didOpen", {
+    return languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
         "ocaml",
@@ -45,7 +45,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("can start completion at arbitrary position (before the dot)", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       Strin.func
     `);
 
@@ -57,7 +57,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("can start completion at arbitrary position", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       StringLabels
     `);
 
@@ -69,7 +69,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("can start completion at arbitrary position 2", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       StringLabels
     `);
 
@@ -78,7 +78,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completes identifier at top level", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       let somenum = 42
       let somestring = "hello"
 
@@ -94,7 +94,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completes identifier after completion-triggering character", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       module Test = struct
         let somenum = 42
         let somestring = "hello"
@@ -144,7 +144,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completes infix operators", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       let (>>|) = (+)
       let y = 1 >
     `);
@@ -205,7 +205,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completes from a module", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       let f = List.m
     `);
 
@@ -223,7 +223,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completes a module name", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       let f = L
     `);
 
@@ -239,7 +239,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completes without prefix", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       let somenum = 42
       let somestring = "hello"
 
@@ -335,7 +335,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completes labels", async () => {
-    openDocument("let f = ListLabels.map ~");
+    await openDocument("let f = ListLabels.map ~");
 
     let items = await queryCompletion(Types.Position.create(0, 24));
     let items_top5 = items.slice(0, 10);
@@ -426,7 +426,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("completion doesn't autocomplete record fields", async () => {
-    openDocument(outdent`
+    await openDocument(outdent`
       type r = {
         x: int;
         y: string
