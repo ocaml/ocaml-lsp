@@ -203,7 +203,11 @@ let construct doc position =
         let command : Command.t =
           Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
             ~arguments:
-              [ `Assoc [ ("position", Position.yojson_of_t range.start) ] ]
+              [ `Assoc
+                  [ ("position", Position.yojson_of_t range.start)
+                  ; ("notify-if-no-hole", `Bool false)
+                  ]
+              ]
             ()
         in
         CompletionItem.create ~preselect ~label:expr ~textEdit
