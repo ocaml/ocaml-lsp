@@ -130,24 +130,21 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   in
   { Range.start; end_ = lsp_position }
 
-let make_completionItem index (entry : Query_protocol.Compl.entry) ~compl_info
-    ~range =
+let completionItem_of_completion_entry index
+    (entry : Query_protocol.Compl.entry) ~compl_params ~range =
   let kind = completion_kind entry.kind in
-  let textEdit = Some (`TextEdit { TextEdit.range; newText = entry.name }) in
+  let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
   CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
     ~deprecated:
       entry.deprecated
       (* Without this field the client is not forced to respect the order
          provided by merlin. *)
     ~sortText:(Printf.sprintf "%04d" index)
-    ~data:compl_info ?textEdit ()
+    ~data:compl_params ~textEdit ()
 
-let complete doc pos =
-  let position = Position.logical pos in
-  let prefix =
-    prefix_of_position ~short_path:false (Document.source doc) position
-  in
+let complete_prefix doc prefix pos =
   let open Fiber.O in
+  let position = Position.logical pos in
   let+ (completion : Query_protocol.completions) =
     (* TODO: can't we use [Document.dispatch_exn] instead of
        [Document.with_pipeline_exn] for conciseness? *)
@@ -177,15 +174,77 @@ let complete doc pos =
   (* we need to json-ify completion params to put them in completion item's
      [data] field to keep it across [textDocument/completion] and the following
      [completionItem/resolve] requests *)
-  let compl_info =
+  let compl_params =
     let textDocument = TextDocumentIdentifier.create ~uri:(Document.uri doc) in
     CompletionParams.create ~textDocument ~position:pos ()
     |> CompletionParams.yojson_of_t
   in
-  let items =
-    List.mapi completion_entries ~f:(make_completionItem ~range ~compl_info)
+  List.mapi completion_entries
+    ~f:(completionItem_of_completion_entry ~range ~compl_params)
+
+let construct doc position =
+  let depth = 1 (* TODO: need to be more flexible with this value? discuss *) in
+  let command = Query_protocol.Construct (position, Some `Local, Some depth) in
+  let open Fiber.O in
+  let+ r = Document.dispatch doc command in
+  match r with
+  | Error { exn = Merlin_analysis.Construct.Not_a_hole; _ } -> Error `Not_a_hole
+  | Error e -> Error (`Exn e)
+  | Ok (loc, exprs) ->
+    let range = Range.of_loc loc in
+    List.mapi exprs ~f:(fun ix expr ->
+        let textEdit = `TextEdit { TextEdit.range; newText = expr } in
+        let preselect =
+          if ix = 0 then
+            true
+          else
+            false
+        in
+        let command : Command.t =
+          Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
+            ~arguments:
+              [ `Assoc [ ("position", Position.yojson_of_t range.start) ] ]
+            ()
+        in
+        CompletionItem.create ~preselect ~label:expr ~textEdit
+          ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
+          ~sortText:(Printf.sprintf "%04d" ix) ~command ())
+    |> Result.ok
+
+let completion_list ?(isIncomplete = false) items =
+  `CompletionList (CompletionList.create ~isIncomplete ~items)
+
+let complete doc pos =
+  let position = Position.logical pos in
+  let prefix =
+    prefix_of_position ~short_path:false (Document.source doc) position
   in
-  `CompletionList { CompletionList.isIncomplete = false; items }
+  let open Fiber.O in
+  let hole_syntax = "_" in
+  let can_be_hole = String.equal prefix hole_syntax in
+  let complete_prefix_list () =
+    let+ items = complete_prefix doc prefix pos in
+    completion_list items
+  in
+  if not can_be_hole then
+    complete_prefix_list ()
+  else
+    let* r = construct doc position in
+    match r with
+    | Ok r ->
+      let+ compl_prefix = complete_prefix doc prefix pos in
+      let items =
+        r @ compl_prefix
+        |> List.mapi ~f:(fun ix (ci : CompletionItem.t) ->
+               let sortText = Some (Printf.sprintf "%04d" ix) in
+               { ci with sortText })
+      in
+      completion_list items
+    | Error (`Exn e) ->
+      (* FIXME: should we raise here or just log (how?) and call
+         [complete_prefix]? *)
+      Exn_with_backtrace.reraise e
+    | Error `Not_a_hole -> complete_prefix_list ()
 
 let format_doc ~markdown doc =
   match markdown with
