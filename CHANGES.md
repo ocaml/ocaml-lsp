@@ -39,6 +39,13 @@
 - Parse merlin errors (best effort) into a more structured form. This allows
   reporting all locations as "related information" (#475)
 
+- Add support for Merlin `Construct` command as completion suggestions, i.e., show complex
+  expressions that could complete the typed hole. (#472)
+
+- Add a code action `Construct an expression` that is shown when the cursor is at the end
+  of the typed hole, i.e., `_|`, where `|` is the cursor. The code action simply triggers
+  the client (currently only VS Code is supported) to show completion suggestions. (#472)
+
 # 1.7.0 (07/28/2021)
 
 ## Features
