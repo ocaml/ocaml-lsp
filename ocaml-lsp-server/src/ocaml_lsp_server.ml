@@ -21,6 +21,7 @@ let initialize_info : InitializeResult.t =
       [ CodeActionKind.Other Action_destruct.action_kind
       ; CodeActionKind.Other Action_inferred_intf.action_kind
       ; CodeActionKind.Other Action_type_annotate.action_kind
+      ; CodeActionKind.Other Action_construct.action_kind
       ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
@@ -279,6 +280,8 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
         , fun () -> Action_inferred_intf.code_action doc state params )
       ; ( CodeActionKind.Other Action_type_annotate.action_kind
         , fun () -> Action_type_annotate.code_action doc params )
+      ; ( CodeActionKind.Other Action_construct.action_kind
+        , fun () -> Action_construct.code_action doc params )
       ]
   in
   let code_action_results = List.filter_opt code_action_results in
@@ -307,7 +310,7 @@ module Formatter = struct
     | Result.Error e ->
       let message = Fmt.message e in
       let error = jsonrpc_error e in
-      let msg = ShowMessageParams.create ~message ~type_:Error in
+      let msg = ShowMessageParams.create ~message ~type_:Warning in
       let open Fiber.O in
       let+ () =
         let state : State.t = Server.state rpc in
@@ -875,11 +878,11 @@ let ocaml_on_request :
         match resolve with
         | None -> Fiber.return ci
         | Some resolve ->
-        let doc =
-          let uri = Compl.Resolve.uri resolve in
-          Document_store.get state.store uri
-        in
-        Compl.resolve doc ci resolve query_doc ~markdown)
+          let doc =
+            let uri = Compl.Resolve.uri resolve in
+            Document_store.get state.store uri
+          in
+          Compl.resolve doc ci resolve query_doc ~markdown)
       ()
   | Client_request.TextDocumentFormatting
       { textDocument = { uri }; options = _; _ } ->

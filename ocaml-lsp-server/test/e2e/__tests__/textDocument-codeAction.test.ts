@@ -3,6 +3,7 @@ import * as path from "path";
 import * as LanguageServer from "../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
+import { Position } from "vscode-languageserver-types";
 
 function findAnnotateAction(actions) {
   return actions.find((action) => action.kind == "type-annotate");
@@ -30,8 +31,12 @@ describe("textDocument/codeAction", () => {
     languageServer = null;
   });
 
-  async function codeAction(uri, start, end) {
-    return await languageServer.sendRequest("textDocument/codeAction", {
+  async function codeAction(
+    uri: string,
+    start: Position,
+    end: Position,
+  ): Promise<Array<Types.CodeAction> | null> {
+    return languageServer.sendRequest("textDocument/codeAction", {
       textDocument: Types.TextDocumentIdentifier.create(uri),
       context: { diagnostics: [] },
       range: { start, end },
@@ -404,5 +409,39 @@ type x =
     let end = Types.Position.create(2, 6);
     let actions = await codeAction("file:///test.ml", start, end);
     expect(actions).toBeNull();
+  });
+
+  it("offers `Construct an expression` code action", async () => {
+    let uri = "file:///test.ml";
+    await openDocument(
+      outdent`
+let x = _
+`,
+      uri,
+    );
+
+    let actions = await codeAction(
+      uri,
+      Position.create(0, 8),
+      Position.create(0, 9),
+    );
+
+    expect(actions).not.toBeNull();
+
+    let construct_actions = actions.find(
+      (codeAction: Types.CodeAction) =>
+        codeAction.kind && codeAction.kind === "construct",
+    );
+
+    expect(construct_actions).toMatchInlineSnapshot(`
+      Object {
+        "command": Object {
+          "command": "editor.action.triggerSuggest",
+          "title": "Trigger Suggest",
+        },
+        "kind": "construct",
+        "title": "Construct an expression",
+      }
+    `);
   });
 });
