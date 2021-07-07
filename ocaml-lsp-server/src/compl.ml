@@ -183,8 +183,7 @@ let complete_prefix doc prefix pos =
     ~f:(completionItem_of_completion_entry ~range ~compl_params)
 
 let construct doc position =
-  let depth = 1 (* TODO: need to be more flexible with this value? discuss *) in
-  let command = Query_protocol.Construct (position, Some `Local, Some depth) in
+  let command = Query_protocol.Construct (position, None, None) in
   let open Fiber.O in
   let+ r = Document.dispatch doc command in
   match r with
