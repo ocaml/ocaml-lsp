@@ -52,8 +52,10 @@ module ProgressParams = struct
   let _ = fun (_ : 'a t) -> ()
 
   let t_of_yojson :
-        'a.    (Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a)
-        -> Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a t =
+        'a.
+           (Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a)
+        -> Ppx_yojson_conv_lib.Yojson.Safe.t
+        -> 'a t =
     let _tp_loc = "lsp/src/types.ml.ProgressParams.t" in
     fun _of_a -> function
       | `Assoc field_yojsons as yojson -> (
@@ -123,7 +125,9 @@ module ProgressParams = struct
   let _ = t_of_yojson
 
   let yojson_of_t :
-        'a.    ('a -> Ppx_yojson_conv_lib.Yojson.Safe.t) -> 'a t
+        'a.
+           ('a -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+        -> 'a t
         -> Ppx_yojson_conv_lib.Yojson.Safe.t =
    fun _of_a -> function
     | { token = v_token; value = v_value } ->
