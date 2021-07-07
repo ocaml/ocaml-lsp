@@ -10,11 +10,7 @@ module Resolve = struct
   let t_of_yojson = CompletionParams.t_of_yojson
 
   let of_completion_item (ci : CompletionItem.t) =
-    match ci.data with
-    | Some json -> t_of_yojson json
-    | None ->
-      Code_error.raise
-        "client did not pass additional data to completion resolve" []
+    Option.map ci.data ~f:t_of_yojson
 end
 
 let completion_kind kind : CompletionItemKind.t option =
