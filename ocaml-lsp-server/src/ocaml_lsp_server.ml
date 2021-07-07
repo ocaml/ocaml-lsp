@@ -872,6 +872,9 @@ let ocaml_on_request :
               completion_item.documentationFormat)
         in
         let resolve = Compl.Resolve.of_completion_item ci in
+        match resolve with
+        | None -> Fiber.return ci
+        | Some resolve ->
         let doc =
           let uri = Compl.Resolve.uri resolve in
           Document_store.get state.store uri

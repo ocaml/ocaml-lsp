@@ -5,7 +5,9 @@ module Resolve : sig
 
   val uri : t -> Uri.t
 
-  val of_completion_item : CompletionItem.t -> t
+  (** if the completion item doesn't have [data] field, then we don't resolve
+      but return it *)
+  val of_completion_item : CompletionItem.t -> t option
 
   include Json.Jsonable.S with type t := t
 end
