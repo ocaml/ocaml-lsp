@@ -7,9 +7,7 @@ module Resolve : sig
 
   val of_completion_item : CompletionItem.t -> t
 
-  val yojson_of_t : t -> Json.t
-
-  val t_of_yojson : Json.t -> t
+  include Json.Jsonable.S with type t := t
 end
 
 val complete :
