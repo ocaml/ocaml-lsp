@@ -2,6 +2,7 @@ import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
+import { Position } from "vscode-languageserver-types";
 
 const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0")
   ? describe
@@ -431,12 +432,249 @@ describe_opt("textDocument/completion", () => {
         y: string
       }
 
-      let _ = 
+      let _ =
     `);
 
     let items: Array<any> = await queryCompletion(Types.Position.create(5, 8));
     expect(
       items.filter((compl) => compl.label === "x" || compl.label === "y"),
     ).toHaveLength(0);
+  });
+
+  it("works for polymorphic variants - function application context - 1", async () => {
+    openDocument(outdent`
+let f (_a: [\`String | \`Int of int]) = ()
+
+let u = f \`Str
+    `);
+
+    let items = await queryCompletion(Position.create(2, 15));
+
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "Stream",
+          "textEdit": Object {
+            "newText": "Stream",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "String",
+          "textEdit": Object {
+            "newText": "String",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "StringLabels",
+          "textEdit": Object {
+            "newText": "StringLabels",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Str",
+          "textEdit": Object {
+            "newText": "Str",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it("works for polymorphic variants - function application context - 2", async () => {
+    openDocument(outdent`
+let f (_a: [\`String | \`Int of int]) = ()
+
+let u = f \`In
+    `);
+
+    let items = await queryCompletion(Position.create(2, 14));
+
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "Invalid_argument",
+          "textEdit": Object {
+            "newText": "Invalid_argument",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Int",
+          "textEdit": Object {
+            "newText": "Int",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Int32",
+          "textEdit": Object {
+            "newText": "Int32",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Int64",
+          "textEdit": Object {
+            "newText": "Int64",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 2,
+              },
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it("works for polymorphic variants", async () => {
+    openDocument(outdent`
+type t = [ \`Int | \`String ]
+
+let x : t = \`I
+    `);
+
+    let items = await queryCompletion(Position.create(2, 15));
+
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "Invalid_argument",
+          "textEdit": Object {
+            "newText": "Invalid_argument",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Int",
+          "textEdit": Object {
+            "newText": "Int",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Int32",
+          "textEdit": Object {
+            "newText": "Int32",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 2,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "Int64",
+          "textEdit": Object {
+            "newText": "Int64",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 2,
+              },
+            },
+          },
+        },
+      ]
+    `);
   });
 });
