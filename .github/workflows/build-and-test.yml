@@ -48,14 +48,13 @@ jobs:
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: ${{ matrix.os != 'macos-latest' }}
-          opam-depext-flags: --with-test
-
-      - name: Install ocamlformat
-        run: opam depext ocamlformat=$(cat .ocamlformat | grep version | cut -d '=' -f 2) --install
-        if: ${{ matrix.os == 'ubuntu-latest' }}
 
       - name: Install opam packages
-        run: opam install . --with-test
+        run: opam install .
+
+      # the makefile explains why we don't use test dependencies
+      - name: Install test dependencies
+        run: make install-test-deps
 
       - name: Check formatting
         run: opam exec -- make fmt
