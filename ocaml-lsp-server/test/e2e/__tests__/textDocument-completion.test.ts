@@ -453,64 +453,16 @@ let u = f \`Str
     expect(items).toMatchInlineSnapshot(`
       Array [
         Object {
-          "label": "Stream",
+          "label": "\`String",
           "textEdit": Object {
-            "newText": "Stream",
+            "newText": "\`String",
             "range": Object {
               "end": Object {
                 "character": 15,
                 "line": 2,
               },
               "start": Object {
-                "character": 12,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "String",
-          "textEdit": Object {
-            "newText": "String",
-            "range": Object {
-              "end": Object {
-                "character": 15,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 12,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "StringLabels",
-          "textEdit": Object {
-            "newText": "StringLabels",
-            "range": Object {
-              "end": Object {
-                "character": 15,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 12,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "Str",
-          "textEdit": Object {
-            "newText": "Str",
-            "range": Object {
-              "end": Object {
-                "character": 15,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 12,
+                "character": 11,
                 "line": 2,
               },
             },
@@ -532,64 +484,16 @@ let u = f \`In
     expect(items).toMatchInlineSnapshot(`
       Array [
         Object {
-          "label": "Invalid_argument",
+          "label": "\`Int",
           "textEdit": Object {
-            "newText": "Invalid_argument",
+            "newText": "\`Int",
             "range": Object {
               "end": Object {
                 "character": 14,
                 "line": 2,
               },
               "start": Object {
-                "character": 12,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "Int",
-          "textEdit": Object {
-            "newText": "Int",
-            "range": Object {
-              "end": Object {
-                "character": 14,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 12,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "Int32",
-          "textEdit": Object {
-            "newText": "Int32",
-            "range": Object {
-              "end": Object {
-                "character": 14,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 12,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "Int64",
-          "textEdit": Object {
-            "newText": "Int64",
-            "range": Object {
-              "end": Object {
-                "character": 14,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 12,
+                "character": 11,
                 "line": 2,
               },
             },
@@ -611,64 +515,16 @@ let x : t = \`I
     expect(items).toMatchInlineSnapshot(`
       Array [
         Object {
-          "label": "Invalid_argument",
+          "label": "\`Int",
           "textEdit": Object {
-            "newText": "Invalid_argument",
+            "newText": "\`Int",
             "range": Object {
               "end": Object {
                 "character": 15,
                 "line": 2,
               },
               "start": Object {
-                "character": 14,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "Int",
-          "textEdit": Object {
-            "newText": "Int",
-            "range": Object {
-              "end": Object {
-                "character": 15,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 14,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "Int32",
-          "textEdit": Object {
-            "newText": "Int32",
-            "range": Object {
-              "end": Object {
-                "character": 15,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 14,
-                "line": 2,
-              },
-            },
-          },
-        },
-        Object {
-          "label": "Int64",
-          "textEdit": Object {
-            "newText": "Int64",
-            "range": Object {
-              "end": Object {
-                "character": 15,
-                "line": 2,
-              },
-              "start": Object {
-                "character": 14,
+                "character": 13,
                 "line": 2,
               },
             },

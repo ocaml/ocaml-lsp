@@ -46,35 +46,50 @@ let prefix_of_position ~short_path source position =
       min (String.length text - 1) (index - 1)
     in
     let pos =
-      let ident_or_infix_char = function
-        | 'a' .. 'z'
-        | 'A' .. 'Z'
-        | '0' .. '9'
-        | '\''
-        | '_'
-        (* Infix function characters *)
-        | '$'
-        | '&'
-        | '*'
-        | '+'
-        | '-'
-        | '/'
-        | '='
-        | '>'
-        | '@'
-        | '^'
-        | '!'
-        | '?'
-        | '%'
-        | '<'
-        | ':'
-        | '~'
-        | '#' ->
-          true
-        | '.' -> not short_path
-        | _ -> false
+      let should_terminate = ref false in
+      let has_seen_dot = ref false in
+      let is_prefix_char c =
+        if !should_terminate then
+          false
+        else
+          match c with
+          | 'a' .. 'z'
+          | 'A' .. 'Z'
+          | '0' .. '9'
+          | '\''
+          | '_'
+          (* Infix function characters *)
+          | '$'
+          | '&'
+          | '*'
+          | '+'
+          | '-'
+          | '/'
+          | '='
+          | '>'
+          | '@'
+          | '^'
+          | '!'
+          | '?'
+          | '%'
+          | '<'
+          | ':'
+          | '~'
+          | '#' ->
+            true
+          | '`' ->
+            if !has_seen_dot then
+              false
+            else (
+              should_terminate := true;
+              true
+            )
+          | '.' ->
+            has_seen_dot := true;
+            not short_path
+          | _ -> false
       in
-      String.rfindi text ~from ~f:(fun c -> not (ident_or_infix_char c))
+      String.rfindi text ~from ~f:(fun c -> not (is_prefix_char c))
     in
     let pos =
       match pos with
