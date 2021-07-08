@@ -997,135 +997,87 @@ let start () =
     Fdecl.get server
   in
   let dune = ref None in
-  Fiber.fork_and_join_unit
-    (fun () -> Fiber.Pool.run detached)
-    (fun () ->
-      let run_dune () =
-        let* (init_params : InitializeParams.t) = Server.initialized server in
-        let progress =
-          Progress.create init_params.capabilities
-            ~report_progress:(fun progress ->
-              Server.notification server
-                (Server_notification.WorkDoneProgress progress))
-            ~create_task:(fun task ->
-              Server.request server (Server_request.WorkDoneProgressCreate task))
-        in
-        let dune =
-          let dune' = Dune.create diagnostics progress in
-          dune := Some dune';
-          dune'
-        in
-        let* state = Dune.run dune in
-        let message =
-          match state with
-          | Error Binary_not_found ->
-            Some "Dune must be installed for project functionality"
-          | Error Out_of_date ->
-            Some
-              "Dune is out of date. Install dune >= 3.0 for project \
-               functionality"
-          | Ok () -> None
-        in
-        match message with
-        | None -> Fiber.return ()
-        (* We disable the warnings because dune 3.0 isn't available yet *)
-        | Some _ when true -> Fiber.return ()
-        | Some message ->
-          let* (_ : InitializeParams.t) = Server.initialized server in
-          let state = Server.state server in
-          task_if_running state ~f:(fun () ->
-              let log = LogMessageParams.create ~type_:Warning ~message in
-              Server.notification server (Server_notification.LogMessage log))
-      in
-      let* () =
-        Fiber.parallel_iter
-          ~f:(fun f -> f ())
-          [ (fun () ->
-              if enable_dune_rpc then
-                run_dune ()
-              else
-                Fiber.return ())
-          ; (fun () ->
-              let* () = Server.start server in
-              (* When server exits we also stop ocamlformat rpc *)
-              Ocamlformat_rpc.stop ocamlformat_rpc)
-          ; (fun () ->
-              let logger ~type_ ~message () =
-                task_if_running (Server.state server) ~f:(fun () ->
-                    let log = LogMessageParams.create ~type_ ~message in
-                    Server.notification server
-                      (Server_notification.LogMessage log))
-              in
-              let* state = Ocamlformat_rpc.run ~logger ocamlformat_rpc in
-              let message =
-                match state with
-                | Error `Binary_not_found ->
-                  Some
-                    "OCamlformat_rpc is missing, displayed types might not be \
-                     properly formatted. "
-                | Ok () -> None
-              in
-              match message with
-              | None -> Fiber.return ()
-              | Some message ->
-                let* (_ : InitializeParams.t) = Server.initialized server in
-                let state = Server.state server in
-                task_if_running state ~f:(fun () ->
-                    let log = ShowMessageParams.create ~type_:Info ~message in
-                    Server.notification server
-                      (Server_notification.ShowMessage log)))
-          ; (fun () ->
-              let* (init_params : InitializeParams.t) =
-                Server.initialized server
-              in
-              let progress =
-                Progress.create init_params.capabilities
-                  ~report_progress:(fun progress ->
-                    Server.notification server
-                      (Server_notification.WorkDoneProgress progress))
-                  ~create_task:(fun task ->
-                    Server.request server
-                      (Server_request.WorkDoneProgressCreate task))
-              in
-              let dune =
-                let dune' = Dune.create diagnostics progress in
-                dune := Some dune';
-                dune'
-              in
-              let* state = Dune.run dune in
-              let message =
-                match state with
-                | Error Binary_not_found ->
-                  Some "Dune must be installed for project functionality"
-                | Error Out_of_date ->
-                  Some
-                    "Dune is out of date. Install dune >= 3.0 for project \
-                     functionality"
-                | Ok () -> None
-              in
-              match message with
-              | None -> Fiber.return ()
-              (* We disable the warnings because dune 3.0 isn't available yet *)
-              | Some _ when true -> Fiber.return ()
-              | Some message ->
-                let* (_ : InitializeParams.t) = Server.initialized server in
-                let state = Server.state server in
-                task_if_running state ~f:(fun () ->
-                    let log = LogMessageParams.create ~type_:Warning ~message in
-                    Server.notification server
-                      (Server_notification.LogMessage log)))
-          ]
-      in
-      let* () =
+  let run_dune () =
+    let* (init_params : InitializeParams.t) = Server.initialized server in
+    let progress =
+      Progress.create init_params.capabilities
+        ~report_progress:(fun progress ->
+          Server.notification server
+            (Server_notification.WorkDoneProgress progress))
+        ~create_task:(fun task ->
+          Server.request server (Server_request.WorkDoneProgressCreate task))
+    in
+    let dune =
+      let dune' = Dune.create diagnostics progress in
+      dune := Some dune';
+      dune'
+    in
+    let* state = Dune.run dune in
+    let message =
+      match state with
+      | Error Binary_not_found ->
+        Some "Dune must be installed for project functionality"
+      | Error Out_of_date ->
+        Some
+          "Dune is out of date. Install dune >= 3.0 for project functionality"
+      | Ok () -> None
+    in
+    match message with
+    | None -> Fiber.return ()
+    (* We disable the warnings because dune 3.0 isn't available yet *)
+    | Some _ when true -> Fiber.return ()
+    | Some message ->
+      let* (_ : InitializeParams.t) = Server.initialized server in
+      let state = Server.state server in
+      task_if_running state ~f:(fun () ->
+          let log = LogMessageParams.create ~type_:Warning ~message in
+          Server.notification server (Server_notification.LogMessage log))
+  in
+  Fiber.parallel_iter
+    ~f:(fun f -> f ())
+    [ (fun () ->
+        if enable_dune_rpc then
+          run_dune ()
+        else
+          Fiber.return ())
+    ; (fun () -> Fiber.Pool.run detached)
+    ; (fun () ->
+        let* () = Server.start server in
+        (* When server exits we also stop ocamlformat rpc *)
         Fiber.parallel_iter
           ~f:(fun f -> f ())
           [ (fun () -> Document_store.close store)
           ; (fun () -> Fiber.Pool.stop detached)
-          ]
-      in
-      match !dune with
-      | None -> Fiber.return ()
-      | Some dune -> Dune.stop dune)
+          ; (fun () -> Ocamlformat_rpc.stop ocamlformat_rpc)
+          ; (fun () ->
+              match !dune with
+              | None -> Fiber.return ()
+              | Some dune -> Dune.stop dune)
+          ])
+    ; (fun () ->
+        let logger ~type_ ~message () =
+          task_if_running (Server.state server) ~f:(fun () ->
+              let log = LogMessageParams.create ~type_ ~message in
+              Server.notification server (Server_notification.LogMessage log))
+        in
+        let* state = Ocamlformat_rpc.run ~logger ocamlformat_rpc in
+        let message =
+          match state with
+          | Error `Binary_not_found ->
+            Some
+              "OCamlformat_rpc is missing, displayed types might not be \
+               properly formatted. "
+          | Ok () -> None
+        in
+        match message with
+        | None -> Fiber.return ()
+        | Some message ->
+          let* (_ : InitializeParams.t) = Server.initialized server in
+          let state = Server.state server in
+          task_if_running state ~f:(fun () ->
+              let log = ShowMessageParams.create ~type_:Info ~message in
+              Server.notification server (Server_notification.ShowMessage log)))
+    ]
 
 let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
