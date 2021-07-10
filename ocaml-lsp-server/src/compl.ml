@@ -222,13 +222,11 @@ let complete doc pos =
     prefix_of_position ~short_path:false (Document.source doc) position
   in
   let open Fiber.O in
-  let hole_syntax = "_" in
-  let can_be_hole = String.equal prefix hole_syntax in
   let complete_prefix_list () =
     let+ items = complete_prefix doc prefix pos in
     completion_list items
   in
-  if not can_be_hole then
+  if not (Typed_hole.can_be_hole prefix) then
     complete_prefix_list ()
   else
     let reindex_sortText completion_items =
