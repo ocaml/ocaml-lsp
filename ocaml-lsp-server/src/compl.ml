@@ -200,14 +200,20 @@ let construct doc position =
             false
         in
         let command : Command.t =
+          (* [position] field determines starting at what position, client needs
+             to find the next hole
+
+             [notify-if-no-hole] field indicates whether we want to notify user
+             (via a pop-up message) if there are no hole to jump to *)
+          let arguments =
+            [ `Assoc
+                [ ("position", Position.yojson_of_t range.start)
+                ; ("notify-if-no-hole", `Bool false)
+                ]
+            ]
+          in
           Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
-            ~arguments:
-              [ `Assoc
-                  [ ("position", Position.yojson_of_t range.start)
-                  ; ("notify-if-no-hole", `Bool false)
-                  ]
-              ]
-            ()
+            ~arguments ()
         in
         CompletionItem.create ~preselect ~label:expr ~textEdit
           ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
