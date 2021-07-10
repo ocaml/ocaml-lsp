@@ -193,12 +193,6 @@ let construct doc position =
     let range = Range.of_loc loc in
     List.mapi exprs ~f:(fun ix expr ->
         let textEdit = `TextEdit { TextEdit.range; newText = expr } in
-        let preselect =
-          if ix = 0 then
-            true
-          else
-            false
-        in
         let command : Command.t =
           (* [position] field determines starting at what position, client needs
              to find the next hole
@@ -215,9 +209,13 @@ let construct doc position =
           Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
             ~arguments ()
         in
-        CompletionItem.create ~preselect ~label:expr ~textEdit
-          ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
-          ~sortText:(Printf.sprintf "%04d" ix) ~command ())
+        CompletionItem.create ~label:expr ~textEdit ~filterText:("_" ^ expr)
+          ~kind:CompletionItemKind.Text ~sortText:(Printf.sprintf "%04d" ix)
+          ~command ())
+    |> (function
+         | [] -> []
+         | ci :: rest ->
+           { ci with CompletionItem.preselect = Some true } :: rest)
     |> Result.ok
 
 let completion_list ?(isIncomplete = false) items =
