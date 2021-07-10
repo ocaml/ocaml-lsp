@@ -97,7 +97,7 @@ end = struct
 end
 
 module Client =
-  Drpc.Client
+  Drpc.Client.Make
     (struct
       include Fiber
 
