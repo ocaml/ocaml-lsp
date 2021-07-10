@@ -187,8 +187,8 @@ let construct doc position =
   let open Fiber.O in
   let+ r = Document.dispatch doc command in
   match r with
-  | Error { exn = Merlin_analysis.Construct.Not_a_hole; _ } -> Error `Not_a_hole
-  | Error e -> Error (`Exn e)
+  | Error { exn = Merlin_analysis.Construct.Not_a_hole; _ } -> []
+  | Error e -> Exn_with_backtrace.reraise e
   | Ok (loc, exprs) ->
     let range = Range.of_loc loc in
     List.mapi exprs ~f:(fun ix expr ->
@@ -212,11 +212,6 @@ let construct doc position =
         CompletionItem.create ~label:expr ~textEdit ~filterText:("_" ^ expr)
           ~kind:CompletionItemKind.Text ~sortText:(Printf.sprintf "%04d" ix)
           ~command ())
-    |> (function
-         | [] -> []
-         | ci :: rest ->
-           { ci with CompletionItem.preselect = Some true } :: rest)
-    |> Result.ok
 
 let completion_list ?(isIncomplete = false) items =
   `CompletionList (CompletionList.create ~isIncomplete ~items)
@@ -236,22 +231,23 @@ let complete doc pos =
   if not can_be_hole then
     complete_prefix_list ()
   else
-    let* r = construct doc position in
-    match r with
-    | Ok r ->
-      let+ compl_prefix = complete_prefix doc prefix pos in
-      let items =
-        r @ compl_prefix
-        |> List.mapi ~f:(fun ix (ci : CompletionItem.t) ->
-               let sortText = Some (Printf.sprintf "%04d" ix) in
-               { ci with sortText })
-      in
-      completion_list items
-    | Error (`Exn e) ->
-      (* FIXME: should we raise here or just log (how?) and call
-         [complete_prefix]? *)
-      Exn_with_backtrace.reraise e
-    | Error `Not_a_hole -> complete_prefix_list ()
+    let reindex_sortText completion_items =
+      List.mapi completion_items ~f:(fun ix (ci : CompletionItem.t) ->
+          let sortText = Some (Printf.sprintf "%04d" ix) in
+          { ci with sortText })
+    in
+    let preselect_first = function
+      | [] -> []
+      | ci :: rest -> { ci with CompletionItem.preselect = Some true } :: rest
+    in
+    (* TODO: do merlin construct and complete_prefix dispatches at once *)
+    let* constructed_exprs = construct doc position in
+    let+ compl_prefix = complete_prefix doc prefix pos in
+    let items =
+      (* TODO: sortText for [compl_prefix] can start at given [sorText_start] *)
+      constructed_exprs @ compl_prefix |> reindex_sortText |> preselect_first
+    in
+    completion_list items
 
 let format_doc ~markdown doc =
   match markdown with
