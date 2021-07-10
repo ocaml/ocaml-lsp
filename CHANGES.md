@@ -1,6 +1,6 @@
-# Unreleased 
+# Unreleased
 
-## Features 
+## Features
 
 - Jump to the first hole on calling `Destruct` code action (only with client VSCode OCaml
   Platform) (#468)
@@ -16,6 +16,26 @@
 - Use ocamlformat to properly format type snippets. This feature requires the
   `ocamlformat-rpc` opam package to be installed. (#386)
 
+- Add completion support for polymorphic variants, when it is possible to pin down the
+  precise type. Examples (`<|>` stands for the cursor) when completion will work (#473)
+
+  Function application:
+
+  ```
+  let foo (a: [`Alpha | `Beta]) = ()
+
+  foo `A<|>
+  ```
+
+  Type explicitly shown:
+
+  ```
+  let a : [`Alpha | `Beta] = `B<|>
+  ```
+
+  Note: this is actually a bug fix, since we were ignoring the backtick when constructing
+  the prefix for completion.
+
 # 1.7.0 (07/28/2021)
 
 ## Features
@@ -24,7 +44,7 @@
 
 - Add support for navigating to a symbol inside a workspace (#398)
 
-- Show typed holes as errors 
+- Show typed holes as errors
 
   Merlin has a concept of "typed holes" that are syntactically represented as `_`. Files
   that incorporate typed holes are not considered valid OCaml, but Merlin and OCaml-LSP
