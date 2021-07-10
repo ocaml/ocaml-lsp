@@ -3,12 +3,11 @@ open Import
 let action_kind = "construct"
 
 let code_action doc (params : CodeActionParams.t) =
-  let { Range.start = _; end_ } = params.range in
   match Document.kind doc with
   | Intf -> Fiber.return None
   | Impl -> (
     let src = Document.source doc in
-    let pos = Position.logical end_ in
+    let pos = Position.logical params.range.Range.end_ in
     (* we want this predicate to quickly eliminate prefixes that don't fit to be
        a hole *)
     let can_be_hole =
