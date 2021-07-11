@@ -11,3 +11,9 @@
  (library
   (name dune_rpc)
   (libraries stdune csexp (re_export dune_rpc_private))))
+
+(subdir ocamlc_loc
+ (copy_files %{workspace_root}/submodules/dune/src/ocamlc_loc/*.{ml,mli})
+ (library
+  (name ocamlc_loc)
+  (libraries re stdune)))

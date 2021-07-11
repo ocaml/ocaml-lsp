@@ -36,6 +36,9 @@
   Note: this is actually a bug fix, since we were ignoring the backtick when constructing
   the prefix for completion.
 
+- Parse merlin errors (best effort) into a more structured form. This allows
+  reporting all locations as "related information" (#475)
+
 # 1.7.0 (07/28/2021)
 
 ## Features

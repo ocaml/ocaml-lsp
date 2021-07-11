@@ -180,9 +180,7 @@ describe("textDocument/diagnostics", () => {
             sig val x : int end
           is not included in
             sig val x : unit end
-          Values do not match: val x : int is not included in val x : unit
-          File \\"test.ml\\", line 2, characters 2-14: Expected declaration
-          File \\"test.ml\\", line 4, characters 6-7: Actual declaration",
+          Values do not match: val x : int is not included in val x : unit",
                 "range": Object {
                   "end": Object {
                     "character": 3,
@@ -193,6 +191,40 @@ describe("textDocument/diagnostics", () => {
                     "line": 2,
                   },
                 },
+                "relatedInformation": Array [
+                  Object {
+                    "location": Object {
+                      "range": Object {
+                        "end": Object {
+                          "character": 14,
+                          "line": 2,
+                        },
+                        "start": Object {
+                          "character": 2,
+                          "line": 2,
+                        },
+                      },
+                      "uri": "file:///test.ml",
+                    },
+                    "message": "Expected declaration",
+                  },
+                  Object {
+                    "location": Object {
+                      "range": Object {
+                        "end": Object {
+                          "character": 7,
+                          "line": 4,
+                        },
+                        "start": Object {
+                          "character": 6,
+                          "line": 4,
+                        },
+                      },
+                      "uri": "file:///test.ml",
+                    },
+                    "message": "Actual declaration",
+                  },
+                ],
                 "severity": 1,
                 "source": "ocamllsp",
               },
