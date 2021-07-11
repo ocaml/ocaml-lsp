@@ -165,6 +165,54 @@ describe("textDocument/diagnostics", () => {
     await receivedDiganostics;
   });
 
+  it("related diagnostics for mismatched signatures", async () => {
+    let receivedDiganostics = new Promise((resolve, _reject) =>
+      languageServer.onNotification((method, params) => {
+        expect(method).toMatchInlineSnapshot(
+          `"textDocument/publishDiagnostics"`,
+        );
+        expect(params).toMatchInlineSnapshot(`
+          Object {
+            "diagnostics": Array [
+              Object {
+                "message": "Signature mismatch:
+          Modules do not match:
+            sig val x : int end
+          is not included in
+            sig val x : unit end
+          Values do not match: val x : int is not included in val x : unit
+          File \\"test.ml\\", line 2, characters 2-14: Expected declaration
+          File \\"test.ml\\", line 4, characters 6-7: Actual declaration",
+                "range": Object {
+                  "end": Object {
+                    "character": 3,
+                    "line": 4,
+                  },
+                  "start": Object {
+                    "character": 6,
+                    "line": 2,
+                  },
+                },
+                "severity": 1,
+                "source": "ocamllsp",
+              },
+            ],
+            "uri": "file:///test.ml",
+          }
+        `);
+        resolve(null);
+      }),
+    );
+    await openDocument(outdent`
+      module X : sig
+        val x : unit
+      end = struct
+        let x = 123
+      end
+    `);
+    await receivedDiganostics;
+  });
+
   it("no diagnostics for valid files", async () => {
     let receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
