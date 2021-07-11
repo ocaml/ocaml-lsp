@@ -61,6 +61,7 @@ let f (x : t) = x
           "command": Object {
             "arguments": Array [
               Object {
+                "notify-if-no-hole": false,
                 "position": Object {
                   "character": 16,
                   "line": 2,

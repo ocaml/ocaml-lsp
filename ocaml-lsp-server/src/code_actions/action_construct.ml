@@ -41,14 +41,8 @@ let code_action doc (params : CodeActionParams.t) =
            only a command to trigger all completion providers at the current
            cursor position *)
         let code_action =
-          let command : Command.t =
-            (* [editor.action.triggerSuggest] is a vscode-specific command,
-               which simply triggers the completion request on all completion
-               providers *)
-            Command.create ~title:"Trigger Suggest"
-              ~command:"editor.action.triggerSuggest" ()
-          in
           CodeAction.create ~title:"Construct an expression"
-            ~kind:(CodeActionKind.Other action_kind) ~command ()
+            ~kind:(CodeActionKind.Other action_kind)
+            ~command:Client.Vscode.Commands.triggerSuggest ()
         in
         Some code_action
