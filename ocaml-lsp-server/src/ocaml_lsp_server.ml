@@ -83,6 +83,70 @@ let task_if_running (state : State.t) ~f =
   | false -> Fiber.return ()
   | true -> Fiber.Pool.task state.detached ~f
 
+let extract_related_errors uri raw_message =
+  match Ocamlc_loc.parse_raw raw_message with
+  | `Message message :: related ->
+    let string_of_message message =
+      String.trim
+        (match (message : Ocamlc_loc.message) with
+        | Raw s -> s
+        | Structured { message; severity; file_excerpt = _ } ->
+          let severity =
+            match severity with
+            | Error -> "Error"
+            | Warning { code; name } ->
+              sprintf "Warning %s"
+                (match (code, name) with
+                | None, Some name -> sprintf "[%s]" name
+                | Some code, None -> sprintf "%d" code
+                | Some code, Some name -> sprintf "%d [%s]" code name
+                | None, None -> assert false)
+          in
+          sprintf "%s: %s" severity message)
+    in
+    let related =
+      let rec loop acc = function
+        | `Loc (_, loc) :: `Message m :: xs -> loop ((loc, m) :: acc) xs
+        | [] -> List.rev acc
+        | _ ->
+          (* give up when we see something unexpected *)
+          Log.log ~section:"debug" (fun () ->
+              Log.msg "unable to parse error" [ ("error", `String raw_message) ]);
+          []
+      in
+      loop [] related
+    in
+    let related =
+      match related with
+      | [] -> None
+      | related ->
+        let make_related ({ Ocamlc_loc.path = _; line; chars }, message) =
+          let location =
+            let start, end_ =
+              let line_start, line_end =
+                match line with
+                | `Single i -> (i, i)
+                | `Range (i, j) -> (i, j)
+              in
+              let char_start, char_end =
+                match chars with
+                | None -> (1, 1)
+                | Some (x, y) -> (x, y)
+              in
+              ( Position.create ~line:line_start ~character:char_start
+              , Position.create ~line:line_end ~character:char_end )
+            in
+            let range = Range.create ~start ~end_ in
+            Location.create ~range ~uri
+          in
+          let message = string_of_message message in
+          DiagnosticRelatedInformation.create ~location ~message
+        in
+        Some (List.map related ~f:make_related)
+    in
+    (string_of_message message, related)
+  | _ -> (raw_message, None)
+
 let set_diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let uri = Document.uri doc in
@@ -137,24 +201,27 @@ let set_diagnostics rpc doc =
                       | Warning -> DiagnosticSeverity.Warning
                       | _ -> DiagnosticSeverity.Error
                     in
-                    let message ppf m =
+                    let make_message ppf m =
                       String.trim (Format.asprintf "%a@." ppf m)
                     in
-                    let relatedInformation =
+                    let message = make_message Loc.print_main error in
+                    let message, relatedInformation =
                       match error.sub with
-                      | [] -> None
+                      | [] -> extract_related_errors uri message
                       | _ :: _ ->
-                        Some
-                          (List.map error.sub ~f:(fun (sub : Loc.msg) ->
-                               let location =
-                                 let range = Range.of_loc sub.loc in
-                                 Location.create ~range ~uri
-                               in
-                               let message = message Loc.print_sub_msg sub in
-                               DiagnosticRelatedInformation.create ~location
-                                 ~message))
+                        ( message
+                        , Some
+                            (List.map error.sub ~f:(fun (sub : Loc.msg) ->
+                                 let location =
+                                   let range = Range.of_loc sub.loc in
+                                   Location.create ~range ~uri
+                                 in
+                                 let message =
+                                   make_message Loc.print_sub_msg sub
+                                 in
+                                 DiagnosticRelatedInformation.create ~location
+                                   ~message)) )
                     in
-                    let message = message Loc.print_main error in
                     create_diagnostic ?relatedInformation range message
                       ~severity)
               in
