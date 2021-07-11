@@ -17,9 +17,8 @@ let code_action_of_case_analysis doc uri (loc, newText) =
   in
   let title = String.capitalize_ascii action_kind in
   let command =
-    Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
-      ~arguments:[ `Assoc [ ("position", Position.yojson_of_t range.start) ] ]
-      ()
+    Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
+      ~notify_if_no_hole:false ()
   in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
     ~command ~isPreferred:false ()

@@ -193,21 +193,9 @@ let construct doc position =
     let range = Range.of_loc loc in
     List.mapi exprs ~f:(fun ix expr ->
         let textEdit = `TextEdit { TextEdit.range; newText = expr } in
-        let command : Command.t =
-          (* [position] field determines starting at what position, client needs
-             to find the next hole
-
-             [notify-if-no-hole] field indicates whether we want to notify user
-             (via a pop-up message) if there are no hole to jump to *)
-          let arguments =
-            [ `Assoc
-                [ ("position", Position.yojson_of_t range.start)
-                ; ("notify-if-no-hole", `Bool false)
-                ]
-            ]
-          in
-          Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
-            ~arguments ()
+        let command =
+          Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
+            ~notify_if_no_hole:false ()
         in
         CompletionItem.create ~label:expr ~textEdit ~filterText:("_" ^ expr)
           ~kind:CompletionItemKind.Text ~sortText:(Printf.sprintf "%04d" ix)

@@ -80,6 +80,8 @@ module Json = struct
 
   module Jsonable = Ppx_yojson_conv_lib.Yojsonable
 
+  let bool b = `Bool b
+
   let field fields name conv = List.assoc_opt name fields |> Option.map conv
 
   let field_exn fields name conv =
