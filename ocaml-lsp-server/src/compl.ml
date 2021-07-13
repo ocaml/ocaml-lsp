@@ -130,76 +130,100 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   in
   { Range.start; end_ = lsp_position }
 
-let completionItem_of_completion_entry index
-    (entry : Query_protocol.Compl.entry) ~compl_params ~range =
-  let kind = completion_kind entry.kind in
-  let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
-  CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
-    ~deprecated:
-      entry.deprecated
-      (* Without this field the client is not forced to respect the order
-         provided by merlin. *)
-    ~sortText:(Printf.sprintf "%04d" index)
-    ~data:compl_params ~textEdit ()
+let sortText_of_index idx = Printf.sprintf "%04d" idx
 
-let complete_prefix doc prefix pos =
-  let open Fiber.O in
-  let position = Position.logical pos in
-  let+ (completion : Query_protocol.completions) =
-    (* TODO: can't we use [Document.dispatch_exn] instead of
-       [Document.with_pipeline_exn] for conciseness? *)
-    Document.with_pipeline_exn doc (fun pipeline ->
-        let complete =
-          Query_protocol.Complete_prefix (prefix, position, [], false, true)
-        in
-        Query_commands.dispatch pipeline complete)
-  in
-  let range =
-    range_prefix pos
-      (prefix_of_position ~short_path:true (Document.source doc) position)
-  in
-  let completion_entries =
-    match completion.context with
-    | `Unknown -> completion.entries
-    | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
-      completion.entries
-      @ List.map labels ~f:(fun (name, typ) ->
-            { Query_protocol.Compl.name
-            ; kind = `Label
-            ; desc = typ
-            ; info = ""
-            ; deprecated = false (* TODO this is wrong *)
-            })
-  in
-  (* we need to json-ify completion params to put them in completion item's
-     [data] field to keep it across [textDocument/completion] and the following
-     [completionItem/resolve] requests *)
-  let compl_params =
-    let textDocument = TextDocumentIdentifier.create ~uri:(Document.uri doc) in
-    CompletionParams.create ~textDocument ~position:pos ()
-    |> CompletionParams.yojson_of_t
-  in
-  List.mapi completion_entries
-    ~f:(completionItem_of_completion_entry ~range ~compl_params)
+module Complete_by_prefix = struct
+  let completionItem_of_completion_entry idx
+      (entry : Query_protocol.Compl.entry) ~compl_params ~range =
+    let kind = completion_kind entry.kind in
+    let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
+    CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
+      ~deprecated:
+        entry.deprecated
+        (* Without this field the client is not forced to respect the order
+           provided by merlin. *)
+      ~sortText:(sortText_of_index idx) ~data:compl_params ~textEdit ()
 
-let construct doc position =
-  let command = Query_protocol.Construct (position, None, None) in
-  let open Fiber.O in
-  let+ r = Document.dispatch doc command in
-  match r with
-  | Error { exn = Merlin_analysis.Construct.Not_a_hole; _ } -> []
-  | Error e -> Exn_with_backtrace.reraise e
-  | Ok (loc, exprs) ->
-    let range = Range.of_loc loc in
-    List.mapi exprs ~f:(fun ix expr ->
+  let dispatch_cmd_exn ~prefix position pipeline =
+    let complete =
+      Query_protocol.Complete_prefix (prefix, position, [], false, true)
+    in
+    Query_commands.dispatch pipeline complete
+
+  let dispatch_cmd ~prefix position pipeline =
+    try Ok (dispatch_cmd_exn ~prefix position pipeline) with
+    | e -> Error (Exn_with_backtrace.capture e)
+
+  let process_dispatch_resp doc pos (completion : Query_protocol.completions) =
+    let logical_pos = Position.logical pos in
+    let range =
+      range_prefix pos
+        (prefix_of_position ~short_path:true (Document.source doc) logical_pos)
+    in
+    let completion_entries =
+      match completion.context with
+      | `Unknown -> completion.entries
+      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
+        completion.entries
+        @ List.map labels ~f:(fun (name, typ) ->
+              { Query_protocol.Compl.name
+              ; kind = `Label
+              ; desc = typ
+              ; info = ""
+              ; deprecated = false (* TODO this is wrong *)
+              })
+    in
+    (* we need to json-ify completion params to put them in completion item's
+       [data] field to keep it across [textDocument/completion] and the
+       following [completionItem/resolve] requests *)
+    let compl_params =
+      let textDocument =
+        TextDocumentIdentifier.create ~uri:(Document.uri doc)
+      in
+      CompletionParams.create ~textDocument ~position:pos ()
+      |> CompletionParams.yojson_of_t
+    in
+    List.mapi completion_entries
+      ~f:(completionItem_of_completion_entry ~range ~compl_params)
+
+  let complete doc prefix pos =
+    let open Fiber.O in
+    let logical_pos = Position.logical pos in
+    let+ (completion : Query_protocol.completions) =
+      Document.with_pipeline_exn doc (fun pipeline ->
+          dispatch_cmd_exn ~prefix logical_pos pipeline)
+    in
+    process_dispatch_resp doc pos completion
+end
+
+module Complete_with_construct = struct
+  let dispatch_cmd position pipeline =
+    match
+      let command = Query_protocol.Construct (position, None, None) in
+      Query_commands.dispatch pipeline command
+    with
+    | r -> Ok r
+    | exception e -> Error (Exn_with_backtrace.capture e)
+
+  let process_dispatch_resp = function
+    | Error { Exn_with_backtrace.exn = Merlin_analysis.Construct.Not_a_hole; _ }
+      ->
+      []
+    | Error e -> Exn_with_backtrace.reraise e
+    | Ok (loc, constructed_exprs) ->
+      let range = Range.of_loc loc in
+      let completionItem_of_constructed_expr idx expr =
         let textEdit = `TextEdit { TextEdit.range; newText = expr } in
         let command =
           Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
             ~notify_if_no_hole:false ()
         in
         CompletionItem.create ~label:expr ~textEdit ~filterText:("_" ^ expr)
-          ~kind:CompletionItemKind.Text ~sortText:(Printf.sprintf "%04d" ix)
-          ~command ())
+          ~kind:CompletionItemKind.Text ~sortText:(sortText_of_index idx)
+          ~command ()
+      in
+      List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
+end
 
 let completion_list ?(isIncomplete = false) items =
   `CompletionList (CompletionList.create ~isIncomplete ~items)
@@ -211,15 +235,15 @@ let complete doc pos =
   in
   let open Fiber.O in
   let complete_prefix_list () =
-    let+ items = complete_prefix doc prefix pos in
+    let+ items = Complete_by_prefix.complete doc prefix pos in
     completion_list items
   in
   if not (Typed_hole.can_be_hole prefix) then
     complete_prefix_list ()
   else
     let reindex_sortText completion_items =
-      List.mapi completion_items ~f:(fun ix (ci : CompletionItem.t) ->
-          let sortText = Some (Printf.sprintf "%04d" ix) in
+      List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
+          let sortText = Some (sortText_of_index idx) in
           { ci with sortText })
     in
     let preselect_first = function
@@ -227,11 +251,29 @@ let complete doc pos =
       | ci :: rest -> { ci with CompletionItem.preselect = Some true } :: rest
     in
     (* TODO: do merlin construct and complete_prefix dispatches at once *)
-    let* constructed_exprs = construct doc position in
-    let+ compl_prefix = complete_prefix doc prefix pos in
+    let+ construct_cmd_resp, compl_by_prefix_resp =
+      Document.with_pipeline_exn doc (fun pipeline ->
+          let construct_cmd_resp =
+            Complete_with_construct.dispatch_cmd position pipeline
+          in
+          let compl_by_prefix_resp =
+            Complete_by_prefix.dispatch_cmd ~prefix position pipeline
+          in
+          (construct_cmd_resp, compl_by_prefix_resp))
+    in
+    let construct_completionItems =
+      Complete_with_construct.process_dispatch_resp construct_cmd_resp
+    in
+    let compl_by_prefix_completionItems =
+      match compl_by_prefix_resp with
+      | Ok resp -> Complete_by_prefix.process_dispatch_resp doc pos resp
+      | Error _ ->
+        (* TODO: log the error in future *)
+        []
+    in
     let items =
-      (* TODO: sortText for [compl_prefix] can start at given [sorText_start] *)
-      constructed_exprs @ compl_prefix |> reindex_sortText |> preselect_first
+      construct_completionItems @ compl_by_prefix_completionItems
+      |> reindex_sortText |> preselect_first
     in
     completion_list items
 
