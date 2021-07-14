@@ -539,171 +539,33 @@ let x : t = \`I
 let u : int = _
 `);
 
-    let items = await queryCompletion(Types.Position.create(0, 15));
+    let items: Types.CompletionItem[] = await queryCompletion(
+      Types.Position.create(0, 15),
+    );
+
+    items = items.filter(
+      (completionItem) => !completionItem.label.startsWith("__"),
+    );
 
     expect(items).toMatchInlineSnapshot(`
-    Array [
-      Object {
-        "label": "0",
-        "textEdit": Object {
-          "newText": "0",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__FILE__",
-        "textEdit": Object {
-          "newText": "__FILE__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
+      Array [
+        Object {
+          "label": "0",
+          "textEdit": Object {
+            "newText": "0",
+            "range": Object {
+              "end": Object {
+                "character": 15,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 0,
+              },
             },
           },
         },
-      },
-      Object {
-        "label": "__FUNCTION__",
-        "textEdit": Object {
-          "newText": "__FUNCTION__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__LINE_OF__",
-        "textEdit": Object {
-          "newText": "__LINE_OF__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__LINE__",
-        "textEdit": Object {
-          "newText": "__LINE__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__LOC_OF__",
-        "textEdit": Object {
-          "newText": "__LOC_OF__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__LOC__",
-        "textEdit": Object {
-          "newText": "__LOC__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__MODULE__",
-        "textEdit": Object {
-          "newText": "__MODULE__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__POS_OF__",
-        "textEdit": Object {
-          "newText": "__POS_OF__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-      Object {
-        "label": "__POS__",
-        "textEdit": Object {
-          "newText": "__POS__",
-          "range": Object {
-            "end": Object {
-              "character": 15,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 14,
-              "line": 0,
-            },
-          },
-        },
-      },
-    ]
-  `);
+      ]
+    `);
   });
 });
