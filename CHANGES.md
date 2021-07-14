@@ -46,6 +46,8 @@
   of the typed hole, i.e., `_|`, where `|` is the cursor. The code action simply triggers
   the client (currently only VS Code is supported) to show completion suggestions. (#472)
 
+- Change the formatting-on-save error notification to a warning notification (#472)
+
 # 1.7.0 (07/28/2021)
 
 ## Features
