@@ -144,15 +144,11 @@ module Complete_by_prefix = struct
            provided by merlin. *)
       ~sortText:(sortText_of_index idx) ~data:compl_params ~textEdit ()
 
-  let dispatch_cmd_exn ~prefix position pipeline =
+  let dispatch_cmd ~prefix position pipeline =
     let complete =
       Query_protocol.Complete_prefix (prefix, position, [], false, true)
     in
     Query_commands.dispatch pipeline complete
-
-  let dispatch_cmd ~prefix position pipeline =
-    try Ok (dispatch_cmd_exn ~prefix position pipeline) with
-    | e -> Error (Exn_with_backtrace.capture e)
 
   let process_dispatch_resp doc pos (completion : Query_protocol.completions) =
     let logical_pos = Position.logical pos in
@@ -191,7 +187,7 @@ module Complete_by_prefix = struct
     let logical_pos = Position.logical pos in
     let+ (completion : Query_protocol.completions) =
       Document.with_pipeline_exn doc (fun pipeline ->
-          dispatch_cmd_exn ~prefix logical_pos pipeline)
+          dispatch_cmd ~prefix logical_pos pipeline)
     in
     process_dispatch_resp doc pos completion
 end
@@ -265,11 +261,7 @@ let complete doc pos =
       Complete_with_construct.process_dispatch_resp construct_cmd_resp
     in
     let compl_by_prefix_completionItems =
-      match compl_by_prefix_resp with
-      | Ok resp -> Complete_by_prefix.process_dispatch_resp doc pos resp
-      | Error _ ->
-        (* TODO: log the error in future *)
-        []
+      Complete_by_prefix.process_dispatch_resp doc pos compl_by_prefix_resp
     in
     let items =
       construct_completionItems @ compl_by_prefix_completionItems
