@@ -208,15 +208,26 @@ module Complete_with_construct = struct
     | Error e -> Exn_with_backtrace.reraise e
     | Ok (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
+      let deparen_constr_expr expr =
+        if
+          (not (String.equal expr "()"))
+          && Char.equal expr.[0] '('
+          && Char.equal expr.[String.length expr - 1] ')'
+        then
+          String.sub expr ~pos:1 ~len:(String.length expr - 2)
+        else
+          expr
+      in
       let completionItem_of_constructed_expr idx expr =
+        let expr_wo_parens = deparen_constr_expr expr in
         let textEdit = `TextEdit { TextEdit.range; newText = expr } in
         let command =
           Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
             ~notify_if_no_hole:false ()
         in
-        CompletionItem.create ~label:expr ~textEdit ~filterText:("_" ^ expr)
-          ~kind:CompletionItemKind.Text ~sortText:(sortText_of_index idx)
-          ~command ()
+        CompletionItem.create ~label:expr_wo_parens ~textEdit
+          ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
+          ~sortText:(sortText_of_index idx) ~command ()
       in
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
