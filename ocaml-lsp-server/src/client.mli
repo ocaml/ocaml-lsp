@@ -27,7 +27,7 @@ module Vscode : sig
           [false] (the default value is [true]) *)
       val next_hole :
            ?start_position:Position.t
-        -> ?notify_if_no_hole:bool
+        -> notify_if_no_hole:bool
         -> unit
         -> Command.t
     end
