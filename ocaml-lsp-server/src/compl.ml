@@ -211,8 +211,8 @@ module Complete_with_construct = struct
       let deparen_constr_expr expr =
         if
           (not (String.equal expr "()"))
-          && Char.equal expr.[0] '('
-          && Char.equal expr.[String.length expr - 1] ')'
+          && String.is_prefix expr ~prefix:"("
+          && String.is_suffix expr ~suffix:")"
         then
           String.sub expr ~pos:1 ~len:(String.length expr - 2)
         else
