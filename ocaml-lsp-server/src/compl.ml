@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 module Resolve = struct
   type t = CompletionParams.t
@@ -26,13 +27,6 @@ let completion_kind kind : CompletionItemKind.t option =
   | `MethodCall -> Some Method
   | `Keyword -> Some Keyword
 
-(** [prefix_of_position ~short_path source position] computes prefix before
-    given [position].
-
-    @param short_path determines whether we want full prefix or cut at ["."],
-    e.g. [List.m<cursor>] returns ["m"] when [short_path] is set vs ["List.m"]
-    when not.
-    @return prefix of [position] in [source] and its length *)
 let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
@@ -151,8 +145,8 @@ module Complete_by_prefix = struct
     Query_commands.dispatch pipeline complete
 
   let process_dispatch_resp doc pos (completion : Query_protocol.completions) =
-    let logical_pos = Position.logical pos in
     let range =
+      let logical_pos = Position.logical pos in
       range_prefix pos
         (prefix_of_position ~short_path:true (Document.source doc) logical_pos)
     in
@@ -183,11 +177,9 @@ module Complete_by_prefix = struct
       ~f:(completionItem_of_completion_entry ~range ~compl_params)
 
   let complete doc prefix pos =
-    let open Fiber.O in
-    let logical_pos = Position.logical pos in
     let+ (completion : Query_protocol.completions) =
-      Document.with_pipeline_exn doc (fun pipeline ->
-          dispatch_cmd ~prefix logical_pos pipeline)
+      let logical_pos = Position.logical pos in
+      Document.with_pipeline_exn doc (dispatch_cmd ~prefix logical_pos)
     in
     process_dispatch_resp doc pos completion
 end
@@ -195,18 +187,19 @@ end
 module Complete_with_construct = struct
   let dispatch_cmd position pipeline =
     match
-      let command = Query_protocol.Construct (position, None, None) in
-      Query_commands.dispatch pipeline command
+      Exn_with_backtrace.try_with (fun () ->
+          let command = Query_protocol.Construct (position, None, None) in
+          Query_commands.dispatch pipeline command)
     with
-    | r -> Ok r
-    | exception e -> Error (Exn_with_backtrace.capture e)
-
-  let process_dispatch_resp = function
+    | Ok (loc, exprs) -> Some (loc, exprs)
     | Error { Exn_with_backtrace.exn = Merlin_analysis.Construct.Not_a_hole; _ }
       ->
-      []
-    | Error e -> Exn_with_backtrace.reraise e
-    | Ok (loc, constructed_exprs) ->
+      None
+    | Error exn -> Exn_with_backtrace.reraise exn
+
+  let process_dispatch_resp = function
+    | None -> []
+    | Some (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
       let deparen_constr_expr expr =
         if
@@ -232,53 +225,44 @@ module Complete_with_construct = struct
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
 
-let completion_list ?(isIncomplete = false) items =
-  `CompletionList (CompletionList.create ~isIncomplete ~items)
-
 let complete doc pos =
-  let position = Position.logical pos in
-  let prefix =
-    prefix_of_position ~short_path:false (Document.source doc) position
-  in
-  let open Fiber.O in
-  let complete_prefix_list () =
-    let+ items = Complete_by_prefix.complete doc prefix pos in
-    completion_list items
-  in
-  if not (Typed_hole.can_be_hole prefix) then
-    complete_prefix_list ()
-  else
-    let reindex_sortText completion_items =
-      List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
-          let sortText = Some (sortText_of_index idx) in
-          { ci with sortText })
+  let+ items =
+    let position = Position.logical pos in
+    let prefix =
+      prefix_of_position ~short_path:false (Document.source doc) position
     in
-    let preselect_first = function
-      | [] -> []
-      | ci :: rest -> { ci with CompletionItem.preselect = Some true } :: rest
-    in
-    (* TODO: do merlin construct and complete_prefix dispatches at once *)
-    let+ construct_cmd_resp, compl_by_prefix_resp =
-      Document.with_pipeline_exn doc (fun pipeline ->
-          let construct_cmd_resp =
-            Complete_with_construct.dispatch_cmd position pipeline
-          in
-          let compl_by_prefix_resp =
-            Complete_by_prefix.dispatch_cmd ~prefix position pipeline
-          in
-          (construct_cmd_resp, compl_by_prefix_resp))
-    in
-    let construct_completionItems =
-      Complete_with_construct.process_dispatch_resp construct_cmd_resp
-    in
-    let compl_by_prefix_completionItems =
-      Complete_by_prefix.process_dispatch_resp doc pos compl_by_prefix_resp
-    in
-    let items =
+    if not (Typed_hole.can_be_hole prefix) then
+      Complete_by_prefix.complete doc prefix pos
+    else
+      let reindex_sortText completion_items =
+        List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
+            let sortText = Some (sortText_of_index idx) in
+            { ci with sortText })
+      in
+      let preselect_first = function
+        | [] -> []
+        | ci :: rest -> { ci with CompletionItem.preselect = Some true } :: rest
+      in
+      let+ construct_cmd_resp, compl_by_prefix_resp =
+        Document.with_pipeline_exn doc (fun pipeline ->
+            let construct_cmd_resp =
+              Complete_with_construct.dispatch_cmd position pipeline
+            in
+            let compl_by_prefix_resp =
+              Complete_by_prefix.dispatch_cmd ~prefix position pipeline
+            in
+            (construct_cmd_resp, compl_by_prefix_resp))
+      in
+      let construct_completionItems =
+        Complete_with_construct.process_dispatch_resp construct_cmd_resp
+      in
+      let compl_by_prefix_completionItems =
+        Complete_by_prefix.process_dispatch_resp doc pos compl_by_prefix_resp
+      in
       construct_completionItems @ compl_by_prefix_completionItems
       |> reindex_sortText |> preselect_first
-    in
-    completion_list items
+  in
+  `CompletionList (CompletionList.create ~isIncomplete:false ~items)
 
 let format_doc ~markdown doc =
   match markdown with
@@ -295,25 +279,29 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
      applied completion item and pass it to merlin to get the docs for the
      [compl.label] *)
   let position : Position.t = resolve.position in
-  let complete =
-    let logical_position = Position.logical position in
-    let start =
-      let prefix =
-        prefix_of_position ~short_path:true (Document.source doc)
-          logical_position
+  let logical_position = Position.logical position in
+  let* doc =
+    let complete =
+      let start =
+        let prefix =
+          prefix_of_position ~short_path:true (Document.source doc)
+            logical_position
+        in
+        { position with character = position.character - String.length prefix }
       in
-      { position with character = position.character - String.length prefix }
+      let end_ =
+        let suffix =
+          suffix_of_position (Document.source doc) logical_position
+        in
+        { position with character = position.character + String.length suffix }
+      in
+      let range = Range.create ~start ~end_ in
+      TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
     in
-    let end_ =
-      let suffix = suffix_of_position (Document.source doc) logical_position in
-      { position with character = position.character + String.length suffix }
-    in
-    let range = Range.create ~start ~end_ in
-    TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
+    Document.update_text doc [ complete ]
   in
-  let open Fiber.O in
-  let* doc = Document.update_text doc [ complete ] in
-  let+ documentation = query_doc doc @@ Position.logical position in
-  let documentation = Option.map ~f:(format_doc ~markdown) documentation in
-  let compl = { compl with documentation; data = None } in
-  compl
+  let+ documentation =
+    let+ documentation = query_doc doc logical_position in
+    Option.map ~f:(format_doc ~markdown) documentation
+  in
+  { compl with documentation; data = None }

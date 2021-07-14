@@ -6,19 +6,23 @@ let code_action doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | Intf -> Fiber.return None
   | Impl ->
-    let src = Document.source doc in
     let pos = Position.logical params.range.Range.end_ in
     (* we want this predicate to quickly eliminate prefixes that don't fit to be
        a hole *)
-    let prefix = Compl.prefix_of_position ~short_path:false src pos in
+    let prefix =
+      let src = Document.source doc in
+      Compl.prefix_of_position ~short_path:false src pos
+    in
     if not (Typed_hole.can_be_hole prefix) then
       Fiber.return None
     else
       let open Fiber.O in
       let+ structures =
         Document.with_pipeline_exn doc (fun pipeline ->
-            let typer = Mpipeline.typer_result pipeline in
-            let typedtree = Mtyper.get_typedtree typer in
+            let typedtree =
+              let typer = Mpipeline.typer_result pipeline in
+              Mtyper.get_typedtree typer
+            in
             let pos = Mpipeline.get_lexing_pos pipeline pos in
             Mbrowse.enclosing pos [ Mbrowse.of_typedtree typedtree ])
       in
