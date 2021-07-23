@@ -464,22 +464,7 @@ let x : foo = 1
           "kind": "markdown",
           "value": "\`\`\`ocaml
       unit
-      \`\`\`
-      ---
-      List operations.
-
-      Some functions are flagged as not tail-recursive. A tail-recursive
-      function uses constant stack space, while a non-tail-recursive function
-      uses stack space proportional to the length of its list argument, which
-      can be a problem with very long lists. When the function takes several
-      list arguments, an approximate formula giving stack usage \\\\(in some
-      unspecified constant unit\\\\) is shown in parentheses.
-
-      The above considerations can usually be ignored if your lists are not
-      longer than about 10000 elements.
-
-      The labeled version of this module can be used as described in the
-      \`StdLabels\` module.",
+      \`\`\`",
         },
         "range": Object {
           "end": Object {
