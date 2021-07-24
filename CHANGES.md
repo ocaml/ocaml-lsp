@@ -82,6 +82,8 @@
     - [ocaml-lsp#344](https://github.com/ocaml/ocaml-lsp/issues/344)
     - [vscode-ocaml-platform#111](https://github.com/ocamllabs/vscode-ocaml-platform/issues/111)
 
+- Bug fix: correctly rename a variable used as a named/optional argument (#478)
+
 # 1.7.0 (07/28/2021)
 
 ## Features
