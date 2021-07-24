@@ -17,11 +17,12 @@ describe("textDocument/rename", () => {
     });
   }
 
-  async function query(position: Types.Position) {
+  async function query(position: Types.Position, newNameOpt?: string) {
+    let newName = newNameOpt ? newNameOpt : "new_num";
     return await languageServer.sendRequest("textDocument/rename", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
-      newName: "new_num",
+      newName,
     });
   }
 
@@ -176,5 +177,112 @@ describe("textDocument/rename", () => {
         },
       ],
     });
+  });
+
+  it("rename a var used as a named argument", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      capabilities: {
+        workspace: { workspaceEdit: { documentChanges: false } },
+      },
+    });
+
+    await openDocument(outdent`
+let foo x = x
+
+let bar ~foo = foo ()
+
+let () = bar ~foo
+    `);
+
+    let result = await query(Types.Position.create(0, 4), "ident");
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "changes": Object {
+          "file:///test.ml": Array [
+            Object {
+              "newText": "ident",
+              "range": Object {
+                "end": Object {
+                  "character": 7,
+                  "line": 0,
+                },
+                "start": Object {
+                  "character": 4,
+                  "line": 0,
+                },
+              },
+            },
+            Object {
+              "newText": ":ident",
+              "range": Object {
+                "end": Object {
+                  "character": 17,
+                  "line": 4,
+                },
+                "start": Object {
+                  "character": 17,
+                  "line": 4,
+                },
+              },
+            },
+          ],
+        },
+      }
+    `);
+  });
+
+  it("rename a var used as a named argument", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      capabilities: {
+        workspace: { workspaceEdit: { documentChanges: false } },
+      },
+    });
+
+    await openDocument(outdent`
+let foo = Some ()
+
+let bar ?foo () = foo
+
+;;
+ignore (bar ?foo ())
+    `);
+
+    let result = await query(Types.Position.create(0, 4), "sunit");
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "changes": Object {
+          "file:///test.ml": Array [
+            Object {
+              "newText": "sunit",
+              "range": Object {
+                "end": Object {
+                  "character": 7,
+                  "line": 0,
+                },
+                "start": Object {
+                  "character": 4,
+                  "line": 0,
+                },
+              },
+            },
+            Object {
+              "newText": ":sunit",
+              "range": Object {
+                "end": Object {
+                  "character": 16,
+                  "line": 5,
+                },
+                "start": Object {
+                  "character": 16,
+                  "line": 5,
+                },
+              },
+            },
+          ],
+        },
+      }
+    `);
   });
 });
