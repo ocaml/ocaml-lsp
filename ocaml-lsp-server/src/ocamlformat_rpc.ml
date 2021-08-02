@@ -9,11 +9,7 @@ module Process : sig
 
   val client : t -> Ocamlformat_rpc_lib.client
 
-  val create :
-       logger:(type_:MessageType.t -> message:string -> unit -> unit Fiber.t)
-    -> bin:Fpath.t
-    -> unit
-    -> (t, [> `No_process ]) result Fiber.t
+  val create : bin:Fpath.t -> unit -> (t, [> `No_process ]) result Fiber.t
 
   val run : t -> unit Fiber.t
 end = struct
@@ -46,7 +42,7 @@ end = struct
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-  let configure ~logger { io_thread; client; _ } =
+  let configure { io_thread; client; _ } =
     let open Fiber.O in
     (* We ask for 64 columns formatting as this appear to be the maximum size of
        VScode popups. TODO We should probably allow some flexibility for other
@@ -63,14 +59,11 @@ end = struct
       match res with
       | Ok (Ok ()) -> Fiber.return ()
       | Ok (Error (`Msg msg)) ->
-        let message =
-          Printf.sprintf "An error occured while configuring ocamlformat: %s"
-            msg
-        in
-        logger ~type_:MessageType.Warning ~message ()
+        Logger.log_w @@ fun () ->
+        Printf.sprintf "An error occured while configuring ocamlformat: %s" msg
       | Error e -> Exn_with_backtrace.reraise e)
 
-  let create ~logger ~bin () =
+  let create ~bin () =
     let bin = Fpath.to_string bin in
     let argv = [| bin |] in
     let pid, stdout, stdin =
@@ -92,26 +85,22 @@ end = struct
          version so we need to kill it *)
       Unix.kill pid Sys.sigkill;
       Scheduler.stop io_thread;
-      let* () =
-        let message =
-          Printf.sprintf
-            "An error happened when negociating with the OCamlformat-RPC \
-             server: %s"
-            msg
-        in
-        logger ~type_:MessageType.Error ~message ()
+      let+ () =
+        Logger.log_e (fun () ->
+            Printf.sprintf
+              "An error happened when negociating with the OCamlformat-RPC \
+               server: %s"
+              msg)
       in
-      Fiber.return @@ Error `No_process
+      Error `No_process
     | Ok client ->
       let process =
         { pid = Pid.of_int pid; input; output; io_thread; client }
       in
-      let* () = configure ~logger process in
+      let* () = configure process in
       let+ () =
-        let message =
-          Printf.sprintf "Ocamlformat-RPC server started with PID %i" pid
-        in
-        logger ~type_:MessageType.Info ~message ()
+        Logger.log_i @@ fun () ->
+        Printf.sprintf "Ocamlformat-RPC server started with PID %i" pid
       in
       Ok process
 
@@ -192,7 +181,7 @@ let stop t =
     Unix.kill pid Sys.sigkill;
     Fiber.return ()
 
-let run_rpc ~logger ~bin t =
+let run_rpc ~bin t =
   let open Fiber.O in
   match !t with
   | Stopped -> Code_error.raise "ocamlformat already stopped" []
@@ -203,7 +192,7 @@ let run_rpc ~logger ~bin t =
     | Stopped -> Fiber.return ()
     | Running _ -> assert false
     | Waiting_for_init _ -> (
-      let* process = Process.create ~logger ~bin () in
+      let* process = Process.create ~bin () in
       let* () = Fiber.Ivar.fill wait_init () in
       match process with
       | Error `No_process ->
@@ -216,7 +205,7 @@ let run_rpc ~logger ~bin t =
         | Running _ -> t := create_state ()
         | _ -> ())))
 
-let run ~logger t =
+let run t =
   let open Fiber.O in
   match Bin.which "ocamlformat-rpc" with
   | None ->
@@ -233,7 +222,7 @@ let run ~logger t =
         let* () = Fiber.Ivar.read ask_init in
         match !t with
         | Waiting_for_init _ ->
-          let* () = run_rpc ~logger ~bin t in
+          let* () = run_rpc ~bin t in
           (* We loop to automatically restart the server if it stopped *)
           loop ()
         | Running _ -> assert false

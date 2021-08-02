@@ -422,7 +422,7 @@ let query_type doc pos =
     None
   | (location, `String value, _) :: _ -> Some (location, value)
 
-let hover server (state : State.t)
+let hover _server (* TODO: remove [server] *) (state : State.t)
     { HoverParams.textDocument = { uri }; position; _ } =
   let store = state.store in
   let doc = Document_store.get store uri in
@@ -447,15 +447,11 @@ let hover server (state : State.t)
       | Error (`Msg message) ->
         (* We log OCamlformat errors and display the unformated type *)
         let+ () =
-          task_if_running state ~f:(fun () ->
-              let message =
-                sprintf
-                  "An error occured while querying ocamlformat:\n\
-                   Input type: %s\n\n\
-                   Answer: %s" typ message
-              in
-              let log = LogMessageParams.create ~type_:Warning ~message in
-              Server.notification server (Server_notification.LogMessage log))
+          Logger.log_w (fun () ->
+              sprintf
+                "An error occured while querying ocamlformat:\n\
+                 Input type: %s\n\n\
+                 Answer: %s" typ message)
         in
         typ
     in
@@ -692,7 +688,8 @@ let references (state : State.t)
          (* using original uri because merlin is looking only in local file *)
          { Location.uri; range }))
 
-let definition_query server (state : State.t) uri position merlin_request =
+let definition_query _server (* TODO: remove [server] *) (state : State.t) uri
+    position merlin_request =
   let doc = Document_store.get state.store uri in
   let position = Position.logical position in
   let command = merlin_request position in
@@ -701,12 +698,7 @@ let definition_query server (state : State.t) uri position merlin_request =
   match location_of_merlin_loc uri result with
   | Ok s -> Fiber.return s
   | Error message ->
-    let+ () =
-      task_if_running state ~f:(fun () ->
-          let message = sprintf "Locate failed. %s" message in
-          let log = LogMessageParams.create ~type_:Error ~message in
-          Server.notification server (Server_notification.LogMessage log))
-    in
+    let+ () = Logger.log_e @@ fun () -> sprintf "Locate failed. %s" message in
     None
 
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
@@ -1098,6 +1090,10 @@ let start () =
          });
     Fdecl.get server
   in
+  Logger.initialize ~log_level:MessageType.Log ~show_level:MessageType.Log
+    ~send_notification:(fun notif ->
+      let state = Server.state server in
+      task_if_running state ~f:(fun () -> Server.notification server notif));
   let dune = ref None in
   let run_dune () =
     let* (init_params : InitializeParams.t) = Server.initialized server in
@@ -1157,12 +1153,7 @@ let start () =
               | Some dune -> Dune.stop dune)
           ])
     ; (fun () ->
-        let logger ~type_ ~message () =
-          task_if_running (Server.state server) ~f:(fun () ->
-              let log = LogMessageParams.create ~type_ ~message in
-              Server.notification server (Server_notification.LogMessage log))
-        in
-        let* state = Ocamlformat_rpc.run ~logger ocamlformat_rpc in
+        let* state = Ocamlformat_rpc.run ocamlformat_rpc in
         let message =
           match state with
           | Error `Binary_not_found ->
