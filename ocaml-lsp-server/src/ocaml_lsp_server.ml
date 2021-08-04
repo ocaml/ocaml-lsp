@@ -58,6 +58,7 @@ let initialize_info : InitializeResult.t =
               ; Req_switch_impl_intf.capability
               ; Req_infer_intf.capability
               ; Req_typed_holes.capability
+              ; Req_wrapping_ast_node.capability
               ] )
         ]
     in
@@ -954,6 +955,7 @@ let on_request :
       [ (Req_switch_impl_intf.meth, Req_switch_impl_intf.on_request)
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
       ; (Req_typed_holes.meth, Req_typed_holes.on_request)
+      ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
       ]
       |> List.assoc_opt meth
     with
