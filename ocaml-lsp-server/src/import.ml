@@ -23,7 +23,16 @@ include struct
   let sprintf = sprintf
 end
 
-module Json = Lsp.Import.Json
+include struct
+  open Lsp
+  module Client_notification = Client_notification
+  module Client_request = Client_request
+  module Json = Import.Json
+  module Server_request = Server_request
+  module Text_document = Text_document
+  module Uri = Uri
+end
+
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
 module Server = Lsp_fiber.Server
