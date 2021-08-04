@@ -1,7 +1,7 @@
 open Import
 
 let client_capabilities (state : State.t) =
-  (State.initialization_params state).capabilities
+  (State.get_initializeParams state).capabilities
 
 let make_error = Jsonrpc.Response.Error.make
 
@@ -710,7 +710,7 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
   let open Fiber.O in
   let* symbols, errors =
     let workspaces =
-      let init_params = State.initialization_params state in
+      let init_params = State.get_initializeParams state in
       (* WorkspaceFolders has the most priority. Then rootUri and finally
          rootPath *)
       let root_uri = init_params.rootUri in
@@ -862,7 +862,7 @@ let ocaml_on_request :
         let open Fiber.O in
         let construct_use_local_context =
           let (init_options : State.Initialization_options.t) =
-            State.initialization_params state
+            State.get_initializeParams state
             |> State.Initialize_params.initializationOptions
             |> Option.value ~default:State.Initialization_options.default
           in

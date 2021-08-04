@@ -50,13 +50,13 @@ type t =
   }
 
 (** @raise Assertion_failure if server is uninitialized *)
-let initialization_params t =
+let get_initializeParams t =
   match t.init with
   | Uninitialized -> assert false
   | Initialized params -> params
 
 let workspace_root t =
-  let { InitializeParams.rootUri; _ } = initialization_params t in
+  let { InitializeParams.rootUri; _ } = get_initializeParams t in
   match rootUri with
   | None -> assert false
   | Some uri -> uri
