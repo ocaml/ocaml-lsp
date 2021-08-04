@@ -79,13 +79,15 @@
   let f x = x.Unix.tms_stime, x.Unix.tms_utime
   ```
 
-- Bug fix: do not show "random" documentation on hover
+## Fixes
+
+- Do not show "random" documentation on hover
   - fixed by [merlin#1364](https://github.com/ocaml/merlin/pull/1364)
-  - fixes duplicate:
+  - fixes (duplicate) issues:
     - [ocaml-lsp#344](https://github.com/ocaml/ocaml-lsp/issues/344)
     - [vscode-ocaml-platform#111](https://github.com/ocamllabs/vscode-ocaml-platform/issues/111)
 
-- Bug fix: correctly rename a variable used as a named/optional argument (#478)
+- Correctly rename a variable used as a named/optional argument (#478)
 
 # 1.7.0 (07/28/2021)
 
