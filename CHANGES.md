@@ -76,6 +76,10 @@
   let f x = x.Unix.tms_stime, x.Unix.tms_utime
   ```
 
+- Add support for a custom request `ocamllsp/wrappingAstNode`, which brings the smallest
+  AST (Abstract Syntax Tree) node enclosing given position. This request is used by VS
+  Code OCaml Platform and is not directly used by OCaml LSP users (#482)
+
 - Bug fix: do not show "random" documentation on hover
   - fixed by [merlin#1364](https://github.com/ocaml/merlin/pull/1364)
   - fixes duplicate:
