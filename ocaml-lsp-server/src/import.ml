@@ -1,107 +1,131 @@
-module Fpath = Stdune.Path
-module Ordering = Stdune.Ordering
-module Json = Lsp.Import.Json
-module Unix_env = Stdune.Env
-module Code_error = Stdune.Code_error
-module Int = Stdune.Int
-module Dyn = Stdune.Dyn
-module Option = Stdune.Option
-module Table = Stdune.Table
-module String = Stdune.String
-module List = Stdune.List
-module Array = Stdune.Array
-module Result = Stdune.Result
-module Poly = Stdune.Poly
-module Fdecl = Stdune.Fdecl
-module Comparable = Stdune.Comparable
-module Exn_with_backtrace = Stdune.Exn_with_backtrace
+(* All modules from [Stdune] should be in the struct below. The modules are
+   listed alphabetically. Try to keep the order. *)
+include struct
+  open Stdune
+  module Array = Array
+  module Code_error = Code_error
+  module Comparable = Comparable
+  module Dyn = Dyn
+  module Exn_with_backtrace = Exn_with_backtrace
+  module Fdecl = Fdecl
+  module Fpath = Path
+  module Int = Int
+  module List = List
+  module Option = Option
+  module Ordering = Ordering
+  module Pid = Pid
+  module Poly = Poly
+  module Result = Result
+  module String = String
+  module Table = Table
+  module Unix_env = Env
+  module Io = Io
+
+  let sprintf = sprintf
+end
+
+(* All modules from [Lsp] should be in the struct below. The modules are listed
+   alphabetically. Try to keep the order. *)
+include struct
+  open Lsp
+  module Client_notification = Client_notification
+  module Client_request = Client_request
+  module Json = Import.Json
+  module Server_request = Server_request
+  module Text_document = Text_document
+  module Uri = Uri
+end
+
+(* Misc modules *)
+module Drpc = Dune_rpc.V1
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
-module Server = Lsp_fiber.Server
-module Client_request = Lsp.Client_request
-module Server_request = Lsp.Server_request
-module Client_notification = Lsp.Client_notification
-module Text_document = Lsp.Text_document
-open Lsp.Types
-module CompletionItem = CompletionItem
-module CompletionItemKind = CompletionItemKind
-module CompletionList = CompletionList
-module CompletionOptions = CompletionOptions
-module CompletionParams = CompletionParams
-module SymbolKind = SymbolKind
-module InitializeResult = InitializeResult
-module InitializeParams = InitializeParams
-module SignatureHelpOptions = SignatureHelpOptions
-module CodeActionOptions = CodeActionOptions
-module CodeLensOptions = CodeLensOptions
-module TextDocumentSyncOptions = TextDocumentSyncOptions
-module TextDocumentSyncKind = TextDocumentSyncKind
-module ServerCapabilities = ServerCapabilities
-module Diagnostic = Diagnostic
-module DiagnosticRelatedInformation = DiagnosticRelatedInformation
-module PublishDiagnosticsParams = PublishDiagnosticsParams
-module MessageType = MessageType
-module WorkspaceEdit = WorkspaceEdit
-module ProgressToken = ProgressToken
-module WorkDoneProgressCreateParams = WorkDoneProgressCreateParams
-module WorkDoneProgressBegin = WorkDoneProgressBegin
-module WorkDoneProgressReport = WorkDoneProgressReport
-module WorkDoneProgressEnd = WorkDoneProgressEnd
-module ProgressParams = ProgressParams
-module ExecuteCommandOptions = ExecuteCommandOptions
-module TextEdit = TextEdit
-module CodeActionKind = CodeActionKind
-module ShowMessageParams = ShowMessageParams
-module ClientCapabilities = ClientCapabilities
-module DiagnosticSeverity = DiagnosticSeverity
-module ParameterInformation = ParameterInformation
-module SignatureInformation = SignatureInformation
-module SignatureHelpParams = SignatureHelpParams
-module SignatureHelp = SignatureHelp
-module CodeActionParams = CodeActionParams
-module CodeAction = CodeAction
-module CodeActionResult = CodeActionResult
-module MarkupContent = MarkupContent
-module MarkupKind = MarkupKind
-module Hover = Hover
-module Location = Location
-module Command = Command
-module CodeLens = CodeLens
-module DocumentHighlight = DocumentHighlight
-module DocumentHighlightParams = DocumentHighlightParams
-module DocumentHighlightKind = DocumentHighlightKind
-module DocumentSymbol = DocumentSymbol
-module DocumentUri = DocumentUri
-module SymbolInformation = SymbolInformation
-module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
-module OptionalVersionedTextDocumentIdentifier =
-  OptionalVersionedTextDocumentIdentifier
-module TextDocumentEdit = TextDocumentEdit
-module FoldingRange = FoldingRange
-module SelectionRange = SelectionRange
-module DidOpenTextDocumentParams = DidOpenTextDocumentParams
-module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
-module TextDocumentIdentifier = TextDocumentIdentifier
-module Server_notification = Lsp.Server_notification
-module HoverParams = Lsp.Types.HoverParams
-module SelectionRangeParams = Lsp.Types.SelectionRangeParams
-module RenameParams = Lsp.Types.RenameParams
-module CodeLensParams = Lsp.Types.CodeLensParams
-module FoldingRangeParams = Lsp.Types.FoldingRangeParams
-module ReferenceParams = Lsp.Types.ReferenceParams
-module DidChangeConfigurationParams = Lsp.Types.DidChangeConfigurationParams
-module ConfigurationParams = Lsp.Types.ConfigurationParams
-module RenameOptions = Lsp.Types.RenameOptions
-module WorkspaceFolder = Lsp.Types.WorkspaceFolder
-module Uri = Lsp.Uri
-module Io = Stdune.Io
-module Reply = Lsp_fiber.Rpc.Reply
-module WorkspaceSymbolParams = WorkspaceSymbolParams
-module TraceValue = TraceValue
-module SetTraceParams = SetTraceParams
-module LogMessageParams = LogMessageParams
-module Log = Lsp_fiber.Import.Log
-module Drpc = Dune_rpc.V1
-module Pid = Stdune.Pid
 
-let sprintf = Stdune.sprintf
+(* All modules from [Lsp_fiber] should be in the struct below. The modules are
+   listed alphabetically. Try to keep the order. *)
+include struct
+  open Lsp_fiber
+  module Log = Import.Log
+  module Reply = Rpc.Reply
+  module Server = Server
+end
+
+(* All modules from [Lsp.Types] should be in the struct below. The modules are
+   listed alphabetically. Try to keep the order. *)
+include struct
+  open Lsp.Types
+  module ClientCapabilities = ClientCapabilities
+  module CodeAction = CodeAction
+  module CodeActionKind = CodeActionKind
+  module CodeActionOptions = CodeActionOptions
+  module CodeActionParams = CodeActionParams
+  module CodeActionResult = CodeActionResult
+  module CodeLens = CodeLens
+  module CodeLensOptions = CodeLensOptions
+  module CodeLensParams = CodeLensParams
+  module Command = Command
+  module CompletionItem = CompletionItem
+  module CompletionItemKind = CompletionItemKind
+  module CompletionList = CompletionList
+  module CompletionOptions = CompletionOptions
+  module CompletionParams = CompletionParams
+  module ConfigurationParams = ConfigurationParams
+  module Diagnostic = Diagnostic
+  module DiagnosticRelatedInformation = DiagnosticRelatedInformation
+  module DiagnosticSeverity = DiagnosticSeverity
+  module DidChangeConfigurationParams = DidChangeConfigurationParams
+  module DidOpenTextDocumentParams = DidOpenTextDocumentParams
+  module DocumentHighlight = DocumentHighlight
+  module DocumentHighlightKind = DocumentHighlightKind
+  module DocumentHighlightParams = DocumentHighlightParams
+  module DocumentSymbol = DocumentSymbol
+  module DocumentUri = DocumentUri
+  module ExecuteCommandOptions = ExecuteCommandOptions
+  module FoldingRange = FoldingRange
+  module FoldingRangeParams = FoldingRangeParams
+  module Hover = Hover
+  module HoverParams = HoverParams
+  module InitializeParams = InitializeParams
+  module InitializeResult = InitializeResult
+  module Location = Location
+  module LogMessageParams = LogMessageParams
+  module MarkupContent = MarkupContent
+  module MarkupKind = MarkupKind
+  module MessageType = MessageType
+  module OptionalVersionedTextDocumentIdentifier =
+    OptionalVersionedTextDocumentIdentifier
+  module ParameterInformation = ParameterInformation
+  module ProgressParams = ProgressParams
+  module ProgressToken = ProgressToken
+  module PublishDiagnosticsParams = PublishDiagnosticsParams
+  module ReferenceParams = ReferenceParams
+  module RenameOptions = RenameOptions
+  module RenameParams = RenameParams
+  module SelectionRange = SelectionRange
+  module SelectionRangeParams = SelectionRangeParams
+  module ServerCapabilities = ServerCapabilities
+  module Server_notification = Lsp.Server_notification
+  module SetTraceParams = SetTraceParams
+  module ShowMessageParams = ShowMessageParams
+  module SignatureHelp = SignatureHelp
+  module SignatureHelpOptions = SignatureHelpOptions
+  module SignatureHelpParams = SignatureHelpParams
+  module SignatureInformation = SignatureInformation
+  module SymbolInformation = SymbolInformation
+  module SymbolKind = SymbolKind
+  module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
+  module TextDocumentEdit = TextDocumentEdit
+  module TextDocumentIdentifier = TextDocumentIdentifier
+  module TextDocumentSyncKind = TextDocumentSyncKind
+  module TextDocumentSyncOptions = TextDocumentSyncOptions
+  module TextEdit = TextEdit
+  module TraceValue = TraceValue
+  module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
+  module WorkDoneProgressBegin = WorkDoneProgressBegin
+  module WorkDoneProgressCreateParams = WorkDoneProgressCreateParams
+  module WorkDoneProgressEnd = WorkDoneProgressEnd
+  module WorkDoneProgressReport = WorkDoneProgressReport
+  module WorkspaceEdit = WorkspaceEdit
+  module WorkspaceFolder = WorkspaceFolder
+  module WorkspaceSymbolParams = WorkspaceSymbolParams
+end
