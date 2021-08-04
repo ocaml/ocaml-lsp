@@ -17,4 +17,6 @@ type t =
   ; symbols_thread : Scheduler.thread Lazy_fiber.t
   }
 
+val initialization_params : t -> InitializeParams.t
+
 val workspace_root : t -> Uri.t

@@ -17,10 +17,15 @@ type t =
   ; symbols_thread : Scheduler.thread Lazy_fiber.t
   }
 
-let workspace_root t =
+(** @raise Assertion_failure if server is uninitialized *)
+let initialization_params t =
   match t.init with
   | Uninitialized -> assert false
-  | Initialized i -> (
-    match i.rootUri with
-    | None -> assert false
-    | Some uri -> uri)
+  | Initialized params -> params
+
+let workspace_root t =
+  let { InitializeParams.rootUri; _ } = initialization_params t in
+  match rootUri with
+  | None -> assert false
+  | Some uri -> uri
+

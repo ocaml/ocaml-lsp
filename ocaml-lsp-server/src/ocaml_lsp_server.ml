@@ -1,11 +1,7 @@
 open Import
 
-let init_params (state : State.t) =
-  match state.init with
-  | Uninitialized -> assert false
-  | Initialized init -> init
-
-let client_capabilities (state : State.t) = (init_params state).capabilities
+let client_capabilities (state : State.t) =
+  (State.initialization_params state).capabilities
 
 let make_error = Jsonrpc.Response.Error.make
 
@@ -714,7 +710,7 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
   let open Fiber.O in
   let* symbols, errors =
     let workspaces =
-      let init_params = init_params state in
+      let init_params = State.initialization_params state in
       (* WorkspaceFolders has the most priority. Then rootUri and finally
          rootPath *)
       let root_uri = init_params.rootUri in
