@@ -46,6 +46,9 @@
   of the typed hole, i.e., `_|`, where `|` is the cursor. The code action simply triggers
   the client (currently only VS Code is supported) to show completion suggestions. (#472)
 
+- Add support to turn on/off using local context in `Construct an expression`.
+  (Currently, works only with VS Code OCaml Platform extension) (#481)
+
 - Change the formatting-on-save error notification to a warning notification (#472)
 
 - Code action to qualify ("put module name in identifiers") and unqualify
