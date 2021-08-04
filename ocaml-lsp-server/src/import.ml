@@ -33,13 +33,16 @@ include struct
   module Uri = Uri
 end
 
+module Drpc = Dune_rpc.V1
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
-module Server = Lsp_fiber.Server
-module Client_request = Lsp.Client_request
-module Server_request = Lsp.Server_request
-module Client_notification = Lsp.Client_notification
-module Text_document = Lsp.Text_document
+
+include struct
+  open Lsp_fiber
+  module Log = Import.Log
+  module Reply = Rpc.Reply
+  module Server = Server
+end
 
 (* All modules from [Lsp.Types] should be in the struct below. The modules are
    listed alphabetically. Try to keep the order. *)
@@ -120,8 +123,3 @@ include struct
   module WorkspaceFolder = WorkspaceFolder
   module WorkspaceSymbolParams = WorkspaceSymbolParams
 end
-
-module Uri = Lsp.Uri
-module Reply = Lsp_fiber.Rpc.Reply
-module Log = Lsp_fiber.Import.Log
-module Drpc = Dune_rpc.V1
