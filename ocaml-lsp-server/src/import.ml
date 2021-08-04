@@ -1,4 +1,5 @@
-(* All modules from [Stdune] should be in the struct below. *)
+(* All modules from [Stdune] should be in the struct below. The modules are
+   listed alphabetically. Try to keep the order. *)
 include struct
   open Stdune
   module Array = Array
@@ -23,6 +24,8 @@ include struct
   let sprintf = sprintf
 end
 
+(* All modules from [Lsp] should be in the struct below. The modules are listed
+   alphabetically. Try to keep the order. *)
 include struct
   open Lsp
   module Client_notification = Client_notification
@@ -37,6 +40,8 @@ module Drpc = Dune_rpc.V1
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
 
+(* All modules from [Lsp_fiber] should be in the struct below. The modules are
+   listed alphabetically. Try to keep the order. *)
 include struct
   open Lsp_fiber
   module Log = Import.Log
