@@ -127,4 +127,30 @@ include struct
   module WorkspaceEdit = WorkspaceEdit
   module WorkspaceFolder = WorkspaceFolder
   module WorkspaceSymbolParams = WorkspaceSymbolParams
+
+  (** Extended [Lsp.Types.InitializeParams] to have [initializationOptions] as a
+      specific type rather than an opaque [Json.t] *)
+  module type Initialize_params = sig
+    include module type of InitializeParams
+
+    type initializationOptions
+
+    val initializationOptions : t -> initializationOptions option
+  end
+
+  (** Used to create [Initialize_params] with [initializationOptions] of a
+      specific non-opaque type *)
+  module Initialize_params (InitializationOptions : sig
+    type t
+
+    val t_of_yojson : Json.t -> t
+  end) :
+    Initialize_params
+      with type t = InitializeParams.t
+       and type initializationOptions := InitializationOptions.t = struct
+    include InitializeParams
+
+    let initializationOptions t =
+      Option.map t.initializationOptions ~f:InitializationOptions.t_of_yojson
+  end
 end

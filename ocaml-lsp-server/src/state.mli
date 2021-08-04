@@ -1,5 +1,23 @@
 open Import
 
+(** A module to represent the field [initializationOptions] of the "object"
+    [InitializeParams] sent from client to the server as a payload of
+    "initialize" request *)
+module Initialization_options : sig
+  type merlin_construct_options = private { use_local_context : bool }
+
+  type t = private { construct : merlin_construct_options }
+
+  val default : t
+end
+
+(** OCaml LSP specific version of [Lsp.Types.InitializeParams], where we have
+    [initializationOptions] not as an opaque [Json.t] but a specific type *)
+module Initialize_params :
+  Initialize_params
+    with type t = InitializeParams.t
+     and type initializationOptions := Initialization_options.t
+
 type init =
   | Uninitialized
   | Initialized of InitializeParams.t
