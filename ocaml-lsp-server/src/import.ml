@@ -1,20 +1,29 @@
-module Fpath = Stdune.Path
-module Ordering = Stdune.Ordering
+(* All modules from [Stdune] should be in the struct below. *)
+include struct
+  open Stdune
+  module Array = Array
+  module Code_error = Code_error
+  module Comparable = Comparable
+  module Dyn = Dyn
+  module Exn_with_backtrace = Exn_with_backtrace
+  module Fdecl = Fdecl
+  module Fpath = Path
+  module Int = Int
+  module List = List
+  module Option = Option
+  module Ordering = Ordering
+  module Pid = Pid
+  module Poly = Poly
+  module Result = Result
+  module String = String
+  module Table = Table
+  module Unix_env = Env
+  module Io = Io
+
+  let sprintf = sprintf
+end
+
 module Json = Lsp.Import.Json
-module Unix_env = Stdune.Env
-module Code_error = Stdune.Code_error
-module Int = Stdune.Int
-module Dyn = Stdune.Dyn
-module Option = Stdune.Option
-module Table = Stdune.Table
-module String = Stdune.String
-module List = Stdune.List
-module Array = Stdune.Array
-module Result = Stdune.Result
-module Poly = Stdune.Poly
-module Fdecl = Stdune.Fdecl
-module Comparable = Stdune.Comparable
-module Exn_with_backtrace = Stdune.Exn_with_backtrace
 module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
 module Server = Lsp_fiber.Server
@@ -104,10 +113,6 @@ include struct
 end
 
 module Uri = Lsp.Uri
-module Io = Stdune.Io
 module Reply = Lsp_fiber.Rpc.Reply
 module Log = Lsp_fiber.Import.Log
 module Drpc = Dune_rpc.V1
-module Pid = Stdune.Pid
-
-let sprintf = Stdune.sprintf
