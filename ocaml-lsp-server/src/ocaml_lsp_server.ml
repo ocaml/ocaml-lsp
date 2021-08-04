@@ -860,7 +860,15 @@ let ocaml_on_request :
       (fun _ () ->
         let doc = Document_store.get store uri in
         let open Fiber.O in
-        let+ resp = Compl.complete doc position in
+        let construct_use_local_context =
+          let (init_options : State.Initialization_options.t) =
+            State.initialization_params state
+            |> State.Initialize_params.initializationOptions
+            |> Option.value ~default:State.Initialization_options.default
+          in
+          init_options.construct.use_local_context
+        in
+        let+ resp = Compl.complete ~construct_use_local_context doc position in
         Some resp)
       ()
   | Client_request.TextDocumentPrepareRename

@@ -185,10 +185,11 @@ module Complete_by_prefix = struct
 end
 
 module Complete_with_construct = struct
-  let dispatch_cmd position pipeline =
+  let dispatch_cmd ~use_local_context position pipeline =
     match
       Exn_with_backtrace.try_with (fun () ->
-          let command = Query_protocol.Construct (position, None, None) in
+          let ctx_used = Option.some_if use_local_context `Local in
+          let command = Query_protocol.Construct (position, ctx_used, None) in
           Query_commands.dispatch pipeline command)
     with
     | Ok (loc, exprs) -> Some (loc, exprs)
@@ -225,7 +226,7 @@ module Complete_with_construct = struct
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
 
-let complete doc pos =
+let complete ~construct_use_local_context doc pos =
   let+ items =
     let position = Position.logical pos in
     let prefix =
@@ -246,7 +247,8 @@ let complete doc pos =
       let+ construct_cmd_resp, compl_by_prefix_resp =
         Document.with_pipeline_exn doc (fun pipeline ->
             let construct_cmd_resp =
-              Complete_with_construct.dispatch_cmd position pipeline
+              Complete_with_construct.dispatch_cmd
+                ~use_local_context:construct_use_local_context position pipeline
             in
             let compl_by_prefix_resp =
               Complete_by_prefix.dispatch_cmd ~prefix position pipeline

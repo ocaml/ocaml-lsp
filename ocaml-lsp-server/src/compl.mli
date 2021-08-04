@@ -13,7 +13,10 @@ module Resolve : sig
 end
 
 val complete :
-  Document.t -> Position.t -> [> `CompletionList of CompletionList.t ] Fiber.t
+     construct_use_local_context:bool
+  -> Document.t
+  -> Position.t
+  -> [> `CompletionList of CompletionList.t ] Fiber.t
 
 (** creates a server response for ["completionItem/resolve"] *)
 val resolve :
