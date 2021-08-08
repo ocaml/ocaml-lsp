@@ -46,8 +46,22 @@
   of the typed hole, i.e., `_|`, where `|` is the cursor. The code action simply triggers
   the client (currently only VS Code is supported) to show completion suggestions. (#472)
 
-- Add support to turn on/off using local context in `Construct an expression`.
+- Add support to turn on/off using local context in `Construct an expression`. If turned
+  on, the constructed expressions list will include locally defined values.
   (Currently, works only with VS Code OCaml Platform extension) (#481)
+
+  Example:
+
+  ```ocaml
+  type t = { name: string }
+
+  let john : t =
+    let doe = { name = "John" } in
+    _ (* <- construct is triggered on this typed hole *)
+  ```
+
+  With `Local` mode _on_, the suggested values will include the local variable `doe`
+  along with other expressions such as `{ name = _ }`.
 
 - Change the formatting-on-save error notification to a warning notification (#472)
 
@@ -55,6 +69,7 @@
   ("remove module name from identifiers") module names in identifiers (#399)
 
   Starting from:
+
   ```ocaml
   open Unix
 
@@ -64,6 +79,7 @@
 
   Calling "remove module name from identifiers" with the cursor on the open
   statement will produce:
+
   ```ocaml
   open Unix
 
@@ -72,6 +88,7 @@
   ```
 
   Calling "put module name in identifiers" will restore:
+
   ```ocaml
   open Unix
 
@@ -82,6 +99,7 @@
 ## Fixes
 
 - Do not show "random" documentation on hover
+
   - fixed by [merlin#1364](https://github.com/ocaml/merlin/pull/1364)
   - fixes (duplicate) issues:
     - [ocaml-lsp#344](https://github.com/ocaml/ocaml-lsp/issues/344)
@@ -102,8 +120,7 @@
   Merlin has a concept of "typed holes" that are syntactically represented as `_`. Files
   that incorporate typed holes are not considered valid OCaml, but Merlin and OCaml-LSP
   support them. One example when such typed holes can occur is when on "destructs" a value,
-  e.g., destructing `(Some 1)` will generate code `match Some 1 with Some _ -> _ | None ->
-  _`. While the first underscore is a valid "match-all"/wildcard pattern, the rest of
+  e.g., destructing `(Some 1)` will generate code `match Some 1 with Some _ -> _ | None -> _`. While the first underscore is a valid "match-all"/wildcard pattern, the rest of
   underscores are typed holes.
 
 # 1.6.1 (05/17/2020)
@@ -124,6 +141,7 @@
 ## Features
 
 - Code action to annotate a value with its type (#397)
+
 ## Fixes
 
 - Fix interface/implementation switching on Windows (#427)
