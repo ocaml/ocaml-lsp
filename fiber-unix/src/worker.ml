@@ -1,79 +1,38 @@
 open Import
 
-type state =
-  | Running of Thread.t
-  | Stopped of Thread.t
-  | Finished
-
 type 'a t =
-  { work : 'a Removable_queue.t
-  ; mutable state : state
-  ; mutex : Mutex.t
-  ; work_available : Condition.t
+  { work_chan : 'a Channel.t
+  ; mutable th : Thread.t option
   }
 
-and task = Task : 'a t * 'a Removable_queue.node -> task
-
-let cancel (Task (t, node)) =
-  with_mutex t.mutex ~f:(fun () -> Removable_queue.remove node)
-
-let is_running t =
-  match t.state with
-  | Running _ -> true
-  | Stopped _
-  | Finished ->
-    false
+type task = Channel.elt_in_channel
 
 let run (f, t) =
   let rec loop () =
-    match t.state with
-    | Stopped _ -> (
-      match Removable_queue.pop t.work with
-      | None -> t.state <- Finished
-      | Some job -> do_work job)
-    | Finished -> ()
-    | Running _ -> (
-      match Removable_queue.pop t.work with
-      | Some job -> do_work job
-      | None ->
-        while Removable_queue.is_empty t.work && is_running t do
-          Condition.wait t.work_available t.mutex
-        done;
-        loop ())
-  and do_work job =
-    Mutex.unlock t.mutex;
-    f job;
-    Mutex.lock t.mutex;
-    loop ()
+    match Channel.get t.work_chan with
+    | Ok v ->
+      f v;
+      loop ()
+    | Error `Closed -> ()
   in
-  with_mutex t.mutex ~f:loop
+  loop ()
 
 let create ~do_ =
-  let t =
-    { work = Removable_queue.create ()
-    ; state = Finished
-    ; mutex = Mutex.create ()
-    ; work_available = Condition.create ()
-    }
-  in
-  t.state <- Running (Thread.create run (do_, t));
+  let t = { work_chan = Channel.create (); th = None } in
+  let th = Thread.create run (do_, t) in
+  t.th <- Some th;
   t
 
-let add_work (type a) (t : a t) (w : a) =
-  with_mutex t.mutex ~f:(fun () ->
-      if is_running t then (
-        let node = Removable_queue.push t.work w in
-        Condition.signal t.work_available;
-        Ok (Task (t, node))
-      ) else
-        Error `Stopped)
+let add_work t v =
+  match Channel.send_removable t.work_chan v with
+  | Error `Closed -> Error `Stopped
+  | Ok _ as task -> task
 
-let complete_tasks_and_stop (t : _ t) =
-  with_mutex t.mutex ~f:(fun () ->
-      match t.state with
-      | Running th ->
-        t.state <- Stopped th;
-        Condition.signal t.work_available
-      | Stopped _
-      | Finished ->
-        ())
+let cancel = Channel.remove_if_not_consumed
+
+let complete_tasks_and_stop t =
+  match Channel.close t.work_chan with
+  | Ok () -> ()
+  | Error `Already_closed ->
+    (* failwith "channel already closed" *)
+    ()
