@@ -71,4 +71,6 @@ let%expect_test "push; push; remove; push -- head & tail are set correctly" =
   Q.remove n;
   ignore @@ Q.push q 2;
   print_all q Int.to_string;
-  [%expect {| elem: 0 |}]
+  [%expect {|
+    elem: 0
+    elem: 2 |}]
