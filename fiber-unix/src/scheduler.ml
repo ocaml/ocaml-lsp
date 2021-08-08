@@ -13,7 +13,9 @@ module Worker : sig
 
   val add_work : 'a t -> 'a -> (task, [ `Stopped ]) result
 
-  val stop : _ t -> unit
+  (** signals the worker to complete tasks currently available in the queue and
+      stop. *)
+  val complete_tasks_and_stop : _ t -> unit
 end = struct
   type state =
     | Running of Thread.t
@@ -83,7 +85,7 @@ end = struct
         ) else
           Error `Stopped)
 
-  let stop (t : _ t) =
+  let complete_tasks_and_stop (t : _ t) =
     with_mutex t.mutex ~f:(fun () ->
         match t.state with
         | Running th ->
@@ -255,7 +257,7 @@ let async_exn t f =
   | Error `Stopped -> Code_error.raise "async_exn: stopped thread" []
   | Ok task -> task
 
-let stop (t : thread) = Worker.stop t.worker
+let stop (t : thread) = Worker.complete_tasks_and_stop t.worker
 
 let cancel_timers () =
   let* t = Fiber.Var.get_exn me in
