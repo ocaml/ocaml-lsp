@@ -51,17 +51,32 @@ let pop (type a) (t : a t) : a option =
     Some node.data
 
 let remove node =
-  if Option.is_some node.queue then (
-    (match (node.next, node.prev) with
-    | None, None -> Option.value_exn node.queue := Empty
-    | _, _ -> (
-      (match node.next with
-      | None -> ()
-      | Some next -> next.prev <- node.prev);
-      match node.prev with
-      | None -> ()
-      | Some prev -> prev.next <- node.next));
-    node.prev <- None;
-    node.next <- None;
-    node.queue <- None
-  )
+  match node.queue with
+  | None (* case: node was already removed *) -> ()
+  | Some queue -> (
+    match !queue with
+    | Empty -> assert false
+    | Non_empty curr_q -> (
+      match (node.next, node.prev) with
+      | None, None (* case: queue consists of a single node *) -> queue := Empty
+      | _, _ ->
+        let tail =
+          match node.next with
+          | None (* case: node is the last node in queue *) ->
+            Option.value_exn node.prev
+          | Some next ->
+            next.prev <- node.prev;
+            curr_q.tail
+        in
+        let head =
+          match node.prev with
+          | None (* case: node is the head node in queue *) ->
+            Option.value_exn node.next
+          | Some prev ->
+            prev.next <- node.next;
+            curr_q.head
+        in
+        queue := Non_empty { head; tail };
+        node.prev <- None;
+        node.next <- None;
+        node.queue <- None))
