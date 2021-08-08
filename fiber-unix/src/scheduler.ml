@@ -148,7 +148,7 @@ let cancel_task task =
   match status with
   | Some _ -> Fiber.return ()
   | None ->
-    Worker.cancel task.task;
+    Worker.cancel_if_not_consumed task.task;
     Fiber.Ivar.fill task.ivar (Error `Canceled)
 
 let async (t : thread) f =
