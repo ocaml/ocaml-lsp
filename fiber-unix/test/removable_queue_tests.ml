@@ -63,3 +63,12 @@ let%expect_test "remove in the middle" =
     elem: 100
     elem: 200
     elem: 400 |}]
+
+let%expect_test "push; push; remove; push -- head & tail are set correctly" =
+  let q = Q.create () in
+  ignore @@ Q.push q 0;
+  let n = Q.push q 1 in
+  Q.remove n;
+  ignore @@ Q.push q 2;
+  print_all q Int.to_string;
+  [%expect {| elem: 0 |}]
