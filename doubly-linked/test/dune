@@ -1,0 +1,7 @@
+(library
+ (name doubly_linked_tests_lib)
+ (inline_tests)
+ (libraries doubly_linked stdune base ppx_expect.common ppx_expect.config
+   ppx_expect.config_types ppx_inline_test.config)
+ (preprocess
+  (pps ppx_expect)))
