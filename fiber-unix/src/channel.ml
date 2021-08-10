@@ -32,14 +32,7 @@ let send_removable t v =
         Condition.signal t.c;
         Ok (Node (t, n)))
 
-let send t v =
-  with_mutex t.m ~f:(fun () ->
-      if t.is_closed then
-        Error `Closed
-      else
-        let (_ : 'a Removable_queue.node) = Removable_queue.push t.q v in
-        Condition.signal t.c;
-        Ok ())
+let send t v = send_removable t v |> Result.map ~f:ignore
 
 let get t =
   with_mutex t.m ~f:(fun () ->
