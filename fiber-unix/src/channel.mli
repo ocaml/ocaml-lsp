@@ -17,7 +17,8 @@ val length : 'a t -> int
     channel yet. *)
 val send_removable : 'a t -> 'a -> (elt_in_channel, [ `Closed ]) result
 
-(** similar to [put_removable] but the returned value is ignored *)
+(** similar to [send_removable] but the element is non-removable from the
+    channel once sent *)
 val send : 'a t -> 'a -> (unit, [ `Closed ]) result
 
 (** remove element put in the channel if it hasn't been consumed yet *)
