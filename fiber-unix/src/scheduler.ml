@@ -213,12 +213,12 @@ let report t =
   Format.eprintf "timers: %d@." (Table.length t.timers)
 
 let iter (t : t) =
-  if Atomic.get t.events_pending = 0 then (
+  if Atomic.get t.events_pending > 0 then
+    event_next t
+  else
     let () = assert (Channel.is_empty t.events) in
     report t;
     raise (Abort Never)
-  ) else
-    event_next t
 
 let create_timer ~delay =
   let+ t = Fiber.Var.get_exn me in
