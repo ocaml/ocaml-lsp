@@ -4,6 +4,12 @@ type elt_in_channel
 
 val create : unit -> 'a t
 
+(** Checks whether the channel contains elements *)
+val is_empty : 'a t -> bool
+
+(** Number of elements currently in the channel not consumed. Runs in O(n). *)
+val length : 'a t -> int
+
 (** [send_removable ch v] puts a value [v] in the channel [ch] in a non-blocking
     manner (we consider acquiring/waiting for the lock to be "non-blocking").
     The returned value [elt_in_channel] can then be used to remove the put
