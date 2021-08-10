@@ -75,30 +75,27 @@ let signal_timers_available t =
   with_mutex t.timers_available_mutex ~f:(fun () ->
       Condition.signal t.timers_available)
 
-let time_loop t =
-  let rec loop () =
-    let to_run = ref [] in
-    with_mutex t.time_mutex ~f:(fun () ->
-        if not (is_empty t.timers) then
-          let now = Unix.gettimeofday () in
-          Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
-              let active_timer = !active_timer in
-              let scheduled_at =
-                active_timer.scheduled +. active_timer.parent.delay
-              in
-              let need_to_run = scheduled_at < now in
-              if need_to_run then to_run := active_timer :: !to_run;
-              not need_to_run));
-    let to_run =
-      List.sort !to_run ~compare:(fun x y ->
-          Timer_id.compare x.parent.timer_id y.parent.timer_id)
-      |> List.map ~f:(fun x -> Scheduled x)
-    in
-    add_events t to_run;
-    Unix.sleepf t.timer_resolution;
-    loop ()
+let rec time_loop t =
+  let to_run = ref [] in
+  with_mutex t.time_mutex ~f:(fun () ->
+      if not (is_empty t.timers) then
+        let now = Unix.gettimeofday () in
+        Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
+            let active_timer = !active_timer in
+            let scheduled_at =
+              active_timer.scheduled +. active_timer.parent.delay
+            in
+            let need_to_run = scheduled_at < now in
+            if need_to_run then to_run := active_timer :: !to_run;
+            not need_to_run));
+  let to_run =
+    List.sort !to_run ~compare:(fun x y ->
+        Timer_id.compare x.parent.timer_id y.parent.timer_id)
+    |> List.map ~f:(fun x -> Scheduled x)
   in
-  loop ()
+  add_events t to_run;
+  Unix.sleepf t.timer_resolution;
+  time_loop t
 
 let create_thread () =
   let+ scheduler = Fiber.Var.get_exn me in
