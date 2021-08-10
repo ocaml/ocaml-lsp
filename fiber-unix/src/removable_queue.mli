@@ -14,3 +14,6 @@ val create : unit -> 'a t
 val push : 'a t -> 'a -> 'a node
 
 val pop : 'a t -> 'a option
+
+(** Numbers of elements in the queue. Runs in O(n). *)
+val length : 'a t -> int

@@ -19,6 +19,10 @@ let create () =
   ; is_closed = false
   }
 
+let is_empty t = with_mutex t.m ~f:(fun () -> Removable_queue.is_empty t.q)
+
+let length t = with_mutex t.m ~f:(fun () -> Removable_queue.length t.q)
+
 let send_removable t v =
   with_mutex t.m ~f:(fun () ->
       if t.is_closed then
