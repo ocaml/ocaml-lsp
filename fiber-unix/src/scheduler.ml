@@ -13,11 +13,9 @@ type process_state =
   | Zombie of Unix.process_status
 
 type t =
-  { mutable events_pending : int
-  ; events : event Queue.t
-  ; events_mutex : Mutex.t
+  { mutable events_pending : int Atomic.t
+  ; events : event Channel.t
   ; time_mutex : Mutex.t
-  ; event_ready : Condition.t
   ; timers_available : Condition.t
   ; timers_available_mutex : Mutex.t
   ; timer_resolution : float
@@ -64,12 +62,10 @@ and process_watcher =
   ; mutable running_count : int
   }
 
-let add_events t = function
-  | [] -> ()
-  | events ->
-    with_mutex t.events_mutex ~f:(fun () ->
-        List.iter events ~f:(Queue.push t.events);
-        Condition.signal t.event_ready)
+let add_events t events =
+  match Channel.send_many t.events events with
+  | Ok () -> ()
+  | Error `Closed -> assert false
 
 let is_empty table = Table.length table = 0
 
@@ -122,9 +118,8 @@ let create_thread () =
   t
 
 let add_pending_events t by =
-  with_mutex t.events_mutex ~f:(fun () ->
-      t.events_pending <- t.events_pending + by;
-      assert (t.events_pending >= 0))
+  let prev_val = Atomic.fetch_and_add t.events_pending by in
+  assert (prev_val + by >= 0)
 
 type 'a task =
   { ivar :
@@ -190,24 +185,15 @@ let () =
     | _ -> None)
 
 let event_next (t : t) : Fiber.fill =
-  with_mutex t.events_mutex ~f:(fun () ->
-      while Queue.is_empty t.events do
-        Condition.wait t.event_ready t.events_mutex
-      done;
-      let consume_event () =
-        let res = Queue.pop_exn t.events in
-        t.events_pending <- t.events_pending - 1;
-        assert (t.events_pending >= 0);
-        res
-      in
-      if Queue.is_empty t.events then
-        Error (Abort Never)
-      else
-        match consume_event () with
-        | Abort -> Error (Abort Abort_requested)
-        | Job_completed (a, ivar) -> Ok (Fiber.Fill (ivar, a))
-        | Scheduled active_timer -> Ok (Fill (active_timer.ivar, `Resolved)))
-  |> Result.ok_exn
+  match Channel.get t.events with
+  | Ok event -> (
+    let prev_val = Atomic.fetch_and_add t.events_pending (-1) in
+    assert (prev_val - 1 >= 0);
+    match event with
+    | Abort -> raise (Abort Abort_requested)
+    | Job_completed (a, ivar) -> Fill (ivar, a)
+    | Scheduled active_timer -> Fill (active_timer.ivar, `Resolved))
+  | Error `Closed -> assert false
 
 let report t =
   let status m =
@@ -218,18 +204,17 @@ let report t =
   in
   [ ("time_mutex", t.time_mutex)
   ; ("timers_available_mutex", t.timers_available_mutex)
-  ; ("events_mutex", t.events_mutex)
   ]
   |> List.iter ~f:(fun (name, mutex) ->
          Format.eprintf "%s: %s@." name (status mutex));
-  Format.eprintf "pending events: %d@." t.events_pending;
-  Format.eprintf "events: %d@." (Queue.length t.events);
+  Format.eprintf "pending events: %d@." (Atomic.get t.events_pending);
+  Format.eprintf "events: %d@." (Channel.length t.events);
   Format.eprintf "threads: %d@." (List.length t.threads);
   Format.eprintf "timers: %d@." (Table.length t.timers)
 
 let iter (t : t) =
-  if t.events_pending = 0 then (
-    let () = assert (Queue.is_empty t.events) in
+  if Atomic.get t.events_pending = 0 then (
+    let () = assert (Channel.is_empty t.events) in
     report t;
     raise (Abort Never)
   ) else
@@ -286,14 +271,16 @@ let cancel_timer (timer : timer) =
   with
   | None -> Fiber.return ()
   | Some ivar ->
-    with_mutex t.events_mutex ~f:(fun () ->
-        t.events_pending <- t.events_pending - 1);
+    Atomic.decr t.events_pending;
     Fiber.Ivar.fill ivar `Cancelled
 
 let abort () =
   (* TODO proper cleanup *)
   let+ t = Fiber.Var.get_exn me in
-  add_events t [ Abort ]
+  add_events t [ Abort ];
+  match Channel.close t.events with
+  | Ok () -> ()
+  | Error `Already_closed -> assert false
 
 module Process_watcher : sig
   val init : t -> process_watcher
@@ -419,11 +406,9 @@ let cleanup t =
 
 let create () =
   let rec t =
-    { events_pending = 0
-    ; events = Queue.create ()
-    ; events_mutex = Mutex.create ()
+    { events_pending = Atomic.make 0
     ; time_mutex = Mutex.create ()
-    ; event_ready = Condition.create ()
+    ; events = Channel.create ()
     ; timer_resolution = 0.1
     ; threads = []
     ; timers = Table.create (module Timer_id) 10
@@ -448,7 +433,7 @@ let run_result : 'a. 'a Fiber.t -> ('a, _) result =
       let exn = Exn_with_backtrace.capture exn in
       Error (Exn exn)
     | res ->
-      assert (t.events_pending = 0);
+      assert (Atomic.get t.events_pending = 0);
       Ok res
   in
   cleanup t;
