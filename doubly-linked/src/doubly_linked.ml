@@ -37,15 +37,6 @@ let length (sentinel : 'a t) : int =
   done;
   !count
 
-let prepend : 'a. 'a t -> 'a -> 'a node =
- fun sentinel v ->
-  let inserted_node =
-    { data = Some v; prev = sentinel; next = sentinel.next }
-  in
-  sentinel.next.prev <- inserted_node;
-  sentinel.next <- inserted_node;
-  inserted_node
-
 let append : 'a. 'a t -> 'a -> 'a node =
  fun sentinel v ->
   let inserted_node =
@@ -67,17 +58,6 @@ let detach_head : 'a. 'a t -> 'a option =
     let removed_node = sentinel.next in
     sentinel.next <- removed_node.next;
     removed_node.next.prev <- sentinel;
-    mark_as_detached removed_node;
-    removed_node.data
-
-let detach_tail : 'a. 'a t -> 'a option =
- fun sentinel ->
-  if is_empty sentinel then
-    None
-  else
-    let removed_node = sentinel.prev in
-    removed_node.prev.next <- sentinel;
-    sentinel.prev <- removed_node.prev;
     mark_as_detached removed_node;
     removed_node.data
 
