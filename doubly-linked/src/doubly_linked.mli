@@ -17,16 +17,10 @@ val length : 'a t -> int
     remove the node from the list. *)
 type 'a node
 
-(** [prepend lst v] adds a new node containing [v] as the head of the list *)
-val prepend : 'a t -> 'a -> 'a node
-
 (** Removes the first element in the list *)
 val detach_head : 'a t -> 'a option
 
 (** [append lst v] adds a new node containing [v] to the end of the list *)
 val append : 'a t -> 'a -> 'a node
-
-(** Removes the last element in the list *)
-val detach_tail : 'a t -> 'a option
 
 val detach : 'a node -> (unit, [ `Already_detached ]) result

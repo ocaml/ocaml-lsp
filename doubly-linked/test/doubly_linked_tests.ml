@@ -35,9 +35,9 @@ let%expect_test "remove works with a 1 element queue" =
 
 let%expect_test "remove works with a 1 element queue" =
   let q = Dl.create () in
-  let (_ : int Dl.node) = Dl.prepend q 0 in
+  let (_ : int Dl.node) = Dl.append q 0 in
   printf "empty: %b\n" (Dl.is_empty q);
-  print_all Dl.detach_tail q Int.to_string;
+  print_all Dl.detach_head q Int.to_string;
   printf "empty: %b\n" (Dl.is_empty q);
   [%expect {|
     empty: false
@@ -48,15 +48,6 @@ let%expect_test "append all, detach head all" =
   let q = Dl.create () in
   add_all Dl.append q [ 1; 2; 3 ];
   print_all Dl.detach_head q Int.to_string;
-  [%expect {|
-    elem: 1
-    elem: 2
-    elem: 3 |}]
-
-let%expect_test "prepend all, detach tail all" =
-  let q = Dl.create () in
-  add_all Dl.prepend q [ 1; 2; 3 ];
-  print_all Dl.detach_tail q Int.to_string;
   [%expect {|
     elem: 1
     elem: 2
