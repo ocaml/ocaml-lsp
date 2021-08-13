@@ -9,8 +9,24 @@ function findAnnotateAction(actions) {
   return actions.find((action) => action.kind == "type-annotate");
 }
 
+function findAddRecAnnotation(actions) {
+  return actions.find(
+    (action) =>
+      action.kind == "quickfix" && action.title == "Add missing `rec` keyword",
+  );
+}
+
 function findInferredAction(actions) {
   return actions.find((action) => action.kind == "inferred_intf");
+}
+
+function mkUnboundDiagnostic(start, end) {
+  return {
+    message: "Unbound value",
+    range: { end, start },
+    severity: Types.DiagnosticSeverity.Error,
+    source: "ocamllsp",
+  };
 }
 
 describe("textDocument/codeAction", () => {
@@ -35,10 +51,14 @@ describe("textDocument/codeAction", () => {
     uri: string,
     start: Position,
     end: Position,
+    context?: Types.CodeActionContext,
   ): Promise<Array<Types.CodeAction> | null> {
+    if (typeof context == "undefined") {
+      context = { diagnostics: [] };
+    }
     return languageServer.sendRequest("textDocument/codeAction", {
       textDocument: Types.TextDocumentIdentifier.create(uri),
-      context: { diagnostics: [] },
+      context: context,
       range: { start, end },
     });
   }
@@ -600,5 +620,263 @@ let x = _
         },
       ]
     `);
+  });
+
+  it("add missing rec in toplevel let", async () => {
+    let uri = "file:///missing-rec-1.ml";
+    await openDocument(
+      outdent`
+let needs_rec x = 1 + (needs_rec x)
+`,
+      uri,
+    );
+    let start = Types.Position.create(0, 31);
+    let end = Types.Position.create(0, 32);
+    let context = {
+      diagnostics: [
+        mkUnboundDiagnostic(
+          Types.Position.create(0, 23),
+          Types.Position.create(0, 32),
+        ),
+      ],
+    };
+
+    let actions = await codeAction(uri, start, end, context);
+    expect(findAddRecAnnotation(actions)).toMatchInlineSnapshot(`
+      Object {
+        "diagnostics": Array [
+          Object {
+            "message": "Unbound value",
+            "range": Object {
+              "end": Object {
+                "character": 32,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 23,
+                "line": 0,
+              },
+            },
+            "severity": 1,
+            "source": "ocamllsp",
+          },
+        ],
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "rec ",
+                  "range": Object {
+                    "end": Object {
+                      "character": 4,
+                      "line": 0,
+                    },
+                    "start": Object {
+                      "character": 4,
+                      "line": 0,
+                    },
+                  },
+                },
+              ],
+              "textDocument": Object {
+                "uri": "file:///missing-rec-1.ml",
+                "version": 0,
+              },
+            },
+          ],
+        },
+        "isPreferred": false,
+        "kind": "quickfix",
+        "title": "Add missing \`rec\` keyword",
+      }
+    `);
+  });
+
+  it("add missing rec in expression let", async () => {
+    let uri = "file:///missing-rec-2.ml";
+    await openDocument(
+      outdent`
+let outer =
+  let inner x =
+    1 + (inner
+`,
+      uri,
+    );
+    let start = Types.Position.create(2, 14);
+    let end = Types.Position.create(2, 15);
+    let context = {
+      diagnostics: [
+        mkUnboundDiagnostic(
+          Types.Position.create(2, 9),
+          Types.Position.create(2, 14),
+        ),
+      ],
+    };
+
+    let actions = await codeAction(uri, start, end, context);
+    expect(findAddRecAnnotation(actions)).toMatchInlineSnapshot(`
+      Object {
+        "diagnostics": Array [
+          Object {
+            "message": "Unbound value",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 9,
+                "line": 2,
+              },
+            },
+            "severity": 1,
+            "source": "ocamllsp",
+          },
+        ],
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "rec ",
+                  "range": Object {
+                    "end": Object {
+                      "character": 6,
+                      "line": 1,
+                    },
+                    "start": Object {
+                      "character": 6,
+                      "line": 1,
+                    },
+                  },
+                },
+              ],
+              "textDocument": Object {
+                "uri": "file:///missing-rec-2.ml",
+                "version": 0,
+              },
+            },
+          ],
+        },
+        "isPreferred": false,
+        "kind": "quickfix",
+        "title": "Add missing \`rec\` keyword",
+      }
+    `);
+  });
+
+  it("add missing rec in expression let-and", async () => {
+    let uri = "file:///missing-rec-3.ml";
+    await openDocument(
+      outdent`
+let outer =
+  let inner1 = 0
+  and inner x =
+    1 + (inner
+`,
+      uri,
+    );
+    let start = Types.Position.create(3, 14);
+    let end = Types.Position.create(3, 15);
+    let context = {
+      diagnostics: [
+        mkUnboundDiagnostic(
+          Types.Position.create(3, 9),
+          Types.Position.create(3, 14),
+        ),
+      ],
+    };
+
+    let actions = await codeAction(uri, start, end, context);
+    expect(findAddRecAnnotation(actions)).toMatchInlineSnapshot(`
+      Object {
+        "diagnostics": Array [
+          Object {
+            "message": "Unbound value",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 3,
+              },
+              "start": Object {
+                "character": 9,
+                "line": 3,
+              },
+            },
+            "severity": 1,
+            "source": "ocamllsp",
+          },
+        ],
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "rec ",
+                  "range": Object {
+                    "end": Object {
+                      "character": 6,
+                      "line": 1,
+                    },
+                    "start": Object {
+                      "character": 6,
+                      "line": 1,
+                    },
+                  },
+                },
+              ],
+              "textDocument": Object {
+                "uri": "file:///missing-rec-3.ml",
+                "version": 0,
+              },
+            },
+          ],
+        },
+        "isPreferred": false,
+        "kind": "quickfix",
+        "title": "Add missing \`rec\` keyword",
+      }
+    `);
+  });
+
+  it("don't add rec when rec exists", async () => {
+    let uri = "file:///has-rec-2.ml";
+    await openDocument(
+      outdent`
+let outer =
+  let rec inner x =
+    1 + (inner
+`,
+      uri,
+    );
+    let start = Types.Position.create(2, 14);
+    let end = Types.Position.create(2, 15);
+
+    let actions = await codeAction(uri, start, end);
+    expect(findAddRecAnnotation(actions)).toBeUndefined();
+  });
+
+  it("don't add rec to pattern bindings", async () => {
+    let uri = "file:///no-rec-1.ml";
+    await openDocument(
+      outdent`
+let (f, x) = 1 + (f x)
+`,
+      uri,
+    );
+    let start = Types.Position.create(0, 18);
+    let end = Types.Position.create(0, 19);
+    let context = {
+      diagnostics: [
+        mkUnboundDiagnostic(
+          Types.Position.create(0, 18),
+          Types.Position.create(0, 19),
+        ),
+      ],
+    };
+
+    let actions = await codeAction(uri, start, end, context);
+    expect(findAddRecAnnotation(actions)).toBeUndefined();
   });
 });

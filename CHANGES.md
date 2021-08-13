@@ -2,6 +2,17 @@
 
 ## Features
 
+- Add a new code action `Add missing rec keyword`, which is available when adding
+  a `rec` keyword can fix `Unbound value ...` error, e.g.,
+
+  ```ocaml
+  let fact n = if n = 0 then 1 else n * fact (n - 1)
+                                     (* ^^^^ Unbound value fact *)
+  ```
+
+  Adding `rec` to the definition of `fact` will fix the problem. The new code action 
+  offers adding `rec`.
+
 - Jump to the first hole on calling `Destruct` code action (only with client VSCode OCaml
   Platform) (#468)
 
@@ -52,6 +63,7 @@
   ("remove module name from identifiers") module names in identifiers (#399)
 
   Starting from:
+
   ```ocaml
   open Unix
 
@@ -61,6 +73,7 @@
 
   Calling "remove module name from identifiers" with the cursor on the open
   statement will produce:
+
   ```ocaml
   open Unix
 
@@ -69,6 +82,7 @@
   ```
 
   Calling "put module name in identifiers" will restore:
+
   ```ocaml
   open Unix
 
@@ -81,6 +95,7 @@
   Code OCaml Platform and is not directly used by OCaml LSP users (#482)
 
 - Bug fix: do not show "random" documentation on hover
+
   - fixed by [merlin#1364](https://github.com/ocaml/merlin/pull/1364)
   - fixes duplicate:
     - [ocaml-lsp#344](https://github.com/ocaml/ocaml-lsp/issues/344)
@@ -101,8 +116,7 @@
   Merlin has a concept of "typed holes" that are syntactically represented as `_`. Files
   that incorporate typed holes are not considered valid OCaml, but Merlin and OCaml-LSP
   support them. One example when such typed holes can occur is when on "destructs" a value,
-  e.g., destructing `(Some 1)` will generate code `match Some 1 with Some _ -> _ | None ->
-  _`. While the first underscore is a valid "match-all"/wildcard pattern, the rest of
+  e.g., destructing `(Some 1)` will generate code `match Some 1 with Some _ -> _ | None -> _`. While the first underscore is a valid "match-all"/wildcard pattern, the rest of
   underscores are typed holes.
 
 # 1.6.1 (05/17/2020)
@@ -123,6 +137,7 @@
 ## Features
 
 - Code action to annotate a value with its type (#397)
+
 ## Fixes
 
 - Fix interface/implementation switching on Windows (#427)
