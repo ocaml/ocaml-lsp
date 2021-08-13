@@ -19,7 +19,8 @@ let create () : 'a t =
   let rec sentinel =
     { data =
         None
-        (* sentinel doesn't hold [data]; so this field should never be accessed *)
+        (* sentinel doesn't hold [data]; so this field should never be
+           accessed *)
     ; prev = sentinel
     ; next = sentinel
     }

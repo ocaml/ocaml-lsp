@@ -27,9 +27,10 @@ val resolve :
 (** [prefix_of_position ~short_path source position] computes prefix before
     given [position].
 
-    @param short_path determines whether we want full prefix or cut at ["."],
-    e.g. [List.m<cursor>] returns ["m"] when [short_path] is set vs ["List.m"]
-    when not.
+    @param short_path
+      determines whether we want full prefix or cut at ["."], e.g.
+      [List.m<cursor>] returns ["m"] when [short_path] is set vs ["List.m"] when
+      not.
     @return prefix of [position] in [source] and its length *)
 val prefix_of_position :
   short_path:bool -> Msource.t -> [< Msource.position ] -> string
