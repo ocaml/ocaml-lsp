@@ -24,6 +24,7 @@ let initialize_info : InitializeResult.t =
       ; CodeActionKind.Other Action_construct.action_kind
       ; CodeActionKind.Other Action_refactor_open.unqualify.action_kind
       ; CodeActionKind.Other Action_refactor_open.qualify.action_kind
+      ; CodeActionKind.QuickFix
       ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
@@ -289,6 +290,8 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
         , fun () -> Action_refactor_open.unqualify.run doc params )
       ; ( CodeActionKind.Other Action_refactor_open.qualify.action_kind
         , fun () -> Action_refactor_open.qualify.run doc params )
+      ; ( CodeActionKind.QuickFix
+        , fun () -> Action_add_rec.code_action doc params )
       ]
   in
   let code_action_results = List.filter_opt code_action_results in

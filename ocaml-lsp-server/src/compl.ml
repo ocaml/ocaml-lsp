@@ -93,28 +93,35 @@ let suffix_of_position source position =
   match Msource.text source with
   | "" -> ""
   | text ->
+    let (`Offset index) = Msource.get_offset source position in
     let len = String.length text in
-    let from =
-      let (`Offset index) = Msource.get_offset source position in
-      min index (len - 1)
-    in
-    let len =
-      let ident_char = function
-        | 'a' .. 'z'
-        | 'A' .. 'Z'
-        | '0' .. '9'
-        | '\''
-        | '_' ->
-          true
-        | _ -> false
+    if index >= len then
+      ""
+    else
+      let from = index in
+      let len =
+        let ident_char = function
+          | 'a' .. 'z'
+          | 'A' .. 'Z'
+          | '0' .. '9'
+          | '\''
+          | '_' ->
+            true
+          | _ -> false
+        in
+        let until =
+          String.findi ~from text ~f:(fun c -> not (ident_char c))
+          |> Option.value ~default:len
+        in
+        until - from
       in
-      let until =
-        String.findi ~from text ~f:(fun c -> not (ident_char c))
-        |> Option.value ~default:len
-      in
-      until - from
-    in
-    String.sub text ~pos:from ~len
+      String.sub text ~pos:from ~len
+
+let reconstruct_ident source position =
+  let prefix = prefix_of_position ~short_path:false source position in
+  let suffix = suffix_of_position source position in
+  let ident = prefix ^ suffix in
+  Option.some_if (ident <> "") ident
 
 let range_prefix (lsp_position : Position.t) prefix : Range.t =
   let start =
