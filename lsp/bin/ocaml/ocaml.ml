@@ -296,7 +296,8 @@ end = struct
                 { f with
                   attrs =
                     ("default", [ "None" ])
-                    :: ("yojson_drop_default", [ "( = )" ]) :: f.attrs
+                    :: ("yojson_drop_default", [ "( = )" ])
+                    :: f.attrs
                 }
             | _ -> f
           in
@@ -392,7 +393,8 @@ end = struct
             | t -> (Ml.Arg.Labeled (field.name, field.name), t))
       in
       if need_unit then
-        (* Gross hack because I was too lazy to allow patterns in toplevel exprs *)
+        (* Gross hack because I was too lazy to allow patterns in toplevel
+           exprs *)
         fields @ [ (Unnamed "()", Ml.Type.unit) ]
       else
         fields
@@ -565,7 +567,8 @@ end = struct
         | `Null_removed [] -> assert false
         | `Null_removed cs -> Type.Optional (sum topmost_field_name cs)
     and simplify_record (fields : Resolved.field list) =
-      (* A record with only a pattern field is simplified to an association list *)
+      (* A record with only a pattern field is simplified to an association
+         list *)
       match fields with
       | [ { Named.name; data = Pattern { pat; typ } } ] ->
         let topmost_field_name = Some name in
@@ -753,7 +756,8 @@ end = struct
             | `Record (l, []) -> (l, None)
             | `Record (_, _ :: _) ->
               assert false
-              (* we don't support multiple literals in a single record for now *)
+              (* we don't support multiple literals in a single record for
+                 now *)
             | `Type l -> (l, None)
           in
           let typ_, poly_vars = Mapper.extract_poly_vars (Named.data d) in
