@@ -1,29 +1,33 @@
 module Channel = Fiber_unix.Private.Channel
 
-let%expect_test "" =
+let%expect_test "send/recv 0, 1 in concurrent threads; then close the channel" =
   let ch = Channel.create () in
-  let initial_time = Unix.gettimeofday () in
-  let print_time () =
-    Unix.gettimeofday () -. initial_time
-    |> int_of_float |> string_of_int |> print_endline
-  in
   let th0 =
     Thread.create
       (fun () ->
-        print_time ();
         for _ = 0 to 1 do
-          ignore (Channel.get ch);
-          print_time ()
-        done)
+          match Channel.get ch with
+          | Ok i -> Printf.printf "%d\n" i
+          | Error `Closed -> assert false
+        done;
+        match Channel.get ch with
+        | Ok _ -> assert false
+        | Error `Closed -> print_endline "closed")
       ()
+  in
+  let send_or_fail v =
+    match Channel.send ch v with
+    | Ok () -> ()
+    | Error `Closed -> assert false
   in
   let th1 =
     Thread.create
       (fun () ->
-        Unix.sleep 1;
-        ignore @@ Channel.send ch ();
-        Unix.sleep 2;
-        ignore @@ Channel.send ch ())
+        send_or_fail 0;
+        send_or_fail 1;
+        match Channel.close ch with
+        | Ok () -> ()
+        | Error `Already_closed -> assert false)
       ()
   in
   Thread.join th0;
@@ -31,20 +35,17 @@ let%expect_test "" =
   [%expect {|
     0
     1
-    3 |}]
+    closed |}]
 
-let%expect_test _ =
+let%expect_test "send 0, 1, 2, but remove 1" =
   let ch = Channel.create () in
-  let print_int i =
-    string_of_int i |> print_endline;
-    flush_all ()
-  in
+  let print_int i = Printf.printf "%d\n" i in
   let th0 =
     Thread.create
       (fun () ->
         let v0 = Channel.get ch in
         print_int @@ Result.get_ok v0;
-        Unix.sleepf 1.;
+        Unix.sleepf 0.01;
         let v1 = Channel.get ch in
         print_int @@ Result.get_ok v1)
       ()
