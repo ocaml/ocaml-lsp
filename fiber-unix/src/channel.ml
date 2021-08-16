@@ -34,18 +34,20 @@ let send_removable t v =
 
 let send t v = send_removable t v |> Result.map ~f:ignore
 
-let send_removable_many t lst =
-  with_mutex t.m ~f:(fun () ->
-      if t.is_closed then
-        Error `Closed
-      else
-        let node_lst =
-          List.map lst ~f:(fun v ->
-              let n = Removable_queue.push t.q v in
-              Node (t, n))
-        in
-        Condition.signal t.c;
-        Ok node_lst)
+let send_removable_many t = function
+  | [] -> Ok []
+  | lst ->
+    with_mutex t.m ~f:(fun () ->
+        if t.is_closed then
+          Error `Closed
+        else
+          let node_lst =
+            List.map lst ~f:(fun v ->
+                let n = Removable_queue.push t.q v in
+                Node (t, n))
+          in
+          Condition.signal t.c;
+          Ok node_lst)
 
 let send_many t lst = send_removable_many t lst |> Result.map ~f:ignore
 
