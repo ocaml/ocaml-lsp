@@ -16,8 +16,6 @@ type t =
   { mutable events_pending : int Atomic.t
   ; events : event Channel.t
   ; time_mutex : Mutex.t
-  ; timers_available : Condition.t
-  ; timers_available_mutex : Mutex.t
   ; timer_resolution : float
   ; mutable threads : thread list
   ; mutable time : Thread.t
@@ -70,10 +68,6 @@ let add_events t events =
 let is_empty table = Table.length table = 0
 
 let me = Fiber.Var.create ()
-
-let signal_timers_available t =
-  with_mutex t.timers_available_mutex ~f:(fun () ->
-      Condition.signal t.timers_available)
 
 let rec time_loop t =
   let to_run = ref [] in
@@ -195,17 +189,11 @@ let event_next (t : t) : Fiber.fill =
   | Error `Closed -> assert false
 
 let report t =
-  let status m =
-    if Mutex.try_lock m then
-      "was unlocked"
+  Format.eprintf "time_mutex: %s@."
+    (if Mutex.try_lock t.time_mutex then
+      "is unlocked"
     else
-      "locked"
-  in
-  [ ("time_mutex", t.time_mutex)
-  ; ("timers_available_mutex", t.timers_available_mutex)
-  ]
-  |> List.iter ~f:(fun (name, mutex) ->
-         Format.eprintf "%s: %s@." name (status mutex));
+      "is locked");
   Format.eprintf "pending events: %d@." (Atomic.get t.events_pending);
   Format.eprintf "events: %d@." (Channel.length t.events);
   Format.eprintf "threads: %d@." (List.length t.threads);
@@ -243,12 +231,11 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
           | None ->
             Table.add_exn timer.timer_scheduler.timers timer.timer_id
               (ref active_timer);
-            `Signal_timers_available)
+            `New_timer_scheduled)
     with
     | `Cancel ivar -> Fiber.Ivar.fill ivar `Cancelled
-    | `Signal_timers_available ->
+    | `New_timer_scheduled ->
       incr_events_pending timer.timer_scheduler ~by:1;
-      signal_timers_available timer.timer_scheduler;
       Fiber.return ()
   in
   let* res = Fiber.Ivar.read active_timer.ivar in
@@ -411,8 +398,6 @@ let create () =
     ; timer_resolution = 0.1
     ; threads = []
     ; timers = Table.create (module Timer_id) 10
-    ; timers_available = Condition.create ()
-    ; timers_available_mutex = Mutex.create ()
     ; time = Thread.self ()
     ; process_watcher
     }
