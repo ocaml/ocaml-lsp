@@ -4,15 +4,12 @@ type 'a t = { work_chan : 'a Channel.t } [@@unboxed]
 
 type task = Channel.elt_in_channel
 
-let run t f =
-  let rec loop () =
-    match Channel.get t.work_chan with
-    | Ok v ->
-      f v;
-      loop ()
-    | Error `Closed -> ()
-  in
-  loop ()
+let rec run t f =
+  match Channel.get t.work_chan with
+  | Ok v ->
+    f v;
+    run t f
+  | Error `Closed -> ()
 
 let create ~do_ =
   let t = { work_chan = Channel.create () } in
