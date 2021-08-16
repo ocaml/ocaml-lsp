@@ -187,7 +187,7 @@ let event_next (t : t) : Fiber.fill =
   match Channel.get t.events with
   | Ok event -> (
     let prev_val = Atomic.fetch_and_add t.events_pending (-1) in
-    assert (prev_val - 1 >= 0);
+    assert (prev_val >= 1);
     match event with
     | Abort -> raise (Abort Abort_requested)
     | Job_completed (a, ivar) -> Fill (ivar, a)
