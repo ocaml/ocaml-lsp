@@ -117,7 +117,9 @@ let create_thread () =
   scheduler.threads <- t :: scheduler.threads;
   t
 
-let add_pending_events t by =
+(** [incr_pending_events t ~by] atomically adds [by] to the number of pending
+    events, ie [t.events_pending]. The default value of [by] is [1]. *)
+let incr_events_pending ~by t =
   let prev_val = Atomic.fetch_and_add t.events_pending by in
   assert (prev_val + by >= 0)
 
@@ -147,7 +149,7 @@ let cancel_task task =
     Fiber.Ivar.fill task.ivar (Error `Canceled)
 
 let async (t : thread) f =
-  add_pending_events t.scheduler 1;
+  incr_events_pending t.scheduler ~by:1;
   let ivar = Fiber.Ivar.create () in
   let work = Worker.add_work t.worker (Pending (f, ivar)) in
   Result.map work ~f:(fun task -> { ivar; task })
@@ -248,7 +250,7 @@ let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     with
     | `Cancel ivar -> Fiber.Ivar.fill ivar `Cancelled
     | `Signal_timers_available ->
-      add_pending_events timer.timer_scheduler 1;
+      incr_events_pending timer.timer_scheduler ~by:1;
       signal_timers_available timer.timer_scheduler;
       Fiber.return ()
   in
@@ -330,7 +332,7 @@ end = struct
   end
 
   let register t process =
-    add_pending_events t.process_scheduler 1;
+    incr_events_pending t.process_scheduler ~by:1;
     Mutex.lock t.mutex;
     Process_table.add t process;
     Mutex.unlock t.mutex
