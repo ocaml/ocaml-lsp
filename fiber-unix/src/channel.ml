@@ -9,7 +9,8 @@ type 'a t =
 
 type elt_in_channel =
   | Node :
-      'a t (* to be able to lock the mutex *) * 'a Removable_queue.node
+      Mutex.t (* mutex of the channel, where this element was sent *)
+      * 'a Removable_queue.node
       -> elt_in_channel
 
 let create () =
@@ -30,7 +31,7 @@ let send_removable t v =
       else
         let n = Removable_queue.push t.q v in
         Condition.signal t.c;
-        Ok (Node (t, n)))
+        Ok (Node (t.m, n)))
 
 let send t v = send_removable t v |> Result.map ~f:ignore
 
@@ -44,7 +45,7 @@ let send_removable_many t = function
           let node_lst =
             List.map lst ~f:(fun v ->
                 let n = Removable_queue.push t.q v in
-                Node (t, n))
+                Node (t.m, n))
           in
           Condition.signal t.c;
           Ok node_lst)
@@ -66,8 +67,8 @@ let get t =
       in
       aux ())
 
-let remove_if_not_consumed (Node (t, n)) =
-  with_mutex t.m ~f:(fun () -> Removable_queue.remove n)
+let remove_if_not_consumed (Node (m, n)) =
+  with_mutex m ~f:(fun () -> Removable_queue.remove n)
 
 let close t =
   with_mutex t.m ~f:(fun () ->
