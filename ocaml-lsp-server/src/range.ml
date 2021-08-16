@@ -14,8 +14,8 @@ let compare_size (x : t) (y : t) =
     (dx.character, dy.character)
 
 let first_line =
-  let start = { Position.line = 1; character = 0 } in
-  let end_ = { Position.line = 2; character = 0 } in
+  let start = { Position.line = 0; character = 0 } in
+  let end_ = { Position.line = 1; character = 0 } in
   { start; end_ }
 
 let of_loc (loc : Loc.t) : t =
