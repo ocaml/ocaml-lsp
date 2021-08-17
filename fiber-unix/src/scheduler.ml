@@ -265,9 +265,7 @@ let abort () =
   (* TODO proper cleanup *)
   let+ t = Fiber.Var.get_exn me in
   add_events t [ Abort ];
-  match Channel.close t.events with
-  | Ok () -> ()
-  | Error `Already_closed -> assert false
+  Channel.close t.events
 
 module Process_watcher : sig
   val init : t -> process_watcher

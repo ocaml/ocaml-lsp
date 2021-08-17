@@ -23,7 +23,4 @@ let add_work t v =
 
 let cancel_if_not_consumed = Channel.remove_if_not_consumed
 
-let complete_tasks_and_stop t =
-  match Channel.close t.work_chan with
-  | Ok () -> ()
-  | Error `Already_closed -> ()
+let complete_tasks_and_stop t = Channel.close t.work_chan

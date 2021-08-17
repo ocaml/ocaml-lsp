@@ -25,9 +25,7 @@ let%expect_test "send/recv 0, 1 in concurrent threads; then close the channel" =
       (fun () ->
         send_or_fail 0;
         send_or_fail 1;
-        match Channel.close ch with
-        | Ok () -> ()
-        | Error `Already_closed -> assert false)
+        Channel.close ch)
       ()
   in
   Thread.join th0;
