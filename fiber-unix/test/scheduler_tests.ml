@@ -179,25 +179,28 @@ let%expect_test "detached + timer" =
     timer finished |}]
 
 let%expect_test "multiple timers" =
-  let timer delay = S.create_timer ~delay in
+  let open Fiber.O in
+  let timer delay =
+    let+ timer = S.create_timer ~delay in
+    (delay, timer)
+  in
   let run () =
-    Fiber.parallel_map [ 0.3; 0.2; 0.1 ] ~f:timer
-    >>| List.mapi ~f:(fun i timer ->
-            let+ res =
-              S.schedule timer (fun () ->
-                  printf "timer %d\n" i;
-                  Fiber.return ())
-            in
-            match res with
-            | Error `Cancelled -> assert false
-            | Ok () -> ())
-    >>= Fiber.parallel_iter ~f:Fun.id
+    let* timers = Fiber.parallel_map [ 0.3; 0.2; 0.1 ] ~f:timer in
+    Fiber.parallel_iter timers ~f:(fun (delay, timer) ->
+        let+ res =
+          S.schedule timer (fun () ->
+              printf "timer %.1f\n" delay;
+              Fiber.return ())
+        in
+        match res with
+        | Error `Cancelled -> assert false
+        | Ok () -> ())
   in
   test run;
   [%expect {|
-    timer 2
-    timer 1
-    timer 0 |}]
+    timer 0.1
+    timer 0.2
+    timer 0.3 |}]
 
 let%expect_test "run process" =
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
