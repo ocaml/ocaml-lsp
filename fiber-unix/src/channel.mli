@@ -37,4 +37,4 @@ val remove_if_not_consumed : elt_in_channel -> unit
     read, the thread sleeps until there is some value to read. *)
 val get : 'a t -> ('a, [ `Closed ]) result
 
-val close : 'a t -> (unit, [ `Already_closed ]) result
+val close : 'a t -> unit
