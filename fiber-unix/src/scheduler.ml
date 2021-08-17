@@ -80,12 +80,13 @@ let rec time_loop t =
               active_timer.scheduled +. active_timer.parent.delay
             in
             let need_to_run = scheduled_at < now in
-            if need_to_run then to_run := active_timer :: !to_run;
+            if need_to_run then
+              to_run := (active_timer, scheduled_at) :: !to_run;
             not need_to_run));
   let to_run =
-    List.sort !to_run ~compare:(fun x y ->
-        Timer_id.compare x.parent.timer_id y.parent.timer_id)
-    |> List.map ~f:(fun x -> Scheduled x)
+    List.sort !to_run ~compare:(fun (_, sched_at_0) (_, sched_at_1) ->
+        Float.compare sched_at_0 sched_at_1)
+    |> List.map ~f:(fun (active_timer, _) -> Scheduled active_timer)
   in
   add_events t to_run;
   Unix.sleepf t.timer_resolution;
