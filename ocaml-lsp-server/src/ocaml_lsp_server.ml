@@ -819,51 +819,44 @@ let ocaml_on_request :
       , state )
   in
   match req with
-  | Client_request.Initialize ip ->
+  | Initialize ip ->
     let res, state = on_initialize rpc ip in
     Fiber.return (Reply.now res, state)
-  | Client_request.Shutdown -> now ()
-  | Client_request.DebugTextDocumentGet { textDocument = { uri }; position = _ }
-    -> (
+  | Shutdown -> now ()
+  | DebugTextDocumentGet { textDocument = { uri }; position = _ } -> (
     match Document_store.get_opt store uri with
     | None -> now None
     | Some doc -> now (Some (Msource.text (Document.source doc))))
-  | Client_request.DebugEcho params -> now params
-  | Client_request.TextDocumentColor _ -> now []
-  | Client_request.TextDocumentColorPresentation _ -> now []
-  | Client_request.TextDocumentHover req ->
-    later (fun state () -> hover rpc state req) ()
-  | Client_request.TextDocumentReferences req -> later references req
-  | Client_request.TextDocumentCodeLensResolve codeLens -> now codeLens
-  | Client_request.TextDocumentCodeLens req -> later text_document_lens req
-  | Client_request.TextDocumentHighlight req -> later highlight req
-  | Client_request.WorkspaceSymbol req ->
+  | DebugEcho params -> now params
+  | TextDocumentColor _ -> now []
+  | TextDocumentColorPresentation _ -> now []
+  | TextDocumentHover req -> later (fun state () -> hover rpc state req) ()
+  | TextDocumentReferences req -> later references req
+  | TextDocumentCodeLensResolve codeLens -> now codeLens
+  | TextDocumentCodeLens req -> later text_document_lens req
+  | TextDocumentHighlight req -> later highlight req
+  | WorkspaceSymbol req ->
     later (fun state () -> workspace_symbol rpc state req) ()
-  | Client_request.DocumentSymbol { textDocument = { uri }; _ } ->
-    later document_symbol uri
-  | Client_request.TextDocumentDeclaration { textDocument = { uri }; position }
-    ->
+  | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
+  | TextDocumentDeclaration { textDocument = { uri }; position } ->
     later
       (fun state () ->
         definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate (None, `MLI, pos)))
       ()
-  | Client_request.TextDocumentDefinition
-      { textDocument = { uri }; position; _ } ->
+  | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
         definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate (None, `ML, pos)))
       ()
-  | Client_request.TextDocumentTypeDefinition
-      { textDocument = { uri }; position; _ } ->
+  | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
         definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate_type pos))
       ()
-  | Client_request.TextDocumentCompletion
-      { textDocument = { uri }; position; _ } ->
+  | TextDocumentCompletion { textDocument = { uri }; position; _ } ->
     later
       (fun _ () ->
         let doc = Document_store.get store uri in
@@ -871,8 +864,7 @@ let ocaml_on_request :
         let+ resp = Compl.complete doc position in
         Some resp)
       ()
-  | Client_request.TextDocumentPrepareRename
-      { textDocument = { uri }; position } ->
+  | TextDocumentPrepareRename { textDocument = { uri }; position } ->
     later
       (fun _ () ->
         let doc = Document_store.get store uri in
@@ -888,16 +880,16 @@ let ocaml_on_request :
         in
         Option.map loc ~f:Range.of_loc)
       ()
-  | Client_request.TextDocumentRename req -> later rename req
-  | Client_request.TextDocumentFoldingRange req -> later folding_range req
-  | Client_request.SignatureHelp req -> later signature_help req
-  | Client_request.ExecuteCommand _ -> not_supported ()
-  | Client_request.TextDocumentLinkResolve l -> now l
-  | Client_request.TextDocumentLink _ -> now None
-  | Client_request.WillSaveWaitUntilTextDocument _ -> now None
-  | Client_request.CodeAction params -> later code_action params
-  | Client_request.CodeActionResolve ca -> now ca
-  | Client_request.CompletionItemResolve ci ->
+  | TextDocumentRename req -> later rename req
+  | TextDocumentFoldingRange req -> later folding_range req
+  | SignatureHelp req -> later signature_help req
+  | ExecuteCommand _ -> not_supported ()
+  | TextDocumentLinkResolve l -> now l
+  | TextDocumentLink _ -> now None
+  | WillSaveWaitUntilTextDocument _ -> now None
+  | CodeAction params -> later code_action params
+  | CodeActionResolve ca -> now ca
+  | CompletionItemResolve ci ->
     later
       (fun state () ->
         let markdown =
@@ -917,21 +909,20 @@ let ocaml_on_request :
           in
           Compl.resolve doc ci resolve query_doc ~markdown)
       ()
-  | Client_request.TextDocumentFormatting
-      { textDocument = { uri }; options = _; _ } ->
+  | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later
       (fun _ () ->
         let doc = Document_store.get store uri in
         Formatter.run rpc doc)
       ()
-  | Client_request.TextDocumentOnTypeFormatting _ -> now None
-  | Client_request.SelectionRange req -> later selection_range req
-  | Client_request.TextDocumentMoniker _ -> not_supported ()
-  | Client_request.SemanticTokensFull _ -> not_supported ()
-  | Client_request.SemanticTokensDelta _ -> not_supported ()
-  | Client_request.SemanticTokensRange _ -> not_supported ()
-  | Client_request.LinkedEditingRange _ -> not_supported ()
-  | Client_request.UnknownRequest _ ->
+  | TextDocumentOnTypeFormatting _ -> now None
+  | SelectionRange req -> later selection_range req
+  | TextDocumentMoniker _ -> not_supported ()
+  | SemanticTokensFull _ -> not_supported ()
+  | SemanticTokensDelta _ -> not_supported ()
+  | SemanticTokensRange _ -> not_supported ()
+  | LinkedEditingRange _ -> not_supported ()
+  | UnknownRequest _ ->
     Jsonrpc.Response.Error.raise
       (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
