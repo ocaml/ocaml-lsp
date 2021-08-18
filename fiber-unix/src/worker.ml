@@ -11,9 +11,9 @@ let rec run t f =
     run t f
   | Error `Closed -> ()
 
-let create ~do_ =
+let create ~do_no_raise =
   let t = { work_chan = Channel.create () } in
-  let _th = Thread.create (fun f -> run t f) do_ in
+  let _th = Thread.create (fun f -> run t f) do_no_raise in
   t
 
 let add_work t v =

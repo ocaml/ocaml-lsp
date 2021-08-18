@@ -95,7 +95,7 @@ let rec time_loop t =
 let create_thread () =
   let+ scheduler = Fiber.Var.get_exn me in
   let worker =
-    let do_ (Pending (f, ivar)) =
+    let do_no_raise (Pending (f, ivar)) =
       let res =
         match Exn_with_backtrace.try_with f with
         | Ok x -> Ok x
@@ -103,7 +103,7 @@ let create_thread () =
       in
       add_events scheduler [ Job_completed (res, ivar) ]
     in
-    Worker.create ~do_
+    Worker.create ~do_no_raise
   in
   let t = { scheduler; worker } in
   scheduler.threads <- t :: scheduler.threads;
