@@ -10,7 +10,7 @@
                                      (* ^^^^ Unbound value fact *)
   ```
 
-  Adding `rec` to the definition of `fact` will fix the problem. The new code action 
+  Adding `rec` to the definition of `fact` will fix the problem. The new code action
   offers adding `rec`.
 
 - Jump to the first hole on calling `Destruct` code action (only with client VSCode OCaml
@@ -94,14 +94,19 @@
   AST (Abstract Syntax Tree) node enclosing given position. This request is used by VS
   Code OCaml Platform and is not directly used by OCaml LSP users (#482)
 
-- Bug fix: do not show "random" documentation on hover
+## Fixes
+
+- Do not show "random" documentation on hover
 
   - fixed by [merlin#1364](https://github.com/ocaml/merlin/pull/1364)
   - fixes duplicate:
     - [ocaml-lsp#344](https://github.com/ocaml/ocaml-lsp/issues/344)
     - [vscode-ocaml-platform#111](https://github.com/ocamllabs/vscode-ocaml-platform/issues/111)
 
-- Bug fix: correctly rename a variable used as a named/optional argument (#478)
+- Correctly rename a variable used as a named/optional argument (#478)
+
+- When reporting an error at the beginning of the file, use the first line
+  not the second
 
 # 1.7.0 (07/28/2021)
 
