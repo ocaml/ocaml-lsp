@@ -14,7 +14,10 @@
  "Oleksiy Golovko <alexei.golovko@gmail.com>"
  "Rudi Grinberg <me@rgrinberg.com>"
  "Sacha Ayoun <sachaayoun@gmail.com>"
- "cannorin <cannorin@gmail.com>")
+ "cannorin <cannorin@gmail.com>"
+ "Ulugbek Abdullaev <ulugbekna@gmail.com>"
+ "Thibaut Mattio <thibaut.mattio@gmail.com>"
+ "Max Lantas <mnxndev@outlook.com>")
 
 (source (github ocaml/ocaml-lsp))
 
