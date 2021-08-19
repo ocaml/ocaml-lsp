@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- New code action to automatically remove values, types, opens (#502)
+
 # 1.8.3 (09/26/2021)
 
 - Fix debouncing of document updates. It was essentially complicated broken in

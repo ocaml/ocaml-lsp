@@ -224,3 +224,13 @@ let get_impl_intf_counterparts uri =
     | to_switch_to -> to_switch_to
   in
   List.map ~f:Uri.of_path files_to_switch_to
+
+let edit doc text_edit =
+  let version = version doc in
+  let textDocument =
+    OptionalVersionedTextDocumentIdentifier.create ~uri:(uri doc) ~version ()
+  in
+  let edit =
+    TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit text_edit ]
+  in
+  WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()

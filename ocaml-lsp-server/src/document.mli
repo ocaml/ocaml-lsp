@@ -56,3 +56,5 @@ val close : t -> unit Fiber.t
 
     For instance, the counterparts of the file [/file.ml] are [/file.mli]. *)
 val get_impl_intf_counterparts : Uri.t -> Uri.t list
+
+val edit : t -> TextEdit.t -> WorkspaceEdit.t
