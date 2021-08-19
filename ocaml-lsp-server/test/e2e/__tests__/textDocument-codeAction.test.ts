@@ -16,6 +16,18 @@ function findAddRecAnnotation(actions) {
   );
 }
 
+function findMarkUnused(actions) {
+  return actions.find(
+    (action) => action.kind == "quickfix" && action.title == "Mark as unused",
+  );
+}
+
+function findRemoveUnused(actions) {
+  return actions.find(
+    (action) => action.kind == "quickfix" && action.title == "Remove unused",
+  );
+}
+
 function findInferredAction(actions) {
   return actions.find((action) => action.kind == "inferred_intf");
 }
@@ -25,6 +37,15 @@ function mkUnboundDiagnostic(start, end) {
     message: "Unbound value",
     range: { end, start },
     severity: Types.DiagnosticSeverity.Error,
+    source: "ocamllsp",
+  };
+}
+
+function mkUnusedDiagnostic(start, end) {
+  return {
+    message: "Error (warning 26): unused variable",
+    range: { end, start },
+    severity: Types.DiagnosticSeverity.Warning,
     source: "ocamllsp",
   };
 }
@@ -878,5 +899,182 @@ let (f, x) = 1 + (f x)
 
     let actions = await codeAction(uri, start, end, context);
     expect(findAddRecAnnotation(actions)).toBeUndefined();
+  });
+
+  it("mark variable as unused", async () => {
+    let uri = "file:///mark-unused-variable.ml";
+    await openDocument(
+      outdent`
+let f x =
+  let y = [
+    1;
+    2;
+  ] in
+  0
+`,
+      uri,
+    );
+    let start = Types.Position.create(1, 6);
+    let end = Types.Position.create(1, 7);
+    let context = {
+      diagnostics: [
+        mkUnusedDiagnostic(
+          Types.Position.create(1, 6),
+          Types.Position.create(1, 7),
+        ),
+      ],
+    };
+
+    let actions = await codeAction(uri, start, end, context);
+    expect(findMarkUnused(actions)).toMatchInlineSnapshot(`
+      Object {
+        "diagnostics": Array [
+          Object {
+            "message": "Error (warning 26): unused variable",
+            "range": Object {
+              "end": Object {
+                "character": 7,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 6,
+                "line": 1,
+              },
+            },
+            "severity": 2,
+            "source": "ocamllsp",
+          },
+        ],
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "_",
+                  "range": Object {
+                    "end": Object {
+                      "character": 6,
+                      "line": 1,
+                    },
+                    "start": Object {
+                      "character": 6,
+                      "line": 1,
+                    },
+                  },
+                },
+              ],
+              "textDocument": Object {
+                "uri": "file:///mark-unused-variable.ml",
+                "version": 0,
+              },
+            },
+          ],
+        },
+        "isPreferred": false,
+        "kind": "quickfix",
+        "title": "Mark as unused",
+      }
+    `);
+  });
+
+  it("remove unused variable", async () => {
+    let uri = "file:///remove-unused-variable.ml";
+    await openDocument(
+      outdent`
+let f x =
+  let y = [
+    1;
+    2;
+  ] in
+  0
+`,
+      uri,
+    );
+    let start = Types.Position.create(1, 6);
+    let end = Types.Position.create(1, 7);
+    let context = {
+      diagnostics: [
+        mkUnusedDiagnostic(
+          Types.Position.create(1, 6),
+          Types.Position.create(1, 7),
+        ),
+      ],
+    };
+
+    let actions = await codeAction(uri, start, end, context);
+    expect(findRemoveUnused(actions)).toMatchInlineSnapshot(`
+      Object {
+        "diagnostics": Array [
+          Object {
+            "message": "Error (warning 26): unused variable",
+            "range": Object {
+              "end": Object {
+                "character": 7,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 6,
+                "line": 1,
+              },
+            },
+            "severity": 2,
+            "source": "ocamllsp",
+          },
+        ],
+        "edit": Object {
+          "documentChanges": Array [
+            Object {
+              "edits": Array [
+                Object {
+                  "newText": "",
+                  "range": Object {
+                    "end": Object {
+                      "character": 2,
+                      "line": 5,
+                    },
+                    "start": Object {
+                      "character": 2,
+                      "line": 1,
+                    },
+                  },
+                },
+              ],
+              "textDocument": Object {
+                "uri": "file:///remove-unused-variable.ml",
+                "version": 0,
+              },
+            },
+          ],
+        },
+        "isPreferred": false,
+        "kind": "quickfix",
+        "title": "Remove unused",
+      }
+    `);
+  });
+
+  it("don't remove unused value in let-and binding", async () => {
+    let uri = "file:///remove-unused-variable-2.ml";
+    await openDocument(
+      outdent`
+let f x =
+  let y = 0 and z = 0 in
+  0
+`,
+      uri,
+    );
+    let start = Types.Position.create(1, 6);
+    let end = Types.Position.create(1, 7);
+    let context = {
+      diagnostics: [
+        mkUnusedDiagnostic(
+          Types.Position.create(1, 6),
+          Types.Position.create(1, 7),
+        ),
+      ],
+    };
+
+    let actions = await codeAction(uri, start, end, context);
+    expect(findRemoveUnused(actions)).toBeUndefined();
   });
 });
