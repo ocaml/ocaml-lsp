@@ -2,33 +2,35 @@
 
 ## Features
 
-- Add a new code action `Add missing rec keyword`, which is available when adding
-  a `rec` keyword can fix `Unbound value ...` error, e.g.,
+- Add a new code action `Add missing rec keyword`, which is available when
+  adding a `rec` keyword can fix `Unbound value ...` error, e.g.,
 
   ```ocaml
   let fact n = if n = 0 then 1 else n * fact (n - 1)
                                      (* ^^^^ Unbound value fact *)
   ```
 
-  Adding `rec` to the definition of `fact` will fix the problem. The new code action
-  offers adding `rec`.
+  Adding `rec` to the definition of `fact` will fix the problem. The new code
+  action offers adding `rec`.
 
-- Jump to the first hole on calling `Destruct` code action (only with client VSCode OCaml
-  Platform) (#468)
+- Jump to the first hole on calling `Destruct` code action (only with client
+  VSCode OCaml Platform) (#468)
 
-  Example: when a user invokes `Destruct` code action on `Some 1`, this code is replaced
-  by `match Some 1 with None -> _ | Some _ -> _`, where the 1st and 3rd underscores
-  are "typed holes", a concept created by Merlin to be able to put "holes" in OCaml code.
+  Example: when a user invokes `Destruct` code action on `Some 1`, this code is
+  replaced by `match Some 1 with None -> _ | Some _ -> _`, where the 1st and
+  3rd underscores are "typed holes", a concept created by Merlin to be able to
+  put "holes" in OCaml code.
 
-  With this change, now for VSCode OCaml Platform users, on such invocation of `Destruct`,
-  the cursor will jump to the first typed hole and select it, so that user can start
-  editing right away.
+  With this change, now for VSCode OCaml Platform users, on such invocation of
+  `Destruct`, the cursor will jump to the first typed hole and select it, so
+  that user can start editing right away.
 
 - Use ocamlformat to properly format type snippets. This feature requires the
   `ocamlformat-rpc` opam package to be installed. (#386)
 
-- Add completion support for polymorphic variants, when it is possible to pin down the
-  precise type. Examples (`<|>` stands for the cursor) when completion will work (#473)
+- Add completion support for polymorphic variants, when it is possible to pin
+  down the precise type. Examples (`<|>` stands for the cursor) when completion
+  will work (#473)
 
   Function application:
 
@@ -44,20 +46,22 @@
   let a : [`Alpha | `Beta] = `B<|>
   ```
 
-  Note: this is actually a bug fix, since we were ignoring the backtick when constructing
-  the prefix for completion.
+  Note: this is actually a bug fix, since we were ignoring the backtick when
+  constructing the prefix for completion.
 
 - Parse merlin errors (best effort) into a more structured form. This allows
   reporting all locations as "related information" (#475)
 
-- Add support for Merlin `Construct` command as completion suggestions, i.e., show complex
-  expressions that could complete the typed hole. (#472)
+- Add support for Merlin `Construct` command as completion suggestions, i.e.,
+  show complex expressions that could complete the typed hole. (#472)
 
-- Add a code action `Construct an expression` that is shown when the cursor is at the end
-  of the typed hole, i.e., `_|`, where `|` is the cursor. The code action simply triggers
-  the client (currently only VS Code is supported) to show completion suggestions. (#472)
+- Add a code action `Construct an expression` that is shown when the cursor is
+  at the end of the typed hole, i.e., `_|`, where `|` is the cursor. The code
+  action simply triggers the client (currently only VS Code is supported) to
+  show completion suggestions. (#472)
 
-- Change the formatting-on-save error notification to a warning notification (#472)
+- Change the formatting-on-save error notification to a warning notification
+  (#472)
 
 - Code action to qualify ("put module name in identifiers") and unqualify
   ("remove module name from identifiers") module names in identifiers (#399)
@@ -90,10 +94,6 @@
   let f x = x.Unix.tms_stime, x.Unix.tms_utime
   ```
 
-- Add support for a custom request `ocamllsp/wrappingAstNode`, which brings the smallest
-  AST (Abstract Syntax Tree) node enclosing given position. This request is used by VS
-  Code OCaml Platform and is not directly used by OCaml LSP users (#482)
-
 ## Fixes
 
 - Do not show "random" documentation on hover
@@ -105,8 +105,8 @@
 
 - Correctly rename a variable used as a named/optional argument (#478)
 
-- When reporting an error at the beginning of the file, use the first line
-  not the second
+- When reporting an error at the beginning of the file, use the first line not
+  the second (#489)
 
 # 1.7.0 (07/28/2021)
 
