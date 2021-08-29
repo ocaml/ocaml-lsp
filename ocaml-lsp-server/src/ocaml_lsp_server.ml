@@ -426,6 +426,12 @@ let query_type doc pos =
     None
   | (location, `String value, _) :: _ -> Some (location, value)
 
+let log_message server ~type_ ~message =
+  let state = Server.state server in
+  task_if_running state ~f:(fun () ->
+      let log = LogMessageParams.create ~type_ ~message in
+      Server.notification server (Server_notification.LogMessage log))
+
 let hover server (state : State.t)
     { HoverParams.textDocument = { uri }; position; _ } =
   let store = state.store in
@@ -451,15 +457,13 @@ let hover server (state : State.t)
       | Error (`Msg message) ->
         (* We log OCamlformat errors and display the unformated type *)
         let+ () =
-          task_if_running state ~f:(fun () ->
-              let message =
-                sprintf
-                  "An error occured while querying ocamlformat:\n\
-                   Input type: %s\n\n\
-                   Answer: %s" typ message
-              in
-              let log = LogMessageParams.create ~type_:Warning ~message in
-              Server.notification server (Server_notification.LogMessage log))
+          let message =
+            sprintf
+              "An error occured while querying ocamlformat:\n\
+               Input type: %s\n\n\
+               Answer: %s" typ message
+          in
+          log_message server ~type_:Warning ~message
         in
         typ
     in
@@ -706,10 +710,8 @@ let definition_query server (state : State.t) uri position merlin_request =
   | Ok s -> Fiber.return s
   | Error message ->
     let+ () =
-      task_if_running state ~f:(fun () ->
-          let message = sprintf "Locate failed. %s" message in
-          let log = LogMessageParams.create ~type_:Error ~message in
-          Server.notification server (Server_notification.LogMessage log))
+      let message = sprintf "Locate failed. %s" message in
+      log_message server ~type_:Error ~message
     in
     None
 
@@ -1033,12 +1035,8 @@ let on_notification server (notification : Client_notification.t) :
   | Unknown_notification req ->
     let open Fiber.O in
     let+ () =
-      task_if_running state ~f:(fun () ->
-          let log =
-            LogMessageParams.create ~type_:Error
-              ~message:("Unknown notication " ^ req.method_)
-          in
-          Server.notification server (Server_notification.LogMessage log))
+      log_message server ~type_:Error
+        ~message:("Unknown notication " ^ req.method_)
     in
     state
 
@@ -1126,10 +1124,7 @@ let start () =
     | Some _ when true -> Fiber.return ()
     | Some message ->
       let* (_ : InitializeParams.t) = Server.initialized server in
-      let state = Server.state server in
-      task_if_running state ~f:(fun () ->
-          let log = LogMessageParams.create ~type_:Warning ~message in
-          Server.notification server (Server_notification.LogMessage log))
+      log_message server ~type_:Warning ~message
   in
   Fiber.parallel_iter
     ~f:(fun f -> f ())
@@ -1153,12 +1148,9 @@ let start () =
               | Some dune -> Dune.stop dune)
           ])
     ; (fun () ->
-        let logger ~type_ ~message () =
-          task_if_running (Server.state server) ~f:(fun () ->
-              let log = LogMessageParams.create ~type_ ~message in
-              Server.notification server (Server_notification.LogMessage log))
+        let* state =
+          Ocamlformat_rpc.run ~logger:(log_message server) ocamlformat_rpc
         in
-        let* state = Ocamlformat_rpc.run ~logger ocamlformat_rpc in
         let message =
           match state with
           | Error `Binary_not_found ->

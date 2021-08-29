@@ -10,7 +10,7 @@ module Process : sig
   val client : t -> Ocamlformat_rpc_lib.client
 
   val create :
-       logger:(type_:MessageType.t -> message:string -> unit -> unit Fiber.t)
+       logger:(type_:MessageType.t -> message:string -> unit Fiber.t)
     -> bin:Fpath.t
     -> unit
     -> (t, [> `No_process ]) result Fiber.t
@@ -67,7 +67,7 @@ end = struct
           Printf.sprintf "An error occured while configuring ocamlformat: %s"
             msg
         in
-        logger ~type_:MessageType.Warning ~message ()
+        logger ~type_:MessageType.Warning ~message
       | Error e -> Exn_with_backtrace.reraise e)
 
   let create ~logger ~bin () =
@@ -99,7 +99,7 @@ end = struct
              server: %s"
             msg
         in
-        logger ~type_:MessageType.Error ~message ()
+        logger ~type_:MessageType.Error ~message
       in
       Fiber.return @@ Error `No_process
     | Ok client ->
@@ -111,7 +111,7 @@ end = struct
         let message =
           Printf.sprintf "Ocamlformat-RPC server started with PID %i" pid
         in
-        logger ~type_:MessageType.Info ~message ()
+        logger ~type_:MessageType.Info ~message
       in
       Ok process
 
