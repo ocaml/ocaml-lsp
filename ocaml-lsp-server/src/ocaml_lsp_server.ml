@@ -1133,47 +1133,41 @@ let start () =
       let* (_ : InitializeParams.t) = Server.initialized server in
       log_message server ~type_:Warning ~message
   in
-  Fiber.parallel_iter
-    ~f:(fun f -> f ())
-    [ (fun () ->
-        if enable_dune_rpc then
-          run_dune ()
-        else
-          Fiber.return ())
-    ; (fun () -> Fiber.Pool.run detached)
-    ; (fun () ->
-        let* () = Server.start server in
-        (* When server exits we also stop ocamlformat rpc *)
-        Fiber.parallel_iter
-          ~f:(fun f -> f ())
-          [ (fun () -> Document_store.close store)
-          ; (fun () -> Fiber.Pool.stop detached)
-          ; (fun () -> Ocamlformat_rpc.stop ocamlformat_rpc)
-          ; (fun () ->
-              match !dune with
-              | None -> Fiber.return ()
-              | Some dune -> Dune.stop dune)
-          ])
-    ; (fun () ->
-        let* state =
-          Ocamlformat_rpc.run ~logger:(log_message server) ocamlformat_rpc
-        in
-        let message =
-          match state with
-          | Error `Binary_not_found ->
-            Some
-              "OCamlformat_rpc is missing, displayed types might not be \
-               properly formatted. "
-          | Ok () -> None
-        in
-        match message with
-        | None -> Fiber.return ()
-        | Some message ->
-          let* (_ : InitializeParams.t) = Server.initialized server in
-          let state = Server.state server in
-          task_if_running state ~f:(fun () ->
-              let log = ShowMessageParams.create ~type_:Info ~message in
-              Server.notification server (Server_notification.ShowMessage log)))
+  Fiber.all_concurrently_unit
+    [ (if enable_dune_rpc then
+        run_dune ()
+      else
+        Fiber.return ())
+    ; Fiber.Pool.run detached
+    ; (let* () = Server.start server in
+       (* When server exits we also stop ocamlformat rpc *)
+       Fiber.all_concurrently_unit
+         [ Document_store.close store
+         ; Fiber.Pool.stop detached
+         ; Ocamlformat_rpc.stop ocamlformat_rpc
+         ; (match !dune with
+           | None -> Fiber.return ()
+           | Some dune -> Dune.stop dune)
+         ])
+    ; (let* state =
+         Ocamlformat_rpc.run ~logger:(log_message server) ocamlformat_rpc
+       in
+       let message =
+         match state with
+         | Error `Binary_not_found ->
+           Some
+             "OCamlformat_rpc is missing, displayed types might not be \
+              properly formatted. "
+         | Ok () -> None
+       in
+       match message with
+       | None -> Fiber.return ()
+       | Some message ->
+         let* (_ : InitializeParams.t) = Server.initialized server in
+         let state = Server.state server in
+         task_if_running state ~f:(fun () ->
+             let log = ShowMessageParams.create ~type_:Info ~message in
+             Server.notification server (Server_notification.ShowMessage log)))
     ]
 
 let run () =
