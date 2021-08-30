@@ -6,6 +6,6 @@
    merlin.analysis merlin.kernel merlin.merlin_utils merlin.parsing
    merlin.query_commands merlin.query_protocol merlin.specific merlin.typing
    merlin.utils octavius omd ppx_yojson_conv_lib re result stdune csexp
-   yojson dune_rpc ocamlformat-rpc-lib ocamlc_loc))
+   yojson dune_rpc csexp_rpc ocamlformat-rpc-lib ocamlc_loc))
 
 (include_subdirs unqualified)

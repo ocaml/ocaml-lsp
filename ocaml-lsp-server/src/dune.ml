@@ -1,4 +1,5 @@
 open! Import
+open Fiber.O
 
 let dev_null () =
   (* TODO stdune should provide an api to simplify this *)
@@ -9,91 +10,69 @@ let dev_null () =
       "/dev/null")
     [ Unix.O_RDWR ] 0o666
 
+module Csexp_rpc = Csexp_rpc.Make (struct
+  type t = Scheduler.thread
+
+  let stop t = Scheduler.stop t
+
+  let create () = Scheduler.create_thread ()
+
+  let task t ~f =
+    let open Fiber.O in
+    let res = Scheduler.async t f in
+    match res with
+    | Error `Stopped -> Fiber.return (Error `Stopped)
+    | Ok t -> (
+      let+ res = Scheduler.await_no_cancel t in
+      match res with
+      | Ok s -> Ok s
+      | Error e -> Error (`Exn e))
+end)
+
 module Chan : sig
   type t
 
-  val create : string -> t Fiber.t
+  val create : Drpc.Where.t -> t Fiber.t
 
   val write : t -> Csexp.t list option -> unit Fiber.t
 
   val read : t -> Csexp.t option Fiber.t
 
-  val pid : t -> Pid.t
+  val stop : t -> unit Fiber.t
 
   val run : t -> unit Fiber.t
 end = struct
   open Fiber.O
 
   type t =
-    { in_thread : Scheduler.thread
-    ; out_thread : Scheduler.thread
-    ; out_chan : out_channel
-    ; in_chan : in_channel
-    ; pid : Pid.t
+    { session : Csexp_rpc.Session.t
+    ; finished : unit Fiber.Ivar.t
     }
 
-  let pid t = t.pid
+  let stop t = Csexp_rpc.Session.write t.session None
 
-  let write t sexp =
-    match
-      Scheduler.async t.out_thread (fun () ->
-          match sexp with
-          | None ->
-            close_in_noerr t.in_chan;
-            close_out_noerr t.out_chan
-          | Some sexps ->
-            List.iter sexps ~f:(Csexp.to_channel t.out_chan);
-            flush t.out_chan)
-    with
-    | Error `Stopped ->
-      (* It's ok to ignore this write. It will be not cause a deadlock because
-         all pending requests will be cancelled. *)
-      Fiber.return ()
-    | Ok task -> (
-      let+ res = Scheduler.await_no_cancel task in
-      match res with
-      | Error e -> Exn_with_backtrace.reraise e
-      | Ok s -> s)
+  let write t sexp = Csexp_rpc.Session.write t.session sexp
 
   let read t =
-    match
-      Scheduler.async t.in_thread (fun () ->
-          match Csexp.input_opt t.in_chan with
-          | Error _
-          | Ok None ->
-            close_in_noerr t.in_chan;
-            None
-          | Ok (Some s) -> Some s)
-    with
-    | Error `Stopped -> Fiber.return None
-    | Ok res -> (
-      let+ res = Scheduler.await_no_cancel res in
-      match res with
-      | Ok s -> s
-      | Error e -> Exn_with_backtrace.reraise e)
+    let* read = Csexp_rpc.Session.read t.session in
+    match read with
+    | Some _ -> Fiber.return read
+    | None ->
+      let+ () = Fiber.Ivar.fill t.finished () in
+      read
 
-  let create dune =
-    let args = Array.of_list [ dune; "rpc"; "init"; "--wait" ] in
-    let pid, stdout, stdin =
-      let stdin_i, stdin_o = Unix.pipe () in
-      let stdout_i, stdout_o = Unix.pipe () in
-      let pid =
-        Unix.create_process dune args stdin_i stdout_o Unix.stderr |> Pid.of_int
-      in
-      (pid, stdout_i, stdin_o)
+  let create (where : Drpc.Where.t) =
+    let sock =
+      match where with
+      | `Unix s -> Unix.ADDR_UNIX s
+      | `Ip (`Host h, `Port p) -> Unix.ADDR_INET (Unix.inet_addr_of_string h, p)
     in
-    let* in_thread = Scheduler.create_thread () in
-    let+ out_thread = Scheduler.create_thread () in
-    let in_chan = Unix.in_channel_of_descr stdout in
-    let out_chan = Unix.out_channel_of_descr stdin in
-    { pid; in_chan; out_chan; in_thread; out_thread }
+    let* client = Csexp_rpc.Client.create sock in
+    let+ session = Csexp_rpc.Client.connect_exn client in
+    let finished = Fiber.Ivar.create () in
+    { session; finished }
 
-  let run t =
-    let+ (_ : Unix.process_status) = Scheduler.wait_for_process t.pid in
-    Scheduler.stop t.in_thread;
-    Scheduler.stop t.out_thread;
-    close_out_noerr t.out_chan;
-    close_in_noerr t.in_chan
+  let run t = Fiber.Ivar.read t.finished
 end
 
 module Client =
@@ -107,6 +86,40 @@ module Client =
     end)
     (Chan)
 
+module Where =
+  Drpc.Where.Make
+    (struct
+      type 'a t = 'a
+
+      let return x = x
+
+      module O = struct
+        let ( let* ) x f = f x
+
+        let ( let+ ) x f = f x
+      end
+    end)
+    (struct
+      let getenv = Sys.getenv_opt
+
+      let is_win32 () = Sys.win32
+
+      let read_file f = Stdune.Io.String_path.read_file f
+
+      let readlink s =
+        match Unix.readlink s with
+        | s -> Some s
+        | exception Unix.Unix_error (Unix.EINVAL, _, _) -> None
+
+      let analyze_path s =
+        match (Unix.stat s).st_kind with
+        | Unix.S_SOCK -> `Unix_socket
+        | S_REG -> `Normal_file
+        | _
+        | (exception Unix.Unix_error (Unix.ENOENT, _, _)) ->
+          `Other
+    end)
+
 type run =
   | Binary_not_found
   | Out_of_date
@@ -115,6 +128,7 @@ type state =
   | Waiting_for_init of
       { diagnostics : Diagnostics.t
       ; progress : Progress.t
+      ; build_dir : string
       }
   | Active of
       { diagnostics : Diagnostics.t
@@ -126,6 +140,13 @@ type state =
 
 type t = state ref
 
+(* TODO we an atomic version of this *)
+let maybe_fill ivar x =
+  let* res = Fiber.Ivar.peek ivar in
+  match res with
+  | Some _ -> Fiber.return ()
+  | None -> Fiber.Ivar.fill ivar x
+
 let stop (t : t) =
   match !t with
   | Closed -> Fiber.return ()
@@ -134,14 +155,13 @@ let stop (t : t) =
     Fiber.return ()
   | Active { finish; chan; progress = _; diagnostics = _ } ->
     t := Closed;
-    let pid = Chan.pid chan in
-    Unix.kill (Pid.to_int pid) Sys.sigstop;
-    Fiber.Ivar.fill finish ()
+    let* () = Chan.stop chan in
+    maybe_fill finish ()
 
-let create diagnostics progress =
-  ref (Waiting_for_init { diagnostics; progress })
+let create ~build_dir diagnostics progress =
+  ref (Waiting_for_init { build_dir; diagnostics; progress })
 
-let lsp_of_dune uri dune =
+let lsp_of_dune dune =
   let module D = Drpc.Diagnostic in
   let range_of_loc loc =
     let loc =
@@ -170,8 +190,13 @@ let lsp_of_dune uri dune =
       Some
         (List.map related ~f:(fun related ->
              let message = make_message (D.Related.message related) in
+             let loc = D.Related.loc related in
+             let uri =
+               let start = Drpc.Loc.start loc in
+               Uri.of_path start.pos_fname
+             in
              let location =
-               let range = range_of_loc (D.Related.loc related) in
+               let range = range_of_loc loc in
                Location.create ~uri ~range
              in
              DiagnosticRelatedInformation.create ~location ~message))
@@ -180,78 +205,89 @@ let lsp_of_dune uri dune =
   Diagnostic.create ?relatedInformation ~range ?severity ~source:"dune" ~message
     ()
 
-let run_rpc (t : t) bin =
+let poll_where ~build_dir ~delay =
+  let* timer = Scheduler.create_timer ~delay in
+  let rec loop () =
+    match Where.get ~build_dir with
+    | Some s -> Fiber.return s
+    | None -> (
+      let* res = Scheduler.schedule timer Fiber.return in
+      match res with
+      | Ok () -> loop ()
+      | Error `Cancelled -> assert false)
+  in
+  let+ res = loop () in
+  res
+
+let run_rpc (t : t) =
   match !t with
   | Closed -> Code_error.raise "dune already closed" []
   | Active _ -> Code_error.raise "dune alrady running" []
-  | Waiting_for_init { diagnostics; progress } ->
+  | Waiting_for_init { diagnostics; progress; build_dir } ->
     Diagnostics.update_dune_status diagnostics Disconnected;
     let open Fiber.O in
     let finish = Fiber.Ivar.create () in
-    let* chan = Chan.create bin in
+    let* where = poll_where ~delay:0.3 ~build_dir in
+    let* chan = Chan.create where in
     t := Active { diagnostics; finish; chan; progress };
     let* () =
-      Fiber.parallel_iter
-        ~f:(fun f -> f ())
-        [ (fun () -> Diagnostics.send diagnostics)
-        ; (fun () ->
-            let* () = Chan.run chan in
-            (* TODO ideally, we should notify the users that the diagnostics are
-               stale until they run dune again *)
-            Fiber.Ivar.fill finish ())
-        ; (fun () ->
-            let init =
-              Drpc.Initialize.create ~id:(Drpc.Id.make (Atom "ocamllsp"))
-            in
-            let handler =
-              let build_event, build_progress =
-                if Progress.should_report_build_progress progress then
-                  Progress.
-                    (Some (build_event progress), Some (build_progress progress))
-                else
-                  (None, None)
-              in
-              let diagnostic evs =
-                List.iter evs ~f:(fun (ev : Drpc.Diagnostic.Event.t) ->
-                    let id =
-                      Drpc.Diagnostic.id
-                        (match ev with
-                        | Add x -> x
-                        | Remove x -> x)
-                    in
-                    match ev with
-                    | Remove _ -> Diagnostics.remove diagnostics (`Dune id)
-                    | Add d ->
-                      let uri : Uri.t =
-                        match Drpc.Diagnostic.loc d with
-                        | None -> Diagnostics.workspace_root diagnostics
-                        | Some loc ->
-                          let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
-                          Uri.of_path pos_fname
-                      in
-                      Diagnostics.set diagnostics
-                        (`Dune (id, uri, lsp_of_dune uri d)));
-                Diagnostics.send diagnostics
-              in
-              Client.Handler.create ?build_event ?build_progress ~diagnostic ()
-            in
-            Client.connect ~handler chan init ~f:(fun client ->
-                Diagnostics.update_dune_status diagnostics Connected;
-                let* () =
-                  let sub what =
-                    Client.notification client Drpc.Notification.subscribe what
-                  in
-                  if Progress.should_report_build_progress progress then
-                    Fiber.fork_and_join_unit
-                      (fun () -> sub Diagnostics)
-                      (fun () -> sub Build_progress)
-                  else
-                    sub Diagnostics
-                in
-                Fiber.Ivar.read finish))
+      Fiber.all_concurrently_unit
+        [ Diagnostics.send diagnostics
+        ; (let* () = Chan.run chan in
+           (* TODO ideally, we should notify the users that the diagnostics are
+              stale until they run dune again *)
+           maybe_fill finish ())
+        ; (let init =
+             Drpc.Initialize.create ~id:(Drpc.Id.make (Atom "ocamllsp"))
+           in
+           let handler =
+             let build_progress =
+               if Progress.should_report_build_progress progress then
+                 Some (Progress.build_progress progress)
+               else
+                 None
+             in
+             let diagnostic evs =
+               List.iter evs ~f:(fun (ev : Drpc.Diagnostic.Event.t) ->
+                   let id =
+                     Drpc.Diagnostic.id
+                       (match ev with
+                       | Add x -> x
+                       | Remove x -> x)
+                   in
+                   match ev with
+                   | Remove _ -> Diagnostics.remove diagnostics (`Dune id)
+                   | Add d ->
+                     let uri : Uri.t =
+                       match Drpc.Diagnostic.loc d with
+                       | None -> Diagnostics.workspace_root diagnostics
+                       | Some loc ->
+                         let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
+                         Uri.of_path pos_fname
+                     in
+                     Diagnostics.set diagnostics
+                       (`Dune (id, uri, lsp_of_dune d)));
+               Diagnostics.send diagnostics
+             in
+             Client.Handler.create ?build_progress ~diagnostic ()
+           in
+           Client.connect ~handler chan init ~f:(fun client ->
+               Diagnostics.update_dune_status diagnostics Connected;
+               let* () =
+                 let sub what =
+                   Client.notification client Drpc.Notification.subscribe what
+                 in
+                 if Progress.should_report_build_progress progress then
+                   Fiber.fork_and_join_unit
+                     (fun () -> sub Diagnostics)
+                     (fun () -> sub Build_progress)
+                 else
+                   sub Diagnostics
+               in
+               Fiber.Ivar.read finish))
         ]
     in
-    t := Waiting_for_init { diagnostics; progress };
+    t := Waiting_for_init { diagnostics; progress; build_dir };
     Progress.end_build_if_running progress
 
 let run t : (unit, run) result Fiber.t =
@@ -278,7 +314,7 @@ let run t : (unit, run) result Fiber.t =
           match !t with
           | Closed -> Fiber.return (Ok ())
           | Waiting_for_init _ ->
-            let* () = run_rpc t bin in
+            let* () = run_rpc t in
             loop ()
           | Active _ -> assert false
         in

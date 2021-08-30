@@ -52,43 +52,37 @@ let start_build (t : enabled) =
   in
   token
 
-let build_event t (event : Drpc.Build.Event.t) =
-  match t with
-  | Disabled -> Code_error.raise "progress reporting is not supported" []
-  | Enabled t -> (
-    match event with
-    | Finish -> end_build t ~message:"Build finished"
-    | Fail -> end_build t ~message:"Build failed"
-    | Interrupt -> end_build t ~message:"Build interrupted"
-    | Start ->
-      let open Fiber.O in
-      let+ (_ : ProgressToken.t) = start_build t in
-      ())
-
 let build_progress t (progress : Drpc.Progress.t) =
   match t with
   | Disabled -> Code_error.raise "progress reporting is not supported" []
-  | Enabled ({ token; report_progress; _ } as t) ->
+  | Enabled ({ token; report_progress; _ } as t) -> (
     let open Fiber.O in
-    let* token =
-      match token with
-      | Some token -> Fiber.return token
-      | None ->
-        (* This can happen when we connect to dune in the middle of a build. *)
-        start_build t
-    in
-    let percentage =
-      let fraction =
-        float_of_int progress.complete
-        /. float_of_int (progress.complete + progress.remaining)
+    match progress with
+    | Success -> end_build t ~message:"Build finished"
+    | Failed -> end_build t ~message:"Build failed"
+    | Interrupted -> end_build t ~message:"Build interrupted"
+    | Waiting -> Fiber.return ()
+    | In_progress { complete; remaining } ->
+      let* token =
+        match token with
+        | Some token -> Fiber.return token
+        | None ->
+          (* This can happen when we connect to dune in the middle of a
+             build. *)
+          start_build t
       in
-      int_of_float (fraction *. 100.)
-    in
-    report_progress
-      (ProgressParams.create ~token
-         ~value:
-           (Server_notification.Progress.Report
-              (WorkDoneProgressReport.create ~percentage ~message:"Building" ())))
+      let percentage =
+        let fraction =
+          float_of_int complete /. float_of_int (complete + remaining)
+        in
+        int_of_float (fraction *. 100.)
+      in
+      report_progress
+        (ProgressParams.create ~token
+           ~value:
+             (Server_notification.Progress.Report
+                (WorkDoneProgressReport.create ~percentage ~message:"Building"
+                   ()))))
 
 let should_report_build_progress = function
   | Disabled -> false

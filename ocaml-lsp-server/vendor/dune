@@ -7,10 +7,17 @@
   (ocamllex dbus_address)
   (copy_files# %{workspace_root}/submodules/dune/otherlibs/dune-rpc/private/*.{ml,mli,mll}))
 
- (copy_files %{workspace_root}/submodules/dune/otherlibs/dune-rpc/*.{ml,mli})
+ (copy_files# %{workspace_root}/submodules/dune/otherlibs/dune-rpc/*.{ml,mli})
  (library
   (name dune_rpc)
   (libraries stdune csexp (re_export dune_rpc_private))))
+
+(subdir csexp_rpc
+ (copy_files# %{workspace_root}/submodules/dune/src/csexp_rpc/*.{ml,mli})
+ (library
+  (name csexp_rpc)
+  (synopsis "Threaded client & server that uses csexp for communication")
+  (libraries stdune csexp fiber)))
 
 (subdir ocamlc_loc
  (copy_files %{workspace_root}/submodules/dune/src/ocamlc_loc/*.{ml,mli})

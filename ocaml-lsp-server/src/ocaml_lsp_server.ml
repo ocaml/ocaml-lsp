@@ -13,7 +13,7 @@ let not_supported () =
   Jsonrpc.Response.Error.raise
     (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
-let enable_dune_rpc = false
+let enable_dune_rpc = true
 
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
@@ -715,32 +715,33 @@ let definition_query server (state : State.t) uri position merlin_request =
     in
     None
 
+let workspace_folders state =
+  let init_params = init_params state in
+  (* WorkspaceFolders has the most priority. Then rootUri and finally
+     rootPath *)
+  let root_uri = init_params.rootUri in
+  let root_path = init_params.rootPath in
+  match (init_params.workspaceFolders, root_uri, root_path) with
+  | Some (Some workspace_folders), _, _ -> workspace_folders
+  | _, Some root_uri, _ ->
+    [ WorkspaceFolder.create ~uri:root_uri
+        ~name:(Filename.basename (Uri.to_path root_uri))
+    ]
+  | _, _, Some (Some root_path) ->
+    [ WorkspaceFolder.create ~uri:(Uri.of_path root_path)
+        ~name:(Filename.basename root_path)
+    ]
+  | _ ->
+    let cwd = Sys.getcwd () in
+    [ WorkspaceFolder.create ~uri:(Uri.of_path cwd)
+        ~name:(Filename.basename cwd)
+    ]
+
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
   let open Fiber.O in
   let* symbols, errors =
-    let workspaces =
-      let init_params = init_params state in
-      (* WorkspaceFolders has the most priority. Then rootUri and finally
-         rootPath *)
-      let root_uri = init_params.rootUri in
-      let root_path = init_params.rootPath in
-      match (init_params.workspaceFolders, root_uri, root_path) with
-      | Some (Some workspace_folders), _, _ -> workspace_folders
-      | _, Some root_uri, _ ->
-        [ WorkspaceFolder.create ~uri:root_uri
-            ~name:(Filename.basename (Uri.to_path root_uri))
-        ]
-      | _, _, Some (Some root_path) ->
-        [ WorkspaceFolder.create ~uri:(Uri.of_path root_path)
-            ~name:(Filename.basename root_path)
-        ]
-      | _ ->
-        let cwd = Sys.getcwd () in
-        [ WorkspaceFolder.create ~uri:(Uri.of_path cwd)
-            ~name:(Filename.basename cwd)
-        ]
-    in
+    let workspaces = workspace_folders state in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
       let+ res =
@@ -1104,7 +1105,13 @@ let start () =
           Server.request server (Server_request.WorkDoneProgressCreate task))
     in
     let dune =
-      let dune' = Dune.create diagnostics progress in
+      let build_dir =
+        match workspace_folders (Server.state server) with
+        | (ws : WorkspaceFolder.t) :: _ ->
+          Filename.concat (Uri.to_path ws.uri) "_build"
+        | _ -> assert false
+      in
+      let dune' = Dune.create ~build_dir diagnostics progress in
       dune := Some dune';
       dune'
     in
