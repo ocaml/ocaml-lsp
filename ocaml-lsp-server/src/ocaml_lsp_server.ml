@@ -1104,34 +1104,37 @@ let start () =
         ~create_task:(fun task ->
           Server.request server (Server_request.WorkDoneProgressCreate task))
     in
-    let dune =
-      let build_dir =
-        match workspace_folders (Server.state server) with
-        | (ws : WorkspaceFolder.t) :: _ ->
-          Filename.concat (Uri.to_path ws.uri) "_build"
-        | _ -> assert false
-      in
-      let dune' = Dune.create ~build_dir diagnostics progress in
-      dune := Some dune';
-      dune'
+    let build_dir =
+      match workspace_folders (Server.state server) with
+      | (ws : WorkspaceFolder.t) :: _ ->
+        Some (Filename.concat (Uri.to_path ws.uri) "_build")
+      | _ -> None
     in
-    let* state = Dune.run dune in
-    let message =
-      match state with
-      | Error Binary_not_found ->
-        Some "Dune must be installed for project functionality"
-      | Error Out_of_date ->
-        Some
-          "Dune is out of date. Install dune >= 3.0 for project functionality"
-      | Ok () -> None
-    in
-    match message with
+    match build_dir with
     | None -> Fiber.return ()
-    (* We disable the warnings because dune 3.0 isn't available yet *)
-    | Some _ when true -> Fiber.return ()
-    | Some message ->
-      let* (_ : InitializeParams.t) = Server.initialized server in
-      log_message server ~type_:Warning ~message
+    | Some build_dir -> (
+      let dune =
+        let dune' = Dune.create ~build_dir diagnostics progress in
+        dune := Some dune';
+        dune'
+      in
+      let* state = Dune.run dune in
+      let message =
+        match state with
+        | Error Binary_not_found ->
+          Some "Dune must be installed for project functionality"
+        | Error Out_of_date ->
+          Some
+            "Dune is out of date. Install dune >= 3.0 for project functionality"
+        | Ok () -> None
+      in
+      match message with
+      | None -> Fiber.return ()
+      (* We disable the warnings because dune 3.0 isn't available yet *)
+      | Some _ when true -> Fiber.return ()
+      | Some message ->
+        let* (_ : InitializeParams.t) = Server.initialized server in
+        log_message server ~type_:Warning ~message)
   in
   Fiber.all_concurrently_unit
     [ (if enable_dune_rpc then
