@@ -50,6 +50,13 @@ let initialize_info : InitializeResult.t =
   let renameProvider =
     `RenameOptions (RenameOptions.create ~prepareProvider:true ())
   in
+  let workspace =
+    let workspaceFolders =
+      WorkspaceFoldersServerCapabilities.create ~supported:true
+        ~changeNotifications:(`Bool true) ()
+    in
+    ServerCapabilities.create_workspace ~workspaceFolders ()
+  in
   let capabilities =
     let experimental =
       `Assoc
@@ -71,7 +78,7 @@ let initialize_info : InitializeResult.t =
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true) ~foldingRangeProvider:(`Bool true)
-      ~experimental ~renameProvider ()
+      ~experimental ~renameProvider ~workspace ()
   in
   let serverInfo =
     let version = Version.get () in
@@ -258,6 +265,19 @@ let on_initialize rpc (ip : InitializeParams.t) =
     match ip.trace with
     | None -> state
     | Some trace -> { state with trace }
+  in
+  let state =
+    match ip.workspaceFolders with
+    | None
+    | Some None ->
+      state
+    | Some (Some workspace_folders) ->
+      let workspace_folders =
+        State.Uri_map.of_list_map_exn workspace_folders
+          ~f:(fun (ws : WorkspaceFolder.t) -> (ws.uri, ws))
+        |> Option.some
+      in
+      { state with workspace_folders }
   in
   (initialize_info, state)
 
@@ -721,8 +741,8 @@ let workspace_folders state =
      rootPath *)
   let root_uri = init_params.rootUri in
   let root_path = init_params.rootPath in
-  match (init_params.workspaceFolders, root_uri, root_path) with
-  | Some (Some workspace_folders), _, _ -> workspace_folders
+  match (state.workspace_folders, root_uri, root_path) with
+  | Some workspace_folders, _, _ -> State.Uri_map.values workspace_folders
   | _, Some root_uri, _ ->
     [ WorkspaceFolder.create ~uri:root_uri
         ~name:(Filename.basename (Uri.to_path root_uri))
@@ -1026,8 +1046,21 @@ let on_notification server (notification : Client_notification.t) :
       Document_store.put store doc;
       let+ () = set_diagnostics server doc in
       state)
+  | ChangeWorkspaceFolders { event = { added; removed } } ->
+    let workspace_folders =
+      let init =
+        Option.value state.workspace_folders ~default:State.Uri_map.empty
+      in
+      let init =
+        List.fold_left removed ~init ~f:(fun acc (a : WorkspaceFolder.t) ->
+            State.Uri_map.remove acc a.uri)
+      in
+      List.fold_left added ~init ~f:(fun acc (a : WorkspaceFolder.t) ->
+          State.Uri_map.set acc a.uri a)
+      |> Option.some
+    in
+    Fiber.return { state with workspace_folders }
   | WillSaveTextDocument _
-  | ChangeWorkspaceFolders _
   | Initialized
   | WorkDoneProgressCancel _
   | Exit ->
@@ -1090,6 +1123,7 @@ let start () =
          ; trace = `Off
          ; diagnostics
          ; symbols_thread
+         ; workspace_folders = None
          });
     Fdecl.get server
   in

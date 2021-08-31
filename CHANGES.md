@@ -1,5 +1,12 @@
 # 1.8.0 (08/19/2021)
 
+## Fixes
+
+- Handle workspace change notifications. Previously, the server would only use
+  the set of workspaces given at startup to search for workspace symbols. After
+  this change, workspace folders that are added later will also be considered.
+  (#498)
+
 ## Features
 
 - Add a new code action `Add missing rec keyword`, which is available when
