@@ -11,6 +11,7 @@ include struct
   module Fpath = Path
   module Int = Int
   module List = List
+  module Map = Map
   module Option = Option
   module Ordering = Ordering
   module Pid = Pid
@@ -128,4 +129,5 @@ include struct
   module WorkspaceEdit = WorkspaceEdit
   module WorkspaceFolder = WorkspaceFolder
   module WorkspaceSymbolParams = WorkspaceSymbolParams
+  module WorkspaceFoldersServerCapabilities = WorkspaceFoldersServerCapabilities
 end
