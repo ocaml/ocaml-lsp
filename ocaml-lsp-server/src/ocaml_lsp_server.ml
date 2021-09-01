@@ -1,11 +1,7 @@
 open Import
 
-let init_params (state : State.t) =
-  match state.init with
-  | Uninitialized -> assert false
-  | Initialized init -> init
-
-let client_capabilities (state : State.t) = (init_params state).capabilities
+let client_capabilities (state : State.t) =
+  (State.initialize_params state).capabilities
 
 let make_error = Jsonrpc.Response.Error.make
 
@@ -260,24 +256,11 @@ let set_diagnostics rpc doc =
 
 let on_initialize rpc (ip : InitializeParams.t) =
   let state : State.t = Server.state rpc in
-  let state = { state with init = Initialized ip } in
+  let state = State.initialize state ip in
   let state =
     match ip.trace with
     | None -> state
     | Some trace -> { state with trace }
-  in
-  let state =
-    match ip.workspaceFolders with
-    | None
-    | Some None ->
-      state
-    | Some (Some workspace_folders) ->
-      let workspace_folders =
-        State.Uri_map.of_list_map_exn workspace_folders
-          ~f:(fun (ws : WorkspaceFolder.t) -> (ws.uri, ws))
-        |> Option.some
-      in
-      { state with workspace_folders }
   in
   (initialize_info, state)
 
@@ -735,33 +718,11 @@ let definition_query server (state : State.t) uri position merlin_request =
     in
     None
 
-let workspace_folders state =
-  let init_params = init_params state in
-  (* WorkspaceFolders has the most priority. Then rootUri and finally
-     rootPath *)
-  let root_uri = init_params.rootUri in
-  let root_path = init_params.rootPath in
-  match (state.workspace_folders, root_uri, root_path) with
-  | Some workspace_folders, _, _ -> State.Uri_map.values workspace_folders
-  | _, Some root_uri, _ ->
-    [ WorkspaceFolder.create ~uri:root_uri
-        ~name:(Filename.basename (Uri.to_path root_uri))
-    ]
-  | _, _, Some (Some root_path) ->
-    [ WorkspaceFolder.create ~uri:(Uri.of_path root_path)
-        ~name:(Filename.basename root_path)
-    ]
-  | _ ->
-    let cwd = Sys.getcwd () in
-    [ WorkspaceFolder.create ~uri:(Uri.of_path cwd)
-        ~name:(Filename.basename cwd)
-    ]
-
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
   let open Fiber.O in
   let* symbols, errors =
-    let workspaces = workspace_folders state in
+    let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
       let+ res =
@@ -1046,20 +1007,12 @@ let on_notification server (notification : Client_notification.t) :
       Document_store.put store doc;
       let+ () = set_diagnostics server doc in
       state)
-  | ChangeWorkspaceFolders { event = { added; removed } } ->
-    let workspace_folders =
-      let init =
-        Option.value state.workspace_folders ~default:State.Uri_map.empty
-      in
-      let init =
-        List.fold_left removed ~init ~f:(fun acc (a : WorkspaceFolder.t) ->
-            State.Uri_map.remove acc a.uri)
-      in
-      List.fold_left added ~init ~f:(fun acc (a : WorkspaceFolder.t) ->
-          State.Uri_map.set acc a.uri a)
-      |> Option.some
+  | ChangeWorkspaceFolders change ->
+    let state =
+      State.modify_workspaces state ~f:(fun ws ->
+          Workspaces.on_change ws change)
     in
-    Fiber.return { state with workspace_folders }
+    Fiber.return state
   | WillSaveTextDocument _
   | Initialized
   | WorkDoneProgressCancel _
@@ -1123,7 +1076,6 @@ let start () =
          ; trace = `Off
          ; diagnostics
          ; symbols_thread
-         ; workspace_folders = None
          });
     Fdecl.get server
   in
@@ -1139,7 +1091,9 @@ let start () =
           Server.request server (Server_request.WorkDoneProgressCreate task))
     in
     let build_dir =
-      match workspace_folders (Server.state server) with
+      match
+        Workspaces.workspace_folders (State.workspaces (Server.state server))
+      with
       | (ws : WorkspaceFolder.t) :: _ ->
         Some (Filename.concat (Uri.to_path ws.uri) "_build")
       | _ -> None
