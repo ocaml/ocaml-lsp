@@ -184,7 +184,9 @@ let lsp_of_dune dune =
          | D.Error -> DiagnosticSeverity.Error
          | Warning -> DiagnosticSeverity.Warning)
   in
-  let make_message message = Format.asprintf "%a@." Pp.to_fmt message in
+  let make_message message =
+    String.trim (Format.asprintf "%a@." Pp.to_fmt message)
+  in
   let relatedInformation =
     match D.related dune with
     | [] -> None
