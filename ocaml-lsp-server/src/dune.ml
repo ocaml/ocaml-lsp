@@ -32,7 +32,7 @@ end)
 module Chan : sig
   type t
 
-  val create : Drpc.Where.t -> t Fiber.t
+  val create : Csexp_rpc.Session.t -> t
 
   val write : t -> Csexp.t list option -> unit Fiber.t
 
@@ -61,14 +61,7 @@ end = struct
       let+ () = Fiber.Ivar.fill t.finished () in
       read
 
-  let create (where : Drpc.Where.t) =
-    let sock =
-      match where with
-      | `Unix s -> Unix.ADDR_UNIX s
-      | `Ip (`Host h, `Port p) -> Unix.ADDR_INET (Unix.inet_addr_of_string h, p)
-    in
-    let* client = Csexp_rpc.Client.create sock in
-    let+ session = Csexp_rpc.Client.connect_exn client in
+  let create session =
     let finished = Fiber.Ivar.create () in
     { session; finished }
 
@@ -212,19 +205,33 @@ let lsp_of_dune dune =
 let poll_where ~poll_thread ~build_dir ~delay =
   let* timer = Scheduler.create_timer ~delay in
   let poll () = Where.get ~build_dir in
-  let rec loop () =
+  let rec loop_sleep () =
+    let* res = Scheduler.schedule timer Fiber.return in
+    match res with
+    | Ok () -> loop ()
+    | Error `Cancelled -> assert false
+  and loop () =
     let* where =
       let task = Scheduler.async_exn poll_thread poll in
       Scheduler.await_no_cancel task
     in
     match where with
     | Error e -> Exn_with_backtrace.reraise e
-    | Ok (Some s) -> Fiber.return s
-    | Ok None -> (
-      let* res = Scheduler.schedule timer Fiber.return in
-      match res with
-      | Ok () -> loop ()
-      | Error `Cancelled -> assert false)
+    | Ok None -> loop_sleep ()
+    | Ok (Some where) -> (
+      let sock =
+        match where with
+        | `Unix s -> Unix.ADDR_UNIX s
+        | `Ip (`Host h, `Port p) ->
+          Unix.ADDR_INET (Unix.inet_addr_of_string h, p)
+      in
+      let* client = Csexp_rpc.Client.create sock in
+      let* session = Csexp_rpc.Client.connect client in
+      match session with
+      | Ok session -> Fiber.return (Chan.create session)
+      | Error _ ->
+        Csexp_rpc.Client.stop client;
+        loop_sleep ())
   in
   let+ res = loop () in
   res
@@ -237,8 +244,7 @@ let run_rpc (t : t) =
     Diagnostics.update_dune_status diagnostics Disconnected;
     let open Fiber.O in
     let finish = Fiber.Ivar.create () in
-    let* where = poll_where ~poll_thread ~delay:0.3 ~build_dir in
-    let* chan = Chan.create where in
+    let* chan = poll_where ~poll_thread ~delay:0.3 ~build_dir in
     t := Active { diagnostics; finish; chan; progress };
     let* () =
       Fiber.all_concurrently_unit
