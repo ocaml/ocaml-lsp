@@ -75,6 +75,7 @@ include struct
   module DiagnosticRelatedInformation = DiagnosticRelatedInformation
   module DiagnosticSeverity = DiagnosticSeverity
   module DidChangeConfigurationParams = DidChangeConfigurationParams
+  module DidChangeWorkspaceFoldersParams = DidChangeWorkspaceFoldersParams
   module DidOpenTextDocumentParams = DidOpenTextDocumentParams
   module DocumentHighlight = DocumentHighlight
   module DocumentHighlightKind = DocumentHighlightKind
