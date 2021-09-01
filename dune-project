@@ -37,6 +37,7 @@ possible and does not make any assumptions about IO.
   pp ;; needed by stdune
   (csexp (>= 1.5)) ;; needed by stdune
   uutf
+  uri
   (odoc :with-doc)
   (ocaml (>= 4.12))))
 

@@ -30,6 +30,7 @@ depends: [
   "pp"
   "csexp" {>= "1.5"}
   "uutf"
+  "uri"
   "odoc" {with-doc}
   "ocaml" {>= "4.12"}
 ]

@@ -37,15 +37,7 @@ let to_dyn { scheme; authority; path } =
     ]
 
 let to_path t =
-  let path =
-    t.path
-    |> String.replace_all ~pattern:"\\" ~with_:"/"
-    |> String.replace_all ~pattern:"%5C" ~with_:"/"
-    |> String.replace_all ~pattern:"%3A" ~with_:":"
-    |> String.replace_all ~pattern:"%20" ~with_:" "
-    |> String.replace_all ~pattern:"%3D" ~with_:"="
-    |> String.replace_all ~pattern:"%3F" ~with_:"?"
-  in
+  let path = t.path |> Uri.pct_decode in
   if Sys.win32 then
     path
   else

@@ -11,6 +11,7 @@
   dyn
   threads.posix
   uutf
+  uri
   yojson)
  (lint
   (pps ppx_yojson_conv)))
