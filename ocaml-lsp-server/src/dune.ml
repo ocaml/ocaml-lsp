@@ -244,12 +244,15 @@ let run_rpc (t : t) =
     Diagnostics.update_dune_status diagnostics Disconnected;
     let open Fiber.O in
     let finish = Fiber.Ivar.create () in
-    let* chan = poll_where ~poll_thread ~delay:0.3 ~build_dir in
+    let* chan =
+      Fiber.fork_and_join_unit
+        (fun () -> Diagnostics.send diagnostics)
+        (fun () -> poll_where ~poll_thread ~delay:0.3 ~build_dir)
+    in
     t := Active { diagnostics; finish; chan; progress };
     let* () =
       Fiber.all_concurrently_unit
-        [ Diagnostics.send diagnostics
-        ; (let* () = Chan.run chan in
+        [ (let* () = Chan.run chan in
            (* TODO ideally, we should notify the users that the diagnostics are
               stale until they run dune again *)
            maybe_fill finish ())
