@@ -1101,8 +1101,8 @@ let start () =
     match build_dir with
     | None -> Fiber.return ()
     | Some build_dir -> (
-      let dune =
-        let dune' = Dune.create ~build_dir diagnostics progress in
+      let* dune =
+        let+ dune' = Dune.create ~build_dir diagnostics progress in
         dune := Some dune';
         dune'
       in

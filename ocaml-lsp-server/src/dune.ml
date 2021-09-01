@@ -129,6 +129,7 @@ type state =
       { diagnostics : Diagnostics.t
       ; progress : Progress.t
       ; build_dir : string
+      ; poll_thread : Scheduler.thread
       }
   | Active of
       { diagnostics : Diagnostics.t
@@ -159,7 +160,8 @@ let stop (t : t) =
     maybe_fill finish ()
 
 let create ~build_dir diagnostics progress =
-  ref (Waiting_for_init { build_dir; diagnostics; progress })
+  let+ poll_thread = Scheduler.create_thread () in
+  ref (Waiting_for_init { build_dir; diagnostics; progress; poll_thread })
 
 let lsp_of_dune dune =
   let module D = Drpc.Diagnostic in
@@ -205,12 +207,18 @@ let lsp_of_dune dune =
   Diagnostic.create ?relatedInformation ~range ?severity ~source:"dune" ~message
     ()
 
-let poll_where ~build_dir ~delay =
+let poll_where ~poll_thread ~build_dir ~delay =
   let* timer = Scheduler.create_timer ~delay in
+  let poll () = Where.get ~build_dir in
   let rec loop () =
-    match Where.get ~build_dir with
-    | Some s -> Fiber.return s
-    | None -> (
+    let* where =
+      let task = Scheduler.async_exn poll_thread poll in
+      Scheduler.await_no_cancel task
+    in
+    match where with
+    | Error e -> Exn_with_backtrace.reraise e
+    | Ok (Some s) -> Fiber.return s
+    | Ok None -> (
       let* res = Scheduler.schedule timer Fiber.return in
       match res with
       | Ok () -> loop ()
@@ -223,11 +231,11 @@ let run_rpc (t : t) =
   match !t with
   | Closed -> Code_error.raise "dune already closed" []
   | Active _ -> Code_error.raise "dune alrady running" []
-  | Waiting_for_init { diagnostics; progress; build_dir } ->
+  | Waiting_for_init { poll_thread; diagnostics; progress; build_dir } ->
     Diagnostics.update_dune_status diagnostics Disconnected;
     let open Fiber.O in
     let finish = Fiber.Ivar.create () in
-    let* where = poll_where ~delay:0.3 ~build_dir in
+    let* where = poll_where ~poll_thread ~delay:0.3 ~build_dir in
     let* chan = Chan.create where in
     t := Active { diagnostics; finish; chan; progress };
     let* () =
@@ -287,7 +295,7 @@ let run_rpc (t : t) =
                Fiber.Ivar.read finish))
         ]
     in
-    t := Waiting_for_init { diagnostics; progress; build_dir };
+    t := Waiting_for_init { poll_thread; diagnostics; progress; build_dir };
     Progress.end_build_if_running progress
 
 let run t : (unit, run) result Fiber.t =
