@@ -3,19 +3,7 @@ import * as path from "path";
 import * as child_process from "child_process";
 import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
-import { testUri, toEqualUri } from "./../src/LanguageServer";
-
-expect.extend({
-  toEqualUri: toEqualUri(this),
-});
-
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toEqualUri(uri: string): R;
-    }
-  }
-}
+import { testUri } from "./../src/LanguageServer";
 
 describe("textDocument/declaration", () => {
   let languageServer = null;
