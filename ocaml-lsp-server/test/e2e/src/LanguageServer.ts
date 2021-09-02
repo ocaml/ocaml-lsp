@@ -94,26 +94,28 @@ export const testUri = (file: string) => {
   return URI.file(file).toString();
 };
 
-export const toEqualUri = (obj) => {
-  return (received: string, expected: string) => {
-    const options = {
-      comment: "Uri equality",
-      isNot: obj.isNot,
-      promise: obj.promise,
-    };
-    const pass =
-      URI.parse(received).toString() === URI.parse(received).toString();
-    const message = pass
-      ? () =>
-          obj.utils.matcherHint("toEqualUri", undefined, undefined, options) +
-          "\n\n" +
-          `Expected: not ${obj.utils.printExpected(expected)}\n` +
-          `Received: ${obj.utils.printReceived(received)}`
-      : () =>
-          obj.utils.matcherHint("toBe", undefined, undefined, options) +
-          "\n\n" +
-          `Expected: ${obj.utils.printExpected(expected)}\n` +
-          `Received: ${obj.utils.printReceived(received)}`;
-    return { pass, message };
+export const toEqualUri = (
+  obj: jest.MatcherContext,
+  received: string,
+  expected: string,
+) => {
+  const options = {
+    comment: "Uri equality",
+    isNot: obj.isNot,
+    promise: obj.promise,
   };
+  const pass =
+    URI.parse(received).toString() === URI.parse(received).toString();
+  const message = pass
+    ? () =>
+        obj.utils.matcherHint("toEqualUri", undefined, undefined, options) +
+        "\n\n" +
+        `Expected: not ${obj.utils.printExpected(expected)}\n` +
+        `Received: ${obj.utils.printReceived(received)}`
+    : () =>
+        obj.utils.matcherHint("toBe", undefined, undefined, options) +
+        "\n\n" +
+        `Expected: ${obj.utils.printExpected(expected)}\n` +
+        `Received: ${obj.utils.printReceived(received)}`;
+  return { pass, message };
 };

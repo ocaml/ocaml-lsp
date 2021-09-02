@@ -1,19 +1,7 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
-import { testUri, toEqualUri } from "./../src/LanguageServer";
-
-expect.extend({
-  toEqualUri: toEqualUri(this),
-});
-
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toEqualUri(uri: string): R;
-    }
-  }
-}
+import { testUri } from "./../src/LanguageServer";
 
 describe("textDocument/definition", () => {
   let languageServer = null;
