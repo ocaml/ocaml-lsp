@@ -1,6 +1,8 @@
 open! Import
 open Fiber.O
 
+let view_promotion_capability = ("diagnostic_promotions", `Bool true)
+
 let dev_null () =
   (* TODO stdune should provide an api to simplify this *)
   Unix.openfile
@@ -120,12 +122,14 @@ type run =
 type state =
   | Waiting_for_init of
       { diagnostics : Diagnostics.t
+      ; include_promotions : bool
       ; progress : Progress.t
       ; build_dir : string
       ; poll_thread : Scheduler.thread
       }
   | Active of
       { diagnostics : Diagnostics.t
+      ; include_promotions : bool
       ; progress : Progress.t
       ; finish : unit Fiber.Ivar.t
       ; chan : Chan.t
@@ -147,16 +151,28 @@ let stop (t : t) =
   | Waiting_for_init _ ->
     t := Closed;
     Fiber.return ()
-  | Active { finish; chan; progress = _; diagnostics = _ } ->
+  | Active
+      { include_promotions = _; finish; chan; progress = _; diagnostics = _ } ->
     t := Closed;
     let* () = Chan.stop chan in
     maybe_fill finish ()
 
-let create ~build_dir diagnostics progress =
+let create ~build_dir (client_capabilities : ClientCapabilities.t) diagnostics
+    progress =
   let+ poll_thread = Scheduler.create_thread () in
-  ref (Waiting_for_init { build_dir; diagnostics; progress; poll_thread })
+  let include_promotions =
+    match client_capabilities.experimental with
+    | Some (`Assoc xs) -> (
+      match List.assoc xs (fst view_promotion_capability) with
+      | Some (`Bool b) -> b
+      | _ -> false)
+    | _ -> false
+  in
+  ref
+    (Waiting_for_init
+       { include_promotions; build_dir; diagnostics; progress; poll_thread })
 
-let lsp_of_dune dune =
+let lsp_of_dune ~include_promotions dune =
   let module D = Drpc.Diagnostic in
   let range_of_loc loc =
     let loc =
@@ -199,8 +215,24 @@ let lsp_of_dune dune =
              DiagnosticRelatedInformation.create ~location ~message))
   in
   let message = make_message (D.message dune) in
+  let data =
+    match include_promotions with
+    | false -> None
+    | true -> (
+      match D.promotion dune with
+      | [] -> None
+      | promotions ->
+        let promotions =
+          List.map promotions ~f:(fun p ->
+              `Assoc
+                [ ("in_build", `String (D.Promotion.in_build p))
+                ; ("in_source", `String (D.Promotion.in_source p))
+                ])
+        in
+        Some (`Assoc [ (fst view_promotion_capability, `List promotions) ]))
+  in
   Diagnostic.create ?relatedInformation ~range ?severity ~source:"dune" ~message
-    ()
+    ?data ()
 
 let poll_where ~poll_thread ~build_dir ~delay =
   let* timer = Scheduler.create_timer ~delay in
@@ -240,7 +272,8 @@ let run_rpc (t : t) =
   match !t with
   | Closed -> Code_error.raise "dune already closed" []
   | Active _ -> Code_error.raise "dune alrady running" []
-  | Waiting_for_init { poll_thread; diagnostics; progress; build_dir } ->
+  | Waiting_for_init
+      { include_promotions; poll_thread; diagnostics; progress; build_dir } ->
     Diagnostics.update_dune_status diagnostics Disconnected;
     let open Fiber.O in
     let finish = Fiber.Ivar.create () in
@@ -249,7 +282,7 @@ let run_rpc (t : t) =
         (fun () -> Diagnostics.send diagnostics)
         (fun () -> poll_where ~poll_thread ~delay:0.3 ~build_dir)
     in
-    t := Active { diagnostics; finish; chan; progress };
+    t := Active { include_promotions; diagnostics; finish; chan; progress };
     let* () =
       Fiber.all_concurrently_unit
         [ (let* () = Chan.run chan in
@@ -285,7 +318,7 @@ let run_rpc (t : t) =
                          Uri.of_path pos_fname
                      in
                      Diagnostics.set diagnostics
-                       (`Dune (id, uri, lsp_of_dune d)));
+                       (`Dune (id, uri, lsp_of_dune ~include_promotions d)));
                Diagnostics.send diagnostics
              in
              Client.Handler.create ?build_progress ~diagnostic ()
@@ -306,7 +339,9 @@ let run_rpc (t : t) =
                Fiber.Ivar.read finish))
         ]
     in
-    t := Waiting_for_init { poll_thread; diagnostics; progress; build_dir };
+    t :=
+      Waiting_for_init
+        { poll_thread; include_promotions; diagnostics; progress; build_dir };
     Progress.end_build_if_running progress
 
 let run t : (unit, run) result Fiber.t =
