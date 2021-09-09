@@ -21,7 +21,7 @@ bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "dune" {>= "2.7"}
   "yojson"
-  "re"
+  "re" {>= "1.5.0"}
   "ppx_yojson_conv_lib" {>= "v0.14"}
   "dune-build-info"
   "dot-merlin-reader"
