@@ -63,6 +63,7 @@ let initialize_info : InitializeResult.t =
               ; Req_infer_intf.capability
               ; Req_typed_holes.capability
               ; Req_wrapping_ast_node.capability
+              ; Dune.view_promotion_capability
               ] )
         ]
     in
@@ -1082,8 +1083,9 @@ let start () =
   let dune = ref None in
   let run_dune () =
     let* (init_params : InitializeParams.t) = Server.initialized server in
+    let capabilities = init_params.capabilities in
     let progress =
-      Progress.create init_params.capabilities
+      Progress.create capabilities
         ~report_progress:(fun progress ->
           Server.notification server
             (Server_notification.WorkDoneProgress progress))
@@ -1102,7 +1104,7 @@ let start () =
     | None -> Fiber.return ()
     | Some build_dir -> (
       let* dune =
-        let+ dune' = Dune.create ~build_dir diagnostics progress in
+        let+ dune' = Dune.create ~build_dir capabilities diagnostics progress in
         dune := Some dune';
         dune'
       in
