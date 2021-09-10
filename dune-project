@@ -53,7 +53,7 @@ possible and does not make any assumptions about IO.
   (pp (>= 1.1.2))
   (csexp (>= 1.4))
   (result (>= 1.5))
-  (ocamlformat-rpc-lib (= 0.18.0))
+  (ocamlformat-rpc-lib (and (>= 0.18.0) (< 0.19.0)))
   (odoc :with-doc)
   (ocaml (and (>= 4.12) (< 4.13)))))
 
