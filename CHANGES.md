@@ -1,3 +1,7 @@
+# 1.8.1 (09/12/2021)
+
+- Update to latest merlin.
+
 # 1.8.0 (08/19/2021)
 
 ## Fixes
