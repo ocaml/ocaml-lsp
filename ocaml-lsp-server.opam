@@ -28,9 +28,9 @@ depends: [
   "pp" {>= "1.1.2"}
   "csexp" {>= "1.4"}
   "result" {>= "1.5"}
-  "ocamlformat-rpc-lib" {>= "0.18.0" & < "0.19.0"}
+  "ocamlformat-rpc-lib" {>= "0.19.0" & < "0.20.0"}
   "odoc" {with-doc}
-  "ocaml" {>= "4.12" & < "4.13"}
+  "ocaml" {>= "4.13" & < "4.14"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
