@@ -9,7 +9,7 @@ let not_supported () =
   Jsonrpc.Response.Error.raise
     (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
-let enable_dune_rpc = true
+let enable_dune_rpc = false
 
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
