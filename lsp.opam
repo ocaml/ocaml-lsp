@@ -28,7 +28,7 @@ depends: [
   "yojson"
   "ppx_yojson_conv_lib" {>= "v0.14"}
   "pp"
-  "csexp" {>= "1.4"}
+  "csexp" {>= "1.5"}
   "uutf"
   "odoc" {with-doc}
   "ocaml" {>= "4.12"}

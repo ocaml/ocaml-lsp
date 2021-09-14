@@ -35,7 +35,7 @@ possible and does not make any assumptions about IO.
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
   pp ;; needed by stdune
-  (csexp (>= 1.4)) ;; needed by stdune
+  (csexp (>= 1.5)) ;; needed by stdune
   uutf
   (odoc :with-doc)
   (ocaml (>= 4.12))))
@@ -51,7 +51,7 @@ possible and does not make any assumptions about IO.
   dune-build-info
   dot-merlin-reader
   (pp (>= 1.1.2))
-  (csexp (>= 1.4))
+  (csexp (>= 1.5))
   (result (>= 1.5))
   (ocamlformat-rpc-lib (and (>= 0.18.0) (< 0.19.0)))
   (odoc :with-doc)
