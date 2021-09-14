@@ -1,3 +1,7 @@
+# 1.8.2 (09/14/2021)
+
+- Disable experimental dune support. It was accidentally left enabled.
+
 # 1.8.1 (09/12/2021)
 
 - Update to latest merlin.
