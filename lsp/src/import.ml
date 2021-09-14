@@ -9,7 +9,7 @@ module Result = struct
   end
 end
 
-(* TODO remove these last remnants of stdnue once there is something public
+(* TODO remove these last remnants of stdune once there is something public
    available *)
 module Dyn = Stdune.Dyn
 module Code_error = Stdune.Code_error
@@ -17,9 +17,25 @@ module Code_error = Stdune.Code_error
 let sprintf = Stdune.sprintf
 
 module String = struct
-  include Stdune.String
+  include StringLabels
 
   let print () s = Printf.sprintf "%S" s
+
+  let index = index_opt
+
+  let rec check_prefix s ~prefix len i =
+    i = len || (s.[i] = prefix.[i] && check_prefix s ~prefix len (i + 1))
+
+  let lsplit2 s ~on =
+    match index s on with
+    | None -> None
+    | Some i ->
+      Some (sub s ~pos:0 ~len:i, sub s ~pos:(i + 1) ~len:(length s - i - 1))
+
+  let is_prefix s ~prefix =
+    let len = length s in
+    let prefix_len = length prefix in
+    len >= prefix_len && check_prefix s ~prefix prefix_len 0
 
   let next_occurrence ~pattern text from =
     let plen = String.length pattern in
@@ -98,7 +114,7 @@ module Json = struct
     | Bool b -> `Bool b
     | String s -> `String s
     | Bytes s -> `String (Bytes.to_string s)
-    | Char c -> `String (String.of_list [ c ])
+    | Char c -> `String (String.make 1 c)
     | Float f -> `Float f
     | Option None -> `String "<none>"
     | Option (Some s) -> of_dyn s
