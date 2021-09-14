@@ -1,6 +1,6 @@
 open Fiber.O
 open Lsp
-open! Import
+open Import
 open Fiber_unix
 open Lsp.Types
 open Lsp_fiber
