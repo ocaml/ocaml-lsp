@@ -128,16 +128,12 @@ let with_pipeline_exn doc f =
 let version doc = Text_document.version doc.tdoc
 
 let make_config uri =
-  let path = Uri.to_path uri in
-  let mconfig = Mconfig.initial in
-  let path = Merlin_utils.Misc.canonicalize_filename path in
+  let path = Uri.to_path uri |> Merlin_utils.Misc.canonicalize_filename in
   let filename = Filename.basename path in
   let directory = Filename.dirname path in
   let mconfig =
-    { mconfig with
-      ocaml = { mconfig.ocaml with real_paths = false }
-    ; query = { mconfig.query with filename; directory }
-    }
+    let init_config = Mconfig.initial in
+    { init_config with query = { init_config.query with filename; directory } }
   in
   Mconfig.get_external_config path mconfig
 
