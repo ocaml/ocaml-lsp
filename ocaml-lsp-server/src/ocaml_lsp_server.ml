@@ -1,4 +1,5 @@
 open Import
+module Version = Version
 
 let client_capabilities (state : State.t) =
   (State.initialize_params state).capabilities

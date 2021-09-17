@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (package ocaml-lsp-server)
+ (public_name ocamllsp)
+ (libraries cmdliner dune-build-info ocaml_lsp_server))
