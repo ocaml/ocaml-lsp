@@ -159,10 +159,7 @@ let extract_related_errors uri raw_message =
 let set_diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let uri = Document.uri doc in
-  let create_diagnostic ?code ?relatedInformation ?severity range message =
-    Diagnostic.create ?code ?relatedInformation ?severity ~range ~message
-      ~source:"ocamllsp" ()
-  in
+  let create_diagnostic = Diagnostic.create ~source:"ocamllsp" in
   let async send =
     let open Fiber.O in
     let+ () =
@@ -186,7 +183,7 @@ let set_diagnostics rpc doc =
       let message =
         sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason
       in
-      create_diagnostic Range.first_line message
+      create_diagnostic ~range:Range.first_line ~message ()
     in
     Diagnostics.set state.diagnostics (`Merlin (uri, [ no_reason_merlin ]));
     async (fun () -> Diagnostics.send state.diagnostics)
@@ -231,8 +228,8 @@ let set_diagnostics rpc doc =
                                  DiagnosticRelatedInformation.create ~location
                                    ~message)) )
                     in
-                    create_diagnostic ?relatedInformation range message
-                      ~severity)
+                    create_diagnostic ?relatedInformation ~range ~message
+                      ~severity ())
               in
               let holes_as_err_diags =
                 Query_commands.dispatch pipeline Holes
@@ -245,8 +242,8 @@ let set_diagnostics rpc doc =
                        in
                        (* we set specific diagnostic code = "hole" to be able to
                           filter through diagnostics easily *)
-                       create_diagnostic ~code:(`String "hole") range message
-                         ~severity)
+                       create_diagnostic ~code:(`String "hole") ~range ~message
+                         ~severity ())
               in
               List.append holes_as_err_diags merlin_diagnostics
               |> List.sort ~compare:(fun d1 d2 ->
