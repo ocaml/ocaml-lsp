@@ -105,7 +105,7 @@ let await task =
   let* () = Server.on_cancel (fun () -> Scheduler.cancel_task task) in
   let+ res = Scheduler.await task in
   match res with
-  | Error `Canceled ->
+  | Error `Cancelled ->
     let e =
       Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" ()
     in

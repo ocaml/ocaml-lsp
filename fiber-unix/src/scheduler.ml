@@ -32,7 +32,7 @@ and event =
 and job =
   | Pending :
       (unit -> 'a)
-      * ('a, [ `Exn of Exn_with_backtrace.t | `Canceled ]) result Fiber.Ivar.t
+      * ('a, [ `Exn of Exn_with_backtrace.t | `Cancelled ]) result Fiber.Ivar.t
       -> job
 
 and thread =
@@ -117,7 +117,7 @@ let incr_events_pending ~by t =
 
 type 'a task =
   { ivar :
-      ('a, [ `Exn of Exn_with_backtrace.t | `Canceled ]) result Fiber.Ivar.t
+      ('a, [ `Exn of Exn_with_backtrace.t | `Cancelled ]) result Fiber.Ivar.t
   ; task : Worker.task
   }
 
@@ -128,7 +128,7 @@ let await_no_cancel task =
   let+ res = Fiber.Ivar.read task.ivar in
   match res with
   | Ok x -> Ok x
-  | Error `Canceled -> assert false
+  | Error `Cancelled -> assert false
   | Error (`Exn exn) -> Error exn
 
 let cancel_task task =
@@ -138,7 +138,7 @@ let cancel_task task =
   | Some _ -> Fiber.return ()
   | None ->
     Worker.cancel_if_not_consumed task.task;
-    Fiber.Ivar.fill task.ivar (Error `Canceled)
+    Fiber.Ivar.fill task.ivar (Error `Cancelled)
 
 let async (t : thread) f =
   incr_events_pending t.scheduler ~by:1;

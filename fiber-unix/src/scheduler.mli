@@ -16,7 +16,7 @@ type 'a task
 val create_thread : unit -> thread Fiber.t
 
 val await :
-  'a task -> ('a, [ `Exn of Exn_with_backtrace.t | `Canceled ]) result Fiber.t
+  'a task -> ('a, [ `Exn of Exn_with_backtrace.t | `Cancelled ]) result Fiber.t
 
 val await_no_cancel : 'a task -> ('a, Exn_with_backtrace.t) result Fiber.t
 
