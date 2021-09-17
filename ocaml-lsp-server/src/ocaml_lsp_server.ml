@@ -247,8 +247,9 @@ let set_diagnostics rpc doc =
               in
               (* Can we use [List.merge] instead? *)
               List.rev_append holes_as_err_diags merlin_diagnostics
-              |> List.sort ~compare:(fun d1 d2 ->
-                     Range.compare d1.Diagnostic.range d2.Diagnostic.range))
+              |> List.sort
+                   ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
+                     Range.compare d1.range d2.range))
         in
         Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
         Diagnostics.send state.diagnostics)
