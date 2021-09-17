@@ -6,7 +6,7 @@ let () =
 
   let cmd =
     let doc = "Start OCaml LSP server (only stdio transport is supported)" in
-    let version = Version.get () in
+    let version = Ocaml_lsp_server.Version.get () in
     ( Term.(const run $ pure ())
     , Term.info "ocamllsp" ~version ~doc ~exits:Term.default_exits )
   in
