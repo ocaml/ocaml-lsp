@@ -199,7 +199,7 @@ let set_diagnostics rpc doc =
           Document.with_pipeline_exn doc (fun pipeline ->
               let errors = Query_commands.dispatch pipeline command in
               let merlin_diagnostics =
-                List.map errors ~f:(fun (error : Loc.error) ->
+                List.rev_map errors ~f:(fun (error : Loc.error) ->
                     let loc = Loc.loc_of_report error in
                     let range = Range.of_loc loc in
                     let severity =
@@ -233,7 +233,7 @@ let set_diagnostics rpc doc =
               in
               let holes_as_err_diags =
                 Query_commands.dispatch pipeline Holes
-                |> List.map ~f:(fun (loc, typ) ->
+                |> List.rev_map ~f:(fun (loc, typ) ->
                        let range = Range.of_loc loc in
                        let severity = DiagnosticSeverity.Error in
                        let message =
@@ -245,7 +245,8 @@ let set_diagnostics rpc doc =
                        create_diagnostic ~code:(`String "hole") ~range ~message
                          ~severity ())
               in
-              List.append holes_as_err_diags merlin_diagnostics
+              (* Can we use [List.merge] instead? *)
+              List.rev_append holes_as_err_diags merlin_diagnostics
               |> List.sort ~compare:(fun d1 d2 ->
                      Range.compare d1.Diagnostic.range d2.Diagnostic.range))
         in
