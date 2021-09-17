@@ -189,23 +189,11 @@ let event_next (t : t) : Fiber.fill =
     | Scheduled active_timer -> Fill (active_timer.ivar, `Resolved))
   | Error `Closed -> assert false
 
-let report t =
-  Format.eprintf "time_mutex: %s@."
-    (if Mutex.try_lock t.time_mutex then
-      "is unlocked"
-    else
-      "is locked");
-  Format.eprintf "pending events: %d@." (Atomic.get t.events_pending);
-  Format.eprintf "events: %d@." (Channel.length t.events);
-  Format.eprintf "threads: %d@." (List.length t.threads);
-  Format.eprintf "timers: %d@." (Table.length t.timers)
-
 let iter (t : t) =
   if Atomic.get t.events_pending > 0 then
     event_next t
   else
     let () = assert (Channel.is_empty t.events) in
-    report t;
     raise (Abort Never)
 
 let create_timer ~delay =
