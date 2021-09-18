@@ -23,7 +23,7 @@ let test text range ~change =
     Text_document.apply_content_change td
       (TextDocumentContentChangeEvent.create ?range ~text:change ())
   in
-  print_endline (Text_document.text td)
+  print_endline (String.escaped (Text_document.text td))
 
 let%expect_test "first line insert" =
   let range = tuple_range (0, 1) (0, 3) in
@@ -39,32 +39,22 @@ let%expect_test "replace second line" =
   let range = tuple_range (1, 0) (2, 0) in
   test "foo\n\bar\nbaz\n" range ~change:"XXXX\n";
   [%expect {|
-    foo 
-    XXXX
-    baz |}]
+    foo\nXXXX\nbaz\n |}]
 
 let%expect_test "edit in second line" =
   let range = tuple_range (1, 1) (1, 2) in
   test "foo\n\bar\nbaz\n" range ~change:"-XXX-";
   [%expect {|
-    foo
-    -XXX-r
-    baz |}]
+    foo\n\b-XXX-r\nbaz\n |}]
 
 let%expect_test "insert at the end" =
   let range = tuple_range (3, 1) (4, 0) in
   test "foo\n\bar\nbaz\n" range ~change:"XXX";
   [%expect {|
-   foo
-   ar
-   baz
-   XXX |}]
+   foo\n\bar\nbaz\nXXX |}]
 
 let%expect_test "insert at the beginning" =
   let range = tuple_range (0, 0) (0, 0) in
   test "foo\n\bar\nbaz\n" range ~change:"XXX\n";
   [%expect {|
-    XXX
-    foo
-    ar
-    baz |}]
+    XXX\nfoo\n\bar\nbaz\n |}]
