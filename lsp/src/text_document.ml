@@ -1,57 +1,61 @@
 open Types
+module String = StringLabels
 
-module Encoding = struct
-  let recode ?nln ?encoding out_encoding
-      (src : [ `Channel of in_channel | `String of string ])
-      (dst : [ `Channel of out_channel | `Buffer of Buffer.t ]) =
-    let rec loop d e =
-      match Uutf.decode d with
+exception Invalid_utf8
+
+let find_offset ~utf8 ~utf16_range:range =
+  let dec =
+    Uutf.decoder
+      ~nln:(`ASCII (Uchar.of_char '\n'))
+      ~encoding:`UTF_8 (`String utf8)
+  in
+  let utf16_codepoint_size = 4 in
+  let utf16_codepoints_buf = Bytes.create utf16_codepoint_size in
+  let enc = Uutf.encoder `UTF_16LE `Manual in
+  let rec find_char line char =
+    if char = 0 || Uutf.decoder_line dec = line then
+      Uutf.decoder_byte_count dec
+    else
+      match Uutf.decode dec with
+      | `Await -> raise Invalid_utf8
+      | `End -> Uutf.decoder_byte_count dec
+      | `Malformed _ ->
+        invalid_arg "Text_document.find_offset: utf8 string is malformed"
       | `Uchar _ as u ->
-        ignore (Uutf.encode e u);
-        loop d e
-      | `End -> ignore (Uutf.encode e `End)
-      | `Malformed _ ->
-        ignore (Uutf.encode e (`Uchar Uutf.u_rep));
-        loop d e
-      | `Await -> assert false
-    in
-    let d = Uutf.decoder ?nln ?encoding src in
-    let e = Uutf.encoder out_encoding dst in
-    loop d e
-
-  let nln = `ASCII (Uchar.of_char '\n')
-
-  let reencode_string in_enc out_enc str =
-    let buf = Buffer.create (String.length str) in
-    let () = recode ~nln ~encoding:in_enc out_enc (`String str) (`Buffer buf) in
-    Buffer.contents buf
-
-  let utf8_to_utf16 = reencode_string `UTF_8 `UTF_16LE
-
-  let utf16_to_utf8 = reencode_string `UTF_16LE `UTF_8
-
-  let utf16_line_offsets (text : string) =
-    let rec loop d acc =
-      let old_line = Uutf.decoder_line d in
-      match Uutf.decode d with
-      | `Uchar _
-      | `Malformed _ ->
-        let new_line = Uutf.decoder_line d in
-        if new_line > old_line then
-          let line_ofs = Uutf.decoder_byte_count d / 2 in
-          (* UTF16 encodes on 2 bytes *)
-          loop d (line_ofs :: acc)
-        else
-          loop d acc
-      | `End ->
-        let end_ofs = Uutf.decoder_byte_count d / 2 in
-        Array.of_list (List.rev (end_ofs :: acc))
-      | `Await -> assert false
-    in
-    let encoding = `UTF_16LE in
-    let decoder = Uutf.decoder ~nln ~encoding (`String text) in
-    loop decoder [ 0 ]
-end
+        Uutf.Manual.dst enc utf16_codepoints_buf 0 utf16_codepoint_size;
+        (match Uutf.encode enc u with
+        | `Partial ->
+          (* we always have space for one character *)
+          assert false
+        | `Ok -> ());
+        let char =
+          let bytes_read = utf16_codepoint_size - Uutf.Manual.dst_rem enc in
+          char - (bytes_read / 2)
+        in
+        find_char line char
+  in
+  let rec find_pos (pos : Position.t) =
+    if Uutf.decoder_line dec - 1 = pos.line then
+      find_char pos.line pos.character
+    else
+      match Uutf.decode dec with
+      | `Uchar _ -> find_pos pos
+      | `Malformed _
+      | `Await ->
+        raise Invalid_utf8
+      | `End -> Uutf.decoder_byte_count dec
+  in
+  let { Range.start; end_ } = range in
+  let start_offset = find_pos start in
+  let end_offset =
+    if start = end_ then
+      start_offset
+    else if start.line = end_.line then
+      find_char start.line (end_.character - start.character)
+    else
+      find_pos end_
+  in
+  (start_offset, end_offset)
 
 (* Text is received as UTF-8. However, the protocol specifies offsets should be
    computed based on UTF-16. Therefore we reencode every file into utf16 for
@@ -59,44 +63,17 @@ end
 
 type t = TextDocumentItem.t
 
-let utf16_offsetAt (text : string) ({ line; character } : Position.t) =
-  if line < 0 then
-    0
-  else
-    let lofs = Encoding.utf16_line_offsets text in
-    let al = Array.length lofs in
-    if line >= al - 1 then
-      lofs.(al - 1)
-    else
-      let this_lofs = lofs.(line) in
-      let next_line_offset = lofs.(line + 1) in
-      max (min (this_lofs + character) next_line_offset) this_lofs
-
-let byte_offsetAt t pos = 2 * utf16_offsetAt t pos
-
-let utf16_range_change (text_utf8 : string) ({ start; end_ } : Range.t)
-    change_utf16 =
-  let text = Encoding.utf8_to_utf16 text_utf8 in
-  let doc_length = String.length text in
-  let start_ofs = byte_offsetAt text start in
-  let end_ofs = byte_offsetAt text end_ in
-  let buf = Buffer.create (String.length change_utf16 + doc_length) in
-  Buffer.add_substring buf text 0 start_ofs;
-  Buffer.add_string buf change_utf16;
-  Buffer.add_substring buf text end_ofs (doc_length - end_ofs);
-  Buffer.contents buf
+let text (t : TextDocumentItem.t) = t.text
 
 let make (t : DidOpenTextDocumentParams.t) = t.textDocument
 
-let documentUri (t : t) = t.uri
+let documentUri (t : TextDocumentItem.t) = t.uri
 
-let version (t : t) = t.version
+let version (t : TextDocumentItem.t) = t.version
 
-let languageId (t : t) = t.languageId
+let languageId (t : TextDocumentItem.t) = t.languageId
 
-let text (t : t) = t.text
-
-let apply_content_change ?version (t : t)
+let apply_content_change ?version (t : TextDocumentItem.t)
     (change : TextDocumentContentChangeEvent.t) =
   (* Changes can only be applied using utf16 offsets *)
   let version =
@@ -104,11 +81,16 @@ let apply_content_change ?version (t : t)
     | None -> t.version + 1
     | Some version -> version
   in
-  let change_text = Encoding.utf8_to_utf16 change.text in
-  let utf16_text =
-    match change.range with
-    | None -> change_text
-    | Some range -> utf16_range_change t.text range change_text
-  in
-  let utf8_text = Encoding.utf16_to_utf8 utf16_text in
-  { t with version; text = utf8_text }
+  match change.range with
+  | None -> { t with version; text = change.text }
+  | Some utf16_range ->
+    let start_offset, end_offset = find_offset ~utf8:t.text ~utf16_range in
+    let text =
+      String.concat ~sep:""
+        [ String.sub t.text ~pos:0 ~len:start_offset
+        ; change.text
+        ; String.sub t.text ~pos:end_offset
+            ~len:(String.length t.text - end_offset)
+        ]
+    in
+    { t with text; version }

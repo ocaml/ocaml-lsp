@@ -169,6 +169,14 @@ let update_text ?version ({ merlin; tdoc; _ } as t) changes =
     List.fold_left changes ~init:tdoc ~f:(fun acc change ->
         Text_document.apply_content_change ?version acc change)
   with
+  | exception Text_document.Invalid_utf8 ->
+    Log.log ~section:"warning" (fun () ->
+        Log.msg "dropping update due to invalid utf8"
+          [ ( "changes"
+            , Json.yojson_of_list TextDocumentContentChangeEvent.yojson_of_t
+                changes )
+          ]);
+    t
   | tdoc ->
     let pipeline = make_pipeline merlin tdoc in
     { t with tdoc; pipeline }
