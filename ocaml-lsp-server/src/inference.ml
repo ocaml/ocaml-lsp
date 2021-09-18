@@ -41,13 +41,13 @@ let force_open_document (state : State.t) uri =
   let filename = Uri.to_path uri in
   let text = Io.String_path.read_file filename in
   let delay = Configuration.diagnostics_delay state.configuration in
-  let* timer = Scheduler.create_timer ~delay in
+  let+ timer = Scheduler.create_timer ~delay in
   let languageId = language_id_of_fname filename in
   let text_document =
     Lsp.Types.TextDocumentItem.create ~uri ~languageId ~version:0 ~text
   in
   let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
-  let+ doc = Document.make timer state.merlin params in
+  let doc = Document.make timer state.merlin params in
   Document_store.put state.store doc;
   doc
 

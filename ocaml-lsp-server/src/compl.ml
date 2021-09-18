@@ -287,7 +287,7 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
      [compl.label] *)
   let position : Position.t = resolve.position in
   let logical_position = Position.logical position in
-  let* doc =
+  let doc =
     let complete =
       let start =
         let prefix =

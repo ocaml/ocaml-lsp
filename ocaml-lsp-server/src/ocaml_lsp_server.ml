@@ -964,7 +964,7 @@ let on_notification server (notification : Client_notification.t) :
     let open Fiber.O in
     let* doc =
       let delay = Configuration.diagnostics_delay state.configuration in
-      let* timer = Scheduler.create_timer ~delay in
+      let+ timer = Scheduler.create_timer ~delay in
       Document.make timer state.merlin params
     in
     Document_store.put store doc;
@@ -981,7 +981,7 @@ let on_notification server (notification : Client_notification.t) :
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
     let prev_doc = Document_store.get store uri in
     let open Fiber.O in
-    let* doc = Document.update_text ~version prev_doc contentChanges in
+    let doc = Document.update_text ~version prev_doc contentChanges in
     Document_store.put store doc;
     let+ () = set_diagnostics server doc in
     state
@@ -1004,7 +1004,7 @@ let on_notification server (notification : Client_notification.t) :
     | Some doc ->
       (* we need [update_text] with no changes to get a new merlin pipeline;
          otherwise the diagnostics don't get updated *)
-      let* doc = Document.update_text doc [] in
+      let doc = Document.update_text doc [] in
       Document_store.put store doc;
       let+ () = set_diagnostics server doc in
       state)
