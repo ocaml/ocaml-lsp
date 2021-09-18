@@ -12,5 +12,7 @@ val version : t -> int
 
 val text : t -> string
 
+exception Invalid_utf8
+
 val apply_content_change :
   ?version:int -> t -> TextDocumentContentChangeEvent.t -> t
