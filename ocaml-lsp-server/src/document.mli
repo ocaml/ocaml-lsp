@@ -29,10 +29,7 @@ val kind : t -> Kind.t
 val syntax : t -> Syntax.t
 
 val make :
-     Scheduler.timer
-  -> Scheduler.thread
-  -> DidOpenTextDocumentParams.t
-  -> t Fiber.t
+  Scheduler.timer -> Scheduler.thread -> DidOpenTextDocumentParams.t -> t
 
 val timer : t -> Scheduler.timer
 
@@ -48,7 +45,7 @@ val with_pipeline_exn : t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 val version : t -> int
 
 val update_text :
-  ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t Fiber.t
+  ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t
 
 val dispatch :
   t -> 'a Query_protocol.t -> ('a, Exn_with_backtrace.t) result Fiber.t

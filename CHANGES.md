@@ -1,3 +1,8 @@
+# Unreleased
+
+- Fix debouncing of document updates. It was essentially complicated broken in
+  all but the most trivial cases. (#509)
+
 # 1.8.2 (09/14/2021)
 
 - Disable experimental dune support. It was accidentally left enabled.
