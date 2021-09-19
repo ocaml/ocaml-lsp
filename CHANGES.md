@@ -1,3 +1,9 @@
+# Unreleased
+
+- More accurate completion kinds.
+  New completion kinds for variants and fields. Removed inaccurate completion
+  kinds for constructors and types. (#510)
+
 # 1.8.2 (09/14/2021)
 
 - Disable experimental dune support. It was accidentally left enabled.

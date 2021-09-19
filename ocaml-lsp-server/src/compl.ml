@@ -17,15 +17,14 @@ end
 let completion_kind kind : CompletionItemKind.t option =
   match kind with
   | `Value -> Some Value
-  | `Constructor -> Some Constructor
-  | `Variant -> None
-  | `Label -> Some Property
-  | `Module
-  | `Modtype ->
-    Some Module
-  | `Type -> Some TypeParameter
+  | `Variant -> Some EnumMember
+  | `Label -> Some Field
+  | `Module -> Some Module
+  | `Modtype -> Some Interface
   | `MethodCall -> Some Method
   | `Keyword -> Some Keyword
+  | `Constructor -> Some Constructor
+  | `Type -> Some TypeParameter
 
 let prefix_of_position ~short_path source position =
   match Msource.text source with
