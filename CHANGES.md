@@ -1,7 +1,7 @@
 # Unreleased
 
 - Fix debouncing of document updates. It was essentially complicated broken in
-  all but the most trivial cases. (#509)
+  all but the most trivial cases. (#509 fixes #504)
 
 # 1.8.2 (09/14/2021)
 
