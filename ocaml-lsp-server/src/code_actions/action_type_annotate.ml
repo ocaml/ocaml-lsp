@@ -44,7 +44,7 @@ let code_action doc (params : CodeActionParams.t) =
   let open Fiber.O in
   let pos_start = Position.logical params.range.start in
   let+ res =
-    Document.with_pipeline doc (fun pipeline ->
+    Document.with_pipeline_exn doc (fun pipeline ->
         let context = check_typeable_context pipeline pos_start in
         match context with
         | `Invalid -> None
@@ -58,10 +58,9 @@ let code_action doc (params : CodeActionParams.t) =
           Some (Query_commands.dispatch pipeline command))
   in
   match res with
-  | Error e -> Exn_with_backtrace.reraise e
-  | Ok None
-  | Ok (Some [])
-  | Ok (Some ((_, `Index _, _) :: _)) ->
+  | None
+  | Some []
+  | Some ((_, `Index _, _) :: _) ->
     None
-  | Ok (Some ((location, `String value, _) :: _)) ->
+  | Some ((location, `String value, _) :: _) ->
     code_action_of_type_enclosing params.textDocument.uri doc (location, value)
