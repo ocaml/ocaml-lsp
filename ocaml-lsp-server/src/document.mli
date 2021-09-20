@@ -37,9 +37,6 @@ val uri : t -> Uri.t
 
 val source : t -> Msource.t
 
-val with_pipeline :
-  t -> (Mpipeline.t -> 'a) -> ('a, Exn_with_backtrace.t) result Fiber.t
-
 val with_pipeline_exn : t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
 val version : t -> int
