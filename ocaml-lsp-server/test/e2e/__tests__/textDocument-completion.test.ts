@@ -77,6 +77,46 @@ describe_opt("textDocument/completion", () => {
     expect(items).toMatchObject([{ label: "StringLabels" }]);
   });
 
+  it("can complete symbol passed as a named argument", async () => {
+    await openDocument(outdent`
+let g ~f = f 0 in
+g ~f:ig
+    `);
+
+    let items = await queryCompletion(Types.Position.create(1, 7));
+    expect(items).toMatchInlineSnapshot(`Array []`);
+  });
+
+  it("can complete symbol passed as a named argument - 2", async () => {
+    await openDocument(outdent`
+module M = struct let igfoo _x = () end
+let g ~f = f 0 in
+g ~f:M.ig
+    `);
+
+    let items = await queryCompletion(Types.Position.create(2, 9));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "ignore",
+          "textEdit": Object {
+            "newText": "ignore",
+            "range": Object {
+              "end": Object {
+                "character": 9,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 7,
+                "line": 2,
+              },
+            },
+          },
+        },
+      ]
+    `);
+  });
+
   it("completes identifier at top level", async () => {
     await openDocument(outdent`
       let somenum = 42
