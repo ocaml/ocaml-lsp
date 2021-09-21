@@ -84,7 +84,26 @@ g ~f:ig
     `);
 
     let items = await queryCompletion(Types.Position.create(1, 7));
-    expect(items).toMatchInlineSnapshot(`Array []`);
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "ignore",
+          "textEdit": Object {
+            "newText": "ignore",
+            "range": Object {
+              "end": Object {
+                "character": 7,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 5,
+                "line": 1,
+              },
+            },
+          },
+        },
+      ]
+    `);
   });
 
   it("can complete symbol passed as a named argument - 2", async () => {
@@ -98,9 +117,9 @@ g ~f:M.ig
     expect(items).toMatchInlineSnapshot(`
       Array [
         Object {
-          "label": "ignore",
+          "label": "igfoo",
           "textEdit": Object {
-            "newText": "ignore",
+            "newText": "igfoo",
             "range": Object {
               "end": Object {
                 "character": 9,
