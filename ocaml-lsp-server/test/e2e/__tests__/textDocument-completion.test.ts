@@ -136,6 +136,65 @@ g ~f:M.ig
     `);
   });
 
+  it("can complete symbol passed as an optional argument", async () => {
+    await openDocument(outdent`
+let g ?f = f in
+g ?f:ig
+    `);
+
+    let items = await queryCompletion(Types.Position.create(1, 7));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "ignore",
+          "textEdit": Object {
+            "newText": "ignore",
+            "range": Object {
+              "end": Object {
+                "character": 7,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 5,
+                "line": 1,
+              },
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it("can complete symbol passed as a optional argument - 2", async () => {
+    await openDocument(outdent`
+module M = struct let igfoo _x = () end
+let g ?f = f in
+g ?f:M.ig
+    `);
+
+    let items = await queryCompletion(Types.Position.create(2, 9));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "igfoo",
+          "textEdit": Object {
+            "newText": "igfoo",
+            "range": Object {
+              "end": Object {
+                "character": 9,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 7,
+                "line": 2,
+              },
+            },
+          },
+        },
+      ]
+    `);
+  });
+
   it("completes identifier at top level", async () => {
     await openDocument(outdent`
       let somenum = 42

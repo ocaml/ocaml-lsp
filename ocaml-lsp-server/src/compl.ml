@@ -31,7 +31,7 @@ let completion_kind kind : CompletionItemKind.t option =
 let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
-  | text -> (
+  | text ->
     let from =
       let (`Offset index) = Msource.get_offset source position in
       min (String.length text - 1) (index - 1)
@@ -89,13 +89,17 @@ let prefix_of_position ~short_path source position =
     in
     let len = from - pos + 1 in
     let reconstructed_prefix = String.sub text ~pos ~len in
-    (* if we reconstructed [~f:ignore], we should take only [ignore], so: *)
-    if not (String.is_prefix reconstructed_prefix ~prefix:"~") then
-      reconstructed_prefix
-    else
+    (* if we reconstructed [~f:ignore] or [?f:ignore], we should take only
+       [ignore], so: *)
+    if
+      String.is_prefix reconstructed_prefix ~prefix:"~"
+      || String.is_prefix reconstructed_prefix ~prefix:"?"
+    then
       match String.lsplit2 reconstructed_prefix ~on:':' with
       | Some (_, s) -> s
-      | None -> reconstructed_prefix)
+      | None -> reconstructed_prefix
+    else
+      reconstructed_prefix
 
 let suffix_of_position source position =
   match Msource.text source with
