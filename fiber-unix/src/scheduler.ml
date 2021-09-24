@@ -55,6 +55,8 @@ and active_timer =
 and process_watcher =
   { mutex : Mutex.t
   ; something_is_running : Condition.t
+  ; something_is_dead_unix : Condition.t
+  ; mutable table_dirty_unix : bool
   ; table : (Pid.t, process_state) Table.t
   ; process_scheduler : t
   ; mutable running_count : int
@@ -344,7 +346,7 @@ end = struct
 
   exception Finished of process * Unix.process_status
 
-  let wait_nonblocking_win32 t =
+  let wait_nonblocking t =
     try
       Process_table.iter t ~f:(fun job ->
           let pid, status = Unix.waitpid [ WNOHANG ] (Pid.to_int job.pid) in
@@ -358,18 +360,33 @@ end = struct
       true
 
   let wait_win32 t =
-    while not (wait_nonblocking_win32 t) do
+    while not (wait_nonblocking t) do
       Mutex.unlock t.mutex;
       Thread.delay 0.001;
       Mutex.lock t.mutex
     done
 
   let wait_unix t =
-    Mutex.unlock t.mutex;
-    let pid, status = Unix.wait () in
-    Mutex.lock t.mutex;
-    let pid = Pid.of_int pid in
-    Process_table.remove t ~pid status
+    while not t.table_dirty_unix do
+      Condition.wait t.something_is_dead_unix t.mutex
+    done;
+    while wait_nonblocking t do
+      ()
+    done;
+    t.table_dirty_unix <- false
+
+  let old_sigchld_behavior = ref None
+
+  let set_sigchld_handler_unix t =
+    let sig_handler _sig =
+      t.table_dirty_unix <- true;
+      Mutex.lock t.mutex;
+      Condition.signal t.something_is_dead_unix;
+      Mutex.unlock t.mutex
+    in
+    let old = Sys.signal Sys.sigchld (Sys.Signal_handle sig_handler) in
+    old_sigchld_behavior := Some old;
+    ()
 
   let wait =
     if Sys.win32 then
@@ -378,6 +395,7 @@ end = struct
       wait_unix
 
   let run t =
+    if not Sys.win32 then set_sigchld_handler_unix t;
     Mutex.lock t.mutex;
     while true do
       while Process_table.running_count t = 0 do
@@ -390,6 +408,8 @@ end = struct
     let t =
       { mutex = Mutex.create ()
       ; something_is_running = Condition.create ()
+      ; something_is_dead_unix = Condition.create ()
+      ; table_dirty_unix = true
       ; table = Table.create (module Pid) 128
       ; running_count = 0
       ; process_scheduler
