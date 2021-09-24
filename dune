@@ -9,7 +9,7 @@
  vendor
  (subdir
   fiber
-  (copy_files# %{workspace_root}/submodules/dune/src/fiber/*.{ml,mli})
+  (copy_files# %{project_root}/submodules/dune/src/fiber/*.{ml,mli})
   (library
    (libraries stdune)
    (name fiber)))
@@ -18,7 +18,7 @@
   (subdir
    dune_filesystem_stubs
    (copy_files#
-    %{workspace_root}/submodules/dune/otherlibs/stdune-unstable/dune_filesystem_stubs/*.*)
+    %{project_root}/submodules/dune/otherlibs/stdune-unstable/dune_filesystem_stubs/*.*)
    (library
     (name dune_filesystem_stubs)
     (public_name lsp.filesystem_stubs)
@@ -27,7 +27,7 @@
      (language c)
      (names readdir))))
   (copy_files#
-   %{workspace_root}/submodules/dune/otherlibs/stdune-unstable/*.*)
+   %{project_root}/submodules/dune/otherlibs/stdune-unstable/*.*)
   (library
    (name stdune)
    (libraries
