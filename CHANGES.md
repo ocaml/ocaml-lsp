@@ -1,7 +1,11 @@
 # Unreleased
 
+## Fixes
+
 - Fix debouncing of document updates. It was essentially complicated broken in
   all but the most trivial cases. (#509 fixes #504)
+
+- Fix completion when passing named and functional arguments (#512)
 
 # 1.8.2 (09/14/2021)
 
