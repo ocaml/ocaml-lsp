@@ -1,6 +1,4 @@
-# Unreleased
-
-## Fixes
+# 1.8.3 (09/26/2021)
 
 - Fix debouncing of document updates. It was essentially complicated broken in
   all but the most trivial cases. (#509 fixes #504)
