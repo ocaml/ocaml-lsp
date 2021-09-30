@@ -14,8 +14,8 @@ let
         {
           owner = "ocaml";
           repo = "opam-repository";
-          rev = "c19a4dd26fe12963136a3d265cb1340ef48acc61";
-          sha256 = "1nyj9n217s6c33pkkjck3n2a3d38npvqy1m8kd4y7vqjqlj86247";
+          rev = "f8dfc4e2b32067697b4602ddb80339665e6bf8c9";
+          sha256 = "0lrp6bm92mzg60wy2l1an959sjqv070rby0lk9xik95wb8j8ymgc";
         };
         src = (pkgs.fetchFromGitHub) fetch;
       };
@@ -164,11 +164,11 @@ in
     cppo = 
     {
       pname = "cppo";
-      version = "1.6.7";
+      version = "1.6.8";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/ocaml-community/cppo/releases/download/v1.6.7/cppo-v1.6.7.tbz";
-        sha256 = "17ajdzrnmnyfig3s6hinb56mcmhywbssxhsq32dz0v90dhz3wmfv";
+        url = "https://github.com/ocaml-community/cppo/archive/v1.6.8.tar.gz";
+        sha256 = "0lxy4xkkkwgs1cj6d9lyzsqi9f6fc9r6cir5imi7yjqrpd86s1by";
       };
       opamInputs = 
       {
@@ -176,8 +176,8 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/cppo/cppo.1.6.7";
-        hash = "sha256:1nzizaa7q2rnlg7l1rcf4q503lssvmal3vjj8gchcw23sv80j9bp";
+        package = "packages/cppo/cppo.1.6.8";
+        hash = "sha256:0pzd8irqkkkpfgw8nq9d21z9rj5m3qlzixyb7ybfy4b1fwh3n8bp";
       };
     };
     csexp = 
@@ -1001,19 +1001,19 @@ in
     re = 
     {
       pname = "re";
-      version = "1.9.0";
+      version = "1.10.3";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/ocaml/ocaml-re/releases/download/1.9.0/re-1.9.0.tbz";
-        sha256 = "1gas4ky49zgxph3870nffzkr6y41kkpqp4nj38pz1gh49zcf12aj";
+        url = "https://github.com/ocaml/ocaml-re/releases/download/1.10.3/re-1.10.3.tbz";
+        sha256 = "1fqfg609996bgxr14yyfxhvl6hm9c1j0mm2xjdjigqrzgyb4crc4";
       };
       opamInputs = {
                      inherit (selection) seq ocaml dune;
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/re/re.1.9.0";
-        hash = "sha256:0k3x6z24l4r0wbl39m85nv92lfgipvzwk066mmbm8ph4pqmc3dy9";
+        package = "packages/re/re.1.10.3";
+        hash = "sha256:1f2xgscc07g800ia8z43i1p377dj2fjdrpzsqgzvw1dnplwnklya";
       };
     };
     result = 
@@ -1162,11 +1162,11 @@ in
     uucp = 
     {
       pname = "uucp";
-      version = "13.0.0";
+      version = "14.0.0";
       src = pkgs.fetchurl 
       {
-        url = "https://erratique.ch/software/uucp/releases/uucp-13.0.0.tbz";
-        sha256 = "19kf8ypxaakacgg1dwwfzkc2zicaj88cmw11fw2z7zl24dn4gyiq";
+        url = "https://erratique.ch/software/uucp/releases/uucp-14.0.0.tbz";
+        sha256 = "1yx9nih3d9prb9zizq8fzmmqylf24a6yifhf81h33znrj5xn1mpj";
       };
       opamInputs = 
       {
@@ -1178,18 +1178,18 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/uucp/uucp.13.0.0";
-        hash = "sha256:0chi9ydylzc4ra8xhxn9ay5p1cish0mmzna6ppd8pa51pld3qjkx";
+        package = "packages/uucp/uucp.14.0.0";
+        hash = "sha256:03h0lnfnb4sad9lndnv8p5ylpwvp8gzqs9dk3v3cz9vz156fi99d";
       };
     };
     uuseg = 
     {
       pname = "uuseg";
-      version = "13.0.0";
+      version = "14.0.0";
       src = pkgs.fetchurl 
       {
-        url = "https://erratique.ch/software/uuseg/releases/uuseg-13.0.0.tbz";
-        sha256 = "1a635j8ra6p27g1ivfln3387lhwqmf6vq4r6bn7b6n1qsqyi1rls";
+        url = "https://erratique.ch/software/uuseg/releases/uuseg-14.0.0.tbz";
+        sha256 = "1g9zyzjkhqxgbb9mh3cgaawscwdazv6y8kdqvmy6yhnimmfqv25p";
       };
       opamInputs = 
       {
@@ -1200,8 +1200,8 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/uuseg/uuseg.13.0.0";
-        hash = "sha256:12s9hqb0k949gj9qj4jbham7r6lra9jmdvy6zjws9wa7dr7rjhmk";
+        package = "packages/uuseg/uuseg.14.0.0";
+        hash = "sha256:0j96m881gh80g7sfy8va4l2w7gmijv7dznk38ndl33k6pyhdikna";
       };
     };
     uutf = 
