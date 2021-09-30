@@ -27,7 +27,7 @@ let completion_kind kind : CompletionItemKind.t option =
   | `MethodCall -> Some Method
   | `Keyword -> Some Keyword
 
-(** @see https://ocaml.org/manual/lex.html reference *)
+(** @see <https://ocaml.org/manual/lex.html> reference *)
 let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
