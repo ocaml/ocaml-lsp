@@ -4,7 +4,6 @@ module Result = Stdune.Result
 module Hashtbl = Stdune.Hashtbl
 module Option = Stdune.Option
 module Int = Stdune.Int
-module Dyn = Stdune.Dyn
 module Ordering = Stdune.Ordering
 module Exn = Stdune.Exn
 module Unix_env = Stdune.Env

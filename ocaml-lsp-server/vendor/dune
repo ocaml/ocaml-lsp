@@ -2,7 +2,7 @@
  (subdir private
   (library
    (name dune_rpc_private)
-   (libraries stdune csexp))
+   (libraries stdune dyn xdg csexp))
 
   (ocamllex dbus_address)
   (copy_files# %{project_root}/submodules/dune/otherlibs/dune-rpc/private/*.{ml,mli,mll}))
@@ -10,17 +10,26 @@
  (copy_files# %{project_root}/submodules/dune/otherlibs/dune-rpc/*.{ml,mli})
  (library
   (name dune_rpc)
-  (libraries stdune csexp (re_export dune_rpc_private))))
+  (libraries stdune csexp xdg dyn (re_export dune_rpc_private))))
 
 (subdir csexp_rpc
- (copy_files# %{project_root}/submodules/dune/src/csexp_rpc/*.{ml,mli})
+ (copy_files# %{project_root}/submodules/dune/src/csexp_rpc/*.{ml,mli,c})
  (library
   (name csexp_rpc)
+  (foreign_stubs
+   (language c)
+   (names pthread_chdir_stubs))
   (synopsis "Threaded client & server that uses csexp for communication")
-  (libraries stdune csexp fiber)))
+  (libraries stdune dyn csexp fiber)))
+
+ (subdir
+  xdg
+  (copy_files# %{project_root}/submodules/dune/otherlibs/xdg/*.{ml,mli})
+  (library
+   (name xdg)))
 
 (subdir ocamlc_loc
  (copy_files %{project_root}/submodules/dune/src/ocamlc_loc/*.{ml,mli})
  (library
   (name ocamlc_loc)
-  (libraries re stdune)))
+  (libraries re dyn stdune)))

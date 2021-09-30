@@ -1,6 +1,7 @@
 (library
  (name lsp_fiber)
  (libraries
+  dyn
   fiber
   fiber_unix
   jsonrpc

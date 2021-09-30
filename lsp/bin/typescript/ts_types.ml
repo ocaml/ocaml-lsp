@@ -14,7 +14,7 @@ module Literal = struct
     | Float f -> string_of_float f
 
   let to_dyn =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     function
     | String s -> string s
     | Int i -> int i
@@ -27,7 +27,7 @@ module Enum = struct
     | Alias of string
 
   let dyn_of_case =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     function
     | Literal l -> constr "Literal" [ Literal.to_dyn l ]
     | Alias l -> constr "Alias" [ string l ]
@@ -35,7 +35,7 @@ module Enum = struct
   type t = (string * case) list
 
   let to_dyn t =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     list (fun (name, case) -> pair string dyn_of_case (name, case)) t
 end
 
@@ -77,11 +77,11 @@ module type S = sig
 
   and t = decl Named.t
 
-  val to_dyn : t -> Stdune.Dyn.t
+  val to_dyn : t -> Dyn.t
 
-  val dyn_of_typ : typ -> Stdune.Dyn.t
+  val dyn_of_typ : typ -> Dyn.t
 
-  val dyn_of_field : field -> Stdune.Dyn.t
+  val dyn_of_field : field -> Dyn.t
 
   class map :
     object
@@ -151,7 +151,7 @@ struct
   and t = decl Named.t
 
   let rec dyn_of_typ =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     function
     | Literal l -> constr "Literal" [ Literal.to_dyn l ]
     | Ident l -> constr "Ident" [ Ident.to_dyn l ]
@@ -162,7 +162,7 @@ struct
     | Record fs -> constr "Record" (List.map fs ~f:dyn_of_field)
 
   and field_def_of_dyn =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     function
     | Single { optional; typ } ->
       record [ ("optional", bool optional); ("typ", dyn_of_typ typ) ]
@@ -172,7 +172,7 @@ struct
   and dyn_of_field f = Named.to_dyn field_def_of_dyn f
 
   let dyn_of_interface { extends; fields; params } =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     record
       [ ("extends", (list Ident.to_dyn) extends)
       ; ("fields", (list dyn_of_field) fields)
@@ -180,7 +180,7 @@ struct
       ]
 
   let dyn_of_decl =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     function
     | Interface i -> constr "Interface" [ dyn_of_interface i ]
     | Type t -> constr "Type" [ dyn_of_typ t ]
@@ -342,7 +342,7 @@ module Prim = struct
     | Resolved of Ident.t
 
   let to_dyn =
-    let open Stdune.Dyn.Encoder in
+    let open Dyn.Encoder in
     function
     | Null -> constr "Null" []
     | String -> constr "String" []

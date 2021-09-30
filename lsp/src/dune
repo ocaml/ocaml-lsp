@@ -8,6 +8,7 @@
   ppx_yojson_conv_lib
   result
   stdune
+  dyn
   threads.posix
   uutf
   yojson)

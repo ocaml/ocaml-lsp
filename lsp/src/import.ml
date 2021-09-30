@@ -11,7 +11,6 @@ end
 
 (* TODO remove these last remnants of stdune once there is something public
    available *)
-module Dyn = Stdune.Dyn
 module Code_error = Stdune.Code_error
 
 let sprintf = Stdune.sprintf

@@ -5,6 +5,7 @@
  (inline_tests)
  (libraries
   base
+  dyn
   fiber
   fiber_test
   fiber_unix

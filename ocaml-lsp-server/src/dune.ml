@@ -95,24 +95,17 @@ module Where =
       end
     end)
     (struct
-      let getenv = Sys.getenv_opt
-
-      let is_win32 () = Sys.win32
-
-      let read_file f = Stdune.Io.String_path.read_file f
-
-      let readlink s =
-        match Unix.readlink s with
-        | s -> Some s
-        | exception Unix.Unix_error (Unix.EINVAL, _, _) -> None
+      let read_file f =
+        Result.try_with (fun () -> Stdune.Io.String_path.read_file f)
 
       let analyze_path s =
         match (Unix.stat s).st_kind with
-        | Unix.S_SOCK -> `Unix_socket
-        | S_REG -> `Normal_file
+        | Unix.S_SOCK -> Ok `Unix_socket
+        | S_REG -> Ok `Normal_file
         | _
         | (exception Unix.Unix_error (Unix.ENOENT, _, _)) ->
-          `Other
+          Ok `Other
+        | exception exn -> Error exn
     end)
 
 type run =
@@ -236,7 +229,7 @@ let lsp_of_dune ~include_promotions dune =
 
 let poll_where ~poll_thread ~build_dir ~delay =
   let* timer = Scheduler.create_timer ~delay in
-  let poll () = Where.get ~build_dir in
+  let poll () = Where.get ~env:Sys.getenv_opt ~build_dir in
   let rec loop_sleep () =
     let* res = Scheduler.schedule timer Fiber.return in
     match res with
@@ -247,10 +240,15 @@ let poll_where ~poll_thread ~build_dir ~delay =
       let task = Scheduler.async_exn poll_thread poll in
       Scheduler.await_no_cancel task
     in
+    let where =
+      match where with
+      | Error e -> Exn_with_backtrace.reraise e
+      | Ok (Error e) -> Stdune.Exn.reraise e
+      | Ok (Ok s) -> s
+    in
     match where with
-    | Error e -> Exn_with_backtrace.reraise e
-    | Ok None -> loop_sleep ()
-    | Ok (Some where) -> (
+    | None -> loop_sleep ()
+    | Some where -> (
       let sock =
         match where with
         | `Unix s -> Unix.ADDR_UNIX s
@@ -267,6 +265,57 @@ let poll_where ~poll_thread ~build_dir ~delay =
   in
   let+ res = loop () in
   res
+
+let progress_loop client progress =
+  match Progress.should_report_build_progress progress with
+  | false -> Fiber.return ()
+  | true -> (
+    let* res = Client.poll client Drpc.Sub.progress in
+    match res with
+    | Error v -> raise (Drpc.Version_error.E v)
+    | Ok poll ->
+      Fiber.repeat_while ~init:() ~f:(fun () ->
+          let* res = Client.Stream.next poll in
+          match res with
+          | None -> Fiber.return None
+          | Some p ->
+            let+ () = Progress.build_progress progress p in
+            Some ()))
+
+let diagnostic_loop client diagnostics ~include_promotions =
+  let* res = Client.poll client Drpc.Sub.diagnostic in
+  let send_diagnostics evs =
+    List.iter evs ~f:(fun (ev : Drpc.Diagnostic.Event.t) ->
+        let id =
+          Drpc.Diagnostic.id
+            (match ev with
+            | Add x -> x
+            | Remove x -> x)
+        in
+        match ev with
+        | Remove _ -> Diagnostics.remove diagnostics (`Dune id)
+        | Add d ->
+          let uri : Uri.t =
+            match Drpc.Diagnostic.loc d with
+            | None -> Diagnostics.workspace_root diagnostics
+            | Some loc ->
+              let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
+              Uri.of_path pos_fname
+          in
+          Diagnostics.set diagnostics
+            (`Dune (id, uri, lsp_of_dune ~include_promotions d)));
+    Diagnostics.send diagnostics
+  in
+  match res with
+  | Error v -> raise (Drpc.Version_error.E v)
+  | Ok poll ->
+    Fiber.repeat_while ~init:() ~f:(fun () ->
+        let* res = Client.Stream.next poll in
+        match res with
+        | None -> Fiber.return None
+        | Some p ->
+          let+ () = send_diagnostics p in
+          Some ())
 
 let run_rpc (t : t) =
   match !t with
@@ -292,50 +341,13 @@ let run_rpc (t : t) =
         ; (let init =
              Drpc.Initialize.create ~id:(Drpc.Id.make (Atom "ocamllsp"))
            in
-           let handler =
-             let build_progress =
-               if Progress.should_report_build_progress progress then
-                 Some (Progress.build_progress progress)
-               else
-                 None
-             in
-             let diagnostic evs =
-               List.iter evs ~f:(fun (ev : Drpc.Diagnostic.Event.t) ->
-                   let id =
-                     Drpc.Diagnostic.id
-                       (match ev with
-                       | Add x -> x
-                       | Remove x -> x)
-                   in
-                   match ev with
-                   | Remove _ -> Diagnostics.remove diagnostics (`Dune id)
-                   | Add d ->
-                     let uri : Uri.t =
-                       match Drpc.Diagnostic.loc d with
-                       | None -> Diagnostics.workspace_root diagnostics
-                       | Some loc ->
-                         let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
-                         Uri.of_path pos_fname
-                     in
-                     Diagnostics.set diagnostics
-                       (`Dune (id, uri, lsp_of_dune ~include_promotions d)));
-               Diagnostics.send diagnostics
-             in
-             Client.Handler.create ?build_progress ~diagnostic ()
-           in
-           Client.connect ~handler chan init ~f:(fun client ->
+           Client.connect chan init ~f:(fun client ->
                Diagnostics.update_dune_status diagnostics Connected;
-               let* () =
-                 let sub what =
-                   Client.notification client Drpc.Notification.subscribe what
-                 in
-                 if Progress.should_report_build_progress progress then
-                   Fiber.fork_and_join_unit
-                     (fun () -> sub Diagnostics)
-                     (fun () -> sub Build_progress)
-                 else
-                   sub Diagnostics
+               let progress () = progress_loop client progress in
+               let diagnostics () =
+                 diagnostic_loop client diagnostics ~include_promotions
                in
+               let* () = Fiber.fork_and_join_unit progress diagnostics in
                Fiber.Ivar.read finish))
         ]
     in

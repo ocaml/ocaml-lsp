@@ -11,8 +11,15 @@
   fiber
   (copy_files# %{project_root}/submodules/dune/src/fiber/*.{ml,mli})
   (library
-   (libraries stdune)
+   (libraries dyn stdune)
    (name fiber)))
+ (subdir
+  dyn
+  (copy_files# %{project_root}/submodules/dune/otherlibs/dyn/*.{ml,mli})
+  (library
+   (public_name jsonrpc.dyn)
+   (libraries pp)
+   (name dyn)))
  (subdir
   stdune-unstable
   (subdir
@@ -26,12 +33,12 @@
     (foreign_stubs
      (language c)
      (names readdir))))
-  (copy_files#
-   %{project_root}/submodules/dune/otherlibs/stdune-unstable/*.*)
+  (copy_files# %{project_root}/submodules/dune/otherlibs/stdune-unstable/*.*)
   (library
    (name stdune)
    (libraries
     unix
+    dyn
     csexp
     (re_export pp)
     dune_filesystem_stubs)

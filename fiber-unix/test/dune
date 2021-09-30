@@ -6,6 +6,7 @@
  (libraries
   threads.posix
   fiber
+  dyn
   fiber_test
   fiber_unix
   stdune

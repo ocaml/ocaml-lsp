@@ -43,7 +43,7 @@ let%expect_test "start and stop server" =
   in
   let () = Fiber_test.test Dyn.Encoder.opaque (run ()) in
   [%expect {|
-    "<opaque>" |}]
+    <opaque> |}]
 
 let%expect_test "server accepts notifications" =
   let notif =
@@ -69,7 +69,7 @@ let%expect_test "server accepts notifications" =
   Fiber_test.test Dyn.Encoder.opaque (run ());
   [%expect {|
     received notification
-    "<opaque>" |}]
+    <opaque> |}]
 
 let of_ref ref =
   Fiber.Stream.Out.create (function
@@ -108,7 +108,7 @@ let%expect_test "serving requests" =
   [%expect
     {|
     { "id": 1, "jsonrpc": "2.0", "result": "response" }
-    "<opaque>" |}]
+    <opaque> |}]
 
 (* The current client/server implement has no concurrent handling of requests.
    We can show this when we try to send a request when handling a response. *)
@@ -267,6 +267,6 @@ let%expect_test "test from jsonrpc_test.ml" =
     { "method": "raise", "jsonrpc": "2.0" }
     Error:
     [ { exn = "(Failure \"special failure\")"; backtrace = "" } ]
-    "<opaque>"
+    <opaque>
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]

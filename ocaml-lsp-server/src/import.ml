@@ -5,7 +5,6 @@ include struct
   module Array = Array
   module Code_error = Code_error
   module Comparable = Comparable
-  module Dyn = Dyn
   module Exn_with_backtrace = Exn_with_backtrace
   module Fdecl = Fdecl
   module Fpath = Path

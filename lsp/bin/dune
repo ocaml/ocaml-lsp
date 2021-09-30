@@ -13,11 +13,11 @@
 (executable
  (name gen)
  (modules gen)
- (libraries lsp_gen stdune))
+ (libraries lsp_gen dyn stdune))
 
 (library
  (name lsp_gen)
  (instrumentation
   (backend bisect_ppx))
  (modules :standard \ gen)
- (libraries stdune pp))
+ (libraries stdune dyn pp))
