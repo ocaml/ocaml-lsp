@@ -202,6 +202,19 @@ let%expect_test "multiple timers" =
     timer 0.2
     timer 0.3 |}]
 
+let%expect_test "sleep test" =
+  let open Fiber.O in
+  let run () =
+    Fiber.parallel_iter [ 0.3; 0.2; 0.1 ] ~f:(fun delay ->
+        let+ () = S.sleep delay in
+        printf "sleep %.1f\n" delay)
+  in
+  test run;
+  [%expect {|
+    sleep 0.1
+    sleep 0.2
+    sleep 0.3 |}]
+
 let%expect_test "run process" =
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
   let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in

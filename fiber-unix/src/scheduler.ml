@@ -21,6 +21,7 @@ type t =
   ; mutable time : Thread.t
   ; (* TODO Replace with Removable_queue *)
     timers : (Timer_id.t, active_timer ref) Table.t
+  ; mutable sleepers : (unit Fiber.Ivar.t * float) list
   ; process_watcher : process_watcher Lazy.t
   }
 
@@ -71,19 +72,34 @@ let me = Fiber.Var.create ()
 let rec time_loop t =
   let to_run = ref [] in
   with_mutex t.time_mutex ~f:(fun () ->
-      if not (is_empty t.timers) then
+      let sleepers_pending = not (List.is_empty t.sleepers) in
+      let timers_pending = not (is_empty t.timers) in
+      if sleepers_pending || timers_pending then (
         let now = Unix.gettimeofday () in
-        Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
-            let active_timer = !active_timer in
-            let scheduled_at =
-              active_timer.scheduled +. active_timer.parent.delay
-            in
-            let need_to_run = scheduled_at < now in
-            if need_to_run then
-              to_run :=
-                (Fiber.Fill (active_timer.ivar, `Resolved), scheduled_at)
-                :: !to_run;
-            not need_to_run));
+        if sleepers_pending then (
+          let sleepers, awakers =
+            List.rev_partition_map t.sleepers ~f:(fun (ivar, scheduled_at) ->
+                if scheduled_at < now then
+                  Right (Fiber.Fill (ivar, ()), scheduled_at)
+                else
+                  Left (ivar, scheduled_at))
+          in
+          t.sleepers <- sleepers;
+          to_run := awakers
+        );
+        if timers_pending then
+          Table.filteri_inplace t.timers ~f:(fun ~key:_ ~data:active_timer ->
+              let active_timer = !active_timer in
+              let scheduled_at =
+                active_timer.scheduled +. active_timer.parent.delay
+              in
+              let need_to_run = scheduled_at < now in
+              if need_to_run then
+                to_run :=
+                  (Fiber.Fill (active_timer.ivar, `Resolved), scheduled_at)
+                  :: !to_run;
+              not need_to_run)
+      ));
   let to_run =
     List.sort !to_run ~compare:(fun (_, sched_at_0) (_, sched_at_1) ->
         Float.compare sched_at_0 sched_at_1)
@@ -199,6 +215,15 @@ let iter (t : t) =
 let create_timer ~delay =
   let+ t = Fiber.Var.get_exn me in
   { timer_scheduler = t; delay; timer_id = Timer_id.gen () }
+
+let sleep delay =
+  let scheduled = Unix.gettimeofday () +. delay in
+  let* t = Fiber.Var.get_exn me in
+  incr_events_pending t ~by:1;
+  let ivar = Fiber.Ivar.create () in
+  with_mutex t.time_mutex ~f:(fun () ->
+      t.sleepers <- (ivar, scheduled) :: t.sleepers);
+  Fiber.Ivar.read ivar
 
 let set_delay t ~delay = t.delay <- delay
 
@@ -387,6 +412,7 @@ let create () =
     ; timer_resolution = 0.1
     ; threads = []
     ; timers = Table.create (module Timer_id) 10
+    ; sleepers = [] (* keep sorted for better perf *)
     ; time = Thread.self ()
     ; process_watcher
     }

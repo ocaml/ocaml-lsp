@@ -43,4 +43,6 @@ val cancel_timers : unit -> unit Fiber.t
 
 val wait_for_process : Pid.t -> Unix.process_status Fiber.t
 
+val sleep : float -> unit Fiber.t
+
 val abort : unit -> unit Fiber.t
