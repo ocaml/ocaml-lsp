@@ -25,8 +25,7 @@ type t =
   }
 
 and event =
-  | Job_completed : 'a * 'a Fiber.Ivar.t -> event
-  | Scheduled of active_timer
+  | Job_completed of Fiber.fill
   | Abort
 
 and job =
@@ -81,12 +80,14 @@ let rec time_loop t =
             in
             let need_to_run = scheduled_at < now in
             if need_to_run then
-              to_run := (active_timer, scheduled_at) :: !to_run;
+              to_run :=
+                (Fiber.Fill (active_timer.ivar, `Resolved), scheduled_at)
+                :: !to_run;
             not need_to_run));
   let to_run =
     List.sort !to_run ~compare:(fun (_, sched_at_0) (_, sched_at_1) ->
         Float.compare sched_at_0 sched_at_1)
-    |> List.map ~f:(fun (active_timer, _) -> Scheduled active_timer)
+    |> List.map ~f:(fun (fill, _) -> Job_completed fill)
   in
   add_events t to_run;
   Unix.sleepf t.timer_resolution;
@@ -101,7 +102,7 @@ let create_thread () =
         | Ok x -> Ok x
         | Error exn -> Error (`Exn exn)
       in
-      add_events scheduler [ Job_completed (res, ivar) ]
+      add_events scheduler [ Job_completed (Fiber.Fill (ivar, res)) ]
     in
     Worker.create ~do_no_raise
   in
@@ -185,8 +186,7 @@ let event_next (t : t) : Fiber.fill =
     assert (prev_val >= 1);
     match event with
     | Abort -> raise (Abort Abort_requested)
-    | Job_completed (a, ivar) -> Fill (ivar, a)
-    | Scheduled active_timer -> Fill (active_timer.ivar, `Resolved))
+    | Job_completed fill -> fill)
   | Error `Closed -> assert false
 
 let iter (t : t) =
@@ -281,7 +281,8 @@ end = struct
         if t.running_count = 1 then Condition.signal t.something_is_running
       | Some (Zombie status) ->
         Table.remove t.table job.pid;
-        add_events t.process_scheduler [ Job_completed (status, job.ivar) ]
+        add_events t.process_scheduler
+          [ Job_completed (Fill (job.ivar, status)) ]
       | Some (Running _) -> assert false
 
     let remove t ~pid status =
@@ -290,7 +291,8 @@ end = struct
       | Some (Running job) ->
         t.running_count <- t.running_count - 1;
         Table.remove t.table pid;
-        add_events t.process_scheduler [ Job_completed (status, job.ivar) ]
+        add_events t.process_scheduler
+          [ Job_completed (Fill (job.ivar, status)) ]
       | Some (Zombie _) -> assert false
 
     let iter t ~f =
