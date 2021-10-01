@@ -109,8 +109,8 @@ let create_thread () =
   scheduler.threads <- t :: scheduler.threads;
   t
 
-(** [incr_pending_events t ~by] atomically adds [by] to the number of pending
-    events, ie [t.events_pending]. The default value of [by] is [1]. *)
+(* [incr_pending_events t ~by] atomically adds [by] to the number of pending
+   events, ie [t.events_pending]. *)
 let incr_events_pending ~by t =
   let prev_val = Atomic.fetch_and_add t.events_pending by in
   assert (prev_val + by >= 0)
