@@ -81,6 +81,27 @@ module Client =
     end)
     (Chan)
 
+module Registry =
+  Drpc.Registry.Poll
+    (Fiber)
+    (struct
+      let scandir s =
+        Fiber.return
+          (match Sys.readdir s with
+          | s -> Ok (Array.to_list s)
+          | exception Sys_error _ -> Ok []
+          | exception exn -> Error exn)
+
+      let stat s =
+        Fiber.return
+          (match Unix.stat s with
+          | exception exn -> Error exn
+          | s -> Ok (`Mtime s.st_mtime))
+
+      let read_file s =
+        Fiber.return (Result.try_with (fun () -> Io.String_path.read_file s))
+    end)
+
 module Where =
   Drpc.Where.Make
     (struct
