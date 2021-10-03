@@ -35,9 +35,9 @@ export const toURI = (s) => {
 };
 
 export const start = (opts?: cp.SpawnOptions) => {
-  opts = opts || {
-    env: { ...process.env },
-  };
+  let env = { ...process.env };
+  env.OCAMLLSP_TEST = '1';
+  opts = opts || { env: env, };
   let childProcess = cp.spawn(serverPath, [], opts);
 
   let connection = rpc.createMessageConnection(

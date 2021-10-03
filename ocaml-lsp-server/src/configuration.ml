@@ -2,7 +2,12 @@ open! Import
 
 type t = { diagnostics_delay : float }
 
-let default = { diagnostics_delay = 0.25 }
+let default =
+  { diagnostics_delay =
+      (match Sys.getenv_opt "OCAMLLSP_DEBUG" with
+      | None -> 0.25
+      | Some _ -> 0.0)
+  }
 
 let diagnostics_delay t = t.diagnostics_delay
 
