@@ -15,12 +15,12 @@ let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
       [ CodeActionKind.Other Action_destruct.action_kind
-      ; CodeActionKind.Other Action_inferred_intf.action_kind
-      ; CodeActionKind.Other Action_type_annotate.action_kind
-      ; CodeActionKind.Other Action_construct.action_kind
-      ; CodeActionKind.Other Action_refactor_open.unqualify.action_kind
-      ; CodeActionKind.Other Action_refactor_open.qualify.action_kind
-      ; CodeActionKind.QuickFix
+      ; Other Action_inferred_intf.action_kind
+      ; Other Action_type_annotate.action_kind
+      ; Other Action_construct.action_kind
+      ; Other Action_refactor_open.unqualify.action_kind
+      ; Other Action_refactor_open.qualify.action_kind
+      ; QuickFix
       ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
