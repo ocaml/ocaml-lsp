@@ -11,6 +11,7 @@ include struct
   module Int = Int
   module List = List
   module Map = Map
+  module Monoid = Monoid
   module Option = Option
   module Ordering = Ordering
   module Pid = Pid
@@ -18,6 +19,7 @@ include struct
   module Result = Result
   module String = String
   module Table = Table
+  module Tuple = Tuple
   module Unix_env = Env
   module Io = Io
 
@@ -128,6 +130,7 @@ include struct
   module WorkDoneProgressReport = WorkDoneProgressReport
   module WorkspaceEdit = WorkspaceEdit
   module WorkspaceFolder = WorkspaceFolder
+  module WorkspaceFoldersChangeEvent = WorkspaceFoldersChangeEvent
   module WorkspaceSymbolParams = WorkspaceSymbolParams
   module WorkspaceFoldersServerCapabilities = WorkspaceFoldersServerCapabilities
 end

@@ -1,5 +1,6 @@
 open Import
 module Version = Version
+open Fiber.O
 
 let client_capabilities (state : State.t) =
   (State.initialize_params state).capabilities
@@ -9,8 +10,6 @@ let make_error = Jsonrpc.Response.Error.make
 let not_supported () =
   Jsonrpc.Response.Error.raise
     (make_error ~code:InternalError ~message:"Request not supported yet!" ())
-
-let enable_dune_rpc = false
 
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
@@ -87,7 +86,6 @@ let initialize_info : InitializeResult.t =
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
 let task_if_running (state : State.t) ~f =
-  let open Fiber.O in
   let* running = Fiber.Pool.running state.detached in
   match running with
   | false -> Fiber.return ()
@@ -255,9 +253,32 @@ let set_diagnostics rpc doc =
         Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
         Diagnostics.send state.diagnostics)
 
-let on_initialize rpc (ip : InitializeParams.t) =
-  let state : State.t = Server.state rpc in
-  let state = State.initialize state ip in
+let log_message server ~type_ ~message =
+  let state = Server.state server in
+  task_if_running state ~f:(fun () ->
+      let log = LogMessageParams.create ~type_ ~message in
+      Server.notification server (Server_notification.LogMessage log))
+
+let on_initialize server (ip : InitializeParams.t) =
+  let state : State.t = Server.state server in
+  let workspaces = Workspaces.create ip in
+  let+ dune =
+    let progress =
+      Progress.create ip.capabilities
+        ~report_progress:(fun progress ->
+          Server.notification server
+            (Server_notification.WorkDoneProgress progress))
+        ~create_task:(fun task ->
+          Server.request server (Server_request.WorkDoneProgressCreate task))
+    in
+    let* dune =
+      Dune.create workspaces ip.capabilities state.diagnostics progress
+        ~log:(log_message server)
+    in
+    let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
+    dune
+  in
+  let state = State.initialize state ip workspaces dune in
   let state =
     match ip.trace with
     | None -> state
@@ -266,7 +287,6 @@ let on_initialize rpc (ip : InitializeParams.t) =
   (initialize_info, state)
 
 let code_action (state : State.t) (params : CodeActionParams.t) =
-  let open Fiber.O in
   let store = state.store in
   let uri = params.textDocument.uri in
   let* doc = Fiber.return (Document_store.get store uri) in
@@ -279,7 +299,6 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
       let+ action_opt = f () in
       Option.map action_opt ~f:(fun action_opt -> `CodeAction action_opt)
   in
-  let open Fiber.O in
   let+ code_action_results =
     Fiber.parallel_map ~f:code_action
       [ ( CodeActionKind.Other Action_destruct.action_kind
@@ -317,7 +336,6 @@ module Formatter = struct
     make_error ~code ~message ()
 
   let run rpc doc =
-    let open Fiber.O in
     let state = Server.state rpc in
     let* res = Fmt.run state.State.ocamlformat doc in
     match res with
@@ -325,7 +343,6 @@ module Formatter = struct
       let message = Fmt.message e in
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Warning in
-      let open Fiber.O in
       let+ () =
         let state : State.t = Server.state rpc in
         task_if_running state ~f:(fun () ->
@@ -429,12 +446,6 @@ let query_type doc pos =
   | (_, `Index _, _) :: _ ->
     None
   | (location, `String value, _) :: _ -> Some (location, value)
-
-let log_message server ~type_ ~message =
-  let state = Server.state server in
-  task_if_running state ~f:(fun () ->
-      let log = LogMessageParams.create ~type_ ~message in
-      Server.notification server (Server_notification.LogMessage log))
 
 let hover server (state : State.t)
     { HoverParams.textDocument = { uri }; position; _ } =
@@ -805,8 +816,8 @@ let ocaml_on_request :
   in
   match req with
   | Initialize ip ->
-    let res, state = on_initialize rpc ip in
-    Fiber.return (Reply.now res, state)
+    let+ res, state = on_initialize rpc ip in
+    (Reply.now res, state)
   | Shutdown -> now ()
   | DebugTextDocumentGet { textDocument = { uri }; position = _ } -> (
     match Document_store.get_opt store uri with
@@ -1013,6 +1024,7 @@ let on_notification server (notification : Client_notification.t) :
       State.modify_workspaces state ~f:(fun ws ->
           Workspaces.on_change ws change)
     in
+    Dune.update_workspaces (State.dune state) (State.workspaces state);
     Fiber.return state
   | WillSaveTextDocument _
   | Initialized
@@ -1067,81 +1079,25 @@ let start () =
     let symbols_thread = Lazy_fiber.create Scheduler.create_thread in
     Fdecl.set server
       (Server.make handler stream
-         { store
-         ; init = Uninitialized
-         ; merlin
-         ; ocamlformat
-         ; ocamlformat_rpc
-         ; configuration
-         ; detached
-         ; trace = `Off
-         ; diagnostics
-         ; symbols_thread
-         });
+         (State.create ~store ~merlin ~ocamlformat ~ocamlformat_rpc
+            ~configuration ~detached ~diagnostics ~symbols_thread));
     Fdecl.get server
   in
-  let dune = ref None in
-  let run_dune () =
-    let* (init_params : InitializeParams.t) = Server.initialized server in
-    let capabilities = init_params.capabilities in
-    let progress =
-      Progress.create capabilities
-        ~report_progress:(fun progress ->
-          Server.notification server
-            (Server_notification.WorkDoneProgress progress))
-        ~create_task:(fun task ->
-          Server.request server (Server_request.WorkDoneProgressCreate task))
-    in
-    let build_dir =
-      match
-        Workspaces.workspace_folders (State.workspaces (Server.state server))
-      with
-      | (ws : WorkspaceFolder.t) :: _ ->
-        Some (Filename.concat (Uri.to_path ws.uri) "_build")
-      | _ -> None
-    in
-    match build_dir with
-    | None -> Fiber.return ()
-    | Some build_dir -> (
-      let* dune =
-        let+ dune' = Dune.create ~build_dir capabilities diagnostics progress in
-        dune := Some dune';
-        dune'
-      in
-      let* state = Dune.run dune in
-      let message =
-        match state with
-        | Error Binary_not_found ->
-          Some "Dune must be installed for project functionality"
-        | Error Out_of_date ->
-          Some
-            "Dune is out of date. Install dune >= 3.0 for project functionality"
-        | Ok () -> None
-      in
-      match message with
-      | None -> Fiber.return ()
-      (* We disable the warnings because dune 3.0 isn't available yet *)
-      | Some _ when true -> Fiber.return ()
-      | Some message ->
-        let* (_ : InitializeParams.t) = Server.initialized server in
-        log_message server ~type_:Warning ~message)
-  in
   Fiber.all_concurrently_unit
-    [ (if enable_dune_rpc then
-        run_dune ()
-      else
-        Fiber.return ())
-    ; Fiber.Pool.run detached
+    [ Fiber.Pool.run detached
     ; (let* () = Server.start server in
-       (* When server exits we also stop ocamlformat rpc *)
-       Fiber.all_concurrently_unit
+       let finalize =
          [ Document_store.close store
          ; Fiber.Pool.stop detached
          ; Ocamlformat_rpc.stop ocamlformat_rpc
-         ; (match !dune with
-           | None -> Fiber.return ()
-           | Some dune -> Dune.stop dune)
-         ])
+         ]
+       in
+       let finalize =
+         match (Server.state server).init with
+         | Uninitialized -> finalize
+         | Initialized init -> Dune.stop init.dune :: finalize
+       in
+       Fiber.all_concurrently_unit finalize)
     ; (let* state =
          Ocamlformat_rpc.run ~logger:(log_message server) ocamlformat_rpc
        in

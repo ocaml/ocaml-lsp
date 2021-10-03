@@ -2,7 +2,11 @@ open Import
 
 type init =
   | Uninitialized
-  | Initialized of InitializeParams.t * Workspaces.t
+  | Initialized of
+      { params : InitializeParams.t
+      ; workspaces : Workspaces.t
+      ; dune : Dune.t
+      }
 
 type t =
   { store : Document_store.t
@@ -17,33 +21,52 @@ type t =
   ; symbols_thread : Scheduler.thread Lazy_fiber.t
   }
 
+let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
+    ~diagnostics ~symbols_thread =
+  { init = Uninitialized
+  ; store
+  ; merlin
+  ; detached
+  ; configuration
+  ; trace = `Off
+  ; ocamlformat
+  ; ocamlformat_rpc
+  ; diagnostics
+  ; symbols_thread
+  }
+
 let initialize_params (state : t) =
   match state.init with
   | Uninitialized -> assert false
-  | Initialized (init, _) -> init
+  | Initialized init -> init.params
 
 let workspaces (state : t) =
   match state.init with
   | Uninitialized -> assert false
-  | Initialized (_, ws) -> ws
+  | Initialized init -> init.workspaces
 
 let workspace_root t =
   match t.init with
   | Uninitialized -> assert false
-  | Initialized (i, _) -> (
-    match i.rootUri with
+  | Initialized init -> (
+    match init.params.rootUri with
     | None -> assert false
     | Some uri -> uri)
 
-let initialize t ip =
+let dune t =
+  match t.init with
+  | Uninitialized -> assert false
+  | Initialized init -> init.dune
+
+let initialize t params workspaces dune =
   assert (t.init = Uninitialized);
-  let ws = Workspaces.create ip in
-  { t with init = Initialized (ip, ws) }
+  { t with init = Initialized { params; workspaces; dune } }
 
 let modify_workspaces t ~f =
   let init =
     match t.init with
     | Uninitialized -> assert false
-    | Initialized (i, ws) -> Initialized (i, f ws)
+    | Initialized init ->
+      Initialized { init with workspaces = f init.workspaces }
   in
   { t with init }

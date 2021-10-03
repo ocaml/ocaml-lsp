@@ -1,20 +1,19 @@
 open! Import
 
-type run =
-  | Binary_not_found
-  | Out_of_date
-
 type t
 
 val view_promotion_capability : string * Json.t
 
-val run : t -> (unit, run) result Fiber.t
+val run : t -> unit Fiber.t
 
 val create :
-     build_dir:string
+     Workspaces.t
   -> ClientCapabilities.t
   -> Diagnostics.t
   -> Progress.t
+  -> log:(type_:MessageType.t -> message:string -> unit Fiber.t)
   -> t Fiber.t
+
+val update_workspaces : t -> Workspaces.t -> unit
 
 val stop : t -> unit Fiber.t

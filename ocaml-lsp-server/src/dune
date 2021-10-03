@@ -2,6 +2,7 @@
  (name ocaml_lsp_server)
  (libraries
   dyn
+  xdg
   dune-build-info
   fiber
   fiber_unix
