@@ -64,3 +64,6 @@ let code_action doc (params : CodeActionParams.t) =
     None
   | Some ((location, `String value, _) :: _) ->
     code_action_of_type_enclosing params.textDocument.uri doc (location, value)
+
+let t =
+  { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }

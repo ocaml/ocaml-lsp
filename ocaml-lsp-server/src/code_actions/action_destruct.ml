@@ -47,3 +47,6 @@ let code_action doc (params : CodeActionParams.t) =
         } ->
       None
     | Error exn -> Exn_with_backtrace.reraise exn)
+
+let t =
+  { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }

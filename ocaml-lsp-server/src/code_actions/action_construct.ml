@@ -50,3 +50,5 @@ let code_action doc (params : CodeActionParams.t) =
             ~command:Client.Vscode.Commands.triggerSuggest ()
         in
         Some code_action
+
+let t = { Code_action.kind = Other action_kind; run = code_action }

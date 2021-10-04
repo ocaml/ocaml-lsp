@@ -1,6 +1,6 @@
 open Import
 
 type t =
-  { action_kind : string
+  { kind : CodeActionKind.t
   ; run : Document.t -> CodeActionParams.t -> CodeAction.t option Fiber.t
   }

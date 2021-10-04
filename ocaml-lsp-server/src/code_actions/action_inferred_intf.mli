@@ -1,6 +1,5 @@
 open Import
 
-val action_kind : string
+val kind : CodeActionKind.t
 
-val code_action :
-  Document.t -> State.t -> CodeActionParams.t -> CodeAction.t option Fiber.t
+val t : State.t -> Code_action.t

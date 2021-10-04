@@ -30,8 +30,12 @@ let code_action (mode : [ `Qualify | `Unqualify ]) (action_kind : string) doc
 
 let unqualify =
   let action_kind = "remove module name from identifiers" in
-  { Code_action.action_kind; run = code_action `Unqualify action_kind }
+  { Code_action.kind = Other action_kind
+  ; run = code_action `Unqualify action_kind
+  }
 
 let qualify =
   let action_kind = "put module name in identifiers" in
-  { Code_action.action_kind; run = code_action `Qualify action_kind }
+  { Code_action.kind = Other action_kind
+  ; run = code_action `Qualify action_kind
+  }

@@ -14,14 +14,15 @@ let not_supported () =
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
-      [ CodeActionKind.Other Action_destruct.action_kind
-      ; Other Action_inferred_intf.action_kind
-      ; Other Action_type_annotate.action_kind
-      ; Other Action_construct.action_kind
-      ; Other Action_refactor_open.unqualify.action_kind
-      ; Other Action_refactor_open.qualify.action_kind
-      ; QuickFix
-      ]
+      Action_inferred_intf.kind
+      :: List.map
+           ~f:(fun (c : Code_action.t) -> c.kind)
+           [ Action_destruct.t
+           ; Action_type_annotate.t
+           ; Action_construct.t
+           ; Action_refactor_open.unqualify
+           ; Action_refactor_open.qualify
+           ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
   in
@@ -290,31 +291,26 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
   let store = state.store in
   let uri = params.textDocument.uri in
   let* doc = Fiber.return (Document_store.get store uri) in
-  let code_action (kind, f) =
+  let code_action (ca : Code_action.t) =
     match params.context.only with
-    | Some set when not (List.mem set kind ~equal:Poly.equal) ->
+    | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
       Fiber.return None
     | Some _
     | None ->
-      let+ action_opt = f () in
+      let+ action_opt = ca.run doc params in
       Option.map action_opt ~f:(fun action_opt -> `CodeAction action_opt)
   in
   let+ code_action_results =
+    (* XXX this is a really bad use of resources. we should be batching all the
+       merlin related work *)
     Fiber.parallel_map ~f:code_action
-      [ ( CodeActionKind.Other Action_destruct.action_kind
-        , fun () -> Action_destruct.code_action doc params )
-      ; ( CodeActionKind.Other Action_inferred_intf.action_kind
-        , fun () -> Action_inferred_intf.code_action doc state params )
-      ; ( CodeActionKind.Other Action_type_annotate.action_kind
-        , fun () -> Action_type_annotate.code_action doc params )
-      ; ( CodeActionKind.Other Action_construct.action_kind
-        , fun () -> Action_construct.code_action doc params )
-      ; ( CodeActionKind.Other Action_refactor_open.unqualify.action_kind
-        , fun () -> Action_refactor_open.unqualify.run doc params )
-      ; ( CodeActionKind.Other Action_refactor_open.qualify.action_kind
-        , fun () -> Action_refactor_open.qualify.run doc params )
-      ; ( CodeActionKind.QuickFix
-        , fun () -> Action_add_rec.code_action doc params )
+      [ Action_destruct.t
+      ; Action_inferred_intf.t state
+      ; Action_type_annotate.t
+      ; Action_construct.t
+      ; Action_refactor_open.unqualify
+      ; Action_refactor_open.qualify
+      ; Action_add_rec.t
       ]
   in
   let code_action_results = List.filter_opt code_action_results in
