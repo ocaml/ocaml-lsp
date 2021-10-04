@@ -17,7 +17,7 @@
   dyn
   (copy_files# %{project_root}/submodules/dune/otherlibs/dyn/*.{ml,mli})
   (library
-   (public_name jsonrpc.dyn)
+   (public_name lsp.dyn)
    (libraries pp)
    (name dyn)))
  (subdir
