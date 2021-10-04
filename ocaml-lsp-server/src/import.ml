@@ -84,6 +84,7 @@ include struct
   module DocumentSymbol = DocumentSymbol
   module DocumentUri = DocumentUri
   module ExecuteCommandOptions = ExecuteCommandOptions
+  module ExecuteCommandParams = ExecuteCommandParams
   module FoldingRange = FoldingRange
   module FoldingRangeParams = FoldingRangeParams
   module Hover = Hover

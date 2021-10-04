@@ -24,6 +24,7 @@ let initialize_info : InitializeResult.t =
            ; Action_refactor_open.qualify
            ; Action_add_rec.t
            ]
+      |> List.sort_uniq ~compare:Poly.compare
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
   in
@@ -69,6 +70,9 @@ let initialize_info : InitializeResult.t =
               ] )
         ]
     in
+    let executeCommandProvider =
+      ExecuteCommandOptions.create ~commands:Dune.commands ()
+    in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~declarationProvider:(`Bool true) ~definitionProvider:(`Bool true)
       ~typeDefinitionProvider:(`Bool true) ~completionProvider
@@ -77,7 +81,7 @@ let initialize_info : InitializeResult.t =
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true) ~foldingRangeProvider:(`Bool true)
-      ~experimental ~renameProvider ~workspace ()
+      ~experimental ~renameProvider ~workspace ~executeCommandProvider ()
   in
   let serverInfo =
     let version = Version.get () in
@@ -297,8 +301,7 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
       Fiber.return None
     | Some _
     | None ->
-      let+ action_opt = ca.run doc params in
-      Option.map action_opt ~f:(fun action_opt -> `CodeAction action_opt)
+      ca.run doc params
   in
   let+ code_action_results =
     (* XXX this is a really bad use of resources. we should be batching all the
@@ -316,9 +319,12 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
       ]
   in
   let code_action_results = List.filter_opt code_action_results in
+  let code_action_results =
+    code_action_results @ Dune.code_actions (State.dune state) doc
+  in
   match code_action_results with
   | [] -> None
-  | l -> Some l
+  | l -> Some (List.map l ~f:(fun c -> `CodeAction c))
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
@@ -884,7 +890,13 @@ let ocaml_on_request :
   | TextDocumentRename req -> later rename req
   | TextDocumentFoldingRange req -> later folding_range req
   | SignatureHelp req -> later signature_help req
-  | ExecuteCommand _ -> not_supported ()
+  | ExecuteCommand command ->
+    later
+      (fun state () ->
+        let dune = State.dune state in
+        (* all of our commands are handled by dune for now *)
+        Dune.on_command dune command)
+      ()
   | TextDocumentLinkResolve l -> now l
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None
