@@ -161,10 +161,8 @@ let set_diagnostics rpc doc =
   let uri = Document.uri doc in
   let create_diagnostic = Diagnostic.create ~source:"ocamllsp" in
   let async send =
-    let open Fiber.O in
     let+ () =
       task_if_running state ~f:(fun () ->
-          let open Fiber.O in
           let timer = Document.timer doc in
           let+ res = Scheduler.schedule timer send in
           match res with
@@ -190,7 +188,6 @@ let set_diagnostics rpc doc =
   | Reason
   | Ocaml ->
     async (fun () ->
-        let open Fiber.O in
         let* diagnostics =
           let command =
             Query_protocol.Errors
@@ -288,9 +285,11 @@ let on_initialize server (ip : InitializeParams.t) =
   (initialize_info, state)
 
 let code_action (state : State.t) (params : CodeActionParams.t) =
-  let store = state.store in
-  let uri = params.textDocument.uri in
-  let* doc = Fiber.return (Document_store.get store uri) in
+  let doc =
+    let uri = params.textDocument.uri in
+    let store = state.store in
+    Document_store.get store uri
+  in
   let code_action (ca : Code_action.t) =
     match params.context.only with
     | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
@@ -335,7 +334,8 @@ module Formatter = struct
     let state = Server.state rpc in
     let* res = Fmt.run state.State.ocamlformat doc in
     match res with
-    | Result.Error e ->
+    | Ok result -> Fiber.return (Some result)
+    | Error e ->
       let message = Fmt.message e in
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Warning in
@@ -345,7 +345,6 @@ module Formatter = struct
             Server.notification rpc (ShowMessage msg))
       in
       Jsonrpc.Response.Error.raise error
-    | Result.Ok result -> Fiber.return (Some result)
 end
 
 let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
@@ -364,8 +363,8 @@ let location_of_merlin_loc uri : _ -> (_, string) result = function
   | `File_not_found s -> Error (sprintf "File_not_found: %s" s)
   | `Invalid_context -> Ok None
   | `Not_found (ident, where) ->
-    let msg = sprintf "%s not found." ident in
     let msg =
+      let msg = sprintf "%s not found." ident in
       match where with
       | None -> msg
       | Some w -> sprintf "%s last looked in %s" msg w
@@ -400,10 +399,10 @@ let format_doc ~markdown ~doc =
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
-  let markdown_name = Document.Syntax.markdown_name syntax in
   `MarkupContent
     (if markdown then
       let value =
+        let markdown_name = Document.Syntax.markdown_name syntax in
         match doc with
         | None -> sprintf "```%s\n%s\n```" markdown_name typ
         | Some s ->
@@ -424,9 +423,10 @@ let format_contents ~syntax ~markdown ~typ ~doc =
       { MarkupContent.value; kind = MarkupKind.PlainText })
 
 let query_doc doc pos =
-  let command = Query_protocol.Document (None, pos) in
-  let open Fiber.O in
-  let+ res = Document.dispatch_exn doc command in
+  let+ res =
+    let command = Query_protocol.Document (None, pos) in
+    Document.dispatch_exn doc command
+  in
   match res with
   | `Found s
   | `Builtin s ->
@@ -435,7 +435,6 @@ let query_doc doc pos =
 
 let query_type doc pos =
   let command = Query_protocol.Type_enclosing (None, pos, None) in
-  let open Fiber.O in
   let+ res = Document.dispatch_exn doc command in
   match res with
   | []
@@ -445,11 +444,11 @@ let query_type doc pos =
 
 let hover server (state : State.t)
     { HoverParams.textDocument = { uri }; position; _ } =
-  let store = state.store in
-  let doc = Document_store.get store uri in
+  let doc =
+    let store = state.store in
+    Document_store.get store uri
+  in
   let pos = Position.logical position in
-  let client_capabilities = client_capabilities state in
-  let open Fiber.O in
   (* TODO we shouldn't acquiring the merlin thread twice per request *)
   let* query_type = query_type doc pos in
   match query_type with
@@ -480,28 +479,28 @@ let hover server (state : State.t)
     in
     let contents =
       let markdown =
+        let client_capabilities = client_capabilities state in
         markdown_support client_capabilities ~field:(fun td ->
             Option.map td.hover ~f:(fun h -> h.contentFormat))
       in
       format_contents ~syntax ~markdown ~typ ~doc
     in
     let range = Range.of_loc loc in
-    let resp = Hover.create ~contents ~range () in
-    Some resp
+    Some (Hover.create ~contents ~range ())
 
 let signature_help (state : State.t)
     { SignatureHelpParams.textDocument = { uri }; position; _ } =
-  let store = state.store in
-  let doc = Document_store.get store uri in
+  let doc =
+    let store = state.store in
+    Document_store.get store uri
+  in
   let pos = Position.logical position in
-  let client_capabilities = client_capabilities state in
   let prefix =
     (* The value of [short_path] doesn't make a difference to the final result
        because labels cannot include dots. However, a true value is slightly
        faster for getting the prefix. *)
     Compl.prefix_of_position (Document.source doc) pos ~short_path:true
   in
-  let open Fiber.O in
   (* TODO use merlin resources efficiently and do everything in 1 thread *)
   let* application_signature =
     Document.with_pipeline_exn doc (fun pipeline ->
@@ -514,34 +513,41 @@ let signature_help (state : State.t)
   | None ->
     let help = SignatureHelp.create ~signatures:[] () in
     Fiber.return help
-  | Some a ->
-    let fun_name = Option.value ~default:"_" a.function_name in
-    let prefix = sprintf "%s : " fun_name in
-    let offset = String.length prefix in
-    let parameters =
-      List.map a.parameters
-        ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
-          let label = `Offset (offset + p.param_start, offset + p.param_end) in
-          ParameterInformation.create ~label ())
-    in
-    let+ doc = query_doc doc a.function_position in
-    let documentation =
-      let open Option.O in
-      let+ doc = doc in
-      let markdown =
-        markdown_support client_capabilities ~field:(fun td ->
-            let* sh = td.signatureHelp in
-            let+ si = sh.signatureInformation in
-            si.documentationFormat)
+  | Some application_signature ->
+    let prefix =
+      let fun_name =
+        Option.value ~default:"_" application_signature.function_name
       in
-      format_doc ~markdown ~doc
+      sprintf "%s : " fun_name
     in
-    let label = prefix ^ a.signature in
+    let offset = String.length prefix in
+    let+ doc = query_doc doc application_signature.function_position in
     let info =
+      let parameters =
+        List.map application_signature.parameters
+          ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
+            let label =
+              `Offset (offset + p.param_start, offset + p.param_end)
+            in
+            ParameterInformation.create ~label ())
+      in
+      let documentation =
+        let open Option.O in
+        let+ doc = doc in
+        let markdown =
+          let client_capabilities = client_capabilities state in
+          markdown_support client_capabilities ~field:(fun td ->
+              let* sh = td.signatureHelp in
+              let+ si = sh.signatureInformation in
+              si.documentationFormat)
+        in
+        format_doc ~markdown ~doc
+      in
+      let label = prefix ^ application_signature.signature in
       SignatureInformation.create ~label ?documentation ~parameters ()
     in
     SignatureHelp.create ~signatures:[ info ] ~activeSignature:0
-      ?activeParameter:a.active_param ()
+      ?activeParameter:application_signature.active_param ()
 
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri }; _ } =
@@ -550,9 +556,10 @@ let text_document_lens (state : State.t)
   match Document.kind doc with
   | Intf -> Fiber.return []
   | Impl ->
-    let open Fiber.O in
-    let command = Query_protocol.Outline in
-    let+ outline = Document.dispatch_exn doc command in
+    let+ outline =
+      let command = Query_protocol.Outline in
+      Document.dispatch_exn doc command
+    in
     let rec symbol_info_of_outline_item item =
       let children =
         List.concat_map item.Query_protocol.children
@@ -573,10 +580,11 @@ let text_document_lens (state : State.t)
 
 let folding_range (state : State.t)
     { FoldingRangeParams.textDocument = { uri }; _ } =
-  let doc = Document_store.get state.store uri in
-  let command = Query_protocol.Outline in
-  let open Fiber.O in
-  let+ outline = Document.dispatch_exn doc command in
+  let+ outline =
+    let command = Query_protocol.Outline in
+    let doc = Document_store.get state.store uri in
+    Document.dispatch_exn doc command
+  in
   let folds : FoldingRange.t list =
     let folding_range (range : Range.t) =
       FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
@@ -606,7 +614,6 @@ let rename (state : State.t)
   let command =
     Query_protocol.Occurrences (`Ident_at (Position.logical position))
   in
-  let open Fiber.O in
   let+ locs = Document.dispatch_exn doc command in
   let version = Document.version doc in
   let source = Document.source doc in
@@ -614,10 +621,12 @@ let rename (state : State.t)
     List.map locs ~f:(fun (loc : Warnings.loc) ->
         let range = Range.of_loc loc in
         let make_edit () = TextEdit.create ~range ~newText:newName in
-        let occur_start_pos =
-          Position.of_lexical_position loc.loc_start |> Option.value_exn
-        in
-        match occur_start_pos with
+        match
+          let occur_start_pos =
+            Position.of_lexical_position loc.loc_start |> Option.value_exn
+          in
+          occur_start_pos
+        with
         | { character = 0; _ } -> make_edit ()
         | pos -> (
           let mpos = Position.logical pos in
@@ -638,11 +647,11 @@ let rename (state : State.t)
           | _ -> make_edit ()))
   in
   let workspace_edits =
-    let client_capabilities = client_capabilities state in
     let documentChanges =
       let open Option.O in
       Option.value ~default:false
-        (let* workspace = client_capabilities.workspace in
+        (let client_capabilities = client_capabilities state in
+         let* workspace = client_capabilities.workspace in
          let* edit = workspace.workspaceEdit in
          edit.documentChanges)
     in
@@ -665,15 +674,17 @@ let selection_range (state : State.t)
   let selection_range_of_shapes (cursor_position : Position.t)
       (shapes : Query_protocol.shape list) : SelectionRange.t option =
     let rec ranges_of_shape parent s =
-      let range = Range.of_loc s.Query_protocol.shape_loc in
-      let selectionRange = { SelectionRange.range; parent } in
+      let selectionRange =
+        let range = Range.of_loc s.Query_protocol.shape_loc in
+        { SelectionRange.range; parent }
+      in
       match s.Query_protocol.shape_sub with
       | [] -> [ selectionRange ]
       | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
     in
-    let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
     (* try to find the nearest range inside first, then outside *)
     let nearest_range =
+      let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
       List.min ranges ~f:(fun r1 r2 ->
           let inc (r : SelectionRange.t) =
             Position.compare_inclusion cursor_position r.range
@@ -687,12 +698,12 @@ let selection_range (state : State.t)
     nearest_range
   in
   let doc = Document_store.get state.store uri in
-  let open Fiber.O in
   let+ ranges =
     Fiber.sequential_map positions ~f:(fun x ->
-        let command = Query_protocol.Shape (Position.logical x) in
-        let open Fiber.O in
-        let+ shapes = Document.dispatch_exn doc command in
+        let+ shapes =
+          let command = Query_protocol.Shape (Position.logical x) in
+          Document.dispatch_exn doc command
+        in
         selection_range_of_shapes x shapes)
   in
   List.filter_opt ranges
@@ -703,7 +714,6 @@ let references (state : State.t)
   let command =
     Query_protocol.Occurrences (`Ident_at (Position.logical position))
   in
-  let open Fiber.O in
   let+ locs = Document.dispatch_exn doc command in
   Some
     (List.map locs ~f:(fun loc ->
@@ -715,7 +725,6 @@ let definition_query server (state : State.t) uri position merlin_request =
   let doc = Document_store.get state.store uri in
   let position = Position.logical position in
   let command = merlin_request position in
-  let open Fiber.O in
   let* result = Document.dispatch_exn doc command in
   match location_of_merlin_loc uri result with
   | Ok s -> Fiber.return s
@@ -728,7 +737,6 @@ let definition_query server (state : State.t) uri position merlin_request =
 
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
-  let open Fiber.O in
   let* symbols, errors =
     let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
@@ -746,7 +754,6 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
       | Ok r -> Left r
       | Error e -> Right e)
   in
-  let open Fiber.O in
   let+ () =
     match errors with
     | [] -> Fiber.return ()
@@ -773,7 +780,6 @@ let highlight (state : State.t)
   let command =
     Query_protocol.Occurrences (`Ident_at (Position.logical position))
   in
-  let open Fiber.O in
   let+ locs = Document.dispatch_exn doc command in
   let lsp_locs =
     List.map locs ~f:(fun loc ->
@@ -785,11 +791,14 @@ let highlight (state : State.t)
   Some lsp_locs
 
 let document_symbol (state : State.t) uri =
-  let store = state.store in
-  let doc = Document_store.get store uri in
-  let client_capabilities = client_capabilities state in
-  let open Fiber.O in
-  let+ symbols = Document_symbol.run client_capabilities doc uri in
+  let+ symbols =
+    let doc =
+      let store = state.store in
+      Document_store.get store uri
+    in
+    let client_capabilities = client_capabilities state in
+    Document_symbol.run client_capabilities doc uri
+  in
   Some symbols
 
 (** handles requests for OCaml (syntax) documents *)
@@ -805,7 +814,6 @@ let ocaml_on_request :
   let later f req =
     Fiber.return
       ( Reply.later (fun k ->
-            let open Fiber.O in
             let* resp = f state req in
             k resp)
       , state )
@@ -852,7 +860,6 @@ let ocaml_on_request :
     later
       (fun _ () ->
         let doc = Document_store.get store uri in
-        let open Fiber.O in
         let+ resp = Compl.complete doc position in
         Some resp)
       ()
@@ -863,7 +870,6 @@ let ocaml_on_request :
         let command =
           Query_protocol.Occurrences (`Ident_at (Position.logical position))
         in
-        let open Fiber.O in
         let+ locs = Document.dispatch_exn doc command in
         let loc =
           List.find_opt locs ~f:(fun loc ->
@@ -953,7 +959,6 @@ let on_request :
     | Some handler ->
       Fiber.return
         ( Reply.later (fun send ->
-              let open Fiber.O in
               let* res = handler ~params state in
               send res)
         , state ))
@@ -968,7 +973,6 @@ let on_notification server (notification : Client_notification.t) :
   let store = state.store in
   match notification with
   | TextDocumentDidOpen params ->
-    let open Fiber.O in
     let* doc =
       let delay = Configuration.diagnostics_delay state.configuration in
       let+ timer = Scheduler.create_timer ~delay in
@@ -978,7 +982,6 @@ let on_notification server (notification : Client_notification.t) :
     let+ () = set_diagnostics server doc in
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
-    let open Fiber.O in
     let+ () =
       Diagnostics.remove state.diagnostics (`Merlin uri);
       let* () = Document_store.remove_document store uri in
@@ -987,7 +990,6 @@ let on_notification server (notification : Client_notification.t) :
     state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
     let prev_doc = Document_store.get store uri in
-    let open Fiber.O in
     let doc = Document.update_text ~version prev_doc contentChanges in
     Document_store.put store doc;
     let+ () = set_diagnostics server doc in
@@ -1001,7 +1003,6 @@ let on_notification server (notification : Client_notification.t) :
     let configuration = Configuration.update state.configuration req in
     Fiber.return { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
-    let open Fiber.O in
     let state = Server.state server in
     match Document_store.get_opt state.store uri with
     | None ->
@@ -1029,7 +1030,6 @@ let on_notification server (notification : Client_notification.t) :
     Fiber.return state
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | Unknown_notification req ->
-    let open Fiber.O in
     let+ () =
       log_message server ~type_:Error
         ~message:("Unknown notication " ^ req.method_)
@@ -1042,7 +1042,6 @@ let start () =
     let on_request = { Server.Handler.on_request } in
     Server.Handler.make ~on_request ~on_notification ()
   in
-  let open Fiber.O in
   let* stream =
     let io = Lsp.Io.make stdin stdout in
     Lsp_fiber.Fiber_io.make io
