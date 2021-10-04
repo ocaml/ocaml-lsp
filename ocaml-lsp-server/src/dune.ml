@@ -350,7 +350,6 @@ end)
 type active =
   { mutable instances : Instance.t Dune_map.t
   ; mutable workspaces : Workspaces.t
-  ; finish : unit Fiber.Ivar.t
   ; registry : Registry.t
   ; config : config
   ; poll_thread : Scheduler.thread
@@ -513,7 +512,6 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
     in
     { diagnostics; progress; include_promotions; log }
   in
-  let finish = Fiber.Ivar.create () in
   let registry =
     Registry.create (Registry.Config.create (Xdg.create ~env:Sys.getenv_opt ()))
   in
@@ -524,7 +522,6 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        ; config
        ; poll_thread
        ; registry
-       ; finish
        ; workspaces
        })
 
