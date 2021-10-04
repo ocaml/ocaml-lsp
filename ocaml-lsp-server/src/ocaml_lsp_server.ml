@@ -22,6 +22,7 @@ let initialize_info : InitializeResult.t =
            ; Action_construct.t
            ; Action_refactor_open.unqualify
            ; Action_refactor_open.qualify
+           ; Action_add_rec.t
            ]
     in
     `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
