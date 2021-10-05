@@ -6,7 +6,10 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.3.4
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: true
     - uses: cachix/install-nix-action@v13
       with:
         nix_path: nixpkgs=channel:nixos-unstable
