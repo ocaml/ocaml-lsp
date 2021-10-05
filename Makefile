@@ -85,3 +85,8 @@ release: ## Release on Opam
 .PHONY: nix/opam-selection.nix
 nix/opam-selection.nix:
 	nix-shell -A resolve default.nix
+
+.PHONY: nix-tests
+nix-tests:
+	(cd $(TEST_E2E_DIR) && yarn --frozen-lockfile)
+	make test
