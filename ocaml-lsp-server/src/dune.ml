@@ -419,7 +419,7 @@ let poll active =
   let workspace_folders = Workspaces.workspace_folders workspaces in
   let* res = Poll.poll active.registry in
   match res with
-  | Error _ -> (* TODO warn *) assert false
+  | Error _ -> (* TODO warn *) Fiber.return ()
   | Ok _refresh ->
     let remaining, to_kill =
       Dune_map.partition active.instances ~f:(fun (running : Instance.t) ->
