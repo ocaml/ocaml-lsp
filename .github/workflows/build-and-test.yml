@@ -37,7 +37,7 @@ jobs:
       - name: Use latest LTS Node.js release
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
 
       - name: Install npm packages
         run: yarn --frozen-lockfile
@@ -47,14 +47,13 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          dune-cache: ${{ matrix.os != 'macos-latest' }}
 
       - name: Install opam packages
         run: opam install .
 
       # the makefile explains why we don't use test dependencies
       - name: Install test dependencies
-        run: make install-test-deps
+        run: opam exec -- make install-test-deps
 
       - name: Check formatting
         run: opam exec -- make fmt
