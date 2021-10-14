@@ -6,7 +6,7 @@
 
 # 1.8.3 (09/26/2021)
 
-- Fix debouncing of document updates. It was essentially complicated broken in
+- Fix debouncing of document updates. It was essentially completely broken in
   all but the most trivial cases. (#509 fixes #504)
 
 - Fix completion when passing named and functional arguments (#512)
