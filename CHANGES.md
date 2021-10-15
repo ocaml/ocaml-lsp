@@ -1,5 +1,10 @@
 # Unreleased
 
+## Breaking Change
+
+- ocamllsp drops support for `.merlin` files, and as a consequence no longer
+  depends on dot-merlin-reader. (#523)
+
 ## Features
 
 - New code action to automatically remove values, types, opens (#502)

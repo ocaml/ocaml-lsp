@@ -29,7 +29,11 @@ val kind : t -> Kind.t
 val syntax : t -> Syntax.t
 
 val make :
-  Scheduler.timer -> Scheduler.thread -> DidOpenTextDocumentParams.t -> t
+     Merlin_config.t
+  -> Scheduler.timer
+  -> Scheduler.thread
+  -> DidOpenTextDocumentParams.t
+  -> t
 
 val timer : t -> Scheduler.timer
 
