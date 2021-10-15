@@ -11,6 +11,7 @@ type init =
 type t =
   { store : Document_store.t
   ; merlin : Scheduler.thread
+  ; merlin_config : Merlin_config.t
   ; init : init
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
@@ -24,6 +25,7 @@ type t =
 let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
     ~diagnostics ~symbols_thread =
   { init = Uninitialized
+  ; merlin_config = Merlin_config.create ()
   ; store
   ; merlin
   ; detached

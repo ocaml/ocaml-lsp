@@ -1,4 +1,5 @@
 open! Import
+open Fiber.O
 
 module Kind = struct
   type t =
@@ -88,6 +89,7 @@ type t =
   ; pipeline : Mpipeline.t Lazy_fiber.t
   ; merlin : Scheduler.thread
   ; timer : Scheduler.timer
+  ; merlin_config : Merlin_config.t
   }
 
 let uri doc = Text_document.documentUri doc.tdoc
@@ -129,7 +131,7 @@ let with_pipeline_exn doc f =
 
 let version doc = Text_document.version doc.tdoc
 
-let make_config uri =
+let make_config db uri =
   let path = Uri.to_path uri in
   let mconfig = Mconfig.initial in
   let path = Merlin_utils.Misc.canonicalize_filename path in
@@ -141,16 +143,16 @@ let make_config uri =
     ; query = { mconfig.query with filename; directory }
     }
   in
-  Mconfig.get_external_config path mconfig
+  Merlin_config.get_external_config db mconfig path
 
-let make_pipeline thread tdoc =
+let make_pipeline merlin_config thread tdoc =
   Lazy_fiber.create (fun () ->
+      let* config =
+        let uri = Text_document.documentUri tdoc in
+        make_config merlin_config uri
+      in
       let async_make_pipeline =
         Scheduler.async_exn thread (fun () ->
-            let config =
-              let uri = Text_document.documentUri tdoc in
-              make_config uri
-            in
             Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
       in
       let open Fiber.O in
@@ -159,12 +161,13 @@ let make_pipeline thread tdoc =
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-let make timer merlin_thread (tdoc : DidOpenTextDocumentParams.t) =
+let make merlin_config timer merlin_thread (tdoc : DidOpenTextDocumentParams.t)
+    =
   let tdoc = Text_document.make tdoc in
-  let pipeline = make_pipeline merlin_thread tdoc in
-  { tdoc; pipeline; merlin = merlin_thread; timer }
+  let pipeline = make_pipeline merlin_config merlin_thread tdoc in
+  { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer }
 
-let update_text ?version ({ merlin; tdoc; _ } as t) changes =
+let update_text ?version ({ merlin_config; merlin; tdoc; _ } as t) changes =
   match
     List.fold_left changes ~init:tdoc ~f:(fun acc change ->
         Text_document.apply_content_change ?version acc change)
@@ -178,7 +181,7 @@ let update_text ?version ({ merlin; tdoc; _ } as t) changes =
           ]);
     t
   | tdoc ->
-    let pipeline = make_pipeline merlin tdoc in
+    let pipeline = make_pipeline merlin_config merlin tdoc in
     { t with tdoc; pipeline }
 
 let dispatch (doc : t) command =

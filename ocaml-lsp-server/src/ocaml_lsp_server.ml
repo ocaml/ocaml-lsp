@@ -991,7 +991,7 @@ let on_notification server (notification : Client_notification.t) :
     let* doc =
       let delay = Configuration.diagnostics_delay state.configuration in
       let+ timer = Scheduler.create_timer ~delay in
-      Document.make timer state.merlin params
+      Document.make state.merlin_config timer state.merlin params
     in
     Document_store.put store doc;
     let+ () = set_diagnostics server doc in

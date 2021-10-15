@@ -9,6 +9,7 @@
   jsonrpc
   lsp
   lsp_fiber
+  dot-merlin-reader.merlin_dot_protocol
   merlin.analysis
   merlin.kernel
   merlin.merlin_utils

@@ -11,6 +11,7 @@ type init =
 type t =
   { store : Document_store.t
   ; merlin : Scheduler.thread
+  ; merlin_config : Merlin_config.t
   ; init : init
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
