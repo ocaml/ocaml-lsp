@@ -282,23 +282,21 @@ end = struct
               | Add x -> x
               | Remove x -> x)
           in
+          let fold_promotions d ~f =
+            let promotions = Drpc.Diagnostic.promotion d in
+            List.fold_left promotions ~init:running.promotions
+              ~f:(fun acc promotion ->
+                let in_source = Drpc.Diagnostic.Promotion.in_source promotion in
+                f acc in_source promotion)
+          in
           match ev with
           | Remove d ->
             running.promotions <-
-              (let promotions = Drpc.Diagnostic.promotion d in
-               List.fold_left promotions ~init:running.promotions
-                 ~f:(fun acc promotion ->
-                   String.Map.remove acc
-                     (Drpc.Diagnostic.Promotion.in_source promotion)));
+              fold_promotions d ~f:(fun acc path _promotion ->
+                  String.Map.remove acc path);
             Diagnostics.remove diagnostics (`Dune id)
           | Add d ->
-            running.promotions <-
-              (let promotions = Drpc.Diagnostic.promotion d in
-               List.fold_left promotions ~init:running.promotions
-                 ~f:(fun acc promotion ->
-                   String.Map.set acc
-                     (Drpc.Diagnostic.Promotion.in_source promotion)
-                     promotion));
+            running.promotions <- fold_promotions d ~f:String.Map.set;
             let uri : Uri.t =
               match Drpc.Diagnostic.loc d with
               | None -> Diagnostics.workspace_root diagnostics
