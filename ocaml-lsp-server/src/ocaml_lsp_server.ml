@@ -189,7 +189,7 @@ let set_diagnostics rpc doc =
       create_diagnostic ~range:Range.first_line ~message ()
     in
     Diagnostics.set state.diagnostics (`Merlin (uri, [ no_reason_merlin ]));
-    async (fun () -> Diagnostics.send state.diagnostics)
+    async (fun () -> Diagnostics.send state.diagnostics (`One uri))
   | Reason
   | Ocaml ->
     async (fun () ->
@@ -254,7 +254,7 @@ let set_diagnostics rpc doc =
                      Range.compare d1.range d2.range))
         in
         Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
-        Diagnostics.send state.diagnostics)
+        Diagnostics.send state.diagnostics (`One uri))
 
 let log_message server ~type_ ~message =
   let state = Server.state server in
@@ -1000,7 +1000,8 @@ let on_notification server (notification : Client_notification.t) :
     let+ () =
       Diagnostics.remove state.diagnostics (`Merlin uri);
       let* () = Document_store.remove_document store uri in
-      task_if_running state ~f:(fun () -> Diagnostics.send state.diagnostics)
+      task_if_running state ~f:(fun () ->
+          Diagnostics.send state.diagnostics (`One uri))
     in
     state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->

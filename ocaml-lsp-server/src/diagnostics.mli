@@ -7,7 +7,7 @@ val create :
   -> workspace_root:Uri.t Lazy.t
   -> t
 
-val send : t -> unit Fiber.t
+val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
 
 type dune_status =
   | Inactive

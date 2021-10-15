@@ -316,7 +316,7 @@ end = struct
           match res with
           | None -> Fiber.return None
           | Some p ->
-            let+ () = send_diagnostics p in
+            let+ () = send_diagnostics p `All in
             Some ())
 
   let stop t =
