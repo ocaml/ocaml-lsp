@@ -71,18 +71,19 @@ let build_progress t (progress : Drpc.Progress.t) =
              build. *)
           start_build t
       in
+      let total = complete + remaining in
+      (* The percentage is useless as it isn't monotinically increasing as the
+         spec requires, but it's the best we can do. *)
       let percentage =
-        let fraction =
-          float_of_int complete /. float_of_int (complete + remaining)
-        in
+        let fraction = float_of_int complete /. float_of_int total in
         int_of_float (fraction *. 100.)
       in
       report_progress
         (ProgressParams.create ~token
            ~value:
              (Server_notification.Progress.Report
-                (WorkDoneProgressReport.create ~percentage ~message:"Building"
-                   ()))))
+                (let message = sprintf "Building [%d/%d]" complete total in
+                 WorkDoneProgressReport.create ~percentage ~message ()))))
 
 let should_report_build_progress = function
   | Disabled -> false
