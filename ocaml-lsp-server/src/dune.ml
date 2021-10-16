@@ -169,6 +169,7 @@ end = struct
   type running =
     { chan : Chan.t
     ; finish : unit Fiber.Ivar.t
+    ; diagnostics_id : Diagnostics.Dune.t
     ; mutable client : Client.t option
     ; mutable promotions : Drpc.Diagnostic.Promotion.t String.Map.t
     }
@@ -272,7 +273,8 @@ end = struct
               let+ () = Progress.build_progress progress p in
               Some ()))
 
-  let diagnostic_loop client running diagnostics ~include_promotions =
+  let diagnostic_loop client running dune_diagnostic_id diagnostics
+      ~include_promotions =
     let* res = Client.poll client Drpc.Sub.diagnostic in
     let send_diagnostics evs =
       List.iter evs ~f:(fun (ev : Drpc.Diagnostic.Event.t) ->
@@ -294,7 +296,7 @@ end = struct
             running.promotions <-
               fold_promotions d ~f:(fun acc path _promotion ->
                   String.Map.remove acc path);
-            Diagnostics.remove diagnostics (`Dune id)
+            Diagnostics.remove diagnostics (`Dune (dune_diagnostic_id, id))
           | Add d ->
             running.promotions <- fold_promotions d ~f:String.Map.set;
             let uri : Uri.t =
@@ -305,7 +307,8 @@ end = struct
                 Uri.of_path pos_fname
             in
             Diagnostics.set diagnostics
-              (`Dune (id, uri, lsp_of_dune ~include_promotions d)));
+              (`Dune
+                (dune_diagnostic_id, id, uri, lsp_of_dune ~include_promotions d)));
       Diagnostics.send diagnostics
     in
     match res with
@@ -361,27 +364,31 @@ end = struct
       let chan = Chan.create session in
       let finish = Fiber.Ivar.create () in
       let running =
-        { chan; finish; promotions = String.Map.empty; client = None }
+        { chan
+        ; finish
+        ; promotions = String.Map.empty
+        ; client = None
+        ; diagnostics_id = Diagnostics.Dune.gen ()
+        }
       in
       t.state <- Running running;
       let { progress; diagnostics; include_promotions; log = _ } = config in
       let* () =
         Fiber.all_concurrently_unit
           [ (let* () = Chan.run chan in
-             (* TODO ideally, we should notify the users that the diagnostics
-                are stale until they run dune again *)
              t.state <- Finished;
+             Diagnostics.disconnect diagnostics running.diagnostics_id;
+             let* () = Diagnostics.send diagnostics `All in
              Fiber.Ivar.fill finish ())
           ; (let init =
                Drpc.Initialize.create ~id:(Drpc.Id.make (Atom "ocamllsp"))
              in
              Client.connect chan init ~f:(fun client ->
                  t.state <- Running { running with client = Some client };
-                 Diagnostics.update_dune_status diagnostics Connected;
                  let progress = progress_loop client progress in
                  let diagnostics =
-                   diagnostic_loop client running diagnostics
-                     ~include_promotions
+                   diagnostic_loop client running running.diagnostics_id
+                     diagnostics ~include_promotions
                  in
                  Fiber.all_concurrently_unit
                    [ progress; diagnostics; Fiber.Ivar.read finish ]))

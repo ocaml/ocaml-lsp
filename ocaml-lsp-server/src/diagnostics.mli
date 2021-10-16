@@ -9,20 +9,22 @@ val create :
 
 val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
 
-type dune_status =
-  | Inactive
-  | Connected
-  | Disconnected
-
-val update_dune_status : t -> dune_status -> unit
-
 val workspace_root : t -> Uri.t
+
+module Dune : sig
+  type t
+
+  val gen : unit -> t
+end
 
 val set :
      t
-  -> [ `Dune of Drpc.Diagnostic.Id.t * Uri.t * Diagnostic.t
+  -> [ `Dune of Dune.t * Drpc.Diagnostic.Id.t * Uri.t * Diagnostic.t
      | `Merlin of Uri.t * Diagnostic.t list
      ]
   -> unit
 
-val remove : t -> [ `Dune of Drpc.Diagnostic.Id.t | `Merlin of Uri.t ] -> unit
+val remove :
+  t -> [ `Dune of Dune.t * Drpc.Diagnostic.Id.t | `Merlin of Uri.t ] -> unit
+
+val disconnect : t -> Dune.t -> unit
