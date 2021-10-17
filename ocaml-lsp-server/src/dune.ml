@@ -601,12 +601,9 @@ let run t : unit Fiber.t =
       match !t with
       | Closed -> Code_error.raise "dune already closed" []
       | Active active ->
-        let+ () =
-          Fiber.fork_and_join_unit
-            (fun () -> run_loop t)
-            (fun () -> Fiber.Pool.run active.pool)
-        in
-        Format.eprintf "finished dune loop@.%!")
+        Fiber.fork_and_join_unit
+          (fun () -> run_loop t)
+          (fun () -> Fiber.Pool.run active.pool))
 
 let update_workspaces t workspaces =
   match !t with
