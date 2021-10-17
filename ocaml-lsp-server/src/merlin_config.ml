@@ -128,29 +128,31 @@ module Process = struct
     }
 
   let start ~dir =
-    let prog, args =
-      let prog = "dune" in
-      (prog, [| prog; "ocaml-merlin"; "--no-print-directory" |])
-    in
-    let cwd = Sys.getcwd () in
-    let stdin_r, stdin_w = Unix.pipe () in
-    let stdout_r, stdout_w = Unix.pipe () in
-    let stderr_r, stderr_w = Unix.pipe () in
-    (* XXX unsafe *)
-    Unix.chdir dir;
-    Unix.set_close_on_exec stdin_w;
-    let pid =
-      Pid.of_int (Unix.create_process prog args stdin_r stdout_w stderr_w)
-    in
-    Unix.chdir cwd;
-    Unix.close stdin_r;
-    Unix.close stdout_w;
-    Unix.close stderr_w;
-    let stdin = Unix.out_channel_of_descr stdin_w in
-    let stdout = Unix.in_channel_of_descr stdout_r in
-    let stderr = Unix.in_channel_of_descr stderr_r in
-    let initial_cwd = Misc.canonicalize_filename dir in
-    { pid; initial_cwd; stdin; stdout; stderr }
+    match Bin.which "dune" with
+    | None ->
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make ~code:InternalError
+           ~message:"dune binary not found" ())
+    | Some prog ->
+      let prog = Fpath.to_string prog in
+      let stdin_r, stdin_w = Unix.pipe () in
+      let stdout_r, stdout_w = Unix.pipe () in
+      let stderr_r, stderr_w = Unix.pipe () in
+      Unix.set_close_on_exec stdin_w;
+      let pid =
+        let argv = [ prog; "ocaml-merlin"; "--no-print-directory" ] in
+        Pid.of_int
+          (Spawn.spawn ~cwd:(Path dir) ~prog ~argv ~stdin:stdin_r
+             ~stdout:stdout_w ~stderr:stderr_w ())
+      in
+      Unix.close stdin_r;
+      Unix.close stdout_w;
+      Unix.close stderr_w;
+      let stdin = Unix.out_channel_of_descr stdin_w in
+      let stdout = Unix.in_channel_of_descr stdout_r in
+      let stderr = Unix.in_channel_of_descr stderr_r in
+      let initial_cwd = Misc.canonicalize_filename dir in
+      { pid; initial_cwd; stdin; stdout; stderr }
 end
 
 let postprocess_config config =

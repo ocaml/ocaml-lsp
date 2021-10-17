@@ -49,6 +49,7 @@ possible and does not make any assumptions about IO.
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
   dune-build-info
+  spawn
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
   (result (>= 1.5))

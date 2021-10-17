@@ -506,7 +506,7 @@ in
       src = self.directSrc "ocaml-lsp-server";
       opamInputs = 
       {
-        inherit (selection) yojson result re ppx_yojson_conv_lib pp
+        inherit (selection) yojson spawn result re ppx_yojson_conv_lib pp
         ocamlformat-rpc-lib ocaml dune-build-info dune csexp;
       };
       opamSrc = "ocaml-lsp-server.opam";
@@ -1037,6 +1037,24 @@ in
       {
         package = "packages/sexplib0/sexplib0.v0.14.0";
         hash = "sha256:0k9vkjbiibja48c0yayal7xwyik3h3c3v4dwd3j7jbmras63ig2c";
+      };
+    };
+    spawn = 
+    {
+      pname = "spawn";
+      version = "v0.14.0";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/janestreet/spawn/releases/download/v0.14.0/spawn-v0.14.0.tbz";
+        sha256 = "153x03v5ji6wg30i45lxxd057lyqysrxndriaw8ssvr3mlylfyqs";
+      };
+      opamInputs = {
+                     inherit (selection) ocaml dune;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/spawn/spawn.v0.14.0";
+        hash = "sha256:0mllm9byw1w9kl04i8wgrz2rkzsff0q3ki4qf5cripwhfi2as9ph";
       };
     };
     stdio = 
