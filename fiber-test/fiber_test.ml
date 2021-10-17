@@ -47,7 +47,7 @@ let test ?(expect_never = false) to_dyn f =
       Format.eprintf "%a@." Exn_with_backtrace.pp_uncaught exn;
       Exn_with_backtrace.reraise exn
     in
-    Fiber.with_error_handler (fun () -> f) ~on_error
+    Fiber.with_error_handler f ~on_error
   in
   (try Scheduler.run (Scheduler.create ()) f |> to_dyn |> print_dyn with
   | Scheduler.Never -> never_raised := true);

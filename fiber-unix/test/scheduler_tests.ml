@@ -216,25 +216,26 @@ let%expect_test "sleep test" =
     sleep 0.3 |}]
 
 let%expect_test "run process" =
-  let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
-  let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
-  let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
-  Unix.close stdin_o;
-  let pid =
-    Stdune.Pid.of_int
-      (Unix.create_process "echo" [| "echo"; "foo" |] stdin_i stdout_o stderr_o)
-  in
-  Unix.close stdin_i;
-  Unix.close stdout_o;
-  Unix.close stderr_o;
-  let stdout, stderr =
-    let stdout_in = Unix.in_channel_of_descr stdout_i in
-    let stderr_in = Unix.in_channel_of_descr stderr_i in
-    let stdout = Stdune.Io.read_all stdout_in in
-    let stderr = Stdune.Io.read_all stderr_in in
-    (stdout, stderr)
-  in
   let run () =
+    let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
+    let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
+    let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
+    Unix.close stdin_o;
+    let pid =
+      Stdune.Pid.of_int
+        (Unix.create_process "echo" [| "echo"; "foo" |] stdin_i stdout_o
+           stderr_o)
+    in
+    Unix.close stdin_i;
+    Unix.close stdout_o;
+    Unix.close stderr_o;
+    let stdout, stderr =
+      let stdout_in = Unix.in_channel_of_descr stdout_i in
+      let stderr_in = Unix.in_channel_of_descr stderr_i in
+      let stdout = Stdune.Io.read_all stdout_in in
+      let stderr = Stdune.Io.read_all stderr_in in
+      (stdout, stderr)
+    in
     let+ res = S.wait_for_process pid in
     print_endline ("stdout: " ^ stdout);
     print_endline ("stderr: " ^ stderr);
