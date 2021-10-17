@@ -72,11 +72,12 @@ end = struct
 
   let create ~logger ~bin () =
     let bin = Fpath.to_string bin in
-    let argv = [| bin |] in
     let pid, stdout, stdin =
       let stdin_i, stdin_o = Unix.pipe () in
       let stdout_i, stdout_o = Unix.pipe () in
-      let pid = Unix.create_process bin argv stdin_i stdout_o Unix.stderr in
+      let pid =
+        Spawn.spawn ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ()
+      in
       Unix.close stdin_i;
       Unix.close stdout_o;
       (pid, stdout_i, stdin_o)

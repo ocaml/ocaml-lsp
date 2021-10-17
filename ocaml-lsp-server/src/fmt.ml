@@ -18,14 +18,15 @@ let create () =
   let stdin = Lazy_fiber.create Scheduler.create_thread in
   { stdout; stderr; stdin }
 
-let run_command state bin stdin_value args : command_result Fiber.t =
+let run_command state prog stdin_value args : command_result Fiber.t =
   let open Fiber.O in
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
   let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
   let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
   let pid =
-    let args = Array.of_list (bin :: args) in
-    Unix.create_process bin args stdin_i stdout_o stderr_o |> Stdune.Pid.of_int
+    let argv = prog :: args in
+    Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
+    |> Stdune.Pid.of_int
   in
   Unix.close stdin_i;
   Unix.close stdout_o;
