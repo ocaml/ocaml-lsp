@@ -56,7 +56,7 @@ let test make_client make_server =
         print_endline "Successful termination of test";
         Scheduler.cancel_timer timer)
   in
-  Scheduler.run (run ());
+  Scheduler.run run;
   print_endline "[TEST] finished"
 
 module End_to_end_client = struct
