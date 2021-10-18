@@ -131,7 +131,7 @@ let rec time_loop t =
   in
   add_events t to_run;
   Unix.sleepf t.timer_resolution;
-  time_loop t
+  if !(t.running) then time_loop t
 
 let create_thread () =
   let+ scheduler = Fiber.Var.get_exn me in
