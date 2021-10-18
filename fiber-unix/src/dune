@@ -1,3 +1,3 @@
 (library
  (name fiber_unix)
- (libraries fiber stdune threads.posix yojson))
+ (libraries fiber dyn stdune threads.posix yojson))
