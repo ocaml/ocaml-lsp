@@ -385,7 +385,7 @@ end = struct
     let sleep =
       if Sys.win32 then
         fun () ->
-      Unix.sleepf 0.001
+      Unix.sleepf 0.05
       else
         fun () ->
       let (_ : int) = Thread.wait_signal Thread.sigs in
