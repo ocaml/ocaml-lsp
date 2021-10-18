@@ -16,7 +16,7 @@ type t =
   { mutable events_pending : int Atomic.t
   ; (* ugly hacks for tests only *)
     running : bool ref
-  ; original_behavior : Sys.signal_behavior
+  ; original_behavior : Sys.signal_behavior option
   ; events : event Channel.t
   ; time_mutex : Mutex.t
   ; timer_resolution : float
@@ -417,17 +417,25 @@ end
 
 let cleanup t =
   t.running := false;
-  Sys.set_signal Sys.sigchld t.original_behavior;
   List.iter t.threads ~f:stop;
   Process_watcher.killall t.process_watcher Sys.sigkill;
-  if not Sys.win32 then Unix.kill (Unix.getpid ()) Sys.sigusr1;
+  if not Sys.win32 then (
+    Sys.set_signal Sys.sigchld (Option.value_exn t.original_behavior);
+    Unix.kill (Unix.getpid ()) Sys.sigusr1
+  );
   Process_watcher.await t.process_watcher
 
 let create () =
   let t = Fdecl.create Dyn.Encoder.opaque in
   let running = ref true in
   let process_watcher = Process_watcher.init t ~running in
-  let original_behavior = Sys.signal Sys.sigchld (Sys.Signal_handle ignore) in
+  let original_behavior =
+    if Sys.win32 then
+      (* dummy value that we don't use on windows anyway *)
+      None
+    else
+      Some (Sys.signal Sys.sigchld (Sys.Signal_handle ignore))
+  in
   Fdecl.set t
     { events_pending = Atomic.make 0
     ; running
