@@ -1,5 +1,9 @@
 # Unreleased
 
+## Fixes
+
+- Ppx processes are now executed correctly (#513)
+
 ## Breaking Change
 
 - ocamllsp drops support for `.merlin` files, and as a consequence no longer

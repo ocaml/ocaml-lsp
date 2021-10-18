@@ -1,10 +1,12 @@
 (** Simple queue that is consumed by its own thread *)
 type 'work t
 
-(** [create ~do_no_raise] creates a worker with a task handler [do_no_raise].
-    The worker will not handle an exception raised by the task handler, so
-    [do_no_raise] is expected to not raise. *)
-val create : do_no_raise:('a -> unit) -> 'a t
+(** [create ~spawn_thread ~do_no_raise] creates a worker with a task handler
+    [do_no_raise]. The worker will not handle an exception raised by the task
+    handler, so [do_no_raise] is expected to not raise. [spawn_thread] is used
+    to launch the thread doing the work *)
+val create :
+  spawn_thread:((unit -> unit) -> unit) -> do_no_raise:('a -> unit) -> 'a t
 
 type task
 
