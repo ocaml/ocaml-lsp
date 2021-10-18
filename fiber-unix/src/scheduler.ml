@@ -444,10 +444,10 @@ let create () =
   Thread.spawn (fun () -> time_loop t);
   t
 
-let run_result : 'a. 'a Fiber.t -> ('a, _) result =
+let run_result : 'a. (unit -> 'a Fiber.t) -> ('a, _) result =
  fun f ->
   let t = create () in
-  let f = Fiber.Var.set me t (fun () -> f) in
+  let f = Fiber.Var.set me t f in
   let iter () = iter t in
   let res =
     match Fiber.run f ~iter with

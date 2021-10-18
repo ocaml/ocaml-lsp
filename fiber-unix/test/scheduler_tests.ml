@@ -3,7 +3,7 @@ open Fiber.O
 module S = Fiber_unix.Scheduler
 
 let test f =
-  let f =
+  let f () =
     Fiber.with_error_handler f ~on_error:(fun exn ->
         Format.printf "%a@." Exn_with_backtrace.pp_uncaught exn;
         Exn_with_backtrace.reraise exn)
@@ -11,10 +11,9 @@ let test f =
   S.run f
 
 let%expect_test "scheduler starts and runs a fiber" =
-  S.run
-    (Fiber.of_thunk (fun () ->
-         print_endline "running";
-         Fiber.return ()));
+  S.run (fun () ->
+      print_endline "running";
+      Fiber.return ());
   [%expect {|
     running |}]
 
@@ -34,7 +33,7 @@ let%expect_test "run an async task and wait it for it to finish" =
       S.stop th;
       print_endline "stopped thread"
   in
-  S.run (Fiber.of_thunk run);
+  S.run run;
   [%expect
     {|
     running in scheduler
