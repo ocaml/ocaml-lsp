@@ -1,8 +1,8 @@
 open Import
+open Fiber.O
 
 let code_action (mode : [ `Qualify | `Unqualify ]) (action_kind : string) doc
     (params : CodeActionParams.t) =
-  let open Fiber.O in
   let+ res =
     let command =
       let pos_start = Position.logical params.range.start in

@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let capability = ("handleWrappingAstNode", `Bool true)
 
@@ -33,7 +34,6 @@ let on_request ~params state =
   in
   let doc = Document_store.get state.State.store text_document_uri in
   let pos = Position.logical cursor_position in
-  let open Fiber.O in
   let+ node =
     Document.with_pipeline_exn doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in

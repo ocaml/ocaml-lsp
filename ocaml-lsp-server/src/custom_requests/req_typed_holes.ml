@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let capability = ("handleTypedHoles", `Bool true)
 
@@ -55,7 +56,6 @@ let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
               (Uri.to_string uri))
          ()
   | Some doc ->
-    let open Fiber.O in
     let+ holes = Document.dispatch_exn doc Holes in
     Json.yojson_of_list
       (fun (loc, _type) -> loc |> Range.of_loc |> Range.yojson_of_t)

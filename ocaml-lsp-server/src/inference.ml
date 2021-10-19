@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let infer_intf_for_impl doc =
   match Document.kind doc with
@@ -37,7 +38,6 @@ let language_id_of_fname s =
     Code_error.raise "unsupported file extension" [ ("extension", String ext) ]
 
 let force_open_document (state : State.t) uri =
-  let open Fiber.O in
   let filename = Uri.to_path uri in
   let text = Io.String_path.read_file filename in
   let delay = Configuration.diagnostics_delay state.configuration in
@@ -52,7 +52,6 @@ let force_open_document (state : State.t) uri =
   doc
 
 let infer_intf ~force_open_impl (state : State.t) doc =
-  let open Fiber.O in
   match Document.kind doc with
   | Impl -> Code_error.raise "the provided document is not an interface." []
   | Intf ->

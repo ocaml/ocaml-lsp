@@ -178,7 +178,6 @@ let%expect_test "detached + timer" =
     timer finished |}]
 
 let%expect_test "multiple timers" =
-  let open Fiber.O in
   let timer delay =
     let+ timer = S.create_timer ~delay in
     (delay, timer)
@@ -202,7 +201,6 @@ let%expect_test "multiple timers" =
     timer 0.3 |}]
 
 let%expect_test "sleep test" =
-  let open Fiber.O in
   let run () =
     Fiber.parallel_iter [ 0.3; 0.2; 0.1 ] ~f:(fun delay ->
         let+ () = S.sleep delay in

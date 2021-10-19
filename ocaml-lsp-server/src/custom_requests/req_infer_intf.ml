@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let capability = ("handleInferIntf", `Bool true)
 
@@ -9,7 +10,6 @@ let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
   match params with
   | Some (`List [ json_uri ]) -> (
     let json_uri = DocumentUri.t_of_yojson json_uri in
-    let open Fiber.O in
     match Document_store.get_opt state.store json_uri with
     | None ->
       Jsonrpc.Response.Error.raise

@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let outline_kind kind : SymbolKind.t =
   match kind with
@@ -39,7 +40,6 @@ let symbols_of_outline uri outline =
 
 let run (client_capabilities : ClientCapabilities.t) doc uri =
   let command = Query_protocol.Outline in
-  let open Fiber.O in
   let+ outline = Document.dispatch_exn doc command in
   let symbols =
     let hierarchicalDocumentSymbolSupport =

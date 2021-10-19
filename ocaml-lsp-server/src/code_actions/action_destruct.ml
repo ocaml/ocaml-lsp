@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let action_kind = "destruct"
 
@@ -33,7 +34,6 @@ let code_action doc (params : CodeActionParams.t) =
       let finish = Position.logical params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
-    let open Fiber.O in
     let+ res = Document.dispatch doc command in
     match res with
     | Ok res -> Some (code_action_of_case_analysis doc uri res)

@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let action_title = "Add missing `rec` keyword"
 
@@ -60,9 +61,7 @@ let code_action_add_rec uri diagnostics doc loc =
     ~kind:CodeActionKind.QuickFix ~edit ~isPreferred:false ()
 
 let code_action doc (params : CodeActionParams.t) =
-  let open Fiber.O in
   let pos_start = Position.logical params.range.start in
-
   let m_diagnostic =
     List.find params.context.diagnostics ~f:(fun d ->
         let is_unbound () =

@@ -244,7 +244,6 @@ let%expect_test "test from jsonrpc_test.ml" =
   in
   let session = Jrpc.create ~on_notification ~on_request ~name:"test" chan () in
   let write_reqs () =
-    let open Fiber.O in
     let* () =
       Fiber.sequential_iter initial_requests ~f:(fun req ->
           Out.write reqs_out (Some req))

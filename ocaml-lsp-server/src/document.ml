@@ -111,7 +111,6 @@ let timer = function
 let source t = Msource.make (Text_document.text (tdoc t))
 
 let await task =
-  let open Fiber.O in
   let* () = Server.on_cancel (fun () -> Scheduler.cancel_task task) in
   let+ res = Scheduler.await task in
   match res with
@@ -127,14 +126,12 @@ let with_pipeline (t : t) f =
   match t with
   | Dune _ -> Code_error.raise "Document.dune" []
   | Merlin t ->
-    let open Fiber.O in
     let* pipeline = Lazy_fiber.force t.pipeline in
     Scheduler.async_exn t.merlin (fun () ->
         Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
     |> await
 
 let with_pipeline_exn doc f =
-  let open Fiber.O in
   let+ res = with_pipeline doc f in
   match res with
   | Ok s -> s
@@ -166,7 +163,6 @@ let make_pipeline merlin_config thread tdoc =
         Scheduler.async_exn thread (fun () ->
             Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
       in
-      let open Fiber.O in
       let+ res = await async_make_pipeline in
       match res with
       | Ok s -> s

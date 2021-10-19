@@ -1,4 +1,5 @@
 open! Import
+open Fiber.O
 
 type t = (Uri.t, Document.t) Table.t
 
@@ -22,7 +23,6 @@ let remove_document store uri =
   match Table.find store uri with
   | None -> Fiber.return ()
   | Some doc ->
-    let open Fiber.O in
     let+ () = Document.close doc in
     Table.remove store uri
 
@@ -30,6 +30,5 @@ let get_size store = Table.length store
 
 let close t =
   let docs = Table.fold t ~init:[] ~f:(fun doc acc -> doc :: acc) in
-  let open Fiber.O in
   let+ () = Fiber.parallel_iter docs ~f:Document.close in
   Table.clear t

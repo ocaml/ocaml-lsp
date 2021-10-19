@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 module Process : sig
   type t
@@ -34,7 +35,6 @@ end = struct
   let supported_versions = [ "v1" ]
 
   let pick_client ~pid input output io_thread =
-    let open Fiber.O in
     match
       Scheduler.async io_thread (fun () ->
           Ocamlformat_rpc_lib.pick_client ~pid input output supported_versions)
@@ -47,7 +47,6 @@ end = struct
       | Error e -> Exn_with_backtrace.reraise e)
 
   let configure ~logger { io_thread; client; _ } =
-    let open Fiber.O in
     (* We ask for 64 columns formatting as this appear to be the maximum size of
        VScode popups. TODO We should probably allow some flexibility for other
        editors that use the server. *)
@@ -82,7 +81,6 @@ end = struct
       Unix.close stdout_o;
       (pid, stdout_i, stdin_o)
     in
-    let open Fiber.O in
     let* io_thread = Scheduler.create_thread () in
     let input = Unix.in_channel_of_descr stdout in
     let output = Unix.out_channel_of_descr stdin in
@@ -117,7 +115,6 @@ end = struct
       Ok process
 
   let run { pid; input; output; io_thread; _ } =
-    let open Fiber.O in
     let+ (_ : Unix.process_status) = Scheduler.wait_for_process pid in
     close_in_noerr input;
     close_out_noerr output;
@@ -135,7 +132,6 @@ type state =
 type t = state ref
 
 let get_process t =
-  let open Fiber.O in
   match !t with
   | Running p -> Fiber.return @@ Ok p
   | Stopped -> Fiber.return @@ Error `No_process
@@ -150,7 +146,6 @@ let get_process t =
         "Expected to receive `Started` or `Stopped` after mailing `Start`" [])
 
 let format_type t ~typ =
-  let open Fiber.O in
   let* p = get_process t in
   match p with
   | Error `No_process -> Fiber.return @@ Error `No_process
@@ -173,7 +168,6 @@ let create_state () =
 let create () = ref (create_state ())
 
 let maybe_fill ivar x =
-  let open Fiber.O in
   let* v = Fiber.Ivar.peek ivar in
   match v with
   | Some _ -> Fiber.return ()
@@ -194,7 +188,6 @@ let stop t =
     Fiber.return ()
 
 let run_rpc ~logger ~bin t =
-  let open Fiber.O in
   match !t with
   | Stopped -> Code_error.raise "ocamlformat already stopped" []
   | Running _ -> Code_error.raise "ocamlformat already running" []
@@ -218,7 +211,6 @@ let run_rpc ~logger ~bin t =
         | _ -> ())))
 
 let run ~logger t =
-  let open Fiber.O in
   match Bin.which "ocamlformat-rpc" with
   | None ->
     t := Stopped;
