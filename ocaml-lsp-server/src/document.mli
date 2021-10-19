@@ -35,6 +35,8 @@ val make :
   -> DidOpenTextDocumentParams.t
   -> t
 
+val make_dune : DidOpenTextDocumentParams.t -> t
+
 val timer : t -> Scheduler.timer
 
 val uri : t -> Uri.t
