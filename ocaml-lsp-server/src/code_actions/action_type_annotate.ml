@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let action_kind = "type-annotate"
 
@@ -41,7 +42,6 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
     ~isPreferred:false ()
 
 let code_action doc (params : CodeActionParams.t) =
-  let open Fiber.O in
   let pos_start = Position.logical params.range.start in
   let+ res =
     Document.with_pipeline_exn doc (fun pipeline ->

@@ -165,7 +165,6 @@ type 'a task =
 let await task = Fiber.Ivar.read task.ivar
 
 let await_no_cancel task =
-  let open Fiber.O in
   let+ res = Fiber.Ivar.read task.ivar in
   match res with
   | Ok x -> Ok x
@@ -173,7 +172,6 @@ let await_no_cancel task =
   | Error (`Exn exn) -> Error exn
 
 let cancel_task task =
-  let open Fiber.O in
   let* status = Fiber.Ivar.peek task.ivar in
   match status with
   | Some _ -> Fiber.return ()
@@ -253,7 +251,6 @@ let set_delay t ~delay = t.delay <- delay
 
 let schedule (type a) (timer : timer) (f : unit -> a Fiber.t) :
     (a, [ `Cancelled ]) result Fiber.t =
-  let open Fiber.O in
   let active_timer =
     let scheduled = Unix.gettimeofday () in
     { scheduled; ivar = Fiber.Ivar.create (); parent = timer }

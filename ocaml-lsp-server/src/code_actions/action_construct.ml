@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let action_kind = "construct"
 
@@ -16,7 +17,6 @@ let code_action doc (params : CodeActionParams.t) =
     if not (Typed_hole.can_be_hole prefix) then
       Fiber.return None
     else
-      let open Fiber.O in
       let+ structures =
         Document.with_pipeline_exn doc (fun pipeline ->
             let typedtree =

@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 module Id = Jsonrpc.Id
 module Response = Jsonrpc.Response
 module Session = Jsonrpc_fiber.Make (Fiber_io)
@@ -29,7 +30,6 @@ module Cancel = struct
   let var = Fiber.Var.create ()
 
   let register f =
-    let open Fiber.O in
     let+ cancel = Fiber.Var.get var in
     match cancel with
     | None -> ()
@@ -202,7 +202,6 @@ struct
   let state t = Session.state (Fdecl.get t.session)
 
   let to_jsonrpc (type state) (t : state t) h_on_request h_on_notification =
-    let open Fiber.O in
     let on_request (ctx : (state, Id.t) Session.Context.t) =
       let req = Session.Context.message ctx in
       let state = Session.Context.state ctx in
@@ -268,7 +267,6 @@ struct
       t.req_id <- t.req_id + 1;
       Out_request.to_jsonrpc_request req ~id
     in
-    let open Fiber.O in
     let+ (resp : Jsonrpc.Response.t) = k jsonrpc_request in
     match resp.result |> Result.map ~f:(Out_request.response_of_json req) with
     | Ok s -> s
@@ -308,20 +306,17 @@ struct
   let initialized t = Fiber.Ivar.read t.initialized
 
   let stop t =
-    let open Fiber.O in
     let+ () = Session.stop (Fdecl.get t.session) in
     t.state <- Closed
 
   let start_loop t =
     Fiber.fork_and_join_unit
       (fun () ->
-        let open Fiber.O in
         let* () = Session.run (Fdecl.get t.session) in
         Fiber.Pool.stop t.detached)
       (fun () -> Fiber.Pool.run t.detached)
 
   let handle_cancel_req t id =
-    let open Fiber.O in
     let+ () =
       match Table.find t.pending id with
       | None -> Fiber.return ()
@@ -343,7 +338,6 @@ module Client = struct
     match n with
     | Server_notification.CancelRequest id -> handle_cancel_req t id
     | _ ->
-      let open Fiber.O in
       let+ res = handler.h_on_notification t n in
       (Jsonrpc_fiber.Notify.Continue, res)
 
@@ -353,7 +347,6 @@ module Client = struct
 
   let start (t : _ t) (p : InitializeParams.t) =
     assert (t.state = Waiting_for_init);
-    let open Fiber.O in
     let loop = start_loop t in
     let init () =
       let* resp = request t (Client_request.Initialize p) in
@@ -374,7 +367,6 @@ module Server = struct
       (Client_notification)
 
   let h_on_notification handler t n =
-    let open Fiber.O in
     match n with
     | Client_notification.Exit ->
       Log.log ~section:"server" (fun () ->
@@ -391,7 +383,6 @@ module Server = struct
         (Jsonrpc_fiber.Notify.Continue, state)
 
   let on_request handler t in_r =
-    let open Fiber.O in
     match Client_request.E in_r with
     | Client_request.E (Client_request.Initialize i) ->
       if t.state = Waiting_for_init then (

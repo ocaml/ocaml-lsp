@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 module Id = struct
   include Id
@@ -136,7 +137,6 @@ struct
       ]
 
   let run t =
-    let open Fiber.O in
     let send_response resp =
       log t (fun () ->
           Log.msg "sending response" [ ("response", Response.yojson_of_t resp) ]);
@@ -284,7 +284,6 @@ struct
     | None -> Table.add_exn t.pending id ivar
 
   let read_request_ivar req ivar =
-    let open Fiber.O in
     let+ res = Fiber.Ivar.read ivar in
     match res with
     | Ok s -> s
@@ -292,7 +291,6 @@ struct
 
   let request t (req : Message.request) =
     check_running t;
-    let open Fiber.O in
     let* () =
       let req = { req with Message.id = Some req.id } in
       Chan.send t.chan [ Message req ]

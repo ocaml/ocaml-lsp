@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 type command_result =
   { stdout : string
@@ -19,7 +20,6 @@ let create () =
   { stdout; stderr; stdin }
 
 let run_command state prog stdin_value args : command_result Fiber.t =
-  let open Fiber.O in
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
   let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
   let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
@@ -127,7 +127,6 @@ let formatter doc =
 
 let exec state bin args stdin =
   let refmt = Fpath.to_string bin in
-  let open Fiber.O in
   let+ res = run_command state refmt stdin args in
   match res.status with
   | Unix.WEXITED 0 -> Result.Ok res.stdout

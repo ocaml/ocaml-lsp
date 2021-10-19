@@ -35,7 +35,6 @@ module Csexp_rpc = Csexp_rpc.Make (struct
   let create () = Scheduler.create_thread ()
 
   let task t ~f =
-    let open Fiber.O in
     let res = Scheduler.async t f in
     match res with
     | Error `Stopped -> Fiber.return (Error `Stopped)

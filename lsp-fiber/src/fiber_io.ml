@@ -54,7 +54,6 @@ let close_write t =
     | Error exn -> Exn_with_backtrace.reraise exn)
 
 let recv t =
-  let open Fiber.O in
   match !(t.in_thread) with
   | None -> Fiber.return None
   | Some thread ->
@@ -95,7 +94,6 @@ let close (t : t) what =
     match !(t.in_thread) with
     | None -> Fiber.return ()
     | Some thread -> (
-      let open Fiber.O in
       let+ close =
         Scheduler.async_exn thread (fun () -> Io.close_in t.io)
         |> Scheduler.await_no_cancel

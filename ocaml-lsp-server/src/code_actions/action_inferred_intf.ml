@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 
 let action_kind = "inferred_intf"
 
@@ -20,7 +21,6 @@ let code_action_of_intf doc intf range =
     ~isPreferred:false ()
 
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
-  let open Fiber.O in
   match Document.kind doc with
   | Impl -> Fiber.return None
   | Intf ->
