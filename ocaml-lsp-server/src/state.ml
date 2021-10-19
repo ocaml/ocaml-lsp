@@ -16,7 +16,7 @@ type t =
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
   ; trace : TraceValue.t
-  ; ocamlformat : Fmt.t
+  ; ocamlformat : Ocamlformat.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
   ; diagnostics : Diagnostics.t
   ; symbols_thread : Scheduler.thread Lazy_fiber.t

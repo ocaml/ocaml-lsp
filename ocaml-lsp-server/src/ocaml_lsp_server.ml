@@ -327,8 +327,8 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
   | l -> Some (List.map l ~f:(fun c -> `CodeAction c))
 
 module Formatter = struct
-  let jsonrpc_error (e : Fmt.error) =
-    let message = Fmt.message e in
+  let jsonrpc_error (e : Ocamlformat.error) =
+    let message = Ocamlformat.message e in
     let code : Jsonrpc.Response.Error.Code.t =
       match e with
       | Unsupported_syntax _
@@ -341,11 +341,11 @@ module Formatter = struct
 
   let run rpc doc =
     let state = Server.state rpc in
-    let* res = Fmt.run state.State.ocamlformat doc in
+    let* res = Ocamlformat.run state.State.ocamlformat doc in
     match res with
     | Ok result -> Fiber.return (Some result)
     | Error e ->
-      let message = Fmt.message e in
+      let message = Ocamlformat.message e in
       let error = jsonrpc_error e in
       let msg = ShowMessageParams.create ~message ~type_:Warning in
       let+ () =
@@ -1086,7 +1086,7 @@ let start () =
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
   let* server =
     let+ merlin = Scheduler.create_thread () in
-    let ocamlformat = Fmt.create () in
+    let ocamlformat = Ocamlformat.create () in
     let symbols_thread = Lazy_fiber.create Scheduler.create_thread in
     Fdecl.set server
       (Server.make handler stream
