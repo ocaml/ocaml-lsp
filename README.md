@@ -4,8 +4,7 @@
 
 OCaml-LSP is a language server for OCaml that implements [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP).
 
-This project contains an implementation of a language server for OCaml and a standalone
-library implementing LSP.
+> If you use Visual Studio Code, see OCaml Platform extension [page](https://github.com/ocamllabs/vscode-ocaml-platform) for detailed instructions on setting up your editor for OCaml development with OCaml-LSP: what packages need to be installed, how to configure your project and get most out of the OCaml editor support, and how to report and debug problems.
 
 ## Installation
 
@@ -20,7 +19,7 @@ To install the language server in the currently used opam [switch](https://opam.
 $ opam install ocaml-lsp-server
 ```
 
-*Note:* you will need to install `ocaml-lsp-server` in every switch where you would like
+_Note:_ you will need to install `ocaml-lsp-server` in every switch where you would like
 to use it.
 
 ### Esy
@@ -40,7 +39,7 @@ the same packages that `ocaml-lsp-server` is using.
 ```sh
 $ git clone --recurse-submodules http://github.com/ocaml/ocaml-lsp.git
 $ cd ocaml-lsp
-$ make all
+$ make install
 ```
 
 ## Usage
@@ -82,13 +81,23 @@ Note that degrees of support for each LSP request are varying.
 
 ## Integration with other tools
 
-### Formatters: OCamlFormat & Refmt
+### Source file formatting: OCamlFormat & Refmt
 
 OCaml-LSP is dependent on external tools (OCamlFormat for OCaml and `refmt` for Reason)
 for formatting source files. You should have the necessary tool (OCamlFormat and/or Refmt)
 installed in your opam switch or esy project to have formatting support. Note, however, that
-OCaml-LSP requires presence of OCamlFormat configuration file (called `.ocamlformat`) in
+OCaml-LSP requires presence of OCamlFormat configuration file, called `.ocamlformat`, in
 the project root to be able to format source files in your project.
+
+### Formatting code on hover
+
+When you hover the cursor over OCaml code, the extension shows you the type of the symbol. To get nicely formatted types, install [ocamlformat-rpc](https://opam.ocaml.org/packages/ocamlformat-rpc/) package.
+
+## Debugging
+
+If you use Visual Studio Code, please see OCaml Platform extension [page](https://github.com/ocamllabs/vscode-ocaml-platform) for a detailed guide on how to report and debug problems.
+
+If you use another code editor and use OCaml-LSP, you should be able to set the server trace to `verbose` using your editor's LSP client and watch the trace for errors such as logged exceptions.
 
 ## Contributing to project
 
