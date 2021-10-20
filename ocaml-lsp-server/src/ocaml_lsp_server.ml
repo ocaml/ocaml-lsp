@@ -342,24 +342,49 @@ module Formatter = struct
 
   let run rpc doc =
     let state : State.t = Server.state rpc in
-    let* res =
-      let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
-      match res with
-      | Ok res -> Fiber.return @@ Ok res
-      | Error _ -> Ocamlformat.run state.ocamlformat doc
-    in
-    match res with
-    | Ok result -> Fiber.return (Some result)
-    | Error e ->
-      let message = Ocamlformat.message e in
-      let error = jsonrpc_error e in
-      let msg = ShowMessageParams.create ~message ~type_:Warning in
-      let+ () =
-        let state : State.t = Server.state rpc in
-        task_if_running state ~f:(fun () ->
-            Server.notification rpc (ShowMessage msg))
+    if Document.is_merlin doc then
+      let* res =
+        let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
+        match res with
+        | Ok res -> Fiber.return @@ Ok res
+        | Error _ -> Ocamlformat.run state.ocamlformat doc
       in
-      Jsonrpc.Response.Error.raise error
+      match res with
+      | Ok result -> Fiber.return (Some result)
+      | Error e ->
+        let message = Ocamlformat.message e in
+        let error = jsonrpc_error e in
+        let msg = ShowMessageParams.create ~message ~type_:Warning in
+        let+ () =
+          let state : State.t = Server.state rpc in
+          task_if_running state ~f:(fun () ->
+              Server.notification rpc (ShowMessage msg))
+        in
+        Jsonrpc.Response.Error.raise error
+    else
+      match Dune.for_doc (State.dune state) doc with
+      | [] ->
+        let message =
+          sprintf "No dune instance found. Please run dune in watch mode for %s"
+            (Uri.to_path (Document.uri doc))
+        in
+        Jsonrpc.Response.Error.raise
+          (make_error ~code:InvalidRequest ~message ())
+      | dune :: rest ->
+        let* () =
+          match rest with
+          | [] -> Fiber.return ()
+          | _ :: _ ->
+            let message =
+              sprintf
+                "More than one dune instance detected for %s. Selecting one at \
+                 random"
+                (Uri.to_path (Document.uri doc))
+            in
+            log_message rpc ~type_:MessageType.Warning ~message
+        in
+        let+ to_ = Dune.Instance.format_dune_file dune doc in
+        Some (Diff.edit ~from:(Document.text doc) ~to_)
 end
 
 let markdown_support (client_capabilities : ClientCapabilities.t) ~field =

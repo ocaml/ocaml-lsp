@@ -153,6 +153,8 @@ type config =
 module Instance : sig
   type t
 
+  val format_dune_file : t -> Document.t -> string Fiber.t
+
   val stop : t -> unit Fiber.t
 
   val run : t -> unit Fiber.t
@@ -394,6 +396,32 @@ end = struct
           ]
       in
       Progress.end_build_if_running progress
+
+  let format_dune_file t doc =
+    match t.state with
+    | Running { client = Some client; _ } -> (
+      let* req =
+        Client.Versioned.prepare_request client Drpc.Request.format_dune_file
+      in
+      let req =
+        match req with
+        | Error _ -> assert false
+        | Ok req -> req
+      in
+      let+ res =
+        let path = Document.uri doc |> Uri.to_path |> Drpc.Path.absolute in
+        Client.request client req (path, `Contents (Document.text doc))
+      in
+      match res with
+      | Ok res -> res
+      | Error _ ->
+        Jsonrpc.Response.Error.(
+          raise (make ~message:"dune failed to format" ~code:InternalError ())))
+    | Idle
+    | Finished
+    | Running _ ->
+      assert false
+  (* TODO wait for initialization *)
 end
 
 module Dune_map = Map.Make (struct
@@ -413,7 +441,7 @@ type active =
 
 let cwd = lazy (Sys.getcwd ())
 
-let workspace_dune_overlap =
+let uri_dune_overlap =
   (* Copy pasted from dune.
 
      All of this is really hacky and error prone. We should let the user
@@ -450,10 +478,10 @@ let workspace_dune_overlap =
         | "." :: xs -> xs
         | xs -> xs
   in
-  fun (wsf : WorkspaceFolder.t) (dune : Registry.Dune.t) ->
+  fun (uri : Uri.t) (dune : Registry.Dune.t) ->
     let dune_root = Registry.Dune.root dune in
     let path =
-      let path = Uri.to_path wsf.uri in
+      let path = Uri.to_path uri in
       if Filename.is_relative path then
         Filename.concat (Lazy.force cwd) path
       else
@@ -479,8 +507,8 @@ let poll active =
     let remaining, to_kill =
       String.Map.partition active.instances ~f:(fun (running : Instance.t) ->
           let source = Instance.source running in
-          List.exists workspace_folders ~f:(fun wsf ->
-              workspace_dune_overlap wsf source))
+          List.exists workspace_folders ~f:(fun (wsf : WorkspaceFolder.t) ->
+              uri_dune_overlap wsf.uri source))
     in
     let to_kill = String.Map.values to_kill in
     active.instances <- remaining;
@@ -497,7 +525,7 @@ let poll active =
                (not (is_running dune))
                && List.exists workspace_folders
                     ~f:(fun (wsf : WorkspaceFolder.t) ->
-                      workspace_dune_overlap wsf dune)
+                      uri_dune_overlap wsf.uri dune)
              then
                Instance.create dune active.config :: acc
              else
@@ -715,3 +743,14 @@ let on_command t (cmd : ExecuteCommandParams.t) =
          ~message:"invalid command" ());
   let* () = Promote.run t cmd in
   Fiber.return `Null
+
+let for_doc t doc =
+  match !t with
+  | Closed -> []
+  | Active t ->
+    let uri = Document.uri doc in
+    String.Map.fold ~init:[] t.instances ~f:(fun instance acc ->
+        if uri_dune_overlap uri (Instance.source instance) then
+          instance :: acc
+        else
+          acc)

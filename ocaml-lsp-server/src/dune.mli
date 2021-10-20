@@ -1,5 +1,11 @@
 open! Import
 
+module Instance : sig
+  type t
+
+  val format_dune_file : t -> Document.t -> string Fiber.t
+end
+
 type t
 
 val view_promotion_capability : string * Json.t
@@ -23,3 +29,5 @@ val commands : string list
 val on_command : t -> ExecuteCommandParams.t -> Json.t Fiber.t
 
 val code_actions : t -> Document.t -> CodeAction.t list
+
+val for_doc : t -> Document.t -> Instance.t list
