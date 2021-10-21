@@ -120,6 +120,7 @@ include struct
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
   module TextDocumentEdit = TextDocumentEdit
   module TextDocumentIdentifier = TextDocumentIdentifier
+  module TextDocumentItem = TextDocumentItem
   module TextDocumentSyncKind = TextDocumentSyncKind
   module TextDocumentSyncOptions = TextDocumentSyncOptions
   module TextEdit = TextEdit

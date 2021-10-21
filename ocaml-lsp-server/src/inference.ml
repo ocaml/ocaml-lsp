@@ -44,7 +44,7 @@ let force_open_document (state : State.t) uri =
   let+ timer = Scheduler.create_timer ~delay in
   let languageId = language_id_of_fname filename in
   let text_document =
-    Lsp.Types.TextDocumentItem.create ~uri ~languageId ~version:0 ~text
+    TextDocumentItem.create ~uri ~languageId ~version:0 ~text
   in
   let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
   let doc = Document.make state.merlin_config timer state.merlin params in
