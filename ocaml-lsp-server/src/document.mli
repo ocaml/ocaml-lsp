@@ -32,14 +32,12 @@ val kind : t -> Kind.t
 
 val syntax : t -> Syntax.t
 
-val make_merlin :
-     Merlin_config.t
-  -> Scheduler.timer
-  -> Scheduler.thread
+val make :
+     debounce:float
+  -> Merlin_config.t
+  -> merlin_thread:Scheduler.thread
   -> DidOpenTextDocumentParams.t
-  -> t
-
-val make_other : DidOpenTextDocumentParams.t -> t
+  -> t Fiber.t
 
 val timer : t -> Scheduler.timer
 

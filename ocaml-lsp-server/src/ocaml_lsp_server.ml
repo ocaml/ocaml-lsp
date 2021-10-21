@@ -995,9 +995,9 @@ let on_notification server (notification : Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let* doc =
-      let delay = Configuration.diagnostics_delay state.configuration in
-      let+ timer = Scheduler.create_timer ~delay in
-      Document.make_merlin state.merlin_config timer state.merlin params
+      let debounce = Configuration.diagnostics_delay state.configuration in
+      Document.make ~debounce state.merlin_config params
+        ~merlin_thread:state.merlin
     in
     Document_store.put store doc;
     let+ () = set_diagnostics server doc in
