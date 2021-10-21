@@ -78,6 +78,7 @@ include struct
   module DidChangeConfigurationParams = DidChangeConfigurationParams
   module DidChangeWorkspaceFoldersParams = DidChangeWorkspaceFoldersParams
   module DidOpenTextDocumentParams = DidOpenTextDocumentParams
+  module DocumentFilter = DocumentFilter
   module DocumentHighlight = DocumentHighlight
   module DocumentHighlightKind = DocumentHighlightKind
   module DocumentHighlightParams = DocumentHighlightParams
@@ -103,6 +104,8 @@ include struct
   module ProgressToken = ProgressToken
   module PublishDiagnosticsParams = PublishDiagnosticsParams
   module ReferenceParams = ReferenceParams
+  module Registration = Registration
+  module RegistrationParams = RegistrationParams
   module RenameOptions = RenameOptions
   module RenameParams = RenameParams
   module SelectionRange = SelectionRange
@@ -117,12 +120,15 @@ include struct
   module SignatureInformation = SignatureInformation
   module SymbolInformation = SymbolInformation
   module SymbolKind = SymbolKind
+  module TextDocumentClientCapabilities = TextDocumentClientCapabilities
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
   module TextDocumentEdit = TextDocumentEdit
   module TextDocumentIdentifier = TextDocumentIdentifier
   module TextDocumentItem = TextDocumentItem
+  module TextDocumentRegistrationOptions = TextDocumentRegistrationOptions
   module TextDocumentSyncKind = TextDocumentSyncKind
   module TextDocumentSyncOptions = TextDocumentSyncOptions
+  module TextDocumentSyncClientCapabilities = TextDocumentSyncClientCapabilities
   module TextEdit = TextEdit
   module TraceValue = TraceValue
   module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
