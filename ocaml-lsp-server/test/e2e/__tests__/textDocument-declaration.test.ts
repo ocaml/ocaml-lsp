@@ -10,16 +10,21 @@ describe("textDocument/declaration", () => {
 
   let testWorkspacePath = path.join(__dirname, "declaration_files/");
 
+  let outerDuneProjectPath = path.join(__dirname, "../../../../dune-project");
+
+
   let createPathForFile = (filename: string) =>
     path.join(testWorkspacePath, filename);
 
   beforeEach(async () => {
+    await fs.rename(outerDuneProjectPath, outerDuneProjectPath + ".bak");
     languageServer = await LanguageServer.startAndInitialize();
   });
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
     languageServer = null;
+    await fs.rename(outerDuneProjectPath + ".bak", outerDuneProjectPath);
   });
 
   async function openDocument(filepath) {
@@ -57,5 +62,35 @@ describe("textDocument/declaration", () => {
       start: { character: 0, line: 0 },
     });
     expect(result[0].uri).toEqualUri(testUri(createPathForFile("lib.mli")));
+
+    let resultFromInner = await queryDeclaration(
+      createPathForFile("main.ml"),
+      Types.Position.create(2, 25),
+    );
+
+    expect(resultFromInner.length).toBe(1);
+    expect(resultFromInner[0].range).toMatchObject({
+      end: { character: 0, line: 0 },
+      start: { character: 0, line: 0 },
+    });
+    expect(resultFromInner[0].uri).toEqualUri(testUri(createPathForFile("inner/inner_lib.mli")));
+  });
+
+  it("returns location of a declaration in an inner project", async () => {
+    child_process.execSync("dune build", { cwd: testWorkspacePath });
+
+    await openDocument(createPathForFile("inner/inner_main.ml"));
+
+    let result = await queryDeclaration(
+      createPathForFile("inner/inner_main.ml"),
+      Types.Position.create(0, 13),
+    );
+
+    expect(result.length).toBe(1);
+    expect(result[0].range).toMatchObject({
+      end: { character: 0, line: 0 },
+      start: { character: 0, line: 0 },
+    });
+    expect(result[0].uri).toEqualUri(testUri(createPathForFile("inner/inner_lib.mli")));
   });
 });

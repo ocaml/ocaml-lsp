@@ -255,38 +255,45 @@ let find_project_context start_dir =
      need to keep track of this folder because [dune ocaml-merlin] might be
      started from a folder that is a parent of the [workdir]. Thus we cannot
      always use that starting folder as the workdir. *)
-  let map_workdir dir = function
-    | Some dir -> Some dir
-    | None ->
-      (* XXX what's ["dune-file"]? *)
-      let fnames = List.map ~f:(Filename.concat dir) [ "dune"; "dune-file" ] in
-      if List.exists ~f:file_exists fnames then
-        Some dir
-      else
-        None
+  let rec outermost ~dir search_files =
+    let cur_match =
+      search_files
+      |> List.find_map ~f:(fun f ->
+             let fname = Filename.concat dir f in
+             if file_exists fname then
+               Some (dir, fname)
+             else
+               None)
+    in
+    let parent = Filename.dirname dir in
+    if parent = dir then
+      cur_match
+    else
+      match outermost ~dir:parent search_files with
+      | Some outer -> Some outer
+      | None -> cur_match
   in
 
-  let rec loop workdir dir =
-    match
-      List.find_map [ "dune-project"; "dune-workspace" ] ~f:(fun f ->
-          let fname = Filename.concat dir f in
-          if file_exists fname then
-            let workdir = Option.value ~default:dir workdir in
-            Some ({ workdir; process_dir = dir }, fname)
-          else
-            None)
-    with
-    | Some s -> Some s
+  let rec innermost ~dir search_files =
+    let cur_match =
+      search_files
+      |> List.find_opt ~f:(fun f -> file_exists (Filename.concat dir f))
+    in
+    match cur_match with
+    | Some dir -> Some dir
     | None ->
       let parent = Filename.dirname dir in
-      if parent <> dir then
-        (* Was this directory the workdir ? *)
-        let workdir = map_workdir dir workdir in
-        loop workdir parent
-      else
+      if parent = dir then
         None
+      else
+        innermost ~dir:parent search_files
   in
-  loop None start_dir
+  let workdir = innermost ~dir:start_dir [ "dune" ] in
+  match outermost ~dir:start_dir [ "dune-workspace"; "dune-project" ] with
+  | Some (dir, f) ->
+    let workdir = workdir |> Option.value ~default:dir in
+    Some ({ workdir; process_dir = dir }, f)
+  | _ -> None
 
 let get_external_config db (t : Mconfig.t) path =
   let path = Misc.canonicalize_filename path in
