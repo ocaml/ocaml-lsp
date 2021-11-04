@@ -56,6 +56,6 @@ describe("textDocument/declaration", () => {
       end: { character: 0, line: 0 },
       start: { character: 0, line: 0 },
     });
-    expect(result[0].uri).toEqualUri(testUri(createPathForFile("lib.ml")));
+    expect(result[0].uri).toEqualUri(testUri(createPathForFile("lib.mli")));
   });
 });

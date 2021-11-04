@@ -48,6 +48,6 @@ describe("textDocument/definition", () => {
       end: { character: 4, line: 0 },
       start: { character: 4, line: 0 },
     });
-    expect(result[0].uri).toEqualUri(testUri("file.ml"));
+    expect(result[0].uri).toEqualUri(testUri("test.ml"));
   });
 });

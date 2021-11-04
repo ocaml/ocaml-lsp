@@ -94,18 +94,22 @@ export const testUri = (file: string) => {
   return URI.file(file).toString();
 };
 
-export const toEqualUri = (
-  obj: jest.MatcherContext,
+export const toEqualUri = function (
   received: string,
   expected: string,
-) => {
+) {
+
+  const obj = this;
+
   const options = {
     comment: "Uri equality",
     isNot: obj.isNot,
     promise: obj.promise,
   };
+
   const pass =
-    URI.parse(received).toString() === URI.parse(received).toString();
+    URI.parse(received).toString() === URI.parse(expected).toString();
+
   const message = pass
     ? () =>
         obj.utils.matcherHint("toEqualUri", undefined, undefined, options) +
