@@ -15,10 +15,10 @@ let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
       Action_inferred_intf.kind
+      :: Action_destruct.kind
       :: List.map
            ~f:(fun (c : Code_action.t) -> c.kind)
-           [ Action_destruct.t
-           ; Action_type_annotate.t
+           [ Action_type_annotate.t
            ; Action_construct.t
            ; Action_refactor_open.unqualify
            ; Action_refactor_open.qualify
@@ -307,7 +307,7 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
     (* XXX this is a really bad use of resources. we should be batching all the
        merlin related work *)
     Fiber.parallel_map ~f:code_action
-      [ Action_destruct.t
+      [ Action_destruct.t state
       ; Action_inferred_intf.t state
       ; Action_type_annotate.t
       ; Action_construct.t
