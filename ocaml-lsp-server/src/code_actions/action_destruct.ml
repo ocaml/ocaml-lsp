@@ -3,6 +3,8 @@ open Fiber.O
 
 let action_kind = "destruct"
 
+let kind = CodeActionKind.Other action_kind
+
 let code_action_of_case_analysis doc uri (loc, newText) =
   let range : Range.t = Range.of_loc loc in
   let edit : WorkspaceEdit.t =
@@ -24,7 +26,7 @@ let code_action_of_case_analysis doc uri (loc, newText) =
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
     ~command ~isPreferred:false ()
 
-let code_action doc (params : CodeActionParams.t) =
+let code_action (state : State.t) doc (params : CodeActionParams.t) =
   let uri = params.textDocument.uri in
   match Document.kind doc with
   | Intf -> Fiber.return None
@@ -34,9 +36,18 @@ let code_action doc (params : CodeActionParams.t) =
       let finish = Position.logical params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
-    let+ res = Document.dispatch doc command in
+    let* res = Document.dispatch doc command in
     match res with
-    | Ok res -> Some (code_action_of_case_analysis doc uri res)
+    | Ok (loc, newText) ->
+      let+ newText =
+        let+ formatted_text =
+          Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ:newText
+        in
+        match formatted_text with
+        | Ok formatted_text -> formatted_text
+        | Error _ -> newText
+      in
+      Some (code_action_of_case_analysis doc uri (loc, newText))
     | Error
         { exn =
             ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
@@ -45,8 +56,7 @@ let code_action doc (params : CodeActionParams.t) =
             | Merlin_analysis.Destruct.Nothing_to_do )
         ; backtrace = _
         } ->
-      None
+      Fiber.return None
     | Error exn -> Exn_with_backtrace.reraise exn)
 
-let t =
-  { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }
+let t state = { Code_action.kind; run = code_action state }

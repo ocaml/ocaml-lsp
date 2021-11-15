@@ -24,7 +24,15 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | Impl -> Fiber.return None
   | Intf ->
-    let+ intf = Inference.infer_intf ~force_open_impl:true state doc in
+    let* intf = Inference.infer_intf ~force_open_impl:true state doc in
+    let+ formatted_intf =
+      Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ:intf
+    in
+    let intf =
+      match formatted_intf with
+      | Ok formatted_intf -> formatted_intf
+      | Error _ -> intf
+    in
     Some (code_action_of_intf doc intf params.range)
 
 let kind = CodeActionKind.Other action_kind

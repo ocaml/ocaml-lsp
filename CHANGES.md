@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Format inserted snippets if ocamlformat-rpc is installed (#549)
+
 # 1.9.0 (11/21/2021)
 
 ## Fixes

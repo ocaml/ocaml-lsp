@@ -14,11 +14,10 @@ let not_supported () =
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
-      Action_inferred_intf.kind
+      Action_inferred_intf.kind :: Action_destruct.kind
       :: List.map
            ~f:(fun (c : Code_action.t) -> c.kind)
-           [ Action_destruct.t
-           ; Action_type_annotate.t
+           [ Action_type_annotate.t
            ; Action_construct.t
            ; Action_refactor_open.unqualify
            ; Action_refactor_open.qualify
@@ -307,7 +306,7 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
     (* XXX this is a really bad use of resources. we should be batching all the
        merlin related work *)
     Fiber.parallel_map ~f:code_action
-      [ Action_destruct.t
+      [ Action_destruct.t state
       ; Action_inferred_intf.t state
       ; Action_type_annotate.t
       ; Action_construct.t
@@ -340,8 +339,13 @@ module Formatter = struct
     make_error ~code ~message ()
 
   let run rpc doc =
-    let state = Server.state rpc in
-    let* res = Ocamlformat.run state.State.ocamlformat doc in
+    let state : State.t = Server.state rpc in
+    let* res =
+      let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
+      match res with
+      | Ok res -> Fiber.return @@ Ok res
+      | Error _ -> Ocamlformat.run state.ocamlformat doc
+    in
     match res with
     | Ok result -> Fiber.return (Some result)
     | Error e ->
