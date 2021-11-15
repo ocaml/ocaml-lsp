@@ -161,6 +161,12 @@ let format_type t ~typ =
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e))
 
+let format_doc t doc =
+  let txt = Document.source doc |> Msource.text in
+  let+ res = (format_type t ~typ:txt) in
+  Result.map res ~f:(fun to_ ->
+    Diff.edit ~from:txt ~to_)
+
 let create_state () =
   Waiting_for_init
     { ask_init = Fiber.Ivar.create (); wait_init = Fiber.Ivar.create () }

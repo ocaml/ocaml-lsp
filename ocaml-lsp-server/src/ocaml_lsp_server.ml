@@ -14,8 +14,7 @@ let not_supported () =
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
-      Action_inferred_intf.kind
-      :: Action_destruct.kind
+      Action_inferred_intf.kind :: Action_destruct.kind
       :: List.map
            ~f:(fun (c : Code_action.t) -> c.kind)
            [ Action_type_annotate.t
@@ -341,7 +340,12 @@ module Formatter = struct
 
   let run rpc doc =
     let state = Server.state rpc in
-    let* res = Ocamlformat.run state.State.ocamlformat doc in
+    let* res =
+    let* res = Ocamlformat_rpc.format_doc state.State.ocamlformat_rpc doc in
+      match res with
+      | Ok res -> Fiber.return @@ Ok res
+      | Error _ -> Ocamlformat.run state.State.ocamlformat doc
+    in
     match res with
     | Ok result -> Fiber.return (Some result)
     | Error e ->
