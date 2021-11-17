@@ -39,11 +39,11 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
     let* res = Document.dispatch doc command in
     match res with
     | Ok (loc, newText) -> (
-      let+ formattedText =
-        Ocamlformat_rpc.(format_type state.ocamlformat_rpc ~typ:newText)
+      let+ formatted_text =
+        Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ:newText
       in
-      match formattedText with
-      | Ok formattedText -> Some (code_action_of_case_analysis doc uri (loc, formattedText))
+      match formatted_text with
+      | Ok formatted_text -> Some (code_action_of_case_analysis doc uri (loc, formatted_text))
       | Error _ -> Some (code_action_of_case_analysis doc uri (loc, newText)))
     | Error
         { exn =
