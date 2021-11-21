@@ -584,6 +584,17 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        ; workspaces
        })
 
+let enabled = false
+
+let create_disabled () = ref Closed
+
+let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
+    progress ~log =
+  if enabled then
+    create workspaces client_capabilities diagnostics progress ~log
+  else
+    Fiber.return (create_disabled ())
+
 let run_loop t =
   Fiber.repeat_while ~init:() ~f:(fun () ->
       match !t with
@@ -598,7 +609,7 @@ let run_loop t =
 let run t : unit Fiber.t =
   Fiber.of_thunk (fun () ->
       match !t with
-      | Closed -> Code_error.raise "dune already closed" []
+      | Closed -> Fiber.return ()
       | Active active ->
         Fiber.fork_and_join_unit
           (fun () -> run_loop t)
