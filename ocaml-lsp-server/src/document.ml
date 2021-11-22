@@ -188,19 +188,22 @@ let make_pipeline merlin_config thread tdoc =
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-let make_merlin ~debounce merlin_config ~merlin_thread
-    (tdoc : DidOpenTextDocumentParams.t) =
-  let tdoc = Text_document.make tdoc in
+let make_merlin ~debounce merlin_config ~merlin_thread tdoc =
   let+ timer = Scheduler.create_timer ~delay:debounce in
   let pipeline = make_pipeline merlin_config merlin_thread tdoc in
   Merlin { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer }
 
 let make ~debounce config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
-  let tdoc = doc.textDocument in
-  let path = DocumentUri.to_path tdoc.uri in
-  match Syntax.of_fname_res path with
-  | Ok _ -> make_merlin ~debounce config ~merlin_thread doc
-  | Error _ -> Fiber.return (Other (Text_document.make doc))
+  let tdoc = Text_document.make doc in
+  match Syntax.of_text_document tdoc with
+  | Ocaml
+  | Reason ->
+    make_merlin ~debounce config ~merlin_thread tdoc
+  | Ocamllex
+  | Menhir
+  | Cram
+  | Dune ->
+    Fiber.return (Other tdoc)
 
 let update_text ?version t changes =
   match
