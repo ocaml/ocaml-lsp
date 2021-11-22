@@ -64,16 +64,6 @@ module Syntax = struct
            ~data:(`Assoc [ ("extension", `String ext) ])
            ())
 
-  let of_language_id language_id =
-    match List.assoc all language_id with
-    | Some id -> id
-    | None ->
-      Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make ~code:InvalidRequest
-           ~message:(Printf.sprintf "invalid language ID")
-           ~data:(`Assoc [ ("language_id", `String language_id) ])
-           ())
-
   let to_language_id x =
     List.find_map all ~f:(fun (k, v) -> Option.some_if (v = x) k)
     |> Option.value_exn
@@ -82,6 +72,11 @@ module Syntax = struct
     | Ocaml -> "ocaml"
     | Reason -> "reason"
     | s -> to_language_id s
+
+  let of_text_document (td : Text_document.t) =
+    match List.assoc all (Text_document.languageId td) with
+    | Some s -> s
+    | None -> Text_document.documentUri td |> Uri.to_path |> of_fname
 end
 
 type t =
@@ -102,7 +97,7 @@ let uri t = Text_document.documentUri (tdoc t)
 
 let kind t = Kind.of_fname (Uri.to_path (uri t))
 
-let syntax t = Syntax.of_language_id (Text_document.languageId (tdoc t))
+let syntax t = Syntax.of_text_document (tdoc t)
 
 let timer = function
   | Dune _ -> Code_error.raise "Document.dune" []
