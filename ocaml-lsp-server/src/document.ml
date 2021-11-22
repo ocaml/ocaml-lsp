@@ -30,12 +30,16 @@ module Syntax = struct
     | Reason
     | Ocamllex
     | Menhir
+    | Cram
+    | Dune
 
   let human_name = function
     | Ocaml -> "OCaml"
     | Reason -> "Reason"
     | Ocamllex -> "OCamllex"
     | Menhir -> "Menhir/ocamlyacc"
+    | Cram -> "Cram"
+    | Dune -> "Dune"
 
   let all =
     [ ("ocaml.interface", Ocaml)
@@ -43,21 +47,36 @@ module Syntax = struct
     ; ("reason", Reason)
     ; ("ocaml.ocamllex", Ocamllex)
     ; ("ocaml.menhir", Menhir)
+    ; ("cram", Cram)
+    ; ("dune", Dune)
+    ; ("dune-project", Dune)
+    ; ("dune-workspace", Dune)
     ]
 
+  let of_fname_res = function
+    | "dune"
+    | "dune-workspace"
+    | "dune-project" ->
+      Ok Dune
+    | s -> (
+      match Filename.extension s with
+      | ".eliomi"
+      | ".eliom"
+      | ".mli"
+      | ".ml" ->
+        Ok Ocaml
+      | ".rei"
+      | ".re" ->
+        Ok Reason
+      | ".mll" -> Ok Ocamllex
+      | ".mly" -> Ok Menhir
+      | ".t" -> Ok Cram
+      | ext -> Error ext)
+
   let of_fname s =
-    match Filename.extension s with
-    | ".eliomi"
-    | ".eliom"
-    | ".mli"
-    | ".ml" ->
-      Ocaml
-    | ".rei"
-    | ".re" ->
-      Reason
-    | ".mll" -> Ocamllex
-    | ".mly" -> Menhir
-    | ext ->
+    match of_fname_res s with
+    | Ok x -> x
+    | Error ext ->
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
            ~message:(Printf.sprintf "unsupported file extension")
@@ -80,7 +99,7 @@ module Syntax = struct
 end
 
 type t =
-  | Dune of Text_document.t
+  | Other of Text_document.t
   | Merlin of
       { tdoc : Text_document.t
       ; pipeline : Mpipeline.t Lazy_fiber.t
@@ -90,20 +109,26 @@ type t =
       }
 
 let tdoc = function
-  | Dune d -> d
+  | Other d -> d
   | Merlin m -> m.tdoc
 
 let uri t = Text_document.documentUri (tdoc t)
+
+let is_merlin = function
+  | Other _ -> false
+  | Merlin _ -> true
 
 let kind t = Kind.of_fname (Uri.to_path (uri t))
 
 let syntax t = Syntax.of_text_document (tdoc t)
 
 let timer = function
-  | Dune _ -> Code_error.raise "Document.dune" []
+  | Other _ -> Code_error.raise "Document.dune" []
   | Merlin m -> m.timer
 
-let source t = Msource.make (Text_document.text (tdoc t))
+let text t = Text_document.text (tdoc t)
+
+let source t = Msource.make (text t)
 
 let await task =
   let* () = Server.on_cancel (fun () -> Scheduler.cancel_task task) in
@@ -119,7 +144,7 @@ let await task =
 
 let with_pipeline (t : t) f =
   match t with
-  | Dune _ -> Code_error.raise "Document.dune" []
+  | Other _ -> Code_error.raise "Document.dune" []
   | Merlin t ->
     let* pipeline = Lazy_fiber.force t.pipeline in
     Scheduler.async_exn t.merlin (fun () ->
@@ -163,13 +188,13 @@ let make_pipeline merlin_config thread tdoc =
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-let make merlin_config timer merlin_thread (tdoc : DidOpenTextDocumentParams.t)
-    =
+let make_merlin merlin_config timer merlin_thread
+    (tdoc : DidOpenTextDocumentParams.t) =
   let tdoc = Text_document.make tdoc in
   let pipeline = make_pipeline merlin_config merlin_thread tdoc in
   Merlin { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer }
 
-let make_dune tdoc = Dune (Text_document.make tdoc)
+let make_other tdoc = Other (Text_document.make tdoc)
 
 let update_text ?version t changes =
   match
@@ -186,7 +211,7 @@ let update_text ?version t changes =
     t
   | tdoc -> (
     match t with
-    | Dune _ -> Dune tdoc
+    | Other _ -> Other tdoc
     | Merlin ({ merlin_config; merlin; _ } as t) ->
       let pipeline = make_pipeline merlin_config merlin tdoc in
       Merlin { t with tdoc; pipeline })
@@ -199,7 +224,7 @@ let dispatch_exn t command =
 
 let close t =
   match t with
-  | Dune _ -> Fiber.return ()
+  | Other _ -> Fiber.return ()
   | Merlin t -> Scheduler.cancel_timer t.timer
 
 let get_impl_intf_counterparts uri =
@@ -210,6 +235,9 @@ let get_impl_intf_counterparts uri =
   in
   let exts_to_switch_to =
     match Syntax.of_fname fname with
+    | Dune
+    | Cram ->
+      []
     | Ocaml -> (
       match Kind.of_fname fname with
       | Intf -> [ ml; mly; mll; eliom; re ]

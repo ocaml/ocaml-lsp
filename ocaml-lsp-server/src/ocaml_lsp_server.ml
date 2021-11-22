@@ -177,6 +177,8 @@ let set_diagnostics rpc doc =
     ()
   in
   match Document.syntax doc with
+  | Dune
+  | Cram
   | Menhir
   | Ocamllex ->
     Fiber.return ()
@@ -995,7 +997,7 @@ let on_notification server (notification : Client_notification.t) :
     let* doc =
       let delay = Configuration.diagnostics_delay state.configuration in
       let+ timer = Scheduler.create_timer ~delay in
-      Document.make state.merlin_config timer state.merlin params
+      Document.make_merlin state.merlin_config timer state.merlin params
     in
     Document_store.put store doc;
     let+ () = set_diagnostics server doc in

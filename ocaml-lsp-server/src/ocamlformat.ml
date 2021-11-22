@@ -121,7 +121,7 @@ let binary t =
 
 let formatter doc =
   match Document.syntax doc with
-  | (Ocamllex | Menhir) as s -> Error (Unsupported_syntax s)
+  | (Dune | Cram | Ocamllex | Menhir) as s -> Error (Unsupported_syntax s)
   | Ocaml -> Ok (Ocaml (Document.uri doc))
   | Reason -> Ok (Reason (Document.kind doc))
 

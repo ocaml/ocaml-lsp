@@ -47,7 +47,9 @@ let force_open_document (state : State.t) uri =
     TextDocumentItem.create ~uri ~languageId ~version:0 ~text
   in
   let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
-  let doc = Document.make state.merlin_config timer state.merlin params in
+  let doc =
+    Document.make_merlin state.merlin_config timer state.merlin params
+  in
   Document_store.put state.store doc;
   doc
 
