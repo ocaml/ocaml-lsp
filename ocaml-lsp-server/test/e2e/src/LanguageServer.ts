@@ -94,11 +94,7 @@ export const testUri = (file: string) => {
   return URI.file(file).toString();
 };
 
-export const toEqualUri = function (
-  received: string,
-  expected: string,
-) {
-
+export const toEqualUri = function (received: string, expected: string) {
   const obj = this;
 
   const options = {
