@@ -53,35 +53,36 @@ module Syntax = struct
     ; ("dune-workspace", Dune)
     ]
 
-  let of_fname_res = function
-    | "dune"
-    | "dune-workspace"
-    | "dune-project" ->
-      Ok Dune
-    | s -> (
-      match Filename.extension s with
-      | ".eliomi"
-      | ".eliom"
-      | ".mli"
-      | ".ml" ->
-        Ok Ocaml
-      | ".rei"
-      | ".re" ->
-        Ok Reason
-      | ".mll" -> Ok Ocamllex
-      | ".mly" -> Ok Menhir
-      | ".t" -> Ok Cram
-      | ext -> Error ext)
-
-  let of_fname s =
-    match of_fname_res s with
-    | Ok x -> x
-    | Error ext ->
-      Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make ~code:InvalidRequest
-           ~message:(Printf.sprintf "unsupported file extension")
-           ~data:(`Assoc [ ("extension", `String ext) ])
-           ())
+  let of_fname =
+    let of_fname_res = function
+      | "dune"
+      | "dune-workspace"
+      | "dune-project" ->
+        Ok Dune
+      | s -> (
+        match Filename.extension s with
+        | ".eliomi"
+        | ".eliom"
+        | ".mli"
+        | ".ml" ->
+          Ok Ocaml
+        | ".rei"
+        | ".re" ->
+          Ok Reason
+        | ".mll" -> Ok Ocamllex
+        | ".mly" -> Ok Menhir
+        | ".t" -> Ok Cram
+        | ext -> Error ext)
+    in
+    fun s ->
+      match of_fname_res s with
+      | Ok x -> x
+      | Error ext ->
+        Jsonrpc.Response.Error.raise
+          (Jsonrpc.Response.Error.make ~code:InvalidRequest
+             ~message:(Printf.sprintf "unsupported file extension")
+             ~data:(`Assoc [ ("extension", `String ext) ])
+             ())
 
   let to_language_id x =
     List.find_map all ~f:(fun (k, v) -> Option.some_if (v = x) k)
@@ -99,17 +100,18 @@ module Syntax = struct
 end
 
 type t =
-  | Other of Text_document.t
+  | Other of Text_document.t * Syntax.t
   | Merlin of
       { tdoc : Text_document.t
       ; pipeline : Mpipeline.t Lazy_fiber.t
       ; merlin : Scheduler.thread
       ; timer : Scheduler.timer
       ; merlin_config : Merlin_config.t
+      ; syntax : Syntax.t
       }
 
 let tdoc = function
-  | Other d -> d
+  | Other (d, _) -> d
   | Merlin m -> m.tdoc
 
 let uri t = Text_document.documentUri (tdoc t)
@@ -118,9 +120,13 @@ let is_merlin = function
   | Other _ -> false
   | Merlin _ -> true
 
-let kind t = Kind.of_fname (Uri.to_path (uri t))
+let kind = function
+  | Merlin _ as t -> Kind.of_fname (Uri.to_path (uri t))
+  | Other _ -> Code_error.raise "non merlin document has no kind" []
 
-let syntax t = Syntax.of_text_document (tdoc t)
+let syntax = function
+  | Merlin m -> m.syntax
+  | Other (_, syntax) -> syntax
 
 let timer = function
   | Other _ -> Code_error.raise "Document.dune" []
@@ -188,22 +194,24 @@ let make_pipeline merlin_config thread tdoc =
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-let make_merlin ~debounce merlin_config ~merlin_thread tdoc =
+let make_merlin ~debounce merlin_config ~merlin_thread tdoc syntax =
   let+ timer = Scheduler.create_timer ~delay:debounce in
   let pipeline = make_pipeline merlin_config merlin_thread tdoc in
-  Merlin { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer }
+  Merlin
+    { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer; syntax }
 
 let make ~debounce config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
   let tdoc = Text_document.make doc in
-  match Syntax.of_text_document tdoc with
+  let syntax = Syntax.of_text_document tdoc in
+  match syntax with
   | Ocaml
   | Reason ->
-    make_merlin ~debounce config ~merlin_thread tdoc
+    make_merlin ~debounce config ~merlin_thread tdoc syntax
   | Ocamllex
   | Menhir
   | Cram
   | Dune ->
-    Fiber.return (Other tdoc)
+    Fiber.return (Other (tdoc, syntax))
 
 let update_text ?version t changes =
   match
@@ -220,7 +228,7 @@ let update_text ?version t changes =
     t
   | tdoc -> (
     match t with
-    | Other _ -> Other tdoc
+    | Other (_, syntax) -> Other (tdoc, syntax)
     | Merlin ({ merlin_config; merlin; _ } as t) ->
       let pipeline = make_pipeline merlin_config merlin tdoc in
       Merlin { t with tdoc; pipeline })
