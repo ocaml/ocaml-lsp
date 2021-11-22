@@ -14,16 +14,12 @@ module Syntax : sig
   val human_name : t -> string
 
   val markdown_name : t -> string
-
-  val of_fname : string -> t
 end
 
 module Kind : sig
   type t =
     | Intf
     | Impl
-
-  val of_fname : string -> t
 end
 
 val is_merlin : t -> bool
