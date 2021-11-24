@@ -30,7 +30,7 @@ depends: [
   "result" {>= "1.5"}
   "ocamlformat-rpc-lib" {>= "0.18.0" & < "0.20.0"}
   "odoc" {with-doc}
-  "ocaml" {>= "4.12" & < "4.13"}
+  "ocaml" {>= "4.13" & < "4.14"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [

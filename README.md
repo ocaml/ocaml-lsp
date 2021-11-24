@@ -109,7 +109,7 @@ git clone --recursive git@github.com:ocaml/ocaml-lsp.git
 git submodule update --init --recursive
 
 # create local switch (or use global one) and install dependencies
-opam switch create . ocaml-base-compiler.4.12.0 --with-test
+opam switch create . ocaml-base-compiler.4.13.0 --with-test
 
 # don't forget to set your environment to use the local switch
 eval $(opam env)
