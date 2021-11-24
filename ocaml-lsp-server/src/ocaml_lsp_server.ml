@@ -1185,7 +1185,9 @@ let start () =
            Some
              "OCamlformat_rpc is missing, displayed types might not be \
               properly formatted. "
-         | Ok () -> None
+         | Error `Disabled
+         | Ok () ->
+           None
        in
        match message with
        | None -> Fiber.return ()
