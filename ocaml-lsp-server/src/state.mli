@@ -18,6 +18,7 @@ type t =
   ; trace : TraceValue.t
   ; ocamlformat : Ocamlformat.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
+  ; ocamlformat_rpc_popup : Ocamlformat_rpc.t
   ; diagnostics : Diagnostics.t
   ; symbols_thread : Scheduler.thread Lazy_fiber.t
   }
@@ -29,6 +30,7 @@ val create :
   -> configuration:Configuration.t
   -> ocamlformat:Ocamlformat.t
   -> ocamlformat_rpc:Ocamlformat_rpc.t
+  -> ocamlformat_rpc_popup:Ocamlformat_rpc.t
   -> diagnostics:Diagnostics.t
   -> symbols_thread:Scheduler.thread Lazy_fiber.t
   -> t

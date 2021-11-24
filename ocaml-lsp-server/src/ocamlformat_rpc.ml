@@ -13,6 +13,7 @@ module Process : sig
   val create :
        logger:(type_:MessageType.t -> message:string -> unit Fiber.t)
     -> bin:Fpath.t
+    -> format_style:[< `ProjectStyle | `VSCodePopup ]
     -> unit
     -> (t, [> `No_process ]) result Fiber.t
 
@@ -46,15 +47,18 @@ end = struct
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-  let configure ~logger { io_thread; client; _ } =
+  let configure ~logger ~format_style { io_thread; client; _ } =
     (* We ask for 64 columns formatting as this appear to be the maximum size of
        VScode popups. TODO We should probably allow some flexibility for other
        editors that use the server. *)
+    let options =
+      match format_style with
+      | `VSCodePopup -> [ ("module-item-spacing", "compact"); ("margin", "63") ]
+      | `ProjectStyle -> []
+    in
     match
       Scheduler.async io_thread (fun () ->
-          Ocamlformat_rpc_lib.config
-            [ ("module-item-spacing", "compact"); ("margin", "63") ]
-            client)
+          Ocamlformat_rpc_lib.config options client)
     with
     | Error `Stopped -> Fiber.return ()
     | Ok res -> (
@@ -69,7 +73,7 @@ end = struct
         logger ~type_:MessageType.Warning ~message
       | Error e -> Exn_with_backtrace.reraise e)
 
-  let create ~logger ~bin () =
+  let create ~logger ~bin ~format_style () =
     let bin = Fpath.to_string bin in
     let pid, stdout, stdin =
       let stdin_i, stdin_o = Unix.pipe () in
@@ -105,7 +109,7 @@ end = struct
       let process =
         { pid = Pid.of_int pid; input; output; io_thread; client }
       in
-      let* () = configure ~logger process in
+      let* () = configure ~logger ~format_style process in
       let+ () =
         let message =
           Printf.sprintf "Ocamlformat-RPC server started with PID %i" pid
@@ -192,7 +196,7 @@ let stop t =
     Unix.kill pid Sys.sigkill;
     Fiber.return ()
 
-let run_rpc ~logger ~bin t =
+let run_rpc ~logger ~bin ~format_style t =
   match !t with
   | Stopped -> Code_error.raise "ocamlformat already stopped" []
   | Running _ -> Code_error.raise "ocamlformat already running" []
@@ -202,7 +206,7 @@ let run_rpc ~logger ~bin t =
     | Stopped -> Fiber.return ()
     | Running _ -> assert false
     | Waiting_for_init _ -> (
-      let* process = Process.create ~logger ~bin () in
+      let* process = Process.create ~logger ~bin ~format_style () in
       let* () = Fiber.Ivar.fill wait_init () in
       match process with
       | Error `No_process ->
@@ -215,7 +219,7 @@ let run_rpc ~logger ~bin t =
         | Running _ -> t := create_state ()
         | _ -> ())))
 
-let run ~logger t =
+let run ~logger ~format_style t =
   match Bin.which "ocamlformat-rpc" with
   | None ->
     t := Stopped;
@@ -231,7 +235,7 @@ let run ~logger t =
         let* () = Fiber.Ivar.read ask_init in
         match !t with
         | Waiting_for_init _ ->
-          let* () = run_rpc ~logger ~bin t in
+          let* () = run_rpc ~logger ~bin ~format_style t in
           (* We loop to automatically restart the server if it stopped *)
           loop ()
         | Running _ -> assert false

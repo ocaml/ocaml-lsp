@@ -18,12 +18,13 @@ type t =
   ; trace : TraceValue.t
   ; ocamlformat : Ocamlformat.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
+  ; ocamlformat_rpc_popup : Ocamlformat_rpc.t
   ; diagnostics : Diagnostics.t
   ; symbols_thread : Scheduler.thread Lazy_fiber.t
   }
 
 let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
-    ~diagnostics ~symbols_thread =
+    ~ocamlformat_rpc_popup ~diagnostics ~symbols_thread =
   { init = Uninitialized
   ; merlin_config = Merlin_config.create ()
   ; store
@@ -33,6 +34,7 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
   ; trace = `Off
   ; ocamlformat
   ; ocamlformat_rpc
+  ; ocamlformat_rpc_popup
   ; diagnostics
   ; symbols_thread
   }

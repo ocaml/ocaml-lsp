@@ -380,7 +380,14 @@ module Formatter = struct
     let state : State.t = Server.state rpc in
     if Document.is_merlin doc then
       let* res =
-        let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
+        let* res =
+          if false then
+            (* Until ocamlformat_rpc use the .ocamlformat file, we fallback to
+               the ocamlformat binary *)
+            Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc
+          else
+            Fiber.return (Error `NotYet)
+        in
         match res with
         | Ok res -> Fiber.return @@ Ok res
         | Error _ -> Ocamlformat.run state.ocamlformat doc
@@ -534,7 +541,9 @@ let hover server (state : State.t)
     let+ doc = query_doc doc pos
     and+ typ =
       (* We ask Ocamlformat to format this type *)
-      let* result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
+      let* result =
+        Ocamlformat_rpc.format_type state.ocamlformat_rpc_popup ~typ
+      in
       match result with
       | Ok v ->
         (* OCamlformat adds an unnecessay newline at the end of the type *)
@@ -1150,7 +1159,8 @@ let start () =
                 Server.Batch.notification batch (PublishDiagnostics d));
             Server.Batch.submit batch))
   in
-  let ocamlformat_rpc = Ocamlformat_rpc.create () in
+  let ocamlformat_rpc = Ocamlformat_rpc.create ()
+  and ocamlformat_rpc_popup = Ocamlformat_rpc.create () in
   let* server =
     let+ merlin = Scheduler.create_thread () in
     let ocamlformat = Ocamlformat.create () in
@@ -1158,8 +1168,35 @@ let start () =
     Fdecl.set server
       (Server.make handler stream
          (State.create ~store ~merlin ~ocamlformat ~ocamlformat_rpc
-            ~configuration ~detached ~diagnostics ~symbols_thread));
+            ~ocamlformat_rpc_popup ~configuration ~detached ~diagnostics
+            ~symbols_thread));
     Fdecl.get server
+  in
+  let start_ocamlformat_rpc ~format_style =
+    let* state =
+      Ocamlformat_rpc.run ~logger:(log_message server) ~format_style
+        ocamlformat_rpc
+    in
+    let message =
+      match (state, format_style) with
+      | Error `Binary_not_found, `ProjectStyle ->
+        Some
+          "OCamlformat_rpc is missing, ocamlformat binary will be called to \
+           format file"
+      | Error `Binary_not_found, `VSCodePopup ->
+        Some
+          "OCamlformat_rpc is missing, displayed types might not be properly \
+           formatted. "
+      | Ok (), _ -> None
+    in
+    match message with
+    | None -> Fiber.return ()
+    | Some message ->
+      let* (_ : InitializeParams.t) = Server.initialized server in
+      let state = Server.state server in
+      task_if_running state ~f:(fun () ->
+          let log = ShowMessageParams.create ~type_:Info ~message in
+          Server.notification server (Server_notification.ShowMessage log))
   in
   Fiber.all_concurrently_unit
     [ Fiber.Pool.run detached
@@ -1176,25 +1213,8 @@ let start () =
          | Initialized init -> Dune.stop init.dune :: finalize
        in
        Fiber.all_concurrently_unit finalize)
-    ; (let* state =
-         Ocamlformat_rpc.run ~logger:(log_message server) ocamlformat_rpc
-       in
-       let message =
-         match state with
-         | Error `Binary_not_found ->
-           Some
-             "OCamlformat_rpc is missing, displayed types might not be \
-              properly formatted. "
-         | Ok () -> None
-       in
-       match message with
-       | None -> Fiber.return ()
-       | Some message ->
-         let* (_ : InitializeParams.t) = Server.initialized server in
-         let state = Server.state server in
-         task_if_running state ~f:(fun () ->
-             let log = ShowMessageParams.create ~type_:Info ~message in
-             Server.notification server (Server_notification.ShowMessage log)))
+    ; start_ocamlformat_rpc ~format_style:`ProjectStyle
+    ; start_ocamlformat_rpc ~format_style:`VSCodePopup
     ]
 
 let run () =
