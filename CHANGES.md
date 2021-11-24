@@ -1,6 +1,10 @@
 # 1.9.1
 
-- Disable functionality reliant on ocamlformat-rpc for now
+## Fixes
+
+- Disable functionality reliant on ocamlformat-rpc for now (#555)
+
+- 4.13 compatiblity
 
 # 1.9.0 (11/21/2021)
 
