@@ -14,8 +14,8 @@ let
         {
           owner = "ocaml";
           repo = "opam-repository";
-          rev = "a8e6a61ca4b6c45e8812cd438ac3faf4d0f5650b";
-          sha256 = "00ki4pz8dpjn05665l0yqab9sdw4cwvs7xfr99kdnlv0xsn9gf6s";
+          rev = "93ee88094de0e89fa1ff20d8d73d580ef481ccc4";
+          sha256 = "15z75q8f07qzm3bqc7ivdf9v8rqgrzb4f7c5r9dq54ydqv227srk";
         };
         src = (pkgs.fetchFromGitHub) fetch;
       };
@@ -24,7 +24,7 @@ in
 {
   format-version = 4;
   inherit repos;
-  ocaml-version = "4.12.0";
+  ocaml-version = "4.13.1";
   selection = 
   {
     astring = 
@@ -49,11 +49,11 @@ in
     base = 
     {
       pname = "base";
-      version = "v0.14.1";
+      version = "v0.14.2";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/janestreet/base/archive/v0.14.1.tar.gz";
-        sha256 = "13b0xc62ka8i2ry2r62gc194wzfdq1vqf2qygwrrk26pvqn8a9l9";
+        url = "https://github.com/janestreet/base/archive/v0.14.2.tar.gz";
+        sha256 = "095zbz0bqrmhgw62jyhb51kqp89kph1cfcpr5ww94slr5rldpj7i";
       };
       opamInputs = 
       {
@@ -61,8 +61,8 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/base/base.v0.14.1";
-        hash = "sha256:014xlh33ayf440lf9yx62z43q9977254911p3jyncw2hrmarny4h";
+        package = "packages/base/base.v0.14.2";
+        hash = "sha256:004ypm5lr9mp7glgfggi47x8h644f9z7xrx5gahsx1l82b566frv";
       };
     };
     base-bytes = 
@@ -431,7 +431,7 @@ in
     ocaml = 
     {
       pname = "ocaml";
-      version = "4.12.0";
+      version = "4.13.1";
       src = null;
       opamInputs = 
       {
@@ -443,25 +443,25 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/ocaml/ocaml.4.12.0";
-        hash = "sha256:11mxrkiixqfyv0arpx57xk9kfa1an749lnbx6saf4h616llb5sj9";
+        package = "packages/ocaml/ocaml.4.13.1";
+        hash = "sha256:1ahflchxawi94yk4vwdhihkdlw51x2f9ljwngmd9ymzh88lyzfpn";
       };
     };
     ocaml-base-compiler = 
     {
       pname = "ocaml-base-compiler";
-      version = "4.12.0";
+      version = "4.13.1";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/ocaml/ocaml/archive/4.12.0.tar.gz";
-        sha256 = "0i37laikik5vwydw1cwygxd8xq2d6n35l20irgrh691njlwpmh5d";
+        url = "https://github.com/ocaml/ocaml/archive/4.13.1.tar.gz";
+        sha256 = "1i7ad8lh5l74wb3yzmhlv529wc75a5sjybzkad7wdl8zrj47jk0r";
       };
       opamInputs = {
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/ocaml-base-compiler/ocaml-base-compiler.4.12.0";
-        hash = "sha256:06c7jb58zqqjd0vbg27k4n4v69xqfzjfcm89i43a2j7r7frjlwn1";
+        package = "packages/ocaml-base-compiler/ocaml-base-compiler.4.13.1";
+        hash = "sha256:069i5vsndd9lsvdm5wk898nfnc85ww7459nibjg6881ww43w8ck1";
       };
     };
     ocaml-compiler-libs = 
@@ -756,7 +756,7 @@ in
       opamSrc = repoPath (repos.opam-repository.src) 
       {
         package = "packages/ppx_derivers/ppx_derivers.1.2.1";
-        hash = "sha256:0r8rjp4m5jfbf3wz8qlgh82pxjws4arjwxhqq0zjglby6l6h8p3x";
+        hash = "sha256:1hj1ina0n7pgz16mrvijczapw75pd0hif0i18dpw7d1fyg2qr8py";
       };
     };
     ppx_enumerate = 
@@ -781,11 +781,11 @@ in
     ppx_expect = 
     {
       pname = "ppx_expect";
-      version = "v0.14.1";
+      version = "v0.14.2";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/janestreet/ppx_expect/archive/v0.14.1.tar.gz";
-        sha256 = "188zaqdqxqw9xbga1ip4yi5f9p41zgdqr51idcnw4yayvdxg81q3";
+        url = "https://github.com/janestreet/ppx_expect/archive/v0.14.2.tar.gz";
+        sha256 = "1gcjlya6knnsrl60sd3vlgp7arj39xm5fjjfk5sick4z66agm2n5";
       };
       opamInputs = 
       {
@@ -794,8 +794,8 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/ppx_expect/ppx_expect.v0.14.1";
-        hash = "sha256:15qiv5ggyxxm3zwm1as6f29vnmnw9zksc2wib9l5lgp040zbcj70";
+        package = "packages/ppx_expect/ppx_expect.v0.14.2";
+        hash = "sha256:14hnawvs9fc87kghg00zj0p1p21f22gdy1767l2nwb4ihl3h133b";
       };
     };
     ppx_hash = 
