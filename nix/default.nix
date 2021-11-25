@@ -5,13 +5,10 @@ let
   args = {
     inherit (pkgs.ocaml-ng.ocamlPackages_4_12) ocaml;
     selection = ./opam-selection.nix;
-    src = builtins.filterSource (path: type:
-      let name = baseNameOf path;
-      in if type == "directory" then
-        name != ".git" && name != "_build" && name != "node_modules" && name
-        != ".log"
-      else
-        (strings.hasSuffix ".opam" name || name == "unvendor.ml")) ../.;
+    src = let ignores = pkgs.lib.strings.fileContents ../.gitignore
+            + builtins.foldl' (acc: e: acc + "\n" + e) "\n"
+                [ "nix" "shell.nix" "default.nix" ];
+          in pkgs.nix-gitignore.gitignoreSourcePure ignores ../.;
   };
   opam-selection = opam2nix.build args;
   localPackages = let contents = builtins.attrNames (builtins.readDir ../.);
