@@ -325,3 +325,22 @@ let edit t text_edit =
     TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit text_edit ]
   in
   WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
+
+let new_range_on_replace (range : Range.t) new_text =
+  let lines = String.split_lines new_text in
+  match lines with
+  | [] -> { range with end_ = range.start }
+  | several_lines ->
+    let n_lines = List.length several_lines in
+    let end_ =
+      let start = range.start in
+      let line = start.line + n_lines - 1 in
+      let character =
+        let last_line_len =
+          List.last several_lines |> Option.value_exn |> String.length
+        in
+        start.character + last_line_len
+      in
+      { Position.line; character }
+    in
+    { range with end_ }
