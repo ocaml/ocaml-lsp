@@ -233,7 +233,8 @@ module Complete_with_construct = struct
         let expr_wo_parens = deparen_constr_expr expr in
         let textEdit = `TextEdit { TextEdit.range; newText = expr } in
         let command =
-          Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
+          Client.Vscode.Commands.Custom.next_hole
+            ~in_range:(Document.new_range_on_replace range expr)
             ~notify_if_no_hole:false ()
         in
         CompletionItem.create ~label:expr_wo_parens ~textEdit

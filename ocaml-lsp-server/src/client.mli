@@ -20,16 +20,17 @@ module Vscode : sig
     module Custom : sig
       (** Request client cursor to jump to the next hole.
 
-          Looks for a hole starting at position [start_position], if provided;
-          otherwise, uses the cursor position.
+          See the documentation for this command in [vscode-ocaml-platform] for
+          details.
 
-          Will not show a pop-up notification if [notify-if-no-hole] is set to
-          [false] (the default value is [true]) *)
+          @param in_range
+            to pick a hole only in a given range; if omitted, the whole document
+            is used
+          @param notify_if_no_hole
+            specifies whether we want the client to show the user a message if
+            there is no hole to jump to *)
       val next_hole :
-           ?start_position:Position.t
-        -> notify_if_no_hole:bool
-        -> unit
-        -> Command.t
+        ?in_range:Range.t -> notify_if_no_hole:bool -> unit -> Command.t
     end
   end
 end

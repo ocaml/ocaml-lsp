@@ -20,7 +20,8 @@ let code_action_of_case_analysis doc uri (loc, newText) =
   in
   let title = String.capitalize_ascii action_kind in
   let command =
-    Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
+    Client.Vscode.Commands.Custom.next_hole
+      ~in_range:(Document.new_range_on_replace range newText)
       ~notify_if_no_hole:false ()
   in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit

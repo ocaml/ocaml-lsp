@@ -7,17 +7,16 @@ module Vscode = struct
         ~command:"editor.action.triggerSuggest" ()
 
     module Custom = struct
-      let next_hole ?start_position ~notify_if_no_hole () =
+      let next_hole ?in_range ~notify_if_no_hole () =
         let arguments =
           let arg_obj_fields =
             let notif_json =
-              Some ("notify-if-no-hole", Json.bool notify_if_no_hole)
+              Some ("shouldNotifyIfNoHole", Json.bool notify_if_no_hole)
             in
-            let pos_json =
-              Option.map start_position ~f:(fun p ->
-                  ("position", Position.yojson_of_t p))
+            let in_range_json =
+              Option.map in_range ~f:(fun r -> ("inRange", Range.yojson_of_t r))
             in
-            List.filter_opt [ pos_json; notif_json ]
+            List.filter_opt [ in_range_json; notif_json ]
           in
           match arg_obj_fields with
           | [] -> [] (* no arguments -- the extension uses defaults *)
