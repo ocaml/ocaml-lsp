@@ -231,13 +231,13 @@ module Complete_with_construct = struct
       in
       let completionItem_of_constructed_expr idx expr =
         let expr_wo_parens = deparen_constr_expr expr in
-        let textEdit = `TextEdit { TextEdit.range; newText = expr } in
+        let edit = { TextEdit.range; newText = expr } in
         let command =
           Client.Vscode.Commands.Custom.next_hole
-            ~in_range:(Document.new_range_on_replace range expr)
+            ~in_range:(Range.resize_for_edit edit)
             ~notify_if_no_hole:false ()
         in
-        CompletionItem.create ~label:expr_wo_parens ~textEdit
+        CompletionItem.create ~label:expr_wo_parens ~textEdit:(`TextEdit edit)
           ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
           ~sortText:(sortText_of_index idx) ~command ()
       in

@@ -7,8 +7,8 @@ let kind = CodeActionKind.Other action_kind
 
 let code_action_of_case_analysis doc uri (loc, newText) =
   let range : Range.t = Range.of_loc loc in
+  let textedit : TextEdit.t = { range; newText } in
   let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range; newText } in
     let version = Document.version doc in
     let textDocument =
       OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
@@ -21,7 +21,7 @@ let code_action_of_case_analysis doc uri (loc, newText) =
   let title = String.capitalize_ascii action_kind in
   let command =
     Client.Vscode.Commands.Custom.next_hole
-      ~in_range:(Document.new_range_on_replace range newText)
+      ~in_range:(Range.resize_for_edit textedit)
       ~notify_if_no_hole:false ()
   in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit

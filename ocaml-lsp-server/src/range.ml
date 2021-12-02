@@ -24,3 +24,21 @@ let of_loc (loc : Loc.t) : t =
   let+ end_ = Position.of_lexical_position loc.loc_end in
   { start; end_ })
   |> Option.value ~default:first_line
+
+let resize_for_edit { TextEdit.range; newText } =
+  let lines = String.split_lines newText in
+  match lines with
+  | [] -> { range with end_ = range.start }
+  | several_lines ->
+    let end_ =
+      let start = range.start in
+      let line = start.line + List.length several_lines - 1 in
+      let character =
+        let last_line_len =
+          List.last several_lines |> Option.value_exn |> String.length
+        in
+        start.character + last_line_len
+      in
+      { Position.line; character }
+    in
+    { range with end_ }
