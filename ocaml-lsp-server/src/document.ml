@@ -331,10 +331,9 @@ let new_range_on_replace (range : Range.t) new_text =
   match lines with
   | [] -> { range with end_ = range.start }
   | several_lines ->
-    let n_lines = List.length several_lines in
     let end_ =
       let start = range.start in
-      let line = start.line + n_lines - 1 in
+      let line = start.line + List.length several_lines - 1 in
       let character =
         let last_line_len =
           List.last several_lines |> Option.value_exn |> String.length
