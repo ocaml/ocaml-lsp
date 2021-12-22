@@ -715,10 +715,66 @@ let folding_range (state : State.t)
         let range = Range.of_loc class_declaration.pci_loc in
         push range
       in
-      let value_binding (_iterator : Ast_iterator.iterator)
+      let value_binding (iterator : Ast_iterator.iterator)
           (value_binding : Parsetree.value_binding) =
         let range = Range.of_loc value_binding.pvb_loc in
-        push range
+        push range;
+        iterator.expr iterator value_binding.pvb_expr
+      in
+      let expr (iterator : Ast_iterator.iterator) (expr : Parsetree.expression)
+          =
+        match expr.pexp_desc with
+        | Parsetree.Pexp_let (_, value_bindings, expr) ->
+          List.iter value_bindings ~f:(fun value_binding ->
+              iterator.value_binding iterator value_binding);
+          iterator.expr iterator expr
+        | Parsetree.Pexp_fun (_, _, _, expr) -> iterator.expr iterator expr
+        | Parsetree.Pexp_open (_, expr) -> iterator.expr iterator expr
+        | Parsetree.Pexp_letop letop ->
+          (* Location is not correct. It include the location of the whole
+             expression. See: https://github.com/ocaml/ocaml/pull/10682 *)
+          let range = Range.of_loc letop.let_.pbop_loc in
+          push range;
+          iterator.expr iterator letop.let_.pbop_exp
+        | Parsetree.Pexp_extension (_, payload) -> (
+          match payload with
+          | Parsetree.PStr structure -> iterator.structure iterator structure
+          | Parsetree.PSig signature -> iterator.signature iterator signature
+          | Parsetree.PTyp _ -> ()
+          | Parsetree.PPat (_, _) -> ())
+        | Parsetree.Pexp_ident _ -> ()
+        | Parsetree.Pexp_constant _ -> ()
+        | Parsetree.Pexp_function _ -> ()
+        | Parsetree.Pexp_apply (_, _) -> ()
+        | Parsetree.Pexp_match (_, _) -> ()
+        | Parsetree.Pexp_try (_, _) -> ()
+        | Parsetree.Pexp_tuple _ -> ()
+        | Parsetree.Pexp_construct (_, _) -> ()
+        | Parsetree.Pexp_variant (_, _) -> ()
+        | Parsetree.Pexp_record (_, _) -> ()
+        | Parsetree.Pexp_field (_, _) -> ()
+        | Parsetree.Pexp_setfield (_, _, _) -> ()
+        | Parsetree.Pexp_array _ -> ()
+        | Parsetree.Pexp_ifthenelse (_, _, _) -> ()
+        | Parsetree.Pexp_sequence (_, _) -> ()
+        | Parsetree.Pexp_while (_, _) -> ()
+        | Parsetree.Pexp_for (_, _, _, _, _) -> ()
+        | Parsetree.Pexp_constraint (_, _) -> ()
+        | Parsetree.Pexp_coerce (_, _, _) -> ()
+        | Parsetree.Pexp_send (_, _) -> ()
+        | Parsetree.Pexp_new _ -> ()
+        | Parsetree.Pexp_setinstvar (_, _) -> ()
+        | Parsetree.Pexp_override _ -> ()
+        | Parsetree.Pexp_letmodule (_, _, _) -> ()
+        | Parsetree.Pexp_letexception (_, _) -> ()
+        | Parsetree.Pexp_assert _ -> ()
+        | Parsetree.Pexp_lazy _ -> ()
+        | Parsetree.Pexp_poly (_, _) -> ()
+        | Parsetree.Pexp_object _ -> ()
+        | Parsetree.Pexp_newtype (_, _) -> ()
+        | Parsetree.Pexp_pack _ -> ()
+        | Parsetree.Pexp_unreachable -> ()
+        | Parsetree.Pexp_hole -> ()
       in
       let structure_item (iterator : Ast_iterator.iterator)
           (structure_item : Parsetree.structure_item) =
@@ -736,7 +792,7 @@ let folding_range (state : State.t)
         | Pstr_type (_, type_declarations) ->
           List.iter type_declarations ~f:(fun type_declaration ->
               iterator.type_declaration iterator type_declaration)
-        | Parsetree.Pstr_eval (_, _) -> ()
+        | Parsetree.Pstr_eval (expr, _) -> iterator.expr iterator expr
         | Parsetree.Pstr_primitive _ -> ()
         | Parsetree.Pstr_typext _ -> ()
         | Parsetree.Pstr_exception _ -> ()
@@ -776,6 +832,7 @@ let folding_range (state : State.t)
       in
       { default_iterator with
         class_declaration
+      ; expr
       ; module_declaration
       ; module_type
       ; module_type_declaration
