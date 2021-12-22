@@ -51,35 +51,37 @@ describe("textDocument/foldingRange", () => {
         `);
 
     let result = await foldingRange();
-    expect(result).toMatchObject([
-      {
-        endCharacter: 3,
-        endLine: 2,
-        kind: "region",
-        startCharacter: 0,
-        startLine: 0,
-      },
-      {
-        endCharacter: 3,
-        endLine: 9,
-        kind: "region",
-        startCharacter: 0,
-        startLine: 4,
-      },
-      {
-        endCharacter: 5,
-        endLine: 7,
-        kind: "region",
-        startCharacter: 2,
-        startLine: 5,
-      },
-      {
-        endCharacter: 3,
-        endLine: 13,
-        kind: "region",
-        startCharacter: 0,
-        startLine: 11,
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 3,
+          "endLine": 2,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 3,
+          "endLine": 9,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 4,
+        },
+        Object {
+          "endCharacter": 5,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 5,
+        },
+        Object {
+          "endCharacter": 3,
+          "endLine": 13,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 11,
+        },
+      ]
+    `);
   });
 });
