@@ -656,33 +656,148 @@ let text_document_lens (state : State.t)
 
 let folding_range (state : State.t)
     { FoldingRangeParams.textDocument = { uri }; _ } =
-  let+ outline =
-    let command = Query_protocol.Outline in
-    let doc = Document_store.get state.store uri in
-    Document.dispatch_exn doc command
+  let folding_range (range : Range.t) =
+    FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
+      ~startCharacter:range.start.character ~endCharacter:range.end_.character
+      ~kind:Region ()
   in
-  let folds : FoldingRange.t list =
-    let folding_range (range : Range.t) =
-      FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
-        ~startCharacter:range.start.character ~endCharacter:range.end_.character
-        ~kind:Region ()
-    in
-    let rec loop acc (items : Query_protocol.item list) =
-      match items with
-      | [] -> acc
-      | item :: items ->
-        let range = Range.of_loc item.location in
-        if range.end_.line - range.start.line < 2 then
-          loop acc items
-        else
-          let items = item.children @ items in
-          let range = folding_range range in
-          loop (range :: acc) items
-    in
-    loop [] outline
-    |> List.sort ~compare:(fun x y -> Ordering.of_int (compare x y))
+  let ranges = ref [] in
+  let push (range : Range.t) =
+    if range.end_.line - range.start.line >= 2 then
+      ranges := folding_range range :: !ranges
+    else
+      ()
   in
-  Some folds
+  let fold_over_parsetree (parsetree : Mreader.parsetree) =
+    let iterator =
+      let default_iterator = Ast_iterator.default_iterator in
+      let structure (iterator : Ast_iterator.iterator) structure =
+        List.iter structure ~f:(fun structure_item ->
+            iterator.structure_item iterator structure_item)
+      in
+      let signature (iterator : Ast_iterator.iterator) signature =
+        List.iter signature ~f:(fun signature_item ->
+            iterator.signature_item iterator signature_item)
+      in
+      let type_declaration (_iterator : Ast_iterator.iterator)
+          (type_declaration : Parsetree.type_declaration) =
+        let range = Range.of_loc type_declaration.ptype_loc in
+        push range
+      in
+      let module_type_declaration (iterator : Ast_iterator.iterator)
+          (module_type_declaration : Parsetree.module_type_declaration) =
+        let range = Range.of_loc module_type_declaration.pmtd_loc in
+        push range;
+        match module_type_declaration.pmtd_type with
+        | None -> ()
+        | Some module_type -> iterator.module_type iterator module_type
+      in
+      let module_type (iterator : Ast_iterator.iterator)
+          (module_type : Parsetree.module_type) =
+        match module_type.pmty_desc with
+        | Parsetree.Pmty_ident _ -> ()
+        | Parsetree.Pmty_signature signature ->
+          iterator.signature iterator signature
+        | Parsetree.Pmty_functor (_, _) -> ()
+        | Parsetree.Pmty_with (_, _) -> ()
+        | Parsetree.Pmty_typeof _ -> ()
+        | Parsetree.Pmty_extension _ -> ()
+        | Parsetree.Pmty_alias _ -> ()
+      in
+      let module_declaration (iterator : Ast_iterator.iterator)
+          (module_declaration : Parsetree.module_declaration) =
+        let range = Range.of_loc module_declaration.pmd_loc in
+        push range;
+        iterator.module_type iterator module_declaration.pmd_type
+      in
+      let class_declaration (_iterator : Ast_iterator.iterator)
+          (class_declaration : Parsetree.class_declaration) =
+        let range = Range.of_loc class_declaration.pci_loc in
+        push range
+      in
+      let value_binding (_iterator : Ast_iterator.iterator)
+          (value_binding : Parsetree.value_binding) =
+        let range = Range.of_loc value_binding.pvb_loc in
+        push range
+      in
+      let structure_item (iterator : Ast_iterator.iterator)
+          (structure_item : Parsetree.structure_item) =
+        match structure_item.pstr_desc with
+        | Parsetree.Pstr_value (_, value_bindings) ->
+          List.iter value_bindings ~f:(fun value_binding ->
+              iterator.value_binding iterator value_binding)
+        | Pstr_module module_binding ->
+          let range = Range.of_loc module_binding.pmb_loc in
+          push range;
+          let module_expr = module_binding.pmb_expr in
+          iterator.module_expr iterator module_expr
+        | Pstr_modtype module_type_declaration ->
+          iterator.module_type_declaration iterator module_type_declaration
+        | Pstr_type (_, type_declarations) ->
+          List.iter type_declarations ~f:(fun type_declaration ->
+              iterator.type_declaration iterator type_declaration)
+        | Parsetree.Pstr_eval (_, _) -> ()
+        | Parsetree.Pstr_primitive _ -> ()
+        | Parsetree.Pstr_typext _ -> ()
+        | Parsetree.Pstr_exception _ -> ()
+        | Parsetree.Pstr_recmodule _ -> ()
+        | Parsetree.Pstr_open _ -> ()
+        | Parsetree.Pstr_class class_declarations ->
+          List.iter class_declarations ~f:(fun class_declaration ->
+              iterator.class_declaration iterator class_declaration)
+        | Parsetree.Pstr_class_type _ -> ()
+        | Parsetree.Pstr_include _ -> ()
+        | Parsetree.Pstr_attribute _ -> ()
+        | Parsetree.Pstr_extension (_, _) -> ()
+      in
+      let signature_item (iterator : Ast_iterator.iterator)
+          (signature_item : Parsetree.signature_item) =
+        match signature_item.psig_desc with
+        | Psig_value _ -> ()
+        | Psig_type (_, type_declarations) ->
+          List.iter type_declarations ~f:(fun type_declaration ->
+              iterator.type_declaration iterator type_declaration)
+        | Psig_typesubst _ -> ()
+        | Psig_typext _ -> ()
+        | Psig_exception _ -> ()
+        | Psig_module module_declaration ->
+          iterator.module_declaration iterator module_declaration
+        | Psig_modsubst _ -> ()
+        | Psig_recmodule _ -> ()
+        | Psig_modtype module_type_declaration ->
+          iterator.module_type_declaration iterator module_type_declaration
+        | Psig_modtypesubst _ -> ()
+        | Psig_open _ -> ()
+        | Psig_include _ -> ()
+        | Psig_class _ -> ()
+        | Psig_class_type _ -> ()
+        | Psig_attribute _ -> ()
+        | Psig_extension (_, _) -> ()
+      in
+      { default_iterator with
+        class_declaration
+      ; module_declaration
+      ; module_type
+      ; module_type_declaration
+      ; signature
+      ; signature_item
+      ; structure
+      ; structure_item
+      ; type_declaration
+      ; value_binding
+      }
+    in
+    match parsetree with
+    | `Interface signature -> iterator.signature iterator signature
+    | `Implementation structure -> iterator.structure iterator structure
+  in
+  let doc = Document_store.get state.store uri in
+  let+ () =
+    Document.with_pipeline_exn doc (fun pipeline ->
+        let parsetree = Mpipeline.reader_parsetree pipeline in
+        fold_over_parsetree parsetree)
+  in
+  Some (List.rev !ranges)
 
 let rename (state : State.t)
     { RenameParams.textDocument = { uri }; position; newName; _ } =
