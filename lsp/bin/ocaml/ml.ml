@@ -526,7 +526,7 @@ module Module = struct
     let of_string s =
       match s.[0] with
       | 'a' .. 'z' ->
-        Code_error.raise "invalid module name" [ ("s", Dyn.Encoder.string s) ]
+        Code_error.raise "invalid module name" [ ("s", Dyn.string s) ]
       | _ -> s
   end
 

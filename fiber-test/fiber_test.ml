@@ -35,9 +35,12 @@ end = struct
   let run t fiber =
     let fiber = Fiber.Var.set t_var t (fun () -> fiber) in
     Fiber.run fiber ~iter:(fun () ->
-        match Queue.pop t with
-        | None -> raise Never
-        | Some e -> Fiber.Fill (e, ()))
+        let next =
+          match Queue.pop t with
+          | None -> raise Never
+          | Some e -> Fiber.Fill (e, ())
+        in
+        Nonempty_list.[ next ])
 end
 
 let test ?(expect_never = false) to_dyn f =

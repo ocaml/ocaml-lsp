@@ -33,11 +33,13 @@ module Json = struct
     | Opaque -> `String "<opaque>"
     | Unit -> `String "()"
     | Int i -> `Int i
+    | Int32 i -> `Int (Int32.to_int i)
+    | Nativeint i -> `Int (Nativeint.to_int i)
     | Int64 i -> `Int (Int64.to_int i)
     | Bool b -> `Bool b
     | String s -> `String s
     | Bytes s -> `String (Bytes.to_string s)
-    | Char c -> `String (String.of_list [ c ])
+    | Char c -> `String (String.make 1 c)
     | Float f -> `Float f
     | Option None -> `String "<none>"
     | Option (Some s) -> of_dyn s

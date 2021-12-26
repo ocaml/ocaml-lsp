@@ -26,6 +26,7 @@
   re
   result
   stdune
+  ordering
   csexp
   yojson
   dune_rpc

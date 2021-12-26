@@ -1131,7 +1131,7 @@ let start () =
   in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
-  let server = Fdecl.create Dyn.Encoder.opaque in
+  let server = Fdecl.create Dyn.opaque in
   let diagnostics =
     let workspace_root =
       lazy

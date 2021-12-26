@@ -109,6 +109,8 @@ module Json = struct
     | Opaque -> `String "<opaque>"
     | Unit -> `String "()"
     | Int i -> `Int i
+    | Int32 i -> `Int (Int32.to_int i)
+    | Nativeint i -> `Int (Nativeint.to_int i)
     | Int64 i -> `Int (Int64.to_int i)
     | Bool b -> `Bool b
     | String s -> `String s

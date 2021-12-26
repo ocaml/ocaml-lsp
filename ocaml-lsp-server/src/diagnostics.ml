@@ -12,9 +12,9 @@ module Uri_set = Uri_c.Set
 module Id = struct
   include Drpc.Diagnostic.Id
 
-  let equal x y = compare x y = 0
+  let equal x y = compare x y = Eq
 
-  let to_dyn = Dyn.Encoder.opaque
+  let to_dyn = Dyn.opaque
 end
 
 module Dune = Stdune.Id.Make ()

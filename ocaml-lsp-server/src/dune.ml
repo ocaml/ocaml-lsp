@@ -424,11 +424,7 @@ end = struct
   (* TODO wait for initialization *)
 end
 
-module Dune_map = Map.Make (struct
-  include Registry.Dune
-
-  let compare x y = Ordering.of_int (compare x y)
-end)
+module Dune_map = Map.Make (Registry.Dune)
 
 type active =
   { mutable instances : Instance.t String.Map.t (* keyed by root *)

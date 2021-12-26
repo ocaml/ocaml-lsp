@@ -423,7 +423,7 @@ let cleanup t =
   Process_watcher.await t.process_watcher
 
 let create () =
-  let t = Fdecl.create Dyn.Encoder.opaque in
+  let t = Fdecl.create Dyn.opaque in
   let running = ref true in
   let process_watcher = Process_watcher.init t ~running in
   let original_behavior =
@@ -453,7 +453,7 @@ let run_result : 'a. (unit -> 'a Fiber.t) -> ('a, _) result =
  fun f ->
   let t = create () in
   let f = Fiber.Var.set me t f in
-  let iter () = iter t in
+  let iter () = Nonempty_list.[ iter t ] in
   let res =
     match Fiber.run f ~iter with
     | exception Abort err -> Error err

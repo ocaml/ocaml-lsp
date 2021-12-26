@@ -245,7 +245,7 @@ struct
     let t =
       { io
       ; state = Waiting_for_init
-      ; session = Fdecl.create Dyn.Encoder.opaque
+      ; session = Fdecl.create Dyn.opaque
       ; initialized = Fiber.Ivar.create ()
       ; req_id = 1
       ; pending = Table.create (module Jrpc_id) 32

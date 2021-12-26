@@ -230,7 +230,7 @@ struct
         Format.eprintf
           "Uncaught error when handling notification:@.%a@.Error:@.%s@." Json.pp
           (Message.yojson_of_notification r)
-          (Dyn.to_string (Dyn.Encoder.list Exn_with_backtrace.to_dyn errors));
+          (Dyn.to_string (Dyn.list Exn_with_backtrace.to_dyn errors));
         loop ()
     in
     t.running <- true;

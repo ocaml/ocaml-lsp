@@ -13,8 +13,8 @@ module Literal = struct
     | Int i -> string_of_int i
     | Float f -> string_of_float f
 
-  let to_dyn =
-    let open Dyn.Encoder in
+  let to_dyn : t -> Dyn.t =
+    let open Dyn in
     function
     | String s -> string s
     | Int i -> int i
@@ -27,15 +27,15 @@ module Enum = struct
     | Alias of string
 
   let dyn_of_case =
-    let open Dyn.Encoder in
+    let open Dyn in
     function
-    | Literal l -> constr "Literal" [ Literal.to_dyn l ]
-    | Alias l -> constr "Alias" [ string l ]
+    | Literal l -> variant "Literal" [ Literal.to_dyn l ]
+    | Alias l -> variant "Alias" [ string l ]
 
   type t = (string * case) list
 
   let to_dyn t =
-    let open Dyn.Encoder in
+    let open Dyn in
     list (fun (name, case) -> pair string dyn_of_case (name, case)) t
 end
 
@@ -151,18 +151,18 @@ struct
   and t = decl Named.t
 
   let rec dyn_of_typ =
-    let open Dyn.Encoder in
+    let open Dyn in
     function
-    | Literal l -> constr "Literal" [ Literal.to_dyn l ]
-    | Ident l -> constr "Ident" [ Ident.to_dyn l ]
-    | Sum l -> constr "Sum" (List.map ~f:dyn_of_typ l)
-    | List l -> constr "List" [ dyn_of_typ l ]
-    | Tuple l -> constr "Tuple" (List.map ~f:dyn_of_typ l)
-    | App (f, x) -> constr "App" [ dyn_of_typ f; dyn_of_typ x ]
-    | Record fs -> constr "Record" (List.map fs ~f:dyn_of_field)
+    | Literal l -> variant "Literal" [ Literal.to_dyn l ]
+    | Ident l -> variant "Ident" [ Ident.to_dyn l ]
+    | Sum l -> variant "Sum" (List.map ~f:dyn_of_typ l)
+    | List l -> variant "List" [ dyn_of_typ l ]
+    | Tuple l -> variant "Tuple" (List.map ~f:dyn_of_typ l)
+    | App (f, x) -> variant "App" [ dyn_of_typ f; dyn_of_typ x ]
+    | Record fs -> variant "Record" (List.map fs ~f:dyn_of_field)
 
   and field_def_of_dyn =
-    let open Dyn.Encoder in
+    let open Dyn in
     function
     | Single { optional; typ } ->
       record [ ("optional", bool optional); ("typ", dyn_of_typ typ) ]
@@ -172,7 +172,7 @@ struct
   and dyn_of_field f = Named.to_dyn field_def_of_dyn f
 
   let dyn_of_interface { extends; fields; params } =
-    let open Dyn.Encoder in
+    let open Dyn in
     record
       [ ("extends", (list Ident.to_dyn) extends)
       ; ("fields", (list dyn_of_field) fields)
@@ -180,11 +180,11 @@ struct
       ]
 
   let dyn_of_decl =
-    let open Dyn.Encoder in
+    let open Dyn in
     function
-    | Interface i -> constr "Interface" [ dyn_of_interface i ]
-    | Type t -> constr "Type" [ dyn_of_typ t ]
-    | Enum_anon t -> constr "Enum_anon" [ Enum.to_dyn t ]
+    | Interface i -> variant "Interface" [ dyn_of_interface i ]
+    | Type t -> variant "Type" [ dyn_of_typ t ]
+    | Enum_anon t -> variant "Enum_anon" [ Enum.to_dyn t ]
 
   let to_dyn t = Named.to_dyn dyn_of_decl t
 
@@ -296,7 +296,7 @@ module Ident = struct
     | Name
 
   let dyn_of_kind =
-    let open Dyn.Encoder in
+    let open Dyn in
     function
     | Type_variable -> string "type_variable"
     | Name -> string "Name"
@@ -309,7 +309,7 @@ module Ident = struct
       }
 
     let to_dyn { id; name; kind } =
-      let open Dyn.Encoder in
+      let open Dyn in
       record
         [ ("id", Id.to_dyn id)
         ; ("name", String name)
@@ -342,18 +342,18 @@ module Prim = struct
     | Resolved of Ident.t
 
   let to_dyn =
-    let open Dyn.Encoder in
+    let open Dyn in
     function
-    | Null -> constr "Null" []
-    | String -> constr "String" []
-    | Bool -> constr "Bool" []
-    | Number -> constr "Number" []
-    | Uinteger -> constr "Uinteger" []
-    | Any -> constr "Any" []
-    | Object -> constr "Object" []
-    | List -> constr "List" []
-    | Self -> constr "Self" []
-    | Resolved r -> constr "Resolved" [ Ident.to_dyn r ]
+    | Null -> variant "Null" []
+    | String -> variant "String" []
+    | Bool -> variant "Bool" []
+    | Number -> variant "Number" []
+    | Uinteger -> variant "Uinteger" []
+    | Any -> variant "Any" []
+    | Object -> variant "Object" []
+    | List -> variant "List" []
+    | Self -> variant "Self" []
+    | Resolved r -> variant "Resolved" [ Ident.to_dyn r ]
 
   let of_string s ~resolve =
     match String.lowercase_ascii s with

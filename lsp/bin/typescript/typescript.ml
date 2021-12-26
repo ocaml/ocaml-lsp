@@ -19,7 +19,7 @@ let name_table (defns : Unresolved.t list) =
            if v1 = v2 then
              (v1, id1)
            else
-             let open Dyn.Encoder in
+             let open Dyn in
              Code_error.raise "definition conflict" [ ("name", string name) ])
 
 let resolve_all (defns : Unresolved.t list) =

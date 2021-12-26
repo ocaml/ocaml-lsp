@@ -854,8 +854,7 @@ let resolve_and_pp_typescript (ts : Unresolved.t list) =
   with
   | Error cycle ->
     let cycle = List.map cycle ~f:(fun (x : Resolved.t) -> x.name) in
-    Code_error.raise "Unexpected cycle"
-      [ ("cycle", Dyn.Encoder.(list string) cycle) ]
+    Code_error.raise "Unexpected cycle" [ ("cycle", Dyn.(list string) cycle) ]
   | Ok ts -> (db, ts)
 
 let of_resolved_typescript db (ts : Resolved.t list) =

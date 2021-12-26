@@ -5,6 +5,10 @@
 (rule
  (copy lsp.opam.template jsonrpc.opam.template))
 
+(env
+ (_
+  (flags :standard -alert -unstable)))
+
 (subdir
  vendor
  (subdir
@@ -14,18 +18,24 @@
    (libraries dyn stdune)
    (name fiber)))
  (subdir
+  ordering
+  (copy_files# %{project_root}/submodules/dune/otherlibs/ordering/*.{ml,mli})
+  (library
+   (public_name lsp.ordering)
+   (name ordering)))
+ (subdir
   dyn
   (copy_files# %{project_root}/submodules/dune/otherlibs/dyn/*.{ml,mli})
   (library
    (public_name lsp.dyn)
-   (libraries pp)
+   (libraries pp ordering)
    (name dyn)))
  (subdir
-  stdune-unstable
+  stdune
   (subdir
    dune_filesystem_stubs
    (copy_files#
-    %{project_root}/submodules/dune/otherlibs/stdune-unstable/dune_filesystem_stubs/*.*)
+    %{project_root}/submodules/dune/otherlibs/stdune/dune_filesystem_stubs/*.*)
    (library
     (name dune_filesystem_stubs)
     (public_name lsp.filesystem_stubs)
@@ -33,12 +43,13 @@
     (foreign_stubs
      (language c)
      (names readdir))))
-  (copy_files# %{project_root}/submodules/dune/otherlibs/stdune-unstable/*.*)
+  (copy_files# %{project_root}/submodules/dune/otherlibs/stdune/*.*)
   (library
    (name stdune)
    (libraries
     unix
     dyn
+    ordering
     csexp
     (re_export pp)
     dune_filesystem_stubs)

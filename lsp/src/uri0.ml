@@ -29,7 +29,7 @@ let compare (x : t) (y : t) = Stdlib.compare x y
 let hash = Hashtbl.hash
 
 let to_dyn { scheme; authority; path } =
-  let open Dyn.Encoder in
+  let open Dyn in
   record
     [ ("scheme", (option string) scheme)
     ; ("authority", string authority)
