@@ -11,8 +11,7 @@ module Test = struct
         ?on_notification state (in_, out) =
       let initialize = InitializeParams.create ~capabilities () in
       let+ client =
-        let io = Io.make in_ out in
-        let+ stream_io = Lsp_fiber.Fiber_io.make io in
+        let+ stream_io = Lsp_fiber.Fiber_io.make in_ out in
         let handler = Client.Handler.make ?on_request ?on_notification () in
         Client.make handler stream_io state
       in
@@ -22,8 +21,7 @@ module Test = struct
   module Server = struct
     let run ?on_request ?on_notification state (in_, out) =
       let+ server =
-        let io = Io.make in_ out in
-        let+ stream_io = Fiber_io.make io in
+        let+ stream_io = Fiber_io.make in_ out in
         let handler = Server.Handler.make ?on_request ?on_notification () in
         Server.make handler stream_io state
       in
@@ -182,23 +180,23 @@ let%expect_test "ent to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
   [%expect
     {|
-  client: waiting for initialization
-  server: initializing server
-  server: returning initialization result
-  client: server initialized. sending request
-  client: sending request
-  server: executing command
-  server: sending message notification to client
-  server: scheduling show message
-  server: scheduling show message
-  client: Successfully executed command with result:
-  "successful execution"
-  client: waiting to receive notification before shutdown
-  server: sending show message notification
-  server: 0 ran
-  client: received notification
-  window/showMessage
-  client: filled received_notification
-  client: sending request to shutdown
-  Successful termination of test
-  [TEST] finished |}]
+    client: waiting for initialization
+    server: initializing server
+    server: returning initialization result
+    client: server initialized. sending request
+    client: sending request
+    server: executing command
+    server: sending message notification to client
+    server: scheduling show message
+    server: scheduling show message
+    client: Successfully executed command with result:
+    "successful execution"
+    client: waiting to receive notification before shutdown
+    server: sending show message notification
+    server: 0 ran
+    client: received notification
+    window/showMessage
+    client: filled received_notification
+    client: sending request to shutdown
+    Successful termination of test
+    [TEST] finished |}]

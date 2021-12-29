@@ -1,55 +1,125 @@
 open Import
 
-type t =
-  { ic : in_channel
-  ; oc : out_channel
-  }
+exception Error of string
 
-let close_in { ic; oc = _ } = close_in_noerr ic
+let () =
+  Printexc.register_printer (function
+    | Error msg -> Some ("Error: " ^ msg)
+    | _ -> None)
 
-let close_out { ic = _; oc } = close_out_noerr oc
+let caseless_equal a b =
+  if a == b then
+    true
+  else
+    let len = String.length a in
+    len = String.length b
+    &&
+    let stop = ref false in
+    let idx = ref 0 in
+    while (not !stop) && !idx < len do
+      let c1 = String.unsafe_get a !idx in
+      let c2 = String.unsafe_get b !idx in
+      if Char.lowercase_ascii c1 <> Char.lowercase_ascii c2 then stop := true;
+      incr idx
+    done;
+    not !stop
 
-let close t =
-  close_in t;
-  close_out t
+let content_type_lowercase =
+  String.lowercase_ascii Header.Private.Key.content_type
 
-let make ic oc =
-  set_binary_mode_in ic true;
-  set_binary_mode_out oc true;
-  { ic; oc }
+let content_length_lowercase =
+  String.lowercase_ascii Header.Private.Key.content_length
 
-let send { oc; ic = _ } (packet : Jsonrpc.packet) =
-  let json = Jsonrpc.yojson_of_packet packet in
-  let data = Json.to_string json in
-  let content_length = String.length data in
-  let header = Header.create ~content_length in
-  Header.write header oc;
-  output_string oc data
+module Make (Io : sig
+  type 'a t
 
-let flush { oc; ic = _ } = flush oc
+  val return : 'a -> 'a t
 
-let read_content ic =
-  match Header.read ic with
-  | exception Sys_error _ -> None
-  | exception End_of_file -> None
-  | header ->
-    let len = Header.content_length header in
-    let buffer = Bytes.create len in
-    let rec read_loop read =
-      if read < len then
-        let n = input ic buffer read (len - read) in
-        read_loop (read + n)
+  val raise : exn -> 'a t
+
+  module O : sig
+    val ( let+ ) : 'a t -> ('a -> 'b) -> 'b t
+
+    val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
+  end
+end) (Chan : sig
+  type t
+
+  val read_line : t -> string option Io.t
+
+  val read_exactly : t -> int -> string option Io.t
+
+  val write : t -> string -> unit Io.t
+end) =
+struct
+  open Io.O
+
+  let read_header =
+    let init_content_length = -1 in
+    let rec loop chan content_length content_type =
+      let* line = Chan.read_line chan in
+      match line with
+      | None -> Io.return None
+      | Some "\r" -> Io.return (Some (content_length, content_type))
+      | Some line -> (
+        match String.lsplit2 ~on:':' line with
+        | None -> loop chan content_length content_type
+        | Some (k, v) ->
+          let k = String.trim k in
+          if
+            caseless_equal k content_length_lowercase
+            && content_length = init_content_length
+          then
+            let content_length = int_of_string_opt (String.trim v) in
+            match content_length with
+            | None -> Io.raise (Error "Content-Length is invalid")
+            | Some content_length -> loop chan content_length content_type
+          else if caseless_equal k content_type_lowercase && content_type = None
+          then
+            let content_type = String.trim v in
+            loop chan content_length (Some content_type)
+          else
+            loop chan content_length content_type)
     in
-    let () = read_loop 0 in
-    Some (Bytes.to_string buffer)
+    fun chan ->
+      let open Io.O in
+      let* res = loop chan init_content_length None in
+      match res with
+      | None -> Io.return None
+      | Some (content_length, content_type) ->
+        let+ () =
+          if content_length = init_content_length then
+            Io.raise (Error "content length absent")
+          else
+            Io.return ()
+        in
+        Some (Header.create ?content_type ~content_length ())
 
-let read { ic; oc = _ } : Json.t option =
-  read_content ic |> Option.map Json.of_string
+  let read =
+    let req json = Jsonrpc.Message (Jsonrpc.Message.either_of_yojson json) in
+    let resp json = Jsonrpc.Response (Jsonrpc.Response.t_of_yojson json) in
+    let packet =
+      let open Json.O in
+      req <|> resp
+    in
+    fun chan ->
+      let* header = read_header chan in
+      match header with
+      | None -> Io.return None
+      | Some header -> (
+        let len = Header.content_length header in
+        let* buf = Chan.read_exactly chan len in
+        match buf with
+        | None -> Io.raise (Error "unable to read json")
+        | Some buf ->
+          let json = Json.of_string buf in
+          Io.return (Some (packet json)))
 
-let read (t : t) : Jsonrpc.packet option =
-  let ( let+ ) x f = Option.map f x in
-  let+ json = read t in
-  let open Json.O in
-  let req json = Jsonrpc.Message (Jsonrpc.Message.either_of_yojson json) in
-  let resp json = Jsonrpc.Response (Jsonrpc.Response.t_of_yojson json) in
-  (req <|> resp) json
+  let write chan packet =
+    let json = Jsonrpc.yojson_of_packet packet in
+    let data = Json.to_string json in
+    let content_length = String.length data in
+    let header = Header.create ~content_length () in
+    let* () = Chan.write chan (Header.to_string header) in
+    Chan.write chan data
+end
