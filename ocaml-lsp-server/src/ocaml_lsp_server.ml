@@ -1125,10 +1125,7 @@ let start () =
     let on_request = { Server.Handler.on_request } in
     Server.Handler.make ~on_request ~on_notification ()
   in
-  let* stream =
-    let io = Lsp.Io.make stdin stdout in
-    Lsp_fiber.Fiber_io.make io
-  in
+  let* stream = Lsp_fiber.Fiber_io.make stdin stdout in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
   let server = Fdecl.create Dyn.opaque in
