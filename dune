@@ -13,11 +13,9 @@
  vendor
  (subdir
   lev-fiber-csexp
-  (subdir
-   util
-   (library
-    (name lev_fiber_csexp)
-    (libraries fiber csexp stdune dyn lev_fiber)))
+  (library
+   (name lev_fiber_csexp)
+   (libraries fiber csexp stdune dyn lev_fiber))
   (copy_files# %{project_root}/submodules/lev/lev-fiber-csexp/src/*.{ml,mli}))
  (subdir
   lev-fiber

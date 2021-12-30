@@ -1,6 +1,7 @@
 open! Import
 open Fiber.O
 module Registry = Drpc.Registry
+module Csexp_rpc = Lev_fiber_csexp
 
 let view_promotion_capability = ("diagnostic_promotions", `Bool true)
 
@@ -26,22 +27,6 @@ module For_diff = struct
 
   let diagnostic_data t = (fst view_promotion_capability, yojson_of_t t)
 end
-
-module Csexp_rpc = Csexp_rpc.Make (struct
-  type t = Lev_fiber.Thread.t
-
-  let stop t = Lev_fiber.Thread.close t
-
-  let create () = Lev_fiber.Thread.create ()
-
-  let task t ~f =
-    let* task = Lev_fiber.Thread.task t ~f in
-    let+ res = Lev_fiber.Thread.await task in
-    match res with
-    | Ok s -> Ok s
-    | Error `Cancelled -> assert false
-    | Error (`Exn e) -> Error (`Exn e)
-end)
 
 module Chan : sig
   type t
@@ -344,15 +329,24 @@ end = struct
       config.log ~type_:Info ~message
     in
     let where = Registry.Dune.where source in
-    let sock =
+    let sockaddr =
       match where with
       | `Unix s -> Unix.ADDR_UNIX s
       | `Ip (`Host h, `Port p) -> Unix.ADDR_INET (Unix.inet_addr_of_string h, p)
     in
-    let* client = Csexp_rpc.Client.create sock in
-    let* session = Csexp_rpc.Client.connect client in
+    let sock =
+      let domain = Unix.domain_of_sockaddr sockaddr in
+      Unix.socket ~cloexec:true domain Unix.SOCK_STREAM 0
+    in
+    let* session =
+      Fiber.map_reduce_errors
+        (module Monoid.List (Exn_with_backtrace))
+        ~on_error:(fun exn -> Fiber.return [ exn ])
+        (fun () -> Csexp_rpc.connect sock sockaddr)
+    in
     match session with
-    | Error exn ->
+    | Error exns ->
+      let exn = List.hd exns in
       let message =
         sprintf "unable to connect to dune %s" (Registry.Dune.root source)
       in

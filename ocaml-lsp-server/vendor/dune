@@ -12,16 +12,6 @@
   (name dune_rpc)
   (libraries stdune csexp xdg ordering dyn (re_export dune_rpc_private))))
 
-(subdir csexp_rpc
- (copy_files# %{project_root}/submodules/dune/src/csexp_rpc/*.{ml,mli,c})
- (library
-  (name csexp_rpc)
-  (foreign_stubs
-   (language c)
-   (names pthread_chdir_stubs))
-  (synopsis "Threaded client & server that uses csexp for communication")
-  (libraries stdune dyn csexp fiber)))
-
  (subdir
   xdg
   (copy_files# %{project_root}/submodules/dune/otherlibs/xdg/*.{ml,mli})
