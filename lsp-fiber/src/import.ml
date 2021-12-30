@@ -17,7 +17,6 @@ module Fdecl = Fdecl
 module Queue = Queue
 module Header = Lsp.Header
 module Io = Lsp.Io
-include Fiber_unix
 
 module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t

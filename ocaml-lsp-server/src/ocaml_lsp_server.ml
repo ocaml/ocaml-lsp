@@ -168,11 +168,11 @@ let set_diagnostics rpc doc =
     let+ () =
       task_if_running state ~f:(fun () ->
           let timer = Document.timer doc in
-          let+ res = Scheduler.schedule timer send in
+          Lev_fiber.Timer.Wheel.reset timer;
+          let* res = Lev_fiber.Timer.Wheel.await timer in
           match res with
-          | Error `Cancelled
-          | Ok () ->
-            ())
+          | `Cancelled -> Fiber.return ()
+          | `Ok -> send ())
     in
     ()
   in
@@ -781,20 +781,22 @@ let definition_query server (state : State.t) uri position merlin_request =
     in
     None
 
+let await_no_cancel task =
+  let+ res = Lev_fiber.Thread.await task in
+  match res with
+  | Ok s -> s
+  | Error `Cancelled -> assert false
+  | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
+
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
   let* symbols, errors =
     let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
-      let+ res =
-        Scheduler.async_exn thread (fun () ->
-            Workspace_symbol.run params workspaces)
-        |> Scheduler.await_no_cancel
-      in
-      match res with
-      | Ok s -> s
-      | Error exn -> Exn_with_backtrace.reraise exn
+      Lev_fiber.Thread.task thread ~f:(fun () ->
+          Workspace_symbol.run params workspaces)
+      >>= await_no_cancel
     in
     List.partition_map symbols_results ~f:(function
       | Ok r -> Left r
@@ -1026,8 +1028,7 @@ let on_notification server (notification : Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let* doc =
-      let debounce = Configuration.diagnostics_delay state.configuration in
-      Document.make ~debounce state.merlin_config params
+      Document.make (State.wheel state) state.merlin_config params
         ~merlin_thread:state.merlin
     in
     Document_store.put store doc;
@@ -1118,23 +1119,29 @@ let start () =
             Server.Batch.submit batch))
   in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
+  let* wheel =
+    let delay = Configuration.diagnostics_delay configuration in
+    Lev_fiber.Timer.Wheel.create ~delay
+  in
   let* server =
-    let+ merlin = Scheduler.create_thread () in
+    let+ merlin = Lev_fiber.Thread.create () in
     let ocamlformat = Ocamlformat.create () in
-    let symbols_thread = Lazy_fiber.create Scheduler.create_thread in
+    let symbols_thread = Lazy_fiber.create Lev_fiber.Thread.create in
     Fdecl.set server
       (Server.make handler stream
          (State.create ~store ~merlin ~ocamlformat ~ocamlformat_rpc
-            ~configuration ~detached ~diagnostics ~symbols_thread));
+            ~configuration ~detached ~diagnostics ~symbols_thread ~wheel));
     Fdecl.get server
   in
   Fiber.all_concurrently_unit
     [ Fiber.Pool.run detached
+    ; Lev_fiber.Timer.Wheel.run wheel
     ; (let* () = Server.start server in
        let finalize =
          [ Document_store.close store
          ; Fiber.Pool.stop detached
          ; Ocamlformat_rpc.stop ocamlformat_rpc
+         ; Lev_fiber.Timer.Wheel.stop wheel
          ]
        in
        let finalize =
@@ -1168,4 +1175,4 @@ let start () =
 
 let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Scheduler.run start
+  Lev_fiber.run (Lev.Loop.default ()) ~f:start

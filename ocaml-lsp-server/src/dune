@@ -5,7 +5,9 @@
   xdg
   dune-build-info
   fiber
-  fiber_unix
+  lev
+  lev_fiber
+  lev_fiber_csexp
   jsonrpc
   spawn
   lsp

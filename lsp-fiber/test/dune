@@ -11,7 +11,8 @@
   base
   fiber
   fiber_test
-  fiber_unix
+  lev
+  lev_fiber
   jsonrpc
   jsonrpc_fiber
   lsp

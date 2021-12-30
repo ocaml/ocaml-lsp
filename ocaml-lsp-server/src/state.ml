@@ -10,7 +10,7 @@ type init =
 
 type t =
   { store : Document_store.t
-  ; merlin : Scheduler.thread
+  ; merlin : Lev_fiber.Thread.t
   ; merlin_config : Merlin_config.t
   ; init : init
   ; detached : Fiber.Pool.t
@@ -19,11 +19,12 @@ type t =
   ; ocamlformat : Ocamlformat.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
   ; diagnostics : Diagnostics.t
-  ; symbols_thread : Scheduler.thread Lazy_fiber.t
+  ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
+  ; wheel : Lev_fiber.Timer.Wheel.t
   }
 
 let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
-    ~diagnostics ~symbols_thread =
+    ~diagnostics ~symbols_thread ~wheel =
   { init = Uninitialized
   ; merlin_config = Merlin_config.create ()
   ; store
@@ -35,7 +36,10 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
   ; ocamlformat_rpc
   ; diagnostics
   ; symbols_thread
+  ; wheel
   }
+
+let wheel t = t.wheel
 
 let initialize_params (state : t) =
   match state.init with

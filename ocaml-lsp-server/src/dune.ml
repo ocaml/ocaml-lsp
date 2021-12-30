@@ -28,21 +28,19 @@ module For_diff = struct
 end
 
 module Csexp_rpc = Csexp_rpc.Make (struct
-  type t = Scheduler.thread
+  type t = Lev_fiber.Thread.t
 
-  let stop t = Scheduler.stop t
+  let stop t = Lev_fiber.Thread.close t
 
-  let create () = Scheduler.create_thread ()
+  let create () = Lev_fiber.Thread.create ()
 
   let task t ~f =
-    let res = Scheduler.async t f in
+    let* task = Lev_fiber.Thread.task t ~f in
+    let+ res = Lev_fiber.Thread.await task in
     match res with
-    | Error `Stopped -> Fiber.return (Error `Stopped)
-    | Ok t -> (
-      let+ res = Scheduler.await_no_cancel t in
-      match res with
-      | Ok s -> Ok s
-      | Error e -> Error (`Exn e))
+    | Ok s -> Ok s
+    | Error `Cancelled -> assert false
+    | Error (`Exn e) -> Error (`Exn e)
 end)
 
 module Chan : sig
@@ -624,7 +622,7 @@ let run_loop t =
         let* () = poll active in
         (* TODO make this a bit more dynamic. if poll completes fast, wait more,
            if it's slow, then wait less *)
-        let+ () = Scheduler.sleep 0.25 in
+        let+ () = Lev_fiber.Timer.sleepf 0.25 in
         Some ())
 
 let run t : unit Fiber.t =

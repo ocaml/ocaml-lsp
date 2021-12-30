@@ -8,16 +8,23 @@ type command_result =
   }
 
 type t =
-  { stdin : Scheduler.thread Lazy_fiber.t
-  ; stderr : Scheduler.thread Lazy_fiber.t
-  ; stdout : Scheduler.thread Lazy_fiber.t
+  { stdin : Lev_fiber.Thread.t Lazy_fiber.t
+  ; stderr : Lev_fiber.Thread.t Lazy_fiber.t
+  ; stdout : Lev_fiber.Thread.t Lazy_fiber.t
   }
 
 let create () =
-  let stdout = Lazy_fiber.create Scheduler.create_thread in
-  let stderr = Lazy_fiber.create Scheduler.create_thread in
-  let stdin = Lazy_fiber.create Scheduler.create_thread in
+  let stdout = Lazy_fiber.create Lev_fiber.Thread.create in
+  let stderr = Lazy_fiber.create Lev_fiber.Thread.create in
+  let stdin = Lazy_fiber.create Lev_fiber.Thread.create in
   { stdout; stderr; stdin }
+
+let await_no_cancel task =
+  let+ res = Lev_fiber.Thread.await task in
+  match res with
+  | Ok s -> s
+  | Error `Cancelled -> assert false
+  | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
 
 let run_command state prog stdin_value args : command_result Fiber.t =
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
@@ -32,31 +39,25 @@ let run_command state prog stdin_value args : command_result Fiber.t =
   Unix.close stdout_o;
   Unix.close stderr_o;
   let stdin () =
-    let+ res =
-      let* thread = Lazy_fiber.force state.stdin in
-      Scheduler.async_exn thread (fun () ->
+    let* thread = Lazy_fiber.force state.stdin in
+    let* task =
+      Lev_fiber.Thread.task thread ~f:(fun () ->
           let out_chan = Unix.out_channel_of_descr stdin_o in
           output_string out_chan stdin_value;
           flush out_chan;
           close_out out_chan)
-      |> Scheduler.await_no_cancel
     in
-    match res with
-    | Ok s -> s
-    | Error e -> Exn_with_backtrace.reraise e
+    await_no_cancel task
   in
   let read th from =
-    let+ res =
-      Scheduler.async_exn th (fun () ->
+    let* task =
+      Lev_fiber.Thread.task th ~f:(fun () ->
           let in_ = Unix.in_channel_of_descr from in
           let contents = Stdune.Io.read_all in_ in
           close_in_noerr in_;
           contents)
-      |> Scheduler.await_no_cancel
     in
-    match res with
-    | Ok s -> s
-    | Error e -> Exn_with_backtrace.reraise e
+    await_no_cancel task
   in
   let stdout () =
     let* th = Lazy_fiber.force state.stdout in
@@ -68,7 +69,7 @@ let run_command state prog stdin_value args : command_result Fiber.t =
   in
   let+ status, (stdout, stderr) =
     Fiber.fork_and_join
-      (fun () -> Scheduler.wait_for_process pid)
+      (fun () -> Lev_fiber.waitpid ~pid:(Pid.to_int pid))
       (fun () ->
         Fiber.fork_and_join_unit stdin (fun () ->
             Fiber.fork_and_join stdout stderr))

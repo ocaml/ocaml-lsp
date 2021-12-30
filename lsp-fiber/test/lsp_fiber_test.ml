@@ -1,7 +1,6 @@
 open Fiber.O
 open Lsp
 open Import
-open Fiber_unix
 open Lsp.Types
 open Lsp_fiber
 
@@ -40,21 +39,10 @@ let test make_client make_server =
   let server () = make_server (server_in, server_out) in
   let client () = make_client (client_in, client_out) in
   let run () =
-    let delay = 3.0 in
-    let* timer = Scheduler.create_timer ~delay in
-    Fiber.fork_and_join_unit
-      (fun () ->
-        let+ res = Scheduler.schedule timer (fun () -> Scheduler.abort ()) in
-        match res with
-        | Error `Cancelled -> ()
-        | Ok () ->
-          Printf.eprintf "Test failed to terminate inside %0.2f seconds" delay)
-      (fun () ->
-        let* () = Fiber.fork_and_join_unit server client in
-        print_endline "Successful termination of test";
-        Scheduler.cancel_timer timer)
+    let+ () = Fiber.fork_and_join_unit server client in
+    print_endline "Successful termination of test"
   in
-  Scheduler.run run;
+  Lev_fiber.run (Lev.Loop.default ()) ~f:run;
   print_endline "[TEST] finished"
 
 module End_to_end_client = struct
@@ -122,35 +110,15 @@ module End_to_end_server = struct
         Format.eprintf "server: executing command@.%!";
         let result = `String "successful execution" in
         let* () =
-          let* timer = Scheduler.create_timer ~delay:0.5 in
           Fiber.Pool.task detached ~f:(fun () ->
               Format.eprintf
                 "server: sending message notification to client@.%!";
               let msg =
                 ShowMessageParams.create ~type_:MessageType.Info ~message:"foo"
               in
-              let rec loop n res : unit Fiber.t =
-                if n = 0 then
-                  let+ res = res in
-                  let () =
-                    match res with
-                    | Ok () -> Format.eprintf "server: %d ran@.%!" n
-                    | Error `Cancelled ->
-                      Format.eprintf "server: %d cancellation@.%!" n
-                  in
-                  ()
-                else
-                  let res =
-                    Format.eprintf "server: scheduling show message@.%!";
-                    Scheduler.schedule timer (fun () ->
-                        Format.eprintf
-                          "server: sending show message notification@.%!";
-                        Server.notification self
-                          (Server_notification.ShowMessage msg))
-                  in
-                  loop (n - 1) res
-              in
-              loop 2 (Fiber.return (Ok ())))
+              Format.eprintf "server: scheduling show message@.%!";
+              Format.eprintf "server: sending show message notification@.%!";
+              Server.notification self (Server_notification.ShowMessage msg))
         in
         let+ () = Fiber.Pool.stop detached in
         (Rpc.Reply.now result, state)
@@ -176,7 +144,7 @@ module End_to_end_server = struct
       (fun () -> Fiber.Pool.run detached)
 end
 
-let%expect_test "ent to end run of lsp tests" =
+let%expect_test "end to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
   [%expect
     {|
@@ -188,15 +156,13 @@ let%expect_test "ent to end run of lsp tests" =
     server: executing command
     server: sending message notification to client
     server: scheduling show message
-    server: scheduling show message
-    client: Successfully executed command with result:
-    "successful execution"
-    client: waiting to receive notification before shutdown
     server: sending show message notification
-    server: 0 ran
     client: received notification
     window/showMessage
     client: filled received_notification
+    client: Successfully executed command with result:
+    "successful execution"
+    client: waiting to receive notification before shutdown
     client: sending request to shutdown
     Successful termination of test
     [TEST] finished |}]
