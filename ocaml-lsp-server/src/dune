@@ -32,7 +32,6 @@
   csexp
   yojson
   dune_rpc
-  csexp_rpc
   ocamlformat-rpc-lib
   ocamlc_loc))
 
