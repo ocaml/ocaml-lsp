@@ -29,13 +29,13 @@ val kind : t -> Kind.t
 val syntax : t -> Syntax.t
 
 val make :
-     debounce:float
+     Lev_fiber.Timer.Wheel.t
   -> Merlin_config.t
-  -> merlin_thread:Scheduler.thread
+  -> merlin_thread:Lev_fiber.Thread.t
   -> DidOpenTextDocumentParams.t
   -> t Fiber.t
 
-val timer : t -> Scheduler.timer
+val timer : t -> Lev_fiber.Timer.Wheel.task
 
 val uri : t -> Uri.t
 

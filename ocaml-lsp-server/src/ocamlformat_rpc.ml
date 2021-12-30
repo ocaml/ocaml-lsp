@@ -1,12 +1,19 @@
 open Import
 open Fiber.O
 
+let await_no_cancel task =
+  let+ res = Lev_fiber.Thread.await task in
+  match res with
+  | Ok s -> s
+  | Error `Cancelled -> assert false
+  | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
+
 module Process : sig
   type t
 
   val pid : t -> Pid.t
 
-  val thread : t -> Scheduler.thread
+  val thread : t -> Lev_fiber.Thread.t
 
   val client : t -> Ocamlformat_rpc_lib.client
 
@@ -22,7 +29,7 @@ end = struct
     { pid : Pid.t
     ; input : in_channel
     ; output : out_channel
-    ; io_thread : Scheduler.thread
+    ; io_thread : Lev_fiber.Thread.t
     ; client : Ocamlformat_rpc_lib.client
     }
 
@@ -35,39 +42,30 @@ end = struct
   let supported_versions = [ "v1" ]
 
   let pick_client ~pid input output io_thread =
-    match
-      Scheduler.async io_thread (fun () ->
+    let* task =
+      Lev_fiber.Thread.task io_thread ~f:(fun () ->
           Ocamlformat_rpc_lib.pick_client ~pid input output supported_versions)
-    with
-    | Error `Stopped -> Code_error.raise "pick_client: stopped thread" []
-    | Ok res -> (
-      let+ res = Scheduler.await_no_cancel res in
-      match res with
-      | Ok s -> s
-      | Error e -> Exn_with_backtrace.reraise e)
+    in
+    await_no_cancel task
 
   let configure ~logger { io_thread; client; _ } =
     (* We ask for 64 columns formatting as this appear to be the maximum size of
        VScode popups. TODO We should probably allow some flexibility for other
        editors that use the server. *)
-    match
-      Scheduler.async io_thread (fun () ->
+    let* task =
+      Lev_fiber.Thread.task io_thread ~f:(fun () ->
           Ocamlformat_rpc_lib.config
             [ ("module-item-spacing", "compact"); ("margin", "63") ]
             client)
-    with
-    | Error `Stopped -> Fiber.return ()
-    | Ok res -> (
-      let* res = Scheduler.await_no_cancel res in
-      match res with
-      | Ok (Ok ()) -> Fiber.return ()
-      | Ok (Error (`Msg msg)) ->
-        let message =
-          Printf.sprintf "An error occured while configuring ocamlformat: %s"
-            msg
-        in
-        logger ~type_:MessageType.Warning ~message
-      | Error e -> Exn_with_backtrace.reraise e)
+    in
+    let* res = await_no_cancel task in
+    match res with
+    | Ok () -> Fiber.return ()
+    | Error (`Msg msg) ->
+      let message =
+        Printf.sprintf "An error occured while configuring ocamlformat: %s" msg
+      in
+      logger ~type_:MessageType.Warning ~message
 
   let create ~logger ~bin () =
     let bin = Fpath.to_string bin in
@@ -81,7 +79,7 @@ end = struct
       Unix.close stdout_o;
       (pid, stdout_i, stdin_o)
     in
-    let* io_thread = Scheduler.create_thread () in
+    let* io_thread = Lev_fiber.Thread.create () in
     let input = Unix.in_channel_of_descr stdout in
     let output = Unix.out_channel_of_descr stdin in
     let* client = pick_client ~pid input output io_thread in
@@ -90,7 +88,7 @@ end = struct
       (* The process did start but something went wrong when negociating the
          version so we need to kill it *)
       Unix.kill pid Sys.sigkill;
-      Scheduler.stop io_thread;
+      Lev_fiber.Thread.close io_thread;
       let* () =
         let message =
           Printf.sprintf
@@ -115,10 +113,10 @@ end = struct
       Ok process
 
   let run { pid; input; output; io_thread; _ } =
-    let+ (_ : Unix.process_status) = Scheduler.wait_for_process pid in
+    let+ (_ : Unix.process_status) = Lev_fiber.waitpid ~pid:(Pid.to_int pid) in
     close_in_noerr input;
     close_out_noerr output;
-    Scheduler.stop io_thread
+    Lev_fiber.Thread.close io_thread
 end
 
 type state =
@@ -154,17 +152,12 @@ let format_type t ~typ =
   let* p = get_process t in
   match p with
   | Error `No_process -> Fiber.return @@ Error `No_process
-  | Ok p -> (
-    match
-      Scheduler.async (Process.thread p) (fun () ->
+  | Ok p ->
+    let* task =
+      Lev_fiber.Thread.task (Process.thread p) ~f:(fun () ->
           Ocamlformat_rpc_lib.format typ (Process.client p))
-    with
-    | Error `Stopped -> Fiber.return @@ Error `No_process
-    | Ok res -> (
-      let+ res = Scheduler.await_no_cancel res in
-      match res with
-      | Ok s -> s
-      | Error e -> Exn_with_backtrace.reraise e))
+    in
+    await_no_cancel task
 
 let format_doc t doc =
   let txt = Document.source doc |> Msource.text in

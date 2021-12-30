@@ -10,7 +10,7 @@ type init =
 
 type t =
   { store : Document_store.t
-  ; merlin : Scheduler.thread
+  ; merlin : Lev_fiber.Thread.t
   ; merlin_config : Merlin_config.t
   ; init : init
   ; detached : Fiber.Pool.t
@@ -19,19 +19,23 @@ type t =
   ; ocamlformat : Ocamlformat.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
   ; diagnostics : Diagnostics.t
-  ; symbols_thread : Scheduler.thread Lazy_fiber.t
+  ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
+  ; wheel : Lev_fiber.Timer.Wheel.t
   }
 
 val create :
      store:Document_store.t
-  -> merlin:Scheduler.thread
+  -> merlin:Lev_fiber.Thread.t
   -> detached:Fiber.Pool.t
   -> configuration:Configuration.t
   -> ocamlformat:Ocamlformat.t
   -> ocamlformat_rpc:Ocamlformat_rpc.t
   -> diagnostics:Diagnostics.t
-  -> symbols_thread:Scheduler.thread Lazy_fiber.t
+  -> symbols_thread:Lev_fiber.Thread.t Lazy_fiber.t
+  -> wheel:Lev_fiber.Timer.Wheel.t
   -> t
+
+val wheel : t -> Lev_fiber.Timer.Wheel.t
 
 val initialize_params : t -> InitializeParams.t
 

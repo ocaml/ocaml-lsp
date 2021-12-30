@@ -189,7 +189,7 @@ let get_process t ~dir =
     Table.add_exn t.running dir p;
     let+ () =
       Fiber.Pool.task t.pool ~f:(fun () ->
-          let+ _status = Scheduler.wait_for_process p.pid in
+          let+ _status = Lev_fiber.waitpid ~pid:(Pid.to_int p.pid) in
           Table.remove t.running dir)
     in
     p

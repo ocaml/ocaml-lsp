@@ -104,8 +104,8 @@ type t =
   | Merlin of
       { tdoc : Text_document.t
       ; pipeline : Mpipeline.t Lazy_fiber.t
-      ; merlin : Scheduler.thread
-      ; timer : Scheduler.timer
+      ; merlin : Lev_fiber.Thread.t
+      ; timer : Lev_fiber.Timer.Wheel.task
       ; merlin_config : Merlin_config.t
       ; syntax : Syntax.t
       }
@@ -137,8 +137,8 @@ let text t = Text_document.text (tdoc t)
 let source t = Msource.make (text t)
 
 let await task =
-  let* () = Server.on_cancel (fun () -> Scheduler.cancel_task task) in
-  let+ res = Scheduler.await task in
+  let* () = Server.on_cancel (fun () -> Lev_fiber.Thread.cancel task) in
+  let+ res = Lev_fiber.Thread.await task in
   match res with
   | Error `Cancelled ->
     let e =
@@ -153,9 +153,11 @@ let with_pipeline (t : t) f =
   | Other _ -> Code_error.raise "Document.dune" []
   | Merlin t ->
     let* pipeline = Lazy_fiber.force t.pipeline in
-    Scheduler.async_exn t.merlin (fun () ->
-        Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
-    |> await
+    let* task =
+      Lev_fiber.Thread.task t.merlin ~f:(fun () ->
+          Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
+    in
+    await task
 
 let with_pipeline_exn doc f =
   let+ res = with_pipeline doc f in
@@ -185,8 +187,8 @@ let make_pipeline merlin_config thread tdoc =
         let uri = Text_document.documentUri tdoc in
         make_config merlin_config uri
       in
-      let async_make_pipeline =
-        Scheduler.async_exn thread (fun () ->
+      let* async_make_pipeline =
+        Lev_fiber.Thread.task thread ~f:(fun () ->
             Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
       in
       let+ res = await async_make_pipeline in
@@ -194,19 +196,19 @@ let make_pipeline merlin_config thread tdoc =
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-let make_merlin ~debounce merlin_config ~merlin_thread tdoc syntax =
-  let+ timer = Scheduler.create_timer ~delay:debounce in
+let make_merlin wheel merlin_config ~merlin_thread tdoc syntax =
+  let+ timer = Lev_fiber.Timer.Wheel.task wheel in
   let pipeline = make_pipeline merlin_config merlin_thread tdoc in
   Merlin
     { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer; syntax }
 
-let make ~debounce config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
+let make wheel config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
   let tdoc = Text_document.make doc in
   let syntax = Syntax.of_text_document tdoc in
   match syntax with
   | Ocaml
   | Reason ->
-    make_merlin ~debounce config ~merlin_thread tdoc syntax
+    make_merlin wheel config ~merlin_thread tdoc syntax
   | Ocamllex
   | Menhir
   | Cram
@@ -242,7 +244,7 @@ let dispatch_exn t command =
 let close t =
   match t with
   | Other _ -> Fiber.return ()
-  | Merlin t -> Scheduler.cancel_timer t.timer
+  | Merlin t -> Lev_fiber.Timer.Wheel.cancel t.timer
 
 let get_impl_intf_counterparts uri =
   let fpath = Uri.to_path uri in

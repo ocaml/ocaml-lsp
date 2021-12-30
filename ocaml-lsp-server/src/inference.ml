@@ -40,15 +40,14 @@ let language_id_of_fname s =
 let force_open_document (state : State.t) uri =
   let filename = Uri.to_path uri in
   let text = Io.String_path.read_file filename in
-  let debounce = Configuration.diagnostics_delay state.configuration in
   let languageId = language_id_of_fname filename in
   let text_document =
     TextDocumentItem.create ~uri ~languageId ~version:0 ~text
   in
   let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
   let+ doc =
-    Document.make ~debounce state.merlin_config ~merlin_thread:state.merlin
-      params
+    Document.make (State.wheel state) state.merlin_config
+      ~merlin_thread:state.merlin params
   in
   Document_store.put state.store doc;
   doc

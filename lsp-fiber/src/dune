@@ -3,7 +3,7 @@
  (libraries
   dyn
   fiber
-  fiber_unix
+  lev_fiber
   jsonrpc
   jsonrpc_fiber
   lsp

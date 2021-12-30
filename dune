@@ -12,6 +12,48 @@
 (subdir
  vendor
  (subdir
+  lev-fiber-csexp
+  (subdir
+   util
+   (library
+    (name lev_fiber_csexp)
+    (libraries fiber csexp stdune dyn lev_fiber)))
+  (copy_files# %{project_root}/submodules/lev/lev-fiber-csexp/src/*.{ml,mli}))
+ (subdir
+  lev-fiber
+  (subdir
+   util
+   (copy_files# %{project_root}/submodules/lev/lev-fiber/src/util/*.{ml,mli})
+   (library
+    (name lev_fiber_util)
+    (libraries stdune threads.posix)))
+  (copy_files# %{project_root}/submodules/lev/lev-fiber/src/*.{ml,mli})
+  (library
+   (name lev_fiber)
+   (libraries unix dyn stdune threads.posix fiber lev lev_fiber_util)))
+ (subdir
+  lev
+  (copy_files# %{project_root}/submodules/lev/lev/vendor/*.c)
+  (copy_files#
+   %{project_root}/submodules/lev/lev/vendor/{ev,ev_vars,ev_wrap}.h)
+  (copy_files# %{project_root}/submodules/lev/lev/src/*.{ml,mli,c,h})
+  (library
+   (name lev)
+   (synopsis "libev bindings")
+   (libraries unix)
+   (foreign_stubs
+    (language c)
+    (flags :standard -libm)
+    (extra_deps
+     ev_kqueue.c
+     ev_epoll.c
+     ev_iouring.c
+     ev_poll.c
+     ev_port.c
+     ev_select.c
+     ev_win32.c)
+    (names lev_stubs ev))))
+ (subdir
   fiber
   (copy_files# %{project_root}/submodules/dune/src/fiber/*.{ml,mli})
   (library

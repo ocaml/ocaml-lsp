@@ -40,7 +40,6 @@ end
 
 (* Misc modules *)
 module Drpc = Dune_rpc.V1
-module Scheduler = Fiber_unix.Scheduler
 
 (* OCaml frontend *)
 module Ast_iterator = Ocaml_parsing.Ast_iterator
