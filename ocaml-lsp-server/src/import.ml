@@ -40,8 +40,20 @@ end
 
 (* Misc modules *)
 module Drpc = Dune_rpc.V1
-module Loc = Location
 module Scheduler = Fiber_unix.Scheduler
+
+(* OCaml frontend *)
+module Ast_iterator = Ocaml_parsing.Ast_iterator
+module Asttypes = Ocaml_parsing.Asttypes
+module Cmt_format = Ocaml_typing.Cmt_format
+module Ident = Ocaml_typing.Ident
+module Loc = Ocaml_parsing.Location
+module Longident = Ocaml_parsing.Longident
+module Parsetree = Ocaml_parsing.Parsetree
+module Path = Ocaml_typing.Path
+module Typedtree = Ocaml_typing.Typedtree
+module Types = Ocaml_typing.Types
+module Warnings = Ocaml_utils.Warnings
 
 (* All modules from [Lsp_fiber] should be in the struct below. The modules are
    listed alphabetically. Try to keep the order. *)
