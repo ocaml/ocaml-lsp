@@ -18,7 +18,7 @@ val create :
   -> Diagnostics.t
   -> Progress.t
   -> log:(type_:MessageType.t -> message:string -> unit Fiber.t)
-  -> t Fiber.t
+  -> t
 
 val update_workspaces : t -> Workspaces.t -> unit
 

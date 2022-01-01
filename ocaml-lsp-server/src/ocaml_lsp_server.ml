@@ -275,7 +275,7 @@ let on_initialize server (ip : InitializeParams.t) =
         ~create_task:(fun task ->
           Server.request server (Server_request.WorkDoneProgressCreate task))
     in
-    let* dune =
+    let dune =
       Dune.create workspaces ip.capabilities state.diagnostics progress
         ~log:(log_message server)
     in
