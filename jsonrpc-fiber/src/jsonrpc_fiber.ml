@@ -128,12 +128,11 @@ struct
       (fun () -> Lazy.force t.stop_pending_requests)
 
   let close t =
-    Fiber.parallel_iter
-      ~f:(fun f -> f ())
-      [ (fun () -> Chan.close t.chan `Read)
-      ; (fun () -> Chan.close t.chan `Write)
-      ; (fun () -> Fiber.Ivar.fill t.stopped ())
-      ; (fun () -> Lazy.force t.stop_pending_requests)
+    Fiber.all_concurrently_unit
+      [ Chan.close t.chan `Read
+      ; Chan.close t.chan `Write
+      ; Fiber.Ivar.fill t.stopped ()
+      ; Lazy.force t.stop_pending_requests
       ]
 
   let run t =
