@@ -431,7 +431,6 @@ type active =
   ; mutable workspaces : Workspaces.t
   ; registry : Registry.t
   ; config : config
-  ; poll_thread : Scheduler.thread
   ; pool : Fiber.Pool.t
   }
 
@@ -583,7 +582,6 @@ let stop (t : t) =
 
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
     progress ~log =
-  let+ poll_thread = Scheduler.create_thread () in
   let config =
     let include_promotions =
       match client_capabilities.experimental with
@@ -603,7 +601,6 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        { pool = Fiber.Pool.create ()
        ; instances = String.Map.empty
        ; config
-       ; poll_thread
        ; registry
        ; workspaces
        })
@@ -617,7 +614,7 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
   if enabled then
     create workspaces client_capabilities diagnostics progress ~log
   else
-    Fiber.return (create_disabled ())
+    create_disabled ()
 
 let run_loop t =
   Fiber.repeat_while ~init:() ~f:(fun () ->
