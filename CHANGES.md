@@ -1,3 +1,9 @@
+# Unreleased 
+
+## Features
+
+- Add better support for code folding: more precise folds for `let` bindings
+
 # 1.9.1
 
 ## Fixes
