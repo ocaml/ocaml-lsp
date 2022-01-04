@@ -12,7 +12,6 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
   in
   let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let iterator =
-      let default_iterator = Ast_iterator.default_iterator in
       let structure (iterator : Ast_iterator.iterator) structure =
         List.iter structure ~f:(fun structure_item ->
             iterator.structure_item iterator structure_item)
@@ -171,7 +170,7 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
         | Psig_attribute _ -> ()
         | Psig_extension (_, _) -> ()
       in
-      { default_iterator with
+      { Ast_iterator.default_iterator with
         class_declaration
       ; expr
       ; module_declaration
