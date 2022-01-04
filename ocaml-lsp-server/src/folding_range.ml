@@ -8,10 +8,7 @@ let folding_range { Range.start; end_ } =
 let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
   let ranges = ref [] in
   let push (range : Range.t) =
-    if range.end_.line - range.start.line >= 2 then
-      ranges := folding_range range :: !ranges
-    else
-      ()
+    if range.end_.line - range.start.line > 1 then ranges := range :: !ranges
   in
   let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let iterator =
@@ -199,4 +196,4 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
         let parsetree = Mpipeline.reader_parsetree pipeline in
         fold_over_parsetree parsetree)
   in
-  Some (List.rev !ranges)
+  Some (List.rev_map ~f:folding_range !ranges)
