@@ -93,6 +93,47 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for match expressions", async () => {
+    await openDocument(outdent`
+    match 
+      Some 
+        "large expr" 
+    with 
+    | None -> 
+      () 
+    | Some _ -> 
+      print_endline "foo";
+      print_endline "bar"
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 21,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 4,
+          "endLine": 5,
+          "kind": "region",
+          "startCharacter": 6,
+          "startLine": 4,
+        },
+        Object {
+          "endCharacter": 21,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 8,
+          "startLine": 6,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
@@ -235,6 +276,27 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 4,
           "startLine": 21,
+        },
+        Object {
+          "endCharacter": 30,
+          "endLine": 30,
+          "kind": "region",
+          "startCharacter": 6,
+          "startLine": 22,
+        },
+        Object {
+          "endCharacter": 31,
+          "endLine": 26,
+          "kind": "region",
+          "startCharacter": 12,
+          "startLine": 23,
+        },
+        Object {
+          "endCharacter": 30,
+          "endLine": 30,
+          "kind": "region",
+          "startCharacter": 14,
+          "startLine": 27,
         },
         Object {
           "endCharacter": 9,
