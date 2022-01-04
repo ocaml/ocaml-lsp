@@ -64,6 +64,28 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for open expressions", async () => {
+    await openDocument(outdent`
+    open struct 
+      let u = 
+        ()
+    end
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 3,
+          "endLine": 2,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
