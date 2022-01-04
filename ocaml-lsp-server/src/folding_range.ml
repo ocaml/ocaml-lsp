@@ -14,17 +14,14 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
   let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let iterator =
       let type_declaration (_iterator : Ast_iterator.iterator)
-          (type_declaration : Parsetree.type_declaration) =
-        let range = Range.of_loc type_declaration.ptype_loc in
-        push range
+          (typ_decl : Parsetree.type_declaration) =
+        Range.of_loc typ_decl.ptype_loc |> push
       in
-      let module_type_declaration (iterator : Ast_iterator.iterator)
-          (module_type_declaration : Parsetree.module_type_declaration) =
-        let range = Range.of_loc module_type_declaration.pmtd_loc in
-        push range;
-        match module_type_declaration.pmtd_type with
-        | None -> ()
-        | Some module_type -> iterator.module_type iterator module_type
+      let module_type_declaration (self : Ast_iterator.iterator)
+          (mod_typ_decl : Parsetree.module_type_declaration) =
+        Range.of_loc mod_typ_decl.pmtd_loc |> push;
+        Option.iter mod_typ_decl.pmtd_type ~f:(fun mod_typ ->
+            self.module_type self mod_typ)
       in
       let module_type (iterator : Ast_iterator.iterator)
           (module_type : Parsetree.module_type) =
