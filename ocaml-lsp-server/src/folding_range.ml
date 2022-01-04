@@ -64,11 +64,23 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | PPat (_, _) -> ()
     in
 
+    let case (self : Ast_iterator.iterator) (c : Parsetree.case) =
+      let pat_range = Range.of_loc c.pc_lhs.ppat_loc in
+      push pat_range;
+      let expr_range = Range.of_loc c.pc_rhs.pexp_loc in
+      push { Range.start = pat_range.end_; end_ = expr_range.end_ };
+      self.expr self c.pc_rhs
+    in
+
     let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
       match expr.pexp_desc with
       | Pexp_extension _
       | Pexp_let _ ->
         Ast_iterator.default_iterator.expr self expr
+      | Pexp_match (e, cases) ->
+        Range.of_loc expr.pexp_loc |> push;
+        self.expr self e;
+        self.cases self cases
       | Pexp_fun (_, _, _, expr)
       | Pexp_open (_, expr) ->
         self.expr self expr
@@ -82,7 +94,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_constant _
       | Pexp_function _
       | Pexp_apply _
-      | Pexp_match _
       | Pexp_try _
       | Pexp_tuple _
       | Pexp_construct _
@@ -148,7 +159,8 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     in
 
     { Ast_iterator.default_iterator with
-      class_declaration
+      case
+    ; class_declaration
     ; expr
     ; extension
     ; module_binding
