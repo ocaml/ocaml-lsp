@@ -72,6 +72,35 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       self.expr self c.pc_rhs
     in
 
+    let pat (_self : Ast_iterator.iterator) (p : Parsetree.pattern) =
+      let open Parsetree in
+      match p.ppat_desc with
+      | Ppat_record (bdgs, _) ->
+        Range.of_loc p.ppat_loc |> push;
+        List.iter bdgs ~f:(fun (lident, pat) ->
+            let lident_range = Range.of_loc lident.Asttypes.loc in
+            let pat_range = Range.of_loc pat.Parsetree.ppat_loc in
+            push { Range.start = lident_range.end_; end_ = pat_range.end_ })
+      | Ppat_var _
+      | Ppat_alias _
+      | Ppat_constant _
+      | Ppat_interval _
+      | Ppat_tuple _
+      | Ppat_construct _
+      | Ppat_variant _
+      | Ppat_array _
+      | Ppat_or _
+      | Ppat_constraint _
+      | Ppat_type _
+      | Ppat_lazy _
+      | Ppat_unpack _
+      | Ppat_exception _
+      | Ppat_extension _
+      | Ppat_open _ ->
+        () (* TODO *)
+      | Ppat_any -> ()
+    in
+
     let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
       match expr.pexp_desc with
       | Pexp_extension _
@@ -90,6 +119,13 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         let range = Range.of_loc letop.let_.pbop_loc in
         push range;
         self.expr self letop.let_.pbop_exp
+      | Pexp_record (bdgs, old_record) ->
+        Range.of_loc expr.pexp_loc |> push;
+        Option.iter old_record ~f:(self.expr self);
+        List.iter bdgs ~f:(fun (lident, expr) ->
+            let lident_range = Range.of_loc lident.Asttypes.loc in
+            let expr_range = Range.of_loc expr.Parsetree.pexp_loc in
+            push { Range.start = lident_range.end_; end_ = expr_range.end_ })
       | Pexp_ident _
       | Pexp_constant _
       | Pexp_function _
@@ -98,7 +134,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_tuple _
       | Pexp_construct _
       | Pexp_variant _
-      | Pexp_record _
       | Pexp_field _
       | Pexp_setfield _
       | Pexp_array _
@@ -168,6 +203,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     ; module_type
     ; module_type_declaration
     ; open_declaration
+    ; pat
     ; structure_item
     ; type_declaration
     ; value_binding
