@@ -13,14 +13,6 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
   in
   let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let iterator =
-      let structure (iterator : Ast_iterator.iterator) structure =
-        List.iter structure ~f:(fun structure_item ->
-            iterator.structure_item iterator structure_item)
-      in
-      let signature (iterator : Ast_iterator.iterator) signature =
-        List.iter signature ~f:(fun signature_item ->
-            iterator.signature_item iterator signature_item)
-      in
       let type_declaration (_iterator : Ast_iterator.iterator)
           (type_declaration : Parsetree.type_declaration) =
         let range = Range.of_loc type_declaration.ptype_loc in
@@ -177,9 +169,7 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
       ; module_declaration
       ; module_type
       ; module_type_declaration
-      ; signature
       ; signature_item
-      ; structure
       ; structure_item
       ; type_declaration
       ; value_binding
