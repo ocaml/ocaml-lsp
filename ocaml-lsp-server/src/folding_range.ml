@@ -37,14 +37,13 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
       let module_type (iterator : Ast_iterator.iterator)
           (module_type : Parsetree.module_type) =
         match module_type.pmty_desc with
-        | Parsetree.Pmty_ident _ -> ()
-        | Parsetree.Pmty_signature signature ->
-          iterator.signature iterator signature
-        | Parsetree.Pmty_functor (_, _) -> ()
-        | Parsetree.Pmty_with (_, _) -> ()
-        | Parsetree.Pmty_typeof _ -> ()
-        | Parsetree.Pmty_extension _ -> ()
-        | Parsetree.Pmty_alias _ -> ()
+        | Pmty_ident _ -> ()
+        | Pmty_signature signature -> iterator.signature iterator signature
+        | Pmty_functor (_, _) -> ()
+        | Pmty_with (_, _) -> ()
+        | Pmty_typeof _ -> ()
+        | Pmty_extension _ -> ()
+        | Pmty_alias _ -> ()
       in
       let module_declaration (iterator : Ast_iterator.iterator)
           (module_declaration : Parsetree.module_declaration) =
@@ -66,62 +65,62 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
       let expr (iterator : Ast_iterator.iterator) (expr : Parsetree.expression)
           =
         match expr.pexp_desc with
-        | Parsetree.Pexp_let (_, value_bindings, expr) ->
+        | Pexp_let (_, value_bindings, expr) ->
           List.iter value_bindings ~f:(fun value_binding ->
               iterator.value_binding iterator value_binding);
           iterator.expr iterator expr
-        | Parsetree.Pexp_fun (_, _, _, expr) -> iterator.expr iterator expr
-        | Parsetree.Pexp_open (_, expr) -> iterator.expr iterator expr
-        | Parsetree.Pexp_letop letop ->
+        | Pexp_fun (_, _, _, expr) -> iterator.expr iterator expr
+        | Pexp_open (_, expr) -> iterator.expr iterator expr
+        | Pexp_letop letop ->
           (* Location is not correct. It include the location of the whole
              expression. See: https://github.com/ocaml/ocaml/pull/10682 *)
           let range = Range.of_loc letop.let_.pbop_loc in
           push range;
           iterator.expr iterator letop.let_.pbop_exp
-        | Parsetree.Pexp_extension (_, payload) -> (
+        | Pexp_extension (_, payload) -> (
           match payload with
-          | Parsetree.PStr structure -> iterator.structure iterator structure
-          | Parsetree.PSig signature -> iterator.signature iterator signature
-          | Parsetree.PTyp _ -> ()
-          | Parsetree.PPat (_, _) -> ())
-        | Parsetree.Pexp_ident _ -> ()
-        | Parsetree.Pexp_constant _ -> ()
-        | Parsetree.Pexp_function _ -> ()
-        | Parsetree.Pexp_apply (_, _) -> ()
-        | Parsetree.Pexp_match (_, _) -> ()
-        | Parsetree.Pexp_try (_, _) -> ()
-        | Parsetree.Pexp_tuple _ -> ()
-        | Parsetree.Pexp_construct (_, _) -> ()
-        | Parsetree.Pexp_variant (_, _) -> ()
-        | Parsetree.Pexp_record (_, _) -> ()
-        | Parsetree.Pexp_field (_, _) -> ()
-        | Parsetree.Pexp_setfield (_, _, _) -> ()
-        | Parsetree.Pexp_array _ -> ()
-        | Parsetree.Pexp_ifthenelse (_, _, _) -> ()
-        | Parsetree.Pexp_sequence (_, _) -> ()
-        | Parsetree.Pexp_while (_, _) -> ()
-        | Parsetree.Pexp_for (_, _, _, _, _) -> ()
-        | Parsetree.Pexp_constraint (_, _) -> ()
-        | Parsetree.Pexp_coerce (_, _, _) -> ()
-        | Parsetree.Pexp_send (_, _) -> ()
-        | Parsetree.Pexp_new _ -> ()
-        | Parsetree.Pexp_setinstvar (_, _) -> ()
-        | Parsetree.Pexp_override _ -> ()
-        | Parsetree.Pexp_letmodule (_, _, _) -> ()
-        | Parsetree.Pexp_letexception (_, _) -> ()
-        | Parsetree.Pexp_assert _ -> ()
-        | Parsetree.Pexp_lazy _ -> ()
-        | Parsetree.Pexp_poly (_, _) -> ()
-        | Parsetree.Pexp_object _ -> ()
-        | Parsetree.Pexp_newtype (_, _) -> ()
-        | Parsetree.Pexp_pack _ -> ()
-        | Parsetree.Pexp_unreachable -> ()
-        | Parsetree.Pexp_hole -> ()
+          | PStr structure -> iterator.structure iterator structure
+          | PSig signature -> iterator.signature iterator signature
+          | PTyp _ -> ()
+          | PPat (_, _) -> ())
+        | Pexp_ident _ -> ()
+        | Pexp_constant _ -> ()
+        | Pexp_function _ -> ()
+        | Pexp_apply (_, _) -> ()
+        | Pexp_match (_, _) -> ()
+        | Pexp_try (_, _) -> ()
+        | Pexp_tuple _ -> ()
+        | Pexp_construct (_, _) -> ()
+        | Pexp_variant (_, _) -> ()
+        | Pexp_record (_, _) -> ()
+        | Pexp_field (_, _) -> ()
+        | Pexp_setfield (_, _, _) -> ()
+        | Pexp_array _ -> ()
+        | Pexp_ifthenelse (_, _, _) -> ()
+        | Pexp_sequence (_, _) -> ()
+        | Pexp_while (_, _) -> ()
+        | Pexp_for (_, _, _, _, _) -> ()
+        | Pexp_constraint (_, _) -> ()
+        | Pexp_coerce (_, _, _) -> ()
+        | Pexp_send (_, _) -> ()
+        | Pexp_new _ -> ()
+        | Pexp_setinstvar (_, _) -> ()
+        | Pexp_override _ -> ()
+        | Pexp_letmodule (_, _, _) -> ()
+        | Pexp_letexception (_, _) -> ()
+        | Pexp_assert _ -> ()
+        | Pexp_lazy _ -> ()
+        | Pexp_poly (_, _) -> ()
+        | Pexp_object _ -> ()
+        | Pexp_newtype (_, _) -> ()
+        | Pexp_pack _ -> ()
+        | Pexp_unreachable -> ()
+        | Pexp_hole -> ()
       in
       let structure_item (iterator : Ast_iterator.iterator)
           (structure_item : Parsetree.structure_item) =
         match structure_item.pstr_desc with
-        | Parsetree.Pstr_value (_, value_bindings) ->
+        | Pstr_value (_, value_bindings) ->
           List.iter value_bindings ~f:(fun value_binding ->
               iterator.value_binding iterator value_binding)
         | Pstr_module module_binding ->
@@ -134,19 +133,19 @@ let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
         | Pstr_type (_, type_declarations) ->
           List.iter type_declarations ~f:(fun type_declaration ->
               iterator.type_declaration iterator type_declaration)
-        | Parsetree.Pstr_eval (expr, _) -> iterator.expr iterator expr
-        | Parsetree.Pstr_primitive _ -> ()
-        | Parsetree.Pstr_typext _ -> ()
-        | Parsetree.Pstr_exception _ -> ()
-        | Parsetree.Pstr_recmodule _ -> ()
-        | Parsetree.Pstr_open _ -> ()
-        | Parsetree.Pstr_class class_declarations ->
+        | Pstr_eval (expr, _) -> iterator.expr iterator expr
+        | Pstr_primitive _ -> ()
+        | Pstr_typext _ -> ()
+        | Pstr_exception _ -> ()
+        | Pstr_recmodule _ -> ()
+        | Pstr_open _ -> ()
+        | Pstr_class class_declarations ->
           List.iter class_declarations ~f:(fun class_declaration ->
               iterator.class_declaration iterator class_declaration)
-        | Parsetree.Pstr_class_type _ -> ()
-        | Parsetree.Pstr_include _ -> ()
-        | Parsetree.Pstr_attribute _ -> ()
-        | Parsetree.Pstr_extension (_, _) -> ()
+        | Pstr_class_type _ -> ()
+        | Pstr_include _ -> ()
+        | Pstr_attribute _ -> ()
+        | Pstr_extension (_, _) -> ()
       in
       let signature_item (iterator : Ast_iterator.iterator)
           (signature_item : Parsetree.signature_item) =
