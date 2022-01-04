@@ -1,12 +1,11 @@
 open Import
 open Fiber.O
 
+let folding_range { Range.start; end_ } =
+  FoldingRange.create ~startLine:start.line ~startCharacter:start.character
+    ~endLine:end_.line ~endCharacter:end_.character ~kind:Region ()
+
 let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
-  let folding_range (range : Range.t) =
-    FoldingRange.create ~startLine:range.start.line ~endLine:range.end_.line
-      ~startCharacter:range.start.character ~endCharacter:range.end_.character
-      ~kind:Region ()
-  in
   let ranges = ref [] in
   let push (range : Range.t) =
     if range.end_.line - range.start.line >= 2 then
