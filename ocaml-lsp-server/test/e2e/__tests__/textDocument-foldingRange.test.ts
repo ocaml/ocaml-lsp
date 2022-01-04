@@ -32,6 +32,31 @@ describe("textDocument/foldingRange", () => {
     });
   }
 
+  it("returns folding ranges for `let`", async () => {
+    await openDocument(outdent`
+    let a = 
+      let b = 1 
+      in 
+      let c = 
+        "foo" 
+      in 
+      ()
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 4,
+          "endLine": 6,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
