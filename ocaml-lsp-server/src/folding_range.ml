@@ -8,7 +8,8 @@ let folding_range { Range.start; end_ } =
 let compute (state : State.t) { FoldingRangeParams.textDocument = { uri }; _ } =
   let ranges = ref [] in
   let push (range : Range.t) =
-    if range.end_.line - range.start.line > 1 then ranges := range :: !ranges
+    if range.start.line < range.end_.line (* don't fold a single line *) then
+      ranges := range :: !ranges
   in
   let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let iterator =
