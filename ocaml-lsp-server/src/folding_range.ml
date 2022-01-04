@@ -104,31 +104,28 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_unreachable -> ()
       | Pexp_hole -> ()
     in
+    let module_binding (self : Ast_iterator.iterator)
+        (module_binding : Parsetree.module_binding) =
+      let range = Range.of_loc module_binding.pmb_loc in
+      push range;
+      let module_expr = module_binding.pmb_expr in
+      self.module_expr self module_expr
+    in
     let structure_item (iterator : Ast_iterator.iterator)
         (structure_item : Parsetree.structure_item) =
       match structure_item.pstr_desc with
-      | Pstr_value (_, value_bindings) ->
-        List.iter value_bindings ~f:(fun value_binding ->
-            iterator.value_binding iterator value_binding)
-      | Pstr_module module_binding ->
-        let range = Range.of_loc module_binding.pmb_loc in
-        push range;
-        let module_expr = module_binding.pmb_expr in
-        iterator.module_expr iterator module_expr
-      | Pstr_modtype module_type_declaration ->
-        iterator.module_type_declaration iterator module_type_declaration
-      | Pstr_type (_, type_declarations) ->
-        List.iter type_declarations ~f:(fun type_declaration ->
-            iterator.type_declaration iterator type_declaration)
-      | Pstr_eval (expr, _) -> iterator.expr iterator expr
+      | Pstr_value (_, _)
+      | Pstr_class _
+      | Pstr_modtype _
+      | Pstr_type (_, _)
+      | Pstr_module _
+      | Pstr_eval (_, _)
+      | Pstr_recmodule _ ->
+        Ast_iterator.default_iterator.structure_item iterator structure_item
+      | Pstr_open _ -> () (* TODO *)
       | Pstr_primitive _ -> ()
       | Pstr_typext _ -> ()
       | Pstr_exception _ -> ()
-      | Pstr_recmodule _ -> ()
-      | Pstr_open _ -> ()
-      | Pstr_class class_declarations ->
-        List.iter class_declarations ~f:(fun class_declaration ->
-            iterator.class_declaration iterator class_declaration)
       | Pstr_class_type _ -> ()
       | Pstr_include _ -> ()
       | Pstr_attribute _ -> ()
@@ -161,6 +158,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     { Ast_iterator.default_iterator with
       class_declaration
     ; expr
+    ; module_binding
     ; module_declaration
     ; module_type
     ; module_type_declaration
