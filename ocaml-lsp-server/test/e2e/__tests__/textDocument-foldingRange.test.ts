@@ -183,6 +183,46 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for classes", async () => {
+    await openDocument(outdent`
+    class foobar =
+      let a =
+        let () = Stdlib.print_endline "" in
+        let () = Stdlib.print_endline "" in
+        let () = Stdlib.print_endline "" in
+        ()
+      in
+      object
+        method add x y =
+          let z =
+            let a = 5 in
+            let b = 6 in
+            let () =
+              let () = Stdlib.print_endline "" in
+              let () = Stdlib.print_endline "" in
+              let () = Stdlib.print_endline "" in
+              ()
+            in
+            a + b
+          in
+          x + y + z
+      end
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 5,
+          "endLine": 21,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
@@ -242,29 +282,6 @@ describe("textDocument/foldingRange", () => {
               in
               x + 3
           end
-
-          class foobar =
-            let a =
-              let () = Stdlib.print_endline "" in
-              let () = Stdlib.print_endline "" in
-              let () = Stdlib.print_endline "" in
-              ()
-            in
-            object
-              method add x y =
-                let z =
-                  let a = 5 in
-                  let b = 6 in
-                  let () =
-                    let () = Stdlib.print_endline "" in
-                    let () = Stdlib.print_endline "" in
-                    let () = Stdlib.print_endline "" in
-                    ()
-                  in
-                  a + b
-                in
-                x + y + z
-            end
         `);
 
     let result = await foldingRange();
@@ -381,13 +398,6 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 6,
           "startLine": 49,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 79,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 58,
         },
       ]
     `);
