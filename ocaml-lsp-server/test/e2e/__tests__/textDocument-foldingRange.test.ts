@@ -134,6 +134,55 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for records", async () => {
+    await openDocument(outdent`
+    type r = { 
+      a: string;
+      b: int
+    }
+
+    let f 
+          { a; 
+            b } = 
+      { a = a;
+        b = b + 1 }
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 1,
+          "endLine": 3,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 15,
+          "endLine": 9,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 5,
+        },
+        Object {
+          "endCharacter": 11,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 6,
+          "startLine": 6,
+        },
+        Object {
+          "endCharacter": 15,
+          "endLine": 9,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 8,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
