@@ -27,7 +27,7 @@ describe("textDocument/foldingRange", () => {
   }
 
   async function foldingRange() {
-    return await languageServer.sendRequest("textDocument/foldingRange", {
+    return languageServer.sendRequest("textDocument/foldingRange", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
     });
   }
