@@ -44,8 +44,16 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       self.module_type self module_declaration.pmd_type
     in
 
-    let class_declaration _self (class_decl : Parsetree.class_declaration) =
-      class_decl.Parsetree.pci_loc |> Range.of_loc |> push
+    let class_declaration (self : Ast_iterator.iterator)
+        (class_decl : Parsetree.class_declaration) =
+      class_decl.Parsetree.pci_loc |> Range.of_loc |> push;
+      self.class_expr self class_decl.pci_expr
+    in
+
+    let class_field (self : Ast_iterator.iterator)
+        (class_field : Parsetree.class_field) =
+      Range.of_loc class_field.pcf_loc |> push;
+      Ast_iterator.default_iterator.class_field self class_field
     in
 
     let value_binding (self : Ast_iterator.iterator)
@@ -107,6 +115,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_let _
       | Pexp_open _
       | Pexp_fun _
+      | Pexp_poly _
       | Pexp_function _ ->
         Ast_iterator.default_iterator.expr self expr
       | Pexp_match (e, cases) ->
@@ -150,7 +159,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_letexception _
       | Pexp_assert _
       | Pexp_lazy _
-      | Pexp_poly _
       | Pexp_object _
       | Pexp_newtype _
       | Pexp_pack _
@@ -195,6 +203,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     { Ast_iterator.default_iterator with
       case
     ; class_declaration
+    ; class_field
     ; expr
     ; extension
     ; module_binding
