@@ -105,6 +105,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       match expr.pexp_desc with
       | Pexp_extension _
       | Pexp_let _
+      | Pexp_open _
       | Pexp_fun _
       | Pexp_function _ ->
         Ast_iterator.default_iterator.expr self expr
@@ -112,7 +113,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         Range.of_loc expr.pexp_loc |> push;
         self.expr self e;
         self.cases self cases
-      | Pexp_open (_, expr) -> self.expr self expr
       | Pexp_letop letop ->
         (* Location is not correct. It include the location of the whole
            expression. See: https://github.com/ocaml/ocaml/pull/10682 *)
