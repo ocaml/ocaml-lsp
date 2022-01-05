@@ -2,7 +2,7 @@
 
 ## Features
 
-- Add better support for code folding: more precise folds for `let` bindings
+- Add better support for code folding: more folds and more precise folds
 
 # 1.9.1
 
