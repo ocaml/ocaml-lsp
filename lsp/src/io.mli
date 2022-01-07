@@ -15,15 +15,17 @@ module Make (Io : sig
     val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
   end
 end) (Chan : sig
-  type t
+  type input
 
-  val read_line : t -> string option Io.t
+  type output
 
-  val read_exactly : t -> int -> string option Io.t
+  val read_line : input -> string option Io.t
 
-  val write : t -> string -> unit Io.t
+  val read_exactly : input -> int -> string option Io.t
+
+  val write : output -> string -> unit Io.t
 end) : sig
-  val read : Chan.t -> Jsonrpc.packet option Io.t
+  val read : Chan.input -> Jsonrpc.packet option Io.t
 
-  val write : Chan.t -> Jsonrpc.packet -> unit Io.t
+  val write : Chan.output -> Jsonrpc.packet -> unit Io.t
 end
