@@ -43,13 +43,15 @@ module Make (Io : sig
     val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
   end
 end) (Chan : sig
-  type t
+  type input
 
-  val read_line : t -> string option Io.t
+  type output
 
-  val read_exactly : t -> int -> string option Io.t
+  val read_line : input -> string option Io.t
 
-  val write : t -> string -> unit Io.t
+  val read_exactly : input -> int -> string option Io.t
+
+  val write : output -> string -> unit Io.t
 end) =
 struct
   open Io.O
@@ -60,7 +62,9 @@ struct
       let* line = Chan.read_line chan in
       match line with
       | None -> Io.return None
-      | Some "\r" -> Io.return (Some (content_length, content_type))
+      | Some ""
+      | Some "\r" ->
+        Io.return (Some (content_length, content_type))
       | Some line -> (
         match String.lsplit2 ~on:':' line with
         | None -> loop chan content_length content_type

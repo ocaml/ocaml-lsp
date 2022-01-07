@@ -23,14 +23,16 @@ module Io =
       end
     end)
     (struct
-      type nonrec t = in_channel * out_channel
+      type input = in_channel
 
-      let read_line (ic, _) =
+      type output = out_channel
+
+      let read_line ic =
         match input_line ic with
         | s -> Some s
         | exception End_of_file -> None
 
-      let read_exactly (ic, _) len =
+      let read_exactly ic len =
         let buffer = Bytes.create len in
         let rec read_loop read =
           if read < len then
@@ -41,7 +43,7 @@ module Io =
         | () -> Some (Bytes.to_string buffer)
         | exception End_of_file -> None
 
-      let write (_, oc) s = output_string oc s
+      let write oc s = output_string oc s
     end)
 
 let close_out out_thread =
@@ -69,7 +71,7 @@ let send t packets =
   | Some thread -> (
     let+ res =
       Scheduler.async_exn thread (fun () ->
-          List.iter packets ~f:(Io.write t.io);
+          List.iter packets ~f:(Io.write (snd t.io));
           flush (snd t.io))
       |> Scheduler.await_no_cancel
     in
@@ -96,7 +98,7 @@ let recv t =
   | Some thread ->
     let task =
       Scheduler.async_exn thread (fun () ->
-          let res = Io.read t.io in
+          let res = Io.read (fst t.io) in
           (match res with
           | exception End_of_file -> close_in_noerr (fst t.io)
           | _ -> ());
