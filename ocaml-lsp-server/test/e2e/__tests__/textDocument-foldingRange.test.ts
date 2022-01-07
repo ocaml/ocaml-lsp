@@ -93,6 +93,16 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for Pexp_apply expressions", async () => {
+    await openDocument(outdent`
+    Stdlib.print_endline "one
+    two
+    three"`);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`Array []`);
+  });
+
   it("returns folding ranges for match expressions", async () => {
     await openDocument(outdent`
     match 
