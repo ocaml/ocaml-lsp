@@ -1,154 +1,49 @@
 open Import
 open Fiber.O
+module Lio = Lev_fiber.Io
 
-type t =
-  { in_thread : Lev_fiber.Thread.t option ref
-  ; out_thread : Lev_fiber.Thread.t option ref
-  ; io : in_channel * out_channel
-  }
+type t = Lio.input Lio.t * Lio.output Lio.t
 
 module Io =
   Io.Make
     (struct
-      type 'a t = 'a
-
-      let return x = x
+      include Fiber
 
       let raise exn = raise exn
-
-      module O = struct
-        let ( let* ) x f = f x
-
-        let ( let+ ) x f = f x
-      end
     end)
     (struct
-      type input = in_channel
+      type input = Lio.Reader.t
 
-      type output = out_channel
+      type output = Lio.Writer.t
 
       let read_line ic =
-        match input_line ic with
-        | s -> Some s
-        | exception End_of_file -> None
+        let+ res = Lio.Reader.read_line ic in
+        match res with
+        | Ok s -> Some s
+        | Error (`Partial_eof _) -> None
 
       let read_exactly ic len =
-        let buffer = Bytes.create len in
-        let rec read_loop read =
-          if read < len then
-            let n = input ic buffer read (len - read) in
-            read_loop (read + n)
-        in
-        match read_loop 0 with
-        | () -> Some (Bytes.to_string buffer)
-        | exception End_of_file -> None
+        let+ res = Lio.Reader.read_exactly ic len in
+        match res with
+        | Ok s -> Some s
+        | Error (`Partial_eof _) -> None
 
-      let write oc s = output_string oc s
+      let write oc s =
+        Lio.Writer.add_string oc s;
+        Fiber.return ()
     end)
 
-let close_out out_thread =
-  match !out_thread with
-  | None -> ()
-  | Some thread ->
-    Lev_fiber.Thread.close thread;
-    out_thread := None
+let send (_, oc) packets =
+  Lio.with_write oc ~f:(fun writer ->
+      let* () = Fiber.sequential_iter packets ~f:(Io.write writer) in
+      Lio.Writer.flush writer)
 
-let close_in in_thread =
-  match !in_thread with
-  | None -> ()
-  | Some thread ->
-    Lev_fiber.Thread.close thread;
-    in_thread := None
+let recv (ic, _) = Lio.with_read ic ~f:Io.read
 
-let await_no_cancel task =
-  let+ res = Lev_fiber.Thread.await task in
-  match res with
-  | Ok s -> s
-  | Error `Cancelled -> assert false
-  | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
+let make ic oc = (ic, oc)
 
-let send t packets =
-  match !(t.out_thread) with
-  | None ->
-    List.iter packets ~f:(fun packet ->
-        Log.log ~section:"Stream_io" (fun () ->
-            Log.msg "dropped write"
-              [ ("packet", Jsonrpc.yojson_of_packet packet) ]));
-    Fiber.return ()
-  | Some thread ->
-    let* task =
-      Lev_fiber.Thread.task thread ~f:(fun () ->
-          List.iter packets ~f:(Io.write (snd t.io));
-          flush (snd t.io))
-    in
-    await_no_cancel task
-
-let close_write t =
-  match !(t.out_thread) with
-  | None -> Fiber.return ()
-  | Some thread -> (
-    let+ res =
-      let* task =
-        Lev_fiber.Thread.task thread ~f:(fun () -> close_out_noerr (snd t.io))
-      in
-      let+ res = Lev_fiber.Thread.await task in
-      match res with
-      | Ok _ as s -> s
-      | Error `Cancelled -> assert false
-      | Error (`Exn e) -> Error e
-    in
-    close_out t.out_thread;
-    match res with
-    | Ok s -> s
-    | Error exn -> Exn_with_backtrace.reraise exn)
-
-let recv t =
-  match !(t.in_thread) with
-  | None -> Fiber.return None
-  | Some thread ->
-    let* task =
-      Lev_fiber.Thread.task thread ~f:(fun () ->
-          let res = Io.read (fst t.io) in
-          (match res with
-          | exception End_of_file -> close_in_noerr (fst t.io)
-          | _ -> ());
-          res)
-    in
-    let+ res = await_no_cancel task in
-    (match res with
-    | None -> close_in t.in_thread
-    | Some _ -> ());
-    res
-
-let make ic oc =
-  let* in_thread =
-    let+ th = Lev_fiber.Thread.create () in
-    ref (Some th)
-  in
-  let+ out_thread =
-    let+ th = Lev_fiber.Thread.create () in
-    ref (Some th)
-  in
-  { in_thread; out_thread; io = (ic, oc) }
-
-let close (t : t) what =
-  match what with
-  | `Write -> close_write t
-  | `Read -> (
-    match !(t.in_thread) with
-    | None -> Fiber.return ()
-    | Some thread -> (
-      let+ close =
-        let* task =
-          Lev_fiber.Thread.task thread ~f:(fun () -> close_in_noerr (fst t.io))
-        in
-        let+ res = Lev_fiber.Thread.await task in
-        match res with
-        | Ok _ as s -> s
-        | Error `Cancelled -> assert false
-        | Error (`Exn e) -> Error e
-      in
-      close_in t.in_thread;
-      match close with
-      | Ok s -> s
-      | Error exn -> Exn_with_backtrace.reraise exn))
+let close (ic, oc) what =
+  (match what with
+  | `Write -> Lio.close oc
+  | `Read -> Lio.close ic);
+  Fiber.return ()

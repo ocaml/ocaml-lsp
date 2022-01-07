@@ -1096,7 +1096,22 @@ let start () =
     let on_request = { Server.Handler.on_request } in
     Server.Handler.make ~on_request ~on_notification ()
   in
-  let* stream = Lsp_fiber.Fiber_io.make stdin stdout in
+  let* stream =
+    let+ stdin, stdout =
+      if Sys.win32 then
+        let* stdin = Lev_fiber.Io.create Unix.stdin `Blocking Input in
+        let+ stdout = Lev_fiber.Io.create Unix.stdout `Blocking Output in
+        (stdin, stdout)
+      else (
+        Unix.set_nonblock Unix.stdin;
+        Unix.set_nonblock Unix.stdout;
+        let* stdin = Lev_fiber.Io.create Unix.stdin `Non_blocking Input in
+        let+ stdout = Lev_fiber.Io.create Unix.stdout `Non_blocking Output in
+        (stdin, stdout)
+      )
+    in
+    Lsp_fiber.Fiber_io.make stdin stdout
+  in
   let configuration = Configuration.default in
   let detached = Fiber.Pool.create () in
   let server = Fdecl.create Dyn.opaque in

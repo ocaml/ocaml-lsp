@@ -9,8 +9,8 @@ module Test = struct
     let run ?(capabilities = ClientCapabilities.create ()) ?on_request
         ?on_notification state (in_, out) =
       let initialize = InitializeParams.create ~capabilities () in
-      let+ client =
-        let+ stream_io = Lsp_fiber.Fiber_io.make in_ out in
+      let client =
+        let stream_io = Lsp_fiber.Fiber_io.make in_ out in
         let handler = Client.Handler.make ?on_request ?on_notification () in
         Client.make handler stream_io state
       in
@@ -19,8 +19,8 @@ module Test = struct
 
   module Server = struct
     let run ?on_request ?on_notification state (in_, out) =
-      let+ server =
-        let+ stream_io = Fiber_io.make in_ out in
+      let server =
+        let stream_io = Fiber_io.make in_ out in
         let handler = Server.Handler.make ?on_request ?on_notification () in
         Server.make handler stream_io state
       in
@@ -28,17 +28,15 @@ module Test = struct
   end
 end
 
-let pipe () =
-  let in_, out = Unix.pipe () in
-  (Unix.in_channel_of_descr in_, Unix.out_channel_of_descr out)
+let pipe () = Lev_fiber.Io.pipe ~cloexec:true ()
 
 let test make_client make_server =
   Printexc.record_backtrace false;
-  let client_in, server_out = pipe () in
-  let server_in, client_out = pipe () in
-  let server () = make_server (server_in, server_out) in
-  let client () = make_client (client_in, client_out) in
   let run () =
+    let* client_in, server_out = pipe () in
+    let* server_in, client_out = pipe () in
+    let server () = make_server (server_in, server_out) in
+    let client () = make_client (client_in, client_out) in
     let+ () = Fiber.fork_and_join_unit server client in
     print_endline "Successful termination of test"
   in
@@ -55,14 +53,15 @@ module End_to_end_client = struct
     let state = Client.state client in
     let received_notification = state in
     let req = Server_notification.to_jsonrpc n in
-    Format.eprintf "client: received notification@.%s@.%!" req.method_;
+    Format.eprintf "client: received notification@.%a@.%!" Json.pp
+      (Jsonrpc.Message.yojson_of_notification req);
     let+ () = Fiber.Ivar.fill received_notification () in
     Format.eprintf "client: filled received_notification@.%!";
     state
 
   let run io =
     let received_notification = Fiber.Ivar.create () in
-    let* client, running =
+    let client, running =
       let on_request = { Client.Handler.on_request } in
       Test.Client.run ~on_request ~on_notification received_notification io
     in
@@ -76,8 +75,8 @@ module End_to_end_client = struct
       in
       Format.eprintf "client: sending request@.%!";
       let* json = Client.request client req in
-      Format.eprintf "client: Successfully executed command with result:@.%s@."
-        (Json.to_string json);
+      Format.eprintf "client: Successfully executed command with result:@.%a@."
+        Json.pp json;
       Format.eprintf
         "client: waiting to receive notification before shutdown @.%!";
       let* () = Fiber.Ivar.read received_notification in
@@ -114,10 +113,9 @@ module End_to_end_server = struct
               Format.eprintf
                 "server: sending message notification to client@.%!";
               let msg =
-                ShowMessageParams.create ~type_:MessageType.Info ~message:"foo"
+                ShowMessageParams.create ~type_:MessageType.Info
+                  ~message:"notifying client"
               in
-              Format.eprintf "server: scheduling show message@.%!";
-              Format.eprintf "server: sending show message notification@.%!";
               Server.notification self (Server_notification.ShowMessage msg))
         in
         let+ () = Fiber.Pool.stop detached in
@@ -136,7 +134,7 @@ module End_to_end_server = struct
 
   let run io =
     let detached = Fiber.Pool.create () in
-    let* _server, running =
+    let _server, running =
       Test.Server.run ~on_request ~on_notification (Started, detached) io
     in
     Fiber.fork_and_join_unit
@@ -155,10 +153,12 @@ let%expect_test "end to end run of lsp tests" =
     client: sending request
     server: executing command
     server: sending message notification to client
-    server: scheduling show message
-    server: sending show message notification
     client: received notification
-    window/showMessage
+    {
+      "params": { "type": 3, "message": "notifying client" },
+      "method": "window/showMessage",
+      "jsonrpc": "2.0"
+    }
     client: filled received_notification
     client: Successfully executed command with result:
     "successful execution"
