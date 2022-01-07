@@ -100,7 +100,17 @@ describe("textDocument/foldingRange", () => {
     three"`);
 
     let result = await foldingRange();
-    expect(result).toMatchInlineSnapshot(`Array []`);
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 6,
+          "endLine": 2,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
   });
 
   it("returns folding ranges for match expressions", async () => {

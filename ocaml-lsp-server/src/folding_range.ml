@@ -135,9 +135,11 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
             let lident_range = Range.of_loc lident.Asttypes.loc in
             let expr_range = Range.of_loc expr.Parsetree.pexp_loc in
             push { Range.start = lident_range.end_; end_ = expr_range.end_ })
+      | Pexp_apply _ -> 
+        Range.of_loc expr.pexp_loc |> push;
+        Ast_iterator.default_iterator.expr self expr
       | Pexp_ident _
       | Pexp_constant _
-      | Pexp_apply _
       | Pexp_try _
       | Pexp_tuple _
       | Pexp_construct _
