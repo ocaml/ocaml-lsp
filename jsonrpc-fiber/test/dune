@@ -8,7 +8,6 @@
   dyn
   fiber
   fiber_test
-  fiber_unix
   jsonrpc
   jsonrpc_fiber
   ;; This is because of the (implicit_transitive_deps false)
