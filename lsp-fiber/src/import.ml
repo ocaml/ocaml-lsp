@@ -1,20 +1,6 @@
-open Stdune
-module List = Stdune.List
-module Result = Stdune.Result
-module Hashtbl = Stdune.Hashtbl
-module Option = Stdune.Option
-module Int = Stdune.Int
-module Ordering = Stdune.Ordering
-module Exn = Stdune.Exn
-module Unix_env = Stdune.Env
-module Fpath = Stdune.Path
-module Code_error = Code_error
-module Or_exn = Or_exn
-module Table = Table
-module Id = Id
-module Exn_with_backtrace = Exn_with_backtrace
-module Fdecl = Fdecl
-module Queue = Queue
+module List = Stdlib.ListLabels
+module Code_error = Stdune.Code_error
+module Fdecl = Stdune.Fdecl
 module Header = Lsp.Header
 module Io = Lsp.Io
 
