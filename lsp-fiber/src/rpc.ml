@@ -136,6 +136,8 @@ module type Notification_intf = sig
   val to_jsonrpc : t -> Jsonrpc.Message.notification
 end
 
+module Table = Stdlib.Hashtbl.Make (Jsonrpc.Id)
+
 module Make (Initialize : sig
   type t
 end)
@@ -161,7 +163,7 @@ struct
     ; (* Filled when the server is initialied *)
       initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
-    ; pending : (Jsonrpc.Id.t, Cancel.t) Table.t
+    ; pending : Cancel.t Table.t
     ; detached : Fiber.Pool.t
     }
 
@@ -213,7 +215,7 @@ struct
           (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
       | Ok (In_request.E r) ->
         let cancel = Cancel.create () in
-        Table.set t.pending req.id cancel;
+        Table.replace t.pending req.id cancel;
         let+ response, state =
           Fiber.finalize
             (fun () ->
@@ -248,7 +250,7 @@ struct
       ; session = Fdecl.create Dyn.opaque
       ; initialized = Fiber.Ivar.create ()
       ; req_id = 1
-      ; pending = Table.create (module Jrpc_id) 32
+      ; pending = Table.create 32
       ; detached = Fiber.Pool.create ()
       }
     in
@@ -268,7 +270,7 @@ struct
       Out_request.to_jsonrpc_request req ~id
     in
     let+ (resp : Jsonrpc.Response.t) = k jsonrpc_request in
-    match resp.result |> Result.map ~f:(Out_request.response_of_json req) with
+    match resp.result |> Result.map (Out_request.response_of_json req) with
     | Ok s -> s
     | Error e -> raise (Jsonrpc.Response.Error.E e)
 
@@ -318,7 +320,7 @@ struct
 
   let handle_cancel_req t id =
     let+ () =
-      match Table.find t.pending id with
+      match Table.find_opt t.pending id with
       | None -> Fiber.return ()
       | Some id -> Fiber.Pool.task t.detached ~f:(fun () -> Cancel.cancel id)
     in
