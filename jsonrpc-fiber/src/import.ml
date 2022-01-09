@@ -12,7 +12,6 @@ module Or_exn = Or_exn
 module Table = Table
 module Exn_with_backtrace = Exn_with_backtrace
 module Queue = Queue
-include Fiber_unix
 module Id = Jsonrpc.Id
 module Message = Jsonrpc.Message
 module Response = Jsonrpc.Response
