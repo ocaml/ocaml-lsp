@@ -16,7 +16,7 @@ let
   resolve = opam2nix.resolve args (localPackages ++ [
     # dev deps
     "cinaps"
-    "menhir"
+    "menhir=20211128"
     "ppx_yojson_conv"
 
     # test deps
