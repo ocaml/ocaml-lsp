@@ -46,10 +46,7 @@ let to_path t =
     |> String.replace_all ~pattern:"%3D" ~with_:"="
     |> String.replace_all ~pattern:"%3F" ~with_:"?"
   in
-  if Sys.win32 then
-    path
-  else
-    Filename.concat "/" path
+  Filename.concat "/" path
 
 let of_path (path : string) =
   let path = Uri_lexer.escape_path path in
