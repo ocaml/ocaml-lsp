@@ -335,6 +335,34 @@ describe("textDocument/foldingRange", () => {
           "startCharacter": 0,
           "startLine": 0,
         },
+        Object {
+          "endCharacter": 29,
+          "endLine": 4,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 2,
+        },
+        Object {
+          "endCharacter": 29,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 6,
+        },
+        Object {
+          "endCharacter": 29,
+          "endLine": 14,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 12,
+        },
+        Object {
+          "endCharacter": 29,
+          "endLine": 18,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 16,
+        },
       ]
     `);
   });
