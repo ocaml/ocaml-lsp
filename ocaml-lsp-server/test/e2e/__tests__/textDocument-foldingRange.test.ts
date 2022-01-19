@@ -300,6 +300,44 @@ describe("textDocument/foldingRange", () => {
       ]
     `);
   });
+  it("supports if/else", async () => {
+    await openDocument(outdent`
+    let fn a =
+      if a == true then
+        let () =
+          Stdlib.print_endline "";
+          Stdlib.print_endline ""
+        in
+        let () =
+          Stdlib.print_endline "";
+          Stdlib.print_endline ""
+        in
+        ()
+      else
+        let () =
+          Stdlib.print_endline "";
+          Stdlib.print_endline ""
+        in
+        let () =
+          Stdlib.print_endline "";
+          Stdlib.print_endline ""
+        in
+        ()
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 6,
+          "endLine": 20,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
 
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
