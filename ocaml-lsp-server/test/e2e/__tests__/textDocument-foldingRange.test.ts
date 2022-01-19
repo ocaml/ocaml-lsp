@@ -398,6 +398,66 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for try/with", async () => {
+    await openDocument(outdent`
+    let result =
+      try
+        let () =
+          Stdlib.print_endline "";
+          Stdlib.print_endline ""
+        in
+        Some 6
+      with
+      | Not_found ->
+        let () =
+          Stdlib.print_endline "";
+          Stdlib.print_endline ""
+        in
+        None
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 8,
+          "endLine": 13,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 8,
+          "endLine": 13,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 1,
+        },
+        Object {
+          "endCharacter": 29,
+          "endLine": 4,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 2,
+        },
+        Object {
+          "endCharacter": 8,
+          "endLine": 13,
+          "kind": "region",
+          "startCharacter": 13,
+          "startLine": 8,
+        },
+        Object {
+          "endCharacter": 29,
+          "endLine": 11,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 9,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
