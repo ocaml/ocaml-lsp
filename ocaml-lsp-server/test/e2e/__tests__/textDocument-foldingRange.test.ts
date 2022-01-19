@@ -367,6 +367,37 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("supports return type annotation", async () => {
+    await openDocument(outdent`
+    let fn a b : int = 
+      let result = 
+        Stdlib.print_endline "";
+        a + b 
+      in
+      result
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 8,
+          "endLine": 5,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 9,
+          "endLine": 3,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 1,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
