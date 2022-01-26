@@ -119,7 +119,8 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_sequence _
       | Pexp_ifthenelse _
       | Pexp_constraint _
-      | Pexp_function _ ->
+      | Pexp_function _
+      | Pexp_construct _ ->
         Ast_iterator.default_iterator.expr self expr
       | Pexp_try (e, cases)
       | Pexp_match (e, cases) ->
@@ -145,7 +146,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_ident _
       | Pexp_constant _
       | Pexp_tuple _
-      | Pexp_construct _
       | Pexp_variant _
       | Pexp_field _
       | Pexp_setfield _
