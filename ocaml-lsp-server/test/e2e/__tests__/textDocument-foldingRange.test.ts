@@ -458,6 +458,32 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("traverses Pexp_construct", async () => {
+    await openDocument(outdent`
+    let a =
+      Some
+        (let () =
+           Stdlib.print_endline "";
+           Stdlib.print_endline "";
+           Stdlib.print_endline ""
+         in
+         5)
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 7,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for modules", async () => {
     await openDocument(outdent`
           module type X = sig
