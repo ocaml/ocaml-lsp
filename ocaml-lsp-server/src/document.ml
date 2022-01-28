@@ -241,6 +241,26 @@ let dispatch t command =
 let dispatch_exn t command =
   with_pipeline_exn t (fun pipeline -> Query_commands.dispatch pipeline command)
 
+let doc_comment doc pos =
+  let+ res =
+    let command = Query_protocol.Document (None, pos) in
+    dispatch_exn doc command
+  in
+  match res with
+  | `Found s
+  | `Builtin s ->
+    Some s
+  | _ -> None
+
+let type_enclosing doc pos =
+  let command = Query_protocol.Type_enclosing (None, pos, None) in
+  let+ res = dispatch_exn doc command in
+  match res with
+  | []
+  | (_, `Index _, _) :: _ ->
+    None
+  | (location, `String value, _) :: _ -> Some (location, value)
+
 let close t =
   match t with
   | Other _ -> Fiber.return ()

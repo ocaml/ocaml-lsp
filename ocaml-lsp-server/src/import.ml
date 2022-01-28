@@ -67,7 +67,21 @@ end
    listed alphabetically. Try to keep the order. *)
 include struct
   open Lsp.Types
-  module ClientCapabilities = ClientCapabilities
+
+  module ClientCapabilities = struct
+    include ClientCapabilities
+
+    let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
+      match client_capabilities.textDocument with
+      | None -> false
+      | Some td -> (
+        match field td with
+        | None -> false
+        | Some format ->
+          let set = Option.value format ~default:[ MarkupKind.Markdown ] in
+          List.mem set MarkupKind.Markdown ~equal:Poly.equal)
+  end
+
   module CodeAction = CodeAction
   module CodeActionKind = CodeActionKind
   module CodeActionOptions = CodeActionOptions
@@ -153,3 +167,10 @@ include struct
   module WorkspaceSymbolParams = WorkspaceSymbolParams
   module WorkspaceFoldersServerCapabilities = WorkspaceFoldersServerCapabilities
 end
+
+let task_if_running pool ~f =
+  let open Fiber.O in
+  let* running = Fiber.Pool.running pool in
+  match running with
+  | false -> Fiber.return ()
+  | true -> Fiber.Pool.task pool ~f

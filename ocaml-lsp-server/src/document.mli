@@ -64,3 +64,9 @@ val close : t -> unit Fiber.t
 val get_impl_intf_counterparts : Uri.t -> Uri.t list
 
 val edit : t -> TextEdit.t -> WorkspaceEdit.t
+
+val doc_comment :
+  t -> Msource.position -> (* doc string *) string option Fiber.t
+
+val type_enclosing :
+  t -> Msource.position -> (Loc.t * (* type *) string) option Fiber.t
