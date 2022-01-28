@@ -2,9 +2,6 @@ open Import
 module Version = Version
 open Fiber.O
 
-let client_capabilities (state : State.t) =
-  (State.initialize_params state).capabilities
-
 let make_error = Jsonrpc.Response.Error.make
 
 let not_supported () =
@@ -90,12 +87,6 @@ let initialize_info : InitializeResult.t =
 
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
-let task_if_running (state : State.t) ~f =
-  let* running = Fiber.Pool.running state.detached in
-  match running with
-  | false -> Fiber.return ()
-  | true -> Fiber.Pool.task state.detached ~f
-
 let extract_related_errors uri raw_message =
   match Ocamlc_loc.parse_raw raw_message with
   | `Message message :: related ->
@@ -166,7 +157,7 @@ let set_diagnostics rpc doc =
   let create_diagnostic = Diagnostic.create ~source:"ocamllsp" in
   let async send =
     let+ () =
-      task_if_running state ~f:(fun () ->
+      task_if_running state.detached ~f:(fun () ->
           let timer = Document.timer doc in
           Lev_fiber.Timer.Wheel.reset timer;
           let* res = Lev_fiber.Timer.Wheel.await timer in
@@ -257,12 +248,6 @@ let set_diagnostics rpc doc =
         Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
         Diagnostics.send state.diagnostics (`One uri))
 
-let log_message server ~type_ ~message =
-  let state = Server.state server in
-  task_if_running state ~f:(fun () ->
-      let log = LogMessageParams.create ~type_ ~message in
-      Server.notification server (Server_notification.LogMessage log))
-
 let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
@@ -277,7 +262,7 @@ let on_initialize server (ip : InitializeParams.t) =
     in
     let dune =
       Dune.create workspaces ip.capabilities state.diagnostics progress
-        ~log:(log_message server)
+        ~log:(State.log_msg server)
     in
     let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
     dune
@@ -393,7 +378,7 @@ module Formatter = struct
         let msg = ShowMessageParams.create ~message ~type_:Warning in
         let+ () =
           let state : State.t = Server.state rpc in
-          task_if_running state ~f:(fun () ->
+          task_if_running state.detached ~f:(fun () ->
               Server.notification rpc (ShowMessage msg))
         in
         Jsonrpc.Response.Error.raise error
@@ -417,21 +402,11 @@ module Formatter = struct
                  random"
                 (Uri.to_path (Document.uri doc))
             in
-            log_message rpc ~type_:MessageType.Warning ~message
+            State.log_msg rpc ~type_:MessageType.Warning ~message
         in
         let+ to_ = Dune.Instance.format_dune_file dune doc in
         Some (Diff.edit ~from:(Document.text doc) ~to_)
 end
-
-let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
-  match client_capabilities.textDocument with
-  | None -> false
-  | Some td -> (
-    match field td with
-    | None -> false
-    | Some format ->
-      let set = Option.value format ~default:[ MarkupKind.Markdown ] in
-      List.mem set MarkupKind.Markdown ~equal:Poly.equal)
 
 let location_of_merlin_loc uri : _ -> (_, string) result = function
   | `At_origin -> Ok None
@@ -472,98 +447,6 @@ let format_doc ~markdown ~doc =
     else
       { MarkupContent.value = doc; kind = MarkupKind.PlainText })
 
-let format_contents ~syntax ~markdown ~typ ~doc =
-  (* TODO for vscode, we should just use the language id. But that will not work
-     for all editors *)
-  `MarkupContent
-    (if markdown then
-      let value =
-        let markdown_name = Document.Syntax.markdown_name syntax in
-        match doc with
-        | None -> sprintf "```%s\n%s\n```" markdown_name typ
-        | Some s ->
-          let doc =
-            match Doc_to_md.translate s with
-            | Raw d -> sprintf "(** %s *)" d
-            | Markdown d -> d
-          in
-          sprintf "```%s\n%s\n```\n---\n%s" markdown_name typ doc
-      in
-      { MarkupContent.value; kind = MarkupKind.Markdown }
-    else
-      let value =
-        match doc with
-        | None -> sprintf "%s" typ
-        | Some d -> sprintf "%s\n%s" typ d
-      in
-      { MarkupContent.value; kind = MarkupKind.PlainText })
-
-let query_doc doc pos =
-  let+ res =
-    let command = Query_protocol.Document (None, pos) in
-    Document.dispatch_exn doc command
-  in
-  match res with
-  | `Found s
-  | `Builtin s ->
-    Some s
-  | _ -> None
-
-let query_type doc pos =
-  let command = Query_protocol.Type_enclosing (None, pos, None) in
-  let+ res = Document.dispatch_exn doc command in
-  match res with
-  | []
-  | (_, `Index _, _) :: _ ->
-    None
-  | (location, `String value, _) :: _ -> Some (location, value)
-
-let hover server (state : State.t)
-    { HoverParams.textDocument = { uri }; position; _ } =
-  let doc =
-    let store = state.store in
-    Document_store.get store uri
-  in
-  let pos = Position.logical position in
-  (* TODO we shouldn't acquiring the merlin thread twice per request *)
-  let* query_type = query_type doc pos in
-  match query_type with
-  | None -> Fiber.return None
-  | Some (loc, typ) ->
-    let syntax = Document.syntax doc in
-    let+ doc = query_doc doc pos
-    and+ typ =
-      (* We ask Ocamlformat to format this type *)
-      let* result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
-      match result with
-      | Ok v ->
-        (* OCamlformat adds an unnecessay newline at the end of the type *)
-        Fiber.return (String.trim v)
-      | Error `No_process -> Fiber.return typ
-      | Error (`Msg message) ->
-        (* We log OCamlformat errors and display the unformated type *)
-        let+ () =
-          let message =
-            sprintf
-              "An error occured while querying ocamlformat:\n\
-               Input type: %s\n\n\
-               Answer: %s" typ message
-          in
-          log_message server ~type_:Warning ~message
-        in
-        typ
-    in
-    let contents =
-      let markdown =
-        let client_capabilities = client_capabilities state in
-        markdown_support client_capabilities ~field:(fun td ->
-            Option.map td.hover ~f:(fun h -> h.contentFormat))
-      in
-      format_contents ~syntax ~markdown ~typ ~doc
-    in
-    let range = Range.of_loc loc in
-    Some (Hover.create ~contents ~range ())
-
 let signature_help (state : State.t)
     { SignatureHelpParams.textDocument = { uri }; position; _ } =
   let doc =
@@ -597,7 +480,9 @@ let signature_help (state : State.t)
       sprintf "%s : " fun_name
     in
     let offset = String.length prefix in
-    let+ doc = query_doc doc application_signature.function_position in
+    let+ doc =
+      Document.doc_comment doc application_signature.function_position
+    in
     let info =
       let parameters =
         List.map application_signature.parameters
@@ -611,8 +496,8 @@ let signature_help (state : State.t)
         let open Option.O in
         let+ doc = doc in
         let markdown =
-          let client_capabilities = client_capabilities state in
-          markdown_support client_capabilities ~field:(fun td ->
+          ClientCapabilities.markdown_support (State.client_capabilities state)
+            ~field:(fun td ->
               let* sh = td.signatureHelp in
               let+ si = sh.signatureInformation in
               si.documentationFormat)
@@ -696,7 +581,7 @@ let rename (state : State.t)
     let documentChanges =
       let open Option.O in
       Option.value ~default:false
-        (let client_capabilities = client_capabilities state in
+        (let client_capabilities = State.client_capabilities state in
          let* workspace = client_capabilities.workspace in
          let* edit = workspace.workspaceEdit in
          edit.documentChanges)
@@ -777,7 +662,7 @@ let definition_query server (state : State.t) uri position merlin_request =
   | Error message ->
     let+ () =
       let message = sprintf "Locate failed. %s" message in
-      log_message server ~type_:Error ~message
+      State.log_msg server ~type_:Error ~message
     in
     None
 
@@ -816,7 +701,7 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
         in
         ShowMessageParams.create ~message ~type_:Warning
       in
-      task_if_running state ~f:(fun () ->
+      task_if_running state.detached ~f:(fun () ->
           Server.notification server (ShowMessage msg))
   in
   Some (List.concat symbols)
@@ -844,7 +729,7 @@ let document_symbol (state : State.t) uri =
       let store = state.store in
       Document_store.get store uri
     in
-    let client_capabilities = client_capabilities state in
+    let client_capabilities = State.client_capabilities state in
     Document_symbol.run client_capabilities doc uri
   in
   Some symbols
@@ -878,7 +763,8 @@ let ocaml_on_request :
   | DebugEcho params -> now params
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
-  | TextDocumentHover req -> later (fun state () -> hover rpc state req) ()
+  | TextDocumentHover req ->
+    later (fun (_ : State.t) () -> Hover_req.handle rpc req) ()
   | TextDocumentReferences req -> later references req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> later text_document_lens req
@@ -945,7 +831,8 @@ let ocaml_on_request :
     later
       (fun state () ->
         let markdown =
-          markdown_support (client_capabilities state) ~field:(fun d ->
+          ClientCapabilities.markdown_support (State.client_capabilities state)
+            ~field:(fun d ->
               let open Option.O in
               let+ completion = d.completion in
               let* completion_item = completion.completionItem in
@@ -959,7 +846,7 @@ let ocaml_on_request :
             let uri = Compl.Resolve.uri resolve in
             Document_store.get state.store uri
           in
-          Compl.resolve doc ci resolve query_doc ~markdown)
+          Compl.resolve doc ci resolve Document.doc_comment ~markdown)
       ()
   | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later
@@ -1038,7 +925,7 @@ let on_notification server (notification : Client_notification.t) :
     let+ () =
       Diagnostics.remove state.diagnostics (`Merlin uri);
       let* () = Document_store.remove_document store uri in
-      task_if_running state ~f:(fun () ->
+      task_if_running state.detached ~f:(fun () ->
           Diagnostics.send state.diagnostics (`One uri))
     in
     state
@@ -1085,7 +972,7 @@ let on_notification server (notification : Client_notification.t) :
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | Unknown_notification req ->
     let+ () =
-      log_message server ~type_:Error
+      State.log_msg server ~type_:Error
         ~message:("Unknown notication " ^ req.method_)
     in
     state
@@ -1139,7 +1026,7 @@ let start () =
       | diagnostics ->
         let server = Fdecl.get server in
         let state = Server.state server in
-        task_if_running state ~f:(fun () ->
+        task_if_running state.detached ~f:(fun () ->
             let batch = Server.Batch.create server in
             List.iter diagnostics ~f:(fun d ->
                 Server.Batch.notification batch (PublishDiagnostics d));
@@ -1177,7 +1064,7 @@ let start () =
        in
        Fiber.all_concurrently_unit finalize)
     ; (let* state =
-         Ocamlformat_rpc.run ~logger:(log_message server) ocamlformat_rpc
+         Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc
        in
        let message =
          match state with
@@ -1194,7 +1081,7 @@ let start () =
        | Some message ->
          let* (_ : InitializeParams.t) = Server.initialized server in
          let state = Server.state server in
-         task_if_running state ~f:(fun () ->
+         task_if_running state.detached ~f:(fun () ->
              let log = ShowMessageParams.create ~type_:Info ~message in
              Server.notification server (Server_notification.ShowMessage log)))
     ]

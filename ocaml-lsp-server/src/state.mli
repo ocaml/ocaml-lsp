@@ -46,3 +46,10 @@ val workspaces : t -> Workspaces.t
 val dune : t -> Dune.t
 
 val modify_workspaces : t -> f:(Workspaces.t -> Workspaces.t) -> t
+
+(** @return client capabilities passed from the client in [InitializeParams]
+    @raise Assertion_failure if the [t.init] is [Uninitialized] *)
+val client_capabilities : t -> ClientCapabilities.t
+
+val log_msg :
+  t Server.t -> type_:MessageType.t -> message:string -> unit Fiber.t

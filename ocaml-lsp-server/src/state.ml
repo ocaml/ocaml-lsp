@@ -74,3 +74,11 @@ let modify_workspaces t ~f =
       Initialized { init with workspaces = f init.workspaces }
   in
   { t with init }
+
+let client_capabilities t = (initialize_params t).capabilities
+
+let log_msg server ~type_ ~message =
+  let state = Server.state server in
+  task_if_running state.detached ~f:(fun () ->
+      let log = LogMessageParams.create ~type_ ~message in
+      Server.notification server (Server_notification.LogMessage log))
