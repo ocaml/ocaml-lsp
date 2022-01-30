@@ -4,6 +4,11 @@
 
 - Add better support for code folding: more folds and more precise folds
 
+## Fixes
+
+- Fix infer interface code action crash when implementation source does not
+  exist (#597)
+
 # 1.9.1
 
 ## Fixes
