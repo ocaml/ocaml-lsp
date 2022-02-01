@@ -1099,14 +1099,26 @@ let start () =
   let* stream =
     let+ stdin, stdout =
       if Sys.win32 then
-        let* stdin = Lev_fiber.Io.create Unix.stdin `Blocking Input in
-        let+ stdout = Lev_fiber.Io.create Unix.stdout `Blocking Output in
+        let* stdin =
+          Lev_fiber.Io.create (Lev_fiber.Fd.create Unix.stdin `Blocking) Input
+        in
+        let+ stdout =
+          Lev_fiber.Io.create (Lev_fiber.Fd.create Unix.stdout `Blocking) Output
+        in
         (stdin, stdout)
       else (
         Unix.set_nonblock Unix.stdin;
         Unix.set_nonblock Unix.stdout;
-        let* stdin = Lev_fiber.Io.create Unix.stdin `Non_blocking Input in
-        let+ stdout = Lev_fiber.Io.create Unix.stdout `Non_blocking Output in
+        let* stdin =
+          Lev_fiber.Io.create
+            (Lev_fiber.Fd.create Unix.stdin (`Non_blocking true))
+            Input
+        in
+        let+ stdout =
+          Lev_fiber.Io.create
+            (Lev_fiber.Fd.create Unix.stdout (`Non_blocking true))
+            Output
+        in
         (stdin, stdout)
       )
     in
