@@ -662,42 +662,26 @@ in
     ocamlformat-rpc = 
     {
       pname = "ocamlformat-rpc";
-      version = "0.20.1";
-      src = pkgs.fetchurl 
-      {
-        url = "https://github.com/ocaml-ppx/ocamlformat/releases/download/0.20.1/ocamlformat-0.20.1.tbz";
-        sha256 = "0d82s6f7fa8vpy84f7m6l5kh0ibqdfph7yj4fcl7iyhnaij52fkx";
-      };
+      version = "development";
+      src = self.directSrc "ocamlformat-rpc";
       opamInputs = 
       {
         inherit (selection) uutf uuseg stdio re odoc-parser ocp-indent
         ocamlformat-rpc-lib ocaml-version ocaml menhirSdk menhirLib menhir
         fpath fix either dune-build-info dune cmdliner base;
       };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        package = "packages/ocamlformat-rpc/ocamlformat-rpc.0.20.1";
-        hash = "sha256:19mkqyiiq038wzrlj2dlkdbnywvz3ydhsanm3ipvz3i1s821wzli";
-      };
+      opamSrc = "ocamlformat-rpc.opam";
     };
     ocamlformat-rpc-lib = 
     {
       pname = "ocamlformat-rpc-lib";
-      version = "0.19.0";
-      src = pkgs.fetchurl 
-      {
-        url = "https://github.com/ocaml-ppx/ocamlformat/releases/download/0.19.0/ocamlformat-0.19.0.tbz";
-        sha256 = "0ihgwl7d489g938m1jvgx8azdgq9f5np5mzqwwya797hx2m4dz32";
-      };
+      version = "development";
+      src = self.directSrc "ocamlformat-rpc-lib";
       opamInputs = 
       {
-        inherit (selection) sexplib0 ocaml dune csexp;
+        inherit (selection) ocaml dune csexp;
       };
-      opamSrc = repoPath (repos.opam-repository.src) 
-      {
-        package = "packages/ocamlformat-rpc-lib/ocamlformat-rpc-lib.0.19.0";
-        hash = "sha256:01g9aphkkk5am2a9j8isg8yjb237q527q6vs28wix12f5fhn1pk6";
-      };
+      opamSrc = "ocamlformat-rpc-lib.opam";
     };
     ocp-indent = 
     {
