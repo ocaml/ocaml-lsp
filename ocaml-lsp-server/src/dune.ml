@@ -609,7 +609,7 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        ; workspaces
        })
 
-let enabled = false
+let enabled = true
 
 let create_disabled () = ref Closed
 
