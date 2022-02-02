@@ -463,7 +463,11 @@ let poll active =
   let workspace_folders = Workspaces.workspace_folders workspaces in
   let* res = Poll.poll active.registry in
   match res with
-  | Error _ -> (* TODO warn *) Fiber.return ()
+  | Error exn ->
+    let message =
+      sprintf "failed to poll dune registry. %s" (Printexc.to_string exn)
+    in
+    active.config.log ~type_:MessageType.Warning ~message
   | Ok _refresh ->
     let remaining, to_kill =
       String.Map.partition active.instances ~f:(fun (running : Instance.t) ->
@@ -648,10 +652,17 @@ module Promote = struct
         | _ -> assert false
       in
       match String.Map.find active.instances promote.dune with
-      | None -> (* TODO error *) Fiber.return ()
+      | None ->
+        let message = sprintf "dune %S already disconected" promote.dune in
+        Jsonrpc.Response.Error.raise
+          (Jsonrpc.Response.Error.make ~code:InternalError ~message ())
       | Some instance -> (
         match Instance.client instance with
-        | None -> (* TODO error *) Fiber.return ()
+        | None ->
+          (* we can also just wait for initialization? *)
+          let message = sprintf "dune %S is not initialized" promote.dune in
+          Jsonrpc.Response.Error.raise
+            (Jsonrpc.Response.Error.make ~code:InternalError ~message ())
         | Some client -> (
           let* req =
             Client.Versioned.prepare_request client Drpc.Request.promote
