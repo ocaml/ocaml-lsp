@@ -19,7 +19,6 @@ module String = struct
   include StringLabels
 
   let print () s = Printf.sprintf "%S" s
-
   let index = index_opt
 
   let rec check_prefix s ~prefix len i =
@@ -78,25 +77,17 @@ module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t
 
   let to_pretty_string (t : t) = Yojson.Safe.pretty_to_string ~std:false t
-
   let to_string t = Yojson.Safe.to_string t
-
   let of_string s = Yojson.Safe.from_string s
-
   let yojson_of_t x = x
-
   let t_of_yojson x = x
-
   let error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
-
   let yojson_of_list = Ppx_yojson_conv_lib.Yojson_conv.yojson_of_list
-
   let pp ppf (t : t) = Yojson.Safe.pretty_print ppf t
 
   module Jsonable = Ppx_yojson_conv_lib.Yojsonable
 
   let bool b = `Bool b
-
   let field fields name conv = List.assoc_opt name fields |> Option.map conv
 
   let field_exn fields name conv =
@@ -255,7 +246,6 @@ module Json = struct
     type t
 
     let t_of_yojson = error "Void.t"
-
     let yojson_of_t (_ : t) = assert false
   end
 

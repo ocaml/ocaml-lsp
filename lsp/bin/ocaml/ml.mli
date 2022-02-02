@@ -16,17 +16,12 @@ module Kind : sig
 
   module Map : sig
     type 'a t = ('a, 'a) pair
-
     type kind
 
     val get : 'a t -> kind -> 'a
-
     val iter : 'a t -> f:('a -> unit) -> unit
-
     val map : 'a t -> f:('a -> 'b) -> 'b t
-
     val both : 'a t -> 'b t -> ('a * 'b) t
-
     val make_both : 'a -> 'a t
   end
   with type kind := t
@@ -91,13 +86,9 @@ module Type : sig
 
   (* This is for lists where the keys are equal to strings *)
   val assoc_list : key:t -> data:t -> t
-
   val pp_decl : name:string -> kind:Kind.t -> decl -> unit Pp.t
-
   val pp : t -> kind:Kind.t -> unit Pp.t
-
   val field : t -> name:string -> field
-
   val constr : t list -> name:string -> constr
 
   (** Simplified sum types*)
@@ -107,25 +98,15 @@ module Type : sig
   val poly_enum : string list -> t
 
   val list : t -> t
-
   val module_t : string -> t
-
   val t : t
-
   val string : t
-
   val name : string -> t
-
   val int : t
-
   val bool : t
-
   val alpha : t
-
   val json : t
-
   val unit : t
-
   val void : t
 
   (** Fold and map over a type expression.
@@ -137,7 +118,6 @@ module Type : sig
   class virtual ['env, 'm] mapreduce :
     object ('self)
       method virtual empty : 'm
-
       method virtual plus : 'm -> 'm -> 'm
 
       (** doesn't really to be here, but putting it here avoids passing [empty]
@@ -146,35 +126,20 @@ module Type : sig
         'a. f:('a -> 'a * 'm) -> 'a list -> 'a list * 'm
 
       method alias : 'env -> t -> decl * 'm
-
       method app : 'env -> t -> t list -> t * 'm
-
       method assoc : 'env -> t -> t -> t * 'm
-
       method constr : 'env -> constr -> constr * 'm
-
       method field : 'env -> field -> field * 'm
-
       method list : 'env -> t -> t * 'm
-
       method path : 'env -> Path.t -> t * 'm
-
       method optional : 'env -> t -> t * 'm
-
       method poly_variant : 'env -> constr list -> t * 'm
-
       method prim : 'env -> prim -> t * 'm
-
       method record : 'env -> field list -> decl * 'm
-
       method t : 'env -> t -> t * 'm
-
       method decl : 'env -> decl -> decl * 'm
-
       method tuple : 'env -> t list -> t * 'm
-
       method var : 'env -> string -> t * 'm
-
       method variant : 'env -> constr list -> decl * 'm
     end
 end
@@ -256,6 +221,5 @@ module Module : sig
     | Value of Expr.toplevel
 
   val pp_sig : sig_ t -> unit Pp.t
-
   val pp_impl : impl t -> unit Pp.t
 end

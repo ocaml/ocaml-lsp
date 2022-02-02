@@ -20,11 +20,9 @@ module Json : sig
   module Jsonable : sig
     module type S = sig
       type json
-
       type t
 
       val yojson_of_t : t -> json
-
       val t_of_yojson : json -> t
     end
     with type json := t
@@ -40,7 +38,6 @@ module Id : sig
   include Json.Jsonable.S with type t := t
 
   val hash : t -> int
-
   val equal : t -> t -> bool
 end
 
@@ -52,7 +49,6 @@ module Message : sig
       ]
 
     val of_json : Json.t -> t
-
     val to_json : t -> Json.t
   end
 
@@ -65,17 +61,12 @@ module Message : sig
   val create : ?params:Structured.t -> id:'id -> method_:string -> unit -> 'id t
 
   type request = Id.t t
-
   type notification = unit t
-
   type either = Id.t option t
 
   val either_of_yojson : Json.t -> either
-
   val yojson_of_either : either -> Json.t
-
   val yojson_of_notification : notification -> Json.t
-
   val yojson_of_request : request -> Json.t
 end
 
@@ -105,11 +96,8 @@ module Response : sig
     exception E of t
 
     val make : ?data:Json.t -> code:Code.t -> message:string -> unit -> t
-
     val raise : t -> 'a
-
     val of_exn : exn -> t
-
     val yojson_of_t : t -> Json.t
   end
 
@@ -119,7 +107,6 @@ module Response : sig
     }
 
   val ok : Id.t -> Json.t -> t
-
   val error : Id.t -> Error.t -> t
 
   include Json.Jsonable.S with type t := t

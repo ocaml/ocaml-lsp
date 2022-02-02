@@ -10,7 +10,6 @@ module Reply = struct
     | Later of (('r -> unit Fiber.t) -> unit Fiber.t)
 
   let now r = Now r
-
   let later f = Later f
 
   let to_jsonrpc t id to_json : Jsonrpc_fiber.Reply.t =
@@ -39,7 +38,6 @@ module Cancel = struct
       | Pending p -> p.callbacks <- f :: p.callbacks)
 
   let create () = ref (Pending { callbacks = [] })
-
   let destroy t = t := Finished
 
   let cancel t =
@@ -59,13 +57,9 @@ end
 
 module type S = sig
   type 'a out_request
-
   type out_notification
-
   type 'a in_request
-
   type in_notification
-
   type 'state t
 
   module Handler : sig
@@ -87,28 +81,19 @@ module type S = sig
   with type 'a session := 'a t
 
   val state : 'a t -> 'a
-
   val make : 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
-
   val stop : _ t -> unit Fiber.t
-
   val request : _ t -> 'resp out_request -> 'resp Fiber.t
-
   val notification : _ t -> out_notification -> unit Fiber.t
-
   val on_cancel : (unit -> unit Fiber.t) -> unit Fiber.t
 
   module Batch : sig
     type t
-
     type _ session
 
     val create : _ session -> t
-
     val notification : t -> out_notification -> unit
-
     val request : t -> 'resp out_request -> 'resp Fiber.t
-
     val submit : t -> unit Fiber.t
   end
   with type 'a session := 'a t
@@ -116,15 +101,11 @@ end
 
 module type Request_intf = sig
   type 'a t
-
   type packed = E : 'r t -> packed
 
   val of_jsonrpc : Jsonrpc.Message.request -> (packed, string) result
-
   val yojson_of_result : 'a t -> 'a -> Json.t
-
   val to_jsonrpc_request : 'a t -> id:Id.t -> Jsonrpc.Message.request
-
   val response_of_json : 'a t -> Json.t -> 'a
 end
 
@@ -132,7 +113,6 @@ module type Notification_intf = sig
   type t
 
   val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) result
-
   val to_jsonrpc : t -> Jsonrpc.Message.notification
 end
 
@@ -147,11 +127,8 @@ end)
 (In_notification : Notification_intf) =
 struct
   type 'a out_request = 'a Out_request.t
-
   type 'a in_request = 'a In_request.t
-
   type out_notification = Out_notification.t
-
   type in_notification = In_notification.t
 
   type 'state t =
@@ -331,6 +308,7 @@ end
 
 module Client = struct
   open Types
+
   include
     Make (InitializeResult) (Client_request) (Client_notification)
       (Server_request)
@@ -363,6 +341,7 @@ end
 
 module Server = struct
   open Types
+
   include
     Make (InitializeParams) (Server_request) (Server_notification)
       (Client_request)

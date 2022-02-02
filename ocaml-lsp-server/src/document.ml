@@ -133,7 +133,6 @@ let timer = function
   | Merlin m -> m.timer
 
 let text t = Text_document.text (tdoc t)
-
 let source t = Msource.make (text t)
 
 let await task =

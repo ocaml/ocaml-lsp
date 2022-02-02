@@ -849,13 +849,9 @@ module ChangeAnnotationIdentifier = struct
   type t = string [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
-
   let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
   let _ = t_of_yojson
-
   let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
   let _ = yojson_of_t
 
   [@@@end]
@@ -2246,13 +2242,9 @@ module Integer = struct
   type t = int [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
-
   let t_of_yojson = (int_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
   let _ = t_of_yojson
-
   let yojson_of_t = (yojson_of_int : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
   let _ = yojson_of_t
 
   [@@@end]
@@ -14010,13 +14002,9 @@ module URI = struct
   type t = string [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
-
   let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
   let _ = t_of_yojson
-
   let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
   let _ = yojson_of_t
 
   [@@@end]
@@ -15997,13 +15985,9 @@ module Decimal = struct
   type t = int [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
-
   let t_of_yojson = (int_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
   let _ = t_of_yojson
-
   let yojson_of_t = (yojson_of_int : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
   let _ = yojson_of_t
 
   [@@@end]
@@ -38742,13 +38726,9 @@ module Uinteger = struct
   type t = int [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
-
   let t_of_yojson = (int_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
   let _ = t_of_yojson
-
   let yojson_of_t = (yojson_of_int : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
   let _ = yojson_of_t
 
   [@@@end]

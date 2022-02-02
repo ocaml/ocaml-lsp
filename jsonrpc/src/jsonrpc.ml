@@ -18,23 +18,16 @@ module Id = struct
     | json -> Json.error "Id.t" json
 
   let hash x = Hashtbl.hash x
-
   let equal = ( = )
 end
 
 module Constant = struct
   let jsonrpc = "jsonrpc"
-
   let jsonrpcv = "2.0"
-
   let id = "id"
-
   let method_ = "method"
-
   let params = "params"
-
   let result = "result"
-
   let error = "error"
 end
 
@@ -104,9 +97,7 @@ module Message = struct
   let yojson_of_either t : Json.t = yojson_of_t (Option.map ~f:Id.yojson_of_t) t
 
   type request = Id.t t
-
   type notification = unit t
-
   type either = Id.t option t
 
   let yojson_of_notification = yojson_of_t (fun () -> None)
@@ -198,7 +189,6 @@ module Response = struct
     exception E of t
 
     let raise t = raise (E t)
-
     let make ?data ~code ~message () = { data; code; message }
 
     let of_exn exn =
@@ -243,9 +233,7 @@ module Response = struct
     | _ -> Json.error "Jsonrpc.Result.t" json
 
   let make ~id ~result = { id; result }
-
   let ok id result = make ~id ~result:(Ok result)
-
   let error id error = make ~id ~result:(Error error)
 end
 

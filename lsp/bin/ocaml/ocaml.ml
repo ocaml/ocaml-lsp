@@ -37,7 +37,6 @@ let preprocess =
   let traverse =
     object (self)
       inherit Unresolved.map as super
-
       val mutable current_name = None
 
       method name =
@@ -196,7 +195,6 @@ module Module : sig
   type t = (Module.sig_ Module.t, Module.impl Module.t) Kind.pair
 
   val add_private_values : t -> Expr.toplevel Named.t list -> t
-
   val type_decls : Module.Name.t -> Type.decl Named.t list Kind.Map.t -> t
 
   (** Use Json.Nullable_option or Json.Assoc.t where appropriate *)
@@ -243,9 +241,7 @@ end = struct
       let open Ml.Type in
       object (self)
         inherit [unit, unit] Ml.Type.mapreduce as super
-
         method empty = ()
-
         method plus () () = ()
 
         method! field x f =
@@ -272,9 +268,7 @@ end = struct
       let open Ml.Type in
       object (self)
         inherit [unit, unit] Ml.Type.mapreduce as super
-
         method empty = ()
-
         method plus () () = ()
 
         method! optional x t =
@@ -338,7 +332,6 @@ let pp_file pp ch =
 module Create : sig
   (* Generate create functions with optional/labeled arguments *)
   val intf_of_type : Ml.Type.decl Named.t -> Ml.Module.sig_ Named.t list
-
   val impl_of_type : Ml.Type.decl Named.t -> Ml.Module.impl Named.t list
 end = struct
   let f_name name =

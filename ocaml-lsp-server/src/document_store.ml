@@ -4,9 +4,7 @@ open Fiber.O
 type t = (Uri.t, Document.t) Table.t
 
 let make () = Table.create (module Uri) 50
-
 let put store doc = Table.set store (Document.uri doc) doc
-
 let get_opt store = Table.find store
 
 let get store uri =

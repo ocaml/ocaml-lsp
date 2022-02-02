@@ -35,7 +35,6 @@ let is_json_constr (constr : Type.constr) =
 
 module Name = struct
   let of_ = sprintf "%s_of_yojson"
-
   let to_ = sprintf "yojson_of_%s"
 
   let conv = function

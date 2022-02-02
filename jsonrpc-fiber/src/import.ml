@@ -22,9 +22,7 @@ module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t
 
   let to_pretty_string (t : t) = Yojson.Safe.pretty_to_string ~std:false t
-
   let error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
-
   let pp ppf (t : t) = Yojson.Safe.pretty_print ppf t
 
   let rec of_dyn (t : Dyn.t) : t =
@@ -54,7 +52,6 @@ end
 
 module Log = struct
   let level : (string option -> bool) ref = ref (fun _ -> false)
-
   let out = ref Format.err_formatter
 
   type message =

@@ -34,23 +34,18 @@ module Make (Io : sig
   type 'a t
 
   val return : 'a -> 'a t
-
   val raise : exn -> 'a t
 
   module O : sig
     val ( let+ ) : 'a t -> ('a -> 'b) -> 'b t
-
     val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
   end
 end) (Chan : sig
   type input
-
   type output
 
   val read_line : input -> string option Io.t
-
   val read_exactly : input -> int -> string option Io.t
-
   val write : output -> string -> unit Io.t
 end) =
 struct

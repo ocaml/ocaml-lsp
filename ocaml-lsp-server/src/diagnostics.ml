@@ -13,7 +13,6 @@ module Id = struct
   include Drpc.Diagnostic.Id
 
   let equal x y = compare x y = Eq
-
   let to_dyn = Dyn.opaque
 end
 

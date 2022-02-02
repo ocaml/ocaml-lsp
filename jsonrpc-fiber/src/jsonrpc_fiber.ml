@@ -53,7 +53,6 @@ module Reply = struct
     | Later of ((Response.t -> unit Fiber.t) -> unit Fiber.t)
 
   let now (r : Response.t) = Now r
-
   let later f = Later f
 
   let send (t : t) sender =
@@ -66,9 +65,7 @@ module Make (Chan : sig
   type t
 
   val send : t -> packet list -> unit Fiber.t
-
   val recv : t -> packet option Fiber.t
-
   val close : t -> [ `Read | `Write ] -> unit Fiber.t
 end) =
 struct
@@ -91,9 +88,7 @@ struct
     type nonrec ('a, 'id) t = ('a, 'id) context
 
     let message = snd
-
     let session = fst
-
     let state t = (session t).state
   end
 
@@ -119,7 +114,6 @@ struct
     Fiber.return (Reply.now (Response.error req.id error), state)
 
   let state t = t.state
-
   let stopped t = Fiber.Ivar.read t.stopped
 
   let stop t =
@@ -308,7 +302,6 @@ struct
       ref
 
     let create () = ref []
-
     let notification t n = t := `Notification n :: !t
 
     let request t r =

@@ -4,13 +4,11 @@ type t =
   }
 
 let content_type t = t.content_type
-
 let content_length t = t.content_length
 
 module Private = struct
   module Key = struct
     let content_length = "Content-Length"
-
     let content_type = "Content-Type"
   end
 end

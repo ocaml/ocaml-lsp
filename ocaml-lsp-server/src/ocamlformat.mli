@@ -15,5 +15,4 @@ type error =
   | Unknown_extension of Uri.t
 
 val message : error -> string
-
 val run : t -> Document.t -> (TextEdit.t list, error) result Fiber.t

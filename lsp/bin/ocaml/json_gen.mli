@@ -13,7 +13,6 @@ end
 
 module Poly_variant : sig
   val of_json : Ml.Type.constr list Named.t -> Ml.Expr.toplevel Named.t
-
   val to_json : Ml.Type.constr list Named.t -> Ml.Expr.toplevel Named.t
 end
 

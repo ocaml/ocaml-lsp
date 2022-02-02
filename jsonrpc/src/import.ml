@@ -31,11 +31,9 @@ module Json = struct
   module Jsonable = struct
     module type S = sig
       type json
-
       type t
 
       val yojson_of_t : t -> json
-
       val t_of_yojson : json -> t
     end
     with type json := t

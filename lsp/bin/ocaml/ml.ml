@@ -103,7 +103,6 @@ module Type = struct
   class virtual ['env, 'm] mapreduce =
     object (self : 'self)
       method virtual empty : 'm
-
       method virtual plus : 'm -> 'm -> 'm
 
       method poly_variant env constrs =
@@ -117,9 +116,7 @@ module Type = struct
         (Tuple r, s)
 
       method path _ p = (Path p, self#empty)
-
       method var _ n = (Var n, self#empty)
-
       method prim _ p = (Prim p, self#empty)
 
       method optional env p =
@@ -198,23 +195,14 @@ module Type = struct
     List.fold_right args ~init:t ~f:(fun arg acc -> Fun (arg, acc))
 
   let constr args ~name = { name; args }
-
   let list t = List t
-
   let assoc_list ~key ~data = Assoc (key, data)
-
   let t = Path (Ident "t")
-
   let module_t m = Path (Dot (Ident (String.capitalize_ascii m), "t"))
-
   let string = Prim String
-
   let name s = Path (Ident s)
-
   let int = Prim Int
-
   let bool = Prim Bool
-
   let alpha = Var "a"
 
   let enum constrs =
@@ -225,7 +213,6 @@ module Type = struct
       (List.map constrs ~f:(fun constr -> { name = constr; args = [] }))
 
   let json = Path (Dot (Ident "Json", "t"))
-
   let unit = Prim Unit
 
   let void =

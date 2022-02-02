@@ -2,7 +2,6 @@ open Import
 open Fiber.O
 
 let action_kind = "destruct"
-
 let kind = CodeActionKind.Other action_kind
 
 let code_action_of_case_analysis doc uri (loc, newText) =
