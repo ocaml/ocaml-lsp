@@ -611,8 +611,6 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        ; workspaces
        })
 
-let inside_test = true
-
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
     progress ~log =
   if inside_test then
