@@ -7,72 +7,44 @@ type command_result =
   ; status : Unix.process_status
   }
 
-type t =
-  { stdin : Lev_fiber.Thread.t Lazy_fiber.t
-  ; stderr : Lev_fiber.Thread.t Lazy_fiber.t
-  ; stdout : Lev_fiber.Thread.t Lazy_fiber.t
-  }
+type t = unit
 
-let create () =
-  let stdout = Lazy_fiber.create Lev_fiber.Thread.create in
-  let stderr = Lazy_fiber.create Lev_fiber.Thread.create in
-  let stdin = Lazy_fiber.create Lev_fiber.Thread.create in
-  { stdout; stderr; stdin }
+let create () = ()
 
-let await_no_cancel task =
-  let+ res = Lev_fiber.Thread.await task in
-  match res with
-  | Ok s -> s
-  | Error `Cancelled -> assert false
-  | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
-
-let run_command state prog stdin_value args : command_result Fiber.t =
-  let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
-  let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
-  let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
+let run_command () prog stdin_value args : command_result Fiber.t =
+  let* stdin_i, stdin_o = Lev_fiber.Io.pipe ~cloexec:true () in
+  let* stdout_i, stdout_o = Lev_fiber.Io.pipe ~cloexec:true () in
+  let* stderr_i, stderr_o = Lev_fiber.Io.pipe ~cloexec:true () in
   let pid =
+    let fd io = Lev_fiber.Fd.fd (Lev_fiber.Io.fd io) in
+    let stdin = fd stdin_i in
+    let stdout = fd stdout_o in
+    let stderr = fd stderr_o in
     let argv = prog :: args in
-    Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
-    |> Stdune.Pid.of_int
+    Spawn.spawn ~prog ~argv ~stdin ~stdout ~stderr () |> Stdune.Pid.of_int
   in
-  Unix.close stdin_i;
-  Unix.close stdout_o;
-  Unix.close stderr_o;
+  Lev_fiber.Io.close stdin_i;
+  Lev_fiber.Io.close stdout_o;
+  Lev_fiber.Io.close stderr_o;
   let stdin () =
-    let* thread = Lazy_fiber.force state.stdin in
-    let* task =
-      Lev_fiber.Thread.task thread ~f:(fun () ->
-          let out_chan = Unix.out_channel_of_descr stdin_o in
-          output_string out_chan stdin_value;
-          flush out_chan;
-          close_out out_chan)
+    let+ () =
+      Lev_fiber.Io.with_write stdin_o ~f:(fun w ->
+          Lev_fiber.Io.Writer.add_string w stdin_value;
+          Lev_fiber.Io.Writer.flush w)
     in
-    await_no_cancel task
+    Lev_fiber.Io.close stdin_o
   in
-  let read th from =
-    let* task =
-      Lev_fiber.Thread.task th ~f:(fun () ->
-          let in_ = Unix.in_channel_of_descr from in
-          let contents = Stdune.Io.read_all in_ in
-          close_in_noerr in_;
-          contents)
-    in
-    await_no_cancel task
-  in
-  let stdout () =
-    let* th = Lazy_fiber.force state.stdout in
-    read th stdout_i
-  in
-  let stderr () =
-    let* th = Lazy_fiber.force state.stderr in
-    read th stderr_i
+  let read from () =
+    let+ res = Lev_fiber.Io.with_read from ~f:Lev_fiber.Io.Reader.to_string in
+    Lev_fiber.Io.close from;
+    res
   in
   let+ status, (stdout, stderr) =
     Fiber.fork_and_join
       (fun () -> Lev_fiber.waitpid ~pid:(Pid.to_int pid))
       (fun () ->
         Fiber.fork_and_join_unit stdin (fun () ->
-            Fiber.fork_and_join stdout stderr))
+            Fiber.fork_and_join (read stdout_i) (read stderr_i)))
   in
   { stdout; stderr; status }
 
