@@ -60,7 +60,7 @@ let build_progress t (progress : Drpc.Progress.t) =
     | Success -> end_build t ~message:"Build finished"
     | Failed -> end_build t ~message:"Build failed"
     | Interrupted -> end_build t ~message:"Build interrupted"
-    | Waiting -> Fiber.return ()
+    | Waiting -> end_build t ~message:"Waiting for changes"
     | In_progress { complete; remaining } ->
       let* token =
         match token with
