@@ -99,33 +99,6 @@ module Poll =
         Fiber.return (Result.try_with (fun () -> Io.String_path.read_file s))
     end)
 
-module Where =
-  Drpc.Where.Make
-    (struct
-      type 'a t = 'a
-
-      let return x = x
-
-      module O = struct
-        let ( let* ) x f = f x
-
-        let ( let+ ) x f = f x
-      end
-    end)
-    (struct
-      let read_file f =
-        Result.try_with (fun () -> Stdune.Io.String_path.read_file f)
-
-      let analyze_path s =
-        match (Unix.stat s).st_kind with
-        | Unix.S_SOCK -> Ok `Unix_socket
-        | S_REG -> Ok `Normal_file
-        | _
-        | (exception Unix.Unix_error (Unix.ENOENT, _, _)) ->
-          Ok `Other
-        | exception exn -> Error exn
-    end)
-
 type config =
   { diagnostics : Diagnostics.t
   ; include_promotions : bool
