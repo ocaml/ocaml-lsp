@@ -10,9 +10,6 @@ let default =
   }
 
 let diagnostics_delay t = t.diagnostics_delay
-
 let request = { ConfigurationParams.items = [] }
-
 let of_response (_ : Json.t list) = default
-
 let update t _ = t

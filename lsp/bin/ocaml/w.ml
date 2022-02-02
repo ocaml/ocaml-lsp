@@ -3,15 +3,12 @@ open Pp.O
 open Pp
 
 type t = unit Pp.t
-
 type w = t
 
 (* This module contains all the writing primitives *)
 
 let ident = verbatim
-
 let i = verbatim
-
 let quoted s = i (sprintf "%S" s)
 
 let surround delim a =
@@ -31,18 +28,13 @@ module Json = struct
 
   module Literal = struct
     let str n = sprintf "`String %S" n
-
     let int i = sprintf "`Int (%d)" i
-
     let null = "`Null"
-
     let bool b = sprintf "`Bool %b" b
   end
 
   let str = sprintf "`String %s"
-
   let int = sprintf "`Int %s"
-
   let bool = sprintf "`Bool %s"
 end
 
@@ -77,20 +69,15 @@ end
 
 module Type = struct
   let string = i "string"
-
   let int = i "int"
-
   let name = i
-
   let bool = i "bool"
 
   let gen_decl kw name body =
     Pp.concat [ Pp.textf "%s %s =" kw name; Pp.newline; body ]
 
   let and_ name body = gen_decl "and" name body
-
   let decl name body = gen_decl "type" name body
-
   let record fields = Gen.record ~delim:":" fields
 
   let field_attrs ~field ~attrs =
@@ -141,11 +128,8 @@ module Type = struct
       ]
 
   let opt_attr = ident "option [@yojson.option]"
-
   let opt_field f = Pp.seq f opt_attr
-
   let default f def = Pp.concat [ f; ident "[@default "; ident def; ident "]" ]
-
   let key name = concat [ ident "[@key "; quoted name; ident "]" ]
 
   let gen_variant ~poly constrs =
@@ -169,7 +153,6 @@ module Type = struct
           Gen.clause ~delim:"of" (ident name) xs)
 
   let poly constrs = concat [ i "["; gen_variant ~poly:true constrs; i "]" ]
-
   let variant constrs = gen_variant ~poly:false constrs
 end
 
@@ -221,5 +204,4 @@ let opens names =
       Pp.concat [ textf "open! %s" name; newline ])
 
 let module_ name body = gen_module "= struct" name body
-
 let record fields = Gen.record ~delim:"=" fields

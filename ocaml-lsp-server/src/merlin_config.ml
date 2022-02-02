@@ -178,7 +178,6 @@ let create () =
   { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
 
 let run t = Fiber.Pool.run t.pool
-
 let stop t = Fiber.Pool.stop t.pool
 
 let get_process t ~dir =

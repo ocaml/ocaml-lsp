@@ -24,7 +24,6 @@ module For_diff = struct
   type t = Diff.t list
 
   let yojson_of_t : t -> Json.t = Json.yojson_of_list Diff.yojson_of_t
-
   let diagnostic_data t = (fst view_promotion_capability, yojson_of_t t)
 end
 
@@ -32,13 +31,9 @@ module Chan : sig
   type t
 
   val create : Csexp_rpc.Session.t -> t
-
   val write : t -> Csexp.t list option -> unit Fiber.t
-
   val read : t -> Csexp.t option Fiber.t
-
   val stop : t -> unit Fiber.t
-
   val run : t -> unit Fiber.t
 end = struct
   open Fiber.O
@@ -49,7 +44,6 @@ end = struct
     }
 
   let stop t = Csexp_rpc.Session.write t.session None
-
   let write t sexp = Csexp_rpc.Session.write t.session sexp
 
   let read t =
@@ -110,17 +104,11 @@ module Instance : sig
   type t
 
   val format_dune_file : t -> Document.t -> string Fiber.t
-
   val stop : t -> unit Fiber.t
-
   val run : t -> unit Fiber.t
-
   val source : t -> Registry.Dune.t
-
   val create : Registry.Dune.t -> config -> t
-
   val promotions : t -> Drpc.Diagnostic.Promotion.t String.Map.t
-
   val client : t -> Client.t option
 end = struct
   module Id = Stdune.Id.Make ()
@@ -610,7 +598,6 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        })
 
 let enabled = false
-
 let create_disabled () = ref Closed
 
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics

@@ -1,7 +1,6 @@
 open Import
 
 let capability = ("handleSwitchImplIntf", `Bool true)
-
 let meth = "ocamllsp/switchImplIntf"
 
 (** see the spec for [ocamllsp/switchImplIntf] *)

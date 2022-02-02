@@ -64,13 +64,9 @@ let find_offset ~utf8 ~utf16_range:range =
 type t = TextDocumentItem.t
 
 let text (t : TextDocumentItem.t) = t.text
-
 let make (t : DidOpenTextDocumentParams.t) = t.textDocument
-
 let documentUri (t : TextDocumentItem.t) = t.uri
-
 let version (t : TextDocumentItem.t) = t.version
-
 let languageId (t : TextDocumentItem.t) = t.languageId
 
 let apply_content_change ?version (t : TextDocumentItem.t)

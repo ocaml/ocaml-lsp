@@ -1,5 +1,4 @@
 let syntax_repr = "_"
-
 let can_be_hole s = String.equal syntax_repr s
 
 (* the pattern matching below is taken and modified (minimally, to adapt the

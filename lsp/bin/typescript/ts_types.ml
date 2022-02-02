@@ -78,34 +78,24 @@ module type S = sig
   and t = decl Named.t
 
   val to_dyn : t -> Dyn.t
-
   val dyn_of_typ : typ -> Dyn.t
-
   val dyn_of_field : field -> Dyn.t
 
   class map :
     object
       method typ : typ -> typ
-
       method sum : typ list -> typ
-
       method interface : interface -> interface
-
       method enum_anon : Enum.t -> Enum.t
-
       method field : field -> field
-
       method t : t -> t
     end
 
   class ['a] fold :
     object
       method field : field -> init:'a -> 'a
-
       method ident : ident -> init:'a -> 'a
-
       method t : t -> init:'a -> 'a
-
       method typ : typ -> init:'a -> 'a
     end
 end
@@ -375,7 +365,6 @@ module Resolved = Make (Prim)
 let subst unresolved =
   object
     val params = String.Map.empty
-
     val inside = None
 
     (* Resolve self references. *)

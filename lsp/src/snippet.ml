@@ -39,7 +39,6 @@ type t =
   | Concat of t * t
 
 let tabstop index = Tabstop (Some index, `None)
-
 let placeholder ?index content = Tabstop (index, `Placeholder content)
 
 let choice ?index values =
@@ -56,9 +55,7 @@ let text str = Text str
 
 module O = struct
   let ( ^^ ) lhs rhs = Concat (lhs, rhs)
-
   let ( @+ ) lhs_str rhs = Concat (Text lhs_str, rhs)
-
   let ( +@ ) lhs rhs_str = Concat (lhs, Text rhs_str)
 end
 

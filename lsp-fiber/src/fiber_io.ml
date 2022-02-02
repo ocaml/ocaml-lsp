@@ -13,7 +13,6 @@ module Io =
     end)
     (struct
       type input = Lio.Reader.t
-
       type output = Lio.Writer.t
 
       let read_line ic =
@@ -39,7 +38,6 @@ let send (_, oc) packets =
       Lio.Writer.flush writer)
 
 let recv (ic, _) = Lio.with_read ic ~f:Io.read
-
 let make ic oc = (ic, oc)
 
 let close (ic, oc) what =

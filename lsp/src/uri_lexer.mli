@@ -5,5 +5,4 @@ type t =
   }
 
 val of_string : string -> t
-
 val escape_path : string -> string

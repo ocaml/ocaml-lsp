@@ -12,9 +12,7 @@ module Process : sig
   type t
 
   val pid : t -> Pid.t
-
   val thread : t -> Lev_fiber.Thread.t
-
   val client : t -> Ocamlformat_rpc_lib.client
 
   val create :
@@ -34,11 +32,8 @@ end = struct
     }
 
   let pid t = t.pid
-
   let thread t = t.io_thread
-
   let client t = t.client
-
   let supported_versions = [ "v1" ]
 
   let pick_client ~pid input output io_thread =
@@ -169,7 +164,6 @@ let create_state () =
     { ask_init = Fiber.Ivar.create (); wait_init = Fiber.Ivar.create () }
 
 let _create () = ref (create_state ())
-
 let create () = ref Disabled
 
 let maybe_fill ivar x =

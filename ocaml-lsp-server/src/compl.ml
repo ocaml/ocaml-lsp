@@ -5,9 +5,7 @@ module Resolve = struct
   type t = CompletionParams.t
 
   let uri (t : t) = t.textDocument.uri
-
   let yojson_of_t = CompletionParams.yojson_of_t
-
   let t_of_yojson = CompletionParams.t_of_yojson
 
   let of_completion_item (ci : CompletionItem.t) =
@@ -151,8 +149,7 @@ module Complete_by_prefix = struct
     let kind = completion_kind entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
     CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
-      ~deprecated:
-        entry.deprecated
+      ~deprecated:entry.deprecated
         (* Without this field the client is not forced to respect the order
            provided by merlin. *)
       ~sortText:(sortText_of_index idx) ~data:compl_params ~textEdit ()

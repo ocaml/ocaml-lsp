@@ -2,7 +2,6 @@ open Import
 open Fiber.O
 
 let capability = ("handleInferIntf", `Bool true)
-
 let meth = "ocamllsp/inferIntf"
 
 let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)

@@ -2,7 +2,6 @@ open Import
 open Fiber.O
 
 let capability = ("handleTypedHoles", `Bool true)
-
 let meth = "ocamllsp/typedHoles"
 
 module Request_params = struct

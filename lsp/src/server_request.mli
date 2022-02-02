@@ -20,9 +20,6 @@ type _ t =
 type packed = E : 'r t -> packed
 
 val yojson_of_result : 'a t -> 'a -> Json.t
-
 val to_jsonrpc_request : _ t -> id:Jsonrpc.Id.t -> Jsonrpc.Message.request
-
 val of_jsonrpc : Jsonrpc.Message.request -> (packed, string) Result.t
-
 val response_of_json : 'a t -> Json.t -> 'a

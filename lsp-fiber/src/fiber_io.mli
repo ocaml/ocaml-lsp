@@ -6,9 +6,7 @@ open! Import
 type t
 
 val close : t -> [ `Read | `Write ] -> unit Fiber.t
-
 val send : t -> Jsonrpc.packet list -> unit Fiber.t
-
 val recv : t -> Jsonrpc.packet option Fiber.t
 
 val make :

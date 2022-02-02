@@ -39,5 +39,4 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
       Some (code_action_of_intf doc intf params.range))
 
 let kind = CodeActionKind.Other action_kind
-
 let t state = { Code_action.kind; run = code_action state }

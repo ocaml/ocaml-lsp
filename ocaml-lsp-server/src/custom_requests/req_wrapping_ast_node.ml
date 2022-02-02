@@ -2,7 +2,6 @@ open Import
 open Fiber.O
 
 let capability = ("handleWrappingAstNode", `Bool true)
-
 let meth = "ocamllsp/wrappingAstNode"
 
 module Request_params = struct

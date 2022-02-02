@@ -3,7 +3,6 @@ open Import
 type t
 
 val create : unit -> t
-
 val stop : t -> unit Fiber.t
 
 val format_type :

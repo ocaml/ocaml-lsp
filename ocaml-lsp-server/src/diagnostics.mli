@@ -8,7 +8,6 @@ val create :
   -> t
 
 val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
-
 val workspace_root : t -> Uri.t
 
 module Dune : sig

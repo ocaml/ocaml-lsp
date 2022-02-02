@@ -144,5 +144,4 @@ let code_action_remove doc (params : CodeActionParams.t) =
   | Some d -> code_action_remove_value doc pos d
 
 let mark = { Code_action.kind = QuickFix; run = code_action_mark }
-
 let remove = { Code_action.kind = QuickFix; run = code_action_remove }

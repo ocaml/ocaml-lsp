@@ -2,13 +2,9 @@ open Import
 module Oct = Octavius
 
 let ocaml = "ocaml"
-
 let to_inline_code code = Omd.Code (ocaml, code)
-
 let to_code_block code = Omd.Code_block (ocaml, code)
-
 let space = Omd.Text " "
-
 let new_line = Omd.NL
 
 (* [put_in_between elem lst] inserts [elem] between all elements of [lst] *)

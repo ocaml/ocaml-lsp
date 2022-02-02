@@ -122,8 +122,10 @@ include struct
   module MarkupContent = MarkupContent
   module MarkupKind = MarkupKind
   module MessageType = MessageType
+
   module OptionalVersionedTextDocumentIdentifier =
     OptionalVersionedTextDocumentIdentifier
+
   module ParameterInformation = ParameterInformation
   module ProgressParams = ProgressParams
   module ProgressToken = ProgressToken

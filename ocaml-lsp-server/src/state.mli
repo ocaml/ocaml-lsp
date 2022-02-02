@@ -34,17 +34,11 @@ val create :
   -> t
 
 val wheel : t -> Lev_fiber.Timer.Wheel.t
-
 val initialize_params : t -> InitializeParams.t
-
 val initialize : t -> InitializeParams.t -> Workspaces.t -> Dune.t -> t
-
 val workspace_root : t -> Uri.t
-
 val workspaces : t -> Workspaces.t
-
 val dune : t -> Dune.t
-
 val modify_workspaces : t -> f:(Workspaces.t -> Workspaces.t) -> t
 
 (** @return client capabilities passed from the client in [InitializeParams]

@@ -6,5 +6,4 @@ let ocaml =
      Ocaml.of_typescript asts)
 
 let print_ml () = Ocaml.output (Lazy.force ocaml) ~kind:Impl stdout
-
 let print_mli () = Ocaml.output (Lazy.force ocaml) ~kind:Intf stdout
