@@ -383,7 +383,7 @@ module Formatter = struct
         let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
         match res with
         | Ok res -> Fiber.return @@ Ok res
-        | Error _ -> Ocamlformat.run state.ocamlformat doc
+        | Error _ -> Ocamlformat.run doc
       in
       match res with
       | Ok result -> Fiber.return (Some result)
@@ -1152,12 +1152,11 @@ let start () =
   in
   let* server =
     let+ merlin = Lev_fiber.Thread.create () in
-    let ocamlformat = Ocamlformat.create () in
     let symbols_thread = Lazy_fiber.create Lev_fiber.Thread.create in
     Fdecl.set server
       (Server.make handler stream
-         (State.create ~store ~merlin ~ocamlformat ~ocamlformat_rpc
-            ~configuration ~detached ~diagnostics ~symbols_thread ~wheel));
+         (State.create ~store ~merlin ~ocamlformat_rpc ~configuration ~detached
+            ~diagnostics ~symbols_thread ~wheel));
     Fdecl.get server
   in
   Fiber.all_concurrently_unit

@@ -7,11 +7,7 @@ type command_result =
   ; status : Unix.process_status
   }
 
-type t = unit
-
-let create () = ()
-
-let run_command () prog stdin_value args : command_result Fiber.t =
+let run_command prog stdin_value args : command_result Fiber.t =
   let* stdin_i, stdin_o = Lev_fiber.Io.pipe ~cloexec:true () in
   let* stdout_i, stdout_o = Lev_fiber.Io.pipe ~cloexec:true () in
   let* stderr_i, stderr_o = Lev_fiber.Io.pipe ~cloexec:true () in
@@ -98,14 +94,14 @@ let formatter doc =
   | Ocaml -> Ok (Ocaml (Document.uri doc))
   | Reason -> Ok (Reason (Document.kind doc))
 
-let exec state bin args stdin =
+let exec bin args stdin =
   let refmt = Fpath.to_string bin in
-  let+ res = run_command state refmt stdin args in
+  let+ res = run_command refmt stdin args in
   match res.status with
   | Unix.WEXITED 0 -> Result.Ok res.stdout
   | _ -> Result.Error (Unexpected_result { message = res.stderr })
 
-let run state doc : (TextEdit.t list, error) result Fiber.t =
+let run doc : (TextEdit.t list, error) result Fiber.t =
   let res =
     let open Result.O in
     let* formatter = formatter doc in
@@ -116,5 +112,5 @@ let run state doc : (TextEdit.t list, error) result Fiber.t =
   match res with
   | Error e -> Fiber.return (Error e)
   | Ok (binary, args, contents) ->
-    exec state binary args contents
+    exec binary args contents
     |> Fiber.map ~f:(Result.map ~f:(fun to_ -> Diff.edit ~from:contents ~to_))

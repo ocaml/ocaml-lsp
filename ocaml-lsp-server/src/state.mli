@@ -16,7 +16,6 @@ type t =
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
   ; trace : TraceValue.t
-  ; ocamlformat : Ocamlformat.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
   ; diagnostics : Diagnostics.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
@@ -28,7 +27,6 @@ val create :
   -> merlin:Lev_fiber.Thread.t
   -> detached:Fiber.Pool.t
   -> configuration:Configuration.t
-  -> ocamlformat:Ocamlformat.t
   -> ocamlformat_rpc:Ocamlformat_rpc.t
   -> diagnostics:Diagnostics.t
   -> symbols_thread:Lev_fiber.Thread.t Lazy_fiber.t

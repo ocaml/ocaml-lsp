@@ -4,10 +4,6 @@
 
 open Import
 
-type t
-
-val create : unit -> t
-
 type error =
   | Unsupported_syntax of Document.Syntax.t
   | Missing_binary of { binary : string }
@@ -16,4 +12,4 @@ type error =
 
 val message : error -> string
 
-val run : t -> Document.t -> (TextEdit.t list, error) result Fiber.t
+val run : Document.t -> (TextEdit.t list, error) result Fiber.t
