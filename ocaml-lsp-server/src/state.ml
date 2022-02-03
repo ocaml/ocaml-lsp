@@ -16,15 +16,14 @@ type t =
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
   ; trace : TraceValue.t
-  ; ocamlformat : Ocamlformat.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
   ; diagnostics : Diagnostics.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   }
 
-let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
-    ~diagnostics ~symbols_thread ~wheel =
+let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
+    ~symbols_thread ~wheel =
   { init = Uninitialized
   ; merlin_config = Merlin_config.create ()
   ; store
@@ -32,7 +31,6 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat ~ocamlformat_rpc
   ; detached
   ; configuration
   ; trace = `Off
-  ; ocamlformat
   ; ocamlformat_rpc
   ; diagnostics
   ; symbols_thread
