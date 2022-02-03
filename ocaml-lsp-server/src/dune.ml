@@ -123,10 +123,13 @@ module Instance : sig
 
   val client : t -> Client.t option
 end = struct
+  module Id = Stdune.Id.Make ()
+
   type running =
     { chan : Chan.t
     ; finish : unit Fiber.Ivar.t
     ; diagnostics_id : Diagnostics.Dune.t
+    ; id : Id.t
     ; mutable client : Client.t option
     ; mutable promotions : Drpc.Diagnostic.Promotion.t String.Map.t
     }
@@ -336,6 +339,7 @@ end = struct
         ; promotions = String.Map.empty
         ; client = None
         ; diagnostics_id = Diagnostics.Dune.gen ()
+        ; id = Id.gen ()
         }
       in
       t.state <- Running running;
@@ -348,10 +352,35 @@ end = struct
              let* () = Diagnostics.send diagnostics `All in
              Fiber.Ivar.fill finish ())
           ; (let init =
-               Drpc.Initialize.create ~id:(Drpc.Id.make (Atom "ocamllsp"))
+               let id =
+                 Drpc.Id.make
+                   (List
+                      [ Atom "ocamllsp"
+                      ; Atom (Int.to_string (Id.to_int running.id))
+                      ])
+               in
+               Drpc.Initialize.create ~id
+             in
+             let where =
+               match where with
+               | `Unix s -> sprintf "unix://%s" s
+               | `Ip (`Host h, `Port p) -> sprintf "%s:%d" h p
+             in
+             let* () =
+               let message =
+                 sprintf "client %d: connecting..." (Id.to_int running.id)
+               in
+               config.log ~type_:Info ~message
              in
              Client.connect chan init ~f:(fun client ->
                  t.state <- Running { running with client = Some client };
+                 let* () =
+                   let message =
+                     sprintf "client %d: connected to dune at %s"
+                       (Id.to_int running.id) where
+                   in
+                   config.log ~type_:Info ~message
+                 in
                  let progress = progress_loop client progress in
                  let diagnostics =
                    diagnostic_loop client running running.diagnostics_id
@@ -513,9 +542,14 @@ let poll active =
           let+ (_ : (unit, unit) result) =
             Fiber.map_reduce_errors
               (module Monoid.Unit)
-              ~on_error:(fun _ ->
-                Lazy.force cleanup;
-                Fiber.return ())
+              ~on_error:(fun exn ->
+                let message =
+                  Format.asprintf "disconnected %s:@.%a"
+                    (Registry.Dune.root (Instance.source instance))
+                    Exn_with_backtrace.pp_uncaught exn
+                in
+                let+ () = active.config.log ~type_:Error ~message in
+                Lazy.force cleanup)
               (fun () -> Instance.run instance)
           in
           Lazy.force cleanup)
