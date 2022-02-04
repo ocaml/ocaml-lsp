@@ -235,7 +235,7 @@ module Complete_with_construct = struct
         let command =
           if supportsJumpToNextHole then
             Some
-              (Client.Vscode.Commands.Custom.next_hole
+              (Client.CustomCommands.next_hole
                  ~in_range:(Range.resize_for_edit edit)
                  ~notify_if_no_hole:false ())
           else
