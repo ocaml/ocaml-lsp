@@ -129,8 +129,7 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
   in
   let line, prev_deleted_lines, edits_rev =
     Simple_diff.get_diff orig_lines formatted_lines
-    |> List.fold_left
-         ~init:(0, [||], [])
+    |> List.fold_left ~init:(0, [||], [])
          ~f:(fun (line, prev_deleted_lines, edits_rev) edit ->
            match (edit : Simple_diff.diff) with
            | Deleted deleted_lines ->
