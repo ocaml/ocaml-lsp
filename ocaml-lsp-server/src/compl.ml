@@ -244,7 +244,9 @@ module Complete_with_construct = struct
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
 
-let complete doc pos =
+let complete (state : State.t)
+    ({ textDocument = { uri }; position = pos; _ } : CompletionParams.t) =
+  let doc = Document_store.get state.store uri in
   let+ items =
     let position = Position.logical pos in
     let prefix =
@@ -281,7 +283,7 @@ let complete doc pos =
       construct_completionItems @ compl_by_prefix_completionItems
       |> reindex_sortText |> preselect_first
   in
-  `CompletionList (CompletionList.create ~isIncomplete:false ~items)
+  Some (`CompletionList (CompletionList.create ~isIncomplete:false ~items))
 
 let format_doc ~markdown doc =
   match markdown with

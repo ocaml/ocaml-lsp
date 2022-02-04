@@ -837,13 +837,8 @@ let ocaml_on_request :
         definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate_type pos))
       ()
-  | TextDocumentCompletion { textDocument = { uri }; position; _ } ->
-    later
-      (fun _ () ->
-        let doc = Document_store.get store uri in
-        let+ resp = Compl.complete doc position in
-        Some resp)
-      ()
+  | TextDocumentCompletion params ->
+    later (fun _ () -> Compl.complete state params) ()
   | TextDocumentPrepareRename { textDocument = { uri }; position } ->
     later
       (fun _ () ->
