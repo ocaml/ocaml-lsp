@@ -215,7 +215,7 @@ module Complete_with_construct = struct
       None
     | Error exn -> Exn_with_backtrace.reraise exn
 
-  let process_dispatch_resp = function
+  let process_dispatch_resp ~supportsJumpToNextHole = function
     | None -> []
     | Some (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
@@ -233,13 +233,17 @@ module Complete_with_construct = struct
         let expr_wo_parens = deparen_constr_expr expr in
         let edit = { TextEdit.range; newText = expr } in
         let command =
-          Client.Vscode.Commands.Custom.next_hole
-            ~in_range:(Range.resize_for_edit edit)
-            ~notify_if_no_hole:false ()
+          if supportsJumpToNextHole then
+            Some
+              (Client.Vscode.Commands.Custom.next_hole
+                 ~in_range:(Range.resize_for_edit edit)
+                 ~notify_if_no_hole:false ())
+          else
+            None
         in
         CompletionItem.create ~label:expr_wo_parens ~textEdit:(`TextEdit edit)
           ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
-          ~sortText:(sortText_of_index idx) ~command ()
+          ~sortText:(sortText_of_index idx) ?command ()
       in
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
@@ -275,7 +279,11 @@ let complete (state : State.t)
             (construct_cmd_resp, compl_by_prefix_resp))
       in
       let construct_completionItems =
-        Complete_with_construct.process_dispatch_resp construct_cmd_resp
+        let supportsJumpToNextHole =
+          State.exp_client_caps state |> Exp_client_caps.supportsJumpToNextHole
+        in
+        Complete_with_construct.process_dispatch_resp ~supportsJumpToNextHole
+          construct_cmd_resp
       in
       let compl_by_prefix_completionItems =
         Complete_by_prefix.process_dispatch_resp doc pos compl_by_prefix_resp
