@@ -13,6 +13,7 @@
   lsp
   lsp_fiber
   dot-merlin-reader.merlin_dot_protocol
+  merlin.extend
   merlin.analysis
   merlin.kernel
   merlin.merlin_utils

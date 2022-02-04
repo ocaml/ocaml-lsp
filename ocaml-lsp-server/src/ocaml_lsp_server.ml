@@ -184,14 +184,22 @@ let set_diagnostics rpc doc =
     async (fun () -> Diagnostics.send state.diagnostics (`One uri))
   | Reason
   | Ocaml ->
-    async (fun () ->
-        let* diagnostics =
-          let command =
-            Query_protocol.Errors
-              { lexing = true; parsing = true; typing = true }
-          in
-          Document.with_pipeline_exn doc (fun pipeline ->
-              let errors = Query_commands.dispatch pipeline command in
+    let send () =
+      let* diagnostics =
+        let command =
+          Query_protocol.Errors { lexing = true; parsing = true; typing = true }
+        in
+        Document.with_pipeline_exn doc (fun pipeline ->
+            match Query_commands.dispatch pipeline command with
+            | exception Extend_main.Handshake.Error error ->
+              let message =
+                sprintf
+                  "%s.\n\
+                   Hint: install the following packages: merlin-extend, reason"
+                  error
+              in
+              [ create_diagnostic ~range:Range.first_line ~message () ]
+            | errors ->
               let merlin_diagnostics =
                 List.rev_map errors ~f:(fun (error : Loc.error) ->
                     let loc = Loc.loc_of_report error in
@@ -244,9 +252,11 @@ let set_diagnostics rpc doc =
               |> List.sort
                    ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
                      Range.compare d1.range d2.range))
-        in
-        Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
-        Diagnostics.send state.diagnostics (`One uri))
+      in
+      Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
+      Diagnostics.send state.diagnostics (`One uri)
+    in
+    async send
 
 let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
@@ -311,6 +321,33 @@ let on_initialize server (ip : InitializeParams.t) =
   in
   (resp, state)
 
+module Code_action_error = struct
+  type t =
+    | Initial
+    | Need_merlin_extend of string
+    | Exn of Exn_with_backtrace.t
+
+  let empty = Initial
+
+  let combine x y =
+    match (x, y) with
+    | Exn _, Exn _ -> y
+    | Exn _, _
+    | _, Exn _ ->
+      x
+    | (Need_merlin_extend _ as r), Initial
+    | Initial, (Need_merlin_extend _ as r) ->
+      r
+    | Need_merlin_extend _, Need_merlin_extend _ -> y
+    | Initial, Initial -> Initial
+end
+
+module Code_action_error_monoid = struct
+  type t = Code_action_error.t
+
+  include Stdune.Monoid.Make (Code_action_error)
+end
+
 let code_action (state : State.t) (params : CodeActionParams.t) =
   let doc =
     let uri = params.textDocument.uri in
@@ -322,8 +359,22 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
     | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
       Fiber.return None
     | Some _
-    | None ->
-      ca.run doc params
+    | None -> (
+      let+ res =
+        Fiber.map_reduce_errors
+          ~on_error:(fun (exn : Exn_with_backtrace.t) ->
+            match exn.exn with
+            | Extend_main.Handshake.Error error ->
+              Fiber.return (Code_action_error.Need_merlin_extend error)
+            | _ -> Fiber.return (Code_action_error.Exn exn))
+          (module Code_action_error_monoid)
+          (fun () -> ca.run doc params)
+      in
+      match res with
+      | Ok res -> res
+      | Error Initial -> assert false
+      | Error (Need_merlin_extend _) -> None
+      | Error (Exn exn) -> Exn_with_backtrace.reraise exn)
   in
   let+ code_action_results =
     (* XXX this is a really bad use of resources. we should be batching all the

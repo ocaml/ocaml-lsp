@@ -9,6 +9,8 @@
 - Fix infer interface code action crash when implementation source does not
   exist (#597)
 
+- Improve error message when the reason plugin for merlin is absent (#608)
+
 # 1.9.1
 
 ## Fixes
