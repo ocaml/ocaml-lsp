@@ -11,6 +11,8 @@
 
 - Improve error message when the reason plugin for merlin is absent (#608)
 
+- Fix `chdir` races when running ppx (#550)
+
 # 1.9.1
 
 ## Fixes
