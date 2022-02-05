@@ -984,31 +984,8 @@ let start () =
     Server.Handler.make ~on_request ~on_notification ()
   in
   let* stream =
-    let+ stdin, stdout =
-      if Sys.win32 then
-        let* stdin =
-          Lev_fiber.Io.create (Lev_fiber.Fd.create Unix.stdin `Blocking) Input
-        in
-        let+ stdout =
-          Lev_fiber.Io.create (Lev_fiber.Fd.create Unix.stdout `Blocking) Output
-        in
-        (stdin, stdout)
-      else (
-        Unix.set_nonblock Unix.stdin;
-        Unix.set_nonblock Unix.stdout;
-        let* stdin =
-          Lev_fiber.Io.create
-            (Lev_fiber.Fd.create Unix.stdin (`Non_blocking true))
-            Input
-        in
-        let+ stdout =
-          Lev_fiber.Io.create
-            (Lev_fiber.Fd.create Unix.stdout (`Non_blocking true))
-            Output
-        in
-        (stdin, stdout)
-      )
-    in
+    let* stdin = Lev_fiber.Io.stdin in
+    let+ stdout = Lev_fiber.Io.stdout in
     Lsp_fiber.Fiber_io.make stdin stdout
   in
   let configuration = Configuration.default in
