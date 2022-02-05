@@ -68,5 +68,10 @@ val edit : t -> TextEdit.t -> WorkspaceEdit.t
 val doc_comment :
   t -> Msource.position -> (* doc string *) string option Fiber.t
 
-val type_enclosing :
-  t -> Msource.position -> (Loc.t * (* type *) string) option Fiber.t
+type type_enclosing =
+  { loc : Loc.t
+  ; typ : string
+  ; doc : string option
+  }
+
+val type_enclosing : t -> Msource.position -> type_enclosing option Fiber.t
