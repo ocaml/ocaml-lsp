@@ -34,14 +34,12 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } =
     Document_store.get store uri
   in
   let pos = Position.logical position in
-  (* TODO we shouldn't acquiring the merlin thread twice per request *)
-  let* query_type = Document.type_enclosing doc pos in
-  match query_type with
+  let* type_enclosing = Document.type_enclosing doc pos in
+  match type_enclosing with
   | None -> Fiber.return None
-  | Some (loc, typ) ->
+  | Some { Document.loc; typ; doc = documentation } ->
     let syntax = Document.syntax doc in
-    let+ doc = Document.doc_comment doc pos
-    and+ typ =
+    let+ typ =
       (* We ask Ocamlformat to format this type *)
       let* result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
       match result with
@@ -68,7 +66,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } =
         ClientCapabilities.markdown_support client_capabilities
           ~field:(fun td -> Option.map td.hover ~f:(fun h -> h.contentFormat))
       in
-      format_contents ~syntax ~markdown ~typ ~doc
+      format_contents ~syntax ~markdown ~typ ~doc:documentation
     in
     let range = Range.of_loc loc in
     Some (Hover.create ~contents ~range ())

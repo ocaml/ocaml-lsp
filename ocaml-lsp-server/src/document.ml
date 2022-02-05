@@ -241,10 +241,10 @@ let dispatch t command =
 let dispatch_exn t command =
   with_pipeline_exn t (fun pipeline -> Query_commands.dispatch pipeline command)
 
-let doc_comment doc pos =
-  let+ res =
+let doc_comment pipeline pos =
+  let res =
     let command = Query_protocol.Document (None, pos) in
-    dispatch_exn doc command
+    Query_commands.dispatch pipeline command
   in
   match res with
   | `Found s
@@ -252,14 +252,26 @@ let doc_comment doc pos =
     Some s
   | _ -> None
 
+type type_enclosing =
+  { loc : Loc.t
+  ; typ : string
+  ; doc : string option
+  }
+
 let type_enclosing doc pos =
-  let command = Query_protocol.Type_enclosing (None, pos, None) in
-  let+ res = dispatch_exn doc command in
-  match res with
-  | []
-  | (_, `Index _, _) :: _ ->
-    None
-  | (location, `String value, _) :: _ -> Some (location, value)
+  with_pipeline_exn doc (fun pipeline ->
+      let command = Query_protocol.Type_enclosing (None, pos, None) in
+      let res = Query_commands.dispatch pipeline command in
+      match res with
+      | []
+      | (_, `Index _, _) :: _ ->
+        None
+      | (loc, `String typ, _) :: _ ->
+        let doc = doc_comment pipeline pos in
+        Some { loc; typ; doc })
+
+let doc_comment doc pos =
+  with_pipeline_exn doc (fun pipeline -> doc_comment pipeline pos)
 
 let close t =
   match t with
