@@ -3,11 +3,7 @@ open Fiber.O
 
 module Id = struct
   include Id
-
-  let to_dyn t : Dyn.t =
-    match t with
-    | `Int x -> Int x
-    | `String x -> String x
+  module Table = Stdlib.MoreLabels.Hashtbl.Make (Id)
 end
 
 module Notify = struct
@@ -76,7 +72,7 @@ struct
     { chan : Chan.t
     ; on_request : ('state, Id.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
-    ; pending : (Id.t, (Response.t, [ `Stopped ]) result Fiber.Ivar.t) Table.t
+    ; pending : (Response.t, [ `Stopped ]) result Fiber.Ivar.t Id.Table.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
@@ -170,13 +166,13 @@ struct
         log t (fun () ->
             Log.msg ("response " ^ what) [ ("r", Response.yojson_of_t r) ])
       in
-      match Table.find t.pending r.id with
+      match Id.Table.find_opt t.pending r.id with
       | None ->
         log "dropped";
         Fiber.return ()
       | Some ivar ->
         log "acknowledged";
-        Table.remove t.pending r.id;
+        Id.Table.remove t.pending r.id;
         Fiber.Ivar.fill ivar (Ok r)
     and on_request (r : Id.t Message.t) =
       let* result =
@@ -248,14 +244,16 @@ struct
 
   let make_stop_pending_requests pending =
     lazy
-      (let to_cancel = Table.fold pending ~init:[] ~f:(fun x acc -> x :: acc) in
-       Table.clear pending;
+      (let to_cancel =
+         Id.Table.fold pending ~init:[] ~f:(fun ~key:_ ~data:x acc -> x :: acc)
+       in
+       Id.Table.clear pending;
        Fiber.parallel_iter to_cancel ~f:(fun ivar ->
            Fiber.Ivar.fill ivar (Error `Stopped)))
 
   let create ?(on_request = on_request_fail)
       ?(on_notification = on_notification_fail) ~name chan state =
-    let pending = Table.create (module Id) 10 in
+    let pending = Id.Table.create 10 in
     { chan
     ; on_request
     ; on_notification
@@ -278,9 +276,9 @@ struct
     Chan.send t.chan [ Message req ]
 
   let register_request_ivar t id ivar =
-    match Table.find t.pending id with
+    match Id.Table.find_opt t.pending id with
     | Some _ -> Code_error.raise "duplicate request id" []
-    | None -> Table.add_exn t.pending id ivar
+    | None -> Id.Table.add t.pending ~key:id ~data:ivar
 
   let read_request_ivar req ivar =
     let+ res = Fiber.Ivar.read ivar in
