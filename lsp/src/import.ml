@@ -277,4 +277,4 @@ module Json = struct
     | Ok x -> read_json_params f x
 end
 
-let sprintf = Stdune.sprintf
+let sprintf = Printf.sprintf
