@@ -1,6 +1,5 @@
 open Fiber.O
 open Lsp
-open Import
 open Lsp.Types
 open Lsp_fiber
 
@@ -43,6 +42,8 @@ let test make_client make_server =
   Lev_fiber.run (Lev.Loop.default ()) ~f:run;
   print_endline "[TEST] finished"
 
+let json_pp = Yojson.Safe.pretty_print ~std:false
+
 module End_to_end_client = struct
   let on_request (type a) _ (_ : a Server_request.t) =
     Jsonrpc.Response.Error.raise
@@ -53,7 +54,7 @@ module End_to_end_client = struct
     let state = Client.state client in
     let received_notification = state in
     let req = Server_notification.to_jsonrpc n in
-    Format.eprintf "client: received notification@.%a@.%!" Json.pp
+    Format.eprintf "client: received notification@.%a@.%!" json_pp
       (Jsonrpc.Message.yojson_of_notification req);
     let+ () = Fiber.Ivar.fill received_notification () in
     Format.eprintf "client: filled received_notification@.%!";
@@ -76,7 +77,7 @@ module End_to_end_client = struct
       Format.eprintf "client: sending request@.%!";
       let* json = Client.request client req in
       Format.eprintf "client: Successfully executed command with result:@.%a@."
-        Json.pp json;
+        json_pp json;
       Format.eprintf
         "client: waiting to receive notification before shutdown @.%!";
       let* () = Fiber.Ivar.read received_notification in

@@ -77,8 +77,6 @@ end
 module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t
 
-  let to_pretty_string (t : t) = Yojson.Safe.pretty_to_string ~std:false t
-
   let to_string t = Yojson.Safe.to_string t
 
   let of_string s = Yojson.Safe.from_string s
@@ -90,8 +88,6 @@ module Json = struct
   let error = Ppx_yojson_conv_lib.Yojson_conv.of_yojson_error
 
   let yojson_of_list = Ppx_yojson_conv_lib.Yojson_conv.yojson_of_list
-
-  let pp ppf (t : t) = Yojson.Safe.pretty_print ppf t
 
   module Jsonable = Ppx_yojson_conv_lib.Yojsonable
 
