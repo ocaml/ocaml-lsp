@@ -1,17 +1,8 @@
-open Stdune
-module List = Stdune.List
-module Hashtbl = Stdune.Hashtbl
-module Option = Stdune.Option
-module Either = Stdune.Either
-module Int = Stdune.Int
+(* TODO remove stdune dependence *)
 module Ordering = Stdune.Ordering
-module Exn = Stdune.Exn
-module Result = Stdune.Result
-module Code_error = Code_error
-module Or_exn = Or_exn
-module Table = Table
-module Exn_with_backtrace = Exn_with_backtrace
-module Queue = Queue
+module Code_error = Stdune.Code_error
+module Exn_with_backtrace = Stdune.Exn_with_backtrace
+module List = Stdlib.ListLabels
 module Id = Jsonrpc.Id
 module Message = Jsonrpc.Message
 module Response = Jsonrpc.Response
@@ -77,7 +68,7 @@ module Log = struct
     )
 end
 
-let sprintf = Stdune.sprintf
+let sprintf = Printf.sprintf
 
 let () =
   Printexc.register_printer (function
