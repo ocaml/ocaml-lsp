@@ -331,15 +331,11 @@ module Code_action_error = struct
 
   let combine x y =
     match (x, y) with
-    | Exn _, Exn _ -> y
-    | Exn _, _
-    | _, Exn _ ->
-      x
-    | (Need_merlin_extend _ as r), Initial
-    | Initial, (Need_merlin_extend _ as r) ->
-      r
+    | Initial, _ -> y (* [Initial] cedes to any *)
+    | _, Initial -> x
+    | Exn _, _ -> x (* [Exn] takes over any *)
+    | _, Exn _ -> y
     | Need_merlin_extend _, Need_merlin_extend _ -> y
-    | Initial, Initial -> Initial
 end
 
 module Code_action_error_monoid = struct
