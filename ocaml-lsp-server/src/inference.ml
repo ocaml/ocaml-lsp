@@ -53,11 +53,11 @@ let force_open_document (state : State.t) uri =
         let params =
           DidOpenTextDocumentParams.create ~textDocument:text_document
         in
-        let+ doc =
+        let* doc =
           Document.make (State.wheel state) state.merlin_config
             ~merlin_thread:state.merlin params
         in
-        Document_store.put state.store doc;
+        let+ () = Document_store.open_document state.store doc in
         Some doc)
 
 let infer_intf (state : State.t) doc =

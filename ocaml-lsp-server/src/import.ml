@@ -143,6 +143,7 @@ include struct
   module CodeActionOptions = CodeActionOptions
   module CodeActionParams = CodeActionParams
   module CodeActionResult = CodeActionResult
+  module CodeActionRegistrationOptions = CodeActionRegistrationOptions
   module CodeLens = CodeLens
   module CodeLensOptions = CodeLensOptions
   module CodeLensParams = CodeLensParams
@@ -212,6 +213,8 @@ include struct
   module TextDocumentSyncClientCapabilities = TextDocumentSyncClientCapabilities
   module TextEdit = TextEdit
   module TraceValue = TraceValue
+  module Unregistration = Unregistration
+  module UnregistrationParams = UnregistrationParams
   module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
   module WorkDoneProgressBegin = WorkDoneProgressBegin
   module WorkDoneProgressCreateParams = WorkDoneProgressCreateParams
