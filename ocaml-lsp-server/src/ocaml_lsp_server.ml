@@ -272,7 +272,7 @@ let on_initialize server (ip : InitializeParams.t) =
           Server.request server (Server_request.WorkDoneProgressCreate task))
     in
     let dune =
-      Dune.create workspaces ip.capabilities state.diagnostics progress
+      Dune.create workspaces ip.capabilities state.diagnostics progress server
         ~log:(State.log_msg server)
     in
     let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
@@ -390,7 +390,8 @@ let code_action (state : State.t) (params : CodeActionParams.t) =
   in
   let code_action_results = List.filter_opt code_action_results in
   let code_action_results =
-    code_action_results @ Dune.code_actions (State.dune state) doc
+    code_action_results
+    @ Dune.code_actions (State.dune state) (Document.uri doc)
   in
   match code_action_results with
   | [] -> None
@@ -799,15 +800,10 @@ let ocaml_on_request :
       , state )
   in
   match req with
-  | Initialize ip ->
-    let+ res, state = on_initialize rpc ip in
-    (res, state)
-  | Shutdown -> now ()
-  | DebugTextDocumentGet { textDocument = { uri }; position = _ } -> (
-    match Document_store.get_opt store uri with
-    | None -> now None
-    | Some doc -> now (Some (Msource.text (Document.source doc))))
-  | DebugEcho params -> now params
+  | Initialize _ -> assert false
+  | Shutdown -> assert false
+  | DebugTextDocumentGet _ -> assert false
+  | DebugEcho _ -> assert false
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
@@ -816,8 +812,7 @@ let ocaml_on_request :
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> later text_document_lens req
   | TextDocumentHighlight req -> later highlight req
-  | WorkspaceSymbol req ->
-    later (fun state () -> workspace_symbol rpc state req) ()
+  | WorkspaceSymbol _ -> assert false
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
     later
@@ -868,28 +863,8 @@ let ocaml_on_request :
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None
   | CodeAction params -> later code_action params
-  | CodeActionResolve ca -> now ca
-  | CompletionItemResolve ci ->
-    later
-      (fun state () ->
-        let markdown =
-          ClientCapabilities.markdown_support (State.client_capabilities state)
-            ~field:(fun d ->
-              let open Option.O in
-              let+ completion = d.completion in
-              let* completion_item = completion.completionItem in
-              completion_item.documentationFormat)
-        in
-        let resolve = Compl.Resolve.of_completion_item ci in
-        match resolve with
-        | None -> Fiber.return ci
-        | Some resolve ->
-          let doc =
-            let uri = Compl.Resolve.uri resolve in
-            Document_store.get state.store uri
-          in
-          Compl.resolve doc ci resolve Document.doc_comment ~markdown)
-      ()
+  | CodeActionResolve _ -> assert false
+  | CompletionItemResolve _ -> assert false
   | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later
       (fun _ () ->
@@ -907,6 +882,20 @@ let ocaml_on_request :
     Jsonrpc.Response.Error.raise
       (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
 
+let non_ocaml_on_request (type resp) server (req : resp Client_request.t) :
+    (resp Reply.t * State.t) Fiber.t =
+  match req with
+  | CodeAction params ->
+    let state : State.t = Server.state server in
+    let actions =
+      Dune.code_actions (State.dune state) params.textDocument.uri
+      |> List.map ~f:(fun a -> `CodeAction a)
+    in
+    Fiber.return (Reply.now (Some actions), state)
+  | Initialize _ -> assert false
+  | Shutdown -> assert false
+  | _ -> not_supported ()
+
 let on_request :
     type resp.
        State.t Server.t
@@ -923,6 +912,14 @@ let on_request :
     let uri = td.uri in
     let+ doc = Document_store.get_opt store uri in
     Document.syntax doc
+  in
+  let now res = Fiber.return (Reply.now res, state) in
+  let later f req =
+    Fiber.return
+      ( Reply.later (fun k ->
+            let* resp = f state req in
+            k resp)
+      , state )
   in
   match req with
   | Client_request.UnknownRequest { meth; params } -> (
@@ -948,10 +945,45 @@ let on_request :
               let* res = handler ~params state in
               send res)
         , state ))
+  | Initialize ip ->
+    let+ res, state = on_initialize server ip in
+    (res, state)
+  | DebugTextDocumentGet { textDocument = { uri }; position = _ } -> (
+    match Document_store.get_opt store uri with
+    | None -> now None
+    | Some doc -> now (Some (Msource.text (Document.source doc))))
+  | DebugEcho params -> now params
+  | Shutdown -> Fiber.return (Reply.now (), state)
+  | WorkspaceSymbol req ->
+    later (fun state () -> workspace_symbol server state req) ()
+  | CodeActionResolve ca -> now ca
+  | CompletionItemResolve ci ->
+    later
+      (fun state () ->
+        let markdown =
+          ClientCapabilities.markdown_support (State.client_capabilities state)
+            ~field:(fun d ->
+              let open Option.O in
+              let+ completion = d.completion in
+              let* completion_item = completion.completionItem in
+              completion_item.documentationFormat)
+        in
+        let resolve = Compl.Resolve.of_completion_item ci in
+        match resolve with
+        | None -> Fiber.return ci
+        | Some resolve ->
+          let doc =
+            let uri = Compl.Resolve.uri resolve in
+            Document_store.get state.store uri
+          in
+          Compl.resolve doc ci resolve Document.doc_comment ~markdown)
+      ()
   | _ -> (
     match syntax with
-    | Some (Ocamllex | Menhir) -> not_supported ()
-    | _ -> ocaml_on_request server req)
+    | None
+    | Some (Ocamllex | Menhir | Cram | Dune) ->
+      non_ocaml_on_request server req
+    | Some (Ocaml | Reason) -> ocaml_on_request server req)
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
