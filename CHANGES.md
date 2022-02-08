@@ -1,4 +1,4 @@
-# Unreleased 
+# Unreleased
 
 ## Features
 
@@ -16,6 +16,8 @@
 - More accurate completion kinds.
   New completion kinds for variants and fields. Removed inaccurate completion
   kinds for constructors and types. (#510)
+
+- Fix handling request cancellation (#616)
 
 # 1.9.1
 
