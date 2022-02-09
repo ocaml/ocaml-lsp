@@ -12,7 +12,8 @@ val format_type :
 val format_doc :
      t
   -> Document.t
-  -> (TextEdit.t list, [> `Msg of string | `No_process ]) result Fiber.t
+  -> (TextEdit.t list, [> `Msg of string | `No_process | `No_V2 ]) result
+     Fiber.t
 
 val run :
      logger:(type_:MessageType.t -> message:string -> unit Fiber.t)

@@ -1,6 +1,8 @@
 open Import
 open Fiber.O
 
+let type_option = [ ("module-item-spacing", "compact"); ("margin", "63") ]
+
 module Ocamlformat_rpc = Ocamlformat_rpc_lib.Make (struct
   type 'a t = 'a Fiber.t
 
@@ -42,7 +44,7 @@ end = struct
 
   let client t = t.client
 
-  let supported_versions = [ "v1" ]
+  let supported_versions = [ "v2"; "v1" ]
 
   let pick_client ~pid session =
     Ocamlformat_rpc.pick_client ~pid session session supported_versions
@@ -51,18 +53,18 @@ end = struct
     (* We ask for 64 columns formatting as this appear to be the maximum size of
        VScode popups. TODO We should probably allow some flexibility for other
        editors that use the server. *)
-    let* res =
-      Ocamlformat_rpc.config
-        [ ("module-item-spacing", "compact"); ("margin", "63") ]
-        client
-    in
-    match res with
-    | Ok () -> Fiber.return ()
-    | Error (`Msg msg) ->
-      let message =
-        Printf.sprintf "An error occured while configuring ocamlformat: %s" msg
-      in
-      logger ~type_:MessageType.Warning ~message
+    match client with
+    | `V2 _ -> Fiber.return ()
+    | `V1 client -> (
+      let* res = Ocamlformat_rpc.V1.Client.config type_option client in
+      match res with
+      | Ok () -> Fiber.return ()
+      | Error (`Msg msg) ->
+        let message =
+          Printf.sprintf "An error occured while configuring ocamlformat: %s"
+            msg
+        in
+        logger ~type_:MessageType.Warning ~message)
 
   let create ~logger ~bin () =
     let bin = Fpath.to_string bin in
@@ -157,20 +159,39 @@ let format_type t ~typ =
   let* p = get_process t in
   match p with
   | Error `No_process -> Fiber.return @@ Error `No_process
-  | Ok p -> Ocamlformat_rpc.format typ (Process.client p)
+  | Ok p -> (
+    match Process.client p with
+    | `V1 p -> Ocamlformat_rpc.V1.Client.format typ p
+    | `V2 p ->
+      let config = Some type_option in
+      Ocamlformat_rpc.V2.Client.format
+        ~format_args:{ Ocamlformat_rpc_lib.empty_args with config }
+        typ p)
 
 let format_doc t doc =
   let txt = Document.source doc |> Msource.text in
-  let+ res = format_type t ~typ:txt in
-  Result.map res ~f:(fun to_ -> Diff.edit ~from:txt ~to_)
+  let path = Some (Document.uri doc |> Uri.to_path) in
+  let* p = get_process t in
+  match p with
+  | Error `No_process -> Fiber.return @@ Error `No_process
+  | Ok p -> (
+    match Process.client p with
+    | `V2 p ->
+      let+ res =
+        Ocamlformat_rpc.V2.Client.format
+          ~format_args:Ocamlformat_rpc_lib.{ empty_args with path }
+          txt p
+      in
+      Result.map res ~f:(fun to_ -> Diff.edit ~from:txt ~to_)
+    | `V1 _ -> Fiber.return @@ Error `No_V2)
 
 let create_state () =
   Waiting_for_init
     { ask_init = Fiber.Ivar.create (); wait_init = Fiber.Ivar.create () }
 
-let _create () = ref (create_state ())
+let create () = ref (create_state ())
 
-let create () = ref Disabled
+let _create () = ref Disabled
 
 let maybe_fill ivar x =
   let* v = Fiber.Ivar.peek ivar in

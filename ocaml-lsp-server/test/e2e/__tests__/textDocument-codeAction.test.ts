@@ -125,7 +125,8 @@ let f (x : t) = x
               Object {
                 "edits": Array [
                   Object {
-                    "newText": "match x with | Foo _ -> _ | Bar _ -> _",
+                    "newText": "match x with Foo _ -> _ | Bar _ -> _
+      ",
                     "range": Object {
                       "end": Object {
                         "character": 17,
@@ -204,6 +205,7 @@ let f (x : t) = x
               "edits": Array [
                 Object {
                   "newText": "type t = Foo of int | Bar of bool
+
       val f : t -> t
       ",
                   "range": Object {
