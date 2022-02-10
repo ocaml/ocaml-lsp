@@ -23,7 +23,7 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText)
   let command =
     if supportsJumpToNextHole then
       Some
-        (Client.CustomCommands.next_hole
+        (Client.Custom_commands.next_hole
            ~in_range:(Range.resize_for_edit textedit)
            ~notify_if_no_hole:false ())
     else

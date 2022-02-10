@@ -16,7 +16,7 @@ module Vscode : sig
 end
 
 (** Represents custom commands, i.e., commands added by a certain extension. *)
-module CustomCommands : sig
+module Custom_commands : sig
   (** Request client cursor to jump to the next hole.
 
       See the documentation for this command in [vscode-ocaml-platform] for

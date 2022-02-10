@@ -8,7 +8,7 @@ module Vscode = struct
   end
 end
 
-module CustomCommands = struct
+module Custom_commands = struct
   let next_hole ?in_range ~notify_if_no_hole () =
     let arguments =
       let arg_obj_fields =
