@@ -8,20 +8,33 @@ type command_result =
   }
 
 let run_command prog stdin_value args : command_result Fiber.t =
-  let* stdin_i, stdin_o = Lev_fiber.Io.pipe ~cloexec:true () in
-  let* stdout_i, stdout_o = Lev_fiber.Io.pipe ~cloexec:true () in
-  let* stderr_i, stderr_o = Lev_fiber.Io.pipe ~cloexec:true () in
+  let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
+  let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
+  let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
   let pid =
-    let fd io = Lev_fiber.Fd.fd (Lev_fiber.Io.fd io) in
-    let stdin = fd stdin_i in
-    let stdout = fd stdout_o in
-    let stderr = fd stderr_o in
     let argv = prog :: args in
-    Spawn.spawn ~prog ~argv ~stdin ~stdout ~stderr () |> Stdune.Pid.of_int
+    Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
+    |> Stdune.Pid.of_int
   in
-  Lev_fiber.Io.close stdin_i;
-  Lev_fiber.Io.close stdout_o;
-  Lev_fiber.Io.close stderr_o;
+  Unix.close stdin_i;
+  Unix.close stdout_o;
+  Unix.close stderr_o;
+  let blockity =
+    if Sys.win32 then
+      `Blocking
+    else (
+      Unix.set_nonblock stdin_o;
+      Unix.set_nonblock stdout_i;
+      `Non_blocking true
+    )
+  in
+  let make fd what =
+    let fd = Lev_fiber.Fd.create fd blockity in
+    Lev_fiber.Io.create fd what
+  in
+  let* stdin_o = make stdin_o Output in
+  let* stdout_i = make stdout_i Input in
+  let* stderr_i = make stderr_i Input in
   let stdin () =
     let+ () =
       Lev_fiber.Io.with_write stdin_o ~f:(fun w ->
