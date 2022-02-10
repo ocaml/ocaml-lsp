@@ -6,7 +6,7 @@ type init =
       { params : InitializeParams.t
       ; workspaces : Workspaces.t
       ; dune : Dune.t
-      ; exp_client_caps : Exp_client_caps.t Lazy.t
+      ; exp_client_caps : Client.Experimental_capabilities.t Lazy.t
       }
 
 type t =
@@ -72,7 +72,9 @@ let initialize t params workspaces dune =
         ; workspaces
         ; dune
         ; exp_client_caps =
-            lazy (Exp_client_caps.of_opt_json params.capabilities.experimental)
+            lazy
+              (Client.Experimental_capabilities.of_opt_json
+                 params.capabilities.experimental)
         }
   }
 
@@ -87,7 +89,7 @@ let modify_workspaces t ~f =
 
 let client_capabilities t = (initialize_params t).capabilities
 
-let exp_client_caps t =
+let experimental_client_capabilities t =
   match t.init with
   | Uninitialized -> assert false
   | Initialized { exp_client_caps; _ } -> Lazy.force exp_client_caps

@@ -280,7 +280,8 @@ let complete (state : State.t)
       in
       let construct_completionItems =
         let supportsJumpToNextHole =
-          State.exp_client_caps state |> Exp_client_caps.supportsJumpToNextHole
+          State.experimental_client_capabilities state
+          |> Client.Experimental_capabilities.supportsJumpToNextHole
         in
         Complete_with_construct.process_dispatch_resp ~supportsJumpToNextHole
           construct_cmd_resp

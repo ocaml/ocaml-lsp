@@ -54,7 +54,8 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
         | Error _ -> newText
       in
       let supportsJumpToNextHole =
-        State.exp_client_caps state |> Exp_client_caps.supportsJumpToNextHole
+        State.experimental_client_capabilities state
+        |> Client.Experimental_capabilities.supportsJumpToNextHole
       in
       Some
         (code_action_of_case_analysis ~supportsJumpToNextHole doc uri
