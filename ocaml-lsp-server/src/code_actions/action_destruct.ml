@@ -5,10 +5,11 @@ let action_kind = "destruct"
 
 let kind = CodeActionKind.Other action_kind
 
-let code_action_of_case_analysis doc uri (loc, newText) =
+let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText)
+    =
   let range : Range.t = Range.of_loc loc in
+  let textedit : TextEdit.t = { range; newText } in
   let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range; newText } in
     let version = Document.version doc in
     let textDocument =
       OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
@@ -20,11 +21,16 @@ let code_action_of_case_analysis doc uri (loc, newText) =
   in
   let title = String.capitalize_ascii action_kind in
   let command =
-    Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
-      ~notify_if_no_hole:false ()
+    if supportsJumpToNextHole then
+      Some
+        (Client.Custom_commands.next_hole
+           ~in_range:(Range.resize_for_edit textedit)
+           ~notify_if_no_hole:false ())
+    else
+      None
   in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
-    ~command ~isPreferred:false ()
+    ?command ~isPreferred:false ()
 
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
   let uri = params.textDocument.uri in
@@ -47,7 +53,13 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
         | Ok formatted_text -> formatted_text
         | Error _ -> newText
       in
-      Some (code_action_of_case_analysis doc uri (loc, newText))
+      let supportsJumpToNextHole =
+        State.experimental_client_capabilities state
+        |> Client.Experimental_capabilities.supportsJumpToNextHole
+      in
+      Some
+        (code_action_of_case_analysis ~supportsJumpToNextHole doc uri
+           (loc, newText))
     | Error
         { exn =
             ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes

@@ -215,7 +215,7 @@ module Complete_with_construct = struct
       None
     | Error exn -> Exn_with_backtrace.reraise exn
 
-  let process_dispatch_resp = function
+  let process_dispatch_resp ~supportsJumpToNextHole = function
     | None -> []
     | Some (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
@@ -231,19 +231,26 @@ module Complete_with_construct = struct
       in
       let completionItem_of_constructed_expr idx expr =
         let expr_wo_parens = deparen_constr_expr expr in
-        let textEdit = `TextEdit { TextEdit.range; newText = expr } in
+        let edit = { TextEdit.range; newText = expr } in
         let command =
-          Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
-            ~notify_if_no_hole:false ()
+          if supportsJumpToNextHole then
+            Some
+              (Client.Custom_commands.next_hole
+                 ~in_range:(Range.resize_for_edit edit)
+                 ~notify_if_no_hole:false ())
+          else
+            None
         in
-        CompletionItem.create ~label:expr_wo_parens ~textEdit
+        CompletionItem.create ~label:expr_wo_parens ~textEdit:(`TextEdit edit)
           ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
-          ~sortText:(sortText_of_index idx) ~command ()
+          ~sortText:(sortText_of_index idx) ?command ()
       in
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
 
-let complete doc pos =
+let complete (state : State.t)
+    ({ textDocument = { uri }; position = pos; _ } : CompletionParams.t) =
+  let doc = Document_store.get state.store uri in
   let+ items =
     let position = Position.logical pos in
     let prefix =
@@ -272,7 +279,12 @@ let complete doc pos =
             (construct_cmd_resp, compl_by_prefix_resp))
       in
       let construct_completionItems =
-        Complete_with_construct.process_dispatch_resp construct_cmd_resp
+        let supportsJumpToNextHole =
+          State.experimental_client_capabilities state
+          |> Client.Experimental_capabilities.supportsJumpToNextHole
+        in
+        Complete_with_construct.process_dispatch_resp ~supportsJumpToNextHole
+          construct_cmd_resp
       in
       let compl_by_prefix_completionItems =
         Complete_by_prefix.process_dispatch_resp doc pos compl_by_prefix_resp
@@ -280,7 +292,7 @@ let complete doc pos =
       construct_completionItems @ compl_by_prefix_completionItems
       |> reindex_sortText |> preselect_first
   in
-  `CompletionList (CompletionList.create ~isIncomplete:false ~items)
+  Some (`CompletionList (CompletionList.create ~isIncomplete:false ~items))
 
 let format_doc ~markdown doc =
   match markdown with

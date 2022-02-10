@@ -6,6 +6,7 @@ type init =
       { params : InitializeParams.t
       ; workspaces : Workspaces.t
       ; dune : Dune.t
+      ; exp_client_caps : Client.Experimental_capabilities.t
       }
 
 type t =
@@ -64,7 +65,17 @@ let dune t =
 
 let initialize t params workspaces dune =
   assert (t.init = Uninitialized);
-  { t with init = Initialized { params; workspaces; dune } }
+  { t with
+    init =
+      Initialized
+        { params
+        ; workspaces
+        ; dune
+        ; exp_client_caps =
+            Client.Experimental_capabilities.of_opt_json
+              params.capabilities.experimental
+        }
+  }
 
 let modify_workspaces t ~f =
   let init =
@@ -76,6 +87,11 @@ let modify_workspaces t ~f =
   { t with init }
 
 let client_capabilities t = (initialize_params t).capabilities
+
+let experimental_client_capabilities t =
+  match t.init with
+  | Uninitialized -> assert false
+  | Initialized { exp_client_caps; _ } -> exp_client_caps
 
 let log_msg server ~type_ ~message =
   let state = Server.state server in
