@@ -6,7 +6,7 @@ type init =
       { params : InitializeParams.t
       ; workspaces : Workspaces.t
       ; dune : Dune.t
-      ; exp_client_caps : Client.Experimental_capabilities.t Lazy.t
+      ; exp_client_caps : Client.Experimental_capabilities.t
       }
 
 type t =
