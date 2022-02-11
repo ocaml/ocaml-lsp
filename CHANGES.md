@@ -1,3 +1,9 @@
+# 1.10.1
+
+## Fixes
+
+- Fix executing ppx executables
+
 # 1.10.0
 
 ## Features
