@@ -298,23 +298,23 @@ struct
     read_request_ivar req ivar
 
   module Batch = struct
+    type response =
+      Message.request * (Jsonrpc.Response.t, [ `Stopped ]) result Fiber.Ivar.t
+
     type t =
-      [ `Notification of Message.notification
-      | `Request of
-        Message.request * (Response.t, [ `Stopped ]) result Fiber.Ivar.t
-      ]
-      list
-      ref
+      [ `Notification of Message.notification | `Request of response ] list ref
+
+    let await (req, resp) = read_request_ivar req resp
 
     let create () = ref []
 
     let notification t n = t := `Notification n :: !t
 
-    let request t r =
-      Fiber.of_thunk (fun () ->
-          let ivar = Fiber.Ivar.create () in
-          t := `Request (r, ivar) :: !t;
-          read_request_ivar r ivar)
+    let request (t : t) r : response =
+      let ivar = Fiber.Ivar.create () in
+      let resp = (r, ivar) in
+      t := `Request resp :: !t;
+      resp
   end
 
   let submit (t : _ t) (batch : Batch.t) =

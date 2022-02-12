@@ -61,6 +61,7 @@ include struct
   module Log = Import.Log
   module Reply = Rpc.Reply
   module Server = Server
+  module Lazy_fiber = Lsp_fiber.Lazy_fiber
 end
 
 (* All modules from [Lsp.Types] should be in the struct below. The modules are

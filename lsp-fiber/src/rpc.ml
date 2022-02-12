@@ -108,7 +108,11 @@ module type S = sig
 
     val notification : t -> out_notification -> unit
 
-    val request : t -> 'resp out_request -> 'resp Fiber.t
+    type 'a response
+
+    val await : 'a response -> 'a Fiber.t
+
+    val request : t -> 'resp out_request -> 'resp response
 
     val submit : t -> unit Fiber.t
   end
@@ -264,20 +268,23 @@ struct
     Fdecl.set t.session session;
     t
 
-  let gen_request (type r) (t : _ t) (req : r Out_request.t) k : r Fiber.t =
-    Fiber.of_thunk (fun () ->
-        let id = `Int t.req_id in
-        let jsonrpc_request =
-          t.req_id <- t.req_id + 1;
-          Out_request.to_jsonrpc_request req ~id
-        in
-        let+ (resp : Jsonrpc.Response.t) = k jsonrpc_request in
-        match resp.result |> Result.map (Out_request.response_of_json req) with
-        | Ok s -> s
-        | Error e -> raise (Jsonrpc.Response.Error.E e))
+  let create_request t req =
+    let id = `Int t.req_id in
+    t.req_id <- t.req_id + 1;
+    Out_request.to_jsonrpc_request req ~id
+
+  let receive_response req (resp : Jsonrpc.Response.t) =
+    match resp.result |> Result.map (Out_request.response_of_json req) with
+    | Ok s -> s
+    | Error e -> raise (Jsonrpc.Response.Error.E e)
 
   let request (type r) (t : _ t) (req : r Out_request.t) : r Fiber.t =
-    gen_request t req (Session.request (Fdecl.get t.session))
+    Fiber.of_thunk (fun () ->
+        let+ resp =
+          let req = create_request t req in
+          Session.request (Fdecl.get t.session) req
+        in
+        receive_response req resp)
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
@@ -298,9 +305,19 @@ struct
       let n = Out_notification.to_jsonrpc n in
       Session.Batch.notification t.batch n
 
-    let request (t : t) req =
+    type 'a response = 'a Lazy_fiber.t
+
+    let await req = Lazy_fiber.force req
+
+    let request (type r) (t : t) (req : r Out_request.t) : r response =
       let (E session) = t.session in
-      gen_request session req (Session.Batch.request t.batch)
+      let response =
+        let req = create_request session req in
+        Session.Batch.request t.batch req
+      in
+      Lazy_fiber.create (fun () ->
+          let+ response = Session.Batch.await response in
+          receive_response req response)
 
     let submit { session = E session; batch } =
       let t = Fdecl.get session.session in

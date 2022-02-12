@@ -58,7 +58,11 @@ module type S = sig
 
     val notification : t -> out_notification -> unit
 
-    val request : t -> 'resp out_request -> 'resp Fiber.t
+    type 'a response
+
+    val await : 'a response -> 'a Fiber.t
+
+    val request : t -> 'resp out_request -> 'resp response
 
     val submit : t -> unit Fiber.t
   end
