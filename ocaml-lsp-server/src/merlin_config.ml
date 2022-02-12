@@ -289,35 +289,37 @@ let find_project_context start_dir =
   loop None start_dir
 
 let get_external_config db (t : Mconfig.t) path =
-  let path = Misc.canonicalize_filename path in
-  let directory = Filename.dirname path in
-  match find_project_context directory with
-  | None -> Fiber.return t
-  | Some (ctxt, config_path) ->
-    let+ dot, failures = get_config db ctxt path in
-    let merlin = t.merlin in
-    let merlin =
-      { merlin with
-        build_path = dot.build_path @ merlin.build_path
-      ; source_path = dot.source_path @ merlin.source_path
-      ; cmi_path = dot.cmi_path @ merlin.cmi_path
-      ; cmt_path = dot.cmt_path @ merlin.cmt_path
-      ; exclude_query_dir = dot.exclude_query_dir || merlin.exclude_query_dir
-      ; extensions = dot.extensions @ merlin.extensions
-      ; suffixes = dot.suffixes @ merlin.suffixes
-      ; stdlib =
-          (if dot.stdlib = None then
-            merlin.stdlib
-          else
-            dot.stdlib)
-      ; reader =
-          (if dot.reader = [] then
-            merlin.reader
-          else
-            dot.reader)
-      ; flags_to_apply = dot.flags @ merlin.flags_to_apply
-      ; failures = failures @ merlin.failures
-      ; config_path = Some config_path
-      }
-    in
-    Mconfig.normalize { t with merlin }
+  Fiber.of_thunk (fun () ->
+      let path = Misc.canonicalize_filename path in
+      let directory = Filename.dirname path in
+      match find_project_context directory with
+      | None -> Fiber.return t
+      | Some (ctxt, config_path) ->
+        let+ dot, failures = get_config db ctxt path in
+        let merlin = t.merlin in
+        let merlin =
+          { merlin with
+            build_path = dot.build_path @ merlin.build_path
+          ; source_path = dot.source_path @ merlin.source_path
+          ; cmi_path = dot.cmi_path @ merlin.cmi_path
+          ; cmt_path = dot.cmt_path @ merlin.cmt_path
+          ; exclude_query_dir =
+              dot.exclude_query_dir || merlin.exclude_query_dir
+          ; extensions = dot.extensions @ merlin.extensions
+          ; suffixes = dot.suffixes @ merlin.suffixes
+          ; stdlib =
+              (if dot.stdlib = None then
+                merlin.stdlib
+              else
+                dot.stdlib)
+          ; reader =
+              (if dot.reader = [] then
+                merlin.reader
+              else
+                dot.reader)
+          ; flags_to_apply = dot.flags @ merlin.flags_to_apply
+          ; failures = failures @ merlin.failures
+          ; config_path = Some config_path
+          }
+        in
+        Mconfig.normalize { t with merlin })
