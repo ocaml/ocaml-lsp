@@ -78,7 +78,7 @@ struct
     ; mutable running : bool
     ; mutable tick : int
     ; mutable state : 'state
-    ; stop_pending_requests : unit Fiber.t Lazy.t
+    ; mutable pending_requests_stopped : bool
     }
 
   and ('a, 'id) context = 'a t * 'id Message.t
@@ -116,19 +116,53 @@ struct
 
   let state t = t.state
 
+  let on_notification_fail ctx =
+    let state = Context.state ctx in
+    Fiber.return (Notify.Continue, state)
+
+  let stop_pending_requests t =
+    Fiber.of_thunk (fun () ->
+        if t.pending_requests_stopped then
+          Fiber.return ()
+        else (
+          t.pending_requests_stopped <- true;
+          let to_cancel =
+            Id.Table.fold t.pending ~init:[] ~f:(fun ~key:_ ~data:x acc ->
+                x :: acc)
+          in
+          Id.Table.clear t.pending;
+          Fiber.parallel_iter to_cancel ~f:(fun ivar ->
+              Fiber.Ivar.fill ivar (Error `Stopped))
+        ))
+
+  let create ?(on_request = on_request_fail)
+      ?(on_notification = on_notification_fail) ~name chan state =
+    let pending = Id.Table.create 10 in
+    { chan
+    ; on_request
+    ; on_notification
+    ; pending
+    ; stopped = Fiber.Ivar.create ()
+    ; name
+    ; running = false
+    ; tick = 0
+    ; state
+    ; pending_requests_stopped = false
+    }
+
   let stopped t = Fiber.Ivar.read t.stopped
 
   let stop t =
     Fiber.fork_and_join_unit
       (fun () -> Chan.close t.chan `Read)
-      (fun () -> Lazy.force t.stop_pending_requests)
+      (fun () -> stop_pending_requests t)
 
   let close t =
     Fiber.all_concurrently_unit
       [ Chan.close t.chan `Read
       ; Chan.close t.chan `Write
       ; Fiber.Ivar.fill t.stopped ()
-      ; Lazy.force t.stop_pending_requests
+      ; stop_pending_requests t
       ]
 
   let run t =
@@ -238,34 +272,6 @@ struct
             (fun () -> Fiber.Pool.run later)
         in
         close t)
-
-  let on_notification_fail ctx =
-    let state = Context.state ctx in
-    Fiber.return (Notify.Continue, state)
-
-  let make_stop_pending_requests pending =
-    lazy
-      (let to_cancel =
-         Id.Table.fold pending ~init:[] ~f:(fun ~key:_ ~data:x acc -> x :: acc)
-       in
-       Id.Table.clear pending;
-       Fiber.parallel_iter to_cancel ~f:(fun ivar ->
-           Fiber.Ivar.fill ivar (Error `Stopped)))
-
-  let create ?(on_request = on_request_fail)
-      ?(on_notification = on_notification_fail) ~name chan state =
-    let pending = Id.Table.create 10 in
-    { chan
-    ; on_request
-    ; on_notification
-    ; pending
-    ; stopped = Fiber.Ivar.create ()
-    ; name
-    ; running = false
-    ; tick = 0
-    ; state
-    ; stop_pending_requests = make_stop_pending_requests pending
-    }
 
   let check_running t =
     (* TODO we should also error out when making requests after a disconnect. *)
