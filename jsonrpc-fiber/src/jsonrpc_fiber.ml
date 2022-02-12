@@ -228,15 +228,16 @@ struct
           (Dyn.to_string (Dyn.list Exn_with_backtrace.to_dyn errors));
         loop ()
     in
-    t.running <- true;
-    let* () =
-      Fiber.fork_and_join_unit
-        (fun () ->
-          let* () = loop () in
-          Fiber.Pool.stop later)
-        (fun () -> Fiber.Pool.run later)
-    in
-    close t
+    Fiber.of_thunk (fun () ->
+        t.running <- true;
+        let* () =
+          Fiber.fork_and_join_unit
+            (fun () ->
+              let* () = loop () in
+              Fiber.Pool.stop later)
+            (fun () -> Fiber.Pool.run later)
+        in
+        close t)
 
   let on_notification_fail ctx =
     let state = Context.state ctx in
@@ -288,14 +289,15 @@ struct
     | Error `Stopped -> raise (Stopped req)
 
   let request t (req : Message.request) =
-    check_running t;
-    let* () =
-      let req = { req with Message.id = Some req.id } in
-      Chan.send t.chan [ Message req ]
-    in
-    let ivar = Fiber.Ivar.create () in
-    register_request_ivar t req.id ivar;
-    read_request_ivar req ivar
+    Fiber.of_thunk (fun () ->
+        check_running t;
+        let* () =
+          let req = { req with Message.id = Some req.id } in
+          Chan.send t.chan [ Message req ]
+        in
+        let ivar = Fiber.Ivar.create () in
+        register_request_ivar t req.id ivar;
+        read_request_ivar req ivar)
 
   module Batch = struct
     type response =
