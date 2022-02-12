@@ -39,40 +39,48 @@ let language_id_of_fname s =
 
 let force_open_document (state : State.t) uri =
   let filename = Uri.to_path uri in
-  match Io.String_path.read_file filename with
-  | exception Sys_error _ ->
-    Log.log ~section:"debug" (fun () ->
-        Log.msg "Unable to open file" [ ("filename", `String filename) ]);
-    Fiber.return None
-  | text ->
-    let languageId = language_id_of_fname filename in
-    let text_document =
-      TextDocumentItem.create ~uri ~languageId ~version:0 ~text
-    in
-    let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
-    let+ doc =
-      Document.make (State.wheel state) state.merlin_config
-        ~merlin_thread:state.merlin params
-    in
-    Document_store.put state.store doc;
-    Some doc
+  Fiber.of_thunk (fun () ->
+      match Io.String_path.read_file filename with
+      | exception Sys_error _ ->
+        Log.log ~section:"debug" (fun () ->
+            Log.msg "Unable to open file" [ ("filename", `String filename) ]);
+        Fiber.return None
+      | text ->
+        let languageId = language_id_of_fname filename in
+        let text_document =
+          TextDocumentItem.create ~uri ~languageId ~version:0 ~text
+        in
+        let params =
+          DidOpenTextDocumentParams.create ~textDocument:text_document
+        in
+        let+ doc =
+          Document.make (State.wheel state) state.merlin_config
+            ~merlin_thread:state.merlin params
+        in
+        Document_store.put state.store doc;
+        Some doc)
 
 let infer_intf ~force_open_impl (state : State.t) doc =
   match Document.kind doc with
   | Impl -> Code_error.raise "the provided document is not an interface." []
-  | Intf -> (
-    let intf_uri = Document.uri doc in
-    let impl_uri = Document.get_impl_intf_counterparts intf_uri |> List.hd in
-    let* impl =
-      match (Document_store.get_opt state.store impl_uri, force_open_impl) with
-      | None, false ->
-        Code_error.raise
-          "The implementation for this interface has not been open." []
-      | None, true -> force_open_document state impl_uri
-      | Some impl, _ -> Fiber.return (Some impl)
-    in
-    match impl with
-    | None -> Fiber.return None
-    | Some impl ->
-      let+ res = infer_intf_for_impl impl in
-      Some res)
+  | Intf ->
+    Fiber.of_thunk (fun () ->
+        let intf_uri = Document.uri doc in
+        let impl_uri =
+          Document.get_impl_intf_counterparts intf_uri |> List.hd
+        in
+        let* impl =
+          match
+            (Document_store.get_opt state.store impl_uri, force_open_impl)
+          with
+          | None, false ->
+            Code_error.raise
+              "The implementation for this interface has not been open." []
+          | None, true -> force_open_document state impl_uri
+          | Some impl, _ -> Fiber.return (Some impl)
+        in
+        match impl with
+        | None -> Fiber.return None
+        | Some impl ->
+          let+ res = infer_intf_for_impl impl in
+          Some res)

@@ -203,17 +203,18 @@ let make_merlin wheel merlin_config ~merlin_thread tdoc syntax =
     { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer; syntax }
 
 let make wheel config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
-  let tdoc = Text_document.make doc in
-  let syntax = Syntax.of_text_document tdoc in
-  match syntax with
-  | Ocaml
-  | Reason ->
-    make_merlin wheel config ~merlin_thread tdoc syntax
-  | Ocamllex
-  | Menhir
-  | Cram
-  | Dune ->
-    Fiber.return (Other (tdoc, syntax))
+  Fiber.of_thunk (fun () ->
+      let tdoc = Text_document.make doc in
+      let syntax = Syntax.of_text_document tdoc in
+      match syntax with
+      | Ocaml
+      | Reason ->
+        make_merlin wheel config ~merlin_thread tdoc syntax
+      | Ocamllex
+      | Menhir
+      | Cram
+      | Dune ->
+        Fiber.return (Other (tdoc, syntax)))
 
 let update_text ?version t changes =
   match

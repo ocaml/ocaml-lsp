@@ -39,26 +39,27 @@ let create send ~workspace_root =
   }
 
 let send t which =
-  let dirty_uris =
-    match which with
-    | `All -> t.dirty_uris
-    | `One uri -> Uri_set.singleton uri
-  in
-  let pending = Table.create (module Uri) 4 in
-  Uri_set.iter dirty_uris ~f:(fun uri ->
-      let diagnostics = Table.Multi.find t.merlin uri in
-      Table.set pending uri diagnostics);
-  Table.iter t.dune ~f:(fun per_dune ->
-      Table.iter per_dune ~f:(fun (uri, diagnostic) ->
-          if Uri_set.mem dirty_uris uri then
-            Table.Multi.cons pending uri diagnostic));
-  t.dirty_uris <-
-    (match which with
-    | `All -> Uri_set.empty
-    | `One uri -> Uri_set.remove t.dirty_uris uri);
-  Table.foldi pending ~init:[] ~f:(fun uri diagnostics acc ->
-      PublishDiagnosticsParams.create ~uri ~diagnostics () :: acc)
-  |> t.send
+  Fiber.of_thunk (fun () ->
+      let dirty_uris =
+        match which with
+        | `All -> t.dirty_uris
+        | `One uri -> Uri_set.singleton uri
+      in
+      let pending = Table.create (module Uri) 4 in
+      Uri_set.iter dirty_uris ~f:(fun uri ->
+          let diagnostics = Table.Multi.find t.merlin uri in
+          Table.set pending uri diagnostics);
+      Table.iter t.dune ~f:(fun per_dune ->
+          Table.iter per_dune ~f:(fun (uri, diagnostic) ->
+              if Uri_set.mem dirty_uris uri then
+                Table.Multi.cons pending uri diagnostic));
+      t.dirty_uris <-
+        (match which with
+        | `All -> Uri_set.empty
+        | `One uri -> Uri_set.remove t.dirty_uris uri);
+      Table.foldi pending ~init:[] ~f:(fun uri diagnostics acc ->
+          PublishDiagnosticsParams.create ~uri ~diagnostics () :: acc)
+      |> t.send)
 
 let set t what =
   let uri =

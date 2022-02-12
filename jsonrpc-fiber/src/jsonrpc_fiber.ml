@@ -22,14 +22,14 @@ module Sender = struct
   let make id send = { for_ = id; called = false; send }
 
   let send t (r : Response.t) : unit Fiber.t =
-    if t.called then
-      Code_error.raise "cannot send response twice" []
-    else if not (Id.equal t.for_ r.id) then
-      Code_error.raise "invalid id" []
-    else (
-      t.called <- true;
-      t.send r
-    )
+    Fiber.of_thunk (fun () ->
+        if t.called then
+          Code_error.raise "cannot send response twice" []
+        else if not (Id.equal t.for_ r.id) then
+          Code_error.raise "invalid id" []
+        else
+          t.called <- true;
+        t.send r)
 end
 
 exception Stopped of Message.request
@@ -271,9 +271,10 @@ struct
     if not t.running then Code_error.raise "jsonrpc must be running" []
 
   let notification t (req : Message.notification) =
-    check_running t;
-    let req = { req with Message.id = None } in
-    Chan.send t.chan [ Message req ]
+    Fiber.of_thunk (fun () ->
+        check_running t;
+        let req = { req with Message.id = None } in
+        Chan.send t.chan [ Message req ])
 
   let register_request_ivar t id ivar =
     match Id.Table.find_opt t.pending id with
@@ -310,23 +311,26 @@ struct
     let notification t n = t := `Notification n :: !t
 
     let request t r =
-      let ivar = Fiber.Ivar.create () in
-      t := `Request (r, ivar) :: !t;
-      read_request_ivar r ivar
+      Fiber.of_thunk (fun () ->
+          let ivar = Fiber.Ivar.create () in
+          t := `Request (r, ivar) :: !t;
+          read_request_ivar r ivar)
   end
 
   let submit (t : _ t) (batch : Batch.t) =
-    check_running t;
-    let pending = !batch in
-    batch := [];
-    let pending, ivars =
-      List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) -> function
-        | `Notification n ->
-          (Jsonrpc.Message { n with Message.id = None } :: pending, ivars)
-        | `Request ((r : Message.request), ivar) ->
-          ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
-          , (r.id, ivar) :: ivars ))
-    in
-    List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
-    Chan.send t.chan pending
+    Fiber.of_thunk (fun () ->
+        check_running t;
+        let pending = !batch in
+        batch := [];
+        let pending, ivars =
+          List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) ->
+            function
+            | `Notification n ->
+              (Jsonrpc.Message { n with Message.id = None } :: pending, ivars)
+            | `Request ((r : Message.request), ivar) ->
+              ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
+              , (r.id, ivar) :: ivars ))
+        in
+        List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
+        Chan.send t.chan pending)
 end

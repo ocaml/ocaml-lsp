@@ -29,8 +29,9 @@ module Io =
         | Error (`Partial_eof _) -> None
 
       let write oc s =
-        Lio.Writer.add_string oc s;
-        Fiber.return ()
+        Fiber.of_thunk (fun () ->
+            Lio.Writer.add_string oc s;
+            Fiber.return ())
     end)
 
 let send (_, oc) packets =
@@ -43,7 +44,8 @@ let recv (ic, _) = Lio.with_read ic ~f:Io.read
 let make ic oc = (ic, oc)
 
 let close (ic, oc) what =
-  (match what with
-  | `Write -> Lio.close oc
-  | `Read -> Lio.close ic);
-  Fiber.return ()
+  Fiber.of_thunk (fun () ->
+      (match what with
+      | `Write -> Lio.close oc
+      | `Read -> Lio.close ic);
+      Fiber.return ())
