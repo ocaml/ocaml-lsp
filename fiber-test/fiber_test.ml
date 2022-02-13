@@ -1,7 +1,4 @@
 open Stdune
-open Fiber.O
-
-let printf = Printf.printf
 
 let print pp = Format.printf "%a@." Pp.to_fmt pp
 
@@ -12,8 +9,6 @@ module Scheduler : sig
 
   exception Never
 
-  val yield : unit -> unit Fiber.t
-
   val create : unit -> t
 
   val run : t -> 'a Fiber.t -> 'a
@@ -23,12 +18,6 @@ end = struct
   let t_var = Fiber.Var.create ()
 
   let create () = Queue.create ()
-
-  let yield () =
-    let ivar = Fiber.Ivar.create () in
-    let* t = Fiber.Var.get_exn t_var in
-    Queue.push t ivar;
-    Fiber.Ivar.read ivar
 
   exception Never
 
