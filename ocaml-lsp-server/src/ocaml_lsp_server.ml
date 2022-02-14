@@ -1092,8 +1092,9 @@ let start () =
          match state with
          | Error `Binary_not_found ->
            Some
-             "OCamlformat_rpc is missing, displayed types might not be \
-              properly formatted. "
+             "ocamlformat-rpc is missing, displayed types might not be \
+              properly formatted. Hint: $ opam install ocamlformat-rpc and \
+              restart the lsp server"
          | Error `Disabled
          | Ok () ->
            None
