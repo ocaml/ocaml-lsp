@@ -1,3 +1,9 @@
+# 1.10.2
+
+## Fixes
+
+- Catch merlin desturct exceptions (#626)
+
 # 1.10.1
 
 ## Fixes

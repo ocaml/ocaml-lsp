@@ -65,6 +65,7 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
             ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
             | Merlin_analysis.Destruct.Not_allowed _
             | Merlin_analysis.Destruct.Useless_refine
+            | Merlin_analysis.Destruct.Ill_typed
             | Merlin_analysis.Destruct.Nothing_to_do )
         ; backtrace = _
         } ->
