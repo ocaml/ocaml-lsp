@@ -1,8 +1,9 @@
-# 1.10.2
+# 1.10.2 (unreleased)
 
 ## Fixes
 
 - Catch merlin desturct exceptions (#626)
+- Fix broken debouncing (#627)
 
 # 1.10.1
 
