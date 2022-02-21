@@ -1,4 +1,4 @@
-# 1.10.2 (unreleased)
+# 1.10.2
 
 ## Fixes
 
