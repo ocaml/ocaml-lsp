@@ -113,13 +113,14 @@ type config =
   ; server : server
   }
 
+let promotion_id d =
+  let in_source = Drpc.Diagnostic.Promotion.in_source d in
+  "ocamllsp-promote-action/" ^ in_source
+
 let unregistration_of_promotion d =
   let unregisterations =
-    let in_source = Drpc.Diagnostic.Promotion.in_source d in
-    let make method_ =
-      let id = "ocamllsp-promote-action/" ^ in_source in
-      Unregistration.create ~id ~method_
-    in
+    let id = promotion_id d in
+    let make method_ = Unregistration.create ~id ~method_ in
     [ make "textDocument/codeAction" ]
   in
   UnregistrationParams.create ~unregisterations
@@ -257,7 +258,7 @@ end = struct
     let registrations =
       let in_source = Drpc.Diagnostic.Promotion.in_source d in
       let code_action =
-        let id = "ocamllsp-promote-action/" ^ in_source in
+        let id = promotion_id d in
         let method_ = "textDocument/codeAction" in
         let registerOptions =
           let documentSelector =
