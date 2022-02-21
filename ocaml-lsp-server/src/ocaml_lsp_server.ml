@@ -852,13 +852,7 @@ let ocaml_on_request :
   | TextDocumentRename req -> later rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
   | SignatureHelp req -> later signature_help req
-  | ExecuteCommand command ->
-    later
-      (fun state () ->
-        let dune = State.dune state in
-        (* all of our commands are handled by dune for now *)
-        Dune.on_command dune command)
-      ()
+  | ExecuteCommand _ -> assert false
   | TextDocumentLinkResolve l -> now l
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None
@@ -894,6 +888,7 @@ let non_ocaml_on_request (type resp) server (req : resp Client_request.t) :
     Fiber.return (Reply.now (Some actions), state)
   | Initialize _ -> assert false
   | Shutdown -> assert false
+  | ExecuteCommand _ -> assert false
   | _ -> not_supported ()
 
 let on_request :
@@ -957,6 +952,13 @@ let on_request :
   | WorkspaceSymbol req ->
     later (fun state () -> workspace_symbol server state req) ()
   | CodeActionResolve ca -> now ca
+  | ExecuteCommand command ->
+    later
+      (fun state () ->
+        let dune = State.dune state in
+        (* all of our commands are handled by dune for now *)
+        Dune.on_command dune command)
+      ()
   | CompletionItemResolve ci ->
     later
       (fun state () ->
