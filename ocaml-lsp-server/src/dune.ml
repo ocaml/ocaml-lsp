@@ -113,17 +113,40 @@ type config =
   ; server : server
   }
 
-let promotion_id d =
-  let in_source = Drpc.Diagnostic.Promotion.in_source d in
-  "ocamllsp-promote-action/" ^ in_source
+module Promotion_action = struct
+  let method_ = "textDocument/codeAction"
 
-let unregistration_of_promotion d =
-  let unregisterations =
-    let id = promotion_id d in
-    let make method_ = Unregistration.create ~id ~method_ in
-    [ make "textDocument/codeAction" ]
-  in
-  UnregistrationParams.create ~unregisterations
+  let id d =
+    let in_source = Drpc.Diagnostic.Promotion.in_source d in
+    "ocamllsp-promote-action/" ^ in_source
+
+  let unregistration d =
+    let unregisterations =
+      let id = id d in
+      [ Unregistration.create ~id ~method_ ]
+    in
+    UnregistrationParams.create ~unregisterations
+
+  let registration (d : Drpc.Diagnostic.Promotion.t) =
+    let registrations =
+      let in_source = Drpc.Diagnostic.Promotion.in_source d in
+      let code_action =
+        let id = id d in
+        let registerOptions =
+          let documentSelector =
+            [ DocumentFilter.create ~pattern:in_source () ]
+          in
+          CodeActionRegistrationOptions.create ~documentSelector
+            ~codeActionKinds:[ CodeActionKind.Other "Promote" ]
+            ()
+          |> CodeActionRegistrationOptions.yojson_of_t
+        in
+        Registration.create ~id ~method_ ~registerOptions ()
+      in
+      [ code_action ]
+    in
+    RegistrationParams.create ~registrations
+end
 
 module Instance : sig
   type t
@@ -254,27 +277,6 @@ end = struct
               let+ () = Progress.build_progress progress p in
               Some ()))
 
-  let registration_of_promotion (d : Drpc.Diagnostic.Promotion.t) =
-    let registrations =
-      let in_source = Drpc.Diagnostic.Promotion.in_source d in
-      let code_action =
-        let id = promotion_id d in
-        let method_ = "textDocument/codeAction" in
-        let registerOptions =
-          let documentSelector =
-            [ DocumentFilter.create ~pattern:in_source () ]
-          in
-          CodeActionRegistrationOptions.create ~documentSelector
-            ~codeActionKinds:[ CodeActionKind.Other "Promote" ]
-            ()
-          |> CodeActionRegistrationOptions.yojson_of_t
-        in
-        Registration.create ~id ~method_ ~registerOptions ()
-      in
-      [ code_action ]
-    in
-    RegistrationParams.create ~registrations
-
   let fold_promotions promotions diagnostic ~f =
     let promotions, requests =
       Drpc.Diagnostic.promotion diagnostic
@@ -291,7 +293,8 @@ end = struct
   let add_promotions promotions diagnostic =
     fold_promotions promotions diagnostic ~f:(fun promotion status ->
         match status with
-        | None -> Some (Some promotion, [ registration_of_promotion promotion ])
+        | None ->
+          Some (Some promotion, [ Promotion_action.registration promotion ])
         | Some _ ->
           (* TODO: ideally, we should update with the new promotion, but then we
              need to store the actual registration ID *)
@@ -307,7 +310,7 @@ end = struct
                   , `String (Drpc.Diagnostic.Promotion.in_source promotion) )
                 ]);
           None
-        | Some _ -> Some (None, [ unregistration_of_promotion promotion ]))
+        | Some _ -> Some (None, [ Promotion_action.unregistration promotion ]))
 
   let diagnostic_loop client config (running : running) diagnostics =
     let* res = Client.poll client Drpc.Sub.diagnostic in
@@ -599,7 +602,7 @@ let make_finalizer active (instance : Instance.t) =
         |> String.Map.to_list_map ~f:(fun _ promotion ->
                let req =
                  Server_request.ClientUnregisterCapability
-                   (unregistration_of_promotion promotion)
+                   (Promotion_action.unregistration promotion)
                in
                Server.Batch.request batch req)
       in
