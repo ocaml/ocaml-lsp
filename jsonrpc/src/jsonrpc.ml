@@ -124,12 +124,15 @@ module Response = struct
         | MethodNotFound
         | InvalidParams
         | InternalError
+        (* the codes below are LSP specific *)
         | ServerErrorStart
         | ServerErrorEnd
         | ServerNotInitialized
         | UnknownErrorCode
-        | RequestCancelled
+        | RequestFailed
+        | ServerCancelled
         | ContentModified
+        | RequestCancelled
 
       let of_int = function
         | -32700 -> Some ParseError
@@ -143,6 +146,8 @@ module Response = struct
         | -32001 -> Some UnknownErrorCode
         | -32800 -> Some RequestCancelled
         | -32801 -> Some ContentModified
+        | -32802 -> Some ServerCancelled
+        | -32803 -> Some RequestFailed
         | _ -> None
 
       let to_int = function
@@ -157,6 +162,8 @@ module Response = struct
         | UnknownErrorCode -> -32001
         | RequestCancelled -> -32800
         | ContentModified -> -32801
+        | ServerCancelled -> -32802
+        | RequestFailed -> -32803
 
       let t_of_yojson json =
         match json with
