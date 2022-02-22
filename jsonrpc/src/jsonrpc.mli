@@ -92,8 +92,10 @@ module Response : sig
         | ServerErrorEnd
         | ServerNotInitialized
         | UnknownErrorCode
-        | RequestCancelled
+        | RequestFailed
+        | ServerCancelled
         | ContentModified
+        | RequestCancelled
     end
 
     type t =
