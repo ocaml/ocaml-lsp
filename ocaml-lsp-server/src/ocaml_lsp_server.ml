@@ -160,7 +160,7 @@ let set_diagnostics rpc doc =
       task_if_running state.detached ~f:(fun () ->
           let timer = Document.timer doc in
           let* () = Lev_fiber.Timer.Wheel.cancel timer in
-          Lev_fiber.Timer.Wheel.reset timer;
+          let* () = Lev_fiber.Timer.Wheel.reset timer in
           let* res = Lev_fiber.Timer.Wheel.await timer in
           match res with
           | `Cancelled -> Fiber.return ()
