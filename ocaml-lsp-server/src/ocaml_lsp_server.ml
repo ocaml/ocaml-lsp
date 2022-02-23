@@ -345,57 +345,84 @@ module Code_action_error_monoid = struct
   include Stdune.Monoid.Make (Code_action_error)
 end
 
-let code_action (state : State.t) (params : CodeActionParams.t) =
+let code_action server (params : CodeActionParams.t) =
+  let state : State.t = Server.state server in
   let doc =
     let uri = params.textDocument.uri in
     let store = state.store in
-    Document_store.get store uri
+    Document_store.get_opt store uri
   in
-  let code_action (ca : Code_action.t) =
-    match params.context.only with
-    | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
-      Fiber.return None
-    | Some _
-    | None -> (
-      let+ res =
-        Fiber.map_reduce_errors
-          ~on_error:(fun (exn : Exn_with_backtrace.t) ->
-            match exn.exn with
-            | Extend_main.Handshake.Error error ->
-              Fiber.return (Code_action_error.Need_merlin_extend error)
-            | _ -> Fiber.return (Code_action_error.Exn exn))
-          (module Code_action_error_monoid)
-          (fun () -> ca.run doc params)
+  match doc with
+  | None -> Fiber.return (Reply.now None, state)
+  | Some doc -> (
+    match Document.syntax doc with
+    | Ocamllex
+    | Menhir
+    | Cram
+    | Dune ->
+      let state : State.t = Server.state server in
+      let actions =
+        Dune.code_actions (State.dune state) params.textDocument.uri
+        |> List.map ~f:(fun a -> `CodeAction a)
       in
-      match res with
-      | Ok res -> res
-      | Error Initial -> assert false
-      | Error (Need_merlin_extend _) -> None
-      | Error (Exn exn) -> Exn_with_backtrace.reraise exn)
-  in
-  let+ code_action_results =
-    (* XXX this is a really bad use of resources. we should be batching all the
-       merlin related work *)
-    Fiber.parallel_map ~f:code_action
-      [ Action_destruct.t state
-      ; Action_inferred_intf.t state
-      ; Action_type_annotate.t
-      ; Action_construct.t
-      ; Action_refactor_open.unqualify
-      ; Action_refactor_open.qualify
-      ; Action_add_rec.t
-      ; Action_mark_remove_unused.mark
-      ; Action_mark_remove_unused.remove
-      ]
-  in
-  let code_action_results = List.filter_opt code_action_results in
-  let code_action_results =
-    code_action_results
-    @ Dune.code_actions (State.dune state) (Document.uri doc)
-  in
-  match code_action_results with
-  | [] -> None
-  | l -> Some (List.map l ~f:(fun c -> `CodeAction c))
+      Fiber.return (Reply.now (Some actions), state)
+    | Ocaml
+    | Reason ->
+      let reply () =
+        let code_action (ca : Code_action.t) =
+          match params.context.only with
+          | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
+            Fiber.return None
+          | Some _
+          | None -> (
+            let+ res =
+              Fiber.map_reduce_errors
+                ~on_error:(fun (exn : Exn_with_backtrace.t) ->
+                  match exn.exn with
+                  | Extend_main.Handshake.Error error ->
+                    Fiber.return (Code_action_error.Need_merlin_extend error)
+                  | _ -> Fiber.return (Code_action_error.Exn exn))
+                (module Code_action_error_monoid)
+                (fun () -> ca.run doc params)
+            in
+            match res with
+            | Ok res -> res
+            | Error Initial -> assert false
+            | Error (Need_merlin_extend _) -> None
+            | Error (Exn exn) -> Exn_with_backtrace.reraise exn)
+        in
+        let+ code_action_results =
+          (* XXX this is a really bad use of resources. we should be batching
+             all the merlin related work *)
+          Fiber.parallel_map ~f:code_action
+            [ Action_destruct.t state
+            ; Action_inferred_intf.t state
+            ; Action_type_annotate.t
+            ; Action_construct.t
+            ; Action_refactor_open.unqualify
+            ; Action_refactor_open.qualify
+            ; Action_add_rec.t
+            ; Action_mark_remove_unused.mark
+            ; Action_mark_remove_unused.remove
+            ]
+        in
+        let code_action_results = List.filter_opt code_action_results in
+        let code_action_results =
+          code_action_results
+          @ Dune.code_actions (State.dune state) (Document.uri doc)
+        in
+        match code_action_results with
+        | [] -> None
+        | l -> Some (List.map l ~f:(fun c -> `CodeAction c))
+      in
+      let later f =
+        Fiber.return
+          ( Reply.later (fun k ->
+                let* resp = f () in
+                k resp)
+          , state )
+      in
+      later reply)
 
 module Formatter = struct
   let jsonrpc_error (e : Ocamlformat.error) =
@@ -782,132 +809,15 @@ let document_symbol (state : State.t) uri =
   in
   Some symbols
 
-(** handles requests for OCaml (syntax) documents *)
-let ocaml_on_request :
-    type resp.
-       State.t Server.t
-    -> resp Client_request.t
-    -> (resp Reply.t * State.t) Fiber.t =
- fun rpc req ->
-  let state = Server.state rpc in
-  let store = state.store in
-  let now res = Fiber.return (Reply.now res, state) in
-  let later f req =
-    Fiber.return
-      ( Reply.later (fun k ->
-            let* resp = f state req in
-            k resp)
-      , state )
-  in
-  match req with
-  | Initialize _ -> assert false
-  | Shutdown -> assert false
-  | DebugTextDocumentGet _ -> assert false
-  | DebugEcho _ -> assert false
-  | TextDocumentColor _ -> now []
-  | TextDocumentColorPresentation _ -> now []
-  | TextDocumentHover req ->
-    later (fun (_ : State.t) () -> Hover_req.handle rpc req) ()
-  | TextDocumentReferences req -> later references req
-  | TextDocumentCodeLensResolve codeLens -> now codeLens
-  | TextDocumentCodeLens req -> later text_document_lens req
-  | TextDocumentHighlight req -> later highlight req
-  | WorkspaceSymbol _ -> assert false
-  | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
-  | TextDocumentDeclaration { textDocument = { uri }; position } ->
-    later
-      (fun state () ->
-        definition_query rpc state uri position (fun pos ->
-            Query_protocol.Locate (None, `MLI, pos)))
-      ()
-  | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
-    later
-      (fun state () ->
-        definition_query rpc state uri position (fun pos ->
-            Query_protocol.Locate (None, `ML, pos)))
-      ()
-  | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
-    later
-      (fun state () ->
-        definition_query rpc state uri position (fun pos ->
-            Query_protocol.Locate_type pos))
-      ()
-  | TextDocumentCompletion params ->
-    later (fun _ () -> Compl.complete state params) ()
-  | TextDocumentPrepareRename { textDocument = { uri }; position } ->
-    later
-      (fun _ () ->
-        let doc = Document_store.get store uri in
-        let command =
-          Query_protocol.Occurrences (`Ident_at (Position.logical position))
-        in
-        let+ locs = Document.dispatch_exn doc command in
-        let loc =
-          List.find_opt locs ~f:(fun loc ->
-              let range = Range.of_loc loc in
-              Position.compare_inclusion position range = `Inside)
-        in
-        Option.map loc ~f:Range.of_loc)
-      ()
-  | TextDocumentRename req -> later rename req
-  | TextDocumentFoldingRange req -> later Folding_range.compute req
-  | SignatureHelp req -> later signature_help req
-  | ExecuteCommand _ -> assert false
-  | TextDocumentLinkResolve l -> now l
-  | TextDocumentLink _ -> now None
-  | WillSaveWaitUntilTextDocument _ -> now None
-  | CodeAction params -> later code_action params
-  | CodeActionResolve _ -> assert false
-  | CompletionItemResolve _ -> assert false
-  | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
-    later
-      (fun _ () ->
-        let doc = Document_store.get store uri in
-        Formatter.run rpc doc)
-      ()
-  | TextDocumentOnTypeFormatting _ -> now None
-  | SelectionRange req -> later selection_range req
-  | TextDocumentMoniker _ -> not_supported ()
-  | SemanticTokensFull _ -> not_supported ()
-  | SemanticTokensDelta _ -> not_supported ()
-  | SemanticTokensRange _ -> not_supported ()
-  | LinkedEditingRange _ -> not_supported ()
-  | UnknownRequest _ ->
-    Jsonrpc.Response.Error.raise
-      (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
-
-let non_ocaml_on_request (type resp) server (req : resp Client_request.t) :
-    (resp Reply.t * State.t) Fiber.t =
-  match req with
-  | CodeAction params ->
-    let state : State.t = Server.state server in
-    let actions =
-      Dune.code_actions (State.dune state) params.textDocument.uri
-      |> List.map ~f:(fun a -> `CodeAction a)
-    in
-    Fiber.return (Reply.now (Some actions), state)
-  | Initialize _ -> assert false
-  | Shutdown -> assert false
-  | ExecuteCommand _ -> assert false
-  | _ -> not_supported ()
-
 let on_request :
     type resp.
        State.t Server.t
     -> resp Client_request.t
     -> (resp Reply.t * State.t) Fiber.t =
  fun server req ->
+  let rpc = server in
   let state : State.t = Server.state server in
   let store = state.store in
-  let syntax : Document.Syntax.t option =
-    let open Option.O in
-    let* td =
-      Client_request.text_document req (fun ~meth:_ ~params:_ -> None)
-    in
-    let uri = td.uri in
-    let+ doc = Document_store.get_opt store uri in
-    Document.syntax doc
-  in
   let now res = Fiber.return (Reply.now res, state) in
   let later f req =
     Fiber.return
@@ -980,12 +890,70 @@ let on_request :
           in
           Compl.resolve doc ci resolve Document.doc_comment ~markdown)
       ()
-  | _ -> (
-    match syntax with
-    | None
-    | Some (Ocamllex | Menhir | Cram | Dune) ->
-      non_ocaml_on_request server req
-    | Some (Ocaml | Reason) -> ocaml_on_request server req)
+  | CodeAction params -> code_action server params
+  | TextDocumentColor _ -> now []
+  | TextDocumentColorPresentation _ -> now []
+  | TextDocumentHover req ->
+    later (fun (_ : State.t) () -> Hover_req.handle rpc req) ()
+  | TextDocumentReferences req -> later references req
+  | TextDocumentCodeLensResolve codeLens -> now codeLens
+  | TextDocumentCodeLens req -> later text_document_lens req
+  | TextDocumentHighlight req -> later highlight req
+  | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
+  | TextDocumentDeclaration { textDocument = { uri }; position } ->
+    later
+      (fun state () ->
+        definition_query rpc state uri position (fun pos ->
+            Query_protocol.Locate (None, `MLI, pos)))
+      ()
+  | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
+    later
+      (fun state () ->
+        definition_query rpc state uri position (fun pos ->
+            Query_protocol.Locate (None, `ML, pos)))
+      ()
+  | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
+    later
+      (fun state () ->
+        definition_query rpc state uri position (fun pos ->
+            Query_protocol.Locate_type pos))
+      ()
+  | TextDocumentCompletion params ->
+    later (fun _ () -> Compl.complete state params) ()
+  | TextDocumentPrepareRename { textDocument = { uri }; position } ->
+    later
+      (fun _ () ->
+        let doc = Document_store.get store uri in
+        let command =
+          Query_protocol.Occurrences (`Ident_at (Position.logical position))
+        in
+        let+ locs = Document.dispatch_exn doc command in
+        let loc =
+          List.find_opt locs ~f:(fun loc ->
+              let range = Range.of_loc loc in
+              Position.compare_inclusion position range = `Inside)
+        in
+        Option.map loc ~f:Range.of_loc)
+      ()
+  | TextDocumentRename req -> later rename req
+  | TextDocumentFoldingRange req -> later Folding_range.compute req
+  | SignatureHelp req -> later signature_help req
+  | TextDocumentLinkResolve l -> now l
+  | TextDocumentLink _ -> now None
+  | WillSaveWaitUntilTextDocument _ -> now None
+  | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
+    later
+      (fun _ () ->
+        let doc = Document_store.get store uri in
+        Formatter.run rpc doc)
+      ()
+  | TextDocumentOnTypeFormatting _ -> now None
+  | SelectionRange req -> later selection_range req
+  | TextDocumentMoniker _ -> not_supported ()
+  | SemanticTokensFull _ -> not_supported ()
+  | SemanticTokensDelta _ -> not_supported ()
+  | SemanticTokensRange _ -> not_supported ()
+  | LinkedEditingRange _ -> not_supported ()
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
