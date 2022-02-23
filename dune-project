@@ -50,6 +50,10 @@ possible and does not make any assumptions about IO.
   (ppx_yojson_conv_lib (>= "v0.14"))
   dune-build-info
   spawn
+  (cmdliner (>= 1.0.4))
+  (omd (<= 1.3.1))
+  (octavius (>= 1.2.2))
+  (uutf (>= 1.0.2))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
   (result (>= 1.5))
