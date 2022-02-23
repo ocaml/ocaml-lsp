@@ -32,8 +32,8 @@
   ordering
   csexp
   yojson
-  dune_rpc
+  dune-rpc
   ocamlformat-rpc-lib
-  ocamlc_loc))
+  dune-private-libs.ocamlc_loc))
 
 (include_subdirs unqualified)

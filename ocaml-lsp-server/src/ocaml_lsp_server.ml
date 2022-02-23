@@ -88,8 +88,8 @@ let initialize_info : InitializeResult.t =
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
 let extract_related_errors uri raw_message =
-  match Ocamlc_loc.parse_raw raw_message with
-  | `Message message :: related ->
+  match Ocamlc_loc.parse raw_message with
+  |  {message = message; _ } :: related ->
     let string_of_message message =
       String.trim
         (match (message : Ocamlc_loc.message) with
@@ -98,33 +98,17 @@ let extract_related_errors uri raw_message =
           let severity =
             match severity with
             | Error -> "Error"
-            | Warning { code; name } ->
-              sprintf "Warning %s"
-                (match (code, name) with
-                | None, Some name -> sprintf "[%s]" name
-                | Some code, None -> sprintf "%d" code
-                | Some code, Some name -> sprintf "%d [%s]" code name
-                | None, None -> assert false)
+            | Warning None -> assert false
+            | Warning (Some { code; name }) ->
+              sprintf "Warning %d [%s]" code name
           in
           sprintf "%s: %s" severity message)
-    in
-    let related =
-      let rec loop acc = function
-        | `Loc (_, loc) :: `Message m :: xs -> loop ((loc, m) :: acc) xs
-        | [] -> List.rev acc
-        | _ ->
-          (* give up when we see something unexpected *)
-          Log.log ~section:"debug" (fun () ->
-              Log.msg "unable to parse error" [ ("error", `String raw_message) ]);
-          []
-      in
-      loop [] related
     in
     let related =
       match related with
       | [] -> None
       | related ->
-        let make_related ({ Ocamlc_loc.path = _; line; chars }, message) =
+        let make_related ( Ocamlc_loc.{ loc = { path = _; line; chars }; message = message}) =
           let location =
             let start, end_ =
               let line_start, line_end =

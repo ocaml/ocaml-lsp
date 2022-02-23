@@ -79,7 +79,8 @@ let prefix_of_position ~short_path source position =
             not short_path
           | _ -> false
       in
-      String.rfindi text ~from ~f:(fun c -> not (is_prefix_char c))
+      String.sub text ~pos:from ~len:(String.length text - from) |>
+      String.rfindi ~f:(fun c -> not (is_prefix_char c))
     in
     let pos =
       match pos with
@@ -121,7 +122,8 @@ let suffix_of_position source position =
           | _ -> false
         in
         let until =
-          String.findi ~from text ~f:(fun c -> not (ident_char c))
+          String.sub text ~pos:from ~len:(String.length text - from)
+          |> String.findi ~f:(fun c -> not (ident_char c))
           |> Option.value ~default:len
         in
         until - from
