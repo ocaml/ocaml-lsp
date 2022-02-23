@@ -15,6 +15,7 @@
   lev-fiber-csexp
   (library
    (name lev_fiber_csexp)
+   (public_name ocaml-lsp-server.lev-fiber-csexp)
    (libraries fiber csexp stdune dyn lev_fiber))
   (copy_files# %{project_root}/submodules/lev/lev-fiber-csexp/src/*.{ml,mli}))
  (subdir
@@ -24,10 +25,12 @@
    (copy_files# %{project_root}/submodules/lev/lev-fiber/src/util/*.{ml,mli})
    (library
     (name lev_fiber_util)
+    (public_name ocaml-lsp-server.lev-fiber-util)
     (libraries stdune threads.posix)))
   (copy_files# %{project_root}/submodules/lev/lev-fiber/src/*.{ml,mli})
   (library
    (name lev_fiber)
+   (public_name ocaml-lsp-server.lev-fiber)
    (libraries unix dyn stdune threads.posix fiber lev lev_fiber_util)))
  (subdir
   lev
@@ -37,6 +40,7 @@
   (copy_files# %{project_root}/submodules/lev/lev/src/*.{ml,mli,c,h})
   (library
    (name lev)
+   (public_name ocaml-lsp-server.lev)
    (synopsis "libev bindings")
    (libraries unix)
    (foreign_stubs

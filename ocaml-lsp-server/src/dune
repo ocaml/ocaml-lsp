@@ -1,5 +1,6 @@
 (library
  (name ocaml_lsp_server)
+ (public_name ocaml-lsp-server)
  (libraries
   dyn
   xdg

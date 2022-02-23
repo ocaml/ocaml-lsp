@@ -1,5 +1,6 @@
 (library
  (name lsp_fiber)
+ (public_name ocaml-lsp-server.lsp_fiber)
  (libraries
   dyn
   fiber
