@@ -714,22 +714,21 @@ let definition_query server (state : State.t) uri position merlin_request =
     in
     None
 
-let await_no_cancel task =
-  let+ res = Lev_fiber.Thread.await task in
-  match res with
-  | Ok s -> s
-  | Error `Cancelled -> assert false
-  | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
-
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
   let* symbols, errors =
     let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
-      Lev_fiber.Thread.task thread ~f:(fun () ->
-          Workspace_symbol.run params workspaces)
-      >>= await_no_cancel
+      let* task =
+        Lev_fiber.Thread.task thread ~f:(fun () ->
+            Workspace_symbol.run params workspaces)
+      in
+      let+ res = Lev_fiber.Thread.await task in
+      match res with
+      | Ok s -> s
+      | Error `Cancelled -> assert false
+      | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
     in
     List.partition_map symbols_results ~f:(function
       | Ok r -> Left r
