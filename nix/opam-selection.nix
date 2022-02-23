@@ -65,6 +65,19 @@ in
         hash = "sha256:1v61rsyfwkpla41ga6hsagzjihmn1lg5whg2gwb01w9xhdy95qd2";
       };
     };
+    base-bigarray = 
+    {
+      pname = "base-bigarray";
+      version = "base";
+      src = null;
+      opamInputs = {
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/base-bigarray/base-bigarray.base";
+        hash = "sha256:1hgfwxh4vdv21m2a4g506y27pcv912v67qi4svrn53rgc43ckv6b";
+      };
+    };
     base-bytes = 
     {
       pname = "base-bytes";
@@ -527,8 +540,9 @@ in
       src = self.directSrc "ocaml-lsp-server";
       opamInputs = 
       {
-        inherit (selection) yojson spawn result re ppx_yojson_conv_lib pp
-        ocamlformat-rpc-lib ocaml dune-build-info dune csexp;
+        inherit (selection) yojson uutf spawn result re ppx_yojson_conv_lib
+        pp omd octavius ocamlformat-rpc-lib ocaml dune-build-info dune csexp
+        cmdliner;
       };
       opamSrc = "ocaml-lsp-server.opam";
     };
@@ -682,6 +696,26 @@ in
       {
         package = "packages/odoc-parser/odoc-parser.1.0.0";
         hash = "sha256:089fhf57wh7an4hgl88smgi4fdzy8yb95c3bhj15m7pvsy9h3sdf";
+      };
+    };
+    omd = 
+    {
+      pname = "omd";
+      version = "1.3.1";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/Chris00/omd/releases/download/1.3.1/omd-1.3.1.tar.gz";
+        sha256 = "1sgdgzpx96br7npj8mh91cli5mqmzsjpngwm7x4212n3k1d0ivwa";
+      };
+      opamInputs = 
+      {
+        inherit (selection) ocamlfind ocamlbuild ocaml base-bytes
+        base-bigarray;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/omd/omd.1.3.1";
+        hash = "sha256:09fzyagdfcj1b2bwj5hacbda9lldicd0a59sac5j5nls8x8rsgcc";
       };
     };
     pp = 
