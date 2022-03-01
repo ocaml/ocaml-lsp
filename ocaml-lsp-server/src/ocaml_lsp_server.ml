@@ -781,6 +781,48 @@ let document_symbol (state : State.t) uri =
   in
   Some symbols
 
+let doc_in_request (type resp) (client_req : resp Client_request.t) =
+  match client_req with
+  | TextDocumentDefinition { textDocument; _ }
+  | TextDocumentDeclaration { textDocument; _ }
+  | TextDocumentTypeDefinition { textDocument; _ }
+  | TextDocumentCompletion { textDocument; _ }
+  | TextDocumentCodeLens { textDocument; _ }
+  | TextDocumentPrepareRename { textDocument; _ }
+  | TextDocumentRename { textDocument; _ }
+  | TextDocumentLink { textDocument; _ }
+  | TextDocumentMoniker { textDocument; _ }
+  | TextDocumentReferences { textDocument; _ }
+  | TextDocumentHighlight { textDocument; _ }
+  | TextDocumentFoldingRange { textDocument; _ }
+  | SignatureHelp { textDocument; _ }
+  | CodeAction { textDocument; _ }
+  | DocumentSymbol { textDocument; _ }
+  | DebugTextDocumentGet { textDocument; _ }
+  | WillSaveWaitUntilTextDocument { textDocument; _ }
+  | TextDocumentFormatting { textDocument; _ }
+  | TextDocumentOnTypeFormatting { textDocument; _ }
+  | TextDocumentColorPresentation { textDocument; _ }
+  | TextDocumentColor { textDocument; _ }
+  | SemanticTokensFull { textDocument; _ }
+  | SemanticTokensDelta { textDocument; _ }
+  | SemanticTokensRange { textDocument; _ }
+  | SelectionRange { textDocument; _ }
+  | LinkedEditingRange { textDocument; _ }
+  | TextDocumentHover { textDocument; _ } ->
+    Some textDocument
+  | UnknownRequest _
+  | Initialize _
+  | Shutdown
+  | TextDocumentCodeLensResolve _
+  | TextDocumentLinkResolve _
+  | WorkspaceSymbol _
+  | DebugEcho _
+  | CodeActionResolve _
+  | CompletionItemResolve _
+  | ExecuteCommand _ ->
+    None
+
 (** handles requests for OCaml (syntax) documents *)
 let ocaml_on_request :
     type resp.
@@ -953,6 +995,69 @@ let on_request :
     | Some (Ocamllex | Menhir) -> not_supported ()
     | _ -> ocaml_on_request server req)
 
+let string_of_cmi_error doc_in_request e =
+  match e with
+  | Ocaml_typing.Magic_numbers.Cmi.Not_an_interface compiled_file -> (
+    match doc_in_request with
+    | Some doc_uri ->
+      sprintf "Compilation problem for file %s : %s is not a compiled interface"
+        doc_uri compiled_file
+    | None ->
+      sprintf "Compilation problem: %s is not a compiled interface"
+        compiled_file)
+  | Wrong_version_interface (filename, compiler_magic) -> (
+    match Ocaml_typing.Magic_numbers.Cmi.to_version_opt compiler_magic with
+    | None ->
+      sprintf
+        "File %s seems to be compiled with a version of OCaml that is not \
+         supported by OCaml LSP."
+        filename
+    | Some version ->
+      sprintf
+        "%s seems to be compiled with OCaml %s, but this instance of OCaml LSP \
+         handles OCaml %s."
+        filename version
+        (Option.value_exn
+        @@ Ocaml_typing.Magic_numbers.Cmi.to_version_opt
+             Ocaml_utils.Config.cmi_magic_number))
+  | Corrupted_interface filename ->
+    sprintf "Corrupted compiled interface %s" filename
+
+let on_request :
+    type resp.
+       State.t Server.t
+    -> resp Client_request.t
+    -> (resp Reply.t * State.t) Fiber.t =
+ fun server req ->
+  let* r = Fiber.collect_errors (fun () -> on_request server req) in
+  match r with
+  | Ok r -> Fiber.return r
+  | Error [] -> assert false
+  | Error (hd :: _ as errors) ->
+    List.iter errors ~f:(function
+      | { Exn_with_backtrace.exn = Ocaml_typing.Magic_numbers.Cmi.Error e; _ }
+        ->
+        let doc_in_request =
+          doc_in_request req
+          |> Option.map ~f:(fun td ->
+                 td.TextDocumentIdentifier.uri |> Uri.to_string)
+        in
+        let (_ : unit Fiber.t) =
+          task_if_running (Server.state server).detached ~f:(fun () ->
+              let+ () =
+                Server.notification server
+                  (Server_notification.ShowMessage
+                     (ShowMessageParams.create ~type_:MessageType.Error
+                        ~message:(string_of_cmi_error doc_in_request e)))
+              in
+              Jsonrpc.Response.Error.raise
+                (make_error ~code:Jsonrpc.Response.Error.Code.InternalError
+                   ~message:"Error related to CMI file" ()))
+        in
+        ()
+      | _ -> ());
+    Jsonrpc.Response.Error.raise (Jsonrpc.Response.Error.of_exn hd.exn)
+
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
   let state : State.t = Server.state server in
@@ -1025,7 +1130,7 @@ let on_notification server (notification : Client_notification.t) :
 let start () =
   let store = Document_store.make () in
   let handler =
-    let on_request = { Server.Handler.on_request } in
+    let on_request : State.t Server.Handler.on_request = { on_request } in
     Server.Handler.make ~on_request ~on_notification ()
   in
   let* stream =
