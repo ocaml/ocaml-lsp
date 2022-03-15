@@ -121,16 +121,19 @@ git clone --recursive git@github.com:ocaml/ocaml-lsp.git
 # if you already cloned, pull submodules
 git submodule update --init --recursive
 
-# create local switch (or use global one) and install dependencies
-opam switch create . ocaml-base-compiler.4.13.0 --with-test
+# create local switch (or use global one)
+opam switch create . ocaml-base-compiler.4.13.0
 
 # don't forget to set your environment to use the local switch
 eval $(opam env)
 
+# install dependencies
+make install-test-deps
+
 # build
 make all
 
-# the ocamllsp executable can be found at _build/default/ocaml-lsp-server/src/main.exe
+# the ocamllsp executable can be found at _build/default/ocaml-lsp-server/bin/main.exe
 ```
 
 ## Tests
