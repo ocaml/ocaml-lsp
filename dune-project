@@ -62,7 +62,7 @@ possible and does not make any assumptions about IO.
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
   (result (>= 1.5))
-  ocamlformat-rpc-lib
+  (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
   (ocaml (and (>= 4.13) (< 4.14)))))
 
