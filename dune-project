@@ -55,7 +55,6 @@ possible and does not make any assumptions about IO.
   ordering
   dune-build-info
   spawn
-  (cmdliner (>= 1.0.4))
   (omd (<= 1.3.1))
   (octavius (>= 1.2.2))
   (uutf (>= 1.0.2))
