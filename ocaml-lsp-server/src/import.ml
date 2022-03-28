@@ -17,7 +17,55 @@ include struct
   module Pid = Pid
   module Poly = Poly
   module Result = Result
-  module String = String
+
+  module String = struct
+    include String
+
+    let findi =
+      let rec loop s len ~f i =
+        if i >= len then
+          None
+        else if f (String.unsafe_get s i) then
+          Some i
+        else
+          loop s len ~f (i + 1)
+      in
+      fun ?from s ~f ->
+        let len = String.length s in
+        let from =
+          match from with
+          | None -> 0
+          | Some i ->
+            if i > len - 1 then
+              Code_error.raise "findi: invalid from" []
+            else
+              i
+        in
+        loop s len ~f from
+
+    let rfindi =
+      let rec loop s ~f i =
+        if i < 0 then
+          None
+        else if f (String.unsafe_get s i) then
+          Some i
+        else
+          loop s ~f (i - 1)
+      in
+      fun ?from s ~f ->
+        let from =
+          let len = String.length s in
+          match from with
+          | None -> len - 1
+          | Some i ->
+            if i > len - 1 then
+              Code_error.raise "rfindi: invalid from" []
+            else
+              i
+        in
+        loop s ~f from
+  end
+
   module Table = Table
   module Tuple = Tuple
   module Unix_env = Env

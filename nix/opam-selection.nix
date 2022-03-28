@@ -14,8 +14,8 @@ let
         {
           owner = "ocaml";
           repo = "opam-repository";
-          rev = "1c609c75c42e7f668ee9b25cf14c0b0bc8f42e32";
-          sha256 = "1szqr4m65yghfkqw5jjliggr9apcqsq985fqi4mgm7zyvjqssw37";
+          rev = "ea52a02ffe5139ec3df573e43426d571f6e823d9";
+          sha256 = "00xf8bqpayp2xjj520s1asdbd7x31q5m6lfi6q3akic72i8k3mfd";
         };
         src = (pkgs.fetchFromGitHub) fetch;
       };
@@ -214,11 +214,11 @@ in
     dune = 
     {
       pname = "dune";
-      version = "3.0.2";
+      version = "3.0.3";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/ocaml/dune/releases/download/3.0.2/fiber-3.0.2.tbz";
-        sha256 = "1svdhdc9qxvwzlq2f27n4h6d83vf77bmkw2gapsfac4nhyl3qpd3";
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
       };
       opamInputs = 
       {
@@ -229,8 +229,8 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/dune/dune.3.0.2";
-        hash = "sha256:0nslbvajab4k6pbbgbb6gs82fxv4b177apr1whha99djk3i8b5dm";
+        package = "packages/dune/dune.3.0.3";
+        hash = "sha256:18i03m36vrfb1lnaxqacrdqc8ihff4qalrgmgym9xp37ah500d6j";
       };
       buildInputs = lib.optional self.pkgs.stdenv.isDarwin (with self.pkgs.darwin.apple_sdk.frameworks; [
         Foundation
@@ -240,37 +240,56 @@ in
     dune-build-info = 
     {
       pname = "dune-build-info";
-      version = "3.0.2";
+      version = "3.0.3";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/ocaml/dune/releases/download/3.0.2/fiber-3.0.2.tbz";
-        sha256 = "1svdhdc9qxvwzlq2f27n4h6d83vf77bmkw2gapsfac4nhyl3qpd3";
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
       };
       opamInputs = {
                      inherit (selection) ocaml dune;
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/dune-build-info/dune-build-info.3.0.2";
-        hash = "sha256:092jsmg0x8dr5ldjg4g2nc0acxd38clknf76ngm8y21hk8gh1vn2";
+        package = "packages/dune-build-info/dune-build-info.3.0.3";
+        hash = "sha256:0n0yvk2r99yk1lih3fhaqh2smlhh6nsjhxgmbjrwm9qspvv3bl27";
       };
     };
     dune-configurator = 
     {
       pname = "dune-configurator";
-      version = "3.0.2";
+      version = "3.0.3";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/ocaml/dune/releases/download/3.0.2/fiber-3.0.2.tbz";
-        sha256 = "1svdhdc9qxvwzlq2f27n4h6d83vf77bmkw2gapsfac4nhyl3qpd3";
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
       };
       opamInputs = {
                      inherit (selection) ocaml dune csexp;
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/dune-configurator/dune-configurator.3.0.2";
-        hash = "sha256:10l63hv1fnr09ig8b5bj78i84lw9w0z38syhmlrlsflh9qasvj4m";
+        package = "packages/dune-configurator/dune-configurator.3.0.3";
+        hash = "sha256:1y1f6fabs4r5pyb1p5yvnb5sy12shqviaqq10xg9kwwimxqqyyj4";
+      };
+    };
+    dyn = 
+    {
+      pname = "dyn";
+      version = "3.0.3";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
+      };
+      opamInputs = 
+      {
+        inherit (selection) pp ordering ocaml dune;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/dyn/dyn.3.0.3";
+        hash = "sha256:02q5pfi29j9b9nm67vqpsvp5ljhcyk524msi2ni0bdwjc7b883sd";
       };
     };
     easy-format = 
@@ -307,6 +326,25 @@ in
       {
         package = "packages/either/either.1.0.0";
         hash = "sha256:1qcj3zl0hjlc4djn5q6qjiagm5xq1q1vgbshwlf4gj7h7kzx11bf";
+      };
+    };
+    fiber = 
+    {
+      pname = "fiber";
+      version = "3.0.3";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
+      };
+      opamInputs = 
+      {
+        inherit (selection) stdune ocaml dyn dune;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/fiber/fiber.3.0.3";
+        hash = "sha256:0cbl2jm6vd84vfmd8m7har8awb1h2kibvzzc82gkba5z5d1a6w6f";
       };
     };
     fix = 
@@ -402,8 +440,8 @@ in
       src = self.directSrc "lsp";
       opamInputs = 
       {
-        inherit (selection) yojson uutf ppx_yojson_conv_lib pp ocaml jsonrpc
-        dune csexp;
+        inherit (selection) yojson uutf stdune ppx_yojson_conv_lib ocaml
+        jsonrpc dyn dune;
       };
       opamSrc = "lsp.opam";
     };
@@ -540,9 +578,9 @@ in
       src = self.directSrc "ocaml-lsp-server";
       opamInputs = 
       {
-        inherit (selection) yojson uutf spawn result re ppx_yojson_conv_lib
-        pp omd octavius ocamlformat-rpc-lib ocaml dune-build-info dune csexp
-        cmdliner;
+        inherit (selection) yojson xdg uutf stdune spawn result re
+        ppx_yojson_conv_lib pp ordering omd octavius ocamlformat-rpc-lib
+        ocaml fiber dyn dune-build-info dune csexp cmdliner;
       };
       opamSrc = "ocaml-lsp-server.opam";
     };
@@ -716,6 +754,24 @@ in
       {
         package = "packages/omd/omd.1.3.1";
         hash = "sha256:09fzyagdfcj1b2bwj5hacbda9lldicd0a59sac5j5nls8x8rsgcc";
+      };
+    };
+    ordering = 
+    {
+      pname = "ordering";
+      version = "3.0.3";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
+      };
+      opamInputs = {
+                     inherit (selection) ocaml dune;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/ordering/ordering.3.0.3";
+        hash = "sha256:1la4jq6hkji9mxifnmmcdvhzvp2k8z0naspja6abwi5lgfnrfv56";
       };
     };
     pp = 
@@ -982,7 +1038,7 @@ in
       opamSrc = repoPath (repos.opam-repository.src) 
       {
         package = "packages/ppx_sexp_conv/ppx_sexp_conv.v0.14.3";
-        hash = "sha256:03c4ar76g1sz2y35a9jbffw957i17ixwd7ky8cg5ss7m7jl7x1fs";
+        hash = "sha256:0f1bxwrzykh72b7dzjqn4bydcmfli6bnd19wmwqw2z6n0y9crz41";
       };
     };
     ppx_yojson_conv = 
@@ -1027,11 +1083,11 @@ in
     ppxlib = 
     {
       pname = "ppxlib";
-      version = "0.24.0";
+      version = "0.25.0";
       src = pkgs.fetchurl 
       {
-        url = "https://github.com/ocaml-ppx/ppxlib/releases/download/0.24.0/ppxlib-0.24.0.tbz";
-        sha256 = "1j4hg8gc8mkw64gvjghig1179ih90yki54hf8qxmn3yd5ry04rkp";
+        url = "https://github.com/ocaml-ppx/ppxlib/releases/download/0.25.0/ppxlib-0.25.0.tbz";
+        sha256 = "1m8bhw9adzdyh5zfddw6r5qvw03nlq2zfm6jg32mv10mfw71abrd";
       };
       opamInputs = 
       {
@@ -1040,8 +1096,8 @@ in
       };
       opamSrc = repoPath (repos.opam-repository.src) 
       {
-        package = "packages/ppxlib/ppxlib.0.24.0";
-        hash = "sha256:0yjsgdkfkbwyjj3yihrqnxlpagrbcr1gln7bxfmx96y3xa4fs8jv";
+        package = "packages/ppxlib/ppxlib.0.25.0";
+        hash = "sha256:0l9rjdc91kklyw39dl5ff6gxvlgd1kry2fgm89vjm83i437lwa2c";
       };
     };
     re = 
@@ -1166,6 +1222,25 @@ in
         hash = "sha256:1hwyzzcx7clz4p58fj3n6frq2srbxdmhmxxd6n6mpw9gj2vs6yiw";
       };
     };
+    stdune = 
+    {
+      pname = "stdune";
+      version = "3.0.3";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
+      };
+      opamInputs = 
+      {
+        inherit (selection) pp ordering ocaml dyn dune csexp;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/stdune/stdune.3.0.3";
+        hash = "sha256:1r7ahag8zpwqz8796d04702jfvw3m1a5iwzrvir7sk08ibd59k39";
+      };
+    };
     time_now = 
     {
       pname = "time_now";
@@ -1269,6 +1344,24 @@ in
       {
         package = "packages/uutf/uutf.1.0.3";
         hash = "sha256:1x57h3bc68rsm2kd18wjbkfjk67shak6jgplp7paw97faqgmgx3x";
+      };
+    };
+    xdg = 
+    {
+      pname = "xdg";
+      version = "3.0.3";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
+      };
+      opamInputs = {
+                     inherit (selection) ocaml dune;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/xdg/xdg.3.0.3";
+        hash = "sha256:1qsbgr6vgrixcczgwbxwcjnrd237dvrb157x6jya8mjkpw7fd9ig";
       };
     };
     yojson = 

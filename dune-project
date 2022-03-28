@@ -32,10 +32,10 @@ possible and does not make any assumptions about IO.
 ")
  (depends
   (jsonrpc (= :version))
+  dyn
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
-  pp ;; needed by stdune
-  (csexp (>= 1.5)) ;; needed by stdune
+  stdune
   uutf
   (odoc :with-doc)
   (ocaml (>= 4.12))))
@@ -48,6 +48,11 @@ possible and does not make any assumptions about IO.
   yojson
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
+  dyn
+  stdune
+  fiber
+  xdg
+  ordering
   dune-build-info
   spawn
   (cmdliner (>= 1.0.4))
