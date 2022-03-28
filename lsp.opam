@@ -25,10 +25,10 @@ bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "dune" {>= "2.9"}
   "jsonrpc" {= version}
+  "dyn"
   "yojson"
   "ppx_yojson_conv_lib" {>= "v0.14"}
-  "pp"
-  "csexp" {>= "1.5"}
+  "stdune"
   "uutf"
   "odoc" {with-doc}
   "ocaml" {>= "4.12"}
