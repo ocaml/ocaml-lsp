@@ -60,7 +60,7 @@ let force_open_document (state : State.t) uri =
         Document_store.put state.store doc;
         Some doc)
 
-let infer_intf ~force_open_impl (state : State.t) doc =
+let infer_intf (state : State.t) doc =
   match Document.kind doc with
   | Impl -> Code_error.raise "the provided document is not an interface." []
   | Intf ->
@@ -70,14 +70,9 @@ let infer_intf ~force_open_impl (state : State.t) doc =
           Document.get_impl_intf_counterparts intf_uri |> List.hd
         in
         let* impl =
-          match
-            (Document_store.get_opt state.store impl_uri, force_open_impl)
-          with
-          | None, false ->
-            Code_error.raise
-              "The implementation for this interface has not been open." []
-          | None, true -> force_open_document state impl_uri
-          | Some impl, _ -> Fiber.return (Some impl)
+          match Document_store.get_opt state.store impl_uri with
+          | Some impl -> Fiber.return (Some impl)
+          | None -> force_open_document state impl_uri
         in
         match impl with
         | None -> Fiber.return None

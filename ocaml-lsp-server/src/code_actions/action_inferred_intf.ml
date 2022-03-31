@@ -24,7 +24,7 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | Impl -> Fiber.return None
   | Intf -> (
-    let* intf = Inference.infer_intf ~force_open_impl:true state doc in
+    let* intf = Inference.infer_intf state doc in
     match intf with
     | None -> Fiber.return None
     | Some intf ->
