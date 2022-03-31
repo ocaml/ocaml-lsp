@@ -100,7 +100,10 @@ module Syntax = struct
 end
 
 type t =
-  | Other of Text_document.t * Syntax.t
+  | Other of
+      { tdoc : Text_document.t
+      ; syntax : Syntax.t
+      }
   | Merlin of
       { tdoc : Text_document.t
       ; pipeline : Mpipeline.t Lazy_fiber.t
@@ -111,7 +114,7 @@ type t =
       }
 
 let tdoc = function
-  | Other (d, _) -> d
+  | Other d -> d.tdoc
   | Merlin m -> m.tdoc
 
 let uri t = Text_document.documentUri (tdoc t)
@@ -126,7 +129,7 @@ let kind = function
 
 let syntax = function
   | Merlin m -> m.syntax
-  | Other (_, syntax) -> syntax
+  | Other t -> t.syntax
 
 let timer = function
   | Other _ -> Code_error.raise "Document.dune" []
@@ -214,7 +217,7 @@ let make wheel config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
       | Menhir
       | Cram
       | Dune ->
-        Fiber.return (Other (tdoc, syntax)))
+        Fiber.return (Other { tdoc; syntax }))
 
 let update_text ?version t changes =
   match
@@ -231,7 +234,7 @@ let update_text ?version t changes =
     t
   | tdoc -> (
     match t with
-    | Other (_, syntax) -> Other (tdoc, syntax)
+    | Other o -> Other { o with tdoc }
     | Merlin ({ merlin_config; merlin; _ } as t) ->
       let pipeline = make_pipeline merlin_config merlin tdoc in
       Merlin { t with tdoc; pipeline })
