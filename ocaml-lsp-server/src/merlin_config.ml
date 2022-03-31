@@ -201,6 +201,7 @@ type context =
 
 let get_config db { workdir; process_dir } path_abs =
   let query path (p : Process.t) =
+    (* TODO stop blocking *)
     Dot_protocol.Commands.send_file ~out_channel:p.stdin path;
     flush p.stdin;
     Dot_protocol.read ~in_channel:p.stdout
