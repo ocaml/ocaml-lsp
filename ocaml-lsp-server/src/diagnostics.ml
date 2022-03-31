@@ -58,6 +58,9 @@ let send t which =
         | `All -> Uri_set.empty
         | `One uri -> Uri_set.remove t.dirty_uris uri);
       Table.foldi pending ~init:[] ~f:(fun uri diagnostics acc ->
+          (* we don't include a version because some of the diagnostics might
+             come from dune which reads from the file system and not from the
+             editor's view*)
           PublishDiagnosticsParams.create ~uri ~diagnostics () :: acc)
       |> t.send)
 
