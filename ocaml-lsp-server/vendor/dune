@@ -12,12 +12,6 @@
   (name dune_rpc)
   (libraries stdune csexp xdg ordering dyn (re_export dune_rpc_private))))
 
- (subdir
-  xdg
-  (copy_files# %{project_root}/submodules/dune/otherlibs/xdg/*.{ml,mli})
-  (library
-   (name xdg)))
-
 (subdir ocamlc_loc
  (copy_files %{project_root}/submodules/dune/src/ocamlc_loc/*.{ml,mli})
  (library
