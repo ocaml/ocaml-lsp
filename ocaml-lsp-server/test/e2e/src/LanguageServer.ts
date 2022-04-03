@@ -36,7 +36,7 @@ export const toURI = (s) => {
 
 export const start = (opts?: cp.SpawnOptions) => {
   let env = { ...process.env };
-  env.OCAMLLSP_TEST = "1";
+  env.OCAMLLSP_TEST = "true";
   opts = opts || { env: env };
   let childProcess = cp.spawn(serverPath, [], opts);
 
