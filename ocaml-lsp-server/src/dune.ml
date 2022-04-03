@@ -584,6 +584,8 @@ let stop (t : t) =
             String.Map.values active.instances
             |> Fiber.parallel_iter ~f:Instance.stop))
 
+let env = Sys.getenv_opt
+
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
     progress ~log =
   let config =
@@ -598,7 +600,7 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
     { diagnostics; progress; include_promotions; log }
   in
   let registry =
-    Registry.create (Registry.Config.create (Xdg.create ~env:Sys.getenv_opt ()))
+    Registry.create (Registry.Config.create (Xdg.create ~env ()))
   in
   ref
     (Active
@@ -609,16 +611,14 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        ; workspaces
        })
 
-let enabled = false
-
-let create_disabled () = ref Closed
+let inside_test = true
 
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
     progress ~log =
-  if enabled then
+  if inside_test then
     create workspaces client_capabilities diagnostics progress ~log
   else
-    create_disabled ()
+    ref Closed
 
 let run_loop t =
   Fiber.repeat_while ~init:() ~f:(fun () ->
