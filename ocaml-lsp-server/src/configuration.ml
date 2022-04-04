@@ -4,7 +4,7 @@ type t = { diagnostics_delay : float }
 
 let default =
   { diagnostics_delay =
-      (match Sys.getenv_opt "OCAMLLSP_DEBUG" with
+      (match Sys.getenv_opt "OCAMLLSP_TEST" with
       | None -> 0.25
       | Some _ -> 0.0)
   }
