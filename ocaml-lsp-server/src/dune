@@ -27,7 +27,6 @@
   omd
   ppx_yojson_conv_lib
   re
-  result
   stdune
   ordering
   csexp
