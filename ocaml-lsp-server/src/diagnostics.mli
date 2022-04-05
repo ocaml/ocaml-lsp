@@ -28,3 +28,7 @@ val remove :
   t -> [ `Dune of Dune.t * Drpc.Diagnostic.Id.t | `Merlin of Uri.t ] -> unit
 
 val disconnect : t -> Dune.t -> unit
+
+(** Exposed for testing *)
+
+val equal_message : string -> string -> bool

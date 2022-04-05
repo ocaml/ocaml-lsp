@@ -6,6 +6,10 @@ let compare (x : t) (y : t) =
   | (Lt | Gt) as r -> r
   | Ordering.Eq -> Position.compare x.end_ y.end_
 
+let to_dyn { start; end_ } =
+  Dyn.record
+    [ ("start", Position.to_dyn start); ("end_", Position.to_dyn end_) ]
+
 (* Compares ranges by their lengths*)
 let compare_size (x : t) (y : t) =
   let dx = Position.(x.end_ - x.start) in

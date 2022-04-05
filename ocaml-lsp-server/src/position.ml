@@ -1,6 +1,9 @@
 open Import
 include Lsp.Types.Position
 
+let to_dyn { line; character } =
+  Dyn.record [ ("line", Dyn.int line); ("character", Dyn.int character) ]
+
 let start = { line = 0; character = 0 }
 
 let is_dummy (lp : Lexing.position) =
