@@ -1,17 +1,3 @@
-(subdir dune-rpc
- (subdir private
-  (library
-   (name dune_rpc_private)
-   (libraries stdune dyn xdg csexp ordering))
-
-  (ocamllex dbus_address)
-  (copy_files# %{project_root}/submodules/dune/otherlibs/dune-rpc/private/*.{ml,mli,mll}))
-
- (copy_files# %{project_root}/submodules/dune/otherlibs/dune-rpc/*.{ml,mli})
- (library
-  (name dune_rpc)
-  (libraries stdune csexp xdg ordering dyn (re_export dune_rpc_private))))
-
 (subdir ocamlc_loc
  (copy_files %{project_root}/submodules/dune/src/ocamlc_loc/*.{ml,mli})
  (library
