@@ -237,6 +237,25 @@ in
         CoreServices
       ]);
     };
+    dune-rpc = 
+    {
+      pname = "dune-rpc";
+      version = "3.0.3";
+      src = pkgs.fetchurl 
+      {
+        url = "https://github.com/ocaml/dune/releases/download/3.0.3/fiber-3.0.3.tbz";
+        sha256 = "0bvkwm0nqs74gwanfcd7xind8c9fdwwdgzzvmsfdkw2q2sd4j16m";
+      };
+      opamInputs = 
+      {
+        inherit (selection) csexp xdg stdune pp ordering ocaml dune;
+      };
+      opamSrc = repoPath (repos.opam-repository.src) 
+      {
+        package = "packages/dune-rpc/dune-rpc.3.0.3";
+        hash = "sha256:02q5pfi29j9b9nm67vqpsvp5ljhcyk524msi2ni0bdwjc7b883sd";
+      };
+    };
     dune-build-info = 
     {
       pname = "dune-build-info";
@@ -580,7 +599,7 @@ in
       {
         inherit (selection) yojson xdg uutf stdune spawn result re
         ppx_yojson_conv_lib pp ordering omd octavius ocamlformat-rpc-lib
-        ocaml fiber dyn dune-build-info dune csexp cmdliner;
+        ocaml fiber dyn dune-build-info dune dune-rpc csexp cmdliner;
       };
       opamSrc = "ocaml-lsp-server.opam";
     };

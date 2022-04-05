@@ -48,6 +48,7 @@ possible and does not make any assumptions about IO.
   yojson
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
+  dune-rpc
   dyn
   stdune
   fiber
