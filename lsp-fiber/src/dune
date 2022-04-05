@@ -8,6 +8,5 @@
   jsonrpc_fiber
   lsp
   ppx_yojson_conv_lib
-  result
   stdune
   yojson))
