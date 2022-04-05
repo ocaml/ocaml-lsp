@@ -987,8 +987,8 @@ let on_notification server (notification : Client_notification.t) :
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
-    let configuration = Configuration.update state.configuration req in
-    Fiber.return { state with configuration }
+    let+ configuration = Configuration.update state.configuration req in
+    { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
     let state = Server.state server in
     match Document_store.get_opt state.store uri with
@@ -1038,7 +1038,6 @@ let start () =
     let+ stdout = Lev_fiber.Io.stdout in
     Lsp_fiber.Fiber_io.make stdin stdout
   in
-  let configuration = Configuration.default in
   let diagnostics =
     let workspace_root =
       lazy
@@ -1058,10 +1057,8 @@ let start () =
             Server.Batch.submit batch))
   in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
-  let* wheel =
-    let delay = Configuration.diagnostics_delay configuration in
-    Lev_fiber.Timer.Wheel.create ~delay
-  in
+  let* configuration = Configuration.default () in
+  let wheel = Configuration.wheel configuration in
   let* server =
     let+ merlin = Lev_fiber.Thread.create () in
     let symbols_thread = Lazy_fiber.create Lev_fiber.Thread.create in

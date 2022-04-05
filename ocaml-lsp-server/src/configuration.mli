@@ -2,12 +2,8 @@ open Import
 
 type t
 
-val diagnostics_delay : t -> float
+val default : unit -> t Fiber.t
 
-val default : t
+val wheel : t -> Lev_fiber.Timer.Wheel.t
 
-val update : t -> DidChangeConfigurationParams.t -> t
-
-val request : ConfigurationParams.t
-
-val of_response : Json.t list -> t
+val update : t -> DidChangeConfigurationParams.t -> t Fiber.t
