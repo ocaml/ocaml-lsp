@@ -1,3 +1,9 @@
+# 1.10.4
+
+## Fixes
+
+- Use newer versions of ocamlformat-rpc-lib (fixes #697)
+
 # 1.10.3
 
 ## Fixes
