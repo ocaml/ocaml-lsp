@@ -189,9 +189,9 @@ let create_state () =
   Waiting_for_init
     { ask_init = Fiber.Ivar.create (); wait_init = Fiber.Ivar.create () }
 
-let create () = ref (create_state ())
+let _create () = ref (create_state ())
 
-let _create () = ref Disabled
+let create () = ref Disabled
 
 let maybe_fill ivar x =
   let* v = Fiber.Ivar.peek ivar in
