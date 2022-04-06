@@ -13,7 +13,7 @@ let
                  [ "nix" "shell.nix" "default.nix" ];
            in pkgs.nix-gitignore.gitignoreSourcePure ignores ../.;
   args = {
-    inherit (pkgs.ocaml-ng.ocamlPackages_4_13) ocaml;
+    inherit (pkgs.ocaml-ng.ocamlPackages_4_14) ocaml;
     selection = ./opam-selection.nix;
     src = {
       ocamlformat-rpc-lib = ocamlformat;
