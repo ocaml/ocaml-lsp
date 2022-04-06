@@ -64,7 +64,7 @@ possible and does not make any assumptions about IO.
   (result (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (ocaml (and (>= 4.13) (< 4.14)))))
+  (ocaml (and (>= 4.14) (< 4.15)))))
 
 (package
  (name jsonrpc)
