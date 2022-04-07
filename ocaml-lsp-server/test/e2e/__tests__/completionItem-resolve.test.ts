@@ -53,11 +53,10 @@ describe("textDocument/completion", () => {
 
     expect(response).toMatchInlineSnapshot(`
       Object {
-        "documentation": " [map2 f [a1; ...; an] [b1; ...; bn]] is
+        "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is
          [[f a1 b1; ...; f an bn]].
          @raise Invalid_argument if the two lists are determined
-         to have different lengths. Not tail-recursive.
-       ",
+         to have different lengths. Not tail-recursive.",
         "label": "map2",
       }
     `);
@@ -75,8 +74,7 @@ describe("textDocument/completion", () => {
 
     expect(response).toMatchInlineSnapshot(`
       Object {
-        "documentation": " [find_all] is another name for {!filter}.
-       ",
+        "documentation": "[find_all] is another name for {!filter}.",
         "label": "find_all",
       }
     `);
