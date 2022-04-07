@@ -27,7 +27,32 @@ let remove_document store uri =
         let+ () = Document.close doc in
         Table.remove store uri)
 
-let get_size store = Table.length store
+let unregister_promotions t uris =
+  let* () = Fiber.return () in
+  List.filter uris ~f:(fun uri ->
+      match Table.find t.db uri with
+      | None -> false
+      | Some doc ->
+        let doc = { doc with promotions = doc.promotions - 1 } in
+        let unsubscribe = doc.promotions = 0 in
+        if unsubscribe && doc.document = None then
+          Table.remove t.db uri
+        else
+          Table.set t.db uri doc;
+        unsubscribe)
+  |> unregister_request t
+
+let register_promotions t uris =
+  let* () = Fiber.return () in
+  List.filter uris ~f:(fun uri ->
+      let doc, subscribe =
+        match Table.find t.db uri with
+        | None -> ({ document = None; promotions = 0 }, true)
+        | Some doc -> ({ doc with promotions = doc.promotions + 1 }, false)
+      in
+      Table.set t.db uri doc;
+      subscribe)
+  |> register_request t
 
 let close t =
   Fiber.of_thunk (fun () ->
