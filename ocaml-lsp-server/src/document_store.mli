@@ -12,8 +12,4 @@ val get_opt : t -> Uri.t -> Document.t option
 
 val remove_document : t -> Uri.t -> unit Fiber.t
 
-val unregister_promotions : t -> Uri.t list -> unit Fiber.t
-
-val register_promotions : t -> Uri.t list -> unit Fiber.t
-
 val close : t -> unit Fiber.t
