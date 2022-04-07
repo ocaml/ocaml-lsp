@@ -180,8 +180,7 @@ describe("textDocument/diagnostics", () => {
             sig val x : int end
           is not included in
             sig val x : unit end
-          Values do not match: val x : int is not included in val x : unit
-          The type int is not compatible with the type unit",
+          Values do not match: val x : int is not included in val x : unit",
                 "range": Object {
                   "end": Object {
                     "character": 3,
