@@ -1,3 +1,9 @@
+# 1.10.5
+
+## Fixes
+
+- Patch merlin to remove the result module
+
 # 1.10.4
 
 ## Fixes
