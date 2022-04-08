@@ -19,15 +19,15 @@ let get store uri =
            (Format.asprintf "no document found with uri: %s" (Uri.to_string uri))
          ())
 
-let remove_document store uri =
+let close_document t uri =
   Fiber.of_thunk (fun () ->
-      match Table.find store uri with
+      match Table.find t uri with
       | None -> Fiber.return ()
       | Some doc ->
         let+ () = Document.close doc in
-        Table.remove store uri)
+        Table.remove t uri)
 
-let close t =
+let close_all t =
   Fiber.of_thunk (fun () ->
       let docs = Table.fold t ~init:[] ~f:(fun doc acc -> doc :: acc) in
       let+ () = Fiber.parallel_iter docs ~f:Document.close in
