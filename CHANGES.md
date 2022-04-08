@@ -1,3 +1,9 @@
+# 1.10.6
+
+## Fixes
+
+- Compatiblity with OCaml 4.14.0
+
 # 1.10.5
 
 ## Fixes
