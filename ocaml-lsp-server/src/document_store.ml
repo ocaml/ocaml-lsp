@@ -148,5 +148,5 @@ let register_promotions t uris =
 let close_all t =
   Fiber.of_thunk (fun () ->
       let docs = Table.fold t.db ~init:[] ~f:(fun doc acc -> doc :: acc) in
-      let+ () = Fiber.parallel_iter docs ~f:maybe_close_doc in
-      Table.clear t.db)
+      Table.clear t.db;
+      Fiber.parallel_iter docs ~f:maybe_close_doc)
