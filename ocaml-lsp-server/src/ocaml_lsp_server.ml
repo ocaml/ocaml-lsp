@@ -969,7 +969,7 @@ let on_notification server (notification : Client_notification.t) :
   | TextDocumentDidClose { textDocument = { uri } } ->
     let+ () =
       Diagnostics.remove state.diagnostics (`Merlin uri);
-      let* () = Document_store.remove_document store uri in
+      let* () = Document_store.close_document store uri in
       task_if_running state.detached ~f:(fun () ->
           Diagnostics.send state.diagnostics (`One uri))
     in
@@ -1073,7 +1073,7 @@ let start () =
     ; Lev_fiber.Timer.Wheel.run wheel
     ; (let* () = Server.start server in
        let finalize =
-         [ Document_store.close store
+         [ Document_store.close_all store
          ; Fiber.Pool.stop detached
          ; Ocamlformat_rpc.stop ocamlformat_rpc
          ; Lev_fiber.Timer.Wheel.stop wheel

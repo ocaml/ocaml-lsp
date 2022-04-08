@@ -10,6 +10,6 @@ val get : t -> Uri.t -> Document.t
 
 val get_opt : t -> Uri.t -> Document.t option
 
-val remove_document : t -> Uri.t -> unit Fiber.t
+val close_document : t -> Uri.t -> unit Fiber.t
 
-val close : t -> unit Fiber.t
+val close_all : t -> unit Fiber.t
