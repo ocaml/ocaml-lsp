@@ -1,3 +1,5 @@
+open Import
+
 let syntax_repr = "_"
 
 let can_be_hole s = String.equal syntax_repr s

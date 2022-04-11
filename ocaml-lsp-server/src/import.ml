@@ -101,6 +101,13 @@ module Path = Ocaml_typing.Path
 module Typedtree = Ocaml_typing.Typedtree
 module Types = Ocaml_typing.Types
 module Warnings = Ocaml_utils.Warnings
+module Mconfig = Merlin_kernel.Mconfig
+module Msource = Merlin_kernel.Msource
+module Mbrowse = Merlin_kernel.Mbrowse
+module Mpipeline = Merlin_kernel.Mpipeline
+module Mreader = Merlin_kernel.Mreader
+module Mtyper = Merlin_kernel.Mtyper
+module Browse_raw = Merlin_specific.Browse_raw
 
 (* All modules from [Lsp_fiber] should be in the struct below. The modules are
    listed alphabetically. Try to keep the order. *)

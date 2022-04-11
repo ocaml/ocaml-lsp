@@ -29,6 +29,7 @@ open Import
 open Fiber.O
 module Std = Merlin_utils.Std
 module Misc = Merlin_utils.Misc
+module Dot_protocol = Merlin_dot_protocol
 
 module List = struct
   include List
