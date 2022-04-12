@@ -1019,7 +1019,7 @@ let on_notification server (notification : Client_notification.t) :
   | Exit ->
     Fiber.return state
   | SetTrace { value } -> Fiber.return { state with trace = value }
-  | Unknown_notification req ->
+  | UnknownNotification req ->
     let+ () =
       State.log_msg server ~type_:Error
         ~message:("Unknown notication " ^ req.method_)

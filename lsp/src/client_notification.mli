@@ -14,7 +14,7 @@ type t =
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | SetTrace of SetTraceParams.t
-  | Unknown_notification of Jsonrpc.Message.notification
+  | UnknownNotification of Jsonrpc.Message.notification
 
 val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) result
 
