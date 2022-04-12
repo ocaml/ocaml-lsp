@@ -30,28 +30,33 @@ let method_ (type a) (t : a t) =
   | WorkDoneProgressCreate _ -> "window/workDoneProgress/create"
   | CodeLensRefresh -> "workspace/codeLens/refresh"
   | SemanticTokensRefresh -> "workspace/semanticTokens/refresh"
-  | UnknownRequest _ -> assert false
+  | UnknownRequest (r, _) -> r
 
-let params (type a) (t : a t) =
-  Jsonrpc.Message.Structured.of_json
-    (match t with
-    | WorkspaceApplyEdit params -> ApplyWorkspaceEditParams.yojson_of_t params
-    | WorkspaceFolders -> `Null
-    | WorkspaceConfiguration params -> ConfigurationParams.yojson_of_t params
-    | ClientRegisterCapability params -> RegistrationParams.yojson_of_t params
+let params =
+  let ret x = Some (Jsonrpc.Message.Structured.of_json x) in
+  fun (type a) (t : a t) ->
+    match t with
+    | WorkspaceApplyEdit params ->
+      ret (ApplyWorkspaceEditParams.yojson_of_t params)
+    | WorkspaceFolders -> None
+    | WorkspaceConfiguration params ->
+      ret (ConfigurationParams.yojson_of_t params)
+    | ClientRegisterCapability params ->
+      ret (RegistrationParams.yojson_of_t params)
     | ClientUnregisterCapability params ->
-      UnregistrationParams.yojson_of_t params
-    | ShowMessageRequest params -> ShowMessageRequestParams.yojson_of_t params
+      ret (UnregistrationParams.yojson_of_t params)
+    | ShowMessageRequest params ->
+      ret (ShowMessageRequestParams.yojson_of_t params)
     | WorkDoneProgressCreate params ->
-      WorkDoneProgressCreateParams.yojson_of_t params
-    | CodeLensRefresh -> `Null
-    | SemanticTokensRefresh -> `Null
-    | UnknownRequest (_, _) -> assert false)
+      ret (WorkDoneProgressCreateParams.yojson_of_t params)
+    | CodeLensRefresh -> None
+    | SemanticTokensRefresh -> None
+    | UnknownRequest (_, params) -> params
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in
   let params = params t in
-  Jsonrpc.Message.create ~id ~method_ ~params ()
+  Jsonrpc.Message.create ~id ~method_ ?params ()
 
 let of_jsonrpc (r : Jsonrpc.Message.request) : (packed, string) Result.t =
   let open Result.O in
