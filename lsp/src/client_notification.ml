@@ -29,7 +29,7 @@ let method_ = function
   | SetTrace _ -> "$/setTrace"
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
-  | Unknown_notification _ -> assert false
+  | Unknown_notification n -> n.method_
 
 let yojson_of_t = function
   | TextDocumentDidOpen params ->
@@ -52,7 +52,7 @@ let yojson_of_t = function
   | WorkDoneProgressCancel params ->
     Some (WorkDoneProgressCancelParams.yojson_of_t params)
   | SetTrace params -> Some (SetTraceParams.yojson_of_t params)
-  | Unknown_notification _ -> assert false
+  | Unknown_notification n -> (n.params :> Json.t option)
 
 let of_jsonrpc (r : Jsonrpc.Message.notification) =
   let open Result.O in
