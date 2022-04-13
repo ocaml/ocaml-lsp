@@ -107,7 +107,7 @@ describe("workspace/symbol", () => {
         "user 15 file://<workspace_symbol_A>/lib/lib.ml 3:0 5:1",
         "name 7 file://<workspace_symbol_A>/lib/lib.ml 4:2 4:14",
         "t 15 file://<workspace_symbol_A>/lib/LibTypes.mli 0:0 0:15",
-        "x 12 file://<workspace_symbol_A>/lib/vendored_lib.ml 0:0 0:9",
+        "x 12 file://<workspace_symbol_A>/vendor/vendored_lib.ml 0:0 0:9",
       ]
     `);
   });
@@ -187,7 +187,7 @@ describe("workspace/symbol", () => {
         "user 15 file://<workspace_symbol_A>/lib/lib.ml 3:0 5:1",
         "name 7 file://<workspace_symbol_A>/lib/lib.ml 4:2 4:14",
         "t 15 file://<workspace_symbol_A>/lib/LibTypes.mli 0:0 0:15",
-        "x 12 file://<workspace_symbol_A>/lib/vendored_lib.ml 0:0 0:9",
+        "x 12 file://<workspace_symbol_A>/vendor/vendored_lib.ml 0:0 0:9",
         "workspace_B 12 file://<workspace_symbol_B>/main.ml 0:0 0:31",
       ]
     `);

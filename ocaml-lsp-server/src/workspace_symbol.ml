@@ -213,7 +213,6 @@ let symbols_from_cm_file ~filter root_uri cm_file =
   | Some sourcefile -> (
     match Filename.extension sourcefile with
     | ".ml" | ".mli" -> (
-      let sourcepath = Filename.concat root_uri sourcefile in
       match browse_of_cmt cmt with
       | None -> []
       | Some browse ->
@@ -221,7 +220,9 @@ let symbols_from_cm_file ~filter root_uri cm_file =
           let browse_tree = Merlin_analysis.Browse_tree.of_node browse in
           Outline.get [ browse_tree ]
         in
-        let uri = Uri.of_path sourcepath in
+        let loc = Mbrowse.node_loc browse in
+        let fname = loc.loc_start.pos_fname in
+        let uri = Uri.of_path (Filename.concat root_uri fname) in
         filter (Document_symbol.symbols_of_outline uri outline))
     | _ -> [])
 
