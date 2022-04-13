@@ -1069,15 +1069,18 @@ let start () =
             ~diagnostics ~symbols_thread ~wheel));
     Fdecl.get server
   in
+  let state = Server.state server in
   Fiber.all_concurrently_unit
     [ Fiber.Pool.run detached
     ; Lev_fiber.Timer.Wheel.run wheel
+    ; Merlin_config.run state.merlin_config
     ; (let* () = Server.start server in
        let finalize =
          [ Document_store.close_all store
          ; Fiber.Pool.stop detached
          ; Ocamlformat_rpc.stop ocamlformat_rpc
          ; Lev_fiber.Timer.Wheel.stop wheel
+         ; Merlin_config.stop state.merlin_config
          ]
        in
        let finalize =
