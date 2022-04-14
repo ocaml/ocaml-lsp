@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Fix workspace symbols that could have a wrong path in some cases ([#675](https://github.com/ocaml/ocaml-lsp/pull/671))
+
 # 1.10.6
 
 ## Fixes
