@@ -8,14 +8,8 @@ module Kind = struct
 
   let of_fname p =
     match Filename.extension p with
-    | ".ml"
-    | ".eliom"
-    | ".re" ->
-      Impl
-    | ".mli"
-    | ".eliomi"
-    | ".rei" ->
-      Intf
+    | ".ml" | ".eliom" | ".re" -> Impl
+    | ".mli" | ".eliomi" | ".rei" -> Intf
     | ext ->
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make ~code:InvalidRequest
@@ -55,20 +49,11 @@ module Syntax = struct
 
   let of_fname =
     let of_fname_res = function
-      | "dune"
-      | "dune-workspace"
-      | "dune-project" ->
-        Ok Dune
+      | "dune" | "dune-workspace" | "dune-project" -> Ok Dune
       | s -> (
         match Filename.extension s with
-        | ".eliomi"
-        | ".eliom"
-        | ".mli"
-        | ".ml" ->
-          Ok Ocaml
-        | ".rei"
-        | ".re" ->
-          Ok Reason
+        | ".eliomi" | ".eliom" | ".mli" | ".ml" -> Ok Ocaml
+        | ".rei" | ".re" -> Ok Reason
         | ".mll" -> Ok Ocamllex
         | ".mly" -> Ok Menhir
         | ".t" -> Ok Cram
@@ -210,14 +195,8 @@ let make wheel config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
       let tdoc = Text_document.make doc in
       let syntax = Syntax.of_text_document tdoc in
       match syntax with
-      | Ocaml
-      | Reason ->
-        make_merlin wheel config ~merlin_thread tdoc syntax
-      | Ocamllex
-      | Menhir
-      | Cram
-      | Dune ->
-        Fiber.return (Other { tdoc; syntax }))
+      | Ocaml | Reason -> make_merlin wheel config ~merlin_thread tdoc syntax
+      | Ocamllex | Menhir | Cram | Dune -> Fiber.return (Other { tdoc; syntax }))
 
 let update_text ?version t changes =
   match
@@ -251,9 +230,7 @@ let doc_comment pipeline pos =
     Query_commands.dispatch pipeline command
   in
   match res with
-  | `Found s
-  | `Builtin s ->
-    Some s
+  | `Found s | `Builtin s -> Some s
   | _ -> None
 
 type type_enclosing =
@@ -267,9 +244,7 @@ let type_enclosing doc pos =
       let command = Query_protocol.Type_enclosing (None, pos, None) in
       let res = Query_commands.dispatch pipeline command in
       match res with
-      | []
-      | (_, `Index _, _) :: _ ->
-        None
+      | [] | (_, `Index _, _) :: _ -> None
       | (loc, `String typ, _) :: _ ->
         let doc = doc_comment pipeline pos in
         Some { loc; typ; doc })
@@ -290,9 +265,7 @@ let get_impl_intf_counterparts uri =
   in
   let exts_to_switch_to =
     match Syntax.of_fname fname with
-    | Dune
-    | Cram ->
-      []
+    | Dune | Cram -> []
     | Ocaml -> (
       match Kind.of_fname fname with
       | Intf -> [ ml; mly; mll; eliom; re ]

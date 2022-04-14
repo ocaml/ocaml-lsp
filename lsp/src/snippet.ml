@@ -80,8 +80,7 @@ let escape ?(in_choice = false) str =
     |> String.replace_all ~pattern:"}" ~with_:"\\}"
     |> String.replace_all ~pattern:"\\" ~with_:"\\\\"
   in
-  if not in_choice then
-    str
+  if not in_choice then str
   else
     str
     |> String.replace_all ~pattern:"," ~with_:"\\,"

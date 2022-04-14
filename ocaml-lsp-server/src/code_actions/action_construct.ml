@@ -14,8 +14,7 @@ let code_action doc (params : CodeActionParams.t) =
       let src = Document.source doc in
       Compl.prefix_of_position ~short_path:false src pos
     in
-    if not (Typed_hole.can_be_hole prefix) then
-      Fiber.return None
+    if not (Typed_hole.can_be_hole prefix) then Fiber.return None
     else
       let+ structures =
         Document.with_pipeline_exn doc (fun pipeline ->
@@ -26,8 +25,7 @@ let code_action doc (params : CodeActionParams.t) =
             let pos = Mpipeline.get_lexing_pos pipeline pos in
             Mbrowse.enclosing pos [ Mbrowse.of_typedtree typedtree ])
       in
-      if not (Typed_hole.is_a_hole structures) then
-        None
+      if not (Typed_hole.is_a_hole structures) then None
       else
         (* ocaml-lsp can provide [Construct] values as completion entries, so
            this code action requests the client [1] to trigger completion

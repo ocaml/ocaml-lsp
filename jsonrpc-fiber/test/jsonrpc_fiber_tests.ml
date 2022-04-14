@@ -27,10 +27,8 @@ let no_output () =
   let received_none = ref false in
   Out.create (function
     | None ->
-      if !received_none then
-        failwith "received None more than once"
-      else
-        received_none := true;
+      if !received_none then failwith "received None more than once"
+      else received_none := true;
       Fiber.return ()
     | Some _ -> failwith "unexpected element")
 
@@ -158,9 +156,8 @@ let%expect_test "concurrent requests" =
               let self = Context.session c in
               print_endline "waitee: stopping";
               let+ () = Jrpc.stop self in
-              print_endline "waitee: stopped"
-            ) else
-              Fiber.return ())
+              print_endline "waitee: stopped")
+            else Fiber.return ())
       in
       let state = Context.state c in
       Fiber.return (response, state)

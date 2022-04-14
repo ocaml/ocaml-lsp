@@ -414,8 +414,8 @@ module Server = struct
             t.state <- Running;
             (* XXX Should we wait for the waiter of initialized to finish? *)
             let* () = Fiber.Ivar.fill t.initialized i in
-            Fiber.return result
-          ) else
+            Fiber.return result)
+          else
             let code = Response.Error.Code.InvalidRequest in
             let message = "already initialized" in
             raise
@@ -428,8 +428,7 @@ module Server = struct
             raise
               (Jsonrpc.Response.Error.E
                  (Jsonrpc.Response.Error.make ~code ~message ()))
-          else
-            handler.h_on_request.on_request t in_r)
+          else handler.h_on_request.on_request t in_r)
 
   let make (type s) (handler : s Handler.t) io (initial_state : s) =
     let h_on_request : _ Handler.on_request =

@@ -23,12 +23,9 @@ include struct
 
     let findi =
       let rec loop s len ~f i =
-        if i >= len then
-          None
-        else if f (String.unsafe_get s i) then
-          Some i
-        else
-          loop s len ~f (i + 1)
+        if i >= len then None
+        else if f (String.unsafe_get s i) then Some i
+        else loop s len ~f (i + 1)
       in
       fun ?from s ~f ->
         let len = String.length s in
@@ -36,21 +33,15 @@ include struct
           match from with
           | None -> 0
           | Some i ->
-            if i > len - 1 then
-              Code_error.raise "findi: invalid from" []
-            else
-              i
+            if i > len - 1 then Code_error.raise "findi: invalid from" [] else i
         in
         loop s len ~f from
 
     let rfindi =
       let rec loop s ~f i =
-        if i < 0 then
-          None
-        else if f (String.unsafe_get s i) then
-          Some i
-        else
-          loop s ~f (i - 1)
+        if i < 0 then None
+        else if f (String.unsafe_get s i) then Some i
+        else loop s ~f (i - 1)
       in
       fun ?from s ~f ->
         let from =
@@ -58,10 +49,8 @@ include struct
           match from with
           | None -> len - 1
           | Some i ->
-            if i > len - 1 then
-              Code_error.raise "rfindi: invalid from" []
-            else
-              i
+            if i > len - 1 then Code_error.raise "rfindi: invalid from" []
+            else i
         in
         loop s ~f from
   end
@@ -237,9 +226,7 @@ let task_if_running pool ~f =
 let inside_test =
   match Sys.getenv_opt "OCAMLLSP_TEST" with
   | Some "true" -> true
-  | None
-  | Some "false" ->
-    false
+  | None | Some "false" -> false
   | Some b ->
     Format.eprintf
       "invalid value %S for OCAMLLSP_TEST ignored. Only true or false are \

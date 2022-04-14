@@ -22,13 +22,11 @@ let run_command prog stdin_value args : command_result Fiber.t =
       Unix.close stdout_o;
       Unix.close stderr_o;
       let blockity =
-        if Sys.win32 then
-          `Blocking
+        if Sys.win32 then `Blocking
         else (
           Unix.set_nonblock stdin_o;
           Unix.set_nonblock stdout_i;
-          `Non_blocking true
-        )
+          `Non_blocking true)
       in
       let make fd what =
         let fd = Lev_fiber.Fd.create fd blockity in

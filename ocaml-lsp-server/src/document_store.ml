@@ -112,11 +112,10 @@ let close_document t uri =
         let* () = maybe_close_doc doc in
         if doc.promotions = 0 then (
           Table.remove t.db uri;
-          Fiber.return ()
-        ) else (
+          Fiber.return ())
+        else (
           Table.set t.db uri { doc with document = None };
-          register_request t [ uri ]
-        ))
+          register_request t [ uri ]))
 
 let unregister_promotions t uris =
   let* () = Fiber.return () in
@@ -126,10 +125,8 @@ let unregister_promotions t uris =
       | Some doc ->
         let doc = { doc with promotions = doc.promotions - 1 } in
         let unsubscribe = doc.promotions = 0 in
-        if unsubscribe && doc.document = None then
-          Table.remove t.db uri
-        else
-          Table.set t.db uri doc;
+        if unsubscribe && doc.document = None then Table.remove t.db uri
+        else Table.set t.db uri doc;
         unsubscribe)
   |> unregister_request t
 

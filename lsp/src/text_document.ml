@@ -13,8 +13,7 @@ let find_offset ~utf8 ~utf16_range:range =
   let utf16_codepoints_buf = Bytes.create utf16_codepoint_size in
   let enc = Uutf.encoder `UTF_16LE `Manual in
   let rec find_char line char =
-    if char = 0 || Uutf.decoder_line dec = line then
-      Uutf.decoder_byte_count dec
+    if char = 0 || Uutf.decoder_line dec = line then Uutf.decoder_byte_count dec
     else
       match Uutf.decode dec with
       | `Await -> raise Invalid_utf8
@@ -40,20 +39,16 @@ let find_offset ~utf8 ~utf16_range:range =
     else
       match Uutf.decode dec with
       | `Uchar _ -> find_pos pos
-      | `Malformed _
-      | `Await ->
-        raise Invalid_utf8
+      | `Malformed _ | `Await -> raise Invalid_utf8
       | `End -> Uutf.decoder_byte_count dec
   in
   let { Range.start; end_ } = range in
   let start_offset = find_pos start in
   let end_offset =
-    if start = end_ then
-      start_offset
+    if start = end_ then start_offset
     else if start.line = end_.line then
       find_char start.line (end_.character - start.character)
-    else
-      find_pos end_
+    else find_pos end_
   in
   (start_offset, end_offset)
 

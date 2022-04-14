@@ -31,8 +31,7 @@ module Log = struct
       (match message.payload with
       | [] -> ()
       | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields));
-      Format.pp_print_flush !out ()
-    )
+      Format.pp_print_flush !out ())
 end
 
 let sprintf = Stdune.sprintf

@@ -95,10 +95,8 @@ module Message = struct
       let jsonrpc =
         Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
       in
-      if jsonrpc = Constant.jsonrpcv then
-        { method_; params; id }
-      else
-        Json.error "invalid version" json
+      if jsonrpc = Constant.jsonrpcv then { method_; params; id }
+      else Json.error "invalid version" json
     | _ -> Json.error "invalid request" json
 
   let yojson_of_either t : Json.t = yojson_of_t (Option.map ~f:Id.yojson_of_t) t
@@ -237,8 +235,7 @@ module Response = struct
       let jsonrpc =
         Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
       in
-      if jsonrpc <> Constant.jsonrpcv then
-        Json.error "Invalid response" json
+      if jsonrpc <> Constant.jsonrpcv then Json.error "Invalid response" json
       else
         match Json.field fields Constant.result (fun x -> x) with
         | Some res -> { id; result = Ok res }

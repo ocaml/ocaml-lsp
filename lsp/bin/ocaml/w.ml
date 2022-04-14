@@ -126,10 +126,7 @@ module Type = struct
 
   let deriving td ~record =
     let fields =
-      if record then
-        space ++ i "[@@yojson.allow_extra_fields]"
-      else
-        space
+      if record then space ++ i "[@@yojson.allow_extra_fields]" else space
     in
     Pp.concat
       [ td
@@ -153,10 +150,7 @@ module Type = struct
     Pp.concat_map constrs ~sep ~f:(fun (name, arg) ->
         let name =
           let name = String.capitalize_ascii name in
-          if poly then
-            "`" ^ name
-          else
-            name
+          if poly then "`" ^ name else name
         in
         match arg with
         | [] -> i name

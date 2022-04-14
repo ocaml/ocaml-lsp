@@ -8,8 +8,7 @@ let () =
     | _ -> None)
 
 let caseless_equal a b =
-  if a == b then
-    true
+  if a == b then true
   else
     let len = String.length a in
     len = String.length b
@@ -62,9 +61,7 @@ struct
       let* line = Chan.read_line chan in
       match line with
       | None -> Io.return None
-      | Some ""
-      | Some "\r" ->
-        Io.return (Some (content_length, content_type))
+      | Some "" | Some "\r" -> Io.return (Some (content_length, content_type))
       | Some line -> (
         match String.lsplit2 ~on:':' line with
         | None -> loop chan content_length content_type
@@ -82,8 +79,7 @@ struct
           then
             let content_type = String.trim v in
             loop chan content_length (Some content_type)
-          else
-            loop chan content_length content_type)
+          else loop chan content_length content_type)
     in
     fun chan ->
       let open Io.O in
@@ -94,8 +90,7 @@ struct
         let+ () =
           if content_length = init_content_length then
             Io.raise (Error "content length absent")
-          else
-            Io.return ()
+          else Io.return ()
         in
         Some (Header.create ?content_type ~content_length ())
 

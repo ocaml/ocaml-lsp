@@ -26,8 +26,7 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText)
         (Client.Custom_commands.next_hole
            ~in_range:(Range.resize_for_edit textedit)
            ~notify_if_no_hole:false ())
-    else
-      None
+    else None
   in
   CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
     ?command ~isPreferred:false ()
@@ -62,14 +61,14 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
            (loc, newText))
     | Error
         { exn =
-            ( Merlin_analysis.Destruct.Wrong_parent _ | Query_commands.No_nodes
+            ( Merlin_analysis.Destruct.Wrong_parent _
+            | Query_commands.No_nodes
             | Merlin_analysis.Destruct.Not_allowed _
             | Merlin_analysis.Destruct.Useless_refine
             | Merlin_analysis.Destruct.Ill_typed
             | Merlin_analysis.Destruct.Nothing_to_do )
         ; backtrace = _
-        } ->
-      Fiber.return None
+        } -> Fiber.return None
     | Error exn -> Exn_with_backtrace.reraise exn)
 
 let t state = { Code_action.kind; run = code_action state }

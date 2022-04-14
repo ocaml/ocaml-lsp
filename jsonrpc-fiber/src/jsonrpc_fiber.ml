@@ -23,12 +23,9 @@ module Sender = struct
 
   let send t (r : Response.t) : unit Fiber.t =
     Fiber.of_thunk (fun () ->
-        if t.called then
-          Code_error.raise "cannot send response twice" []
-        else if not (Id.equal t.for_ r.id) then
-          Code_error.raise "invalid id" []
-        else
-          t.called <- true;
+        if t.called then Code_error.raise "cannot send response twice" []
+        else if not (Id.equal t.for_ r.id) then Code_error.raise "invalid id" []
+        else t.called <- true;
         t.send r)
 end
 
@@ -122,8 +119,7 @@ struct
 
   let stop_pending_requests t =
     Fiber.of_thunk (fun () ->
-        if t.pending_requests_stopped then
-          Fiber.return ()
+        if t.pending_requests_stopped then Fiber.return ()
         else (
           t.pending_requests_stopped <- true;
           let to_cancel =
@@ -132,8 +128,7 @@ struct
           in
           Id.Table.clear t.pending;
           Fiber.parallel_iter to_cancel ~f:(fun ivar ->
-              Fiber.Ivar.fill ivar (Error `Stopped))
-        ))
+              Fiber.Ivar.fill ivar (Error `Stopped))))
 
   let create ?(on_request = on_request_fail)
       ?(on_notification = on_notification_fail) ~name chan state =
@@ -214,8 +209,7 @@ struct
         Fiber.map_reduce_errors
           (module Stdune.Monoid.Unit)
           ~on_error:(fun exn_bt ->
-            if !sent then
-              (* TODO log *)
+            if !sent then (* TODO log *)
               Fiber.return ()
             else
               let response = response_of_exn r.id exn_bt in

@@ -39,8 +39,7 @@ let has_missing_rec pipeline pos_start =
            let+ first_pat = List.hd_opt bound in
            let first_pat_loc = first_pat.vb_pat.pat_loc in
            { first_pat_loc with loc_end = first_pat_loc.loc_start }
-         else
-           None
+         else None
        | _ -> None)
 
 let code_action_add_rec uri diagnostics doc loc =

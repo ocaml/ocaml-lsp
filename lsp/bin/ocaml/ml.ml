@@ -31,12 +31,7 @@ module Kind = struct
 end
 
 let is_kw = function
-  | "type"
-  | "method"
-  | "end"
-  | "to"
-  | "external" ->
-    true
+  | "type" | "method" | "end" | "to" | "external" -> true
   | _ -> false
 
 module Arg = struct
@@ -369,11 +364,7 @@ module Expr = struct
   let pp_constr f { tag; poly; args } =
     let tag =
       let tag = String.capitalize tag in
-      Pp.verbatim
-        (if poly then
-          "`" ^ tag
-        else
-          tag)
+      Pp.verbatim (if poly then "`" ^ tag else tag)
     in
     match args with
     | [] -> tag
@@ -402,10 +393,7 @@ module Expr = struct
     | Bool b -> Pp.textf "%b" b
     | Int i ->
       let pp = Pp.textf "%i" i in
-      if i < 0 then
-        W.surround `Paren pp
-      else
-        pp
+      if i < 0 then W.surround `Paren pp else pp
     | String s -> Pp.textf "%S" s
     | Ident s -> Pp.verbatim s
     | Cons _ -> assert false
@@ -419,10 +407,8 @@ module Expr = struct
         Pp.concat_map fields
           ~sep:(Pp.verbatim ";" ++ Pp.space)
           ~f:(fun (name, expr) ->
-            if expr = Create (Ident name) then
-              pp expr
-            else
-              Pp.verbatim name ++ Pp.space ++ Pp.verbatim "=" ++ pp expr)
+            if expr = Create (Ident name) then pp expr
+            else Pp.verbatim name ++ Pp.space ++ Pp.verbatim "=" ++ pp expr)
       in
       W.surround `Curly record
     | Constr c -> pp_constr pp c
@@ -493,14 +479,12 @@ module Expr = struct
           | Labeled (l, r) ->
             if l = r then
               Pp.concat [ Pp.textf "~(%s :" l; typ; Pp.verbatim ")" ]
-            else
-              assert false
+            else assert false
           | Optional (l, r) ->
             if l = r then
               Pp.concat
                 [ Pp.textf "?(%s :" l; typ; Pp.space; Pp.verbatim "option)" ]
-            else
-              assert false)
+            else assert false)
     in
     let body = pp body in
     let type_ = Type.pp type_ ~kind in

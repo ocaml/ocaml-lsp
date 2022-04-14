@@ -170,11 +170,7 @@ let set_diagnostics rpc doc =
     ()
   in
   match Document.syntax doc with
-  | Dune
-  | Cram
-  | Menhir
-  | Ocamllex ->
-    Fiber.return ()
+  | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
   | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
     let no_reason_merlin =
       let message =
@@ -184,8 +180,7 @@ let set_diagnostics rpc doc =
     in
     Diagnostics.set state.diagnostics (`Merlin (uri, [ no_reason_merlin ]));
     async (fun () -> Diagnostics.send state.diagnostics (`One uri))
-  | Reason
-  | Ocaml ->
+  | Reason | Ocaml ->
     let send () =
       let* diagnostics =
         let command =
@@ -364,21 +359,16 @@ let code_action server (params : CodeActionParams.t) =
   | None -> Fiber.return (Reply.now (actions dune_actions), state)
   | Some doc -> (
     match Document.syntax doc with
-    | Ocamllex
-    | Menhir
-    | Cram
-    | Dune ->
+    | Ocamllex | Menhir | Cram | Dune ->
       let state : State.t = Server.state server in
       Fiber.return (Reply.now (actions dune_actions), state)
-    | Ocaml
-    | Reason ->
+    | Ocaml | Reason ->
       let reply () =
         let code_action (ca : Code_action.t) =
           match params.context.only with
           | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
             Fiber.return None
-          | Some _
-          | None -> (
+          | Some _ | None -> (
             let+ res =
               Fiber.map_reduce_errors
                 ~on_error:(fun (exn : Exn_with_backtrace.t) ->
@@ -427,9 +417,7 @@ module Formatter = struct
     let message = Ocamlformat.message e in
     let code : Jsonrpc.Response.Error.Code.t =
       match e with
-      | Unsupported_syntax _
-      | Unknown_extension _
-      | Missing_binary _ ->
+      | Unsupported_syntax _ | Unknown_extension _ | Missing_binary _ ->
         InvalidRequest
       | Unexpected_result _ -> InternalError
     in
@@ -512,14 +500,13 @@ let location_of_merlin_loc uri : _ -> (_, string) result = function
 let format_doc ~markdown ~doc =
   `MarkupContent
     (if markdown then
-      let value =
-        match Doc_to_md.translate doc with
-        | Raw d -> sprintf "(** %s *)" d
-        | Markdown d -> d
-      in
-      { MarkupContent.value; kind = MarkupKind.Markdown }
-    else
-      { MarkupContent.value = doc; kind = MarkupKind.PlainText })
+     let value =
+       match Doc_to_md.translate doc with
+       | Raw d -> sprintf "(** %s *)" d
+       | Markdown d -> d
+     in
+     { MarkupContent.value; kind = MarkupKind.Markdown }
+    else { MarkupContent.value = doc; kind = MarkupKind.PlainText })
 
 let signature_help (state : State.t)
     { SignatureHelpParams.textDocument = { uri }; position; _ } =
@@ -568,7 +555,7 @@ let signature_help (state : State.t)
       in
       let documentation =
         let open Option.O in
-        let+ doc = doc in
+        let+ doc in
         let markdown =
           ClientCapabilities.markdown_support (State.client_capabilities state)
             ~field:(fun td ->
@@ -669,8 +656,7 @@ let rename (state : State.t)
         ~documentChanges:
           [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
         ()
-    else
-      WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
+    else WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
   in
   workspace_edits
 
@@ -1013,10 +999,7 @@ let on_notification server (notification : Client_notification.t) :
     in
     Dune.update_workspaces (State.dune state) (State.workspaces state);
     Fiber.return state
-  | WillSaveTextDocument _
-  | Initialized
-  | WorkDoneProgressCancel _
-  | Exit ->
+  | WillSaveTextDocument _ | Initialized | WorkDoneProgressCancel _ | Exit ->
     Fiber.return state
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | UnknownNotification req ->
@@ -1099,9 +1082,7 @@ let start () =
              "ocamlformat-rpc is missing, displayed types might not be \
               properly formatted. Hint: $ opam install ocamlformat-rpc and \
               restart the lsp server"
-         | Error `Disabled
-         | Ok () ->
-           None
+         | Error `Disabled | Ok () -> None
        in
        match message with
        | None -> Fiber.return ()

@@ -33,8 +33,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pmty_with _
       | Pmty_typeof _
       | Pmty_extension _
-      | Pmty_alias _ ->
-        ()
+      | Pmty_alias _ -> ()
     in
 
     let module_declaration (self : Ast_iterator.iterator)
@@ -104,8 +103,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Ppat_unpack _
       | Ppat_exception _
       | Ppat_extension _
-      | Ppat_open _ ->
-        () (* TODO *)
+      | Ppat_open _ -> () (* TODO *)
       | Ppat_any -> ()
     in
 
@@ -120,10 +118,8 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_ifthenelse _
       | Pexp_constraint _
       | Pexp_function _
-      | Pexp_construct _ ->
-        Ast_iterator.default_iterator.expr self expr
-      | Pexp_try (e, cases)
-      | Pexp_match (e, cases) ->
+      | Pexp_construct _ -> Ast_iterator.default_iterator.expr self expr
+      | Pexp_try (e, cases) | Pexp_match (e, cases) ->
         Range.of_loc expr.pexp_loc |> push;
         self.expr self e;
         self.cases self cases
@@ -165,8 +161,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_newtype _
       | Pexp_pack _
       | Pexp_unreachable
-      | Pexp_hole ->
-        ()
+      | Pexp_hole -> ()
     in
 
     let module_binding (self : Ast_iterator.iterator)
@@ -198,8 +193,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_class_type _
       | Pstr_include _
       | Pstr_attribute _
-      | Pstr_extension _ ->
-        ()
+      | Pstr_extension _ -> ()
     in
 
     { Ast_iterator.default_iterator with

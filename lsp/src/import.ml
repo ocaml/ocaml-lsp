@@ -44,18 +44,13 @@ module String = struct
     while !i <= last && !j < plen do
       if text.[!i + !j] <> pattern.[!j] then (
         incr i;
-        j := 0
-      ) else
-        incr j
+        j := 0)
+      else incr j
     done;
-    if !j < plen then
-      raise Not_found
-    else
-      !i
+    if !j < plen then raise Not_found else !i
 
   let replace_all ~pattern ~with_ text =
-    if pattern = "" then
-      text
+    if pattern = "" then text
     else
       match next_occurrence ~pattern text 0 with
       | exception Not_found -> text
@@ -147,8 +142,7 @@ module Json = struct
       match c1 json with
       | s -> s
       | (exception Jsonrpc.Json.Of_json (_, _))
-      | (exception Conv.Of_yojson_error (_, _)) ->
-        c2 json
+      | (exception Conv.Of_yojson_error (_, _)) -> c2 json
   end
 
   module Option = struct
@@ -178,8 +172,9 @@ module Json = struct
     let untagged_union (type a) name (xs : (t -> a) list) (json : t) : a =
       match
         List.find_map xs ~f:(fun conv ->
-            try Some (conv json) with
-            | Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (_, _) -> None)
+            try Some (conv json)
+            with Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (_, _) ->
+              None)
       with
       | None -> error name json
       | Some x -> x
@@ -191,12 +186,9 @@ module Json = struct
         let ks, xs =
           List.partition_map xs ~f:(fun (k', v') ->
               if k = k' then
-                if `String v = v' then
-                  Left k
-                else
-                  error (sprintf "%s: incorrect key %s" name k) json
-              else
-                Right (k', v'))
+                if `String v = v' then Left k
+                else error (sprintf "%s: incorrect key %s" name k) json
+              else Right (k', v'))
         in
         match ks with
         | [] -> error (sprintf "%s: key %s not found" name k) json
@@ -259,8 +251,7 @@ module Json = struct
     match f (Jsonrpc.Message.Structured.to_json v) with
     | r -> Ok r
     | exception Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _)
-      ->
-      Error msg
+      -> Error msg
 
   let require_params json =
     match json with

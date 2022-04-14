@@ -23,15 +23,9 @@ let infer_intf_for_impl doc =
 
 let language_id_of_fname s =
   match Filename.extension s with
-  | ".mli"
-  | ".eliomi" ->
-    "ocaml.interface"
-  | ".ml"
-  | ".eliom" ->
-    "ocaml"
-  | ".rei"
-  | ".re" ->
-    "reason"
+  | ".mli" | ".eliomi" -> "ocaml.interface"
+  | ".ml" | ".eliom" -> "ocaml"
+  | ".rei" | ".re" -> "reason"
   | ".mll" -> "ocaml.ocamllex"
   | ".mly" -> "ocaml.menhir"
   | ext ->

@@ -75,8 +75,7 @@ let preprocess =
             let data = Single { typ; optional = true } in
             super#field { x with data }
           | _ -> super#field x
-        else
-          super#field x
+        else super#field x
 
       method! typ x =
         (* XXX what does this to? I don't see any sums of records in
@@ -111,8 +110,7 @@ let preprocess =
                 match f.data with
                 | Pattern _ when f.name = "key" -> false
                 | _ -> true)
-          else
-            i.fields
+          else i.fields
         in
         super#interface { i with extends; fields }
     end
@@ -257,8 +255,7 @@ end = struct
                 | Intf -> f.attrs
               in
               { f with name = f.name ^ "_"; attrs }
-            else
-              f
+            else f
           in
           super#field x f
 
@@ -278,8 +275,7 @@ end = struct
         method plus () () = ()
 
         method! optional x t =
-          if t = Json_gen.json_t then
-            super#optional x t
+          if t = Json_gen.json_t then super#optional x t
           else
             let opt =
               Ml.Path.Dot (Dot (Ident "Json", "Nullable_option"), "t")
@@ -341,11 +337,7 @@ module Create : sig
 
   val impl_of_type : Ml.Type.decl Named.t -> Ml.Module.impl Named.t list
 end = struct
-  let f_name name =
-    if name = "t" then
-      "create"
-    else
-      sprintf "create_%s" name
+  let f_name name = if name = "t" then "create" else sprintf "create_%s" name
 
   let need_unit =
     List.exists ~f:(fun (f : Ml.Type.field) ->
@@ -367,8 +359,7 @@ end = struct
           (* Gross hack because I was too lazy to allow patterns in toplevel
              exprs *)
           fields @ [ Ml.Arg.Unnamed Ml.Type.unit ]
-        else
-          fields
+        else fields
       in
       Ml.Type.fun_ args (Ml.Type.name name)
     in
@@ -396,8 +387,7 @@ end = struct
         (* Gross hack because I was too lazy to allow patterns in toplevel
            exprs *)
         fields @ [ (Unnamed "()", Ml.Type.unit) ]
-      else
-        fields
+      else fields
     in
     let body = { Ml.Expr.pat; type_ = Ml.Type.name name; body = make } in
     let f_name = f_name name in
@@ -432,8 +422,7 @@ let enum_module ~allow_other ({ Named.name; data = constrs } as t) =
           (* [String] is a hack. It could be a differnt type, but it isn't in
              practice *)
           constrs @ [ Ml.Type.constr ~name:"Other" [ Ml.Type.Prim String ] ]
-        else
-          constrs
+        else constrs
       in
       Ml.Type.Variant constrs
     in
@@ -458,10 +447,7 @@ module Entities = struct
   let rev_find (db : t) (resolved : Resolved.t) : Ident.t =
     match
       List.filter_map db ~f:(fun (id, r) ->
-          if r.name = resolved.name then
-            Some id
-          else
-            None)
+          if r.name = resolved.name then Some id else None)
     with
     | [] -> Code_error.raise "rev_find: resolved not found" []
     | [ x ] -> x
@@ -536,9 +522,7 @@ end = struct
       | Ident Number -> Type.int
       | Ident String -> Type.string
       | Ident Bool -> Type.bool
-      | Ident Any
-      | Ident Object ->
-        Type.json
+      | Ident Any | Ident Object -> Type.json
       | Ident Self -> Type.t (* XXX wrong *)
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
@@ -549,20 +533,14 @@ end = struct
       | List t -> Type.list (type_ topmost_field_name t)
       | Tuple ts -> Type.Tuple (List.map ~f:(type_ topmost_field_name) ts)
       | Sum s -> sum topmost_field_name s
-      | App _
-      | Literal _ ->
-        Type.void
+      | App _ | Literal _ -> Type.void
       | Record r -> record r
     and sum topmost_field_name s =
-      if is_same_as_json s then
-        Type.json
+      if is_same_as_json s then Type.json
       else
         match remove_null s with
         | `No_null_present ->
-          if is_same_as_id s then
-            id
-          else
-            poly topmost_field_name s
+          if is_same_as_id s then id else poly topmost_field_name s
         | `Null_removed [ s ] -> Type.Optional (type_ topmost_field_name s)
         | `Null_removed [] -> assert false
         | `Null_removed cs -> Type.Optional (sum topmost_field_name cs)
@@ -587,18 +565,12 @@ end = struct
           (List.map s ~f:(fun t ->
                let name, constrs =
                  match (t : Resolved.typ) with
-                 | Ident Self
-                 | Ident Null ->
-                   assert false
+                 | Ident Self | Ident Null -> assert false
                  | Ident String -> ("String", [ type_ t ])
                  | Ident Number -> ("Int", [ type_ t ])
-                 | Ident Any
-                 | Ident Object ->
-                   ("Assoc", [ type_ t ])
+                 | Ident Any | Ident Object -> ("Assoc", [ type_ t ])
                  | Ident Bool -> ("Bool", [ type_ t ])
-                 | List _
-                 | Ident List ->
-                   ("List", [ type_ t ])
+                 | List _ | Ident List -> ("List", [ type_ t ])
                  | Ident (Resolved r) -> ((Entities.find db r).name, [ type_ t ])
                  | Tuple [ Ident Uinteger; Ident Uinteger ] ->
                    ("Offset", [ type_ t ])
@@ -611,8 +583,7 @@ end = struct
                  | _ -> raise Exit
                in
                Type.constr ~name constrs))
-      with
-      | Exit -> Type.unit
+      with Exit -> Type.unit
     in
     type_ (Some name) t
 
@@ -632,12 +603,7 @@ end = struct
       Right { literal_value; field_name = field.name }
     | Resolved.Single { typ; optional } ->
       let typ = make_typ db { Named.name = field.name; data = typ } in
-      let typ =
-        if optional then
-          Type.Optional typ
-        else
-          typ
-      in
+      let typ = if optional then Type.Optional typ else typ in
       Left (Ml.Type.field typ ~name:field.name)
 
   let record_ db { Named.name; data = (fields : Resolved.field list) } =
@@ -713,8 +679,7 @@ end = struct
           (c.name, Literal.String c.name))
       |> Named.set_data t
       |> Json_gen.Enum.conv ~allow_other:false ~poly:true
-    else
-      [ Json_gen.Poly_variant.of_json t; Json_gen.Poly_variant.to_json t ]
+    else [ Json_gen.Poly_variant.of_json t; Json_gen.Poly_variant.to_json t ]
 
   (* This is the more complex case *)
 
@@ -861,14 +826,11 @@ let of_resolved_typescript db (ts : Resolved.t list) =
   let ts = expand_super_classes db ts in
   let simple_enums, everything_else =
     List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
-        if List.mem skipped_ts_decls t.name ~equal:String.equal then
-          Skip
+        if List.mem skipped_ts_decls t.name ~equal:String.equal then Skip
         else
           match t.data with
           | Enum_anon data -> Left { t with data }
-          | Interface _
-          | Type _ ->
-            Right t)
+          | Interface _ | Type _ -> Right t)
   in
   let simple_enums =
     List.map simple_enums ~f:(fun (t : _ Named.t) ->

@@ -157,18 +157,12 @@ end = struct
 
   let client t =
     match t.state with
-    | Connected _
-    | Idle
-    | Finished ->
-      None
+    | Connected _ | Idle | Finished -> None
     | Running r -> r.client
 
   let promotions t =
     match t.state with
-    | Connected _
-    | Idle
-    | Finished ->
-      String.Map.empty
+    | Connected _ | Idle | Finished -> String.Map.empty
     | Running r -> r.promotions
 
   let source t = t.source
@@ -494,11 +488,7 @@ end = struct
       | Error _ ->
         Jsonrpc.Response.Error.(
           raise (make ~message:"dune failed to format" ~code:InternalError ())))
-    | Connected _
-    | Idle
-    | Finished
-    | Running _ ->
-      assert false
+    | Connected _ | Idle | Finished | Running _ -> assert false
 end
 
 module Dune_map = Map.Make (Registry.Dune)
@@ -519,32 +509,22 @@ let uri_dune_overlap =
      All of this is really hacky and error prone. We should let the user
      associate dune instances with workspace folders somehow *)
   let is_dir_sep =
-    if Sys.win32 || Sys.cygwin then
-      fun c ->
-    c = '/' || c = '\\' || c = ':'
-    else
-      fun c ->
-    c = '/'
+    if Sys.win32 || Sys.cygwin then fun c -> c = '/' || c = '\\' || c = ':'
+    else fun c -> c = '/'
   in
   let explode_path =
     let rec start acc path i =
-      if i < 0 then
-        acc
-      else if is_dir_sep (String.unsafe_get path i) then
-        start acc path (i - 1)
-      else
-        component acc path i (i - 1)
+      if i < 0 then acc
+      else if is_dir_sep (String.unsafe_get path i) then start acc path (i - 1)
+      else component acc path i (i - 1)
     and component acc path end_ i =
-      if i < 0 then
-        String.take path (end_ + 1) :: acc
+      if i < 0 then String.take path (end_ + 1) :: acc
       else if is_dir_sep (String.unsafe_get path i) then
         start (String.sub path ~pos:(i + 1) ~len:(end_ - i) :: acc) path (i - 1)
-      else
-        component acc path end_ (i - 1)
+      else component acc path end_ (i - 1)
     in
     fun path ->
-      if path = Filename.current_dir_name then
-        [ path ]
+      if path = Filename.current_dir_name then [ path ]
       else
         match start [] path (String.length path - 1) with
         | "." :: xs -> xs
@@ -554,17 +534,13 @@ let uri_dune_overlap =
     let dune_root = Registry.Dune.root dune in
     let path =
       let path = Uri.to_path uri in
-      if Filename.is_relative path then
-        Filename.concat (Lazy.force cwd) path
-      else
-        path
+      if Filename.is_relative path then Filename.concat (Lazy.force cwd) path
+      else path
     in
     let rec loop xs ys =
       match (xs, ys) with
       | x :: xs, y :: ys -> x = y && loop xs ys
-      | [], _
-      | _, [] ->
-        true
+      | [], _ | _, [] -> true
     in
     loop (explode_path dune_root) (explode_path path)
 
@@ -616,10 +592,8 @@ let poll active =
                  && List.exists workspace_folders
                       ~f:(fun (wsf : WorkspaceFolder.t) ->
                         uri_dune_overlap wsf.uri dune)
-               then
-                 Instance.create dune active.config :: acc
-               else
-                 acc)
+               then Instance.create dune active.config :: acc
+               else acc)
       in
       List.map to_create ~f:(fun instance ->
           let source = Instance.source instance in
@@ -656,8 +630,7 @@ let poll active =
     in
     let* () =
       let send f x =
-        if x = [] then
-          Fiber.return ()
+        if x = [] then Fiber.return ()
         else
           let* running = Fiber.Pool.running active.pool in
           match running with
@@ -743,8 +716,7 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
   if inside_test then
     create workspaces client_capabilities diagnostics progress document_store
       ~log
-  else
-    ref Closed
+  else ref Closed
 
 let run_loop t =
   Fiber.repeat_while ~init:() ~f:(fun () ->
@@ -884,7 +856,5 @@ let for_doc t doc =
   | Active t ->
     let uri = Document.uri doc in
     String.Map.fold ~init:[] t.instances ~f:(fun instance acc ->
-        if uri_dune_overlap uri (Instance.source instance) then
-          instance :: acc
-        else
-          acc)
+        if uri_dune_overlap uri (Instance.source instance) then instance :: acc
+        else acc)

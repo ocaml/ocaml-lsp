@@ -31,23 +31,16 @@ let browse_of_cmt (cmt_infos : Cmt_format.cmt_infos) : Browse_raw.node option =
   | Implementation str -> Some (Structure str)
   | Interface sig_ -> Some (Signature sig_)
   (* TODO support these *)
-  | Packed _
-  | Partial_implementation _
-  | Partial_interface _ ->
-    None
+  | Packed _ | Partial_implementation _ | Partial_interface _ -> None
 
-let is_directory dir =
-  try Sys.is_directory dir with
-  | Sys_error _ -> false
+let is_directory dir = try Sys.is_directory dir with Sys_error _ -> false
 
 type error = Build_dir_not_found of string
 
 let find_build_dir ({ name; uri } : WorkspaceFolder.t) =
   let build_dir = Filename.concat (Uri.to_path uri) "_build/default" in
-  if is_directory build_dir then
-    Ok build_dir
-  else
-    Error (Build_dir_not_found name)
+  if is_directory build_dir then Ok build_dir
+  else Error (Build_dir_not_found name)
 
 type cm_file =
   | Cmt of string
@@ -55,9 +48,7 @@ type cm_file =
 
 let string_of_cm cm =
   match cm with
-  | Cmt f
-  | Cmti f ->
-    f
+  | Cmt f | Cmti f -> f
 
 module Outline : sig
   (* Like merlin's original outline but doesn't print any types. The types
@@ -197,18 +188,15 @@ end = struct
 
   and remove_mod_indir node =
     match node.t_node with
-    | Module_expr _
-    | Module_type _ ->
+    | Module_expr _ | Module_type _ ->
       List.concat_map (Lazy.force node.t_children) ~f:remove_mod_indir
     | _ -> remove_top_indir node
 
   and remove_top_indir t =
     match t.t_node with
-    | Structure _
-    | Signature _ ->
+    | Structure _ | Signature _ ->
       List.concat_map ~f:remove_top_indir (Lazy.force t.t_children)
-    | Signature_item _
-    | Structure_item _ ->
+    | Signature_item _ | Structure_item _ ->
       List.filter_map (Lazy.force t.t_children) ~f:summarize
     | _ -> []
 
@@ -224,8 +212,7 @@ let symbols_from_cm_file ~filter root_uri cm_file =
   | None -> []
   | Some sourcefile -> (
     match Filename.extension sourcefile with
-    | ".ml"
-    | ".mli" -> (
+    | ".ml" | ".mli" -> (
       let sourcepath = Filename.concat root_uri sourcefile in
       match browse_of_cmt cmt with
       | None -> []
@@ -241,9 +228,7 @@ let symbols_from_cm_file ~filter root_uri cm_file =
 let find_cm_files dir =
   let choose_file f1 f2 =
     match (f1, f2) with
-    | (Cmt _ as f), _
-    | _, (Cmt _ as f) ->
-      f
+    | (Cmt _ as f), _ | _, (Cmt _ as f) -> f
     | (Cmti _ as f), Cmti _ -> f
   in
   (* TODO we could get into a symlink loop here so we should we be careful *)
@@ -251,8 +236,7 @@ let find_cm_files dir =
     let contents = Sys.readdir dir in
     Array.fold_left contents ~init:acc ~f:(fun acc fname ->
         let path = Filename.concat dir fname in
-        if is_directory path then
-          loop acc path
+        if is_directory path then loop acc path
         else
           match String.rsplit2 ~on:'.' path with
           | Some (path_without_ext, "cmt") ->

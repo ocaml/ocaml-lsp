@@ -22,11 +22,7 @@ module Dune = Stdune.Id.Make ()
 let equal_message =
   (* because the compiler and merlin wrap messages differently *)
   let is_space = function
-    | ' '
-    | '\r'
-    | '\n'
-    | '\t' ->
-      true
+    | ' ' | '\r' | '\n' | '\t' -> true
     | _ -> false
   in
   let eat_space s i =
@@ -45,19 +41,17 @@ let equal_message =
         let cj = m2.[!j] in
         if is_space ci && is_space cj then (
           eat_space m1 i;
-          eat_space m2 j
-        ) else if Char.equal ci cj then (
+          eat_space m2 j)
+        else if Char.equal ci cj then (
           incr i;
-          incr j
-        ) else
-          raise_notrace Exit
+          incr j)
+        else raise_notrace Exit
       done;
       eat_space m1 i;
       eat_space m2 j;
       (* we make sure that everything is consumed *)
       !i = String.length m1 && !j = String.length m2
-    with
-    | Exit -> false
+    with Exit -> false
 
 type t =
   { dune :
@@ -94,10 +88,8 @@ let send =
                 if
                   List.exists diagnostics ~f:(fun (d : Diagnostic.t) ->
                       equal_message d.message diagnostic.message)
-                then
-                  diagnostics
-                else
-                  diagnostic :: diagnostics))
+                then diagnostics
+                else diagnostic :: diagnostics))
     in
     Table.set pending uri value
   in

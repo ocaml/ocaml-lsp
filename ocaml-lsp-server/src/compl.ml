@@ -39,8 +39,7 @@ let prefix_of_position ~short_path source position =
       let should_terminate = ref false in
       let has_seen_dot = ref false in
       let is_prefix_char c =
-        if !should_terminate then
-          false
+        if !should_terminate then false
         else
           match c with
           | 'a' .. 'z'
@@ -65,15 +64,12 @@ let prefix_of_position ~short_path source position =
           | '<'
           | ':'
           | '~'
-          | '#' ->
-            true
+          | '#' -> true
           | '`' ->
-            if !has_seen_dot then
-              false
+            if !has_seen_dot then false
             else (
               should_terminate := true;
-              true
-            )
+              true)
           | '.' ->
             has_seen_dot := true;
             not short_path
@@ -97,8 +93,7 @@ let prefix_of_position ~short_path source position =
       match String.lsplit2 reconstructed_prefix ~on:':' with
       | Some (_, s) -> s
       | None -> reconstructed_prefix
-    else
-      reconstructed_prefix
+    else reconstructed_prefix
 
 let suffix_of_position source position =
   match Msource.text source with
@@ -106,18 +101,12 @@ let suffix_of_position source position =
   | text ->
     let (`Offset index) = Msource.get_offset source position in
     let len = String.length text in
-    if index >= len then
-      ""
+    if index >= len then ""
     else
       let from = index in
       let len =
         let ident_char = function
-          | 'a' .. 'z'
-          | 'A' .. 'Z'
-          | '0' .. '9'
-          | '\''
-          | '_' ->
-            true
+          | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '\'' | '_' -> true
           | _ -> false
         in
         let until =
@@ -150,8 +139,7 @@ module Complete_by_prefix = struct
     let kind = completion_kind entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
     CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
-      ~deprecated:
-        entry.deprecated
+      ~deprecated:entry.deprecated
         (* Without this field the client is not forced to respect the order
            provided by merlin. *)
       ~sortText:(sortText_of_index idx) ~data:compl_params ~textEdit ()
@@ -211,8 +199,7 @@ module Complete_with_construct = struct
     with
     | Ok (loc, exprs) -> Some (loc, exprs)
     | Error { Exn_with_backtrace.exn = Merlin_analysis.Construct.Not_a_hole; _ }
-      ->
-      None
+      -> None
     | Error exn -> Exn_with_backtrace.reraise exn
 
   let process_dispatch_resp ~supportsJumpToNextHole = function
@@ -224,10 +211,8 @@ module Complete_with_construct = struct
           (not (String.equal expr "()"))
           && String.is_prefix expr ~prefix:"("
           && String.is_suffix expr ~suffix:")"
-        then
-          String.sub expr ~pos:1 ~len:(String.length expr - 2)
-        else
-          expr
+        then String.sub expr ~pos:1 ~len:(String.length expr - 2)
+        else expr
       in
       let completionItem_of_constructed_expr idx expr =
         let expr_wo_parens = deparen_constr_expr expr in
@@ -238,8 +223,7 @@ module Complete_with_construct = struct
               (Client.Custom_commands.next_hole
                  ~in_range:(Range.resize_for_edit edit)
                  ~notify_if_no_hole:false ())
-          else
-            None
+          else None
         in
         CompletionItem.create ~label:expr_wo_parens ~textEdit:(`TextEdit edit)
           ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text

@@ -77,13 +77,11 @@ end = struct
       Unix.close stdin_i;
       Unix.close stdout_o;
       let blockity =
-        if Sys.win32 then
-          `Blocking
+        if Sys.win32 then `Blocking
         else (
           Unix.set_nonblock stdin_o;
           Unix.set_nonblock stdout_i;
-          `Non_blocking true
-        )
+          `Non_blocking true)
       in
       let make fd what =
         let fd = Lev_fiber.Fd.create fd blockity in
@@ -140,17 +138,13 @@ type t = state ref
 let get_process t =
   match !t with
   | Running p -> Fiber.return @@ Ok p
-  | Disabled
-  | Stopped ->
-    Fiber.return @@ Error `No_process
+  | Disabled | Stopped -> Fiber.return @@ Error `No_process
   | Waiting_for_init { ask_init; wait_init } -> (
     let* () = Fiber.Ivar.fill ask_init () in
     let+ () = Fiber.Ivar.read wait_init in
     match !t with
     | Running p -> Ok p
-    | Disabled
-    | Stopped ->
-      Error `No_process
+    | Disabled | Stopped -> Error `No_process
     | Waiting_for_init _ ->
       Code_error.raise
         "Expected to receive `Started` or `Stopped` after mailing `Start`" [])
@@ -201,9 +195,7 @@ let maybe_fill ivar x =
 
 let stop t =
   match !t with
-  | Disabled
-  | Stopped ->
-    Fiber.return ()
+  | Disabled | Stopped -> Fiber.return ()
   | Waiting_for_init { wait_init; ask_init } ->
     (* If the server was never started we still need to fill the ivar for the
        fiber to finish *)
@@ -223,9 +215,7 @@ let run_rpc ~logger ~bin t =
   | Waiting_for_init { ask_init; wait_init } -> (
     let* () = Fiber.Ivar.read ask_init in
     match !t with
-    | Disabled
-    | Stopped ->
-      Fiber.return ()
+    | Disabled | Stopped -> Fiber.return ()
     | Running _ -> assert false
     | Waiting_for_init _ -> (
       let* process = Process.create ~logger ~bin () in
@@ -264,9 +254,7 @@ let run ~logger t =
             let* () = run_rpc ~logger ~bin t in
             (* We loop to automatically restart the server if it stopped *)
             loop ()
-          | Disabled
-          | Running _ ->
-            assert false
+          | Disabled | Running _ -> assert false
           | Stopped -> Fiber.return (Ok ()))
       in
       loop ())
