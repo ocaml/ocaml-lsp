@@ -123,9 +123,10 @@ module Process = struct
   type nonrec t =
     { pid : Pid.t
     ; initial_cwd : string
-    ; stdin : out_channel
-    ; stdout : in_channel
-    ; stderr : in_channel
+    ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
+    ; stdout : Lev_fiber.Io.input Lev_fiber.Io.t
+    ; stderr : Lev_fiber.Io.input Lev_fiber.Io.t
+    ; session : Lev_fiber_csexp.Session.t
     }
 
   let start ~dir =
@@ -149,11 +150,26 @@ module Process = struct
       Unix.close stdin_r;
       Unix.close stdout_w;
       Unix.close stderr_w;
-      let stdin = Unix.out_channel_of_descr stdin_w in
-      let stdout = Unix.in_channel_of_descr stdout_r in
-      let stderr = Unix.in_channel_of_descr stderr_r in
+      let blockity =
+        if Sys.win32 then
+          `Blocking
+        else (
+          Unix.set_nonblock stdin_w;
+          Unix.set_nonblock stdout_r;
+          Unix.set_nonblock stderr_r;
+          `Non_blocking true
+        )
+      in
+      let make fd what =
+        let fd = Lev_fiber.Fd.create fd blockity in
+        Lev_fiber.Io.create fd what
+      in
+      let* stdin = make stdin_w Output in
+      let* stdout = make stdout_r Input in
+      let+ stderr = make stderr_r Input in
+      let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
       let initial_cwd = Misc.canonicalize_filename dir in
-      { pid; initial_cwd; stdin; stdout; stderr }
+      { pid; initial_cwd; stdin; stdout; stderr; session }
 end
 
 let postprocess_config config =
@@ -186,11 +202,14 @@ let get_process t ~dir =
   match Table.find t.running dir with
   | Some p -> Fiber.return p
   | None ->
-    let p = Process.start ~dir in
+    let* p = Process.start ~dir in
     Table.add_exn t.running dir p;
     let+ () =
       Fiber.Pool.task t.pool ~f:(fun () ->
           let+ _status = Lev_fiber.waitpid ~pid:(Pid.to_int p.pid) in
+          Lev_fiber.Io.close p.stdin;
+          Lev_fiber.Io.close p.stdout;
+          Lev_fiber.Io.close p.stderr;
           Table.remove t.running dir)
     in
     p
@@ -200,14 +219,21 @@ type context =
   ; process_dir : string
   }
 
+module Dot_protocol_io =
+  Dot_protocol.Make
+    (Fiber)
+    (struct
+      include Lev_fiber_csexp.Session
+
+      let write t x = write t (Some [x])
+    end)
+
 let get_config db { workdir; process_dir } path_abs =
   let query path (p : Process.t) =
-    (* TODO stop blocking *)
-    Dot_protocol.Commands.send_file ~out_channel:p.stdin path;
-    flush p.stdin;
-    Dot_protocol.read ~in_channel:p.stdout
+    let* () = Dot_protocol_io.Commands.send_file p.session path in
+    Dot_protocol_io.read p.session
   in
-  let+ p = get_process db ~dir:process_dir in
+  let* p = get_process db ~dir:process_dir in
   (* Both [p.initial_cwd] and [path_abs] have gone through
      [canonicalize_filename] *)
   let path_rel =
@@ -231,10 +257,11 @@ let get_config db { workdir; process_dir } path_abs =
   (* Starting with Dune 2.8.3 relative paths are prefered. However to maintain
      compatibility with 2.8 <= Dune <= 2.8.2 we always retry with an absolute
      path if using a relative one failed *)
-  let answer =
-    match query path p with
+  let+ answer =
+    let* query_path = query path p in
+    match query_path with
     | Ok [ `ERROR_MSG _ ] -> query path_abs p
-    | answer -> answer
+    | answer -> Fiber.return answer
   in
 
   match answer with
