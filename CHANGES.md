@@ -1,8 +1,16 @@
-# Unreleased
+# 1.11.0
+
+## Features
+
+- Add support for dune in watch mode. The lsp server will now display build
+  errors in the diagnostics and offer promotion code actions.
+
+- Re-introduce ocamlformat-rpc (#599, fixes #495)
 
 ## Fixes
 
-- Fix workspace symbols that could have a wrong path in some cases ([#675](https://github.com/ocaml/ocaml-lsp/pull/671))
+- Fix workspace symbols that could have a wrong path in some cases
+  ([#675](https://github.com/ocaml/ocaml-lsp/pull/671))
 
 # 1.10.6
 
