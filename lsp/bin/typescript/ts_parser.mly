@@ -28,8 +28,33 @@
 %token Equal
 %token Eof
 
+%type <string * Enum.case> const_constr
 %type <Ts_types.Literal.t> lit
 %type <Ts_types.Unresolved.typ> typ
+%type <decl Named.t> definition
+%type <Enum.t Named.t> enum
+%type <string * Enum.case> enum_constr
+%type <(string * Enum.case) list> enum_constrs
+%type <string list> extends
+%type <field_def Named.t> field
+%type <string> field_name
+%type <field_def Named.t list> fields
+%type <interface Named.t> interface
+%type <(string * Enum.case) list> list(const_constr)
+%type <decl Named.t list> list(definition)
+%type <field_def Named.t list> list(field)
+%type <string list> loption(separated_nonempty_list(Comma,Ident))
+%type <unit option> option(Question)
+%type <unit option> option(Readonly)
+%type <unit option> option(Semicolon)
+%type <string list option> option(extends)
+%type <string list option> option(params)
+%type <string list> params
+%type <typ list> separated_nonempty_list(Alt,typ)
+%type <string list> separated_nonempty_list(Comma,Ident)
+%type <(string * Enum.case) list> separated_nonempty_list(Comma,enum_constr)
+%type <typ list> separated_nonempty_list(Comma,typ)
+%type <typ Named.t> type_decl
 
 %start <Ts_types.Unresolved.t list> main
 
