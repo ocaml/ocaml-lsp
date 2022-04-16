@@ -41,7 +41,6 @@
    (libraries unix)
    (foreign_stubs
     (language c)
-    (flags :standard -libm)
     (extra_deps
      ev_kqueue.c
      ev_epoll.c
