@@ -1,5 +1,9 @@
 open Import
 
+module Private = struct
+  let win32 = ref Sys.win32
+end
+
 type t = Uri_lexer.t =
   { scheme : string option
   ; authority : string
@@ -46,7 +50,7 @@ let to_path t =
     |> String.replace_all ~pattern:"%3D" ~with_:"="
     |> String.replace_all ~pattern:"%3F" ~with_:"?"
   in
-  if Sys.win32 then path else Filename.concat "/" path
+  if !Private.win32 then path else Filename.concat "/" path
 
 let of_path (path : string) =
   let path = Uri_lexer.escape_path path in
