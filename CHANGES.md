@@ -1,3 +1,11 @@
+# 1.11.1
+
+## Fixes
+
+- Fix Uri handling on Windows
+
+- Fix build on MSVC 2015
+
 # 1.11.0
 
 ## Features
