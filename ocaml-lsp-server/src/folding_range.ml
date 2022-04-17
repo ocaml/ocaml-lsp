@@ -185,6 +185,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_module _
       | Pstr_eval _
       | Pstr_recmodule _
+      | Pstr_extension _
       | Pstr_open _ ->
         Ast_iterator.default_iterator.structure_item self structure_item
       | Pstr_primitive _
@@ -192,8 +193,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_exception _
       | Pstr_class_type _
       | Pstr_include _
-      | Pstr_attribute _
-      | Pstr_extension _ -> ()
+      | Pstr_attribute _ -> ()
     in
 
     { Ast_iterator.default_iterator with
