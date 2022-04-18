@@ -3,7 +3,7 @@
 (library
  (name lsp)
  (public_name lsp)
- (libraries jsonrpc ppx_yojson_conv_lib stdune dyn uutf yojson)
+ (libraries jsonrpc ppx_yojson_conv_lib dyn uutf yojson)
  (lint
   (pps ppx_yojson_conv)))
 

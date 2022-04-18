@@ -35,7 +35,6 @@ possible and does not make any assumptions about IO.
   dyn
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
-  stdune
   (uutf (>= 1.0.2))
   (odoc :with-doc)
   (ocaml (>= 4.12))))

@@ -44,7 +44,7 @@ let placeholder ?index content = Tabstop (index, `Placeholder content)
 
 let choice ?index values =
   match values with
-  | [] -> Code_error.raise "choice must have non empty values" []
+  | [] -> invalid_arg "choice must have non empty values"
   | _ -> Tabstop (index, `Choice values)
 
 let variable ?(opt = `None) var = Variable (var, opt)

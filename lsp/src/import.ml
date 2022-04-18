@@ -9,10 +9,6 @@ module Result = struct
   end
 end
 
-(* TODO remove these last remnants of stdune once there is something public
-   available *)
-module Code_error = Stdune.Code_error
-
 let sprintf = Printf.sprintf
 
 module String = struct
@@ -204,7 +200,7 @@ module Json = struct
         t =
       match f t with
       | `Assoc xs -> `Assoc ((k, `String v) :: xs)
-      | _ -> Code_error.raise "To.literal_field" []
+      | _ -> invalid_arg "To.literal_field"
 
     let int_pair (x, y) = `List [ `Int x; `Int y ]
   end
