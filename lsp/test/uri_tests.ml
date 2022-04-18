@@ -17,7 +17,8 @@ let test_uri_parsing =
 
 let%expect_test "test uri parsing" =
   test_uri_parsing [ "file:///Users/foo"; "file:///c:/Users/foo" ];
-  [%expect {|
+  [%expect
+    {|
     Unix:
     file:///Users/foo -> /Users/foo
     file:///c:/Users/foo -> /c:/Users/foo
@@ -34,7 +35,8 @@ let uri_of_path =
 
 let%expect_test "uri of path" =
   uri_of_path [ "/foo/bar.ml"; "foo/bar.mli" ];
-  [%expect {|
+  [%expect
+    {|
     Unix:
     /foo/bar.ml -> file:///foo/bar.ml
     foo/bar.mli -> file:///foo/bar.mli
