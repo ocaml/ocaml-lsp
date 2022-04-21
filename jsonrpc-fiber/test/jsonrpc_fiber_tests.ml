@@ -263,7 +263,7 @@ let%expect_test "test from jsonrpc_test.ml" =
     Uncaught error when handling notification:
     { "method": "raise", "jsonrpc": "2.0" }
     Error:
-    [ { exn = "Failure(\"special failure\")"; backtrace = "" } ]
+    [ { exn = "(Failure \"special failure\")"; backtrace = "" } ]
     <opaque>
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
