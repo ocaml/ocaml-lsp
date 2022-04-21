@@ -16,7 +16,7 @@ all:
 # results in a conflict
 .PHONY: install-test-deps
 install-test-deps:
-	opam install 'menhir>20211230' cinaps 'ppx_expect>=v0.14.0' \
+	opam install 'menhir>20211230' cinaps 'ppx_expect>=v0.14.0' 'ppxlib=0.26.0' \
 		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat) ocamlformat-rpc
 
 .PHONY: dev
