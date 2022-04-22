@@ -53,6 +53,10 @@ export const start = (opts?: cp.SpawnOptions) => {
 
   connection.listen();
 
+  connection.onDispose(() => {
+    childProcess.kill("SIGKILL");
+  });
+
   return connection as LanguageServer;
 };
 
