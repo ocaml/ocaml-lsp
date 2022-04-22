@@ -713,10 +713,10 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
 
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
     progress document_store ~log =
-  if inside_test then
+  if inside_test then ref Closed
+  else
     create workspaces client_capabilities diagnostics progress document_store
       ~log
-  else ref Closed
 
 let run_loop t =
   Fiber.repeat_while ~init:() ~f:(fun () ->

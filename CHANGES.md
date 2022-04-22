@@ -1,3 +1,9 @@
+# 1.11.3
+
+## Fixes
+
+- Enable dune rpc integration by default (#691, fixes #690)
+
 # 1.11.2
 
 ## Fixes
