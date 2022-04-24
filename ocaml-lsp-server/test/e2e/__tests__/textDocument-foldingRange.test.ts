@@ -113,6 +113,38 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for Pexp_letop", async () => {
+    await openDocument(outdent`
+    let () = 
+      let+ outline =
+        Stdlib.print_endline "one";
+        Stdlib.print_endline "two";
+    in
+    let symbol_info_of_outline_item =
+      Stdlib.print_endline "one";
+      Stdlib.print_endline "two";`);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 29,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 29,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 1,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for match expressions", async () => {
     await openDocument(outdent`
     match 
