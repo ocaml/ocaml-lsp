@@ -181,6 +181,33 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for type_extension", async () => {
+    await openDocument(outdent`
+    type t +=
+      | A
+      | B
+
+    module type Type = sig
+      type t += 
+        | A 
+        | B
+    end
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 3,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 4,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for match expressions", async () => {
     await openDocument(outdent`
     match 
