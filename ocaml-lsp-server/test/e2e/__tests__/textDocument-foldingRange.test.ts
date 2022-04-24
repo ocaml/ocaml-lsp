@@ -152,6 +152,28 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for Pexp_newtype", async () => {
+    await openDocument(outdent`
+    let magic_of_kind : type a . a ast_kind -> string = 
+      let () = 
+        Stdlib.print_endline "one";
+        Stdlib.print_endline "two" 
+      in ()`);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 7,
+          "endLine": 4,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
+
   it("returns folding ranges for match expressions", async () => {
     await openDocument(outdent`
     match 
