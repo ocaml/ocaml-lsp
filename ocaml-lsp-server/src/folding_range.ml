@@ -134,7 +134,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
            expression. See: https://github.com/ocaml/ocaml/pull/10682 *)
         let range = Range.of_loc letop.let_.pbop_loc in
         push range;
-        self.expr self letop.let_.pbop_exp
+        Ast_iterator.default_iterator.expr self expr
       | Pexp_record (bdgs, old_record) ->
         Range.of_loc expr.pexp_loc |> push;
         Option.iter old_record ~f:(self.expr self);
