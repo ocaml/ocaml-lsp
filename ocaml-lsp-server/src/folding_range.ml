@@ -16,6 +16,17 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         (typ_decl : Parsetree.type_declaration) =
       Range.of_loc typ_decl.ptype_loc |> push
     in
+    let type_extension (_self : Ast_iterator.iterator)
+        (typ_ext : Parsetree.type_extension) =
+      let loc = typ_ext.ptyext_path.loc in
+      let last_constr = List.last typ_ext.ptyext_constructors in
+      let loc =
+        match last_constr with
+        | None -> loc
+        | Some { pext_loc; _ } -> { loc with loc_end = pext_loc.loc_end }
+      in
+      Range.of_loc loc |> push
+    in
 
     let module_type_declaration (self : Ast_iterator.iterator)
         (mod_typ_decl : Parsetree.module_type_declaration) =
@@ -193,10 +204,10 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_recmodule _
       | Pstr_extension _
       | Pstr_class_type _
+      | Pstr_typext _
       | Pstr_open _ ->
         Ast_iterator.default_iterator.structure_item self structure_item
       | Pstr_primitive _
-      | Pstr_typext _
       | Pstr_exception _
       | Pstr_include _
       | Pstr_attribute _ -> ()
@@ -217,6 +228,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     ; pat
     ; structure_item
     ; type_declaration
+    ; type_extension
     ; value_binding
     }
   in

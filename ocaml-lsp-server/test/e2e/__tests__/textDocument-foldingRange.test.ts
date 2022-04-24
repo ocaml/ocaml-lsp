@@ -198,11 +198,25 @@ describe("textDocument/foldingRange", () => {
     expect(result).toMatchInlineSnapshot(`
       Array [
         Object {
+          "endCharacter": 5,
+          "endLine": 2,
+          "kind": "region",
+          "startCharacter": 5,
+          "startLine": 0,
+        },
+        Object {
           "endCharacter": 3,
           "endLine": 8,
           "kind": "region",
           "startCharacter": 0,
           "startLine": 4,
+        },
+        Object {
+          "endCharacter": 7,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 7,
+          "startLine": 5,
         },
       ]
     `);
