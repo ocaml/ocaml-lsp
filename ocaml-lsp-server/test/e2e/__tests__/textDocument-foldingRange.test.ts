@@ -701,4 +701,17 @@ describe("textDocument/foldingRange", () => {
       ]
     `);
   });
+
+  it("returns folding ranges for class_type", async () => {
+    await openDocument(outdent`
+    class type foo_t =
+    object
+      inherit castable
+      method foo: string
+    end;;
+`);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`Array []`);
+  });
 });
