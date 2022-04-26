@@ -1,3 +1,11 @@
+# 1.11.4
+
+## Fixes
+
+- Fix bug with large buffers being resized incorrectly in Lev
+
+- Add folding ranges for more AST types (#680)
+
 # 1.11.3
 
 ## Fixes
