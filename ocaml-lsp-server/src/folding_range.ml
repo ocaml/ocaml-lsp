@@ -193,6 +193,11 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       self.module_expr self open_decl.popen_expr
     in
 
+    let value_description (_self : Ast_iterator.iterator)
+        (value_desc : Parsetree.value_description) =
+      Range.of_loc value_desc.pval_loc |> push;
+    in
+
     let structure_item self structure_item =
       match structure_item.Parsetree.pstr_desc with
       | Pstr_value _
@@ -207,10 +212,8 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_typext _
       | Pstr_open _ ->
         Ast_iterator.default_iterator.structure_item self structure_item
-      | Pstr_primitive _
-      | Pstr_exception _
-      | Pstr_include _
-      | Pstr_attribute _ -> ()
+      | Pstr_primitive _ | Pstr_exception _ | Pstr_include _ | Pstr_attribute _
+        -> ()
     in
 
     { Ast_iterator.default_iterator with
@@ -230,6 +233,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     ; type_declaration
     ; type_extension
     ; value_binding
+    ; value_description
     }
   in
   let () =

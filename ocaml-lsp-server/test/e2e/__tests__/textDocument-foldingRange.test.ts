@@ -528,7 +528,6 @@ describe("textDocument/foldingRange", () => {
         ?kind:type_kind -> ?priv:private_flag -> ?manifest:core_type -> str ->
         type_declaration
     end
-    
     `);
 
     let result = await foldingRange();
@@ -540,6 +539,13 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 0,
           "startLine": 0,
+        },
+        Object {
+          "endCharacter": 20,
+          "endLine": 5,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 1,
         },
       ]
     `);
@@ -1024,6 +1030,13 @@ describe("textDocument/foldingRange", () => {
     let result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
       Array [
+        Object {
+          "endCharacter": 40,
+          "endLine": 5,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
         Object {
           "endCharacter": 40,
           "endLine": 5,
