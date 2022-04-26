@@ -485,6 +485,23 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges Pexp_letmodule", async () => {
+    await openDocument(outdent`
+    let module W = Set.Make (struct
+      type t = s
+
+      let compare = cmp
+
+      let print =
+        Stdlib.print_endline "one";
+        Stdlib.print_endline "two"
+    end)
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`Array []`);
+  });
+
   it("traverses Pexp_sequence nodes", async () => {
     await openDocument(outdent`
     let a = 
