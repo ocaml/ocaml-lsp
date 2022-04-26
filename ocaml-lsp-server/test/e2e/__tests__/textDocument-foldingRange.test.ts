@@ -670,4 +670,58 @@ describe("textDocument/foldingRange", () => {
       ]
     `);
   });
+
+  it("traverses Pstr_extension structure item", async () => {
+    await openDocument(outdent`
+    let%expect_test "test from jsonrpc_test.ml" =
+      let a =
+        let b = 5 in
+        6 + 5
+      in
+      Stdlib.print_endline (string_of_int 5)
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 40,
+          "endLine": 5,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 9,
+          "endLine": 3,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 1,
+        },
+      ]
+    `);
+  });
+
+  it("returns folding ranges for class_type", async () => {
+    await openDocument(outdent`
+    class type foo_t =
+    object
+      inherit castable
+      method foo: string
+    end;;
+`);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 3,
+          "endLine": 4,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
 });
