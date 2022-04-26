@@ -7,6 +7,8 @@
   configuration in `.merlin` files rather than calling `dune ocaml-merlin`.
   (#705)
 
+- Support folding more ranges (#692)
+
 # 1.11.6
 
 ## Fixes
