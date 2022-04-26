@@ -137,6 +137,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_function _
       | Pexp_newtype _
       | Pexp_lazy _
+      | Pexp_letexception _
       | Pexp_construct _ -> Ast_iterator.default_iterator.expr self expr
       | Pexp_try (e, cases) | Pexp_match (e, cases) ->
         Range.of_loc expr.pexp_loc |> push;
@@ -175,7 +176,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_new _
       | Pexp_setinstvar _
       | Pexp_override _
-      | Pexp_letexception _
       | Pexp_assert _
       | Pexp_unreachable
       | Pexp_hole -> ()
