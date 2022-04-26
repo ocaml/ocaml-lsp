@@ -401,6 +401,18 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges Pexp_for", async () => {
+    await openDocument(outdent`
+    for j = 0 to Array.length index - 1 do
+      Stdlib.print_endline "one";
+      Stdlib.print_endline "two";
+    done;
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`Array []`);
+  });
+
   it("traverses Pexp_sequence nodes", async () => {
     await openDocument(outdent`
     let a = 
