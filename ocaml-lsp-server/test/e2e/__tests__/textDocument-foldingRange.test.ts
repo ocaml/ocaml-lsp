@@ -563,7 +563,17 @@ describe("textDocument/foldingRange", () => {
     `);
 
     let result = await foldingRange();
-    expect(result).toMatchInlineSnapshot(`Array []`);
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 5,
+          "endLine": 6,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
   });
 
   it("traverses Pexp_lazy nodes", async () => {
@@ -1045,6 +1055,13 @@ describe("textDocument/foldingRange", () => {
     let result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
       Array [
+        Object {
+          "endCharacter": 40,
+          "endLine": 5,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
         Object {
           "endCharacter": 40,
           "endLine": 5,
