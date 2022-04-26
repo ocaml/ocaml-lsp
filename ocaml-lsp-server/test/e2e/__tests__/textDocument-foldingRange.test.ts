@@ -551,6 +551,21 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for Pstr_extension", async () => {
+    await openDocument(outdent`
+    [%%expect{|
+      module type Module =
+        sig
+          module N : sig type t end
+          type t
+        end
+      |}]
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`Array []`);
+  });
+
   it("traverses Pexp_lazy nodes", async () => {
     await openDocument(outdent`
     let res =
@@ -1030,13 +1045,6 @@ describe("textDocument/foldingRange", () => {
     let result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
       Array [
-        Object {
-          "endCharacter": 40,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
         Object {
           "endCharacter": 40,
           "endLine": 5,
