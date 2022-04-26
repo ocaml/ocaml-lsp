@@ -552,6 +552,32 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("traverses Pexp_letexception nodes", async () => {
+    await openDocument(outdent`
+    let decode_map str =
+      let exception Shortcut of error_message in
+      let () =
+        Stdlib.print_endline "one";
+        Stdlib.print_endline "two"
+      in
+      ()
+    in
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 4,
+          "endLine": 6,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
+
   it("traverses Pexp_sequence nodes", async () => {
     await openDocument(outdent`
     let a = 
