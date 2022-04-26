@@ -519,6 +519,32 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges for value_description", async () => {
+    await openDocument(outdent`
+    module Type : sig
+      val mk: ?loc:loc -> ?attrs:attrs -> ?docs:docs -> ?text:text ->
+        ?params:(core_type * (variance * injectivity)) list ->
+        ?cstrs:(core_type * core_type * loc) list ->
+        ?kind:type_kind -> ?priv:private_flag -> ?manifest:core_type -> str ->
+        type_declaration
+    end
+    
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 3,
+          "endLine": 6,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
+
   it("traverses Pexp_lazy nodes", async () => {
     await openDocument(outdent`
     let res =
