@@ -423,6 +423,19 @@ describe("textDocument/foldingRange", () => {
     `);
   });
 
+  it("returns folding ranges Pexp_object", async () => {
+    await openDocument(outdent`
+    object
+      method print =
+        Stdlib.print_enline "one";
+        Stdlib.print_enline "two";
+    end
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`Array []`);
+  });
+
   it("traverses Pexp_sequence nodes", async () => {
     await openDocument(outdent`
     let a = 
