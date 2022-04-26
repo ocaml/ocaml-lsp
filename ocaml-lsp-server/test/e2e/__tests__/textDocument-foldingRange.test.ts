@@ -499,7 +499,24 @@ describe("textDocument/foldingRange", () => {
     `);
 
     let result = await foldingRange();
-    expect(result).toMatchInlineSnapshot(`Array []`);
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 4,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 30,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 5,
+        },
+      ]
+    `);
   });
 
   it("traverses Pexp_sequence nodes", async () => {
