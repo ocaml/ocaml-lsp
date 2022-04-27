@@ -1270,4 +1270,38 @@ describe("textDocument/foldingRange", () => {
       ]
     `);
   });
+
+  it("returns folding ranges for Pmod_functor and Pmod_structure", async () => {
+    await openDocument(outdent`
+    module M =
+      functor (M : S) ->
+        (val x)
+        (struct 
+          type t = int
+          let x = 
+            Stdlib.print_endline "one";
+            Stdlib.print_endline "two";
+        end)
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 8,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 35,
+          "endLine": 7,
+          "kind": "region",
+          "startCharacter": 6,
+          "startLine": 5,
+        },
+      ]
+    `);
+  });
 });
