@@ -1174,4 +1174,28 @@ describe("textDocument/foldingRange", () => {
       ]
     `);
   });
+
+  it("returns folding ranges for class_expr", async () => {
+    await openDocument(outdent`
+    class x =
+      object
+        val x = 3
+        val virtual x : t
+        val! mutable x = 3
+      end
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 3,
+          "endLine": 5,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
 });
