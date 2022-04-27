@@ -1113,6 +1113,13 @@ describe("textDocument/foldingRange", () => {
           "startCharacter": 0,
           "startLine": 0,
         },
+        Object {
+          "endCharacter": 3,
+          "endLine": 4,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 1,
+        },
       ]
     `);
   });
@@ -1147,6 +1154,13 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 2,
           "startLine": 1,
+        },
+        Object {
+          "endCharacter": 7,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 2,
         },
         Object {
           "endCharacter": 47,
@@ -1184,6 +1198,13 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 2,
           "startLine": 1,
+        },
+        Object {
+          "endCharacter": 7,
+          "endLine": 3,
+          "kind": "region",
+          "startCharacter": 4,
+          "startLine": 2,
         },
       ]
     `);
@@ -1238,6 +1259,13 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 0,
           "startLine": 0,
+        },
+        Object {
+          "endCharacter": 5,
+          "endLine": 4,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 1,
         },
       ]
     `);

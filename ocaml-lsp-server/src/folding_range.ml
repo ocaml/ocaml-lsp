@@ -78,6 +78,12 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       Ast_iterator.default_iterator.class_field self class_field
     in
 
+    let class_type (self : Ast_iterator.iterator)
+        (class_type : Parsetree.class_type) =
+      Range.of_loc class_type.pcty_loc |> push;
+      Ast_iterator.default_iterator.class_type self class_type
+    in
+
     let class_type_declaration (self : Ast_iterator.iterator)
         (class_type_decl : Parsetree.class_type_declaration) =
       Range.of_loc class_type_decl.pci_loc |> push;
@@ -242,6 +248,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     ; class_description
     ; class_expr
     ; class_field
+    ; class_type
     ; class_type_declaration
     ; class_type_field
     ; expr
