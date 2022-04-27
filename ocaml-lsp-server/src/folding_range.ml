@@ -54,6 +54,22 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       self.module_type self module_declaration.pmd_type
     in
 
+    let module_expr (self : Ast_iterator.iterator)
+        (module_expr : Parsetree.module_expr) =
+      match module_expr.pmod_desc with
+      | Parsetree.Pmod_functor (_, _) | Parsetree.Pmod_structure _ ->
+        let range = Range.of_loc module_expr.pmod_loc in
+        push range;
+        Ast_iterator.default_iterator.module_expr self module_expr
+      | Parsetree.Pmod_ident _
+      | Parsetree.Pmod_apply (_, _)
+      | Parsetree.Pmod_constraint (_, _)
+      | Parsetree.Pmod_unpack _
+      | Parsetree.Pmod_extension _
+      | Parsetree.Pmod_hole ->
+        Ast_iterator.default_iterator.module_expr self module_expr
+    in
+
     let class_declaration (self : Ast_iterator.iterator)
         (class_decl : Parsetree.class_declaration) =
       class_decl.Parsetree.pci_loc |> Range.of_loc |> push;
@@ -255,6 +271,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     ; extension
     ; module_binding
     ; module_declaration
+    ; module_expr
     ; module_type
     ; module_type_declaration
     ; open_declaration

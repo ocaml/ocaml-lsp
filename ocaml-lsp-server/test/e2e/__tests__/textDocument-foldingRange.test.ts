@@ -83,6 +83,13 @@ describe("textDocument/foldingRange", () => {
           "startLine": 0,
         },
         Object {
+          "endCharacter": 3,
+          "endLine": 3,
+          "kind": "region",
+          "startCharacter": 5,
+          "startLine": 0,
+        },
+        Object {
           "endCharacter": 6,
           "endLine": 2,
           "kind": "region",
@@ -489,6 +496,13 @@ describe("textDocument/foldingRange", () => {
           "startLine": 0,
         },
         Object {
+          "endCharacter": 3,
+          "endLine": 6,
+          "kind": "region",
+          "startCharacter": 18,
+          "startLine": 0,
+        },
+        Object {
           "endCharacter": 30,
           "endLine": 5,
           "kind": "region",
@@ -520,6 +534,13 @@ describe("textDocument/foldingRange", () => {
           "endLine": 8,
           "kind": "region",
           "startCharacter": 0,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 3,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 25,
           "startLine": 0,
         },
         Object {
@@ -962,6 +983,13 @@ describe("textDocument/foldingRange", () => {
           "startLine": 7,
         },
         Object {
+          "endCharacter": 3,
+          "endLine": 56,
+          "kind": "region",
+          "startCharacter": 11,
+          "startLine": 7,
+        },
+        Object {
           "endCharacter": 5,
           "endLine": 18,
           "kind": "region",
@@ -987,6 +1015,13 @@ describe("textDocument/foldingRange", () => {
           "endLine": 31,
           "kind": "region",
           "startCharacter": 2,
+          "startLine": 20,
+        },
+        Object {
+          "endCharacter": 5,
+          "endLine": 31,
+          "kind": "region",
+          "startCharacter": 13,
           "startLine": 20,
         },
         Object {
@@ -1293,6 +1328,20 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 0,
           "startLine": 0,
+        },
+        Object {
+          "endCharacter": 8,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 10,
+          "startLine": 1,
+        },
+        Object {
+          "endCharacter": 7,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 5,
+          "startLine": 3,
         },
         Object {
           "endCharacter": 35,
