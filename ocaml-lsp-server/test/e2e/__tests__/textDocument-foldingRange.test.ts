@@ -1102,4 +1102,32 @@ describe("textDocument/foldingRange", () => {
       ]
     `);
   });
+
+  it("returns folding ranges for class_type_field", async () => {
+    await openDocument(outdent`
+    module type Type = sig
+      class reload_generic :
+        object
+          method select_operation :
+               Cmm.operation
+            -> Cmm.expression list
+            -> Debuginfo.t
+            -> Mach.operation * Cmm.expression list
+        end
+    end
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 3,
+          "endLine": 9,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
 });
