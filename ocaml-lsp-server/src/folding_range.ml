@@ -38,9 +38,11 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let module_type (self : Ast_iterator.iterator)
         (module_type : Parsetree.module_type) =
       match module_type.pmty_desc with
-      | Pmty_signature signature -> self.signature self signature
+      | Pmty_signature _ | Pmty_functor _ ->
+        let range = Range.of_loc module_type.pmty_loc in
+        push range;
+        Ast_iterator.default_iterator.module_type self module_type
       | Pmty_ident _
-      | Pmty_functor _
       | Pmty_with _
       | Pmty_typeof _
       | Pmty_extension _
