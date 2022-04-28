@@ -1353,4 +1353,29 @@ describe("textDocument/foldingRange", () => {
       ]
     `);
   });
+
+  it("returns folding ranges for Pmty_functor and Pmty_signature", async () => {
+    await openDocument(outdent`
+    module type S = 
+      functor (M : S) (_ : module type of M) -> 
+        sig
+          type t =
+            | A
+            | B
+        end
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 7,
+          "endLine": 6,
+          "kind": "region",
+          "startCharacter": 0,
+          "startLine": 0,
+        },
+      ]
+    `);
+  });
 });
