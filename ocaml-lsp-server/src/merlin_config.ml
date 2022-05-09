@@ -48,71 +48,101 @@ module List = struct
   let filter_dup lst = filter_dup' ~equiv:(fun x -> x) lst
 end
 
-type directive = Dot_protocol.directive
+module Config = struct
+  type t =
+    { build_path : string list
+    ; source_path : string list
+    ; cmi_path : string list
+    ; cmt_path : string list
+    ; flags : string list Std.with_workdir list
+    ; extensions : string list
+    ; suffixes : (string * string) list
+    ; stdlib : string option
+    ; reader : string list
+    ; exclude_query_dir : bool
+    }
 
-type config =
-  { build_path : string list
-  ; source_path : string list
-  ; cmi_path : string list
-  ; cmt_path : string list
-  ; flags : string list Std.with_workdir list
-  ; extensions : string list
-  ; suffixes : (string * string) list
-  ; stdlib : string option
-  ; reader : string list
-  ; exclude_query_dir : bool
-  }
+  let empty =
+    { build_path = []
+    ; source_path = []
+    ; cmi_path = []
+    ; cmt_path = []
+    ; extensions = []
+    ; suffixes = []
+    ; flags = []
+    ; stdlib = None
+    ; reader = []
+    ; exclude_query_dir = false
+    }
 
-let empty_config =
-  { build_path = []
-  ; source_path = []
-  ; cmi_path = []
-  ; cmt_path = []
-  ; extensions = []
-  ; suffixes = []
-  ; flags = []
-  ; stdlib = None
-  ; reader = []
-  ; exclude_query_dir = false
-  }
+  (* Parses suffixes pairs that were supplied as whitespace separated pairs
+     designating implementation/interface suffixes. These would be supplied in
+     the .merlin file as:
 
-(* Parses suffixes pairs that were supplied as whitespace separated pairs
-   designating implementation/interface suffixes. These would be supplied in the
-   .merlin file as:
+     SUFFIX .sfx .sfxi *)
+  let parse_suffix str =
+    match
+      let trimmed = String.trim str in
+      String.extract_blank_separated_words trimmed
+    with
+    | [ first; second ] ->
+      if String.get first 0 <> '.' || String.get second 0 <> '.' then []
+      else [ (first, second) ]
+    | _ -> []
 
-   SUFFIX .sfx .sfxi *)
-let parse_suffix str =
-  let trimmed = String.trim str in
-  let split_on_white = String.extract_blank_separated_words trimmed in
-  if List.length split_on_white != 2 then []
-  else
-    let first, second =
-      (List.nth split_on_white 0, List.nth split_on_white 1)
-    in
-    let first = Option.value_exn first in
-    let second = Option.value_exn second in
-    if String.get first 0 <> '.' || String.get second 0 <> '.' then []
-    else [ (first, second) ]
+  let prepend ~dir:cwd (directives : Dot_protocol.directive list) config =
+    List.fold_left ~init:(config, []) directives ~f:(fun (config, errors) ->
+      function
+      | `B path ->
+        ({ config with build_path = path :: config.build_path }, errors)
+      | `S path ->
+        ({ config with source_path = path :: config.source_path }, errors)
+      | `CMI path -> ({ config with cmi_path = path :: config.cmi_path }, errors)
+      | `CMT path -> ({ config with cmt_path = path :: config.cmt_path }, errors)
+      | `EXT exts ->
+        ({ config with extensions = exts @ config.extensions }, errors)
+      | `SUFFIX suffix ->
+        ( { config with suffixes = parse_suffix suffix @ config.suffixes }
+        , errors )
+      | `FLG flags ->
+        let flags = { Std.workdir = cwd; workval = flags } in
+        ({ config with flags = flags :: config.flags }, errors)
+      | `STDLIB path -> ({ config with stdlib = Some path }, errors)
+      | `READER reader -> ({ config with reader }, errors)
+      | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
+      | `ERROR_MSG str -> (config, str :: errors))
 
-let prepend_config ~dir:cwd (directives : directive list) config =
-  List.fold_left ~init:(config, []) directives ~f:(fun (config, errors) ->
-    function
-    | `B path -> ({ config with build_path = path :: config.build_path }, errors)
-    | `S path ->
-      ({ config with source_path = path :: config.source_path }, errors)
-    | `CMI path -> ({ config with cmi_path = path :: config.cmi_path }, errors)
-    | `CMT path -> ({ config with cmt_path = path :: config.cmt_path }, errors)
-    | `EXT exts ->
-      ({ config with extensions = exts @ config.extensions }, errors)
-    | `SUFFIX suffix ->
-      ({ config with suffixes = parse_suffix suffix @ config.suffixes }, errors)
-    | `FLG flags ->
-      let flags = { Std.workdir = cwd; workval = flags } in
-      ({ config with flags = flags :: config.flags }, errors)
-    | `STDLIB path -> ({ config with stdlib = Some path }, errors)
-    | `READER reader -> ({ config with reader }, errors)
-    | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
-    | `ERROR_MSG str -> (config, str :: errors))
+  let postprocess =
+    let clean list = List.rev (List.filter_dup list) in
+    fun config ->
+      { build_path = clean config.build_path
+      ; source_path = clean config.source_path
+      ; cmi_path = clean config.cmi_path
+      ; cmt_path = clean config.cmt_path
+      ; extensions = clean config.extensions
+      ; suffixes = clean config.suffixes
+      ; flags = clean config.flags
+      ; stdlib = config.stdlib
+      ; reader = config.reader
+      ; exclude_query_dir = config.exclude_query_dir
+      }
+
+  let merge t (merlin : Mconfig.merlin) failures config_path =
+    { merlin with
+      build_path = t.build_path @ merlin.build_path
+    ; source_path = t.source_path @ merlin.source_path
+    ; cmi_path = t.cmi_path @ merlin.cmi_path
+    ; cmt_path = t.cmt_path @ merlin.cmt_path
+    ; exclude_query_dir = t.exclude_query_dir || merlin.exclude_query_dir
+    ; extensions = t.extensions @ merlin.extensions
+    ; suffixes = t.suffixes @ merlin.suffixes
+    ; stdlib = (if t.stdlib = None then merlin.stdlib else t.stdlib)
+    ; reader = (if t.reader = [] then merlin.reader else t.reader)
+    ; flags_to_apply = t.flags @ merlin.flags_to_apply
+    ; failures = failures @ merlin.failures
+    ; config_path = Some config_path
+    }
+end
 
 module Process = struct
   type nonrec t =
@@ -164,20 +194,6 @@ module Process = struct
       let initial_cwd = Misc.canonicalize_filename dir in
       { pid; initial_cwd; stdin; stdout; stderr; session }
 end
-
-let postprocess_config config =
-  let clean list = List.rev (List.filter_dup list) in
-  { build_path = clean config.build_path
-  ; source_path = clean config.source_path
-  ; cmi_path = clean config.cmi_path
-  ; cmt_path = clean config.cmt_path
-  ; extensions = clean config.extensions
-  ; suffixes = clean config.suffixes
-  ; flags = clean config.flags
-  ; stdlib = config.stdlib
-  ; reader = config.reader
-  ; exclude_query_dir = config.exclude_query_dir
-  }
 
 type t =
   { running : (string, Process.t) Table.t
@@ -258,11 +274,11 @@ let get_config db { workdir; process_dir } path_abs =
 
   match answer with
   | Ok directives ->
-    let cfg, failures = prepend_config ~dir:workdir directives empty_config in
-    (postprocess_config cfg, failures)
-  | Error (Dot_protocol.Unexpected_output msg) -> (empty_config, [ msg ])
+    let cfg, failures = Config.prepend ~dir:workdir directives Config.empty in
+    (Config.postprocess cfg, failures)
+  | Error (Dot_protocol.Unexpected_output msg) -> (Config.empty, [ msg ])
   | Error (Dot_protocol.Csexp_parse_error _) ->
-    ( empty_config
+    ( Config.empty
     , [ "ocamllsp could not load its configuration from the external reader. \
          Building your project with `dune` might solve this issue."
       ] )
@@ -312,22 +328,5 @@ let get_external_config db (t : Mconfig.t) path =
       | None -> Fiber.return t
       | Some (ctxt, config_path) ->
         let+ dot, failures = get_config db ctxt path in
-        let merlin = t.merlin in
-        let merlin =
-          { merlin with
-            build_path = dot.build_path @ merlin.build_path
-          ; source_path = dot.source_path @ merlin.source_path
-          ; cmi_path = dot.cmi_path @ merlin.cmi_path
-          ; cmt_path = dot.cmt_path @ merlin.cmt_path
-          ; exclude_query_dir =
-              dot.exclude_query_dir || merlin.exclude_query_dir
-          ; extensions = dot.extensions @ merlin.extensions
-          ; suffixes = dot.suffixes @ merlin.suffixes
-          ; stdlib = (if dot.stdlib = None then merlin.stdlib else dot.stdlib)
-          ; reader = (if dot.reader = [] then merlin.reader else dot.reader)
-          ; flags_to_apply = dot.flags @ merlin.flags_to_apply
-          ; failures = failures @ merlin.failures
-          ; config_path = Some config_path
-          }
-        in
+        let merlin = Config.merge dot t.merlin failures config_path in
         Mconfig.normalize { t with merlin })
