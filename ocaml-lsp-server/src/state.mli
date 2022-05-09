@@ -12,7 +12,7 @@ type init =
 type t =
   { store : Document_store.t
   ; merlin : Lev_fiber.Thread.t
-  ; merlin_config : Merlin_config.t
+  ; merlin_config : Merlin_config.DB.t
   ; init : init
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t

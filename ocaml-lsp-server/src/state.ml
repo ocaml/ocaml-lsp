@@ -12,7 +12,7 @@ type init =
 type t =
   { store : Document_store.t
   ; merlin : Lev_fiber.Thread.t
-  ; merlin_config : Merlin_config.t
+  ; merlin_config : Merlin_config.DB.t
   ; init : init
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
@@ -26,7 +26,7 @@ type t =
 let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
     ~symbols_thread ~wheel =
   { init = Uninitialized
-  ; merlin_config = Merlin_config.create ()
+  ; merlin_config = Merlin_config.DB.create ()
   ; store
   ; merlin
   ; detached

@@ -30,7 +30,7 @@ val syntax : t -> Syntax.t
 
 val make :
      Lev_fiber.Timer.Wheel.t
-  -> Merlin_config.t
+  -> Merlin_config.DB.t
   -> merlin_thread:Lev_fiber.Thread.t
   -> DidOpenTextDocumentParams.t
   -> t Fiber.t

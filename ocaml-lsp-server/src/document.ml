@@ -94,7 +94,7 @@ type t =
       ; pipeline : Mpipeline.t Lazy_fiber.t
       ; merlin : Lev_fiber.Thread.t
       ; timer : Lev_fiber.Timer.Wheel.task
-      ; merlin_config : Merlin_config.Ref.t
+      ; merlin_config : Merlin_config.t
       ; syntax : Syntax.t
       }
 
@@ -157,7 +157,7 @@ let version t = Text_document.version (tdoc t)
 
 let make_pipeline merlin_config thread tdoc =
   Lazy_fiber.create (fun () ->
-      let* config = Merlin_config.Ref.config merlin_config in
+      let* config = Merlin_config.config merlin_config in
       let* async_make_pipeline =
         Lev_fiber.Thread.task thread ~f:(fun () ->
             Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
@@ -167,11 +167,11 @@ let make_pipeline merlin_config thread tdoc =
       | Ok s -> s
       | Error e -> Exn_with_backtrace.reraise e)
 
-let make_merlin wheel merlin_config ~merlin_thread tdoc syntax =
+let make_merlin wheel merlin_db ~merlin_thread tdoc syntax =
   let+ timer = Lev_fiber.Timer.Wheel.task wheel in
   let merlin_config =
     let uri = Text_document.documentUri tdoc in
-    Merlin_config.get merlin_config uri
+    Merlin_config.DB.get merlin_db uri
   in
   let pipeline = make_pipeline merlin_config merlin_thread tdoc in
   Merlin
@@ -244,7 +244,7 @@ let close t =
   | Other _ -> Fiber.return ()
   | Merlin t ->
     Fiber.fork_and_join_unit
-      (fun () -> Merlin_config.Ref.destroy t.merlin_config)
+      (fun () -> Merlin_config.destroy t.merlin_config)
       (fun () -> Lev_fiber.Timer.Wheel.cancel t.timer)
 
 let get_impl_intf_counterparts uri =

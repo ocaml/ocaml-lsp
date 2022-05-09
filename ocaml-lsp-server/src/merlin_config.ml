@@ -190,17 +190,10 @@ module Process = struct
       { pid; initial_cwd; stdin; stdout; session }
 end
 
-type t =
+type db =
   { running : (string, Process.t) Table.t
   ; pool : Fiber.Pool.t
   }
-
-let create () =
-  { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
-
-let run t = Fiber.Pool.run t.pool
-
-let stop t = Fiber.Pool.stop t.pool
 
 let get_process t ~dir =
   match Table.find t.running dir with
@@ -318,40 +311,49 @@ let find_project_context start_dir =
   in
   loop None start_dir
 
-module Ref = struct
-  type nonrec t =
-    { path : string
-    ; directory : string
-    ; initial : Mconfig.t
-    ; db : t
+type nonrec t =
+  { path : string
+  ; directory : string
+  ; initial : Mconfig.t
+  ; db : db
+  }
+
+let destroy _ = Fiber.return ()
+
+let create db path =
+  let path =
+    let path = Uri.to_path path in
+    Misc.canonicalize_filename path
+  in
+  let directory = Filename.dirname path in
+  let initial =
+    let filename = Filename.basename path in
+    let init = Mconfig.initial in
+    { init with
+      ocaml = { init.ocaml with real_paths = false }
+    ; query = { init.query with filename; directory }
     }
+  in
+  { path; directory; initial; db }
 
-  let destroy _ = Fiber.return ()
+let config (t : t) : Mconfig.t Fiber.t =
+  let* () = Fiber.return () in
+  match find_project_context t.directory with
+  | None -> Fiber.return t.initial
+  | Some (ctxt, config_path) ->
+    let+ dot, failures = get_config t.db ctxt t.path in
+    let merlin = Config.merge dot t.initial.merlin failures config_path in
+    Mconfig.normalize { t.initial with merlin }
 
-  let create db path =
-    let path =
-      let path = Uri.to_path path in
-      Misc.canonicalize_filename path
-    in
-    let directory = Filename.dirname path in
-    let initial =
-      let filename = Filename.basename path in
-      let init = Mconfig.initial in
-      { init with
-        ocaml = { init.ocaml with real_paths = false }
-      ; query = { init.query with filename; directory }
-      }
-    in
-    { path; directory; initial; db }
+module DB = struct
+  type t = db
 
-  let config (t : t) : Mconfig.t Fiber.t =
-    let* () = Fiber.return () in
-    match find_project_context t.directory with
-    | None -> Fiber.return t.initial
-    | Some (ctxt, config_path) ->
-      let+ dot, failures = get_config t.db ctxt t.path in
-      let merlin = Config.merge dot t.initial.merlin failures config_path in
-      Mconfig.normalize { t.initial with merlin }
+  let get t uri = create t uri
+
+  let create () =
+    { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
+
+  let run t = Fiber.Pool.run t.pool
+
+  let stop t = Fiber.Pool.stop t.pool
 end
-
-let get t uri = Ref.create t uri
