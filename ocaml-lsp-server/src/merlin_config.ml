@@ -29,7 +29,6 @@ open Import
 open Fiber.O
 module Std = Merlin_utils.Std
 module Misc = Merlin_utils.Misc
-module Dot_protocol = Merlin_dot_protocol
 
 module List = struct
   include List
@@ -90,7 +89,8 @@ module Config = struct
       else [ (first, second) ]
     | _ -> []
 
-  let prepend ~dir:cwd (directives : Dot_protocol.directive list) config =
+  let prepend ~dir:cwd (directives : Merlin_dot_protocol.directive list) config
+      =
     List.fold_left ~init:(config, []) directives ~f:(fun (config, errors) ->
       function
       | `B path ->
@@ -229,7 +229,7 @@ type context =
   }
 
 module Dot_protocol_io =
-  Dot_protocol.Make
+  Merlin_dot_protocol.Make
     (Fiber)
     (struct
       include Lev_fiber_csexp.Session
@@ -276,8 +276,8 @@ let get_config db { workdir; process_dir } path_abs =
   | Ok directives ->
     let cfg, failures = Config.prepend ~dir:workdir directives Config.empty in
     (Config.postprocess cfg, failures)
-  | Error (Dot_protocol.Unexpected_output msg) -> (Config.empty, [ msg ])
-  | Error (Dot_protocol.Csexp_parse_error _) ->
+  | Error (Merlin_dot_protocol.Unexpected_output msg) -> (Config.empty, [ msg ])
+  | Error (Csexp_parse_error _) ->
     ( Config.empty
     , [ "ocamllsp could not load its configuration from the external reader. \
          Building your project with `dune` might solve this issue."
