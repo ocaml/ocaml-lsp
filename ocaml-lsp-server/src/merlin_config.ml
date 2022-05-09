@@ -326,6 +326,8 @@ module Ref = struct
     ; db : t
     }
 
+  let destroy _ = Fiber.return ()
+
   let create db path =
     let path =
       let path = Uri.to_path path in

@@ -242,7 +242,10 @@ let doc_comment doc pos =
 let close t =
   match t with
   | Other _ -> Fiber.return ()
-  | Merlin t -> Lev_fiber.Timer.Wheel.cancel t.timer
+  | Merlin t ->
+    Fiber.fork_and_join_unit
+      (fun () -> Merlin_config.Ref.destroy t.merlin_config)
+      (fun () -> Lev_fiber.Timer.Wheel.cancel t.timer)
 
 let get_impl_intf_counterparts uri =
   let fpath = Uri.to_path uri in
