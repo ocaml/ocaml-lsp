@@ -210,7 +210,11 @@ let get_process t ~dir =
     Table.add_exn t.running dir p;
     let+ () =
       Fiber.Pool.task t.pool ~f:(fun () ->
-          let+ _status = Lev_fiber.waitpid ~pid:(Pid.to_int p.pid) in
+          let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int p.pid) in
+          (match status with
+          | Unix.WEXITED n when n <> 0 ->
+            Format.eprintf "dune finished with code = %d@.%!" n
+          | _ -> ());
           Lev_fiber.Io.close p.stdin;
           Lev_fiber.Io.close p.stdout;
           Table.remove t.running dir)
