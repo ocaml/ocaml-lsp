@@ -1,3 +1,8 @@
+# 1.11.5
+
+- Forward stderr from dune's merlin configuration to the lsp server's stderr
+  (#697)
+
 # 1.11.4
 
 ## Fixes

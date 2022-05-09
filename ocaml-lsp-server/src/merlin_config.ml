@@ -150,7 +150,6 @@ module Process = struct
     ; initial_cwd : string
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
     ; stdout : Lev_fiber.Io.input Lev_fiber.Io.t
-    ; stderr : Lev_fiber.Io.input Lev_fiber.Io.t
     ; session : Lev_fiber_csexp.Session.t
     }
 
@@ -164,23 +163,20 @@ module Process = struct
       let prog = Fpath.to_string prog in
       let stdin_r, stdin_w = Unix.pipe () in
       let stdout_r, stdout_w = Unix.pipe () in
-      let stderr_r, stderr_w = Unix.pipe () in
       Unix.set_close_on_exec stdin_w;
       let pid =
         let argv = [ prog; "ocaml-merlin"; "--no-print-directory" ] in
         Pid.of_int
           (Spawn.spawn ~cwd:(Path dir) ~prog ~argv ~stdin:stdin_r
-             ~stdout:stdout_w ~stderr:stderr_w ())
+             ~stdout:stdout_w ())
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
-      Unix.close stderr_w;
       let blockity =
         if Sys.win32 then `Blocking
         else (
           Unix.set_nonblock stdin_w;
           Unix.set_nonblock stdout_r;
-          Unix.set_nonblock stderr_r;
           `Non_blocking true)
       in
       let make fd what =
@@ -188,11 +184,10 @@ module Process = struct
         Lev_fiber.Io.create fd what
       in
       let* stdin = make stdin_w Output in
-      let* stdout = make stdout_r Input in
-      let+ stderr = make stderr_r Input in
+      let+ stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
       let initial_cwd = Misc.canonicalize_filename dir in
-      { pid; initial_cwd; stdin; stdout; stderr; session }
+      { pid; initial_cwd; stdin; stdout; session }
 end
 
 type t =
@@ -218,7 +213,6 @@ let get_process t ~dir =
           let+ _status = Lev_fiber.waitpid ~pid:(Pid.to_int p.pid) in
           Lev_fiber.Io.close p.stdin;
           Lev_fiber.Io.close p.stdout;
-          Lev_fiber.Io.close p.stderr;
           Table.remove t.running dir)
     in
     p
