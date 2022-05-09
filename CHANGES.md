@@ -1,5 +1,8 @@
 # 1.11.5
 
+- Fix process termination. Once the lsp server is stepped, the process will
+  gracefully terminate (#697, fixes #694)
+
 - Forward stderr from dune's merlin configuration to the lsp server's stderr
   (#697)
 

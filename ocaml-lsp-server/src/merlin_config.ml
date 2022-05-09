@@ -153,6 +153,15 @@ module Process = struct
     ; session : Lev_fiber_csexp.Session.t
     }
 
+  let waitpid t =
+    let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
+    (match status with
+    | Unix.WEXITED n when n <> 0 ->
+      Format.eprintf "dune finished with code = %d@.%!" n
+    | _ -> ());
+    Lev_fiber.Io.close t.stdin;
+    Lev_fiber.Io.close t.stdout
+
   let start ~dir =
     match Bin.which "dune" with
     | None ->
@@ -190,35 +199,6 @@ module Process = struct
       { pid; initial_cwd; stdin; stdout; session }
 end
 
-type db =
-  { running : (string, Process.t) Table.t
-  ; pool : Fiber.Pool.t
-  }
-
-let get_process t ~dir =
-  match Table.find t.running dir with
-  | Some p -> Fiber.return p
-  | None ->
-    let* p = Process.start ~dir in
-    Table.add_exn t.running dir p;
-    let+ () =
-      Fiber.Pool.task t.pool ~f:(fun () ->
-          let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int p.pid) in
-          (match status with
-          | Unix.WEXITED n when n <> 0 ->
-            Format.eprintf "dune finished with code = %d@.%!" n
-          | _ -> ());
-          Lev_fiber.Io.close p.stdin;
-          Lev_fiber.Io.close p.stdout;
-          Table.remove t.running dir)
-    in
-    p
-
-type context =
-  { workdir : string
-  ; process_dir : string
-  }
-
 module Dot_protocol_io =
   Merlin_dot_protocol.Make
     (Fiber)
@@ -228,12 +208,55 @@ module Dot_protocol_io =
       let write t x = write t (Some [ x ])
     end)
 
-let get_config db { workdir; process_dir } path_abs =
+type db =
+  { running : (string, entry) Table.t
+  ; pool : Fiber.Pool.t
+  }
+
+and entry =
+  { db : db
+  ; process : Process.t
+  ; mutable ref_count : int
+  }
+
+module Entry = struct
+  type t = entry
+
+  let create db process = { db; process; ref_count = 0 }
+
+  let equal = ( == )
+
+  let incr t = t.ref_count <- t.ref_count + 1
+
+  let destroy (t : t) =
+    assert (t.ref_count > 0);
+    t.ref_count <- t.ref_count - 1;
+    if t.ref_count > 0 then Fiber.return ()
+    else (
+      Table.remove t.db.running t.process.initial_cwd;
+      Dot_protocol_io.Commands.halt t.process.session)
+end
+
+let get_process t ~dir =
+  match Table.find t.running dir with
+  | Some p -> Fiber.return p
+  | None ->
+    let* process = Process.start ~dir in
+    let entry = Entry.create t process in
+    Table.add_exn t.running dir entry;
+    let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
+    entry
+
+type context =
+  { workdir : string
+  ; process_dir : string
+  }
+
+let get_config (p : Process.t) ~workdir path_abs =
   let query path (p : Process.t) =
     let* () = Dot_protocol_io.Commands.send_file p.session path in
     Dot_protocol_io.read p.session
   in
-  let* p = get_process db ~dir:process_dir in
   (* Both [p.initial_cwd] and [path_abs] have gone through
      [canonicalize_filename] *)
   let path_rel =
@@ -315,10 +338,16 @@ type nonrec t =
   { path : string
   ; directory : string
   ; initial : Mconfig.t
+  ; mutable entry : Entry.t option
   ; db : db
   }
 
-let destroy _ = Fiber.return ()
+let destroy t =
+  match t.entry with
+  | None -> Fiber.return ()
+  | Some entry ->
+    t.entry <- None;
+    Entry.destroy entry
 
 let create db path =
   let path =
@@ -334,14 +363,32 @@ let create db path =
     ; query = { init.query with filename; directory }
     }
   in
-  { path; directory; initial; db }
+  { path; directory; initial; db; entry = None }
 
 let config (t : t) : Mconfig.t Fiber.t =
+  let use_entry entry =
+    Entry.incr entry;
+    t.entry <- Some entry
+  in
   let* () = Fiber.return () in
   match find_project_context t.directory with
-  | None -> Fiber.return t.initial
-  | Some (ctxt, config_path) ->
-    let+ dot, failures = get_config t.db ctxt t.path in
+  | None ->
+    let+ () = destroy t in
+    t.initial
+  | Some (ctx, config_path) ->
+    let* entry = get_process t.db ~dir:ctx.process_dir in
+    let* () =
+      match t.entry with
+      | None ->
+        use_entry entry;
+        Fiber.return ()
+      | Some entry' ->
+        if Entry.equal entry entry' then Fiber.return ()
+        else
+          let+ () = destroy t in
+          use_entry entry
+    in
+    let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
     let merlin = Config.merge dot t.initial.merlin failures config_path in
     Mconfig.normalize { t.initial with merlin }
 
