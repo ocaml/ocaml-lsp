@@ -94,7 +94,7 @@ type t =
       ; pipeline : Mpipeline.t Lazy_fiber.t
       ; merlin : Lev_fiber.Thread.t
       ; timer : Lev_fiber.Timer.Wheel.task
-      ; merlin_config : Merlin_config.t
+      ; merlin_config : Merlin_config.Ref.t
       ; syntax : Syntax.t
       }
 
@@ -155,26 +155,9 @@ let with_pipeline_exn doc f =
 
 let version t = Text_document.version (tdoc t)
 
-let make_config db uri =
-  let path = Uri.to_path uri in
-  let mconfig = Mconfig.initial in
-  let path = Merlin_utils.Misc.canonicalize_filename path in
-  let filename = Filename.basename path in
-  let directory = Filename.dirname path in
-  let mconfig =
-    { mconfig with
-      ocaml = { mconfig.ocaml with real_paths = false }
-    ; query = { mconfig.query with filename; directory }
-    }
-  in
-  Merlin_config.get_external_config db mconfig path
-
 let make_pipeline merlin_config thread tdoc =
   Lazy_fiber.create (fun () ->
-      let* config =
-        let uri = Text_document.documentUri tdoc in
-        make_config merlin_config uri
-      in
+      let* config = Merlin_config.Ref.config merlin_config in
       let* async_make_pipeline =
         Lev_fiber.Thread.task thread ~f:(fun () ->
             Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
@@ -186,6 +169,10 @@ let make_pipeline merlin_config thread tdoc =
 
 let make_merlin wheel merlin_config ~merlin_thread tdoc syntax =
   let+ timer = Lev_fiber.Timer.Wheel.task wheel in
+  let merlin_config =
+    let uri = Text_document.documentUri tdoc in
+    Merlin_config.get merlin_config uri
+  in
   let pipeline = make_pipeline merlin_config merlin_thread tdoc in
   Merlin
     { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer; syntax }

@@ -318,13 +318,38 @@ let find_project_context start_dir =
   in
   loop None start_dir
 
-let get_external_config db (t : Mconfig.t) path =
-  Fiber.of_thunk (fun () ->
-      let path = Misc.canonicalize_filename path in
-      let directory = Filename.dirname path in
-      match find_project_context directory with
-      | None -> Fiber.return t
-      | Some (ctxt, config_path) ->
-        let+ dot, failures = get_config db ctxt path in
-        let merlin = Config.merge dot t.merlin failures config_path in
-        Mconfig.normalize { t with merlin })
+module Ref = struct
+  type nonrec t =
+    { path : string
+    ; directory : string
+    ; initial : Mconfig.t
+    ; db : t
+    }
+
+  let create db path =
+    let path =
+      let path = Uri.to_path path in
+      Misc.canonicalize_filename path
+    in
+    let directory = Filename.dirname path in
+    let initial =
+      let filename = Filename.basename path in
+      let init = Mconfig.initial in
+      { init with
+        ocaml = { init.ocaml with real_paths = false }
+      ; query = { init.query with filename; directory }
+      }
+    in
+    { path; directory; initial; db }
+
+  let config (t : t) : Mconfig.t Fiber.t =
+    let* () = Fiber.return () in
+    match find_project_context t.directory with
+    | None -> Fiber.return t.initial
+    | Some (ctxt, config_path) ->
+      let+ dot, failures = get_config t.db ctxt t.path in
+      let merlin = Config.merge dot t.initial.merlin failures config_path in
+      Mconfig.normalize { t.initial with merlin }
+end
+
+let get t uri = Ref.create t uri
