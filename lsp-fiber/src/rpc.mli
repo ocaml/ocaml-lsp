@@ -1,3 +1,5 @@
+(** * This encodes LSP RPC state machine. *)
+
 open! Import
 
 module Reply : sig
