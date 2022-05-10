@@ -195,8 +195,7 @@ module Process = struct
       let* stdin = make stdin_w Output in
       let+ stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
-      let initial_cwd = Misc.canonicalize_filename dir in
-      { pid; initial_cwd; stdin; stdout; session }
+      { pid; initial_cwd = dir; stdin; stdout; session }
 end
 
 module Dot_protocol_io =
@@ -319,7 +318,9 @@ let find_project_context start_dir =
       List.find_map [ "dune-project"; "dune-workspace" ] ~f:(fun f ->
           let fname = Filename.concat dir f in
           if file_exists fname then
-            let workdir = Option.value ~default:dir workdir in
+            let workdir =
+              Misc.canonicalize_filename (Option.value ~default:dir workdir)
+            in
             Some ({ workdir; process_dir = dir }, fname)
           else None)
     with
