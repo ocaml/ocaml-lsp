@@ -88,8 +88,6 @@ module End_to_end_client = struct
 end
 
 module End_to_end_server = struct
-  module Server = Rpc.Server
-
   type status =
     | Started
     | Initialized

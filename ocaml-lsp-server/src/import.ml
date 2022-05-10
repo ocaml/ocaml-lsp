@@ -102,7 +102,7 @@ module Browse_raw = Merlin_specific.Browse_raw
    listed alphabetically. Try to keep the order. *)
 include struct
   open Lsp_fiber
-  module Log = Import.Log
+  module Log = Private.Log
   module Reply = Rpc.Reply
   module Server = Server
   module Lazy_fiber = Lsp_fiber.Lazy_fiber
