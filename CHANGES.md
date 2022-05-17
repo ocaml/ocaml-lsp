@@ -1,3 +1,7 @@
+# 1.11.6
+
+- Stop leaking file descriptors like a sieve (#701)
+
 # 1.11.5
 
 - Fix process termination. Once the lsp server is stepped, the process will
