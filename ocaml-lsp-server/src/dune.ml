@@ -378,17 +378,26 @@ end = struct
         (fun () -> Csexp_rpc.connect sock sockaddr)
     in
     match session with
-    | Error exns ->
+    | Error exns -> (
       Lev_fiber.Fd.close sock;
-      let message =
-        let exn = List.hd exns in
-        Format.asprintf "unable to connect to dune %s@.%a"
-          (Registry.Dune.root source)
-          Exn_with_backtrace.pp_uncaught exn
-      in
-      let+ () = t.config.log ~type_:Error ~message in
-      t.state <- Finished;
-      Error ()
+      match
+        List.filter exns ~f:(fun exn ->
+            match exn with
+            | { Exn_with_backtrace.exn = Unix.Unix_error (ECONNREFUSED, _, _)
+              ; _
+              } -> false
+            | _ -> true)
+      with
+      | [] -> Fiber.return (Error ())
+      | exn :: _ ->
+        let message =
+          Format.asprintf "unable to connect to dune %s@.%a"
+            (Registry.Dune.root source)
+            Exn_with_backtrace.pp_uncaught exn
+        in
+        let+ () = t.config.log ~type_:Error ~message in
+        t.state <- Finished;
+        Error ())
     | Ok session ->
       t.state <- Connected (session, where);
       Fiber.return (Ok ())
