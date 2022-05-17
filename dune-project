@@ -53,7 +53,7 @@ possible and does not make any assumptions about IO.
   dune-rpc
   dyn
   stdune
-  fiber
+  (fiber (>= 3.1.1))
   xdg
   ordering
   dune-build-info
