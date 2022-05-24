@@ -63,6 +63,7 @@ possible and does not make any assumptions about IO.
   (uutf (>= 1.0.2))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
+  (bos :with-test)
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
   (ocaml (and (>= 4.14) (< 4.15)))))

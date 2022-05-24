@@ -17,7 +17,7 @@ all:
 .PHONY: install-test-deps
 install-test-deps:
 	opam install 'menhir>20211230' cinaps 'ppx_expect>=v0.14.0' 'sexplib0.v0.14.0' \
-		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat) ocamlformat-rpc
+		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat) ocamlformat-rpc bos
 
 .PHONY: dev
 dev: ## Setup a development environment
@@ -48,7 +48,7 @@ check:
 
 .PHONY: test-e2e
 test-e2e: $(TEST_E2E_DIR)/node_modules ## Run the template integration tests
-	dune build @install && cd $(TEST_E2E_DIR) && dune exec -- yarn test
+	dune build @install && dune exec -- ocaml-lsp-server/test/run_test.exe
 
 .PHONY: promote-e2e
 promote-e2e: $(TEST_E2E_DIR)/node_modules
