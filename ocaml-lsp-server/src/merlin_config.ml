@@ -142,6 +142,31 @@ module Config = struct
     ; failures = failures @ merlin.failures
     ; config_path = Some config_path
     }
+
+  let of_mconfig
+      { Mconfig.build_path
+      ; source_path
+      ; cmi_path
+      ; cmt_path
+      ; exclude_query_dir
+      ; extensions
+      ; suffixes
+      ; stdlib
+      ; reader
+      ; flags_to_apply
+      ; _
+      } =
+    { build_path
+    ; source_path
+    ; cmi_path
+    ; cmt_path
+    ; exclude_query_dir
+    ; extensions
+    ; suffixes
+    ; stdlib
+    ; reader
+    ; flags = flags_to_apply
+    }
 end
 
 module Process = struct
@@ -378,27 +403,30 @@ let config (t : t) : Mconfig.t Fiber.t =
     let+ () = destroy t in
     t.initial
   | Some (ctx, config_path) ->
-    if t.db.read_dot_merlin then
-      let config = Mconfig.get_external_config t.path t.initial in
-      Fiber.return config
-    else
-      let* entry = get_process t.db ~dir:ctx.process_dir in
-      let* () =
-        match t.entry with
-        | None ->
-          use_entry entry;
-          Fiber.return ()
-        | Some entry' ->
-          if Entry.equal entry entry' then Fiber.return ()
-          else
-            let+ () = destroy t in
-            use_entry entry
-      in
-      let+ dot, failures =
-        get_config entry.process ~workdir:ctx.workdir t.path
-      in
-      let merlin = Config.merge dot t.initial.merlin failures config_path in
-      Mconfig.normalize { t.initial with merlin }
+    let config_from_dot_merlin =
+      if t.db.read_dot_merlin then Mconfig.get_external_config t.path t.initial
+      else Mconfig.initial
+    in
+    let* entry = get_process t.db ~dir:ctx.process_dir in
+    let* () =
+      match t.entry with
+      | None ->
+        use_entry entry;
+        Fiber.return ()
+      | Some entry' ->
+        if Entry.equal entry entry' then Fiber.return ()
+        else
+          let+ () = destroy t in
+          use_entry entry
+    in
+    let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
+    let merlin = Config.merge dot t.initial.merlin failures config_path in
+    let merlin =
+      Config.merge
+        (Config.of_mconfig config_from_dot_merlin.merlin)
+        merlin config_from_dot_merlin.merlin.failures config_path
+    in
+    Mconfig.normalize { t.initial with merlin }
 
 module DB = struct
   type t = db
