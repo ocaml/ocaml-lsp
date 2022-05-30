@@ -4,7 +4,7 @@ let () =
   let read_dot_merlin = ref false in
   Arg.parse
     [ ("--version", Arg.Set version, "print version")
-    ; ( "--read-dot-merlin"
+    ; ( "--fallback-read-dot-merlin"
       , Arg.Set read_dot_merlin
       , "read Merlin config from .merlin files. The `dot-merlin-reader` \
          package must be installed" )
