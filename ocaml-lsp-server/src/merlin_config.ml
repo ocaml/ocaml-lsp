@@ -142,31 +142,6 @@ module Config = struct
     ; failures = failures @ merlin.failures
     ; config_path = Some config_path
     }
-
-  let of_mconfig
-      { Mconfig.build_path
-      ; source_path
-      ; cmi_path
-      ; cmt_path
-      ; exclude_query_dir
-      ; extensions
-      ; suffixes
-      ; stdlib
-      ; reader
-      ; flags_to_apply
-      ; _
-      } =
-    { build_path
-    ; source_path
-    ; cmi_path
-    ; cmt_path
-    ; exclude_query_dir
-    ; extensions
-    ; suffixes
-    ; stdlib
-    ; reader
-    ; flags = flags_to_apply
-    }
 end
 
 module Process = struct
@@ -402,11 +377,7 @@ let config (t : t) : Mconfig.t Fiber.t =
   | None ->
     let+ () = destroy t in
     t.initial
-  | Some (ctx, config_path) ->
-    let config_from_dot_merlin =
-      if t.db.read_dot_merlin then Mconfig.get_external_config t.path t.initial
-      else Mconfig.initial
-    in
+  | Some (ctx, config_path) -> (
     let* entry = get_process t.db ~dir:ctx.process_dir in
     let* () =
       match t.entry with
@@ -420,13 +391,21 @@ let config (t : t) : Mconfig.t Fiber.t =
           use_entry entry
     in
     let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
-    let merlin = Config.merge dot t.initial.merlin failures config_path in
-    let merlin =
-      Config.merge
-        (Config.of_mconfig config_from_dot_merlin.merlin)
-        merlin config_from_dot_merlin.merlin.failures config_path
-    in
-    Mconfig.normalize { t.initial with merlin }
+
+    if dot <> Config.empty then
+      let merlin = Config.merge dot t.initial.merlin failures config_path in
+      Mconfig.normalize { t.initial with merlin }
+    else
+      let config_from_dot_merlin =
+        if t.db.read_dot_merlin then
+          Some (Mconfig.get_external_config t.path t.initial)
+        else None
+      in
+      match config_from_dot_merlin with
+      | None ->
+        let merlin = Config.merge dot t.initial.merlin failures config_path in
+        Mconfig.normalize { t.initial with merlin }
+      | Some config_from_dot_merlin -> Mconfig.normalize config_from_dot_merlin)
 
 module DB = struct
   type t = db
