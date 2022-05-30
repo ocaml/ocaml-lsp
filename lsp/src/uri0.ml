@@ -42,10 +42,7 @@ let to_dyn { scheme; authority; path } =
 
 let to_path t =
   let path = t.path |> Uri.pct_decode in
-  if Sys.win32 then
-    path
-  else
-    Filename.concat "/" path
+  if Sys.win32 then path else Filename.concat "/" path
 
 let of_path (path : string) =
   let path = Uri_lexer.escape_path path in

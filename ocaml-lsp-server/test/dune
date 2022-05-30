@@ -20,10 +20,5 @@
   (pps ppx_expect)))
 
 (executable
- (modules run_test)
- (name run_test))
-
-(rule
- (alias run_test)
- (action
-  (run %{exe:run_test.exe})))
+ (modules run_test_e2e)
+ (name run_test_e2e))

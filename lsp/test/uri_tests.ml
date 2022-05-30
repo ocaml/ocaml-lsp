@@ -28,9 +28,9 @@ let%expect_test "test uri parsing" =
     file:///c:/Users/foo -> /c:/Users/foo
     file:///n%C3%A9w/lib%20copy%281%29.ml -> /néw/lib copy(1).ml
     Windows:
-    file:///Users/foo -> /Users/foo
-    file:///c:/Users/foo -> /c:/Users/foo
-    file:///n%C3%A9w/lib%20copy%281%29.ml -> /néw/lib copy(1).ml |}]
+    file:///Users/foo -> Users/foo
+    file:///c:/Users/foo -> c:/Users/foo
+    file:///n%C3%A9w/lib%20copy%281%29.ml -> néw/lib copy(1).ml |}]
 
 let uri_of_path =
   let test path =
