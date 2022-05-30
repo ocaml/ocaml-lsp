@@ -143,7 +143,14 @@ let with_pipeline (t : t) f =
     let* pipeline = Lazy_fiber.force t.pipeline in
     let* task =
       Lev_fiber.Thread.task t.merlin ~f:(fun () ->
-          Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
+          match
+            Exn_with_backtrace.try_with (fun () ->
+                Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
+          with
+          | Ok ret -> ret
+          | Error exn ->
+            Code_error.raise "Document.merlin"
+              [ ("exn", Exn_with_backtrace.to_dyn exn) ])
     in
     await task
 
