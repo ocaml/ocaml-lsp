@@ -19,9 +19,11 @@ let createWorkspaces = (names: string[]) => {
 
   let workspaces = names.map(createSingleWorkspace);
 
+  console.log(workspaces);
+
   let toTestResult = (symbol: Types.SymbolInformation) =>
     `${symbol.name} ${symbol.kind} ${workspaces.reduce(
-      (uri, { path, name }) => uri.replace(path, `<${name}>`),
+      (symbolUri, { uri, name }) => symbolUri.replace(uri, `<${name}>`),
       symbol.location.uri,
     )} ${symbol.location.range.start.line}:${
       symbol.location.range.start.character
@@ -112,7 +114,7 @@ describe("workspace/symbol", () => {
     `);
   });
 
-  it("returns filtered symbols from workspace", async () => {
+  it.only("returns filtered symbols from workspace", async () => {
     languageServer = await LanguageServer.startAndInitialize({
       workspaceFolders: [workspaceA.folder],
     });
@@ -122,6 +124,8 @@ describe("workspace/symbol", () => {
     let symbols: Types.SymbolInformation[] = await queryWorkspaceSymbol({
       query: "a_",
     });
+
+    console.log(symbols);
 
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
       Array [
@@ -201,7 +205,8 @@ describe("workspace/symbol", () => {
     child_process.execSync("dune clean", { cwd: workspaceA.path });
     child_process.execSync("dune clean", { cwd: workspaceB.path });
 
-    type StarNotificationHandlerParams = Parameters<Protocol.StarNotificationHandler>;
+    type StarNotificationHandlerParams =
+      Parameters<Protocol.StarNotificationHandler>;
     let receivedNotification: Promise<{
       method: StarNotificationHandlerParams[0];
       params: StarNotificationHandlerParams[1];

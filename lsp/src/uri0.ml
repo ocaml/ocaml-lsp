@@ -45,5 +45,5 @@ let to_path t =
   if Sys.win32 then path else Filename.concat "/" path
 
 let of_path (path : string) =
-  let path = Uri_lexer.escape_path path in
-  { path; scheme = Some "file"; authority = "" }
+  let path = Uri.of_string path in
+  { path = Uri.to_string path; scheme = Some "file"; authority = "" }
