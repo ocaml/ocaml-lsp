@@ -6,7 +6,8 @@ let () =
     [ ("--version", Arg.Set version, "print version")
     ; ( "--read-dot-merlin"
       , Arg.Set read_dot_merlin
-      , "read Merlin config from .merlin files" )
+      , "read Merlin config from .merlin files. The `dot-merlin-reader` \
+         package must be installed" )
     ]
     (fun _ -> raise (Arg.Bad "anonymous arguments are not accepted"))
     "ocamllsp";
