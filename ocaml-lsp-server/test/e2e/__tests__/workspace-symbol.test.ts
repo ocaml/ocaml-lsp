@@ -99,6 +99,7 @@ describe("workspace/symbol", () => {
         "a_b_t 15 file://<workspace_symbol_A>/bin/a.ml 3:2 3:21",
         "a_x 12 file://<workspace_symbol_A>/bin/a.ml 0:0 0:11",
         "main_y 12 file://<workspace_symbol_A>/bin/main.ml 0:0 0:22",
+        "vendored_x 12 file://<workspace_symbol_A>/lib/lib.ml 14:0 14:31",
         "lib_type 12 file://<workspace_symbol_A>/lib/lib.ml 12:0 12:38",
         "lib_private_fn 12 file://<workspace_symbol_A>/lib/lib.ml 10:0 10:38",
         "hd 12 file://<workspace_symbol_A>/lib/lib.ml 8:0 8:16",
@@ -106,6 +107,7 @@ describe("workspace/symbol", () => {
         "user 15 file://<workspace_symbol_A>/lib/lib.ml 3:0 5:1",
         "name 7 file://<workspace_symbol_A>/lib/lib.ml 4:2 4:14",
         "t 15 file://<workspace_symbol_A>/lib/LibTypes.mli 0:0 0:15",
+        "x 12 file://<workspace_symbol_A>/vendor/vendored_lib.ml 0:0 0:9",
       ]
     `);
   });
@@ -177,6 +179,7 @@ describe("workspace/symbol", () => {
         "a_b_t 15 file://<workspace_symbol_A>/bin/a.ml 3:2 3:21",
         "a_x 12 file://<workspace_symbol_A>/bin/a.ml 0:0 0:11",
         "main_y 12 file://<workspace_symbol_A>/bin/main.ml 0:0 0:22",
+        "vendored_x 12 file://<workspace_symbol_A>/lib/lib.ml 14:0 14:31",
         "lib_type 12 file://<workspace_symbol_A>/lib/lib.ml 12:0 12:38",
         "lib_private_fn 12 file://<workspace_symbol_A>/lib/lib.ml 10:0 10:38",
         "hd 12 file://<workspace_symbol_A>/lib/lib.ml 8:0 8:16",
@@ -184,6 +187,7 @@ describe("workspace/symbol", () => {
         "user 15 file://<workspace_symbol_A>/lib/lib.ml 3:0 5:1",
         "name 7 file://<workspace_symbol_A>/lib/lib.ml 4:2 4:14",
         "t 15 file://<workspace_symbol_A>/lib/LibTypes.mli 0:0 0:15",
+        "x 12 file://<workspace_symbol_A>/vendor/vendored_lib.ml 0:0 0:9",
         "workspace_B 12 file://<workspace_symbol_B>/main.ml 0:0 0:31",
       ]
     `);

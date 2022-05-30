@@ -1391,8 +1391,7 @@ module ChangeAnnotation = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_description then
-           bnds
+         if None = v_description then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_description
@@ -1401,8 +1400,7 @@ module ChangeAnnotation = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_needsConfirmation then
-           bnds
+         if None = v_needsConfirmation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -1509,8 +1507,7 @@ module DeleteFileOptions = struct
      | { recursive = v_recursive; ignoreIfNotExists = v_ignoreIfNotExists } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_ignoreIfNotExists then
-           bnds
+         if None = v_ignoreIfNotExists then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -1520,8 +1517,7 @@ module DeleteFileOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_recursive then
-           bnds
+         if None = v_recursive then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_recursive
@@ -1647,8 +1643,7 @@ module DeleteFile = struct
      | { uri = v_uri; options = v_options; annotationId = v_annotationId } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_annotationId then
-           bnds
+         if None = v_annotationId then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -1659,8 +1654,7 @@ module DeleteFile = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_options then
-           bnds
+         if None = v_options then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DeleteFileOptions.yojson_of_t)
@@ -1773,8 +1767,7 @@ module RenameFileOptions = struct
      | { overwrite = v_overwrite; ignoreIfExists = v_ignoreIfExists } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_ignoreIfExists then
-           bnds
+         if None = v_ignoreIfExists then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_ignoreIfExists
@@ -1783,8 +1776,7 @@ module RenameFileOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_overwrite then
-           bnds
+         if None = v_overwrite then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_overwrite
@@ -1930,8 +1922,7 @@ module RenameFile = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_annotationId then
-           bnds
+         if None = v_annotationId then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -1942,8 +1933,7 @@ module RenameFile = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_options then
-           bnds
+         if None = v_options then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t RenameFileOptions.yojson_of_t)
@@ -2061,8 +2051,7 @@ module CreateFileOptions = struct
      | { overwrite = v_overwrite; ignoreIfExists = v_ignoreIfExists } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_ignoreIfExists then
-           bnds
+         if None = v_ignoreIfExists then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_ignoreIfExists
@@ -2071,8 +2060,7 @@ module CreateFileOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_overwrite then
-           bnds
+         if None = v_overwrite then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_overwrite
@@ -2198,8 +2186,7 @@ module CreateFile = struct
      | { uri = v_uri; options = v_options; annotationId = v_annotationId } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_annotationId then
-           bnds
+         if None = v_annotationId then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -2210,8 +2197,7 @@ module CreateFile = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_options then
-           bnds
+         if None = v_options then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t CreateFileOptions.yojson_of_t)
@@ -2421,8 +2407,7 @@ module OptionalVersionedTextDocumentIdentifier = struct
      | { uri = v_uri; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version then
-           bnds
+         if None = v_version then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Integer.yojson_of_t) v_version
@@ -2705,8 +2690,7 @@ module WorkspaceEdit = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_changeAnnotations then
-           bnds
+         if None = v_changeAnnotations then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -2718,8 +2702,7 @@ module WorkspaceEdit = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentChanges then
-           bnds
+         if None = v_documentChanges then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -2730,8 +2713,7 @@ module WorkspaceEdit = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_changes then
-           bnds
+         if None = v_changes then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -2845,8 +2827,7 @@ module ApplyWorkspaceEditParams = struct
          ("edit", arg) :: bnds
        in
        let bnds =
-         if None = v_label then
-           bnds
+         if None = v_label then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_label
@@ -2973,8 +2954,7 @@ module ApplyWorkspaceEditResponse = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_failedChange then
-           bnds
+         if None = v_failedChange then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_failedChange
@@ -2983,8 +2963,7 @@ module ApplyWorkspaceEditResponse = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_failureReason then
-           bnds
+         if None = v_failureReason then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_failureReason
@@ -3074,8 +3053,7 @@ module CallHierarchyClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -3305,8 +3283,7 @@ module CallHierarchyItem = struct
          ("uri", arg) :: bnds
        in
        let bnds =
-         if None = v_detail then
-           bnds
+         if None = v_detail then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_detail
@@ -3315,8 +3292,7 @@ module CallHierarchyItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tags then
-           bnds
+         if None = v_tags then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -3515,8 +3491,7 @@ module PartialResultParams = struct
      | { partialResultToken = v_partialResultToken } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -3602,8 +3577,7 @@ module WorkDoneProgressParams = struct
      | { workDoneToken = v_workDoneToken } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -3737,8 +3711,7 @@ module CallHierarchyIncomingCallsParams = struct
          ("item", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -3748,8 +3721,7 @@ module CallHierarchyIncomingCallsParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -3836,8 +3808,7 @@ module WorkDoneProgressOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -3922,8 +3893,7 @@ module CallHierarchyOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -4157,8 +4127,7 @@ module CallHierarchyOutgoingCallsParams = struct
          ("item", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -4168,8 +4137,7 @@ module CallHierarchyOutgoingCallsParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -4398,8 +4366,7 @@ module CallHierarchyPrepareParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -4491,8 +4458,7 @@ module StaticRegistrationOptions = struct
      | { id = v_id } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
@@ -4607,8 +4573,7 @@ module DocumentFilter = struct
      | { language = v_language; scheme = v_scheme; pattern = v_pattern } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_pattern then
-           bnds
+         if None = v_pattern then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_pattern
@@ -4617,8 +4582,7 @@ module DocumentFilter = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_scheme then
-           bnds
+         if None = v_scheme then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_scheme
@@ -4627,8 +4591,7 @@ module DocumentFilter = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_language then
-           bnds
+         if None = v_language then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_language
@@ -4735,8 +4698,7 @@ module TextDocumentRegistrationOptions = struct
      | { documentSelector = v_documentSelector } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -4859,16 +4821,14 @@ module CallHierarchyRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -4878,8 +4838,7 @@ module CallHierarchyRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -5078,8 +5037,7 @@ module MarkdownClientCapabilities = struct
      | { parser = v_parser; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version then
-           bnds
+         if None = v_version then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_version
@@ -5187,8 +5145,7 @@ module RegularExpressionsClientCapabilities = struct
      | { engine = v_engine; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version then
-           bnds
+         if None = v_version then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_version
@@ -5358,8 +5315,7 @@ module ShowMessageRequestClientCapabilities = struct
      | { additionalPropertiesSupport = v_additionalPropertiesSupport } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_additionalPropertiesSupport then
-           bnds
+         if None = v_additionalPropertiesSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -5444,8 +5400,7 @@ module ShowMessageRequestClientCapabilities = struct
      | { messageActionItem = v_messageActionItem } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_messageActionItem then
-           bnds
+         if None = v_messageActionItem then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_messageActionItem)
@@ -5531,8 +5486,7 @@ module MonikerClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -5615,8 +5569,7 @@ module SemanticTokensClientCapabilities = struct
      | { delta = v_delta } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_delta then
-           bnds
+         if None = v_delta then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_delta
@@ -5735,8 +5688,7 @@ module SemanticTokensClientCapabilities = struct
      | { range = v_range; full = v_full } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_full then
-           bnds
+         if None = v_full then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_full_pvar) v_full
@@ -5745,8 +5697,7 @@ module SemanticTokensClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_range then
-           bnds
+         if None = v_range then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_range
@@ -5946,8 +5897,7 @@ module SemanticTokensClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_multilineTokenSupport then
-           bnds
+         if None = v_multilineTokenSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -5957,8 +5907,7 @@ module SemanticTokensClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_overlappingTokenSupport then
-           bnds
+         if None = v_overlappingTokenSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -5984,8 +5933,7 @@ module SemanticTokensClientCapabilities = struct
          ("requests", arg) :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6081,8 +6029,7 @@ module LinkedEditingRangeClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6168,8 +6115,7 @@ module SelectionRangeClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6294,8 +6240,7 @@ module FoldingRangeClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_lineFoldingOnly then
-           bnds
+         if None = v_lineFoldingOnly then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_lineFoldingOnly
@@ -6304,8 +6249,7 @@ module FoldingRangeClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_rangeLimit then
-           bnds
+         if None = v_rangeLimit then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_rangeLimit
@@ -6314,8 +6258,7 @@ module FoldingRangeClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6560,8 +6503,7 @@ module PublishDiagnosticsClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dataSupport then
-           bnds
+         if None = v_dataSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_dataSupport
@@ -6570,8 +6512,7 @@ module PublishDiagnosticsClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeDescriptionSupport then
-           bnds
+         if None = v_codeDescriptionSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6581,8 +6522,7 @@ module PublishDiagnosticsClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_versionSupport then
-           bnds
+         if None = v_versionSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_versionSupport
@@ -6591,8 +6531,7 @@ module PublishDiagnosticsClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tagSupport then
-           bnds
+         if None = v_tagSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_tagSupport)
@@ -6602,8 +6541,7 @@ module PublishDiagnosticsClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_relatedInformation then
-           bnds
+         if None = v_relatedInformation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6762,8 +6700,7 @@ module RenameClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_honorsChangeAnnotations then
-           bnds
+         if None = v_honorsChangeAnnotations then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6773,8 +6710,7 @@ module RenameClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_prepareSupportDefaultBehavior then
-           bnds
+         if None = v_prepareSupportDefaultBehavior then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -6785,8 +6721,7 @@ module RenameClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_prepareSupport then
-           bnds
+         if None = v_prepareSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_prepareSupport
@@ -6795,8 +6730,7 @@ module RenameClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6891,8 +6825,7 @@ module DocumentOnTypeFormattingClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -6980,8 +6913,7 @@ module DocumentRangeFormattingClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -7067,8 +6999,7 @@ module DocumentFormattingClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -7154,8 +7085,7 @@ module DocumentColorClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -7260,8 +7190,7 @@ module DocumentLinkClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_tooltipSupport then
-           bnds
+         if None = v_tooltipSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_tooltipSupport
@@ -7270,8 +7199,7 @@ module DocumentLinkClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -7358,8 +7286,7 @@ module CodeLensClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -7800,8 +7727,7 @@ module CodeActionClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_honorsChangeAnnotations then
-           bnds
+         if None = v_honorsChangeAnnotations then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -7811,8 +7737,7 @@ module CodeActionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_resolveSupport then
-           bnds
+         if None = v_resolveSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_resolveSupport)
@@ -7822,8 +7747,7 @@ module CodeActionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dataSupport then
-           bnds
+         if None = v_dataSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_dataSupport
@@ -7832,8 +7756,7 @@ module CodeActionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_disabledSupport then
-           bnds
+         if None = v_disabledSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_disabledSupport
@@ -7842,8 +7765,7 @@ module CodeActionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_isPreferredSupport then
-           bnds
+         if None = v_isPreferredSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -7853,8 +7775,7 @@ module CodeActionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeActionLiteralSupport then
-           bnds
+         if None = v_codeActionLiteralSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -7865,8 +7786,7 @@ module CodeActionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8043,8 +7963,7 @@ module DocumentSymbolClientCapabilities = struct
      | { valueSet = v_valueSet } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_valueSet then
-           bnds
+         if None = v_valueSet then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -8213,8 +8132,7 @@ module DocumentSymbolClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_labelSupport then
-           bnds
+         if None = v_labelSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_labelSupport
@@ -8223,8 +8141,7 @@ module DocumentSymbolClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tagSupport then
-           bnds
+         if None = v_tagSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_tagSupport)
@@ -8234,8 +8151,7 @@ module DocumentSymbolClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_hierarchicalDocumentSymbolSupport then
-           bnds
+         if None = v_hierarchicalDocumentSymbolSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8245,8 +8161,7 @@ module DocumentSymbolClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_symbolKind then
-           bnds
+         if None = v_symbolKind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_symbolKind)
@@ -8256,8 +8171,7 @@ module DocumentSymbolClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8352,8 +8266,7 @@ module DocumentHighlightClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8439,8 +8352,7 @@ module ReferenceClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8545,8 +8457,7 @@ module ImplementationClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_linkSupport then
-           bnds
+         if None = v_linkSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_linkSupport
@@ -8555,8 +8466,7 @@ module ImplementationClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8662,8 +8572,7 @@ module TypeDefinitionClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_linkSupport then
-           bnds
+         if None = v_linkSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_linkSupport
@@ -8672,8 +8581,7 @@ module TypeDefinitionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8779,8 +8687,7 @@ module DefinitionClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_linkSupport then
-           bnds
+         if None = v_linkSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_linkSupport
@@ -8789,8 +8696,7 @@ module DefinitionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8896,8 +8802,7 @@ module DeclarationClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_linkSupport then
-           bnds
+         if None = v_linkSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_linkSupport
@@ -8906,8 +8811,7 @@ module DeclarationClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -8996,8 +8900,7 @@ module SignatureHelpClientCapabilities = struct
      | { labelOffsetSupport = v_labelOffsetSupport } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_labelOffsetSupport then
-           bnds
+         if None = v_labelOffsetSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -9128,8 +9031,7 @@ module SignatureHelpClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_activeParameterSupport then
-           bnds
+         if None = v_activeParameterSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -9139,8 +9041,7 @@ module SignatureHelpClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_parameterInformation then
-           bnds
+         if None = v_parameterInformation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_parameterInformation)
@@ -9150,8 +9051,7 @@ module SignatureHelpClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentationFormat then
-           bnds
+         if None = v_documentationFormat then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -9281,8 +9181,7 @@ module SignatureHelpClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_contextSupport then
-           bnds
+         if None = v_contextSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_contextSupport
@@ -9291,8 +9190,7 @@ module SignatureHelpClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_signatureInformation then
-           bnds
+         if None = v_signatureInformation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_signatureInformation)
@@ -9302,8 +9200,7 @@ module SignatureHelpClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -9412,8 +9309,7 @@ module HoverClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_contentFormat then
-           bnds
+         if None = v_contentFormat then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -9424,8 +9320,7 @@ module HoverClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -9513,8 +9408,7 @@ module CompletionClientCapabilities = struct
      | { valueSet = v_valueSet } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_valueSet then
-           bnds
+         if None = v_valueSet then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -9997,8 +9891,7 @@ module CompletionClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_insertTextModeSupport then
-           bnds
+         if None = v_insertTextModeSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_insertTextModeSupport)
@@ -10008,8 +9901,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_resolveSupport then
-           bnds
+         if None = v_resolveSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_resolveSupport)
@@ -10019,8 +9911,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_insertReplaceSupport then
-           bnds
+         if None = v_insertReplaceSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -10030,8 +9921,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tagSupport then
-           bnds
+         if None = v_tagSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_tagSupport)
@@ -10041,8 +9931,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_preselectSupport then
-           bnds
+         if None = v_preselectSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -10052,8 +9941,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_deprecatedSupport then
-           bnds
+         if None = v_deprecatedSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -10063,8 +9951,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentationFormat then
-           bnds
+         if None = v_documentationFormat then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -10075,8 +9962,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_commitCharactersSupport then
-           bnds
+         if None = v_commitCharactersSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -10086,8 +9972,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_snippetSupport then
-           bnds
+         if None = v_snippetSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_snippetSupport
@@ -10247,8 +10132,7 @@ module CompletionClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_contextSupport then
-           bnds
+         if None = v_contextSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_contextSupport
@@ -10257,8 +10141,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_completionItemKind then
-           bnds
+         if None = v_completionItemKind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_completionItemKind)
@@ -10268,8 +10151,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_completionItem then
-           bnds
+         if None = v_completionItem then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_completionItem)
@@ -10279,8 +10161,7 @@ module CompletionClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -10427,8 +10308,7 @@ module TextDocumentSyncClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_didSave then
-           bnds
+         if None = v_didSave then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_didSave
@@ -10437,8 +10317,7 @@ module TextDocumentSyncClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willSaveWaitUntil then
-           bnds
+         if None = v_willSaveWaitUntil then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -10448,8 +10327,7 @@ module TextDocumentSyncClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willSave then
-           bnds
+         if None = v_willSave then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_willSave
@@ -10458,8 +10336,7 @@ module TextDocumentSyncClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -11061,8 +10938,7 @@ module TextDocumentClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_moniker then
-           bnds
+         if None = v_moniker then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11073,8 +10949,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_semanticTokens then
-           bnds
+         if None = v_semanticTokens then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11085,8 +10960,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_callHierarchy then
-           bnds
+         if None = v_callHierarchy then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11097,8 +10971,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_linkedEditingRange then
-           bnds
+         if None = v_linkedEditingRange then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11109,8 +10982,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_selectionRange then
-           bnds
+         if None = v_selectionRange then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11121,8 +10993,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_foldingRange then
-           bnds
+         if None = v_foldingRange then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11133,8 +11004,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_publishDiagnostics then
-           bnds
+         if None = v_publishDiagnostics then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11145,8 +11015,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_rename then
-           bnds
+         if None = v_rename then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11157,8 +11026,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_onTypeFormatting then
-           bnds
+         if None = v_onTypeFormatting then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11169,8 +11037,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_rangeFormatting then
-           bnds
+         if None = v_rangeFormatting then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11181,8 +11048,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_formatting then
-           bnds
+         if None = v_formatting then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11193,8 +11059,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_colorProvider then
-           bnds
+         if None = v_colorProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11205,8 +11070,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentLink then
-           bnds
+         if None = v_documentLink then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11217,8 +11081,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeLens then
-           bnds
+         if None = v_codeLens then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11229,8 +11092,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeAction then
-           bnds
+         if None = v_codeAction then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11241,8 +11103,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSymbol then
-           bnds
+         if None = v_documentSymbol then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11253,8 +11114,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentHighlight then
-           bnds
+         if None = v_documentHighlight then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11265,8 +11125,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_references then
-           bnds
+         if None = v_references then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11277,8 +11136,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_implementation then
-           bnds
+         if None = v_implementation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11289,8 +11147,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_typeDefinition then
-           bnds
+         if None = v_typeDefinition then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11301,8 +11158,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_definition then
-           bnds
+         if None = v_definition then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11313,8 +11169,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_declaration then
-           bnds
+         if None = v_declaration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11325,8 +11180,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_signatureHelp then
-           bnds
+         if None = v_signatureHelp then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11337,8 +11191,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_hover then
-           bnds
+         if None = v_hover then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11349,8 +11202,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_completion then
-           bnds
+         if None = v_completion then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11361,8 +11213,7 @@ module TextDocumentClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_synchronization then
-           bnds
+         if None = v_synchronization then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11499,8 +11350,7 @@ module CodeLensWorkspaceClientCapabilities = struct
      | { refreshSupport = v_refreshSupport } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_refreshSupport then
-           bnds
+         if None = v_refreshSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_refreshSupport
@@ -11586,8 +11436,7 @@ module SemanticTokensWorkspaceClientCapabilities = struct
      | { refreshSupport = v_refreshSupport } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_refreshSupport then
-           bnds
+         if None = v_refreshSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_refreshSupport
@@ -11672,8 +11521,7 @@ module ExecuteCommandClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -11839,8 +11687,7 @@ module WorkspaceSymbolClientCapabilities = struct
      | { valueSet = v_valueSet } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_valueSet then
-           bnds
+         if None = v_valueSet then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -11965,8 +11812,7 @@ module WorkspaceSymbolClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_tagSupport then
-           bnds
+         if None = v_tagSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_tagSupport)
@@ -11976,8 +11822,7 @@ module WorkspaceSymbolClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_symbolKind then
-           bnds
+         if None = v_symbolKind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_symbolKind)
@@ -11987,8 +11832,7 @@ module WorkspaceSymbolClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -12078,8 +11922,7 @@ module DidChangeWatchedFilesClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -12167,8 +12010,7 @@ module DidChangeConfigurationClientCapabilities = struct
      | { dynamicRegistration = v_dynamicRegistration } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -12255,8 +12097,7 @@ module WorkspaceEditClientCapabilities = struct
      | { groupsOnLabel = v_groupsOnLabel } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_groupsOnLabel then
-           bnds
+         if None = v_groupsOnLabel then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_groupsOnLabel
@@ -12423,8 +12264,7 @@ module WorkspaceEditClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_changeAnnotationSupport then
-           bnds
+         if None = v_changeAnnotationSupport then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_changeAnnotationSupport)
@@ -12434,8 +12274,7 @@ module WorkspaceEditClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_normalizesLineEndings then
-           bnds
+         if None = v_normalizesLineEndings then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -12445,8 +12284,7 @@ module WorkspaceEditClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_failureHandling then
-           bnds
+         if None = v_failureHandling then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t FailureHandlingKind.yojson_of_t)
@@ -12456,8 +12294,7 @@ module WorkspaceEditClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_resourceOperations then
-           bnds
+         if None = v_resourceOperations then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -12468,8 +12305,7 @@ module WorkspaceEditClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentChanges then
-           bnds
+         if None = v_documentChanges then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_documentChanges
@@ -12585,8 +12421,7 @@ module ClientCapabilities = struct
      | { regularExpressions = v_regularExpressions; markdown = v_markdown } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_markdown then
-           bnds
+         if None = v_markdown then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -12597,8 +12432,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_regularExpressions then
-           bnds
+         if None = v_regularExpressions then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -12725,8 +12559,7 @@ module ClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_showDocument then
-           bnds
+         if None = v_showDocument then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -12737,8 +12570,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_showMessage then
-           bnds
+         if None = v_showMessage then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -12749,8 +12581,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -12952,8 +12783,7 @@ module ClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_willDelete then
-           bnds
+         if None = v_willDelete then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_willDelete
@@ -12962,8 +12792,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didDelete then
-           bnds
+         if None = v_didDelete then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_didDelete
@@ -12972,8 +12801,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willRename then
-           bnds
+         if None = v_willRename then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_willRename
@@ -12982,8 +12810,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didRename then
-           bnds
+         if None = v_didRename then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_didRename
@@ -12992,8 +12819,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willCreate then
-           bnds
+         if None = v_willCreate then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_willCreate
@@ -13002,8 +12828,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didCreate then
-           bnds
+         if None = v_didCreate then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_didCreate
@@ -13012,8 +12837,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_dynamicRegistration then
-           bnds
+         if None = v_dynamicRegistration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -13314,8 +13138,7 @@ module ClientCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_fileOperations then
-           bnds
+         if None = v_fileOperations then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_fileOperations)
@@ -13325,8 +13148,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeLens then
-           bnds
+         if None = v_codeLens then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13337,8 +13159,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_semanticTokens then
-           bnds
+         if None = v_semanticTokens then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13349,8 +13170,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_configuration then
-           bnds
+         if None = v_configuration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_configuration
@@ -13359,8 +13179,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workspaceFolders then
-           bnds
+         if None = v_workspaceFolders then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -13370,8 +13189,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_executeCommand then
-           bnds
+         if None = v_executeCommand then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13382,8 +13200,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_symbol then
-           bnds
+         if None = v_symbol then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13394,8 +13211,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didChangeWatchedFiles then
-           bnds
+         if None = v_didChangeWatchedFiles then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13406,8 +13222,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didChangeConfiguration then
-           bnds
+         if None = v_didChangeConfiguration then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13418,8 +13233,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workspaceEdit then
-           bnds
+         if None = v_workspaceEdit then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13430,8 +13244,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_applyEdit then
-           bnds
+         if None = v_applyEdit then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_applyEdit
@@ -13617,8 +13430,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_general then
-           bnds
+         if None = v_general then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_general) v_general
@@ -13627,8 +13439,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_window then
-           bnds
+         if None = v_window then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_window) v_window
@@ -13637,8 +13448,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_textDocument then
-           bnds
+         if None = v_textDocument then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -13649,8 +13459,7 @@ module ClientCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workspace then
-           bnds
+         if None = v_workspace then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_workspace) v_workspace
@@ -13776,8 +13585,7 @@ module Command = struct
      | { title = v_title; command = v_command; arguments = v_arguments } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_arguments then
-           bnds
+         if None = v_arguments then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -14345,8 +14153,7 @@ module Diagnostic = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_relatedInformation then
-           bnds
+         if None = v_relatedInformation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -14357,8 +14164,7 @@ module Diagnostic = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tags then
-           bnds
+         if None = v_tags then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -14373,8 +14179,7 @@ module Diagnostic = struct
          ("message", arg) :: bnds
        in
        let bnds =
-         if None = v_source then
-           bnds
+         if None = v_source then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_source
@@ -14383,8 +14188,7 @@ module Diagnostic = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeDescription then
-           bnds
+         if None = v_codeDescription then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t CodeDescription.yojson_of_t)
@@ -14394,8 +14198,7 @@ module Diagnostic = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_code then
-           bnds
+         if None = v_code then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_code_pvar) v_code
@@ -14404,8 +14207,7 @@ module Diagnostic = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_severity then
-           bnds
+         if None = v_severity then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DiagnosticSeverity.yojson_of_t)
@@ -14727,8 +14529,7 @@ module CodeAction = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_command then
-           bnds
+         if None = v_command then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Command.yojson_of_t) v_command
@@ -14737,8 +14538,7 @@ module CodeAction = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_edit then
-           bnds
+         if None = v_edit then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t WorkspaceEdit.yojson_of_t) v_edit
@@ -14747,8 +14547,7 @@ module CodeAction = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_disabled then
-           bnds
+         if None = v_disabled then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_disabled) v_disabled
@@ -14757,8 +14556,7 @@ module CodeAction = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_isPreferred then
-           bnds
+         if None = v_isPreferred then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_isPreferred
@@ -14767,8 +14565,7 @@ module CodeAction = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_diagnostics then
-           bnds
+         if None = v_diagnostics then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -14779,8 +14576,7 @@ module CodeAction = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_kind then
-           bnds
+         if None = v_kind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t CodeActionKind.yojson_of_t)
@@ -14896,8 +14692,7 @@ module CodeActionContext = struct
      | { diagnostics = v_diagnostics; only = v_only } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_only then
-           bnds
+         if None = v_only then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -15029,8 +14824,7 @@ module CodeActionOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -15039,8 +14833,7 @@ module CodeActionOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeActionKinds then
-           bnds
+         if None = v_codeActionKinds then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -15051,8 +14844,7 @@ module CodeActionOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -15230,8 +15022,7 @@ module CodeActionParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -15241,8 +15032,7 @@ module CodeActionParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -15391,8 +15181,7 @@ module CodeActionRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -15401,8 +15190,7 @@ module CodeActionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeActionKinds then
-           bnds
+         if None = v_codeActionKinds then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -15413,8 +15201,7 @@ module CodeActionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -15424,8 +15211,7 @@ module CodeActionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -15555,8 +15341,7 @@ module CodeLens = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_command then
-           bnds
+         if None = v_command then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Command.yojson_of_t) v_command
@@ -15664,8 +15449,7 @@ module CodeLensOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -15674,8 +15458,7 @@ module CodeLensOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -15810,8 +15593,7 @@ module CodeLensParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -15821,8 +15603,7 @@ module CodeLensParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -15949,8 +15730,7 @@ module CodeLensRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -15959,8 +15739,7 @@ module CodeLensRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -15970,8 +15749,7 @@ module CodeLensRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -16362,8 +16140,7 @@ module ColorPresentation = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_additionalTextEdits then
-           bnds
+         if None = v_additionalTextEdits then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -16374,8 +16151,7 @@ module ColorPresentation = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_textEdit then
-           bnds
+         if None = v_textEdit then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t TextEdit.yojson_of_t) v_textEdit
@@ -16555,8 +16331,7 @@ module ColorPresentationParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -16566,8 +16341,7 @@ module ColorPresentationParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -16676,8 +16450,7 @@ module CompletionContext = struct
      | { triggerKind = v_triggerKind; triggerCharacter = v_triggerCharacter } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_triggerCharacter then
-           bnds
+         if None = v_triggerCharacter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string)
@@ -17347,8 +17120,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_command then
-           bnds
+         if None = v_command then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Command.yojson_of_t) v_command
@@ -17357,8 +17129,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_commitCharacters then
-           bnds
+         if None = v_commitCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -17369,8 +17140,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_additionalTextEdits then
-           bnds
+         if None = v_additionalTextEdits then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -17381,8 +17151,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_textEdit then
-           bnds
+         if None = v_textEdit then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_textEdit_pvar)
@@ -17392,8 +17161,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_insertTextMode then
-           bnds
+         if None = v_insertTextMode then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t InsertTextMode.yojson_of_t)
@@ -17403,8 +17171,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_insertTextFormat then
-           bnds
+         if None = v_insertTextFormat then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t InsertTextFormat.yojson_of_t)
@@ -17414,8 +17181,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_insertText then
-           bnds
+         if None = v_insertText then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_insertText
@@ -17424,8 +17190,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_filterText then
-           bnds
+         if None = v_filterText then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_filterText
@@ -17434,8 +17199,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_sortText then
-           bnds
+         if None = v_sortText then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_sortText
@@ -17444,8 +17208,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_preselect then
-           bnds
+         if None = v_preselect then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_preselect
@@ -17454,8 +17217,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_deprecated then
-           bnds
+         if None = v_deprecated then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_deprecated
@@ -17464,8 +17226,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentation then
-           bnds
+         if None = v_documentation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_documentation_pvar)
@@ -17475,8 +17236,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_detail then
-           bnds
+         if None = v_detail then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_detail
@@ -17485,8 +17245,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tags then
-           bnds
+         if None = v_tags then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -17497,8 +17256,7 @@ module CompletionItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_kind then
-           bnds
+         if None = v_kind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t CompletionItemKind.yojson_of_t)
@@ -17779,8 +17537,7 @@ module CompletionOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -17789,8 +17546,7 @@ module CompletionOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_allCommitCharacters then
-           bnds
+         if None = v_allCommitCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -17801,8 +17557,7 @@ module CompletionOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_triggerCharacters then
-           bnds
+         if None = v_triggerCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -17813,8 +17568,7 @@ module CompletionOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -17988,8 +17742,7 @@ module CompletionParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_context then
-           bnds
+         if None = v_context then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t CompletionContext.yojson_of_t)
@@ -17999,8 +17752,7 @@ module CompletionParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -18010,8 +17762,7 @@ module CompletionParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -18190,8 +17941,7 @@ module CompletionRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -18200,8 +17950,7 @@ module CompletionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_allCommitCharacters then
-           bnds
+         if None = v_allCommitCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -18212,8 +17961,7 @@ module CompletionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_triggerCharacters then
-           bnds
+         if None = v_triggerCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -18224,8 +17972,7 @@ module CompletionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -18235,8 +17982,7 @@ module CompletionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -18348,8 +18094,7 @@ module ConfigurationItem = struct
      | { scopeUri = v_scopeUri; section = v_section } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_section then
-           bnds
+         if None = v_section then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_section
@@ -18358,8 +18103,7 @@ module ConfigurationItem = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_scopeUri then
-           bnds
+         if None = v_scopeUri then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t)
@@ -18676,8 +18420,7 @@ module DeclarationOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -18824,8 +18567,7 @@ module DeclarationParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -18835,8 +18577,7 @@ module DeclarationParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -18969,16 +18710,14 @@ module DeclarationRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -18988,8 +18727,7 @@ module DeclarationRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -19076,8 +18814,7 @@ module DefinitionOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -19224,8 +18961,7 @@ module DefinitionParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -19235,8 +18971,7 @@ module DefinitionParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -19351,8 +19086,7 @@ module DefinitionRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -19362,8 +19096,7 @@ module DefinitionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -19722,8 +19455,7 @@ module TextDocumentContentChangeEvent = struct
          ("text", arg) :: bnds
        in
        let bnds =
-         if None = v_rangeLength then
-           bnds
+         if None = v_rangeLength then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_rangeLength
@@ -19732,8 +19464,7 @@ module TextDocumentContentChangeEvent = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_range then
-           bnds
+         if None = v_range then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Range.yojson_of_t) v_range
@@ -20226,8 +19957,7 @@ module FileSystemWatcher = struct
      | { globPattern = v_globPattern; kind = v_kind } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_kind then
-           bnds
+         if None = v_kind then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_kind in
            let bnd = ("kind", arg) in
@@ -20994,8 +20724,7 @@ module DidSaveTextDocumentParams = struct
      | { textDocument = v_textDocument; text = v_text } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_text then
-           bnds
+         if None = v_text then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_text
@@ -21084,8 +20813,7 @@ module DocumentColorOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -21219,8 +20947,7 @@ module DocumentColorParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -21230,8 +20957,7 @@ module DocumentColorParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -21356,8 +21082,7 @@ module DocumentColorRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -21367,16 +21092,14 @@ module DocumentColorRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -21462,8 +21185,7 @@ module DocumentFormattingOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -21628,8 +21350,7 @@ module FormattingOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_trimFinalNewlines then
-           bnds
+         if None = v_trimFinalNewlines then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -21639,8 +21360,7 @@ module FormattingOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_insertFinalNewline then
-           bnds
+         if None = v_insertFinalNewline then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -21650,8 +21370,7 @@ module FormattingOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_trimTrailingWhitespace then
-           bnds
+         if None = v_trimTrailingWhitespace then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -21801,8 +21520,7 @@ module DocumentFormattingParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -21909,8 +21627,7 @@ module DocumentFormattingRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -21920,8 +21637,7 @@ module DocumentFormattingRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -22028,8 +21744,7 @@ module DocumentHighlight = struct
      | { range = v_range; kind = v_kind } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_kind then
-           bnds
+         if None = v_kind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentHighlightKind.yojson_of_t)
@@ -22119,8 +21834,7 @@ module DocumentHighlightOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -22267,8 +21981,7 @@ module DocumentHighlightParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -22278,8 +21991,7 @@ module DocumentHighlightParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -22394,8 +22106,7 @@ module DocumentHighlightRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -22405,8 +22116,7 @@ module DocumentHighlightRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -22556,8 +22266,7 @@ module DocumentLink = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tooltip then
-           bnds
+         if None = v_tooltip then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_tooltip
@@ -22566,8 +22275,7 @@ module DocumentLink = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_target then
-           bnds
+         if None = v_target then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t) v_target
@@ -22675,8 +22383,7 @@ module DocumentLinkOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -22685,8 +22392,7 @@ module DocumentLinkOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -22821,8 +22527,7 @@ module DocumentLinkParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -22832,8 +22537,7 @@ module DocumentLinkParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -22960,8 +22664,7 @@ module DocumentLinkRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_resolveProvider then
-           bnds
+         if None = v_resolveProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_resolveProvider
@@ -22970,8 +22673,7 @@ module DocumentLinkRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -22981,8 +22683,7 @@ module DocumentLinkRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -23096,8 +22797,7 @@ module DocumentOnTypeFormattingOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_moreTriggerCharacter then
-           bnds
+         if None = v_moreTriggerCharacter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -23384,8 +23084,7 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_moreTriggerCharacter then
-           bnds
+         if None = v_moreTriggerCharacter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -23400,8 +23099,7 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
          ("firstTriggerCharacter", arg) :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -23488,8 +23186,7 @@ module DocumentRangeFormattingOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -23644,8 +23341,7 @@ module DocumentRangeFormattingParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -23754,8 +23450,7 @@ module DocumentRangeFormattingRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -23765,8 +23460,7 @@ module DocumentRangeFormattingRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -23987,8 +23681,7 @@ module DocumentSymbol = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_children then
-           bnds
+         if None = v_children then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t (yojson_of_list yojson_of_t))
@@ -24006,8 +23699,7 @@ module DocumentSymbol = struct
          ("range", arg) :: bnds
        in
        let bnds =
-         if None = v_deprecated then
-           bnds
+         if None = v_deprecated then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_deprecated
@@ -24016,8 +23708,7 @@ module DocumentSymbol = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tags then
-           bnds
+         if None = v_tags then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -24032,8 +23723,7 @@ module DocumentSymbol = struct
          ("kind", arg) :: bnds
        in
        let bnds =
-         if None = v_detail then
-           bnds
+         if None = v_detail then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_detail
@@ -24141,8 +23831,7 @@ module DocumentSymbolOptions = struct
      | { workDoneProgress = v_workDoneProgress; label = v_label } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_label then
-           bnds
+         if None = v_label then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_label
@@ -24151,8 +23840,7 @@ module DocumentSymbolOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -24287,8 +23975,7 @@ module DocumentSymbolParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -24298,8 +23985,7 @@ module DocumentSymbolParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -24424,8 +24110,7 @@ module DocumentSymbolRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_label then
-           bnds
+         if None = v_label then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_label
@@ -24434,8 +24119,7 @@ module DocumentSymbolRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -24445,8 +24129,7 @@ module DocumentSymbolRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -24558,8 +24241,7 @@ module ExecuteCommandOptions = struct
          ("commands", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -24690,8 +24372,7 @@ module ExecuteCommandParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_arguments then
-           bnds
+         if None = v_arguments then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -24706,8 +24387,7 @@ module ExecuteCommandParams = struct
          ("command", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -24818,8 +24498,7 @@ module ExecuteCommandRegistrationOptions = struct
          ("commands", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -24903,8 +24582,7 @@ module FileOperationPatternOptions = struct
      | { ignoreCase = v_ignoreCase } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_ignoreCase then
-           bnds
+         if None = v_ignoreCase then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_ignoreCase
@@ -25028,8 +24706,7 @@ module FileOperationPattern = struct
      | { glob = v_glob; matches = v_matches; options = v_options } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_options then
-           bnds
+         if None = v_options then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -25040,8 +24717,7 @@ module FileOperationPattern = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_matches then
-           bnds
+         if None = v_matches then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -25156,8 +24832,7 @@ module FileOperationFilter = struct
          ("pattern", arg) :: bnds
        in
        let bnds =
-         if None = v_scheme then
-           bnds
+         if None = v_scheme then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_scheme
@@ -25498,8 +25173,7 @@ module FoldingRange = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_kind then
-           bnds
+         if None = v_kind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t FoldingRangeKind.yojson_of_t)
@@ -25509,8 +25183,7 @@ module FoldingRange = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_endCharacter then
-           bnds
+         if None = v_endCharacter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_endCharacter
@@ -25523,8 +25196,7 @@ module FoldingRange = struct
          ("endLine", arg) :: bnds
        in
        let bnds =
-         if None = v_startCharacter then
-           bnds
+         if None = v_startCharacter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_startCharacter
@@ -25614,8 +25286,7 @@ module FoldingRangeOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -25749,8 +25420,7 @@ module FoldingRangeParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -25760,8 +25430,7 @@ module FoldingRangeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -25886,16 +25555,14 @@ module FoldingRangeRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -25905,8 +25572,7 @@ module FoldingRangeRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -26033,8 +25699,7 @@ module Hover = struct
      | { contents = v_contents; range = v_range } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_range then
-           bnds
+         if None = v_range then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Range.yojson_of_t) v_range
@@ -26123,8 +25788,7 @@ module HoverOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -26250,8 +25914,7 @@ module HoverParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -26365,8 +26028,7 @@ module HoverRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -26376,8 +26038,7 @@ module HoverRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -26463,8 +26124,7 @@ module ImplementationOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -26611,8 +26271,7 @@ module ImplementationParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -26622,8 +26281,7 @@ module ImplementationParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -26756,16 +26414,14 @@ module ImplementationRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -26775,8 +26431,7 @@ module ImplementationRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -26906,8 +26561,7 @@ module InitializeParams = struct
      | { name = v_name; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version then
-           bnds
+         if None = v_version then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_version
@@ -27175,8 +26829,7 @@ module InitializeParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workspaceFolders then
-           bnds
+         if None = v_workspaceFolders then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -27188,8 +26841,7 @@ module InitializeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_trace then
-           bnds
+         if None = v_trace then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t TraceValue.yojson_of_t) v_trace
@@ -27210,8 +26862,7 @@ module InitializeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_rootUri then
-           bnds
+         if None = v_rootUri then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t)
@@ -27221,8 +26872,7 @@ module InitializeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_rootPath then
-           bnds
+         if None = v_rootPath then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -27233,8 +26883,7 @@ module InitializeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_locale then
-           bnds
+         if None = v_locale then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_locale
@@ -27243,8 +26892,7 @@ module InitializeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_clientInfo then
-           bnds
+         if None = v_clientInfo then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_clientInfo)
@@ -27254,8 +26902,7 @@ module InitializeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_processId then
-           bnds
+         if None = v_processId then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Integer.yojson_of_t) v_processId
@@ -27264,8 +26911,7 @@ module InitializeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -27404,8 +27050,7 @@ module WorkspaceFoldersServerCapabilities = struct
        ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_changeNotifications then
-           bnds
+         if None = v_changeNotifications then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -27416,8 +27061,7 @@ module WorkspaceFoldersServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_supported then
-           bnds
+         if None = v_supported then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_supported
@@ -27502,8 +27146,7 @@ module WorkspaceSymbolOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -27588,8 +27231,7 @@ module MonikerOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -27694,8 +27336,7 @@ module MonikerRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -27705,8 +27346,7 @@ module MonikerRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -27892,8 +27532,7 @@ module SemanticTokensOptions = struct
      | { delta = v_delta } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_delta then
-           bnds
+         if None = v_delta then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_delta
@@ -28054,8 +27693,7 @@ module SemanticTokensOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_full then
-           bnds
+         if None = v_full then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_full_pvar) v_full
@@ -28064,8 +27702,7 @@ module SemanticTokensOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_range then
-           bnds
+         if None = v_range then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_range
@@ -28078,8 +27715,7 @@ module SemanticTokensOptions = struct
          ("legend", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -28164,8 +27800,7 @@ module SemanticTokensRegistrationOptions = struct
      | { delta = v_delta } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_delta then
-           bnds
+         if None = v_delta then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_delta
@@ -28365,16 +28000,14 @@ module SemanticTokensRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_full then
-           bnds
+         if None = v_full then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_full_pvar) v_full
@@ -28383,8 +28016,7 @@ module SemanticTokensRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_range then
-           bnds
+         if None = v_range then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_range
@@ -28397,8 +28029,7 @@ module SemanticTokensRegistrationOptions = struct
          ("legend", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -28408,8 +28039,7 @@ module SemanticTokensRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -28497,8 +28127,7 @@ module LinkedEditingRangeOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -28621,16 +28250,14 @@ module LinkedEditingRangeRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -28640,8 +28267,7 @@ module LinkedEditingRangeRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -28727,8 +28353,7 @@ module SelectionRangeOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -28851,16 +28476,14 @@ module SelectionRangeRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -28870,8 +28493,7 @@ module SelectionRangeRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -28977,8 +28599,7 @@ module RenameOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_prepareProvider then
-           bnds
+         if None = v_prepareProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_prepareProvider
@@ -28987,8 +28608,7 @@ module RenameOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -29074,8 +28694,7 @@ module ReferenceOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -29160,8 +28779,7 @@ module TypeDefinitionOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -29284,16 +28902,14 @@ module TypeDefinitionRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_id then
-           bnds
+         if None = v_id then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
            let bnd = ("id", arg) in
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -29303,8 +28919,7 @@ module TypeDefinitionRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -29434,8 +29049,7 @@ module SignatureHelpOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_retriggerCharacters then
-           bnds
+         if None = v_retriggerCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -29446,8 +29060,7 @@ module SignatureHelpOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_triggerCharacters then
-           bnds
+         if None = v_triggerCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -29458,8 +29071,7 @@ module SignatureHelpOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -29546,8 +29158,7 @@ module SaveOptions = struct
      | { includeText = v_includeText } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_includeText then
-           bnds
+         if None = v_includeText then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_includeText
@@ -29727,8 +29338,7 @@ module TextDocumentSyncOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_save then
-           bnds
+         if None = v_save then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_save_pvar) v_save
@@ -29737,8 +29347,7 @@ module TextDocumentSyncOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willSaveWaitUntil then
-           bnds
+         if None = v_willSaveWaitUntil then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -29748,8 +29357,7 @@ module TextDocumentSyncOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willSave then
-           bnds
+         if None = v_willSave then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_willSave
@@ -29758,8 +29366,7 @@ module TextDocumentSyncOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_change then
-           bnds
+         if None = v_change then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t TextDocumentSyncKind.yojson_of_t)
@@ -29769,8 +29376,7 @@ module TextDocumentSyncOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_openClose then
-           bnds
+         if None = v_openClose then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_openClose
@@ -29959,8 +29565,7 @@ module ServerCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_willDelete then
-           bnds
+         if None = v_willDelete then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -29971,8 +29576,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didDelete then
-           bnds
+         if None = v_didDelete then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -29983,8 +29587,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willRename then
-           bnds
+         if None = v_willRename then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -29995,8 +29598,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didRename then
-           bnds
+         if None = v_didRename then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -30007,8 +29609,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_willCreate then
-           bnds
+         if None = v_willCreate then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -30019,8 +29620,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_didCreate then
-           bnds
+         if None = v_didCreate then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -30133,8 +29733,7 @@ module ServerCapabilities = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_fileOperations then
-           bnds
+         if None = v_fileOperations then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_fileOperations)
@@ -30144,8 +29743,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workspaceFolders then
-           bnds
+         if None = v_workspaceFolders then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31351,8 +30949,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workspace then
-           bnds
+         if None = v_workspace then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_workspace) v_workspace
@@ -31361,8 +30958,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workspaceSymbolProvider then
-           bnds
+         if None = v_workspaceSymbolProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31373,8 +30969,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_monikerProvider then
-           bnds
+         if None = v_monikerProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_monikerProvider_pvar)
@@ -31384,8 +30979,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_semanticTokensProvider then
-           bnds
+         if None = v_semanticTokensProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31396,8 +30990,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_callHierarchyProvider then
-           bnds
+         if None = v_callHierarchyProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31408,8 +31001,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_linkedEditingRangeProvider then
-           bnds
+         if None = v_linkedEditingRangeProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31420,8 +31012,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_selectionRangeProvider then
-           bnds
+         if None = v_selectionRangeProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31432,8 +31023,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_executeCommandProvider then
-           bnds
+         if None = v_executeCommandProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ExecuteCommandOptions.yojson_of_t)
@@ -31443,8 +31033,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_foldingRangeProvider then
-           bnds
+         if None = v_foldingRangeProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31455,8 +31044,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_renameProvider then
-           bnds
+         if None = v_renameProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_renameProvider_pvar)
@@ -31466,8 +31054,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentOnTypeFormattingProvider then
-           bnds
+         if None = v_documentOnTypeFormattingProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31478,8 +31065,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentRangeFormattingProvider then
-           bnds
+         if None = v_documentRangeFormattingProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31490,8 +31076,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentFormattingProvider then
-           bnds
+         if None = v_documentFormattingProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31502,8 +31087,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_colorProvider then
-           bnds
+         if None = v_colorProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_colorProvider_pvar)
@@ -31513,8 +31097,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentLinkProvider then
-           bnds
+         if None = v_documentLinkProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentLinkOptions.yojson_of_t)
@@ -31524,8 +31107,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeLensProvider then
-           bnds
+         if None = v_codeLensProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t CodeLensOptions.yojson_of_t)
@@ -31535,8 +31117,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_codeActionProvider then
-           bnds
+         if None = v_codeActionProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_codeActionProvider_pvar)
@@ -31546,8 +31127,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSymbolProvider then
-           bnds
+         if None = v_documentSymbolProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31558,8 +31138,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentHighlightProvider then
-           bnds
+         if None = v_documentHighlightProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31570,8 +31149,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_referencesProvider then
-           bnds
+         if None = v_referencesProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_referencesProvider_pvar)
@@ -31581,8 +31159,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_implementationProvider then
-           bnds
+         if None = v_implementationProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31593,8 +31170,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_typeDefinitionProvider then
-           bnds
+         if None = v_typeDefinitionProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31605,8 +31181,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_definitionProvider then
-           bnds
+         if None = v_definitionProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_definitionProvider_pvar)
@@ -31616,8 +31191,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_declarationProvider then
-           bnds
+         if None = v_declarationProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -31628,8 +31202,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_signatureHelpProvider then
-           bnds
+         if None = v_signatureHelpProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t SignatureHelpOptions.yojson_of_t)
@@ -31639,8 +31212,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_hoverProvider then
-           bnds
+         if None = v_hoverProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_hoverProvider_pvar)
@@ -31650,8 +31222,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_completionProvider then
-           bnds
+         if None = v_completionProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t CompletionOptions.yojson_of_t)
@@ -31661,8 +31232,7 @@ module ServerCapabilities = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_textDocumentSync then
-           bnds
+         if None = v_textDocumentSync then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_textDocumentSync_pvar)
@@ -31826,8 +31396,7 @@ module InitializeResult = struct
      | { name = v_name; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version then
-           bnds
+         if None = v_version then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_version
@@ -31936,8 +31505,7 @@ module InitializeResult = struct
      | { capabilities = v_capabilities; serverInfo = v_serverInfo } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_serverInfo then
-           bnds
+         if None = v_serverInfo then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_serverInfo)
@@ -32068,8 +31636,7 @@ module LinkedEditingRangeParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -32183,8 +31750,7 @@ module LinkedEditingRanges = struct
      | { ranges = v_ranges; wordPattern = v_wordPattern } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_wordPattern then
-           bnds
+         if None = v_wordPattern then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_wordPattern
@@ -32345,8 +31911,7 @@ module LocationLink = struct
          ("targetUri", arg) :: bnds
        in
        let bnds =
-         if None = v_originSelectionRange then
-           bnds
+         if None = v_originSelectionRange then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Range.yojson_of_t)
@@ -32553,8 +32118,7 @@ module LogTraceParams = struct
      | { message = v_message; verbose = v_verbose } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_verbose then
-           bnds
+         if None = v_verbose then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_verbose
@@ -32776,8 +32340,7 @@ module Moniker = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_kind then
-           bnds
+         if None = v_kind then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t MonikerKind.yojson_of_t) v_kind
@@ -32937,8 +32500,7 @@ module MonikerParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -32948,8 +32510,7 @@ module MonikerParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -33102,8 +32663,7 @@ module ParameterInformation = struct
      | { label = v_label; documentation = v_documentation } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_documentation then
-           bnds
+         if None = v_documentation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_documentation_pvar)
@@ -33337,8 +32897,7 @@ module PublishDiagnosticsParams = struct
          ("diagnostics", arg) :: bnds
        in
        let bnds =
-         if None = v_version then
-           bnds
+         if None = v_version then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_version
@@ -33587,8 +33146,7 @@ module ReferenceParams = struct
          ("context", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -33598,8 +33156,7 @@ module ReferenceParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -33715,8 +33272,7 @@ module ReferenceRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -33726,8 +33282,7 @@ module ReferenceRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -34155,8 +33710,7 @@ module RenameParams = struct
          ("newName", arg) :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -34291,8 +33845,7 @@ module RenameRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_prepareProvider then
-           bnds
+         if None = v_prepareProvider then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_prepareProvider
@@ -34301,8 +33854,7 @@ module RenameRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -34312,8 +33864,7 @@ module RenameRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -34420,8 +33971,7 @@ module SelectionRange = struct
      | { range = v_range; parent = v_parent } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_parent then
-           bnds
+         if None = v_parent then bnds
          else
            let arg = (Json.Nullable_option.yojson_of_t yojson_of_t) v_parent in
            let bnd = ("parent", arg) in
@@ -34577,8 +34127,7 @@ module SelectionRangeParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -34588,8 +34137,7 @@ module SelectionRangeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -34701,8 +34249,7 @@ module SemanticTokens = struct
          ("data", arg) :: bnds
        in
        let bnds =
-         if None = v_resultId then
-           bnds
+         if None = v_resultId then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_resultId
@@ -34825,8 +34372,7 @@ module SemanticTokensEdit = struct
      | { start = v_start; deleteCount = v_deleteCount; data = v_data } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_data then
-           bnds
+         if None = v_data then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t (yojson_of_list yojson_of_int))
@@ -34946,8 +34492,7 @@ module SemanticTokensDelta = struct
          ("edits", arg) :: bnds
        in
        let bnds =
-         if None = v_resultId then
-           bnds
+         if None = v_resultId then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_resultId
@@ -35102,8 +34647,7 @@ module SemanticTokensDeltaParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -35113,8 +34657,7 @@ module SemanticTokensDeltaParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -35329,8 +34872,7 @@ module SemanticTokensParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -35340,8 +34882,7 @@ module SemanticTokensParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -35573,8 +35114,7 @@ module SemanticTokensRangeParams = struct
          ("textDocument", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -35584,8 +35124,7 @@ module SemanticTokensRangeParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -35811,8 +35350,7 @@ module ShowDocumentParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_selection then
-           bnds
+         if None = v_selection then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t Range.yojson_of_t) v_selection
@@ -35821,8 +35359,7 @@ module ShowDocumentParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_takeFocus then
-           bnds
+         if None = v_takeFocus then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_takeFocus
@@ -35831,8 +35368,7 @@ module ShowDocumentParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_external_ then
-           bnds
+         if None = v_external_ then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_external_
@@ -36136,8 +35672,7 @@ module ShowMessageRequestParams = struct
      | { type_ = v_type_; message = v_message; actions = v_actions } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_actions then
-           bnds
+         if None = v_actions then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -36315,8 +35850,7 @@ module SignatureInformation = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_activeParameter then
-           bnds
+         if None = v_activeParameter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_activeParameter
@@ -36325,8 +35859,7 @@ module SignatureInformation = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_parameters then
-           bnds
+         if None = v_parameters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -36337,8 +35870,7 @@ module SignatureInformation = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentation then
-           bnds
+         if None = v_documentation then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_documentation_pvar)
@@ -36473,8 +36005,7 @@ module SignatureHelp = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_activeParameter then
-           bnds
+         if None = v_activeParameter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_activeParameter
@@ -36483,8 +36014,7 @@ module SignatureHelp = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_activeSignature then
-           bnds
+         if None = v_activeSignature then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_activeSignature
@@ -36639,8 +36169,7 @@ module SignatureHelpContext = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_activeSignatureHelp then
-           bnds
+         if None = v_activeSignatureHelp then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t SignatureHelp.yojson_of_t)
@@ -36654,8 +36183,7 @@ module SignatureHelpContext = struct
          ("isRetrigger", arg) :: bnds
        in
        let bnds =
-         if None = v_triggerCharacter then
-           bnds
+         if None = v_triggerCharacter then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string)
@@ -36807,8 +36335,7 @@ module SignatureHelpParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_context then
-           bnds
+         if None = v_context then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t SignatureHelpContext.yojson_of_t)
@@ -36818,8 +36345,7 @@ module SignatureHelpParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -36978,8 +36504,7 @@ module SignatureHelpRegistrationOptions = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_retriggerCharacters then
-           bnds
+         if None = v_retriggerCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -36990,8 +36515,7 @@ module SignatureHelpRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_triggerCharacters then
-           bnds
+         if None = v_triggerCharacters then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -37002,8 +36526,7 @@ module SignatureHelpRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)
@@ -37013,8 +36536,7 @@ module SignatureHelpRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -37203,8 +36725,7 @@ module SymbolInformation = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_containerName then
-           bnds
+         if None = v_containerName then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_containerName
@@ -37217,8 +36738,7 @@ module SymbolInformation = struct
          ("location", arg) :: bnds
        in
        let bnds =
-         if None = v_deprecated then
-           bnds
+         if None = v_deprecated then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_deprecated
@@ -37227,8 +36747,7 @@ module SymbolInformation = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_tags then
-           bnds
+         if None = v_tags then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t
@@ -37351,8 +36870,7 @@ module TextDocumentChangeRegistrationOptions = struct
          ("syncKind", arg) :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -37456,8 +36974,7 @@ module TextDocumentSaveRegistrationOptions = struct
      | { documentSelector = v_documentSelector; includeText = v_includeText } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_includeText then
-           bnds
+         if None = v_includeText then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_includeText
@@ -37466,8 +36983,7 @@ module TextDocumentSaveRegistrationOptions = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_documentSelector then
-           bnds
+         if None = v_documentSelector then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
@@ -37615,8 +37131,7 @@ module TypeDefinitionParams = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -37626,8 +37141,7 @@ module TypeDefinitionParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -38064,8 +37578,7 @@ module WorkDoneProgressBegin = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_percentage then
-           bnds
+         if None = v_percentage then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_percentage
@@ -38074,8 +37587,7 @@ module WorkDoneProgressBegin = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_message then
-           bnds
+         if None = v_message then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_message
@@ -38084,8 +37596,7 @@ module WorkDoneProgressBegin = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_cancellable then
-           bnds
+         if None = v_cancellable then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_cancellable
@@ -38330,8 +37841,7 @@ module WorkDoneProgressEnd = struct
      | { message = v_message } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_message then
-           bnds
+         if None = v_message then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_message
@@ -38457,8 +37967,7 @@ module WorkDoneProgressReport = struct
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_percentage then
-           bnds
+         if None = v_percentage then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_int) v_percentage
@@ -38467,8 +37976,7 @@ module WorkDoneProgressReport = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_message then
-           bnds
+         if None = v_message then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_string) v_message
@@ -38477,8 +37985,7 @@ module WorkDoneProgressReport = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_cancellable then
-           bnds
+         if None = v_cancellable then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool) v_cancellable
@@ -38618,8 +38125,7 @@ module WorkspaceSymbolParams = struct
          ("query", arg) :: bnds
        in
        let bnds =
-         if None = v_partialResultToken then
-           bnds
+         if None = v_partialResultToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -38629,8 +38135,7 @@ module WorkspaceSymbolParams = struct
            bnd :: bnds
        in
        let bnds =
-         if None = v_workDoneToken then
-           bnds
+         if None = v_workDoneToken then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t ProgressToken.yojson_of_t)
@@ -38717,8 +38222,7 @@ module WorkspaceSymbolRegistrationOptions = struct
      | { workDoneProgress = v_workDoneProgress } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_workDoneProgress then
-           bnds
+         if None = v_workDoneProgress then bnds
          else
            let arg =
              (Json.Nullable_option.yojson_of_t yojson_of_bool)

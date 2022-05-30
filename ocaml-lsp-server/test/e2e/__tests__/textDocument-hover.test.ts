@@ -35,6 +35,34 @@ describe("textDocument/hover", () => {
     });
   });
 
+  it("returns type inferred under cursor in a formatted way", async () => {
+    languageServer = await LanguageServer.startAndInitialize();
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "ocaml",
+        0,
+        "let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i\n",
+      ),
+    });
+
+    let result = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(0, 4),
+    });
+
+    expect(result).toMatchObject({
+      contents: {
+        kind: "plaintext",
+        value: outdent`int -> int -> int -> int -> int -> int -> int -> int -> int -> int`,
+      },
+      range: {
+        end: { character: 5, line: 0 },
+        start: { character: 4, line: 0 },
+      },
+    });
+  });
+
   it("returns type inferred under cursor (markdown formatting)", async () => {
     languageServer = await LanguageServer.startAndInitialize({
       capabilities: {

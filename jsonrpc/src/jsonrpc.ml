@@ -95,10 +95,8 @@ module Message = struct
       let jsonrpc =
         Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
       in
-      if jsonrpc = Constant.jsonrpcv then
-        { method_; params; id }
-      else
-        Json.error "invalid version" json
+      if jsonrpc = Constant.jsonrpcv then { method_; params; id }
+      else Json.error "invalid version" json
     | _ -> Json.error "invalid request" json
 
   let yojson_of_either t : Json.t = yojson_of_t (Option.map ~f:Id.yojson_of_t) t
@@ -124,12 +122,15 @@ module Response = struct
         | MethodNotFound
         | InvalidParams
         | InternalError
+        (* the codes below are LSP specific *)
         | ServerErrorStart
         | ServerErrorEnd
         | ServerNotInitialized
         | UnknownErrorCode
-        | RequestCancelled
+        | RequestFailed
+        | ServerCancelled
         | ContentModified
+        | RequestCancelled
 
       let of_int = function
         | -32700 -> Some ParseError
@@ -143,6 +144,8 @@ module Response = struct
         | -32001 -> Some UnknownErrorCode
         | -32800 -> Some RequestCancelled
         | -32801 -> Some ContentModified
+        | -32802 -> Some ServerCancelled
+        | -32803 -> Some RequestFailed
         | _ -> None
 
       let to_int = function
@@ -157,6 +160,8 @@ module Response = struct
         | UnknownErrorCode -> -32001
         | RequestCancelled -> -32800
         | ContentModified -> -32801
+        | ServerCancelled -> -32802
+        | RequestFailed -> -32803
 
       let t_of_yojson json =
         match json with
@@ -230,8 +235,7 @@ module Response = struct
       let jsonrpc =
         Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
       in
-      if jsonrpc <> Constant.jsonrpcv then
-        Json.error "Invalid response" json
+      if jsonrpc <> Constant.jsonrpcv then Json.error "Invalid response" json
       else
         match Json.field fields Constant.result (fun x -> x) with
         | Some res -> { id; result = Ok res }

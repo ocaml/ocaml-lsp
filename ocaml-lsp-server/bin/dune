@@ -2,4 +2,4 @@
  (name main)
  (package ocaml-lsp-server)
  (public_name ocamllsp)
- (libraries cmdliner dune-build-info ocaml_lsp_server))
+ (libraries dune-build-info stdune ocaml_lsp_server))

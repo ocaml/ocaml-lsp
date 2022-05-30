@@ -13,7 +13,9 @@ module Resolve : sig
 end
 
 val complete :
-  Document.t -> Position.t -> [> `CompletionList of CompletionList.t ] Fiber.t
+     State.t
+  -> CompletionParams.t
+  -> [> `CompletionList of CompletionList.t ] option Fiber.t
 
 (** creates a server response for ["completionItem/resolve"] *)
 val resolve :

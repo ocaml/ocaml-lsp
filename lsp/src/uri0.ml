@@ -1,5 +1,9 @@
 open Import
 
+module Private = struct
+  let win32 = ref Sys.win32
+end
+
 type t = Uri_lexer.t =
   { scheme : string option
   ; authority : string

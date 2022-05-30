@@ -32,15 +32,9 @@ let heading_level level heading : Omd.element =
 let style_markdown (kind : Oct.Types.style_kind) md : Omd.element list =
   match kind with
   | SK_bold -> [ Bold md ]
-  | SK_italic
-  | SK_emphasize ->
-    [ Emph md ]
-  | SK_center
-  | SK_left
-  | SK_right
-  | SK_superscript
-  | SK_subscript
-  | SK_custom _ ->
+  | SK_italic | SK_emphasize -> [ Emph md ]
+  | SK_center | SK_left | SK_right | SK_superscript | SK_subscript | SK_custom _
+    ->
     (* TODO: implement SK_{center, left, right, superscript, subscript, custom}
        using html blocks *)
     md
@@ -72,8 +66,7 @@ and text_element_to_markdown (doc_elem : Oct.Types.text_element) =
     Option.map ~f:text_to_markdown descr
     |> Option.value ~default:[ to_inline_code reference ]
   | Special_ref _
-  | Target (_, _) (* TODO: add support for markdown-specific blocks *) ->
-    []
+  | Target (_, _) (* TODO: add support for markdown-specific blocks *) -> []
 
 and text_elements_to_markdown lst = List.map ~f:text_to_markdown lst
 
@@ -103,8 +96,7 @@ and tag_to_markdown tag : Omd.element list =
         let link_title = [ Omd.Text "link" ] in
         Omd.Url (url, link_title, empty_hover_title)
         :: space :: text_to_markdown text
-      | See_file name, text
-      | See_doc name, text ->
+      | See_file name, text | See_doc name, text ->
         let no_prog_lang = "" in
         (* TODO: add support to reference files and documents *)
         Code (no_prog_lang, name) :: space :: text_to_markdown text

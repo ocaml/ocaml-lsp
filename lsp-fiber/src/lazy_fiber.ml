@@ -10,7 +10,8 @@ let force t =
   match t.f with
   | None -> Fiber.Ivar.read t.value
   | Some f ->
-    t.f <- None;
-    let* v = f () in
-    let+ () = Fiber.Ivar.fill t.value v in
-    v
+    Fiber.of_thunk (fun () ->
+        t.f <- None;
+        let* v = f () in
+        let+ () = Fiber.Ivar.fill t.value v in
+        v)

@@ -22,15 +22,16 @@ let create (client_capabilities : ClientCapabilities.t) ~report_progress
   | _ -> Disabled
 
 let end_build (t : enabled) ~message =
-  match t.token with
-  | None -> Fiber.return ()
-  | Some token ->
-    t.token <- None;
-    t.report_progress
-      (ProgressParams.create ~token
-         ~value:
-           (Server_notification.Progress.End
-              (WorkDoneProgressEnd.create ~message ())))
+  Fiber.of_thunk (fun () ->
+      match t.token with
+      | None -> Fiber.return ()
+      | Some token ->
+        t.token <- None;
+        t.report_progress
+          (ProgressParams.create ~token
+             ~value:
+               (Server_notification.Progress.End
+                  (WorkDoneProgressEnd.create ~message ()))))
 
 let end_build_if_running = function
   | Disabled -> Fiber.return ()
@@ -53,36 +54,37 @@ let start_build (t : enabled) =
   token
 
 let build_progress t (progress : Drpc.Progress.t) =
-  match t with
-  | Disabled -> Code_error.raise "progress reporting is not supported" []
-  | Enabled ({ token; report_progress; _ } as t) -> (
-    match progress with
-    | Success -> end_build t ~message:"Build finished"
-    | Failed -> end_build t ~message:"Build failed"
-    | Interrupted -> end_build t ~message:"Build interrupted"
-    | Waiting -> Fiber.return ()
-    | In_progress { complete; remaining } ->
-      let* token =
-        match token with
-        | Some token -> Fiber.return token
-        | None ->
-          (* This can happen when we connect to dune in the middle of a
-             build. *)
-          start_build t
-      in
-      let total = complete + remaining in
-      (* The percentage is useless as it isn't monotinically increasing as the
-         spec requires, but it's the best we can do. *)
-      let percentage =
-        let fraction = float_of_int complete /. float_of_int total in
-        int_of_float (fraction *. 100.)
-      in
-      report_progress
-        (ProgressParams.create ~token
-           ~value:
-             (Server_notification.Progress.Report
-                (let message = sprintf "Building [%d/%d]" complete total in
-                 WorkDoneProgressReport.create ~percentage ~message ()))))
+  Fiber.of_thunk (fun () ->
+      match t with
+      | Disabled -> Code_error.raise "progress reporting is not supported" []
+      | Enabled ({ token; report_progress; _ } as t) -> (
+        match progress with
+        | Success -> end_build t ~message:"Build finished"
+        | Failed -> end_build t ~message:"Build failed"
+        | Interrupted -> end_build t ~message:"Build interrupted"
+        | Waiting -> end_build t ~message:"Waiting for changes"
+        | In_progress { complete; remaining } ->
+          let* token =
+            match token with
+            | Some token -> Fiber.return token
+            | None ->
+              (* This can happen when we connect to dune in the middle of a
+                 build. *)
+              start_build t
+          in
+          let total = complete + remaining in
+          (* The percentage is useless as it isn't monotinically increasing as
+             the spec requires, but it's the best we can do. *)
+          let percentage =
+            let fraction = float_of_int complete /. float_of_int total in
+            int_of_float (fraction *. 100.)
+          in
+          report_progress
+            (ProgressParams.create ~token
+               ~value:
+                 (Server_notification.Progress.Report
+                    (let message = sprintf "Building [%d/%d]" complete total in
+                     WorkDoneProgressReport.create ~percentage ~message ())))))
 
 let should_report_build_progress = function
   | Disabled -> false

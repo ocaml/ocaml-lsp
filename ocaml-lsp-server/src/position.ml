@@ -1,6 +1,9 @@
 open Import
 include Lsp.Types.Position
 
+let to_dyn { line; character } =
+  Dyn.record [ ("line", Dyn.int line); ("character", Dyn.int character) ]
+
 let start = { line = 0; character = 0 }
 
 let is_dummy (lp : Lexing.position) =
@@ -8,8 +11,7 @@ let is_dummy (lp : Lexing.position) =
   && lp.pos_cnum = Lexing.dummy_pos.pos_cnum
 
 let of_lexical_position (lex_position : Lexing.position) : t option =
-  if is_dummy lex_position then
-    None
+  if is_dummy lex_position then None
   else
     let line = lex_position.pos_lnum - 1 in
     let character = lex_position.pos_cnum - lex_position.pos_bol in
@@ -39,15 +41,8 @@ let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
   match (compare t r.start, compare t r.end_) with
   | Lt, Lt -> `Outside (abs (r.start - t))
   | Gt, Gt -> `Outside (abs (r.end_ - t))
-  | Eq, Lt
-  | Gt, Eq
-  | Eq, Eq
-  | Gt, Lt ->
-    `Inside
-  | Eq, Gt
-  | Lt, Eq
-  | Lt, Gt ->
-    assert false
+  | Eq, Lt | Gt, Eq | Eq, Eq | Gt, Lt -> `Inside
+  | Eq, Gt | Lt, Eq | Lt, Gt -> assert false
 
 let logical position =
   let line = position.line + 1 in

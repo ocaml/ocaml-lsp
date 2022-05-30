@@ -27,10 +27,8 @@ let no_output () =
   let received_none = ref false in
   Out.create (function
     | None ->
-      if !received_none then
-        failwith "received None more than once"
-      else
-        received_none := true;
+      if !received_none then failwith "received None more than once"
+      else received_none := true;
       Fiber.return ()
     | Some _ -> failwith "unexpected element")
 
@@ -158,9 +156,8 @@ let%expect_test "concurrent requests" =
               let self = Context.session c in
               print_endline "waitee: stopping";
               let+ () = Jrpc.stop self in
-              print_endline "waitee: stopped"
-            ) else
-              Fiber.return ())
+              print_endline "waitee: stopped")
+            else Fiber.return ())
       in
       let state = Context.state c in
       Fiber.return (response, state)
@@ -171,18 +168,19 @@ let%expect_test "concurrent requests" =
   let waiter_in, waitee_out = pipe () in
   let waitee = waitee (waitee_in, waitee_out) in
   let waiter = waiter (waiter_in, waiter_out) in
-  let initial_request () =
-    let request =
-      Jsonrpc.Message.create ~id:(`String "initial") ~method_:"init" ()
+  let run () =
+    let initial_request () =
+      let request =
+        Jsonrpc.Message.create ~id:(`String "initial") ~method_:"init" ()
+      in
+      print_endline "initial: waitee requests from waiter";
+      let+ resp = Jrpc.request waitee request in
+      print_endline "initial request response:";
+      print (Response resp)
     in
-    print_endline "initial: waitee requests from waiter";
-    let+ resp = Jrpc.request waitee request in
-    print_endline "initial request response:";
-    print (Response resp)
+    Fiber.all_concurrently_unit
+      [ Jrpc.run waitee; initial_request (); Jrpc.run waiter ]
   in
-  let all = [ Jrpc.run waiter; Jrpc.run waitee ] in
-  let all = initial_request () :: all in
-  let run () = Fiber.parallel_iter all ~f:Fun.id in
   Fiber_test.test Dyn.opaque run;
   [%expect
     {|

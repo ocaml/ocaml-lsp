@@ -32,12 +32,14 @@ possible and does not make any assumptions about IO.
 ")
  (depends
   (jsonrpc (= :version))
+  dyn
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
-  pp ;; needed by stdune
-  (csexp (>= 1.5)) ;; needed by stdune
-  uutf
+  (cinaps :with-test)
+  (menhir (>= 20211230 :with-test))
+  (ppx_expect (>= v0.14.0 :with-test))
   uri
+  (uutf (>= 1.0.2))
   (odoc :with-doc)
   (ocaml (>= 4.12))))
 
@@ -49,14 +51,22 @@ possible and does not make any assumptions about IO.
   yojson
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
+  dune-rpc
+  dyn
+  stdune
+  (fiber (>= 3.1.1))
+  xdg
+  ordering
   dune-build-info
   spawn
+  (omd (<= 1.3.1))
+  (octavius (>= 1.2.2))
+  (uutf (>= 1.0.2))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
-  (result (>= 1.5))
-  (ocamlformat-rpc-lib (and (>= 0.18.0) (< 0.20.0)))
+  (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (ocaml (and (>= 4.13) (< 4.14)))))
+  (ocaml (and (>= 4.14) (< 4.15)))))
 
 (package
  (name jsonrpc)

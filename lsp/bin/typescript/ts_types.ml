@@ -218,8 +218,7 @@ struct
           let init = self#typ t1 ~init in
           self#typ t2 ~init
         | List t -> self#typ t ~init
-        | Tuple typs
-        | Sum typs ->
+        | Tuple typs | Sum typs ->
           List.fold_left typs ~init ~f:(fun init f -> self#typ f ~init)
         | Record fs ->
           List.fold_left fs ~init ~f:(fun init f -> self#field f ~init)
@@ -364,9 +363,7 @@ module Prim = struct
     | "uinteger" -> Uinteger
     | "any" -> Any
     | "array" -> List
-    | "unknown"
-    | "object" ->
-      Object
+    | "unknown" | "object" -> Object
     | _ -> resolve s
 end
 
@@ -386,21 +383,15 @@ let subst unresolved =
       | Some [] -> assert false
       | Some (x :: _) -> `Resolved x
       | None ->
-        if inside = Some n then
-          `Self
-        else
-          `Unresolved (String.Map.find_exn unresolved n)
+        if inside = Some n then `Self
+        else `Unresolved (String.Map.find_exn unresolved n)
 
     method push x y =
       let params =
         String.Map.update params x ~f:(function
           | None -> Some [ y ]
           | Some [] -> assert false
-          | Some (y' :: xs) ->
-            if y = y' then
-              Some xs
-            else
-              Some (y :: y' :: xs))
+          | Some (y' :: xs) -> if y = y' then Some xs else Some (y :: y' :: xs))
       in
       {<params>}
 

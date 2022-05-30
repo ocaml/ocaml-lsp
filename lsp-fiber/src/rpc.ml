@@ -43,11 +43,12 @@ module Cancel = struct
   let destroy t = t := Finished
 
   let cancel t =
-    match !t with
-    | Finished -> Fiber.return ()
-    | Pending { callbacks } ->
-      t := Finished;
-      Fiber.parallel_iter callbacks ~f:(fun f -> f ())
+    Fiber.of_thunk (fun () ->
+        match !t with
+        | Finished -> Fiber.return ()
+        | Pending { callbacks } ->
+          t := Finished;
+          Fiber.parallel_iter callbacks ~f:(fun f -> f ()))
 end
 
 module State = struct
@@ -107,7 +108,11 @@ module type S = sig
 
     val notification : t -> out_notification -> unit
 
-    val request : t -> 'resp out_request -> 'resp Fiber.t
+    type 'a response
+
+    val await : 'a response -> 'a Fiber.t
+
+    val request : t -> 'resp out_request -> 'resp response
 
     val submit : t -> unit Fiber.t
   end
@@ -136,6 +141,8 @@ module type Notification_intf = sig
   val to_jsonrpc : t -> Jsonrpc.Message.notification
 end
 
+module Table = Stdlib.Hashtbl.Make (Jsonrpc.Id)
+
 module Make (Initialize : sig
   type t
 end)
@@ -161,7 +168,7 @@ struct
     ; (* Filled when the server is initialied *)
       initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
-    ; pending : (Jsonrpc.Id.t, Cancel.t) Table.t
+    ; pending : Cancel.t Table.t
     ; detached : Fiber.Pool.t
     }
 
@@ -213,7 +220,7 @@ struct
           (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
       | Ok (In_request.E r) ->
         let cancel = Cancel.create () in
-        Table.set t.pending req.id cancel;
+        Table.replace t.pending req.id cancel;
         let+ response, state =
           Fiber.finalize
             (fun () ->
@@ -248,7 +255,7 @@ struct
       ; session = Fdecl.create Dyn.opaque
       ; initialized = Fiber.Ivar.create ()
       ; req_id = 1
-      ; pending = Table.create (module Jrpc_id) 32
+      ; pending = Table.create 32
       ; detached = Fiber.Pool.create ()
       }
     in
@@ -261,19 +268,23 @@ struct
     Fdecl.set t.session session;
     t
 
-  let gen_request (type r) (t : _ t) (req : r Out_request.t) k : r Fiber.t =
+  let create_request t req =
     let id = `Int t.req_id in
-    let jsonrpc_request =
-      t.req_id <- t.req_id + 1;
-      Out_request.to_jsonrpc_request req ~id
-    in
-    let+ (resp : Jsonrpc.Response.t) = k jsonrpc_request in
-    match resp.result |> Result.map ~f:(Out_request.response_of_json req) with
+    t.req_id <- t.req_id + 1;
+    Out_request.to_jsonrpc_request req ~id
+
+  let receive_response req (resp : Jsonrpc.Response.t) =
+    match resp.result |> Result.map (Out_request.response_of_json req) with
     | Ok s -> s
     | Error e -> raise (Jsonrpc.Response.Error.E e)
 
   let request (type r) (t : _ t) (req : r Out_request.t) : r Fiber.t =
-    gen_request t req (Session.request (Fdecl.get t.session))
+    Fiber.of_thunk (fun () ->
+        let+ resp =
+          let req = create_request t req in
+          Session.request (Fdecl.get t.session) req
+        in
+        receive_response req resp)
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
@@ -294,9 +305,19 @@ struct
       let n = Out_notification.to_jsonrpc n in
       Session.Batch.notification t.batch n
 
-    let request (t : t) req =
+    type 'a response = 'a Lazy_fiber.t
+
+    let await req = Lazy_fiber.force req
+
+    let request (type r) (t : t) (req : r Out_request.t) : r response =
       let (E session) = t.session in
-      gen_request session req (Session.Batch.request t.batch)
+      let response =
+        let req = create_request session req in
+        Session.Batch.request t.batch req
+      in
+      Lazy_fiber.create (fun () ->
+          let+ response = Session.Batch.await response in
+          receive_response req response)
 
     let submit { session = E session; batch } =
       let t = Fdecl.get session.session in
@@ -318,7 +339,7 @@ struct
 
   let handle_cancel_req t id =
     let+ () =
-      match Table.find t.pending id with
+      match Table.find_opt t.pending id with
       | None -> Fiber.return ()
       | Some id -> Fiber.Pool.task t.detached ~f:(fun () -> Cancel.cancel id)
     in
@@ -346,17 +367,18 @@ module Client = struct
     make ~name:"client" handler.h_on_request h_on_notification io
 
   let start (t : _ t) (p : InitializeParams.t) =
-    assert (t.state = Waiting_for_init);
-    let loop = start_loop t in
-    let init () =
-      let* resp = request t (Client_request.Initialize p) in
-      Log.log ~section:"client" (fun () ->
-          let resp = InitializeResult.yojson_of_t resp in
-          Log.msg "initialized" [ ("resp", resp) ]);
-      t.state <- Running;
-      Fiber.Ivar.fill t.initialized resp
-    in
-    Fiber.fork_and_join_unit (fun () -> loop) init
+    Fiber.of_thunk (fun () ->
+        assert (t.state = Waiting_for_init);
+        let loop = start_loop t in
+        let init () =
+          let* resp = request t (Client_request.Initialize p) in
+          Log.log ~section:"client" (fun () ->
+              let resp = InitializeResult.yojson_of_t resp in
+              Log.msg "initialized" [ ("resp", resp) ]);
+          t.state <- Running;
+          Fiber.Ivar.fill t.initialized resp
+        in
+        Fiber.fork_and_join_unit (fun () -> loop) init)
 end
 
 module Server = struct
@@ -367,45 +389,46 @@ module Server = struct
       (Client_notification)
 
   let h_on_notification handler t n =
-    match n with
-    | Client_notification.Exit ->
-      Log.log ~section:"server" (fun () ->
-          Log.msg "received exit notification" []);
-      let* () = stop t in
-      Fiber.return (Jsonrpc_fiber.Notify.Stop, state t)
-    | Client_notification.CancelRequest id -> handle_cancel_req t id
-    | _ ->
-      if t.state = Waiting_for_init then
-        let state = state t in
-        Fiber.return (Jsonrpc_fiber.Notify.Continue, state)
-      else
-        let+ state = handler.h_on_notification t n in
-        (Jsonrpc_fiber.Notify.Continue, state)
+    Fiber.of_thunk (fun () ->
+        match n with
+        | Client_notification.Exit ->
+          Log.log ~section:"server" (fun () ->
+              Log.msg "received exit notification" []);
+          let* () = stop t in
+          Fiber.return (Jsonrpc_fiber.Notify.Stop, state t)
+        | Client_notification.CancelRequest id -> handle_cancel_req t id
+        | _ ->
+          if t.state = Waiting_for_init then
+            let state = state t in
+            Fiber.return (Jsonrpc_fiber.Notify.Continue, state)
+          else
+            let+ state = handler.h_on_notification t n in
+            (Jsonrpc_fiber.Notify.Continue, state))
 
   let on_request handler t in_r =
-    match Client_request.E in_r with
-    | Client_request.E (Client_request.Initialize i) ->
-      if t.state = Waiting_for_init then (
-        let* result = handler.h_on_request.on_request t in_r in
-        t.state <- Running;
-        (* XXX Should we wait for the waiter of initialized to finish? *)
-        let* () = Fiber.Ivar.fill t.initialized i in
-        Fiber.return result
-      ) else
-        let code = Response.Error.Code.InvalidRequest in
-        let message = "already initialized" in
-        raise
-          (Jsonrpc.Response.Error.E
-             (Jsonrpc.Response.Error.make ~code ~message ()))
-    | Client_request.E _ ->
-      if t.state = Waiting_for_init then
-        let code = Response.Error.Code.ServerNotInitialized in
-        let message = "not initialized" in
-        raise
-          (Jsonrpc.Response.Error.E
-             (Jsonrpc.Response.Error.make ~code ~message ()))
-      else
-        handler.h_on_request.on_request t in_r
+    Fiber.of_thunk (fun () ->
+        match Client_request.E in_r with
+        | Client_request.E (Client_request.Initialize i) ->
+          if t.state = Waiting_for_init then (
+            let* result = handler.h_on_request.on_request t in_r in
+            t.state <- Running;
+            (* XXX Should we wait for the waiter of initialized to finish? *)
+            let* () = Fiber.Ivar.fill t.initialized i in
+            Fiber.return result)
+          else
+            let code = Response.Error.Code.InvalidRequest in
+            let message = "already initialized" in
+            raise
+              (Jsonrpc.Response.Error.E
+                 (Jsonrpc.Response.Error.make ~code ~message ()))
+        | Client_request.E _ ->
+          if t.state = Waiting_for_init then
+            let code = Response.Error.Code.ServerNotInitialized in
+            let message = "not initialized" in
+            raise
+              (Jsonrpc.Response.Error.E
+                 (Jsonrpc.Response.Error.make ~code ~message ()))
+          else handler.h_on_request.on_request t in_r)
 
   let make (type s) (handler : s Handler.t) io (initial_state : s) =
     let h_on_request : _ Handler.on_request =

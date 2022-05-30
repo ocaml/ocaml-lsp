@@ -15,9 +15,7 @@ type t =
 let create (ip : InitializeParams.t) =
   let workspace_folders =
     match ip.workspaceFolders with
-    | None
-    | Some None ->
-      None
+    | None | Some None -> None
     | Some (Some workspace_folders) ->
       Uri_map.of_list_map_exn workspace_folders
         ~f:(fun (ws : WorkspaceFolder.t) -> (ws.uri, ws))

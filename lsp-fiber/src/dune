@@ -3,11 +3,10 @@
  (libraries
   dyn
   fiber
-  fiber_unix
+  lev_fiber
   jsonrpc
   jsonrpc_fiber
   lsp
   ppx_yojson_conv_lib
-  result
   stdune
   yojson))

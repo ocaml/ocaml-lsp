@@ -3,16 +3,7 @@
 (library
  (name lsp)
  (public_name lsp)
- (libraries
-  jsonrpc
-  ppx_yojson_conv_lib
-  result
-  stdune
-  dyn
-  threads.posix
-  uutf
-  uri
-  yojson)
+ (libraries jsonrpc ppx_yojson_conv_lib dyn uutf uri yojson)
  (lint
   (pps ppx_yojson_conv)))
 

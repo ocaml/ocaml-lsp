@@ -1,27 +1,13 @@
 [submodule "ocaml-lsp-server/vendor/merlin"]
-path = ocaml-lsp-server/vendor/merlin
-url = https://github.com/rgrinberg/merlin
-branch = lsp
-ignore = dirty
-[submodule "ocaml-lsp-server/vendor/cmdliner"]
-path = ocaml-lsp-server/vendor/cmdliner
-url = https://github.com/dbuenzli/cmdliner.git
-[submodule "ocaml-lsp-server/vendor/uutf"]
-path = ocaml-lsp-server/vendor/uutf
-url = https://github.com/dune-universe/uutf.git
-branch = duniverse-v1.0.2
-ignore = dirty
-[submodule "ocaml-lsp-server/vendor/octavius"]
-path = ocaml-lsp-server/vendor/octavius
-url = https://github.com/ocaml-doc/octavius.git
-ignore = dirty
-[submodule "ocaml-lsp-server/vendor/omd"]
-path = ocaml-lsp-server/vendor/omd
-url = https://github.com/ulugbekna/omd.git
-branch = ocaml-lsp
-ignore = dirty
+	path = ocaml-lsp-server/vendor/merlin
+	url = https://github.com/rgrinberg/merlin
+	branch = lsp
+	ignore = dirty
 [submodule "submodules/dune"]
-path = submodules/dune
-url = https://github.com/rgrinberg/jbuilder
-branch=lsp
-ignore=dirty
+	path = submodules/dune
+	url = https://github.com/rgrinberg/jbuilder
+	branch=lsp
+	ignore=dirty
+[submodule "submodules/lev"]
+	path = submodules/lev
+	url = https://github.com/rgrinberg/lev.git

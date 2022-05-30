@@ -13,3 +13,5 @@ val logical : t -> [> `Logical of int * int ]
 val of_lexical_position : Lexing.position -> t option
 
 val start : t
+
+val to_dyn : t -> Dyn.t

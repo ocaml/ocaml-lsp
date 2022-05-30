@@ -7,73 +7,57 @@ type command_result =
   ; status : Unix.process_status
   }
 
-type t =
-  { stdin : Scheduler.thread Lazy_fiber.t
-  ; stderr : Scheduler.thread Lazy_fiber.t
-  ; stdout : Scheduler.thread Lazy_fiber.t
-  }
-
-let create () =
-  let stdout = Lazy_fiber.create Scheduler.create_thread in
-  let stderr = Lazy_fiber.create Scheduler.create_thread in
-  let stdin = Lazy_fiber.create Scheduler.create_thread in
-  { stdout; stderr; stdin }
-
-let run_command state prog stdin_value args : command_result Fiber.t =
-  let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
-  let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
-  let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
-  let pid =
-    let argv = prog :: args in
-    Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
-    |> Stdune.Pid.of_int
-  in
-  Unix.close stdin_i;
-  Unix.close stdout_o;
-  Unix.close stderr_o;
-  let stdin () =
-    let+ res =
-      let* thread = Lazy_fiber.force state.stdin in
-      Scheduler.async_exn thread (fun () ->
-          let out_chan = Unix.out_channel_of_descr stdin_o in
-          output_string out_chan stdin_value;
-          flush out_chan;
-          close_out out_chan)
-      |> Scheduler.await_no_cancel
-    in
-    match res with
-    | Ok s -> s
-    | Error e -> Exn_with_backtrace.reraise e
-  in
-  let read th from =
-    let+ res =
-      Scheduler.async_exn th (fun () ->
-          let in_ = Unix.in_channel_of_descr from in
-          let contents = Stdune.Io.read_all in_ in
-          close_in_noerr in_;
-          contents)
-      |> Scheduler.await_no_cancel
-    in
-    match res with
-    | Ok s -> s
-    | Error e -> Exn_with_backtrace.reraise e
-  in
-  let stdout () =
-    let* th = Lazy_fiber.force state.stdout in
-    read th stdout_i
-  in
-  let stderr () =
-    let* th = Lazy_fiber.force state.stderr in
-    read th stderr_i
-  in
-  let+ status, (stdout, stderr) =
-    Fiber.fork_and_join
-      (fun () -> Scheduler.wait_for_process pid)
-      (fun () ->
-        Fiber.fork_and_join_unit stdin (fun () ->
-            Fiber.fork_and_join stdout stderr))
-  in
-  { stdout; stderr; status }
+let run_command prog stdin_value args : command_result Fiber.t =
+  Fiber.of_thunk (fun () ->
+      let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
+      let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
+      let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
+      let pid =
+        let argv = prog :: args in
+        Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o
+          ()
+        |> Stdune.Pid.of_int
+      in
+      Unix.close stdin_i;
+      Unix.close stdout_o;
+      Unix.close stderr_o;
+      let blockity =
+        if Sys.win32 then `Blocking
+        else (
+          Unix.set_nonblock stdin_o;
+          Unix.set_nonblock stdout_i;
+          `Non_blocking true)
+      in
+      let make fd what =
+        let fd = Lev_fiber.Fd.create fd blockity in
+        Lev_fiber.Io.create fd what
+      in
+      let* stdin_o = make stdin_o Output in
+      let* stdout_i = make stdout_i Input in
+      let* stderr_i = make stderr_i Input in
+      let stdin () =
+        let+ () =
+          Lev_fiber.Io.with_write stdin_o ~f:(fun w ->
+              Lev_fiber.Io.Writer.add_string w stdin_value;
+              Lev_fiber.Io.Writer.flush w)
+        in
+        Lev_fiber.Io.close stdin_o
+      in
+      let read from () =
+        let+ res =
+          Lev_fiber.Io.with_read from ~f:Lev_fiber.Io.Reader.to_string
+        in
+        Lev_fiber.Io.close from;
+        res
+      in
+      let+ status, (stdout, stderr) =
+        Fiber.fork_and_join
+          (fun () -> Lev_fiber.waitpid ~pid:(Pid.to_int pid))
+          (fun () ->
+            Fiber.fork_and_join_unit stdin (fun () ->
+                Fiber.fork_and_join (read stdout_i) (read stderr_i)))
+      in
+      { stdout; stderr; status })
 
 type error =
   | Unsupported_syntax of Document.Syntax.t
@@ -125,14 +109,14 @@ let formatter doc =
   | Ocaml -> Ok (Ocaml (Document.uri doc))
   | Reason -> Ok (Reason (Document.kind doc))
 
-let exec state bin args stdin =
+let exec bin args stdin =
   let refmt = Fpath.to_string bin in
-  let+ res = run_command state refmt stdin args in
+  let+ res = run_command refmt stdin args in
   match res.status with
   | Unix.WEXITED 0 -> Result.Ok res.stdout
   | _ -> Result.Error (Unexpected_result { message = res.stderr })
 
-let run state doc : (TextEdit.t list, error) result Fiber.t =
+let run doc : (TextEdit.t list, error) result Fiber.t =
   let res =
     let open Result.O in
     let* formatter = formatter doc in
@@ -143,5 +127,5 @@ let run state doc : (TextEdit.t list, error) result Fiber.t =
   match res with
   | Error e -> Fiber.return (Error e)
   | Ok (binary, args, contents) ->
-    exec state binary args contents
+    exec binary args contents
     |> Fiber.map ~f:(Result.map ~f:(fun to_ -> Diff.edit ~from:contents ~to_))

@@ -64,8 +64,7 @@ let rec mark_value_unused_edit name contexts =
     if Ident.name ident = name then
       let+ start = Position.of_lexical_position loc.loc_start in
       TextEdit.{ range = Range.create ~start ~end_:start; newText = "_" }
-    else
-      None
+    else None
   | _ :: cs -> mark_value_unused_edit name cs
   | _ -> None
 

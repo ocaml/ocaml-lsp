@@ -17,15 +17,14 @@ end
 let completion_kind kind : CompletionItemKind.t option =
   match kind with
   | `Value -> Some Value
-  | `Constructor -> Some Constructor
-  | `Variant -> None
-  | `Label -> Some Property
-  | `Module
-  | `Modtype ->
-    Some Module
-  | `Type -> Some TypeParameter
+  | `Variant -> Some EnumMember
+  | `Label -> Some Field
+  | `Module -> Some Module
+  | `Modtype -> Some Interface
   | `MethodCall -> Some Method
   | `Keyword -> Some Keyword
+  | `Constructor -> Some Constructor
+  | `Type -> Some TypeParameter
 
 (** @see <https://ocaml.org/manual/lex.html> reference *)
 let prefix_of_position ~short_path source position =
@@ -40,8 +39,7 @@ let prefix_of_position ~short_path source position =
       let should_terminate = ref false in
       let has_seen_dot = ref false in
       let is_prefix_char c =
-        if !should_terminate then
-          false
+        if !should_terminate then false
         else
           match c with
           | 'a' .. 'z'
@@ -66,15 +64,12 @@ let prefix_of_position ~short_path source position =
           | '<'
           | ':'
           | '~'
-          | '#' ->
-            true
+          | '#' -> true
           | '`' ->
-            if !has_seen_dot then
-              false
+            if !has_seen_dot then false
             else (
               should_terminate := true;
-              true
-            )
+              true)
           | '.' ->
             has_seen_dot := true;
             not short_path
@@ -98,8 +93,7 @@ let prefix_of_position ~short_path source position =
       match String.lsplit2 reconstructed_prefix ~on:':' with
       | Some (_, s) -> s
       | None -> reconstructed_prefix
-    else
-      reconstructed_prefix
+    else reconstructed_prefix
 
 let suffix_of_position source position =
   match Msource.text source with
@@ -107,18 +101,12 @@ let suffix_of_position source position =
   | text ->
     let (`Offset index) = Msource.get_offset source position in
     let len = String.length text in
-    if index >= len then
-      ""
+    if index >= len then ""
     else
       let from = index in
       let len =
         let ident_char = function
-          | 'a' .. 'z'
-          | 'A' .. 'Z'
-          | '0' .. '9'
-          | '\''
-          | '_' ->
-            true
+          | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '\'' | '_' -> true
           | _ -> false
         in
         let until =
@@ -151,8 +139,7 @@ module Complete_by_prefix = struct
     let kind = completion_kind entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
     CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
-      ~deprecated:
-        entry.deprecated
+      ~deprecated:entry.deprecated
         (* Without this field the client is not forced to respect the order
            provided by merlin. *)
       ~sortText:(sortText_of_index idx) ~data:compl_params ~textEdit ()
@@ -212,11 +199,10 @@ module Complete_with_construct = struct
     with
     | Ok (loc, exprs) -> Some (loc, exprs)
     | Error { Exn_with_backtrace.exn = Merlin_analysis.Construct.Not_a_hole; _ }
-      ->
-      None
+      -> None
     | Error exn -> Exn_with_backtrace.reraise exn
 
-  let process_dispatch_resp = function
+  let process_dispatch_resp ~supportsJumpToNextHole = function
     | None -> []
     | Some (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
@@ -225,63 +211,75 @@ module Complete_with_construct = struct
           (not (String.equal expr "()"))
           && String.is_prefix expr ~prefix:"("
           && String.is_suffix expr ~suffix:")"
-        then
-          String.sub expr ~pos:1 ~len:(String.length expr - 2)
-        else
-          expr
+        then String.sub expr ~pos:1 ~len:(String.length expr - 2)
+        else expr
       in
       let completionItem_of_constructed_expr idx expr =
         let expr_wo_parens = deparen_constr_expr expr in
-        let textEdit = `TextEdit { TextEdit.range; newText = expr } in
+        let edit = { TextEdit.range; newText = expr } in
         let command =
-          Client.Vscode.Commands.Custom.next_hole ~start_position:range.start
-            ~notify_if_no_hole:false ()
+          if supportsJumpToNextHole then
+            Some
+              (Client.Custom_commands.next_hole
+                 ~in_range:(Range.resize_for_edit edit)
+                 ~notify_if_no_hole:false ())
+          else None
         in
-        CompletionItem.create ~label:expr_wo_parens ~textEdit
+        CompletionItem.create ~label:expr_wo_parens ~textEdit:(`TextEdit edit)
           ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
-          ~sortText:(sortText_of_index idx) ~command ()
+          ~sortText:(sortText_of_index idx) ?command ()
       in
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
 
-let complete doc pos =
-  let+ items =
-    let position = Position.logical pos in
-    let prefix =
-      prefix_of_position ~short_path:false (Document.source doc) position
-    in
-    if not (Typed_hole.can_be_hole prefix) then
-      Complete_by_prefix.complete doc prefix pos
-    else
-      let reindex_sortText completion_items =
-        List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
-            let sortText = Some (sortText_of_index idx) in
-            { ci with sortText })
-      in
-      let preselect_first = function
-        | [] -> []
-        | ci :: rest -> { ci with CompletionItem.preselect = Some true } :: rest
-      in
-      let+ construct_cmd_resp, compl_by_prefix_resp =
-        Document.with_pipeline_exn doc (fun pipeline ->
-            let construct_cmd_resp =
-              Complete_with_construct.dispatch_cmd position pipeline
+let complete (state : State.t)
+    ({ textDocument = { uri }; position = pos; _ } : CompletionParams.t) =
+  Fiber.of_thunk (fun () ->
+      let doc = Document_store.get state.store uri in
+      let+ items =
+        let position = Position.logical pos in
+        let prefix =
+          prefix_of_position ~short_path:false (Document.source doc) position
+        in
+        if not (Typed_hole.can_be_hole prefix) then
+          Complete_by_prefix.complete doc prefix pos
+        else
+          let reindex_sortText completion_items =
+            List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
+                let sortText = Some (sortText_of_index idx) in
+                { ci with sortText })
+          in
+          let preselect_first = function
+            | [] -> []
+            | ci :: rest ->
+              { ci with CompletionItem.preselect = Some true } :: rest
+          in
+          let+ construct_cmd_resp, compl_by_prefix_resp =
+            Document.with_pipeline_exn doc (fun pipeline ->
+                let construct_cmd_resp =
+                  Complete_with_construct.dispatch_cmd position pipeline
+                in
+                let compl_by_prefix_resp =
+                  Complete_by_prefix.dispatch_cmd ~prefix position pipeline
+                in
+                (construct_cmd_resp, compl_by_prefix_resp))
+          in
+          let construct_completionItems =
+            let supportsJumpToNextHole =
+              State.experimental_client_capabilities state
+              |> Client.Experimental_capabilities.supportsJumpToNextHole
             in
-            let compl_by_prefix_resp =
-              Complete_by_prefix.dispatch_cmd ~prefix position pipeline
-            in
-            (construct_cmd_resp, compl_by_prefix_resp))
+            Complete_with_construct.process_dispatch_resp
+              ~supportsJumpToNextHole construct_cmd_resp
+          in
+          let compl_by_prefix_completionItems =
+            Complete_by_prefix.process_dispatch_resp doc pos
+              compl_by_prefix_resp
+          in
+          construct_completionItems @ compl_by_prefix_completionItems
+          |> reindex_sortText |> preselect_first
       in
-      let construct_completionItems =
-        Complete_with_construct.process_dispatch_resp construct_cmd_resp
-      in
-      let compl_by_prefix_completionItems =
-        Complete_by_prefix.process_dispatch_resp doc pos compl_by_prefix_resp
-      in
-      construct_completionItems @ compl_by_prefix_completionItems
-      |> reindex_sortText |> preselect_first
-  in
-  `CompletionList (CompletionList.create ~isIncomplete:false ~items)
+      Some (`CompletionList (CompletionList.create ~isIncomplete:false ~items)))
 
 let format_doc ~markdown doc =
   match markdown with
@@ -294,33 +292,38 @@ let format_doc ~markdown doc =
 
 let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
     ~markdown =
-  (* Due to merlin's API, we create a version of the given document with the
-     applied completion item and pass it to merlin to get the docs for the
-     [compl.label] *)
-  let position : Position.t = resolve.position in
-  let logical_position = Position.logical position in
-  let doc =
-    let complete =
-      let start =
-        let prefix =
-          prefix_of_position ~short_path:true (Document.source doc)
-            logical_position
+  Fiber.of_thunk (fun () ->
+      (* Due to merlin's API, we create a version of the given document with the
+         applied completion item and pass it to merlin to get the docs for the
+         [compl.label] *)
+      let position : Position.t = resolve.position in
+      let logical_position = Position.logical position in
+      let doc =
+        let complete =
+          let start =
+            let prefix =
+              prefix_of_position ~short_path:true (Document.source doc)
+                logical_position
+            in
+            { position with
+              character = position.character - String.length prefix
+            }
+          in
+          let end_ =
+            let suffix =
+              suffix_of_position (Document.source doc) logical_position
+            in
+            { position with
+              character = position.character + String.length suffix
+            }
+          in
+          let range = Range.create ~start ~end_ in
+          TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
         in
-        { position with character = position.character - String.length prefix }
+        Document.update_text doc [ complete ]
       in
-      let end_ =
-        let suffix =
-          suffix_of_position (Document.source doc) logical_position
-        in
-        { position with character = position.character + String.length suffix }
+      let+ documentation =
+        let+ documentation = query_doc doc logical_position in
+        Option.map ~f:(format_doc ~markdown) documentation
       in
-      let range = Range.create ~start ~end_ in
-      TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
-    in
-    Document.update_text doc [ complete ]
-  in
-  let+ documentation =
-    let+ documentation = query_doc doc logical_position in
-    Option.map ~f:(format_doc ~markdown) documentation
-  in
-  { compl with documentation; data = None }
+      { compl with documentation; data = None })

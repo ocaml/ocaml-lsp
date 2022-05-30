@@ -1,9 +1,7 @@
 open Import
 module Version = Version
+module Diagnostics = Diagnostics
 open Fiber.O
-
-let client_capabilities (state : State.t) =
-  (State.initialize_params state).capabilities
 
 let make_error = Jsonrpc.Response.Error.make
 
@@ -90,12 +88,6 @@ let initialize_info : InitializeResult.t =
 
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
-let task_if_running (state : State.t) ~f =
-  let* running = Fiber.Pool.running state.detached in
-  match running with
-  | false -> Fiber.return ()
-  | true -> Fiber.Pool.task state.detached ~f
-
 let extract_related_errors uri raw_message =
   match Ocamlc_loc.parse_raw raw_message with
   | `Message message :: related ->
@@ -166,22 +158,19 @@ let set_diagnostics rpc doc =
   let create_diagnostic = Diagnostic.create ~source:"ocamllsp" in
   let async send =
     let+ () =
-      task_if_running state ~f:(fun () ->
+      task_if_running state.detached ~f:(fun () ->
           let timer = Document.timer doc in
-          let+ res = Scheduler.schedule timer send in
+          let* () = Lev_fiber.Timer.Wheel.cancel timer in
+          let* () = Lev_fiber.Timer.Wheel.reset timer in
+          let* res = Lev_fiber.Timer.Wheel.await timer in
           match res with
-          | Error `Cancelled
-          | Ok () ->
-            ())
+          | `Cancelled -> Fiber.return ()
+          | `Ok -> send ())
     in
     ()
   in
   match Document.syntax doc with
-  | Dune
-  | Cram
-  | Menhir
-  | Ocamllex ->
-    Fiber.return ()
+  | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
   | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
     let no_reason_merlin =
       let message =
@@ -191,16 +180,23 @@ let set_diagnostics rpc doc =
     in
     Diagnostics.set state.diagnostics (`Merlin (uri, [ no_reason_merlin ]));
     async (fun () -> Diagnostics.send state.diagnostics (`One uri))
-  | Reason
-  | Ocaml ->
-    async (fun () ->
-        let* diagnostics =
-          let command =
-            Query_protocol.Errors
-              { lexing = true; parsing = true; typing = true }
-          in
-          Document.with_pipeline_exn doc (fun pipeline ->
-              let errors = Query_commands.dispatch pipeline command in
+  | Reason | Ocaml ->
+    let send () =
+      let* diagnostics =
+        let command =
+          Query_protocol.Errors { lexing = true; parsing = true; typing = true }
+        in
+        Document.with_pipeline_exn doc (fun pipeline ->
+            match Query_commands.dispatch pipeline command with
+            | exception Extend_main.Handshake.Error error ->
+              let message =
+                sprintf
+                  "%s.\n\
+                   Hint: install the following packages: merlin-extend, reason"
+                  error
+              in
+              [ create_diagnostic ~range:Range.first_line ~message () ]
+            | errors ->
               let merlin_diagnostics =
                 List.rev_map errors ~f:(fun (error : Loc.error) ->
                     let loc = Loc.loc_of_report error in
@@ -253,15 +249,11 @@ let set_diagnostics rpc doc =
               |> List.sort
                    ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
                      Range.compare d1.range d2.range))
-        in
-        Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
-        Diagnostics.send state.diagnostics (`One uri))
-
-let log_message server ~type_ ~message =
-  let state = Server.state server in
-  task_if_running state ~f:(fun () ->
-      let log = LogMessageParams.create ~type_ ~message in
-      Server.notification server (Server_notification.LogMessage log))
+      in
+      Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
+      Diagnostics.send state.diagnostics (`One uri)
+    in
+    async send
 
 let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
@@ -277,7 +269,7 @@ let on_initialize server (ip : InitializeParams.t) =
     in
     let dune =
       Dune.create workspaces ip.capabilities state.diagnostics progress
-        ~log:(log_message server)
+        state.store ~log:(State.log_msg server)
     in
     let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
     dune
@@ -326,51 +318,106 @@ let on_initialize server (ip : InitializeParams.t) =
   in
   (resp, state)
 
-let code_action (state : State.t) (params : CodeActionParams.t) =
+module Code_action_error = struct
+  type t =
+    | Initial
+    | Need_merlin_extend of string
+    | Exn of Exn_with_backtrace.t
+
+  let empty = Initial
+
+  let combine x y =
+    match (x, y) with
+    | Initial, _ -> y (* [Initial] cedes to any *)
+    | _, Initial -> x
+    | Exn _, _ -> x (* [Exn] takes over any *)
+    | _, Exn _ -> y
+    | Need_merlin_extend _, Need_merlin_extend _ -> y
+end
+
+module Code_action_error_monoid = struct
+  type t = Code_action_error.t
+
+  include Stdune.Monoid.Make (Code_action_error)
+end
+
+let code_action server (params : CodeActionParams.t) =
+  let state : State.t = Server.state server in
   let doc =
     let uri = params.textDocument.uri in
     let store = state.store in
-    Document_store.get store uri
+    Document_store.get_opt store uri
   in
-  let code_action (ca : Code_action.t) =
-    match params.context.only with
-    | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
-      Fiber.return None
-    | Some _
-    | None ->
-      ca.run doc params
+  let dune_actions =
+    Dune.code_actions (State.dune state) params.textDocument.uri
   in
-  let+ code_action_results =
-    (* XXX this is a really bad use of resources. we should be batching all the
-       merlin related work *)
-    Fiber.parallel_map ~f:code_action
-      [ Action_destruct.t state
-      ; Action_inferred_intf.t state
-      ; Action_type_annotate.t
-      ; Action_construct.t
-      ; Action_refactor_open.unqualify
-      ; Action_refactor_open.qualify
-      ; Action_add_rec.t
-      ; Action_mark_remove_unused.mark
-      ; Action_mark_remove_unused.remove
-      ]
+  let actions = function
+    | [] -> None
+    | xs -> Some (List.map ~f:(fun a -> `CodeAction a) xs)
   in
-  let code_action_results = List.filter_opt code_action_results in
-  let code_action_results =
-    code_action_results @ Dune.code_actions (State.dune state) doc
-  in
-  match code_action_results with
-  | [] -> None
-  | l -> Some (List.map l ~f:(fun c -> `CodeAction c))
+  match doc with
+  | None -> Fiber.return (Reply.now (actions dune_actions), state)
+  | Some doc -> (
+    match Document.syntax doc with
+    | Ocamllex | Menhir | Cram | Dune ->
+      let state : State.t = Server.state server in
+      Fiber.return (Reply.now (actions dune_actions), state)
+    | Ocaml | Reason ->
+      let reply () =
+        let code_action (ca : Code_action.t) =
+          match params.context.only with
+          | Some set when not (List.mem set ca.kind ~equal:Poly.equal) ->
+            Fiber.return None
+          | Some _ | None -> (
+            let+ res =
+              Fiber.map_reduce_errors
+                ~on_error:(fun (exn : Exn_with_backtrace.t) ->
+                  match exn.exn with
+                  | Extend_main.Handshake.Error error ->
+                    Fiber.return (Code_action_error.Need_merlin_extend error)
+                  | _ -> Fiber.return (Code_action_error.Exn exn))
+                (module Code_action_error_monoid)
+                (fun () -> ca.run doc params)
+            in
+            match res with
+            | Ok res -> res
+            | Error Initial -> assert false
+            | Error (Need_merlin_extend _) -> None
+            | Error (Exn exn) -> Exn_with_backtrace.reraise exn)
+        in
+        let+ code_action_results =
+          (* XXX this is a really bad use of resources. we should be batching
+             all the merlin related work *)
+          Fiber.parallel_map ~f:code_action
+            [ Action_destruct.t state
+            ; Action_inferred_intf.t state
+            ; Action_type_annotate.t
+            ; Action_construct.t
+            ; Action_refactor_open.unqualify
+            ; Action_refactor_open.qualify
+            ; Action_add_rec.t
+            ; Action_mark_remove_unused.mark
+            ; Action_mark_remove_unused.remove
+            ]
+        in
+        List.filter_opt code_action_results
+        |> List.append dune_actions |> actions
+      in
+      let later f =
+        Fiber.return
+          ( Reply.later (fun k ->
+                let* resp = f () in
+                k resp)
+          , state )
+      in
+      later reply)
 
 module Formatter = struct
   let jsonrpc_error (e : Ocamlformat.error) =
     let message = Ocamlformat.message e in
     let code : Jsonrpc.Response.Error.Code.t =
       match e with
-      | Unsupported_syntax _
-      | Unknown_extension _
-      | Missing_binary _ ->
+      | Unsupported_syntax _ | Unknown_extension _ | Missing_binary _ ->
         InvalidRequest
       | Unexpected_result _ -> InternalError
     in
@@ -383,7 +430,7 @@ module Formatter = struct
         let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
         match res with
         | Ok res -> Fiber.return @@ Ok res
-        | Error _ -> Ocamlformat.run state.ocamlformat doc
+        | Error _ -> Ocamlformat.run doc
       in
       match res with
       | Ok result -> Fiber.return (Some result)
@@ -393,7 +440,7 @@ module Formatter = struct
         let msg = ShowMessageParams.create ~message ~type_:Warning in
         let+ () =
           let state : State.t = Server.state rpc in
-          task_if_running state ~f:(fun () ->
+          task_if_running state.detached ~f:(fun () ->
               Server.notification rpc (ShowMessage msg))
         in
         Jsonrpc.Response.Error.raise error
@@ -417,21 +464,11 @@ module Formatter = struct
                  random"
                 (Uri.to_path (Document.uri doc))
             in
-            log_message rpc ~type_:MessageType.Warning ~message
+            State.log_msg rpc ~type_:MessageType.Warning ~message
         in
         let+ to_ = Dune.Instance.format_dune_file dune doc in
         Some (Diff.edit ~from:(Document.text doc) ~to_)
 end
-
-let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
-  match client_capabilities.textDocument with
-  | None -> false
-  | Some td -> (
-    match field td with
-    | None -> false
-    | Some format ->
-      let set = Option.value format ~default:[ MarkupKind.Markdown ] in
-      List.mem set MarkupKind.Markdown ~equal:Poly.equal)
 
 let location_of_merlin_loc uri : _ -> (_, string) result = function
   | `At_origin -> Ok None
@@ -463,106 +500,13 @@ let location_of_merlin_loc uri : _ -> (_, string) result = function
 let format_doc ~markdown ~doc =
   `MarkupContent
     (if markdown then
-      let value =
-        match Doc_to_md.translate doc with
-        | Raw d -> sprintf "(** %s *)" d
-        | Markdown d -> d
-      in
-      { MarkupContent.value; kind = MarkupKind.Markdown }
-    else
-      { MarkupContent.value = doc; kind = MarkupKind.PlainText })
-
-let format_contents ~syntax ~markdown ~typ ~doc =
-  (* TODO for vscode, we should just use the language id. But that will not work
-     for all editors *)
-  `MarkupContent
-    (if markdown then
-      let value =
-        let markdown_name = Document.Syntax.markdown_name syntax in
-        match doc with
-        | None -> sprintf "```%s\n%s\n```" markdown_name typ
-        | Some s ->
-          let doc =
-            match Doc_to_md.translate s with
-            | Raw d -> sprintf "(** %s *)" d
-            | Markdown d -> d
-          in
-          sprintf "```%s\n%s\n```\n---\n%s" markdown_name typ doc
-      in
-      { MarkupContent.value; kind = MarkupKind.Markdown }
-    else
-      let value =
-        match doc with
-        | None -> sprintf "%s" typ
-        | Some d -> sprintf "%s\n%s" typ d
-      in
-      { MarkupContent.value; kind = MarkupKind.PlainText })
-
-let query_doc doc pos =
-  let+ res =
-    let command = Query_protocol.Document (None, pos) in
-    Document.dispatch_exn doc command
-  in
-  match res with
-  | `Found s
-  | `Builtin s ->
-    Some s
-  | _ -> None
-
-let query_type doc pos =
-  let command = Query_protocol.Type_enclosing (None, pos, None) in
-  let+ res = Document.dispatch_exn doc command in
-  match res with
-  | []
-  | (_, `Index _, _) :: _ ->
-    None
-  | (location, `String value, _) :: _ -> Some (location, value)
-
-let hover server (state : State.t)
-    { HoverParams.textDocument = { uri }; position; _ } =
-  let doc =
-    let store = state.store in
-    Document_store.get store uri
-  in
-  let pos = Position.logical position in
-  (* TODO we shouldn't acquiring the merlin thread twice per request *)
-  let* query_type = query_type doc pos in
-  match query_type with
-  | None -> Fiber.return None
-  | Some (loc, typ) ->
-    let syntax = Document.syntax doc in
-    let+ doc = query_doc doc pos
-    and+ typ =
-      (* We ask Ocamlformat to format this type *)
-      let* result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
-      match result with
-      | Ok v ->
-        (* OCamlformat adds an unnecessay newline at the end of the type *)
-        Fiber.return (String.trim v)
-      | Error `No_process -> Fiber.return typ
-      | Error (`Msg message) ->
-        (* We log OCamlformat errors and display the unformated type *)
-        let+ () =
-          let message =
-            sprintf
-              "An error occured while querying ocamlformat:\n\
-               Input type: %s\n\n\
-               Answer: %s" typ message
-          in
-          log_message server ~type_:Warning ~message
-        in
-        typ
-    in
-    let contents =
-      let markdown =
-        let client_capabilities = client_capabilities state in
-        markdown_support client_capabilities ~field:(fun td ->
-            Option.map td.hover ~f:(fun h -> h.contentFormat))
-      in
-      format_contents ~syntax ~markdown ~typ ~doc
-    in
-    let range = Range.of_loc loc in
-    Some (Hover.create ~contents ~range ())
+     let value =
+       match Doc_to_md.translate doc with
+       | Raw d -> sprintf "(** %s *)" d
+       | Markdown d -> d
+     in
+     { MarkupContent.value; kind = MarkupKind.Markdown }
+    else { MarkupContent.value = doc; kind = MarkupKind.PlainText })
 
 let signature_help (state : State.t)
     { SignatureHelpParams.textDocument = { uri }; position; _ } =
@@ -597,7 +541,9 @@ let signature_help (state : State.t)
       sprintf "%s : " fun_name
     in
     let offset = String.length prefix in
-    let+ doc = query_doc doc application_signature.function_position in
+    let+ doc =
+      Document.doc_comment doc application_signature.function_position
+    in
     let info =
       let parameters =
         List.map application_signature.parameters
@@ -609,10 +555,10 @@ let signature_help (state : State.t)
       in
       let documentation =
         let open Option.O in
-        let+ doc = doc in
+        let+ doc in
         let markdown =
-          let client_capabilities = client_capabilities state in
-          markdown_support client_capabilities ~field:(fun td ->
+          ClientCapabilities.markdown_support (State.client_capabilities state)
+            ~field:(fun td ->
               let* sh = td.signatureHelp in
               let+ si = sh.signatureInformation in
               si.documentationFormat)
@@ -696,7 +642,7 @@ let rename (state : State.t)
     let documentChanges =
       let open Option.O in
       Option.value ~default:false
-        (let client_capabilities = client_capabilities state in
+        (let client_capabilities = State.client_capabilities state in
          let* workspace = client_capabilities.workspace in
          let* edit = workspace.workspaceEdit in
          edit.documentChanges)
@@ -710,8 +656,7 @@ let rename (state : State.t)
         ~documentChanges:
           [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
         ()
-    else
-      WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
+    else WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
   in
   workspace_edits
 
@@ -777,7 +722,7 @@ let definition_query server (state : State.t) uri position merlin_request =
   | Error message ->
     let+ () =
       let message = sprintf "Locate failed. %s" message in
-      log_message server ~type_:Error ~message
+      State.log_msg server ~type_:Error ~message
     in
     None
 
@@ -787,14 +732,15 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
-      let+ res =
-        Scheduler.async_exn thread (fun () ->
+      let* task =
+        Lev_fiber.Thread.task thread ~f:(fun () ->
             Workspace_symbol.run params workspaces)
-        |> Scheduler.await_no_cancel
       in
+      let+ res = Lev_fiber.Thread.await task in
       match res with
       | Ok s -> s
-      | Error exn -> Exn_with_backtrace.reraise exn
+      | Error `Cancelled -> assert false
+      | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
     in
     List.partition_map symbols_results ~f:(function
       | Ok r -> Left r
@@ -814,7 +760,7 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
         in
         ShowMessageParams.create ~message ~type_:Warning
       in
-      task_if_running state ~f:(fun () ->
+      task_if_running state.detached ~f:(fun () ->
           Server.notification server (ShowMessage msg))
   in
   Some (List.concat symbols)
@@ -842,19 +788,19 @@ let document_symbol (state : State.t) uri =
       let store = state.store in
       Document_store.get store uri
     in
-    let client_capabilities = client_capabilities state in
+    let client_capabilities = State.client_capabilities state in
     Document_symbol.run client_capabilities doc uri
   in
   Some symbols
 
-(** handles requests for OCaml (syntax) documents *)
-let ocaml_on_request :
+let on_request :
     type resp.
        State.t Server.t
     -> resp Client_request.t
     -> (resp Reply.t * State.t) Fiber.t =
- fun rpc req ->
-  let state = Server.state rpc in
+ fun server req ->
+  let rpc = server in
+  let state : State.t = Server.state server in
   let store = state.store in
   let now res = Fiber.return (Reply.now res, state) in
   let later f req =
@@ -865,24 +811,78 @@ let ocaml_on_request :
       , state )
   in
   match req with
+  | Client_request.UnknownRequest { meth; params } -> (
+    match
+      [ ( Req_switch_impl_intf.meth
+        , fun ~params _ ->
+            Fiber.of_thunk (fun () ->
+                Fiber.return (Req_switch_impl_intf.on_request ~params)) )
+      ; (Req_infer_intf.meth, Req_infer_intf.on_request)
+      ; (Req_typed_holes.meth, Req_typed_holes.on_request)
+      ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
+      ]
+      |> List.assoc_opt meth
+    with
+    | None ->
+      Jsonrpc.Response.Error.raise
+        (make_error ~code:InternalError ~message:"Unknown method"
+           ~data:(`Assoc [ ("method", `String meth) ])
+           ())
+    | Some handler ->
+      Fiber.return
+        ( Reply.later (fun send ->
+              let* res = handler ~params state in
+              send res)
+        , state ))
   | Initialize ip ->
-    let+ res, state = on_initialize rpc ip in
+    let+ res, state = on_initialize server ip in
     (res, state)
-  | Shutdown -> now ()
   | DebugTextDocumentGet { textDocument = { uri }; position = _ } -> (
     match Document_store.get_opt store uri with
     | None -> now None
     | Some doc -> now (Some (Msource.text (Document.source doc))))
   | DebugEcho params -> now params
+  | Shutdown -> Fiber.return (Reply.now (), state)
+  | WorkspaceSymbol req ->
+    later (fun state () -> workspace_symbol server state req) ()
+  | CodeActionResolve ca -> now ca
+  | ExecuteCommand command ->
+    later
+      (fun state () ->
+        let dune = State.dune state in
+        (* all of our commands are handled by dune for now *)
+        Dune.on_command dune command)
+      ()
+  | CompletionItemResolve ci ->
+    later
+      (fun state () ->
+        let markdown =
+          ClientCapabilities.markdown_support (State.client_capabilities state)
+            ~field:(fun d ->
+              let open Option.O in
+              let+ completion = d.completion in
+              let* completion_item = completion.completionItem in
+              completion_item.documentationFormat)
+        in
+        let resolve = Compl.Resolve.of_completion_item ci in
+        match resolve with
+        | None -> Fiber.return ci
+        | Some resolve ->
+          let doc =
+            let uri = Compl.Resolve.uri resolve in
+            Document_store.get state.store uri
+          in
+          Compl.resolve doc ci resolve Document.doc_comment ~markdown)
+      ()
+  | CodeAction params -> code_action server params
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
-  | TextDocumentHover req -> later (fun state () -> hover rpc state req) ()
+  | TextDocumentHover req ->
+    later (fun (_ : State.t) () -> Hover_req.handle rpc req) ()
   | TextDocumentReferences req -> later references req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> later text_document_lens req
   | TextDocumentHighlight req -> later highlight req
-  | WorkspaceSymbol req ->
-    later (fun state () -> workspace_symbol rpc state req) ()
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
     later
@@ -902,13 +902,8 @@ let ocaml_on_request :
         definition_query rpc state uri position (fun pos ->
             Query_protocol.Locate_type pos))
       ()
-  | TextDocumentCompletion { textDocument = { uri }; position; _ } ->
-    later
-      (fun _ () ->
-        let doc = Document_store.get store uri in
-        let+ resp = Compl.complete doc position in
-        Some resp)
-      ()
+  | TextDocumentCompletion params ->
+    later (fun _ () -> Compl.complete state params) ()
   | TextDocumentPrepareRename { textDocument = { uri }; position } ->
     later
       (fun _ () ->
@@ -927,38 +922,9 @@ let ocaml_on_request :
   | TextDocumentRename req -> later rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
   | SignatureHelp req -> later signature_help req
-  | ExecuteCommand command ->
-    later
-      (fun state () ->
-        let dune = State.dune state in
-        (* all of our commands are handled by dune for now *)
-        Dune.on_command dune command)
-      ()
   | TextDocumentLinkResolve l -> now l
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None
-  | CodeAction params -> later code_action params
-  | CodeActionResolve ca -> now ca
-  | CompletionItemResolve ci ->
-    later
-      (fun state () ->
-        let markdown =
-          markdown_support (client_capabilities state) ~field:(fun d ->
-              let open Option.O in
-              let+ completion = d.completion in
-              let* completion_item = completion.completionItem in
-              completion_item.documentationFormat)
-        in
-        let resolve = Compl.Resolve.of_completion_item ci in
-        match resolve with
-        | None -> Fiber.return ci
-        | Some resolve ->
-          let doc =
-            let uri = Compl.Resolve.uri resolve in
-            Document_store.get state.store uri
-          in
-          Compl.resolve doc ci resolve query_doc ~markdown)
-      ()
   | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later
       (fun _ () ->
@@ -972,52 +938,6 @@ let ocaml_on_request :
   | SemanticTokensDelta _ -> not_supported ()
   | SemanticTokensRange _ -> not_supported ()
   | LinkedEditingRange _ -> not_supported ()
-  | UnknownRequest _ ->
-    Jsonrpc.Response.Error.raise
-      (make_error ~code:InvalidRequest ~message:"Got unknown request" ())
-
-let on_request :
-    type resp.
-       State.t Server.t
-    -> resp Client_request.t
-    -> (resp Reply.t * State.t) Fiber.t =
- fun server req ->
-  let state : State.t = Server.state server in
-  let store = state.store in
-  let syntax : Document.Syntax.t option =
-    let open Option.O in
-    let* td =
-      Client_request.text_document req (fun ~meth:_ ~params:_ -> None)
-    in
-    let uri = td.uri in
-    let+ doc = Document_store.get_opt store uri in
-    Document.syntax doc
-  in
-  match req with
-  | Client_request.UnknownRequest { meth; params } -> (
-    match
-      [ (Req_switch_impl_intf.meth, Req_switch_impl_intf.on_request)
-      ; (Req_infer_intf.meth, Req_infer_intf.on_request)
-      ; (Req_typed_holes.meth, Req_typed_holes.on_request)
-      ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
-      ]
-      |> List.assoc_opt meth
-    with
-    | None ->
-      Jsonrpc.Response.Error.raise
-        (make_error ~code:InternalError ~message:"Unknown method"
-           ~data:(`Assoc [ ("method", `String meth) ])
-           ())
-    | Some handler ->
-      Fiber.return
-        ( Reply.later (fun send ->
-              let* res = handler ~params state in
-              send res)
-        , state ))
-  | _ -> (
-    match syntax with
-    | Some (Ocamllex | Menhir) -> not_supported ()
-    | _ -> ocaml_on_request server req)
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
@@ -1026,25 +946,26 @@ let on_notification server (notification : Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let* doc =
-      let debounce = Configuration.diagnostics_delay state.configuration in
-      Document.make ~debounce state.merlin_config params
+      Document.make (State.wheel state) state.merlin_config params
         ~merlin_thread:state.merlin
     in
-    Document_store.put store doc;
+    assert (Document_store.get_opt store params.textDocument.uri = None);
+    let* () = Document_store.open_document store doc in
     let+ () = set_diagnostics server doc in
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let+ () =
       Diagnostics.remove state.diagnostics (`Merlin uri);
-      let* () = Document_store.remove_document store uri in
-      task_if_running state ~f:(fun () ->
+      let* () = Document_store.close_document store uri in
+      task_if_running state.detached ~f:(fun () ->
           Diagnostics.send state.diagnostics (`One uri))
     in
     state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
-    let prev_doc = Document_store.get store uri in
-    let doc = Document.update_text ~version prev_doc contentChanges in
-    Document_store.put store doc;
+    let doc =
+      Document_store.change_document store uri ~f:(fun prev_doc ->
+          Document.update_text ~version prev_doc contentChanges)
+    in
     let+ () = set_diagnostics server doc in
     state
   | CancelRequest _ ->
@@ -1053,8 +974,8 @@ let on_notification server (notification : Client_notification.t) :
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
-    let configuration = Configuration.update state.configuration req in
-    Fiber.return { state with configuration }
+    let+ configuration = Configuration.update state.configuration req in
+    { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
     let state = Server.state server in
     match Document_store.get_opt state.store uri with
@@ -1062,11 +983,13 @@ let on_notification server (notification : Client_notification.t) :
       ( Log.log ~section:"on receive DidSaveTextDocument" @@ fun () ->
         Log.msg "saved document is not in the store" [] );
       Fiber.return state
-    | Some doc ->
-      (* we need [update_text] with no changes to get a new merlin pipeline;
-         otherwise the diagnostics don't get updated *)
-      let doc = Document.update_text doc [] in
-      Document_store.put store doc;
+    | Some _ ->
+      let doc =
+        Document_store.change_document store uri ~f:(fun doc ->
+            (* we need [update_text] with no changes to get a new merlin
+               pipeline; otherwise the diagnostics don't get updated *)
+            Document.update_text doc [])
+      in
       let+ () = set_diagnostics server doc in
       state)
   | ChangeWorkspaceFolders change ->
@@ -1076,29 +999,29 @@ let on_notification server (notification : Client_notification.t) :
     in
     Dune.update_workspaces (State.dune state) (State.workspaces state);
     Fiber.return state
-  | WillSaveTextDocument _
-  | Initialized
-  | WorkDoneProgressCancel _
-  | Exit ->
+  | WillSaveTextDocument _ | Initialized | WorkDoneProgressCancel _ | Exit ->
     Fiber.return state
   | SetTrace { value } -> Fiber.return { state with trace = value }
-  | Unknown_notification req ->
+  | UnknownNotification req ->
     let+ () =
-      log_message server ~type_:Error
+      State.log_msg server ~type_:Error
         ~message:("Unknown notication " ^ req.method_)
     in
     state
 
 let start () =
-  let store = Document_store.make () in
+  let detached = Fiber.Pool.create () in
+  let server = Fdecl.create Dyn.opaque in
+  let store = Document_store.make server detached in
   let handler =
     let on_request = { Server.Handler.on_request } in
     Server.Handler.make ~on_request ~on_notification ()
   in
-  let* stream = Lsp_fiber.Fiber_io.make stdin stdout in
-  let configuration = Configuration.default in
-  let detached = Fiber.Pool.create () in
-  let server = Fdecl.create Dyn.opaque in
+  let* stream =
+    let* stdin = Lev_fiber.Io.stdin in
+    let+ stdout = Lev_fiber.Io.stdout in
+    Lsp_fiber.Fiber_io.make stdin stdout
+  in
   let diagnostics =
     let workspace_root =
       lazy
@@ -1111,30 +1034,36 @@ let start () =
       | diagnostics ->
         let server = Fdecl.get server in
         let state = Server.state server in
-        task_if_running state ~f:(fun () ->
+        task_if_running state.detached ~f:(fun () ->
             let batch = Server.Batch.create server in
             List.iter diagnostics ~f:(fun d ->
                 Server.Batch.notification batch (PublishDiagnostics d));
             Server.Batch.submit batch))
   in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
+  let* configuration = Configuration.default () in
+  let wheel = Configuration.wheel configuration in
   let* server =
-    let+ merlin = Scheduler.create_thread () in
-    let ocamlformat = Ocamlformat.create () in
-    let symbols_thread = Lazy_fiber.create Scheduler.create_thread in
+    let+ merlin = Lev_fiber.Thread.create () in
+    let symbols_thread = Lazy_fiber.create Lev_fiber.Thread.create in
     Fdecl.set server
       (Server.make handler stream
-         (State.create ~store ~merlin ~ocamlformat ~ocamlformat_rpc
-            ~configuration ~detached ~diagnostics ~symbols_thread));
+         (State.create ~store ~merlin ~ocamlformat_rpc ~configuration ~detached
+            ~diagnostics ~symbols_thread ~wheel));
     Fdecl.get server
   in
+  let state = Server.state server in
   Fiber.all_concurrently_unit
     [ Fiber.Pool.run detached
+    ; Lev_fiber.Timer.Wheel.run wheel
+    ; Merlin_config.DB.run state.merlin_config
     ; (let* () = Server.start server in
        let finalize =
-         [ Document_store.close store
+         [ Document_store.close_all store
          ; Fiber.Pool.stop detached
          ; Ocamlformat_rpc.stop ocamlformat_rpc
+         ; Lev_fiber.Timer.Wheel.stop wheel
+         ; Merlin_config.DB.stop state.merlin_config
          ]
        in
        let finalize =
@@ -1144,28 +1073,27 @@ let start () =
        in
        Fiber.all_concurrently_unit finalize)
     ; (let* state =
-         Ocamlformat_rpc.run ~logger:(log_message server) ocamlformat_rpc
+         Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc
        in
        let message =
          match state with
          | Error `Binary_not_found ->
            Some
-             "OCamlformat_rpc is missing, displayed types might not be \
-              properly formatted. "
-         | Error `Disabled
-         | Ok () ->
-           None
+             "ocamlformat-rpc is missing, displayed types might not be \
+              properly formatted. Hint: $ opam install ocamlformat-rpc and \
+              restart the lsp server"
+         | Error `Disabled | Ok () -> None
        in
        match message with
        | None -> Fiber.return ()
        | Some message ->
          let* (_ : InitializeParams.t) = Server.initialized server in
          let state = Server.state server in
-         task_if_running state ~f:(fun () ->
+         task_if_running state.detached ~f:(fun () ->
              let log = ShowMessageParams.create ~type_:Info ~message in
              Server.notification server (Server_notification.ShowMessage log)))
     ]
 
 let run () =
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Scheduler.run start
+  Lev_fiber.run (Lev.Loop.default ()) ~f:start

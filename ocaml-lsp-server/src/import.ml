@@ -17,7 +17,44 @@ include struct
   module Pid = Pid
   module Poly = Poly
   module Result = Result
-  module String = String
+
+  module String = struct
+    include String
+
+    let findi =
+      let rec loop s len ~f i =
+        if i >= len then None
+        else if f (String.unsafe_get s i) then Some i
+        else loop s len ~f (i + 1)
+      in
+      fun ?from s ~f ->
+        let len = String.length s in
+        let from =
+          match from with
+          | None -> 0
+          | Some i ->
+            if i > len - 1 then Code_error.raise "findi: invalid from" [] else i
+        in
+        loop s len ~f from
+
+    let rfindi =
+      let rec loop s ~f i =
+        if i < 0 then None
+        else if f (String.unsafe_get s i) then Some i
+        else loop s ~f (i - 1)
+      in
+      fun ?from s ~f ->
+        let from =
+          let len = String.length s in
+          match from with
+          | None -> len - 1
+          | Some i ->
+            if i > len - 1 then Code_error.raise "rfindi: invalid from" []
+            else i
+        in
+        loop s ~f from
+  end
+
   module Table = Table
   module Tuple = Tuple
   module Unix_env = Env
@@ -40,7 +77,6 @@ end
 
 (* Misc modules *)
 module Drpc = Dune_rpc.V1
-module Scheduler = Fiber_unix.Scheduler
 
 (* OCaml frontend *)
 module Ast_iterator = Ocaml_parsing.Ast_iterator
@@ -54,26 +90,49 @@ module Path = Ocaml_typing.Path
 module Typedtree = Ocaml_typing.Typedtree
 module Types = Ocaml_typing.Types
 module Warnings = Ocaml_utils.Warnings
+module Mconfig = Merlin_kernel.Mconfig
+module Msource = Merlin_kernel.Msource
+module Mbrowse = Merlin_kernel.Mbrowse
+module Mpipeline = Merlin_kernel.Mpipeline
+module Mreader = Merlin_kernel.Mreader
+module Mtyper = Merlin_kernel.Mtyper
+module Browse_raw = Merlin_specific.Browse_raw
 
 (* All modules from [Lsp_fiber] should be in the struct below. The modules are
    listed alphabetically. Try to keep the order. *)
 include struct
   open Lsp_fiber
-  module Log = Import.Log
+  module Log = Private.Log
   module Reply = Rpc.Reply
   module Server = Server
+  module Lazy_fiber = Lsp_fiber.Lazy_fiber
 end
 
 (* All modules from [Lsp.Types] should be in the struct below. The modules are
    listed alphabetically. Try to keep the order. *)
 include struct
   open Lsp.Types
-  module ClientCapabilities = ClientCapabilities
+
+  module ClientCapabilities = struct
+    include ClientCapabilities
+
+    let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
+      match client_capabilities.textDocument with
+      | None -> false
+      | Some td -> (
+        match field td with
+        | None -> false
+        | Some format ->
+          let set = Option.value format ~default:[ MarkupKind.Markdown ] in
+          List.mem set MarkupKind.Markdown ~equal:Poly.equal)
+  end
+
   module CodeAction = CodeAction
   module CodeActionKind = CodeActionKind
   module CodeActionOptions = CodeActionOptions
   module CodeActionParams = CodeActionParams
   module CodeActionResult = CodeActionResult
+  module CodeActionRegistrationOptions = CodeActionRegistrationOptions
   module CodeLens = CodeLens
   module CodeLensOptions = CodeLensOptions
   module CodeLensParams = CodeLensParams
@@ -143,6 +202,8 @@ include struct
   module TextDocumentSyncClientCapabilities = TextDocumentSyncClientCapabilities
   module TextEdit = TextEdit
   module TraceValue = TraceValue
+  module Unregistration = Unregistration
+  module UnregistrationParams = UnregistrationParams
   module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
   module WorkDoneProgressBegin = WorkDoneProgressBegin
   module WorkDoneProgressCreateParams = WorkDoneProgressCreateParams
@@ -154,3 +215,21 @@ include struct
   module WorkspaceSymbolParams = WorkspaceSymbolParams
   module WorkspaceFoldersServerCapabilities = WorkspaceFoldersServerCapabilities
 end
+
+let task_if_running pool ~f =
+  let open Fiber.O in
+  let* running = Fiber.Pool.running pool in
+  match running with
+  | false -> Fiber.return ()
+  | true -> Fiber.Pool.task pool ~f
+
+let inside_test =
+  match Sys.getenv_opt "OCAMLLSP_TEST" with
+  | Some "true" -> true
+  | None | Some "false" -> false
+  | Some b ->
+    Format.eprintf
+      "invalid value %S for OCAMLLSP_TEST ignored. Only true or false are \
+       allowed@."
+      b;
+    false

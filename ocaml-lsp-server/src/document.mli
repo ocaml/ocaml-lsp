@@ -29,13 +29,13 @@ val kind : t -> Kind.t
 val syntax : t -> Syntax.t
 
 val make :
-     debounce:float
-  -> Merlin_config.t
-  -> merlin_thread:Scheduler.thread
+     Lev_fiber.Timer.Wheel.t
+  -> Merlin_config.DB.t
+  -> merlin_thread:Lev_fiber.Thread.t
   -> DidOpenTextDocumentParams.t
   -> t Fiber.t
 
-val timer : t -> Scheduler.timer
+val timer : t -> Lev_fiber.Timer.Wheel.task
 
 val uri : t -> Uri.t
 
@@ -64,3 +64,14 @@ val close : t -> unit Fiber.t
 val get_impl_intf_counterparts : Uri.t -> Uri.t list
 
 val edit : t -> TextEdit.t -> WorkspaceEdit.t
+
+val doc_comment :
+  t -> Msource.position -> (* doc string *) string option Fiber.t
+
+type type_enclosing =
+  { loc : Loc.t
+  ; typ : string
+  ; doc : string option
+  }
+
+val type_enclosing : t -> Msource.position -> type_enclosing option Fiber.t

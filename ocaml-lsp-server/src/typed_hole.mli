@@ -1,3 +1,5 @@
+open Import
+
 (** This module should be used to work with typed holes. The main goal is to
     hide syntactic representation of a typed hole, which may change in future *)
 

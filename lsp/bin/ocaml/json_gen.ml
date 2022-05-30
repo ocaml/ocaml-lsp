@@ -87,8 +87,7 @@ module Enum = struct
             Create (Constr { tag = "Other"; poly; args = [ Create s ] })
           in
           clauses @ [ (pat, make) ]
-        else
-          clauses
+        else clauses
       in
       let msg =
         sprintf "Invalid value. Expected one of: %s"
@@ -116,8 +115,7 @@ module Enum = struct
             Create (Constr { tag = "String"; poly = true; args = [ Create s ] })
           in
           clauses @ [ (pat, make) ]
-        else
-          clauses
+        else clauses
       in
       Match (Create (Ident name), clauses)
     in
@@ -138,10 +136,7 @@ module Poly_variant = struct
   let split_clauses constrs =
     let json_constrs, untagged_constrs =
       List.partition_map constrs ~f:(fun x ->
-          if is_json_constr x then
-            Left x
-          else
-            Right x)
+          if is_json_constr x then Left x else Right x)
     in
     { json_constrs; untagged_constrs }
 

@@ -70,7 +70,11 @@ end) : sig
 
     val notification : t -> Jsonrpc.Message.notification -> unit
 
-    val request : t -> Jsonrpc.Message.request -> Jsonrpc.Response.t Fiber.t
+    type response
+
+    val await : response -> Jsonrpc.Response.t Fiber.t
+
+    val request : t -> Jsonrpc.Message.request -> response
   end
 
   val submit : _ t -> Batch.t -> unit Fiber.t

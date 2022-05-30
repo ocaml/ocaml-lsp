@@ -5,12 +5,15 @@
   xdg
   dune-build-info
   fiber
-  fiber_unix
+  lev
+  lev_fiber
+  lev_fiber_csexp
   jsonrpc
   spawn
   lsp
   lsp_fiber
   dot-merlin-reader.merlin_dot_protocol
+  merlin.extend
   merlin.analysis
   merlin.kernel
   merlin.merlin_utils
@@ -24,13 +27,11 @@
   omd
   ppx_yojson_conv_lib
   re
-  result
   stdune
   ordering
   csexp
   yojson
-  dune_rpc
-  csexp_rpc
+  dune-rpc
   ocamlformat-rpc-lib
   ocamlc_loc))
 

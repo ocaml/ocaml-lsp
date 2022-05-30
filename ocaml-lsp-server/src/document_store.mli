@@ -2,16 +2,20 @@ open Import
 
 type t
 
-val make : unit -> t
+val make : _ Server.t Fdecl.t -> Fiber.Pool.t -> t
 
-val put : t -> Document.t -> unit
+val open_document : t -> Document.t -> unit Fiber.t
+
+val change_document : t -> Uri.t -> f:(Document.t -> Document.t) -> Document.t
 
 val get : t -> Uri.t -> Document.t
 
 val get_opt : t -> Uri.t -> Document.t option
 
-val remove_document : t -> Uri.t -> unit Fiber.t
+val unregister_promotions : t -> Uri.t list -> unit Fiber.t
 
-val get_size : t -> int
+val register_promotions : t -> Uri.t list -> unit Fiber.t
 
-val close : t -> unit Fiber.t
+val close_document : t -> Uri.t -> unit Fiber.t
+
+val close_all : t -> unit Fiber.t

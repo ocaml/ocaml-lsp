@@ -16,12 +16,12 @@ all:
 # results in a conflict
 .PHONY: install-test-deps
 install-test-deps:
-	opam install 'menhir<20211230' cinaps 'ppx_expect>=v0.14.0' \
-		ocamlformat.$$(cat .ocamlformat | grep version | cut -d '=' -f 2) ocamlformat-rpc
+	opam install 'menhir>20211230' cinaps 'ppx_expect>=v0.14.0' 'sexplib0.v0.14.0' \
+		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat) ocamlformat-rpc
 
 .PHONY: dev
 dev: ## Setup a development environment
-	opam switch create --no-install . ocaml-base-compiler.4.13.0
+	opam switch create --no-install . ocaml-base-compiler.4.14.0
 	opam install -y dune-release merlin ocamlformat utop ocaml-lsp-server
 	opam install --locked --deps-only --with-doc -y .
 	$(MAKE) install-test-deps
@@ -36,7 +36,7 @@ lock: ## Generate the lock files
 
 .PHONY: test
 test-ocaml: ## Run the unit tests
-	dune build @lsp/test/runtest @lsp-fiber/runtest @fiber-unix/runtest @jsonrpc-fiber/runtest
+	dune build @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
 
 .PHONY: promote
 promote:

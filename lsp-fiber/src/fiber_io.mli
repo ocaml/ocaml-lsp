@@ -11,4 +11,5 @@ val send : t -> Jsonrpc.packet list -> unit Fiber.t
 
 val recv : t -> Jsonrpc.packet option Fiber.t
 
-val make : in_channel -> out_channel -> t Fiber.t
+val make :
+  Lev_fiber.Io.input Lev_fiber.Io.t -> Lev_fiber.Io.output Lev_fiber.Io.t -> t

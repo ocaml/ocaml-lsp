@@ -9,9 +9,7 @@ let check_typeable_context pipeline pos_start =
   let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
   match Mbrowse.enclosing pos_start [ browse ] with
   | (_, (Expression _ | Pattern _)) :: _ -> `Valid
-  | _ :: _
-  | [] ->
-    `Invalid
+  | _ :: _ | [] -> `Invalid
 
 let get_source_text doc (loc : Loc.t) =
   let open Option.O in
@@ -58,10 +56,7 @@ let code_action doc (params : CodeActionParams.t) =
           Some (Query_commands.dispatch pipeline command))
   in
   match res with
-  | None
-  | Some []
-  | Some ((_, `Index _, _) :: _) ->
-    None
+  | None | Some [] | Some ((_, `Index _, _) :: _) -> None
   | Some ((location, `String value, _) :: _) ->
     code_action_of_type_enclosing params.textDocument.uri doc (location, value)
 

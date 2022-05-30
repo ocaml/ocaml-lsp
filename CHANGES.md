@@ -1,8 +1,114 @@
-# Unreleased 
+# 1.11.6
+
+- Stop leaking file descriptors like a sieve (#701)
+
+# 1.11.5
+
+- Fix process termination. Once the lsp server is stepped, the process will
+  gracefully terminate (#697, fixes #694)
+
+- Forward stderr from dune's merlin configuration to the lsp server's stderr
+  (#697)
+
+# 1.11.4
+
+## Fixes
+
+- Fix bug with large buffers being resized incorrectly in Lev
+
+- Add folding ranges for more AST types (#680)
+
+# 1.11.3
+
+## Fixes
+
+- Enable dune rpc integration by default (#691, fixes #690)
+
+# 1.11.2
+
+## Fixes
+
+- Fix running external processes on Windows
+
+# 1.11.1
+
+## Fixes
+
+- Fix Uri handling on Windows
+
+- Fix build on MSVC 2015
+
+# 1.11.0
+
+## Features
+
+- Add support for dune in watch mode. The lsp server will now display build
+  errors in the diagnostics and offer promotion code actions.
+
+- Re-introduce ocamlformat-rpc (#599, fixes #495)
+
+## Fixes
+
+- Fix workspace symbols that could have a wrong path in some cases
+  ([#675](https://github.com/ocaml/ocaml-lsp/pull/671))
+
+# 1.10.6
+
+## Fixes
+
+- Compatiblity with OCaml 4.14.0
+
+# 1.10.5
+
+## Fixes
+
+- Patch merlin to remove the result module
+
+# 1.10.4
+
+## Fixes
+
+- Use newer versions of ocamlformat-rpc-lib (fixes #697)
+
+# 1.10.3
+
+## Fixes
+
+- Fix more debouncing bugs (#629)
+
+# 1.10.2
+
+## Fixes
+
+- Catch merlin desturct exceptions (#626)
+- Fix broken debouncing (#627)
+
+# 1.10.1
+
+## Fixes
+
+- Fix executing ppx executables
+
+# 1.10.0
 
 ## Features
 
 - Add better support for code folding: more folds and more precise folds
+
+## Fixes
+
+- Fix infer interface code action crash when implementation source does not
+  exist (#597)
+
+- Improve error message when the reason plugin for merlin is absent (#608)
+
+- Fix `chdir` races when running ppx (#550)
+
+- More accurate completion kinds.
+  New completion kinds for variants and fields. Removed inaccurate completion
+  kinds for constructors and types. (#510)
+
+- Fix handling request cancellation (#616)
 
 # 1.9.1
 

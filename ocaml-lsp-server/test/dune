@@ -1,15 +1,13 @@
+(dirs :standard \ e2e)
+
 (library
- (name fiber_unix_expect_tests)
+ (name ocaml_lsp_tests)
  (enabled_if
   (>= %{ocaml_version} 4.08))
  (inline_tests)
  (libraries
-  threads.posix
-  fiber
-  dyn
-  fiber_test
-  fiber_unix
   stdune
+  ocaml_lsp_server
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
   base

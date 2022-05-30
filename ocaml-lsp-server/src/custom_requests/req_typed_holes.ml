@@ -43,20 +43,21 @@ end
 
 let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
     =
-  let uri = Request_params.parse_exn params in
-  let store = state.store in
-  let doc = Document_store.get_opt store uri in
-  match doc with
-  | None ->
-    Jsonrpc.Response.Error.raise
-    @@ Jsonrpc.Response.Error.make
-         ~code:Jsonrpc.Response.Error.Code.InvalidParams
-         ~message:
-           (Printf.sprintf "Document %s wasn't found in the document store"
-              (Uri.to_string uri))
-         ()
-  | Some doc ->
-    let+ holes = Document.dispatch_exn doc Holes in
-    Json.yojson_of_list
-      (fun (loc, _type) -> loc |> Range.of_loc |> Range.yojson_of_t)
-      holes
+  Fiber.of_thunk (fun () ->
+      let uri = Request_params.parse_exn params in
+      let store = state.store in
+      let doc = Document_store.get_opt store uri in
+      match doc with
+      | None ->
+        Jsonrpc.Response.Error.raise
+        @@ Jsonrpc.Response.Error.make
+             ~code:Jsonrpc.Response.Error.Code.InvalidParams
+             ~message:
+               (Printf.sprintf "Document %s wasn't found in the document store"
+                  (Uri.to_string uri))
+             ()
+      | Some doc ->
+        let+ holes = Document.dispatch_exn doc Holes in
+        Json.yojson_of_list
+          (fun (loc, _type) -> loc |> Range.of_loc |> Range.yojson_of_t)
+          holes)

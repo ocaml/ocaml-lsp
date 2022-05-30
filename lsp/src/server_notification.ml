@@ -28,7 +28,7 @@ type t =
   | TelemetryNotification of Json.t
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgress of Progress.t ProgressParams.t
-  | Unknown_notification of Jsonrpc.Message.notification
+  | UnknownNotification of Jsonrpc.Message.notification
 
 let method_ = function
   | ShowMessage _ -> "window/showMessage"
@@ -37,21 +37,26 @@ let method_ = function
   | TelemetryNotification _ -> "telemetry/event"
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgress _ -> "$/progress"
-  | Unknown_notification _ -> assert false
+  | UnknownNotification n -> n.method_
 
 let yojson_of_t = function
-  | LogMessage params -> LogMessageParams.yojson_of_t params
-  | ShowMessage params -> ShowMessageParams.yojson_of_t params
-  | PublishDiagnostics params -> PublishDiagnosticsParams.yojson_of_t params
-  | TelemetryNotification params -> params
-  | CancelRequest params -> Cancel_request.yojson_of_t params
+  | LogMessage params -> Some (LogMessageParams.yojson_of_t params)
+  | ShowMessage params -> Some (ShowMessageParams.yojson_of_t params)
+  | PublishDiagnostics params ->
+    Some (PublishDiagnosticsParams.yojson_of_t params)
+  | TelemetryNotification params -> Some params
+  | CancelRequest params -> Some (Cancel_request.yojson_of_t params)
   | WorkDoneProgress params ->
-    (ProgressParams.yojson_of_t Progress.yojson_of_t) params
-  | Unknown_notification _ -> assert false
+    Some ((ProgressParams.yojson_of_t Progress.yojson_of_t) params)
+  | UnknownNotification n -> (n.params :> Json.t option)
 
 let to_jsonrpc t =
   let method_ = method_ t in
-  let params = Some (Jsonrpc.Message.Structured.of_json (yojson_of_t t)) in
+  let params =
+    match yojson_of_t t with
+    | None -> None
+    | Some s -> Some (Jsonrpc.Message.Structured.of_json s)
+  in
   { Jsonrpc.Message.id = (); params; method_ }
 
 let of_jsonrpc (r : Jsonrpc.Message.notification) =
@@ -77,4 +82,4 @@ let of_jsonrpc (r : Jsonrpc.Message.notification) =
   | m when m = Cancel_request.meth_ ->
     let+ params = Json.message_params r Cancel_request.t_of_yojson in
     CancelRequest params
-  | _ -> Ok (Unknown_notification r)
+  | _ -> Ok (UnknownNotification r)

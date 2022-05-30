@@ -3,11 +3,7 @@ open Fiber.O
 
 module Id = struct
   include Id
-
-  let to_dyn t : Dyn.t =
-    match t with
-    | `Int x -> Int x
-    | `String x -> String x
+  module Table = Stdlib.MoreLabels.Hashtbl.Make (Id)
 end
 
 module Notify = struct
@@ -26,14 +22,11 @@ module Sender = struct
   let make id send = { for_ = id; called = false; send }
 
   let send t (r : Response.t) : unit Fiber.t =
-    if t.called then
-      Code_error.raise "cannot send response twice" []
-    else if not (Id.equal t.for_ r.id) then
-      Code_error.raise "invalid id" []
-    else (
-      t.called <- true;
-      t.send r
-    )
+    Fiber.of_thunk (fun () ->
+        if t.called then Code_error.raise "cannot send response twice" []
+        else if not (Id.equal t.for_ r.id) then Code_error.raise "invalid id" []
+        else t.called <- true;
+        t.send r)
 end
 
 exception Stopped of Message.request
@@ -76,13 +69,13 @@ struct
     { chan : Chan.t
     ; on_request : ('state, Id.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
-    ; pending : (Id.t, (Response.t, [ `Stopped ]) result Fiber.Ivar.t) Table.t
+    ; pending : (Response.t, [ `Stopped ]) result Fiber.Ivar.t Id.Table.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
     ; mutable tick : int
     ; mutable state : 'state
-    ; stop_pending_requests : unit Fiber.t Lazy.t
+    ; mutable pending_requests_stopped : bool
     }
 
   and ('a, 'id) context = 'a t * 'id Message.t
@@ -120,19 +113,51 @@ struct
 
   let state t = t.state
 
+  let on_notification_fail ctx =
+    let state = Context.state ctx in
+    Fiber.return (Notify.Continue, state)
+
+  let stop_pending_requests t =
+    Fiber.of_thunk (fun () ->
+        if t.pending_requests_stopped then Fiber.return ()
+        else (
+          t.pending_requests_stopped <- true;
+          let to_cancel =
+            Id.Table.fold t.pending ~init:[] ~f:(fun ~key:_ ~data:x acc ->
+                x :: acc)
+          in
+          Id.Table.clear t.pending;
+          Fiber.parallel_iter to_cancel ~f:(fun ivar ->
+              Fiber.Ivar.fill ivar (Error `Stopped))))
+
+  let create ?(on_request = on_request_fail)
+      ?(on_notification = on_notification_fail) ~name chan state =
+    let pending = Id.Table.create 10 in
+    { chan
+    ; on_request
+    ; on_notification
+    ; pending
+    ; stopped = Fiber.Ivar.create ()
+    ; name
+    ; running = false
+    ; tick = 0
+    ; state
+    ; pending_requests_stopped = false
+    }
+
   let stopped t = Fiber.Ivar.read t.stopped
 
   let stop t =
     Fiber.fork_and_join_unit
       (fun () -> Chan.close t.chan `Read)
-      (fun () -> Lazy.force t.stop_pending_requests)
+      (fun () -> stop_pending_requests t)
 
   let close t =
     Fiber.all_concurrently_unit
       [ Chan.close t.chan `Read
       ; Chan.close t.chan `Write
       ; Fiber.Ivar.fill t.stopped ()
-      ; Lazy.force t.stop_pending_requests
+      ; stop_pending_requests t
       ]
 
   let run t =
@@ -170,13 +195,13 @@ struct
         log t (fun () ->
             Log.msg ("response " ^ what) [ ("r", Response.yojson_of_t r) ])
       in
-      match Table.find t.pending r.id with
+      match Id.Table.find_opt t.pending r.id with
       | None ->
         log "dropped";
         Fiber.return ()
       | Some ivar ->
         log "acknowledged";
-        Table.remove t.pending r.id;
+        Id.Table.remove t.pending r.id;
         Fiber.Ivar.fill ivar (Ok r)
     and on_request (r : Id.t Message.t) =
       let* result =
@@ -184,8 +209,7 @@ struct
         Fiber.map_reduce_errors
           (module Stdune.Monoid.Unit)
           ~on_error:(fun exn_bt ->
-            if !sent then
-              (* TODO log *)
+            if !sent then (* TODO log *)
               Fiber.return ()
             else
               let response = response_of_exn r.id exn_bt in
@@ -232,55 +256,31 @@ struct
           (Dyn.to_string (Dyn.list Exn_with_backtrace.to_dyn errors));
         loop ()
     in
-    t.running <- true;
-    let* () =
-      Fiber.fork_and_join_unit
-        (fun () ->
-          let* () = loop () in
-          Fiber.Pool.stop later)
-        (fun () -> Fiber.Pool.run later)
-    in
-    close t
-
-  let on_notification_fail ctx =
-    let state = Context.state ctx in
-    Fiber.return (Notify.Continue, state)
-
-  let make_stop_pending_requests pending =
-    lazy
-      (let to_cancel = Table.fold pending ~init:[] ~f:(fun x acc -> x :: acc) in
-       Table.clear pending;
-       Fiber.parallel_iter to_cancel ~f:(fun ivar ->
-           Fiber.Ivar.fill ivar (Error `Stopped)))
-
-  let create ?(on_request = on_request_fail)
-      ?(on_notification = on_notification_fail) ~name chan state =
-    let pending = Table.create (module Id) 10 in
-    { chan
-    ; on_request
-    ; on_notification
-    ; pending
-    ; stopped = Fiber.Ivar.create ()
-    ; name
-    ; running = false
-    ; tick = 0
-    ; state
-    ; stop_pending_requests = make_stop_pending_requests pending
-    }
+    Fiber.of_thunk (fun () ->
+        t.running <- true;
+        let* () =
+          Fiber.fork_and_join_unit
+            (fun () ->
+              let* () = loop () in
+              Fiber.Pool.stop later)
+            (fun () -> Fiber.Pool.run later)
+        in
+        close t)
 
   let check_running t =
     (* TODO we should also error out when making requests after a disconnect. *)
     if not t.running then Code_error.raise "jsonrpc must be running" []
 
   let notification t (req : Message.notification) =
-    check_running t;
-    let req = { req with Message.id = None } in
-    Chan.send t.chan [ Message req ]
+    Fiber.of_thunk (fun () ->
+        check_running t;
+        let req = { req with Message.id = None } in
+        Chan.send t.chan [ Message req ])
 
   let register_request_ivar t id ivar =
-    match Table.find t.pending id with
+    match Id.Table.find_opt t.pending id with
     | Some _ -> Code_error.raise "duplicate request id" []
-    | None -> Table.add_exn t.pending id ivar
+    | None -> Id.Table.add t.pending ~key:id ~data:ivar
 
   let read_request_ivar req ivar =
     let+ res = Fiber.Ivar.read ivar in
@@ -289,46 +289,50 @@ struct
     | Error `Stopped -> raise (Stopped req)
 
   let request t (req : Message.request) =
-    check_running t;
-    let* () =
-      let req = { req with Message.id = Some req.id } in
-      Chan.send t.chan [ Message req ]
-    in
-    let ivar = Fiber.Ivar.create () in
-    register_request_ivar t req.id ivar;
-    read_request_ivar req ivar
+    Fiber.of_thunk (fun () ->
+        check_running t;
+        let* () =
+          let req = { req with Message.id = Some req.id } in
+          Chan.send t.chan [ Message req ]
+        in
+        let ivar = Fiber.Ivar.create () in
+        register_request_ivar t req.id ivar;
+        read_request_ivar req ivar)
 
   module Batch = struct
+    type response =
+      Message.request * (Jsonrpc.Response.t, [ `Stopped ]) result Fiber.Ivar.t
+
     type t =
-      [ `Notification of Message.notification
-      | `Request of
-        Message.request * (Response.t, [ `Stopped ]) result Fiber.Ivar.t
-      ]
-      list
-      ref
+      [ `Notification of Message.notification | `Request of response ] list ref
+
+    let await (req, resp) = read_request_ivar req resp
 
     let create () = ref []
 
     let notification t n = t := `Notification n :: !t
 
-    let request t r =
+    let request (t : t) r : response =
       let ivar = Fiber.Ivar.create () in
-      t := `Request (r, ivar) :: !t;
-      read_request_ivar r ivar
+      let resp = (r, ivar) in
+      t := `Request resp :: !t;
+      resp
   end
 
   let submit (t : _ t) (batch : Batch.t) =
-    check_running t;
-    let pending = !batch in
-    batch := [];
-    let pending, ivars =
-      List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) -> function
-        | `Notification n ->
-          (Jsonrpc.Message { n with Message.id = None } :: pending, ivars)
-        | `Request ((r : Message.request), ivar) ->
-          ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
-          , (r.id, ivar) :: ivars ))
-    in
-    List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
-    Chan.send t.chan pending
+    Fiber.of_thunk (fun () ->
+        check_running t;
+        let pending = !batch in
+        batch := [];
+        let pending, ivars =
+          List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) ->
+            function
+            | `Notification n ->
+              (Jsonrpc.Message { n with Message.id = None } :: pending, ivars)
+            | `Request ((r : Message.request), ivar) ->
+              ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
+              , (r.id, ivar) :: ivars ))
+        in
+        List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
+        Chan.send t.chan pending)
 end

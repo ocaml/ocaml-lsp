@@ -60,7 +60,9 @@ describe("textDocument/codeAction", () => {
   }
 
   beforeEach(async () => {
-    languageServer = await LanguageServer.startAndInitialize();
+    languageServer = await LanguageServer.startAndInitialize({
+      capabilities: { experimental: { jumpToNextHole: true } },
+    });
   });
 
   afterEach(async () => {
@@ -102,11 +104,17 @@ let f (x : t) = x
           "command": Object {
             "arguments": Array [
               Object {
-                "notify-if-no-hole": false,
-                "position": Object {
-                  "character": 16,
-                  "line": 2,
+                "inRange": Object {
+                  "end": Object {
+                    "character": 54,
+                    "line": 2,
+                  },
+                  "start": Object {
+                    "character": 16,
+                    "line": 2,
+                  },
                 },
+                "shouldNotifyIfNoHole": false,
               },
             ],
             "command": "ocaml.next-hole",

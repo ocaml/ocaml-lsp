@@ -1,14 +1,30 @@
 open Import
 open Fiber.O
 
+let type_option = [ ("module-item-spacing", "compact"); ("margin", "63") ]
+
+module Ocamlformat_rpc = Ocamlformat_rpc_lib.Make (struct
+  type 'a t = 'a Fiber.t
+
+  let return a = Fiber.return a
+
+  let ( >>= ) x f = Fiber.bind x ~f
+
+  type ic = Lev_fiber_csexp.Session.t
+
+  type oc = Lev_fiber_csexp.Session.t
+
+  let read = Lev_fiber_csexp.Session.read
+
+  let write t s = Lev_fiber_csexp.Session.write t (Some s)
+end)
+
 module Process : sig
   type t
 
   val pid : t -> Pid.t
 
-  val thread : t -> Scheduler.thread
-
-  val client : t -> Ocamlformat_rpc_lib.client
+  val client : t -> Ocamlformat_rpc.client
 
   val create :
        logger:(type_:MessageType.t -> message:string -> unit Fiber.t)
@@ -20,77 +36,68 @@ module Process : sig
 end = struct
   type t =
     { pid : Pid.t
-    ; input : in_channel
-    ; output : out_channel
-    ; io_thread : Scheduler.thread
-    ; client : Ocamlformat_rpc_lib.client
+    ; session : Lev_fiber_csexp.Session.t
+    ; client : Ocamlformat_rpc.client
     }
 
   let pid t = t.pid
 
-  let thread t = t.io_thread
-
   let client t = t.client
 
-  let supported_versions = [ "v1" ]
+  let supported_versions = [ "v2"; "v1" ]
 
-  let pick_client ~pid input output io_thread =
-    match
-      Scheduler.async io_thread (fun () ->
-          Ocamlformat_rpc_lib.pick_client ~pid input output supported_versions)
-    with
-    | Error `Stopped -> Code_error.raise "pick_client: stopped thread" []
-    | Ok res -> (
-      let+ res = Scheduler.await_no_cancel res in
-      match res with
-      | Ok s -> s
-      | Error e -> Exn_with_backtrace.reraise e)
+  let pick_client ~pid session =
+    Ocamlformat_rpc.pick_client ~pid session session supported_versions
 
-  let configure ~logger { io_thread; client; _ } =
+  let configure ~logger { client; _ } =
     (* We ask for 64 columns formatting as this appear to be the maximum size of
        VScode popups. TODO We should probably allow some flexibility for other
        editors that use the server. *)
-    match
-      Scheduler.async io_thread (fun () ->
-          Ocamlformat_rpc_lib.config
-            [ ("module-item-spacing", "compact"); ("margin", "63") ]
-            client)
-    with
-    | Error `Stopped -> Fiber.return ()
-    | Ok res -> (
-      let* res = Scheduler.await_no_cancel res in
+    match client with
+    | `V2 _ -> Fiber.return ()
+    | `V1 client -> (
+      let* res = Ocamlformat_rpc.V1.Client.config type_option client in
       match res with
-      | Ok (Ok ()) -> Fiber.return ()
-      | Ok (Error (`Msg msg)) ->
+      | Ok () -> Fiber.return ()
+      | Error (`Msg msg) ->
         let message =
           Printf.sprintf "An error occured while configuring ocamlformat: %s"
             msg
         in
-        logger ~type_:MessageType.Warning ~message
-      | Error e -> Exn_with_backtrace.reraise e)
+        logger ~type_:MessageType.Warning ~message)
 
   let create ~logger ~bin () =
     let bin = Fpath.to_string bin in
-    let pid, stdout, stdin =
-      let stdin_i, stdin_o = Unix.pipe () in
-      let stdout_i, stdout_o = Unix.pipe () in
+    let* pid, stdout, stdin =
+      let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
+      let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
       let pid =
         Spawn.spawn ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ()
       in
       Unix.close stdin_i;
       Unix.close stdout_o;
-      (pid, stdout_i, stdin_o)
+      let blockity =
+        if Sys.win32 then `Blocking
+        else (
+          Unix.set_nonblock stdin_o;
+          Unix.set_nonblock stdout_i;
+          `Non_blocking true)
+      in
+      let make fd what =
+        let fd = Lev_fiber.Fd.create fd blockity in
+        Lev_fiber.Io.create fd what
+      in
+      let* stdin = make stdin_o Output in
+      let+ stdout = make stdout_i Input in
+      (pid, stdout, stdin)
     in
-    let* io_thread = Scheduler.create_thread () in
-    let input = Unix.in_channel_of_descr stdout in
-    let output = Unix.out_channel_of_descr stdin in
-    let* client = pick_client ~pid input output io_thread in
+    let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
+    let* client = pick_client ~pid session in
     match client with
     | Error (`Msg msg) ->
       (* The process did start but something went wrong when negociating the
          version so we need to kill it *)
       Unix.kill pid Sys.sigkill;
-      Scheduler.stop io_thread;
       let* () =
         let message =
           Printf.sprintf
@@ -102,9 +109,7 @@ end = struct
       in
       Fiber.return @@ Error `No_process
     | Ok client ->
-      let process =
-        { pid = Pid.of_int pid; input; output; io_thread; client }
-      in
+      let process = { pid = Pid.of_int pid; session; client } in
       let* () = configure ~logger process in
       let+ () =
         let message =
@@ -114,11 +119,9 @@ end = struct
       in
       Ok process
 
-  let run { pid; input; output; io_thread; _ } =
-    let+ (_ : Unix.process_status) = Scheduler.wait_for_process pid in
-    close_in_noerr input;
-    close_out_noerr output;
-    Scheduler.stop io_thread
+  let run { pid; session; _ } =
+    let* (_ : Unix.process_status) = Lev_fiber.waitpid ~pid:(Pid.to_int pid) in
+    Lev_fiber_csexp.Session.write session None
 end
 
 type state =
@@ -135,17 +138,13 @@ type t = state ref
 let get_process t =
   match !t with
   | Running p -> Fiber.return @@ Ok p
-  | Disabled
-  | Stopped ->
-    Fiber.return @@ Error `No_process
+  | Disabled | Stopped -> Fiber.return @@ Error `No_process
   | Waiting_for_init { ask_init; wait_init } -> (
     let* () = Fiber.Ivar.fill ask_init () in
     let+ () = Fiber.Ivar.read wait_init in
     match !t with
     | Running p -> Ok p
-    | Disabled
-    | Stopped ->
-      Error `No_process
+    | Disabled | Stopped -> Error `No_process
     | Waiting_for_init _ ->
       Code_error.raise
         "Expected to receive `Started` or `Stopped` after mailing `Start`" [])
@@ -155,21 +154,30 @@ let format_type t ~typ =
   match p with
   | Error `No_process -> Fiber.return @@ Error `No_process
   | Ok p -> (
-    match
-      Scheduler.async (Process.thread p) (fun () ->
-          Ocamlformat_rpc_lib.format typ (Process.client p))
-    with
-    | Error `Stopped -> Fiber.return @@ Error `No_process
-    | Ok res -> (
-      let+ res = Scheduler.await_no_cancel res in
-      match res with
-      | Ok s -> s
-      | Error e -> Exn_with_backtrace.reraise e))
+    match Process.client p with
+    | `V1 p -> Ocamlformat_rpc.V1.Client.format typ p
+    | `V2 p ->
+      let config = Some type_option in
+      Ocamlformat_rpc.V2.Client.format
+        ~format_args:{ Ocamlformat_rpc_lib.empty_args with config }
+        typ p)
 
 let format_doc t doc =
   let txt = Document.source doc |> Msource.text in
-  let+ res = format_type t ~typ:txt in
-  Result.map res ~f:(fun to_ -> Diff.edit ~from:txt ~to_)
+  let path = Some (Document.uri doc |> Uri.to_path) in
+  let* p = get_process t in
+  match p with
+  | Error `No_process -> Fiber.return @@ Error `No_process
+  | Ok p -> (
+    match Process.client p with
+    | `V2 p ->
+      let+ res =
+        Ocamlformat_rpc.V2.Client.format
+          ~format_args:Ocamlformat_rpc_lib.{ empty_args with path }
+          txt p
+      in
+      Result.map res ~f:(fun to_ -> Diff.edit ~from:txt ~to_)
+    | `V1 _ -> Fiber.return @@ Error `No_V2)
 
 let create_state () =
   Waiting_for_init
@@ -187,9 +195,7 @@ let maybe_fill ivar x =
 
 let stop t =
   match !t with
-  | Disabled
-  | Stopped ->
-    Fiber.return ()
+  | Disabled | Stopped -> Fiber.return ()
   | Waiting_for_init { wait_init; ask_init } ->
     (* If the server was never started we still need to fill the ivar for the
        fiber to finish *)
@@ -209,9 +215,7 @@ let run_rpc ~logger ~bin t =
   | Waiting_for_init { ask_init; wait_init } -> (
     let* () = Fiber.Ivar.read ask_init in
     match !t with
-    | Disabled
-    | Stopped ->
-      Fiber.return ()
+    | Disabled | Stopped -> Fiber.return ()
     | Running _ -> assert false
     | Waiting_for_init _ -> (
       let* process = Process.create ~logger ~bin () in
@@ -250,9 +254,7 @@ let run ~logger t =
             let* () = run_rpc ~logger ~bin t in
             (* We loop to automatically restart the server if it stopped *)
             loop ()
-          | Disabled
-          | Running _ ->
-            assert false
+          | Disabled | Running _ -> assert false
           | Stopped -> Fiber.return (Ok ()))
       in
       loop ())

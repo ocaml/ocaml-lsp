@@ -1,6 +1,7 @@
 open! Import
 open Fiber.O
 module Registry = Drpc.Registry
+module Csexp_rpc = Lev_fiber_csexp
 
 let view_promotion_capability = ("diagnostic_promotions", `Bool true)
 
@@ -26,24 +27,6 @@ module For_diff = struct
 
   let diagnostic_data t = (fst view_promotion_capability, yojson_of_t t)
 end
-
-module Csexp_rpc = Csexp_rpc.Make (struct
-  type t = Scheduler.thread
-
-  let stop t = Scheduler.stop t
-
-  let create () = Scheduler.create_thread ()
-
-  let task t ~f =
-    let res = Scheduler.async t f in
-    match res with
-    | Error `Stopped -> Fiber.return (Error `Stopped)
-    | Ok t -> (
-      let+ res = Scheduler.await_no_cancel t in
-      match res with
-      | Ok s -> Ok s
-      | Error e -> Error (`Exn e))
-end)
 
 module Chan : sig
   type t
@@ -100,51 +83,29 @@ module Poll =
     (Fiber)
     (struct
       let scandir s =
-        Fiber.return
-          (match Sys.readdir s with
-          | s -> Ok (Array.to_list s)
-          | exception Sys_error _ -> Ok []
-          | exception exn -> Error exn)
+        Fiber.of_thunk (fun () ->
+            Fiber.return
+              (match Sys.readdir s with
+              | s -> Ok (Array.to_list s)
+              | exception Sys_error _ -> Ok []
+              | exception exn -> Error exn))
 
       let stat s =
-        Fiber.return
-          (match Unix.stat s with
-          | exception exn -> Error exn
-          | s -> Ok (`Mtime s.st_mtime))
+        Fiber.of_thunk (fun () ->
+            Fiber.return
+              (match Unix.stat s with
+              | exception exn -> Error exn
+              | s -> Ok (`Mtime s.st_mtime)))
 
       let read_file s =
-        Fiber.return (Result.try_with (fun () -> Io.String_path.read_file s))
-    end)
-
-module Where =
-  Drpc.Where.Make
-    (struct
-      type 'a t = 'a
-
-      let return x = x
-
-      module O = struct
-        let ( let* ) x f = f x
-
-        let ( let+ ) x f = f x
-      end
-    end)
-    (struct
-      let read_file f =
-        Result.try_with (fun () -> Stdune.Io.String_path.read_file f)
-
-      let analyze_path s =
-        match (Unix.stat s).st_kind with
-        | Unix.S_SOCK -> Ok `Unix_socket
-        | S_REG -> Ok `Normal_file
-        | _
-        | (exception Unix.Unix_error (Unix.ENOENT, _, _)) ->
-          Ok `Other
-        | exception exn -> Error exn
+        Fiber.of_thunk (fun () ->
+            Fiber.return
+              (Result.try_with (fun () -> Io.String_path.read_file s)))
     end)
 
 type config =
   { diagnostics : Diagnostics.t
+  ; document_store : Document_store.t
   ; include_promotions : bool
   ; progress : Progress.t
   ; log : type_:MessageType.t -> message:string -> unit Fiber.t
@@ -159,6 +120,8 @@ module Instance : sig
 
   val run : t -> unit Fiber.t
 
+  val connect : t -> (unit, unit) result Fiber.t
+
   val source : t -> Registry.Dune.t
 
   val create : Registry.Dune.t -> config -> t
@@ -167,16 +130,22 @@ module Instance : sig
 
   val client : t -> Client.t option
 end = struct
+  module Id = Stdune.Id.Make ()
+
   type running =
     { chan : Chan.t
     ; finish : unit Fiber.Ivar.t
     ; diagnostics_id : Diagnostics.Dune.t
+    ; id : Id.t
     ; mutable client : Client.t option
-    ; mutable promotions : Drpc.Diagnostic.Promotion.t String.Map.t
+    ; mutable promotions :
+        (* TODO we need to clean these up in the finalizer *)
+        Drpc.Diagnostic.Promotion.t String.Map.t
     }
 
   type state =
     | Idle
+    | Connected of Csexp_rpc.Session.t * Drpc.Where.t
     | Running of running
     | Finished
 
@@ -188,16 +157,12 @@ end = struct
 
   let client t =
     match t.state with
-    | Idle
-    | Finished ->
-      None
+    | Connected _ | Idle | Finished -> None
     | Running r -> r.client
 
   let promotions t =
     match t.state with
-    | Idle
-    | Finished ->
-      String.Map.empty
+    | Connected _ | Idle | Finished -> String.Map.empty
     | Running r -> r.promotions
 
   let source t = t.source
@@ -274,43 +239,74 @@ end = struct
               let+ () = Progress.build_progress progress p in
               Some ()))
 
-  let diagnostic_loop client running dune_diagnostic_id diagnostics
-      ~include_promotions =
+  let diagnostic_loop client config (running : running) diagnostics =
     let* res = Client.poll client Drpc.Sub.diagnostic in
     let send_diagnostics evs =
-      List.iter evs ~f:(fun (ev : Drpc.Diagnostic.Event.t) ->
-          let id =
-            Drpc.Diagnostic.id
-              (match ev with
+      let promotions, add, remove =
+        List.fold_left evs ~init:(running.promotions, [], [])
+          ~f:(fun (promotions, add, remove) (ev : Drpc.Diagnostic.Event.t) ->
+            let diagnostic =
+              match ev with
               | Add x -> x
-              | Remove x -> x)
-          in
-          let fold_promotions d ~f =
-            let promotions = Drpc.Diagnostic.promotion d in
-            List.fold_left promotions ~init:running.promotions
-              ~f:(fun acc promotion ->
-                let in_source = Drpc.Diagnostic.Promotion.in_source promotion in
-                f acc in_source promotion)
-          in
-          match ev with
-          | Remove d ->
-            running.promotions <-
-              fold_promotions d ~f:(fun acc path _promotion ->
-                  String.Map.remove acc path);
-            Diagnostics.remove diagnostics (`Dune (dune_diagnostic_id, id))
-          | Add d ->
-            running.promotions <- fold_promotions d ~f:String.Map.set;
-            let uri : Uri.t =
-              match Drpc.Diagnostic.loc d with
-              | None -> Diagnostics.workspace_root diagnostics
-              | Some loc ->
-                let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
-                Uri.of_path pos_fname
+              | Remove x -> x
             in
-            Diagnostics.set diagnostics
-              (`Dune
-                (dune_diagnostic_id, id, uri, lsp_of_dune ~include_promotions d)));
-      Diagnostics.send diagnostics
+            let id = Drpc.Diagnostic.id diagnostic in
+            let promotion = Drpc.Diagnostic.promotion diagnostic in
+            match ev with
+            | Remove _ ->
+              let promotions, requests =
+                List.fold_left promotion ~init:(promotions, [])
+                  ~f:(fun (ps, acc) promotion ->
+                    let source =
+                      Drpc.Diagnostic.Promotion.in_source promotion
+                    in
+                    match String.Map.find ps source with
+                    | Some _ -> (String.Map.remove ps source, promotion :: acc)
+                    | None ->
+                      Log.log ~section:"warning" (fun () ->
+                          Log.msg "removing non existant promotion"
+                            [ ( "promotion"
+                              , `String
+                                  (Drpc.Diagnostic.Promotion.in_source promotion)
+                              )
+                            ]);
+                      (ps, acc))
+              in
+              Diagnostics.remove diagnostics
+                (`Dune (running.diagnostics_id, id));
+              (promotions, add, requests :: remove)
+            | Add d ->
+              let promotions, requests =
+                List.fold_left promotion ~init:(promotions, [])
+                  ~f:(fun (ps, acc) promotion ->
+                    let source =
+                      Drpc.Diagnostic.Promotion.in_source promotion
+                    in
+                    match String.Map.find ps source with
+                    | Some _ ->
+                      (* TODO it should not be possible to offer more than one
+                         promotion for a file in dune *)
+                      assert false
+                    | None ->
+                      (String.Map.add_exn ps source promotion, promotion :: acc))
+              in
+              let uri : Uri.t =
+                match Drpc.Diagnostic.loc d with
+                | None -> Diagnostics.workspace_root diagnostics
+                | Some loc ->
+                  let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
+                  Uri.of_path pos_fname
+              in
+              Diagnostics.set diagnostics
+                (`Dune
+                  ( running.diagnostics_id
+                  , id
+                  , uri
+                  , lsp_of_dune ~include_promotions:config.include_promotions d
+                  ));
+              (promotions, requests :: add, remove))
+      in
+      (promotions, List.flatten add, List.flatten remove)
     in
     match res with
     | Error v -> raise (Drpc.Version_error.E v)
@@ -320,7 +316,22 @@ end = struct
           match res with
           | None -> Fiber.return None
           | Some p ->
-            let+ () = send_diagnostics p `All in
+            let promotions, add, remove = send_diagnostics p in
+            let uris =
+              List.rev_map ~f:(fun promotion ->
+                  Drpc.Diagnostic.Promotion.in_source promotion |> Uri.of_path)
+            in
+            running.promotions <- promotions;
+            let* () = Diagnostics.send diagnostics `All in
+            let+ () =
+              Fiber.fork_and_join_unit
+                (fun () ->
+                  Document_store.unregister_promotions config.document_store
+                    (uris remove))
+                (fun () ->
+                  Document_store.register_promotions config.document_store
+                    (uris add))
+            in
             Some ())
 
   let stop t =
@@ -330,11 +341,15 @@ end = struct
 
   let create source config = { config; source; state = Idle }
 
-  let run ({ config; source; _ } as t) =
-    assert (
-      match t.state with
-      | Idle -> true
-      | _ -> false);
+  let connect ({ config; source; _ } as t) =
+    let* () =
+      Fiber.of_thunk (fun () ->
+          assert (
+            match t.state with
+            | Idle -> true
+            | _ -> false);
+          Fiber.return ())
+    in
     let* () =
       let message =
         sprintf "Connecting to dune %s (%s)"
@@ -346,56 +361,122 @@ end = struct
       config.log ~type_:Info ~message
     in
     let where = Registry.Dune.where source in
-    let sock =
+    let sockaddr =
       match where with
       | `Unix s -> Unix.ADDR_UNIX s
       | `Ip (`Host h, `Port p) -> Unix.ADDR_INET (Unix.inet_addr_of_string h, p)
     in
-    let* client = Csexp_rpc.Client.create sock in
-    let* session = Csexp_rpc.Client.connect client in
+    let sock =
+      let domain = Unix.domain_of_sockaddr sockaddr in
+      let socket = Unix.socket ~cloexec:true domain Unix.SOCK_STREAM 0 in
+      Lev_fiber.Fd.create socket (`Non_blocking false)
+    in
+    let* session =
+      Fiber.map_reduce_errors
+        (module Monoid.List (Exn_with_backtrace))
+        ~on_error:(fun exn -> Fiber.return [ exn ])
+        (fun () -> Csexp_rpc.connect sock sockaddr)
+    in
     match session with
-    | Error exn ->
-      let message =
-        sprintf "unable to connect to dune %s" (Registry.Dune.root source)
-      in
-      let* () = config.log ~type_:Error ~message in
-      t.state <- Finished;
-      Exn_with_backtrace.reraise exn
+    | Error exns -> (
+      Lev_fiber.Fd.close sock;
+      match
+        List.filter exns ~f:(fun exn ->
+            match exn with
+            | { Exn_with_backtrace.exn = Unix.Unix_error (ECONNREFUSED, _, _)
+              ; _
+              } -> false
+            | _ -> true)
+      with
+      | [] -> Fiber.return (Error ())
+      | exn :: _ ->
+        let message =
+          Format.asprintf "unable to connect to dune %s@.%a"
+            (Registry.Dune.root source)
+            Exn_with_backtrace.pp_uncaught exn
+        in
+        let+ () = t.config.log ~type_:Error ~message in
+        t.state <- Finished;
+        Error ())
     | Ok session ->
-      let chan = Chan.create session in
-      let finish = Fiber.Ivar.create () in
-      let running =
-        { chan
-        ; finish
-        ; promotions = String.Map.empty
-        ; client = None
-        ; diagnostics_id = Diagnostics.Dune.gen ()
-        }
-      in
-      t.state <- Running running;
-      let { progress; diagnostics; include_promotions; log = _ } = config in
-      let* () =
-        Fiber.all_concurrently_unit
-          [ (let* () = Chan.run chan in
-             t.state <- Finished;
-             Diagnostics.disconnect diagnostics running.diagnostics_id;
-             let* () = Diagnostics.send diagnostics `All in
-             Fiber.Ivar.fill finish ())
-          ; (let init =
-               Drpc.Initialize.create ~id:(Drpc.Id.make (Atom "ocamllsp"))
+      t.state <- Connected (session, where);
+      Fiber.return (Ok ())
+
+  let run ({ config; _ } as t) =
+    let* () = Fiber.return () in
+    let session, where =
+      match t.state with
+      | Connected (session, where) -> (session, where)
+      | _ -> assert false
+    in
+    let chan = Chan.create session in
+    let finish = Fiber.Ivar.create () in
+    let running =
+      { chan
+      ; finish
+      ; promotions = String.Map.empty
+      ; client = None
+      ; diagnostics_id = Diagnostics.Dune.gen ()
+      ; id = Id.gen ()
+      }
+    in
+    t.state <- Running running;
+    let { progress
+        ; diagnostics
+        ; include_promotions = _
+        ; log = _
+        ; document_store = _
+        } =
+      config
+    in
+    let* () =
+      Fiber.all_concurrently_unit
+        [ (let* () = Chan.run chan in
+           t.state <- Finished;
+           Diagnostics.disconnect diagnostics running.diagnostics_id;
+           let* () = Diagnostics.send diagnostics `All in
+           Fiber.Ivar.fill finish ())
+        ; (let init =
+             let id =
+               Drpc.Id.make
+                 (List
+                    [ Atom "ocamllsp"
+                    ; Atom (Int.to_string (Id.to_int running.id))
+                    ])
              in
-             Client.connect chan init ~f:(fun client ->
-                 t.state <- Running { running with client = Some client };
-                 let progress = progress_loop client progress in
-                 let diagnostics =
-                   diagnostic_loop client running running.diagnostics_id
-                     diagnostics ~include_promotions
+             Drpc.Initialize.create ~id
+           in
+           let where =
+             match where with
+             | `Unix s -> sprintf "unix://%s" s
+             | `Ip (`Host h, `Port p) -> sprintf "%s:%d" h p
+           in
+           let* () =
+             let message =
+               sprintf "client %d: connecting..." (Id.to_int running.id)
+             in
+             config.log ~type_:Info ~message
+           in
+           (* TODO put timeouts establishing a connection *)
+           Client.connect chan init ~f:(fun client ->
+               running.client <- Some client;
+               t.state <- Running running;
+               let* () =
+                 let message =
+                   sprintf "client %d: connected to dune at %s"
+                     (Id.to_int running.id) where
                  in
-                 Fiber.all_concurrently_unit
-                   [ progress; diagnostics; Fiber.Ivar.read finish ]))
-          ]
-      in
-      Progress.end_build_if_running progress
+                 config.log ~type_:Info ~message
+               in
+               let progress = progress_loop client progress in
+               let diagnostics =
+                 diagnostic_loop client config running diagnostics
+               in
+               Fiber.all_concurrently_unit
+                 [ progress; diagnostics; Fiber.Ivar.read finish ]))
+        ]
+    in
+    Progress.end_build_if_running progress
 
   let format_dune_file t doc =
     match t.state with
@@ -417,11 +498,7 @@ end = struct
       | Error _ ->
         Jsonrpc.Response.Error.(
           raise (make ~message:"dune failed to format" ~code:InternalError ())))
-    | Idle
-    | Finished
-    | Running _ ->
-      assert false
-  (* TODO wait for initialization *)
+    | Connected _ | Idle | Finished | Running _ -> assert false
 end
 
 module Dune_map = Map.Make (Registry.Dune)
@@ -442,32 +519,22 @@ let uri_dune_overlap =
      All of this is really hacky and error prone. We should let the user
      associate dune instances with workspace folders somehow *)
   let is_dir_sep =
-    if Sys.win32 || Sys.cygwin then
-      fun c ->
-    c = '/' || c = '\\' || c = ':'
-    else
-      fun c ->
-    c = '/'
+    if Sys.win32 || Sys.cygwin then fun c -> c = '/' || c = '\\' || c = ':'
+    else fun c -> c = '/'
   in
   let explode_path =
     let rec start acc path i =
-      if i < 0 then
-        acc
-      else if is_dir_sep (String.unsafe_get path i) then
-        start acc path (i - 1)
-      else
-        component acc path i (i - 1)
+      if i < 0 then acc
+      else if is_dir_sep (String.unsafe_get path i) then start acc path (i - 1)
+      else component acc path i (i - 1)
     and component acc path end_ i =
-      if i < 0 then
-        String.take path (end_ + 1) :: acc
+      if i < 0 then String.take path (end_ + 1) :: acc
       else if is_dir_sep (String.unsafe_get path i) then
         start (String.sub path ~pos:(i + 1) ~len:(end_ - i) :: acc) path (i - 1)
-      else
-        component acc path end_ (i - 1)
+      else component acc path end_ (i - 1)
     in
     fun path ->
-      if path = Filename.current_dir_name then
-        [ path ]
+      if path = Filename.current_dir_name then [ path ]
       else
         match start [] path (String.length path - 1) with
         | "." :: xs -> xs
@@ -477,19 +544,29 @@ let uri_dune_overlap =
     let dune_root = Registry.Dune.root dune in
     let path =
       let path = Uri.to_path uri in
-      if Filename.is_relative path then
-        Filename.concat (Lazy.force cwd) path
-      else
-        path
+      if Filename.is_relative path then Filename.concat (Lazy.force cwd) path
+      else path
     in
     let rec loop xs ys =
       match (xs, ys) with
       | x :: xs, y :: ys -> x = y && loop xs ys
-      | [], _
-      | _, [] ->
-        true
+      | [], _ | _, [] -> true
     in
     loop (explode_path dune_root) (explode_path path)
+
+let make_finalizer active (instance : Instance.t) =
+  Lazy_fiber.create (fun () ->
+      active.instances <-
+        String.Map.remove active.instances
+          (Registry.Dune.root (Instance.source instance));
+      let to_unregister =
+        Instance.promotions instance
+        |> String.Map.to_list_map ~f:(fun _ promotion ->
+               let path = Drpc.Diagnostic.Promotion.in_source promotion in
+               Uri.of_path path)
+      in
+      Document_store.unregister_promotions active.config.document_store
+        to_unregister)
 
 let poll active =
   (* a single workspaces value for one iteration of the loop *)
@@ -497,8 +574,12 @@ let poll active =
   let workspace_folders = Workspaces.workspace_folders workspaces in
   let* res = Poll.poll active.registry in
   match res with
-  | Error _ -> (* TODO warn *) Fiber.return ()
-  | Ok _refresh ->
+  | Error exn ->
+    let message =
+      sprintf "failed to poll dune registry. %s" (Printexc.to_string exn)
+    in
+    active.config.log ~type_:MessageType.Warning ~message
+  | Ok _refresh -> (
     let remaining, to_kill =
       String.Map.partition active.instances ~f:(fun (running : Instance.t) ->
           let source = Instance.source running in
@@ -507,60 +588,93 @@ let poll active =
     in
     let to_kill = String.Map.values to_kill in
     active.instances <- remaining;
-    let kill to_kill = Fiber.parallel_iter to_kill ~f:Instance.stop in
-    let to_create =
-      (* won't work very well with large workspaces and many instances of
-         dune *)
-      let is_running dune =
-        String.Map.mem active.instances (Registry.Dune.root dune)
+    let* connected =
+      let to_create =
+        (* won't work very well with large workspaces and many instances of
+           dune *)
+        let is_running dune =
+          String.Map.mem active.instances (Registry.Dune.root dune)
+        in
+        Registry.current active.registry
+        |> List.fold_left ~init:[] ~f:(fun acc dune ->
+               if
+                 (not (is_running dune))
+                 && List.exists workspace_folders
+                      ~f:(fun (wsf : WorkspaceFolder.t) ->
+                        uri_dune_overlap wsf.uri dune)
+               then Instance.create dune active.config :: acc
+               else acc)
       in
-      Registry.current active.registry
-      |> List.fold_left ~init:[] ~f:(fun acc dune ->
-             if
-               (not (is_running dune))
-               && List.exists workspace_folders
-                    ~f:(fun (wsf : WorkspaceFolder.t) ->
-                      uri_dune_overlap wsf.uri dune)
-             then
-               Instance.create dune active.config :: acc
-             else
-               acc)
-    in
-    active.instances <-
-      List.fold_left to_create ~init:active.instances
-        ~f:(fun acc (instance : Instance.t) ->
+      List.map to_create ~f:(fun instance ->
           let source = Instance.source instance in
-          (* XXX fragile. what if a server was killed and didn't cleanup *)
-          String.Map.add_exn acc (Registry.Dune.root source) instance);
-    let create to_create =
-      Fiber.parallel_iter to_create ~f:(fun instance ->
-          let cleanup =
-            lazy
-              (active.instances <-
-                String.Map.remove active.instances
-                  (Registry.Dune.root (Instance.source instance)))
-          in
-          let+ (_ : (unit, unit) result) =
+          let root = Registry.Dune.root source in
+          (root, instance))
+      |> String.Map.of_list_multi |> String.Map.values
+      |> Fiber.parallel_map ~f:(fun instances ->
+             (* TODO put timeouts on all this stuff *)
+             let rec loop = function
+               | [] -> Fiber.return None
+               | instance :: xs -> (
+                 let* res = Instance.connect instance in
+                 match res with
+                 | Error () -> loop xs
+                 | Ok () ->
+                   let+ () =
+                     match xs with
+                     | [] -> Fiber.return ()
+                     | _ ->
+                       let message =
+                         Format.asprintf
+                           (* TODO print the actual intsances skipped instead
+                              once the RPC gives us access to the pid's *)
+                           "workspace %s ignores %d dune instances"
+                           (Instance.source instance |> Registry.Dune.root)
+                           (List.length xs)
+                       in
+                       active.config.log ~type_:Error ~message
+                   in
+                   Some instance)
+             in
+             loop instances)
+      |> Fiber.map ~f:List.filter_opt
+    in
+    let* () =
+      let send f x =
+        if x = [] then Fiber.return ()
+        else
+          let* running = Fiber.Pool.running active.pool in
+          match running with
+          | false -> Fiber.return ()
+          | true -> Fiber.Pool.task active.pool ~f:(fun () -> f x)
+      in
+      send (Fiber.parallel_iter ~f:Instance.stop) to_kill
+    in
+    match connected with
+    | [] -> Fiber.return ()
+    | _ ->
+      active.instances <-
+        List.fold_left connected ~init:active.instances
+          ~f:(fun acc (instance : Instance.t) ->
+            let source = Instance.source instance in
+            (* this is guaranteed not to raise since we don't connect to more
+               than one dune instance per workspace *)
+            String.Map.add_exn acc (Registry.Dune.root source) instance);
+      Fiber.parallel_iter connected ~f:(fun (instance : Instance.t) ->
+          let cleanup = make_finalizer active instance in
+          let* (_ : (unit, unit) result) =
             Fiber.map_reduce_errors
               (module Monoid.Unit)
-              ~on_error:(fun _ ->
-                Lazy.force cleanup;
-                Fiber.return ())
               (fun () -> Instance.run instance)
+              ~on_error:(fun exn ->
+                let message =
+                  Format.asprintf "disconnected %s:@.%a"
+                    (Registry.Dune.root (Instance.source instance))
+                    Exn_with_backtrace.pp_uncaught exn
+                in
+                let* () = active.config.log ~type_:Error ~message in
+                Lazy_fiber.force cleanup)
           in
-          Lazy.force cleanup)
-    in
-    let send f x =
-      if x = [] then
-        Fiber.return ()
-      else
-        let* running = Fiber.Pool.running active.pool in
-        match running with
-        | false -> Fiber.return ()
-        | true -> Fiber.Pool.task active.pool ~f:(fun () -> f x)
-    in
-    let* () = send create to_create in
-    send kill to_kill
+          Lazy_fiber.force cleanup))
 
 type state =
   | Closed
@@ -580,8 +694,10 @@ let stop (t : t) =
             String.Map.values active.instances
             |> Fiber.parallel_iter ~f:Instance.stop))
 
+let env = Sys.getenv_opt
+
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
-    progress ~log =
+    progress document_store ~log =
   let config =
     let include_promotions =
       match client_capabilities.experimental with
@@ -591,10 +707,10 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
         | _ -> false)
       | _ -> false
     in
-    { diagnostics; progress; include_promotions; log }
+    { document_store; diagnostics; progress; include_promotions; log }
   in
   let registry =
-    Registry.create (Registry.Config.create (Xdg.create ~env:Sys.getenv_opt ()))
+    Registry.create (Registry.Config.create (Xdg.create ~env ()))
   in
   ref
     (Active
@@ -605,16 +721,12 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
        ; workspaces
        })
 
-let enabled = false
-
-let create_disabled () = ref Closed
-
 let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
-    progress ~log =
-  if enabled then
-    create workspaces client_capabilities diagnostics progress ~log
+    progress document_store ~log =
+  if inside_test then ref Closed
   else
-    create_disabled ()
+    create workspaces client_capabilities diagnostics progress document_store
+      ~log
 
 let run_loop t =
   Fiber.repeat_while ~init:() ~f:(fun () ->
@@ -624,7 +736,7 @@ let run_loop t =
         let* () = poll active in
         (* TODO make this a bit more dynamic. if poll completes fast, wait more,
            if it's slow, then wait less *)
-        let+ () = Scheduler.sleep 0.25 in
+        let+ () = Lev_fiber.Timer.sleepf 0.25 in
         Some ())
 
 let run t : unit Fiber.t =
@@ -673,46 +785,56 @@ module Promote = struct
   let name = "dune/promote"
 
   let run t (command : ExecuteCommandParams.t) =
-    match !t with
-    | Closed -> Fiber.return ()
-    | Active active -> (
-      let promote =
-        match command.arguments with
-        | Some [ arg ] -> Input.t_of_yojson arg
-        | _ -> assert false
-      in
-      match String.Map.find active.instances promote.dune with
-      | None -> (* TODO error *) Fiber.return ()
-      | Some instance -> (
-        match Instance.client instance with
-        | None -> (* TODO error *) Fiber.return ()
-        | Some client -> (
-          let* req =
-            Client.Versioned.prepare_request client Drpc.Request.promote
+    Fiber.of_thunk (fun () ->
+        match !t with
+        | Closed -> Fiber.return ()
+        | Active active -> (
+          let promote =
+            match command.arguments with
+            | Some [ arg ] -> Input.t_of_yojson arg
+            | _ -> assert false
           in
-          let req =
-            match req with
-            | Error _ -> assert false
-            | Ok req -> req
-          in
-          let* res =
-            Client.request client req (Drpc.Path.absolute promote.in_source)
-          in
-          match res with
-          | Ok () -> Fiber.return ()
-          | Error _ -> Fiber.return ())))
+          match String.Map.find active.instances promote.dune with
+          | None ->
+            let message = sprintf "dune %S already disconected" promote.dune in
+            Jsonrpc.Response.Error.raise
+              (Jsonrpc.Response.Error.make ~code:InternalError ~message ())
+          | Some instance -> (
+            match Instance.client instance with
+            | None ->
+              (* we can also just wait for initialization? *)
+              let message = sprintf "dune %S is not initialized" promote.dune in
+              Jsonrpc.Response.Error.raise
+                (Jsonrpc.Response.Error.make ~code:InternalError ~message ())
+            | Some client -> (
+              let+ res =
+                let* req =
+                  Client.Versioned.prepare_request client Drpc.Request.promote
+                in
+                let req =
+                  match req with
+                  | Error _ -> assert false
+                  | Ok req -> req
+                in
+                Client.request client req (Drpc.Path.absolute promote.in_source)
+              in
+              match res with
+              | Ok () -> ()
+              | Error _ -> ()))))
 end
 
 let commands = [ Promote.name ]
 
-let code_actions (t : t) (doc : Document.t) =
+let code_actions (t : t) (uri : Uri.t) =
   match !t with
   | Closed -> []
   | Active active ->
-    let path = Document.uri doc |> Uri.to_path in
+    let path = Uri.to_path uri in
     String.Map.fold active.instances ~init:[] ~f:(fun dune acc ->
-        let promotions = Instance.promotions dune in
-        match String.Map.find promotions path with
+        match
+          let promotions = Instance.promotions dune in
+          String.Map.find promotions path
+        with
         | None -> acc
         | Some promotion ->
           let command =
@@ -730,12 +852,13 @@ let code_actions (t : t) (doc : Document.t) =
           action :: acc)
 
 let on_command t (cmd : ExecuteCommandParams.t) =
-  if cmd.command <> Promote.name then
-    Jsonrpc.Response.Error.raise
-      (Jsonrpc.Response.Error.make ~code:InvalidRequest
-         ~message:"invalid command" ());
-  let* () = Promote.run t cmd in
-  Fiber.return `Null
+  Fiber.of_thunk (fun () ->
+      if cmd.command <> Promote.name then
+        Jsonrpc.Response.Error.raise
+          (Jsonrpc.Response.Error.make ~code:InvalidRequest
+             ~message:"invalid command" ());
+      let* () = Promote.run t cmd in
+      Fiber.return `Null)
 
 let for_doc t doc =
   match !t with
@@ -743,7 +866,5 @@ let for_doc t doc =
   | Active t ->
     let uri = Document.uri doc in
     String.Map.fold ~init:[] t.instances ~f:(fun instance acc ->
-        if uri_dune_overlap uri (Instance.source instance) then
-          instance :: acc
-        else
-          acc)
+        if uri_dune_overlap uri (Instance.source instance) then instance :: acc
+        else acc)
