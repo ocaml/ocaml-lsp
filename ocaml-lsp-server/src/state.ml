@@ -24,9 +24,9 @@ type t =
   }
 
 let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
-    ~symbols_thread ~wheel ~read_dot_merlin =
+    ~symbols_thread ~wheel =
   { init = Uninitialized
-  ; merlin_config = Merlin_config.DB.create ~read_dot_merlin
+  ; merlin_config = Merlin_config.DB.create ()
   ; store
   ; merlin
   ; detached

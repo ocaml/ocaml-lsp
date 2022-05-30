@@ -207,10 +207,11 @@ module Dot_protocol_io =
       let write t x = write t (Some [ x ])
     end)
 
+let should_read_dot_merlin = ref false
+
 type db =
   { running : (string, entry) Table.t
   ; pool : Fiber.Pool.t
-  ; read_dot_merlin : bool
   }
 
 and entry =
@@ -397,7 +398,7 @@ let config (t : t) : Mconfig.t Fiber.t =
       Mconfig.normalize { t.initial with merlin }
     else
       let config_from_dot_merlin =
-        if t.db.read_dot_merlin then
+        if !should_read_dot_merlin then
           Some (Mconfig.get_external_config t.path t.initial)
         else None
       in
@@ -412,11 +413,8 @@ module DB = struct
 
   let get t uri = create t uri
 
-  let create ~read_dot_merlin =
-    { running = Table.create (module String) 0
-    ; pool = Fiber.Pool.create ()
-    ; read_dot_merlin
-    }
+  let create () =
+    { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
 
   let run t = Fiber.Pool.run t.pool
 
