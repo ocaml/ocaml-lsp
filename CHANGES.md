@@ -1,3 +1,9 @@
+# Unreleased
+
+- Add `--fallback-read-dot-merlin` to the LSP Server (#705). If `ocamllsp` is
+  started with this new flag, it will fall back to looking for Merlin
+  configuration in `.merlin` files rather than calling `dune ocaml-merlin`.
+
 # 1.11.6
 
 - Stop leaking file descriptors like a sieve (#701)
