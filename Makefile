@@ -48,7 +48,7 @@ check:
 
 .PHONY: test-e2e
 test-e2e: $(TEST_E2E_DIR)/node_modules ## Run the template integration tests
-	dune build @install && dune exec -- ocaml-lsp-server/test/run_test.exe
+	dune build @install && dune exec -- ocaml-lsp-server/test/run_test_e2e.exe
 
 .PHONY: promote-e2e
 promote-e2e: $(TEST_E2E_DIR)/node_modules
