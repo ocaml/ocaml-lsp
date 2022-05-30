@@ -21,8 +21,7 @@
 
 (executable
  (modules run_test)
- (name run_test)
- (libraries bos fpath))
+ (name run_test))
 
 (rule
  (alias run_test)
