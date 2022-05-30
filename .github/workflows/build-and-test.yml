@@ -62,8 +62,8 @@ jobs:
       - name: Run build
         run: opam exec -- make all
 
-      - name: Run the unit tests
-        run: opam exec -- make test-ocaml
+      # - name: Run the unit tests
+      #   run: opam exec -- make test-ocaml
 
       - name: Run the template integration tests
         run: opam exec -- make test-e2e
