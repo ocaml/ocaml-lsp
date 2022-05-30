@@ -32,6 +32,7 @@ val create :
   -> diagnostics:Diagnostics.t
   -> symbols_thread:Lev_fiber.Thread.t Lazy_fiber.t
   -> wheel:Lev_fiber.Timer.Wheel.t
+  -> read_dot_merlin:bool
   -> t
 
 val wheel : t -> Lev_fiber.Timer.Wheel.t

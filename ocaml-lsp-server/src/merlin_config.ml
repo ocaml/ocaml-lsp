@@ -210,6 +210,7 @@ module Dot_protocol_io =
 type db =
   { running : (string, entry) Table.t
   ; pool : Fiber.Pool.t
+  ; read_dot_merlin : bool
   }
 
 and entry =
@@ -377,29 +378,38 @@ let config (t : t) : Mconfig.t Fiber.t =
     let+ () = destroy t in
     t.initial
   | Some (ctx, config_path) ->
-    let* entry = get_process t.db ~dir:ctx.process_dir in
-    let* () =
-      match t.entry with
-      | None ->
-        use_entry entry;
-        Fiber.return ()
-      | Some entry' ->
-        if Entry.equal entry entry' then Fiber.return ()
-        else
-          let+ () = destroy t in
-          use_entry entry
-    in
-    let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
-    let merlin = Config.merge dot t.initial.merlin failures config_path in
-    Mconfig.normalize { t.initial with merlin }
+    if t.db.read_dot_merlin then
+      let config = Mconfig.get_external_config t.path t.initial in
+      Fiber.return config
+    else
+      let* entry = get_process t.db ~dir:ctx.process_dir in
+      let* () =
+        match t.entry with
+        | None ->
+          use_entry entry;
+          Fiber.return ()
+        | Some entry' ->
+          if Entry.equal entry entry' then Fiber.return ()
+          else
+            let+ () = destroy t in
+            use_entry entry
+      in
+      let+ dot, failures =
+        get_config entry.process ~workdir:ctx.workdir t.path
+      in
+      let merlin = Config.merge dot t.initial.merlin failures config_path in
+      Mconfig.normalize { t.initial with merlin }
 
 module DB = struct
   type t = db
 
   let get t uri = create t uri
 
-  let create () =
-    { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
+  let create ~read_dot_merlin =
+    { running = Table.create (module String) 0
+    ; pool = Fiber.Pool.create ()
+    ; read_dot_merlin
+    }
 
   let run t = Fiber.Pool.run t.pool
 
