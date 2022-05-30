@@ -378,7 +378,7 @@ let config (t : t) : Mconfig.t Fiber.t =
   | None ->
     let+ () = destroy t in
     t.initial
-  | Some (ctx, config_path) -> (
+  | Some (ctx, config_path) ->
     let* entry = get_process t.db ~dir:ctx.process_dir in
     let* () =
       match t.entry with
@@ -391,22 +391,13 @@ let config (t : t) : Mconfig.t Fiber.t =
           let+ () = destroy t in
           use_entry entry
     in
-    let config_from_dot_merlin =
-      if !should_read_dot_merlin then
-        Some (Mconfig.get_external_config t.path t.initial)
-      else None
-    in
     let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
 
-    match config_from_dot_merlin with
-    | Some config_from_dot_merlin ->
-      if dot <> Config.empty then
-        let merlin = Config.merge dot t.initial.merlin failures config_path in
-        Mconfig.normalize { t.initial with merlin }
-      else Mconfig.normalize config_from_dot_merlin
-    | None ->
+    if !should_read_dot_merlin && dot = Config.empty then
+      Mconfig.get_external_config t.path t.initial
+    else
       let merlin = Config.merge dot t.initial.merlin failures config_path in
-      Mconfig.normalize { t.initial with merlin })
+      Mconfig.normalize { t.initial with merlin }
 
 module DB = struct
   type t = db
