@@ -2,6 +2,8 @@
 
 ## Features
 
+- Allow cancellation of formatting requests (#707)
+
 - Add `--fallback-read-dot-merlin` to the LSP Server (#705). If `ocamllsp` is
   started with this new flag, it will fall back to looking for Merlin
   configuration in `.merlin` files rather than calling `dune ocaml-merlin`.

@@ -21,6 +21,11 @@ let run_command prog stdin_value args : command_result Fiber.t =
       Unix.close stdin_i;
       Unix.close stdout_o;
       Unix.close stderr_o;
+      let* () =
+        Server.on_cancel (fun () ->
+            Unix.kill (Pid.to_int pid) Sys.sigint;
+            Fiber.return ())
+      in
       let blockity =
         if Sys.win32 then `Blocking
         else (
@@ -114,6 +119,13 @@ let exec bin args stdin =
   let+ res = run_command refmt stdin args in
   match res.status with
   | Unix.WEXITED 0 -> Result.Ok res.stdout
+  | Unix.WSIGNALED s
+    when s = Sys.sigint
+         (* TODO we should really make sure the cancellation was triggered *) ->
+    let e =
+      Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" ()
+    in
+    raise (Jsonrpc.Response.Error.E e)
   | _ -> Result.Error (Unexpected_result { message = res.stderr })
 
 let run doc : (TextEdit.t list, error) result Fiber.t =
