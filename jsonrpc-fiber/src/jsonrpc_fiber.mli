@@ -64,6 +64,15 @@ end) : sig
 
   val request : _ t -> Jsonrpc.Request.t -> Jsonrpc.Response.t Fiber.t
 
+  type cancel
+
+  val fire : cancel -> unit Fiber.t
+
+  val request_with_cancel :
+       _ t
+    -> Jsonrpc.Request.t
+    -> cancel * [ `Ok of Jsonrpc.Response.t | `Cancelled ] Fiber.t
+
   module Batch : sig
     type t
 

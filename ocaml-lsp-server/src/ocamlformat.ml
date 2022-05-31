@@ -7,7 +7,7 @@ type command_result =
   ; status : Unix.process_status
   }
 
-let run_command prog stdin_value args : command_result Fiber.t =
+let run_command cancel prog stdin_value args =
   Fiber.of_thunk (fun () ->
       let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
       let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
@@ -21,11 +21,20 @@ let run_command prog stdin_value args : command_result Fiber.t =
       Unix.close stdin_i;
       Unix.close stdout_o;
       Unix.close stderr_o;
-      let* () =
-        Server.on_cancel (fun () ->
+      let maybe_cancel =
+        match cancel with
+        | None ->
+          fun f ->
+            let+ res = f () in
+            (res, Fiber.Cancel.Not_cancelled)
+        | Some token ->
+          let on_cancel () =
             Unix.kill (Pid.to_int pid) Sys.sigint;
-            Fiber.return ())
+            Fiber.return ()
+          in
+          fun f -> Fiber.Cancel.with_handler token ~on_cancel f
       in
+      maybe_cancel @@ fun () ->
       let blockity =
         if Sys.win32 then `Blocking
         else (
@@ -114,21 +123,21 @@ let formatter doc =
   | Ocaml -> Ok (Ocaml (Document.uri doc))
   | Reason -> Ok (Reason (Document.kind doc))
 
-let exec bin args stdin =
+let exec cancel bin args stdin =
   let refmt = Fpath.to_string bin in
-  let+ res = run_command refmt stdin args in
-  match res.status with
-  | Unix.WEXITED 0 -> Result.Ok res.stdout
-  | Unix.WSIGNALED s
-    when s = Sys.sigint
-         (* TODO we should really make sure the cancellation was triggered *) ->
+  let+ res, cancel = run_command cancel refmt stdin args in
+  match cancel with
+  | Cancelled () ->
     let e =
       Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" ()
     in
     raise (Jsonrpc.Response.Error.E e)
-  | _ -> Result.Error (Unexpected_result { message = res.stderr })
+  | Not_cancelled -> (
+    match res.status with
+    | Unix.WEXITED 0 -> Result.Ok res.stdout
+    | _ -> Result.Error (Unexpected_result { message = res.stderr }))
 
-let run doc : (TextEdit.t list, error) result Fiber.t =
+let run doc cancel : (TextEdit.t list, error) result Fiber.t =
   let res =
     let open Result.O in
     let* formatter = formatter doc in
@@ -139,5 +148,5 @@ let run doc : (TextEdit.t list, error) result Fiber.t =
   match res with
   | Error e -> Fiber.return (Error e)
   | Ok (binary, args, contents) ->
-    exec binary args contents
+    exec cancel binary args contents
     |> Fiber.map ~f:(Result.map ~f:(fun to_ -> Diff.edit ~from:contents ~to_))

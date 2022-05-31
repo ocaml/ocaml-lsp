@@ -125,16 +125,32 @@ let text t = Text_document.text (tdoc t)
 let source t = Msource.make (text t)
 
 let await task =
-  let* () = Server.on_cancel (fun () -> Lev_fiber.Thread.cancel task) in
-  let+ res = Lev_fiber.Thread.await task in
-  match res with
-  | Error `Cancelled ->
-    let e =
-      Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" ()
+  let* cancel_token = Server.cancel_token () in
+  let f () = Lev_fiber.Thread.await task in
+  let without_cancellation res =
+    match res with
+    | Ok s -> Ok s
+    | Error (`Exn exn) -> Error exn
+    | Error `Cancelled ->
+      let exn = Code_error.E (Code_error.create "unexpected cancellation" []) in
+      let backtrace = Printexc.get_callstack 10 in
+      Error { Exn_with_backtrace.exn; backtrace }
+  in
+  match cancel_token with
+  | None -> f () |> Fiber.map ~f:without_cancellation
+  | Some t -> (
+    let+ res, outcome =
+      Fiber.Cancel.with_handler t f ~on_cancel:(fun () ->
+          Lev_fiber.Thread.cancel task)
     in
-    raise (Jsonrpc.Response.Error.E e)
-  | Error (`Exn e) -> Error e
-  | Ok s -> Ok s
+    match outcome with
+    | Not_cancelled -> without_cancellation res
+    | Cancelled () ->
+      let e =
+        Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled"
+          ()
+      in
+      raise (Jsonrpc.Response.Error.E e))
 
 let with_pipeline (t : t) f =
   match t with

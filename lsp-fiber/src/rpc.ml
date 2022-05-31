@@ -12,44 +12,9 @@ module Reply = struct
   let now r = Now r
 
   let later f = Later f
-
-  let to_jsonrpc t id to_json : Jsonrpc_fiber.Reply.t =
-    let f x = Jsonrpc.Response.ok id (to_json x) in
-    match t with
-    | Now r -> Jsonrpc_fiber.Reply.now (f r)
-    | Later k -> Jsonrpc_fiber.Reply.later (fun send -> k (fun r -> send (f r)))
 end
 
-module Cancel = struct
-  type state =
-    | Pending of { mutable callbacks : (unit -> unit Fiber.t) list }
-    | Finished
-
-  type t = state ref
-
-  let var = Fiber.Var.create ()
-
-  let register f =
-    let+ cancel = Fiber.Var.get var in
-    match cancel with
-    | None -> ()
-    | Some cancel -> (
-      match !cancel with
-      | Finished -> ()
-      | Pending p -> p.callbacks <- f :: p.callbacks)
-
-  let create () = ref (Pending { callbacks = [] })
-
-  let destroy t = t := Finished
-
-  let cancel t =
-    Fiber.of_thunk (fun () ->
-        match !t with
-        | Finished -> Fiber.return ()
-        | Pending { callbacks } ->
-          t := Finished;
-          Fiber.parallel_iter callbacks ~f:(fun f -> f ()))
-end
+let cancel_token = Fiber.Var.create ()
 
 module State = struct
   type t =
@@ -97,7 +62,7 @@ module type S = sig
 
   val notification : _ t -> out_notification -> unit Fiber.t
 
-  val on_cancel : (unit -> unit Fiber.t) -> unit Fiber.t
+  val cancel_token : unit -> Fiber.Cancel.t option Fiber.t
 
   module Batch : sig
     type t
@@ -168,7 +133,7 @@ struct
     ; (* Filled when the server is initialied *)
       initialized : Initialize.t Fiber.Ivar.t
     ; mutable req_id : int
-    ; pending : Cancel.t Table.t
+    ; pending : Fiber.Cancel.t Table.t
     ; detached : Fiber.Pool.t
     }
 
@@ -219,20 +184,38 @@ struct
         Fiber.return
           (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
       | Ok (In_request.E r) ->
-        let cancel = Cancel.create () in
-        Table.replace t.pending req.id cancel;
+        let cancel = Fiber.Cancel.create () in
+        let remove = lazy (Table.remove t.pending req.id) in
         let+ response, state =
-          Fiber.finalize
+          Fiber.with_error_handler
+            ~on_error:
+              (Stdune.Exn_with_backtrace.map_and_reraise ~f:(fun exn ->
+                   Lazy.force remove;
+                   exn))
             (fun () ->
-              Fiber.Var.set Cancel.var cancel (fun () ->
+              Fiber.Var.set cancel_token cancel (fun () ->
+                  Table.replace t.pending req.id cancel;
                   h_on_request.on_request t r))
-            ~finally:(fun () ->
-              Cancel.destroy cancel;
-              Table.remove t.pending req.id;
-              Fiber.return ())
+        in
+        let to_response x =
+          Jsonrpc.Response.ok req.id (In_request.yojson_of_result r x)
         in
         let reply =
-          Reply.to_jsonrpc response req.id (In_request.yojson_of_result r)
+          match response with
+          | Reply.Now r ->
+            Lazy.force remove;
+            Jsonrpc_fiber.Reply.now (to_response r)
+          | Reply.Later k ->
+            let f send =
+              Fiber.finalize
+                (fun () ->
+                  Fiber.Var.set cancel_token cancel (fun () ->
+                      k (fun r -> send (to_response r))))
+                ~finally:(fun () ->
+                  Lazy.force remove;
+                  Fiber.return ())
+            in
+            Jsonrpc_fiber.Reply.later f
         in
         (reply, state)
     in
@@ -285,6 +268,29 @@ struct
           Session.request (Fdecl.get t.session) req
         in
         receive_response req resp)
+
+  let request_with_cancel (type r) (t : _ t) cancel ~on_cancel
+      (req : r Out_request.t) : [ `Ok of r | `Cancelled ] Fiber.t =
+    let* () = Fiber.return () in
+    let jsonrpc_req = create_request t req in
+    let+ resp, cancel_status =
+      Fiber.Cancel.with_handler cancel
+        ~on_cancel:(fun () -> on_cancel jsonrpc_req.id)
+        (fun () ->
+          let _, req_f =
+            Session.request_with_cancel (Fdecl.get t.session) jsonrpc_req
+          in
+          let+ resp = req_f in
+          match resp with
+          | `Cancelled -> `Cancelled
+          | `Ok resp -> `Ok (receive_response req resp))
+    in
+    match cancel_status with
+    | Cancelled () -> `Cancelled
+    | Not_cancelled -> (
+      match resp with
+      | `Ok resp -> `Ok resp
+      | `Cancelled -> assert false)
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
     let jsonrpc_request = Out_notification.to_jsonrpc n in
@@ -341,11 +347,12 @@ struct
     let+ () =
       match Table.find_opt t.pending id with
       | None -> Fiber.return ()
-      | Some id -> Fiber.Pool.task t.detached ~f:(fun () -> Cancel.cancel id)
+      | Some token ->
+        Fiber.Pool.task t.detached ~f:(fun () -> Fiber.Cancel.fire token)
     in
     (Jsonrpc_fiber.Notify.Continue, state t)
 
-  let on_cancel = Cancel.register
+  let cancel_token () = Fiber.Var.get cancel_token
 end
 
 module Client = struct
@@ -365,6 +372,10 @@ module Client = struct
   let make handler io =
     let h_on_notification = h_on_notification handler in
     make ~name:"client" handler.h_on_request h_on_notification io
+
+  let request_with_cancel t cancel r =
+    request_with_cancel t cancel r ~on_cancel:(fun id ->
+        notification t (Client_notification.CancelRequest id))
 
   let start (t : _ t) (p : InitializeParams.t) =
     Fiber.of_thunk (fun () ->

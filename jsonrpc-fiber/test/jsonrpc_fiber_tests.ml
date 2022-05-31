@@ -1,5 +1,5 @@
 open Stdune
-open! Jsonrpc
+open Jsonrpc
 open Jsonrpc_fiber
 open Fiber.O
 open Fiber.Stream
@@ -263,3 +263,97 @@ let%expect_test "test from jsonrpc_test.ml" =
     <opaque>
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
+
+let%expect_test "cancellation" =
+  let print packet =
+    print_endline
+      (Yojson.Safe.pretty_to_string ~std:false
+         (Jsonrpc.Packet.yojson_of_t packet))
+  in
+  let server_req_ack = Fiber.Ivar.create () in
+  let client_req_ack = Fiber.Ivar.create () in
+  let server chan =
+    let on_request c =
+      let request = Context.message c in
+      let state = Context.state c in
+      print_endline "server: received request";
+      print (Request request);
+      let* () = Fiber.Ivar.fill server_req_ack () in
+      let response =
+        Reply.later (fun send ->
+            print_endline
+              "server: waiting for client ack before sending response";
+            let* () = Fiber.Ivar.read client_req_ack in
+            print_endline "server: got client ack, sending response";
+            send (Jsonrpc.Response.ok request.id (`String "Ok")))
+      in
+      Fiber.return (response, state)
+    in
+    Jrpc.create ~name:"server" ~on_request chan ()
+  in
+  let client chan = Jrpc.create ~name:"client" chan () in
+  let responses = ref [] in
+  let run () =
+    let pool = Fiber.Pool.create () in
+    let client_in, _ = pipe () in
+    let server_in, client_out = pipe () in
+    let out = of_ref responses in
+    let client = client (client_in, client_out) in
+    let server = server (server_in, out) in
+    let request =
+      Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" ()
+    in
+    let cancel, req = Jrpc.request_with_cancel client request in
+    let* () =
+      Fiber.Pool.task pool ~f:(fun () ->
+          print_endline
+            "client: waiting for server ack before cancelling request";
+          let* () = Fiber.Ivar.read server_req_ack in
+          print_endline "client: got server ack, cancelling request";
+          let* () = Jrpc.fire cancel in
+          Fiber.Ivar.fill client_req_ack ())
+    in
+    let initial_request () =
+      print_endline "client: sending request";
+      let* resp = req in
+      (match resp with
+      | `Cancelled -> print_endline "request has been cancelled"
+      | `Ok resp ->
+        print_endline "request response:";
+        print (Response resp));
+      Fiber.return ()
+    in
+    let all =
+      Fiber.all_concurrently
+        [ Fiber.Pool.run pool
+        ; Jrpc.run client
+        ; initial_request ()
+        ; Jrpc.run server
+        ]
+    in
+    Fiber.fork_and_join_unit
+      (fun () ->
+        Fiber.fork_and_join_unit
+          (fun () -> Jrpc.stopped client)
+          (fun () -> Jrpc.stopped server))
+      (fun () -> all)
+  in
+  Fiber_test.test Dyn.opaque run;
+  (* Ensure that server still responds even if the request was cancelled.
+     Required by the lsp spec *)
+  List.rev !responses
+  |> List.iter ~f:(fun packet ->
+         let json = Jsonrpc.Packet.yojson_of_t packet in
+         print_json json);
+  [%expect
+    {|
+    client: sending request
+    client: waiting for server ack before cancelling request
+    server: received request
+    { "id": "initial", "method": "init", "jsonrpc": "2.0" }
+    server: waiting for client ack before sending response
+    client: got server ack, cancelling request
+    request has been cancelled
+    server: got client ack, sending response
+    [FAIL] unexpected Never raised
+    { "id": "initial", "jsonrpc": "2.0", "result": "Ok" } |}]

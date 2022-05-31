@@ -430,7 +430,9 @@ module Formatter = struct
         let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
         match res with
         | Ok res -> Fiber.return @@ Ok res
-        | Error _ -> Ocamlformat.run doc
+        | Error _ ->
+          let* cancel = Server.cancel_token () in
+          Ocamlformat.run doc cancel
       in
       match res with
       | Ok result -> Fiber.return (Some result)

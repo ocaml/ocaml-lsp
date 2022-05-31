@@ -2,6 +2,8 @@
 
 ## Features
 
+- Fix cancellation mechanism for all requests (#707)
+
 - Allow cancellation of formatting requests (#707)
 
 - Add `--fallback-read-dot-merlin` to the LSP Server (#705). If `ocamllsp` is

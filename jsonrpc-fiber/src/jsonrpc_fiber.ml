@@ -70,7 +70,8 @@ struct
     ; on_request : ('state, Request.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification :
         ('state, Notification.t) context -> (Notify.t * 'state) Fiber.t
-    ; pending : (Response.t, [ `Stopped ]) result Fiber.Ivar.t Id.Table.t
+    ; pending :
+        (Response.t, [ `Stopped | `Cancelled ]) result Fiber.Ivar.t Id.Table.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
@@ -80,6 +81,10 @@ struct
     }
 
   and ('a, 'message) context = 'a t * 'message
+
+  type cancel = unit Fiber.t
+
+  let fire cancel = cancel
 
   module Context = struct
     type nonrec ('a, 'id) t = ('a, 'id) context
@@ -190,10 +195,13 @@ struct
       | None ->
         log "dropped";
         Fiber.return ()
-      | Some ivar ->
+      | Some ivar -> (
         log "acknowledged";
         Id.Table.remove t.pending r.id;
-        Fiber.Ivar.fill ivar (Ok r)
+        let* resp = Fiber.Ivar.peek ivar in
+        match resp with
+        | Some _ -> Fiber.return ()
+        | None -> Fiber.Ivar.fill ivar (Ok r))
     and on_request (r : Request.t) =
       let* result =
         let sent = ref false in
@@ -276,6 +284,7 @@ struct
     let+ res = Fiber.Ivar.read ivar in
     match res with
     | Ok s -> s
+    | Error `Cancelled -> assert false
     | Error `Stopped -> raise (Stopped req)
 
   let request t (req : Request.t) =
@@ -286,9 +295,28 @@ struct
         register_request_ivar t req.id ivar;
         read_request_ivar req ivar)
 
+  let request_with_cancel t (req : Request.t) =
+    let ivar = Fiber.Ivar.create () in
+    let cancel = Fiber.Ivar.fill ivar (Error `Cancelled) in
+    let resp =
+      Fiber.of_thunk (fun () ->
+          check_running t;
+          let* () =
+            let+ () = Chan.send t.chan [ Request req ] in
+            register_request_ivar t req.id ivar
+          in
+          let+ res = Fiber.Ivar.read ivar in
+          match res with
+          | Ok s -> `Ok s
+          | Error `Cancelled -> `Cancelled
+          | Error `Stopped -> raise (Stopped req))
+    in
+    (cancel, resp)
+
   module Batch = struct
     type response =
-      Jsonrpc.Request.t * (Jsonrpc.Response.t, [ `Stopped ]) result Fiber.Ivar.t
+      Jsonrpc.Request.t
+      * (Jsonrpc.Response.t, [ `Stopped | `Cancelled ]) result Fiber.Ivar.t
 
     type t = [ `Notification of Notification.t | `Request of response ] list ref
 
