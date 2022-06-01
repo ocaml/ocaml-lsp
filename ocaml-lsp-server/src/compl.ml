@@ -95,6 +95,8 @@ let prefix_of_position ~short_path source position =
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
+(** [suffix_of_position source position] computes the suffix of the identifier
+    after [position]. *)
 let suffix_of_position source position =
   match Msource.text source with
   | "" -> ""
