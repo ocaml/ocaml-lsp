@@ -188,7 +188,7 @@ let set_diagnostics rpc doc =
         in
         Document.with_pipeline_exn doc (fun pipeline ->
             match Query_commands.dispatch pipeline command with
-            | exception Extend_main.Handshake.Error error ->
+            | exception Merlin_extend.Extend_main.Handshake.Error error ->
               let message =
                 sprintf
                   "%s.\n\
@@ -373,7 +373,7 @@ let code_action server (params : CodeActionParams.t) =
               Fiber.map_reduce_errors
                 ~on_error:(fun (exn : Exn_with_backtrace.t) ->
                   match exn.exn with
-                  | Extend_main.Handshake.Error error ->
+                  | Merlin_extend.Extend_main.Handshake.Error error ->
                     Fiber.return (Code_action_error.Need_merlin_extend error)
                   | _ -> Fiber.return (Code_action_error.Exn exn))
                 (module Code_action_error_monoid)
