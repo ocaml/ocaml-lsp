@@ -18,7 +18,7 @@ module Request_params = struct
       Some uri
     | _ -> None
 
-  let parse_exn (params : Jsonrpc.Message.Structured.t option) : t =
+  let parse_exn (params : Jsonrpc.Structured.t option) : t =
     let raise_invalid_params ?data ~message () =
       Jsonrpc.Response.Error.raise
       @@ Jsonrpc.Response.Error.make ?data
@@ -41,8 +41,7 @@ module Request_params = struct
           ~data:error_json ())
 end
 
-let on_request ~(params : Jsonrpc.Message.Structured.t option) (state : State.t)
-    =
+let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
   Fiber.of_thunk (fun () ->
       let uri = Request_params.parse_exn params in
       let store = state.store in

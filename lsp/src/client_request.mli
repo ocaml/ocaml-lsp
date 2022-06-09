@@ -81,7 +81,7 @@ type _ t =
       -> LinkedEditingRanges.t option t
   | UnknownRequest :
       { meth : string
-      ; params : Jsonrpc.Message.Structured.t option
+      ; params : Jsonrpc.Structured.t option
       }
       -> Json.t t
 
@@ -98,6 +98,6 @@ val response_of_json : 'a t -> Json.t -> 'a
 val text_document :
      _ t
   -> (   meth:string
-      -> params:Jsonrpc.Message.Structured.t option
+      -> params:Jsonrpc.Structured.t option
       -> TextDocumentIdentifier.t option)
   -> TextDocumentIdentifier.t option

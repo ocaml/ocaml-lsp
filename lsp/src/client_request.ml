@@ -81,7 +81,7 @@ type _ t =
       -> LinkedEditingRanges.t option t
   | UnknownRequest :
       { meth : string
-      ; params : Jsonrpc.Message.Structured.t option
+      ; params : Jsonrpc.Structured.t option
       }
       -> Json.t t
 
@@ -282,7 +282,7 @@ let method_ (type a) (t : a t) =
   | _ -> assert false
 
 let params (type a) (t : a t) =
-  Jsonrpc.Message.Structured.of_json
+  Jsonrpc.Structured.of_json
     (match t with
     | Initialize params -> InitializeParams.yojson_of_t params
     | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params

@@ -15,7 +15,7 @@ type _ t =
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | CodeLensRefresh : unit t
   | SemanticTokensRefresh : unit t
-  | UnknownRequest : string * Jsonrpc.Message.Structured.t option -> Json.t t
+  | UnknownRequest : string * Jsonrpc.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
 
@@ -33,7 +33,7 @@ let method_ (type a) (t : a t) =
   | UnknownRequest (r, _) -> r
 
 let params =
-  let ret x = Some (Jsonrpc.Message.Structured.of_json x) in
+  let ret x = Some (Jsonrpc.Structured.of_json x) in
   fun (type a) (t : a t) ->
     match t with
     | WorkspaceApplyEdit params ->

@@ -55,7 +55,7 @@ let to_jsonrpc t =
   let params =
     match yojson_of_t t with
     | None -> None
-    | Some s -> Some (Jsonrpc.Message.Structured.of_json s)
+    | Some s -> Some (Jsonrpc.Structured.of_json s)
   in
   { Jsonrpc.Message.id = (); params; method_ }
 

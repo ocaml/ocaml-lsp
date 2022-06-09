@@ -38,21 +38,21 @@ module Constant = struct
   let error = "error"
 end
 
+module Structured = struct
+  type t =
+    [ `Assoc of (string * Json.t) list
+    | `List of Json.t list
+    ]
+
+  let of_json = function
+    | `Assoc xs -> `Assoc xs
+    | `List xs -> `List xs
+    | json -> Json.error "invalid structured value" json
+
+  let to_json t = (t :> Json.t)
+end
+
 module Message = struct
-  module Structured = struct
-    type t =
-      [ `Assoc of (string * Json.t) list
-      | `List of Json.t list
-      ]
-
-    let of_json = function
-      | `Assoc xs -> `Assoc xs
-      | `List xs -> `List xs
-      | json -> Json.error "invalid structured value" json
-
-    let to_json t = (t :> Json.t)
-  end
-
   type 'id t =
     { id : 'id
     ; method_ : string
