@@ -59,8 +59,6 @@ module Message = struct
     ; params : Structured.t option
     }
 
-  let create ?params ~id ~method_ () = { id; method_; params }
-
   let yojson_of_t add_id { id; method_; params } =
     let json =
       [ (Constant.method_, `String method_)
@@ -107,13 +105,21 @@ end
 module Notification = struct
   type t = unit Message.t
 
+  let create ?params ~method_ () = { Message.params; id = (); method_ }
+
   let yojson_of_t = Message.yojson_of_t (fun () -> None)
+
+  let to_message_either t = { t with Message.id = None }
 end
 
 module Request = struct
   type t = Id.t Message.t
 
+  let create ?params ~id ~method_ () = { Message.params; id; method_ }
+
   let yojson_of_t = Message.yojson_of_t (fun id -> Some (Id.yojson_of_t id))
+
+  let to_message_either (t : t) = { t with Message.id = Some t.id }
 end
 
 module Response = struct
