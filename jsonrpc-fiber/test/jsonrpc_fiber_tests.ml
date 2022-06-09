@@ -5,7 +5,7 @@ open Fiber.O
 open Fiber.Stream
 
 module Stream_chan = struct
-  type t = Jsonrpc.packet In.t * Jsonrpc.packet Out.t
+  type t = Jsonrpc.Packet.t In.t * Jsonrpc.Packet.t Out.t
 
   let close (_, o) what =
     match what with
@@ -45,17 +45,16 @@ let%expect_test "start and stop server" =
 
 let%expect_test "server accepts notifications" =
   let notif =
-    { Jsonrpc.Message.id = None
-    ; method_ = "method"
+    { Jsonrpc.Notification.method_ = "method"
     ; params = Some (`List [ `String "bar" ])
     }
   in
   let run () =
-    let in_ = In.of_list [ Jsonrpc.Message notif ] in
+    let in_ = In.of_list [ Jsonrpc.Packet.Notification notif ] in
     let on_notification c =
       let n = Context.message c in
       let state = Context.state c in
-      assert (notif = { n with id = None });
+      assert (notif = n);
       print_endline "received notification";
       Fiber.return (Notify.Stop, state)
     in
@@ -79,19 +78,16 @@ let of_ref ref =
 let%expect_test "serving requests" =
   let id = `Int 1 in
   let request =
-    { Jsonrpc.Message.id = Some id
-    ; method_ = "bla"
-    ; params = Some (`List [ `Int 100 ])
-    }
+    { Jsonrpc.Request.id; method_ = "bla"; params = Some (`List [ `Int 100 ]) }
   in
   let response_data = `String "response" in
   let run () =
     let responses = ref [] in
-    let in_ = In.of_list [ Jsonrpc.Message request ] in
+    let in_ = In.of_list [ Jsonrpc.Packet.Request request ] in
     let on_request c =
       let r = Context.message c in
       let state = Context.state c in
-      assert (r = { request with id = r.id });
+      assert (r = request);
       let response = Jsonrpc.Response.ok r.id response_data in
       Fiber.return (Reply.now response, state)
     in
@@ -99,7 +95,7 @@ let%expect_test "serving requests" =
     let jrpc = Jrpc.create ~name:"test" ~on_request (in_, out) () in
     let+ () = Jrpc.run jrpc in
     List.iter !responses ~f:(fun resp ->
-        let json = Jsonrpc.yojson_of_packet resp in
+        let json = Jsonrpc.Packet.yojson_of_t resp in
         print_endline (Yojson.Safe.pretty_to_string ~std:false json))
   in
   Fiber_test.test Dyn.opaque run;
@@ -114,14 +110,14 @@ let%expect_test "concurrent requests" =
   let print packet =
     print_endline
       (Yojson.Safe.pretty_to_string ~std:false
-         (Jsonrpc.yojson_of_packet packet))
+         (Jsonrpc.Packet.yojson_of_t packet))
   in
   let waiter chan =
     let on_request c =
       let self = Context.session c in
       let request = Context.message c in
       print_endline "waiter: received request";
-      print (Message { request with id = Some request.id });
+      print (Request request);
       let response =
         Reply.later (fun send ->
             print_endline "waiter: sending response";
@@ -148,7 +144,7 @@ let%expect_test "concurrent requests" =
     let on_request c =
       print_endline "waitee: received request";
       let request = Context.message c in
-      print (Message { request with id = Some request.id });
+      print (Request request);
       let response =
         Reply.later (fun send ->
             let* () = send (Jsonrpc.Response.ok request.id (`Int 42)) in
@@ -208,33 +204,31 @@ let%expect_test "test from jsonrpc_test.ml" =
       `Int !i
   in
   let on_request ctx =
-    let req = Context.message ctx in
+    let req : Jsonrpc.Request.t = Context.message ctx in
     let state = Context.state ctx in
     Fiber.return (Reply.now (Jsonrpc.Response.ok req.id (response ())), state)
   in
   let on_notification ctx =
-    let n = Context.message ctx in
+    let n : Jsonrpc.Notification.t = Context.message ctx in
     if n.method_ = "raise" then failwith "special failure";
-    let json = Notification.yojson_of_t (Notification.of_message n) in
+    let json = Notification.yojson_of_t n in
     print_endline ">> received notification";
     print_json json;
     Fiber.return (Jsonrpc_fiber.Notify.Continue, ())
   in
   let responses = ref [] in
   let initial_requests =
-    let request ?params id method_ =
-      Jsonrpc.Request.create ?params ~id ~method_ ()
-      |> Jsonrpc.Request.to_message_either
+    let request ?params id method_ : Jsonrpc.Packet.t =
+      Request (Jsonrpc.Request.create ?params ~id ~method_ ())
     in
-    let notification ?params method_ =
-      Jsonrpc.Notification.create ?params ~method_ ()
-      |> Jsonrpc.Notification.to_message_either
+    let notification ?params method_ : Jsonrpc.Packet.t =
+      Notification (Jsonrpc.Notification.create ?params ~method_ ())
     in
-    [ Message (request (`Int 10) "foo")
-    ; Message (request (`String "testing") "bar")
-    ; Message (notification "notif1")
-    ; Message (notification "notif2")
-    ; Message (notification "raise")
+    [ request (`Int 10) "foo"
+    ; request (`String "testing") "bar"
+    ; notification "notif1"
+    ; notification "notif2"
+    ; notification "raise"
     ]
   in
   let reqs_in, reqs_out = pipe () in
@@ -254,7 +248,7 @@ let%expect_test "test from jsonrpc_test.ml" =
       Fiber.fork_and_join_unit write_reqs (fun () -> Jrpc.run session));
   List.rev !responses
   |> List.iter ~f:(fun packet ->
-         let json = Jsonrpc.yojson_of_packet packet in
+         let json = Jsonrpc.Packet.yojson_of_t packet in
          print_json json);
   [%expect
     {|

@@ -58,17 +58,18 @@ end
 module Make (Chan : sig
   type t
 
-  val send : t -> packet list -> unit Fiber.t
+  val send : t -> Packet.t list -> unit Fiber.t
 
-  val recv : t -> packet option Fiber.t
+  val recv : t -> Packet.t option Fiber.t
 
   val close : t -> [ `Read | `Write ] -> unit Fiber.t
 end) =
 struct
   type 'state t =
     { chan : Chan.t
-    ; on_request : ('state, Id.t) context -> (Reply.t * 'state) Fiber.t
-    ; on_notification : ('state, unit) context -> (Notify.t * 'state) Fiber.t
+    ; on_request : ('state, Request.t) context -> (Reply.t * 'state) Fiber.t
+    ; on_notification :
+        ('state, Notification.t) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Response.t, [ `Stopped ]) result Fiber.Ivar.t Id.Table.t
     ; stopped : unit Fiber.Ivar.t
     ; name : string
@@ -78,7 +79,7 @@ struct
     ; mutable pending_requests_stopped : bool
     }
 
-  and ('a, 'id) context = 'a t * 'id Message.t
+  and ('a, 'message) context = 'a t * 'message
 
   module Context = struct
     type nonrec ('a, 'id) t = ('a, 'id) context
@@ -175,21 +176,11 @@ struct
       | None -> Fiber.return ()
       | Some packet -> (
         match packet with
-        | Message r -> on_message r
+        | Notification r -> on_notification r
+        | Request r -> on_request r
         | Response r ->
           let* () = Fiber.Pool.task later ~f:(fun () -> on_response r) in
           loop ())
-    and on_message (r : _ Message.t) =
-      log t (fun () ->
-          let what =
-            match r.id with
-            | None -> "notification"
-            | Some _ -> "request"
-          in
-          Log.msg ("received " ^ what) [ ("r", Message.yojson_of_either r) ]);
-      match r.id with
-      | Some id -> on_request { r with id }
-      | None -> on_notification { r with id = () }
     and on_response r =
       let log (what : string) =
         log t (fun () ->
@@ -203,7 +194,7 @@ struct
         log "acknowledged";
         Id.Table.remove t.pending r.id;
         Fiber.Ivar.fill ivar (Ok r)
-    and on_request (r : Id.t Message.t) =
+    and on_request (r : Request.t) =
       let* result =
         let sent = ref false in
         Fiber.map_reduce_errors
@@ -241,7 +232,7 @@ struct
               | Error () -> ())
         in
         loop ()
-    and on_notification (r : unit Message.t) : unit Fiber.t =
+    and on_notification (r : Notification.t) : unit Fiber.t =
       let* res = Fiber.collect_errors (fun () -> t.on_notification (t, r)) in
       match res with
       | Ok (next, state) -> (
@@ -252,7 +243,7 @@ struct
       | Error errors ->
         Format.eprintf
           "Uncaught error when handling notification:@.%a@.Error:@.%s@." Json.pp
-          (Notification.yojson_of_t (Notification.of_message r))
+          (Notification.yojson_of_t r)
           (Dyn.to_string (Dyn.list Exn_with_backtrace.to_dyn errors));
         loop ()
     in
@@ -274,7 +265,7 @@ struct
   let notification t (n : Notification.t) =
     Fiber.of_thunk (fun () ->
         check_running t;
-        Chan.send t.chan [ Message (Jsonrpc.Notification.to_message_either n) ])
+        Chan.send t.chan [ Notification n ])
 
   let register_request_ivar t id ivar =
     match Id.Table.find_opt t.pending id with
@@ -290,10 +281,7 @@ struct
   let request t (req : Request.t) =
     Fiber.of_thunk (fun () ->
         check_running t;
-        let* () =
-          let req = { req with Message.id = Some req.id } in
-          Chan.send t.chan [ Message req ]
-        in
+        let* () = Chan.send t.chan [ Request req ] in
         let ivar = Fiber.Ivar.create () in
         register_request_ivar t req.id ivar;
         read_request_ivar req ivar)
@@ -326,11 +314,9 @@ struct
           List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) ->
             function
             | `Notification n ->
-              ( Jsonrpc.Message (Notification.to_message_either n) :: pending
-              , ivars )
+              (Jsonrpc.Packet.Notification n :: pending, ivars)
             | `Request ((r : Request.t), ivar) ->
-              ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
-              , (r.id, ivar) :: ivars ))
+              (Jsonrpc.Packet.Request r :: pending, (r.id, ivar) :: ivars))
         in
         List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
         Chan.send t.chan pending)

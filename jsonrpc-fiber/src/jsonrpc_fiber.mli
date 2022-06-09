@@ -20,20 +20,20 @@ exception Stopped of Jsonrpc.Request.t
 module Make (Chan : sig
   type t
 
-  val send : t -> Jsonrpc.packet list -> unit Fiber.t
+  val send : t -> Jsonrpc.Packet.t list -> unit Fiber.t
 
-  val recv : t -> Jsonrpc.packet option Fiber.t
+  val recv : t -> Jsonrpc.Packet.t option Fiber.t
 
   val close : t -> [ `Read | `Write ] -> unit Fiber.t
 end) : sig
   type 'state t
 
   module Context : sig
-    type ('state, 'req) t
+    type ('state, 'message) t
 
     type 'a session
 
-    val message : (_, 'req) t -> 'req Jsonrpc.Message.t
+    val message : (_, 'message) t -> 'message
 
     val state : ('a, _) t -> 'a
 
@@ -43,9 +43,10 @@ end) : sig
 
   val create :
        ?on_request:
-         (('state, Jsonrpc.Id.t) Context.t -> (Reply.t * 'state) Fiber.t)
+         (('state, Jsonrpc.Request.t) Context.t -> (Reply.t * 'state) Fiber.t)
     -> ?on_notification:
-         (('state, unit) Context.t -> (Notify.t * 'state) Fiber.t)
+         (   ('state, Jsonrpc.Notification.t) Context.t
+          -> (Notify.t * 'state) Fiber.t)
     -> name:string
     -> Chan.t
     -> 'state

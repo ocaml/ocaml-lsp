@@ -11,12 +11,10 @@ end
 include struct
   open Jsonrpc
   module Id = Id
-  module Message = Message
   module Response = Response
   module Request = Request
   module Notification = Notification
-
-  type nonrec packet = packet
+  module Packet = Packet
 end
 
 module Json = struct
