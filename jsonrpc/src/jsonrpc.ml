@@ -113,6 +113,18 @@ module Message = struct
     yojson_of_t (fun id -> Some (Id.yojson_of_t id)) t
 end
 
+module Notification = struct
+  type t = Message.notification
+
+  let yojson_of_t = Message.yojson_of_notification
+end
+
+module Request = struct
+  type t = Message.request
+
+  let yojson_of_t = Message.yojson_of_request
+end
+
 module Response = struct
   module Error = struct
     module Code = struct

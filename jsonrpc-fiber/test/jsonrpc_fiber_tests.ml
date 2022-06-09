@@ -215,7 +215,7 @@ let%expect_test "test from jsonrpc_test.ml" =
   let on_notification ctx =
     let n = Context.message ctx in
     if n.method_ = "raise" then failwith "special failure";
-    let json = Message.yojson_of_notification n in
+    let json = Notification.yojson_of_t n in
     print_endline ">> received notification";
     print_json json;
     Fiber.return (Jsonrpc_fiber.Notify.Continue, ())
