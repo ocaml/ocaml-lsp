@@ -254,8 +254,8 @@ module Json = struct
     | None -> Error "params are required"
     | Some params -> Ok params
 
-  let message_params (t : _ Jsonrpc.Message.t) f =
-    match require_params t.params with
+  let message_params params f =
+    match require_params params with
     | Error e -> Error e
     | Ok x -> read_json_params f x
 end
