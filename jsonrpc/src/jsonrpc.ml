@@ -44,12 +44,12 @@ module Structured = struct
     | `List of Json.t list
     ]
 
-  let of_json = function
+  let t_of_yojson = function
     | `Assoc xs -> `Assoc xs
     | `List xs -> `List xs
     | json -> Json.error "invalid structured value" json
 
-  let to_json t = (t :> Json.t)
+  let yojson_of_t t = (t :> Json.t)
 end
 
 module Message = struct
@@ -101,28 +101,19 @@ module Message = struct
 
   let yojson_of_either t : Json.t = yojson_of_t (Option.map ~f:Id.yojson_of_t) t
 
-  type request = Id.t t
-
-  type notification = unit t
-
   type either = Id.t option t
-
-  let yojson_of_notification = yojson_of_t (fun () -> None)
-
-  let yojson_of_request (t : request) : Json.t =
-    yojson_of_t (fun id -> Some (Id.yojson_of_t id)) t
 end
 
 module Notification = struct
-  type t = Message.notification
+  type t = unit Message.t
 
-  let yojson_of_t = Message.yojson_of_notification
+  let yojson_of_t = Message.yojson_of_t (fun () -> None)
 end
 
 module Request = struct
-  type t = Message.request
+  type t = Id.t Message.t
 
-  let yojson_of_t = Message.yojson_of_request
+  let yojson_of_t = Message.yojson_of_t (fun id -> Some (Id.yojson_of_t id))
 end
 
 module Response = struct

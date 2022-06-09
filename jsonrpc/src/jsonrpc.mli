@@ -50,9 +50,7 @@ module Structured : sig
     | `List of Json.t list
     ]
 
-  val of_json : Json.t -> t
-
-  val to_json : t -> Json.t
+  include Json.Jsonable.S with type t := t
 end
 
 module Message : sig
