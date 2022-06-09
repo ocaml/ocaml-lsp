@@ -291,7 +291,7 @@ let params (type a) (t : a t) =
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in
   let params = params t in
-  Jsonrpc.Message.create ~id ~method_ ~params ()
+  Jsonrpc.Request.create ~id ~method_ ~params ()
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
   match t with

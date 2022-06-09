@@ -56,7 +56,7 @@ let params =
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in
   let params = params t in
-  Jsonrpc.Message.create ~id ~method_ ?params ()
+  Jsonrpc.Request.create ~id ~method_ ?params ()
 
 let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
   let open Result.O in

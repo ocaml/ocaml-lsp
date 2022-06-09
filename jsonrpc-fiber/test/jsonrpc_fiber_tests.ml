@@ -129,7 +129,7 @@ let%expect_test "concurrent requests" =
             print_endline "waiter: making request";
             let* response =
               let request =
-                Jsonrpc.Message.create ~id:(`Int 100) ~method_:"shutdown" ()
+                Jsonrpc.Request.create ~id:(`Int 100) ~method_:"shutdown" ()
               in
               Jrpc.request self request
             in
@@ -171,7 +171,7 @@ let%expect_test "concurrent requests" =
   let run () =
     let initial_request () =
       let request =
-        Jsonrpc.Message.create ~id:(`String "initial") ~method_:"init" ()
+        Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" ()
       in
       print_endline "initial: waitee requests from waiter";
       let+ resp = Jrpc.request waitee request in
@@ -223,10 +223,12 @@ let%expect_test "test from jsonrpc_test.ml" =
   let responses = ref [] in
   let initial_requests =
     let request ?params id method_ =
-      Jsonrpc.Message.create ?params ~id:(Some id) ~method_ ()
+      Jsonrpc.Request.create ?params ~id ~method_ ()
+      |> Jsonrpc.Request.to_message_either
     in
     let notification ?params method_ =
-      Jsonrpc.Message.create ~id:None ?params ~method_ ()
+      Jsonrpc.Notification.create ?params ~method_ ()
+      |> Jsonrpc.Notification.to_message_either
     in
     [ Message (request (`Int 10) "foo")
     ; Message (request (`String "testing") "bar")
