@@ -13,7 +13,7 @@ module Reply : sig
 end
 
 (** Raised when the server is shutdown and a pending request will not complete. *)
-exception Stopped of Jsonrpc.Message.request
+exception Stopped of Jsonrpc.Request.t
 
 (** IO free implementation of the jsonrpc protocol. We stay completely agnostic
     of transport by only dealing with abstract jsonrpc packets *)
@@ -59,22 +59,22 @@ end) : sig
 
   val run : _ t -> unit Fiber.t
 
-  val notification : _ t -> Jsonrpc.Message.notification -> unit Fiber.t
+  val notification : _ t -> Jsonrpc.Notification.t -> unit Fiber.t
 
-  val request : _ t -> Jsonrpc.Message.request -> Jsonrpc.Response.t Fiber.t
+  val request : _ t -> Jsonrpc.Request.t -> Jsonrpc.Response.t Fiber.t
 
   module Batch : sig
     type t
 
     val create : unit -> t
 
-    val notification : t -> Jsonrpc.Message.notification -> unit
+    val notification : t -> Jsonrpc.Notification.t -> unit
 
     type response
 
     val await : response -> Jsonrpc.Response.t Fiber.t
 
-    val request : t -> Jsonrpc.Message.request -> response
+    val request : t -> Jsonrpc.Request.t -> response
   end
 
   val submit : _ t -> Batch.t -> unit Fiber.t

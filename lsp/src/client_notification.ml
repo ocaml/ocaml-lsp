@@ -14,7 +14,7 @@ type t =
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | SetTrace of SetTraceParams.t
-  | UnknownNotification of Jsonrpc.Message.notification
+  | UnknownNotification of Jsonrpc.Notification.t
 
 let method_ = function
   | TextDocumentDidOpen _ -> "textDocument/didOpen"
@@ -54,7 +54,7 @@ let yojson_of_t = function
   | SetTrace params -> Some (SetTraceParams.yojson_of_t params)
   | UnknownNotification n -> (n.params :> Json.t option)
 
-let of_jsonrpc (r : Jsonrpc.Message.notification) =
+let of_jsonrpc (r : Jsonrpc.Notification.t) =
   let open Result.O in
   match r.method_ with
   | "textDocument/didOpen" ->
