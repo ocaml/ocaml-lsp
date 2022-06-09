@@ -29,7 +29,7 @@ module Sender = struct
         t.send r)
 end
 
-exception Stopped of Message.request
+exception Stopped of Request.t
 
 let () =
   Printexc.register_printer (function
@@ -104,7 +104,7 @@ struct
     Response.error id error
 
   let on_request_fail ctx : (Reply.t * _) Fiber.t =
-    let req : Message.request = Context.message ctx in
+    let req : Request.t = Context.message ctx in
     let state = Context.state ctx in
     let error =
       Response.Error.make ~code:InternalError ~message:"not implemented" ()
@@ -271,7 +271,7 @@ struct
     (* TODO we should also error out when making requests after a disconnect. *)
     if not t.running then Code_error.raise "jsonrpc must be running" []
 
-  let notification t (req : Message.notification) =
+  let notification t (req : Notification.t) =
     Fiber.of_thunk (fun () ->
         check_running t;
         let req = { req with Message.id = None } in
@@ -288,7 +288,7 @@ struct
     | Ok s -> s
     | Error `Stopped -> raise (Stopped req)
 
-  let request t (req : Message.request) =
+  let request t (req : Request.t) =
     Fiber.of_thunk (fun () ->
         check_running t;
         let* () =
@@ -301,10 +301,9 @@ struct
 
   module Batch = struct
     type response =
-      Message.request * (Jsonrpc.Response.t, [ `Stopped ]) result Fiber.Ivar.t
+      Jsonrpc.Request.t * (Jsonrpc.Response.t, [ `Stopped ]) result Fiber.Ivar.t
 
-    type t =
-      [ `Notification of Message.notification | `Request of response ] list ref
+    type t = [ `Notification of Notification.t | `Request of response ] list ref
 
     let await (req, resp) = read_request_ivar req resp
 
@@ -329,7 +328,7 @@ struct
             function
             | `Notification n ->
               (Jsonrpc.Message { n with Message.id = None } :: pending, ivars)
-            | `Request ((r : Message.request), ivar) ->
+            | `Request ((r : Request.t), ivar) ->
               ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
               , (r.id, ivar) :: ivars ))
         in

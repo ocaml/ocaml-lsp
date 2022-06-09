@@ -124,11 +124,11 @@ module type Request_intf = sig
 
   type packed = E : 'r t -> packed
 
-  val of_jsonrpc : Jsonrpc.Message.request -> (packed, string) result
+  val of_jsonrpc : Jsonrpc.Request.t -> (packed, string) result
 
   val yojson_of_result : 'a t -> 'a -> Json.t
 
-  val to_jsonrpc_request : 'a t -> id:Id.t -> Jsonrpc.Message.request
+  val to_jsonrpc_request : 'a t -> id:Id.t -> Jsonrpc.Request.t
 
   val response_of_json : 'a t -> Json.t -> 'a
 end
@@ -136,9 +136,9 @@ end
 module type Notification_intf = sig
   type t
 
-  val of_jsonrpc : Jsonrpc.Message.notification -> (t, string) result
+  val of_jsonrpc : Jsonrpc.Notification.t -> (t, string) result
 
-  val to_jsonrpc : t -> Jsonrpc.Message.notification
+  val to_jsonrpc : t -> Jsonrpc.Notification.t
 end
 
 module Table = Stdlib.Hashtbl.Make (Jsonrpc.Id)

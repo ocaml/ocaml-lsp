@@ -28,7 +28,7 @@ type t =
   | TelemetryNotification of Json.t
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgress of Progress.t ProgressParams.t
-  | UnknownNotification of Jsonrpc.Message.notification
+  | UnknownNotification of Jsonrpc.Notification.t
 
 let method_ = function
   | ShowMessage _ -> "window/showMessage"
@@ -59,7 +59,7 @@ let to_jsonrpc t =
   in
   { Jsonrpc.Message.id = (); params; method_ }
 
-let of_jsonrpc (r : Jsonrpc.Message.notification) =
+let of_jsonrpc (r : Jsonrpc.Notification.t) =
   let open Result.O in
   match r.method_ with
   | "window/showMessage" ->

@@ -64,10 +64,6 @@ module Message : sig
 
   val create : ?params:Structured.t -> id:'id -> method_:string -> unit -> 'id t
 
-  type request = Id.t t
-
-  type notification = unit t
-
   type either = Id.t option t
 
   val either_of_yojson : Json.t -> either
@@ -76,13 +72,13 @@ module Message : sig
 end
 
 module Notification : sig
-  type t = Message.notification
+  type t = unit Message.t
 
   val yojson_of_t : t -> Json.t
 end
 
 module Request : sig
-  type t = Message.request
+  type t = Id.t Message.t
 
   val yojson_of_t : t -> Json.t
 end
