@@ -94,28 +94,21 @@ struct
         in
         Some (Header.create ?content_type ~content_length ())
 
-  let read =
-    let req json = Jsonrpc.Message (Jsonrpc.Message.either_of_yojson json) in
-    let resp json = Jsonrpc.Response (Jsonrpc.Response.t_of_yojson json) in
-    let packet =
-      let open Json.O in
-      req <|> resp
-    in
-    fun chan ->
-      let* header = read_header chan in
-      match header with
-      | None -> Io.return None
-      | Some header -> (
-        let len = Header.content_length header in
-        let* buf = Chan.read_exactly chan len in
-        match buf with
-        | None -> Io.raise (Error "unable to read json")
-        | Some buf ->
-          let json = Json.of_string buf in
-          Io.return (Some (packet json)))
+  let read chan =
+    let* header = read_header chan in
+    match header with
+    | None -> Io.return None
+    | Some header -> (
+      let len = Header.content_length header in
+      let* buf = Chan.read_exactly chan len in
+      match buf with
+      | None -> Io.raise (Error "unable to read json")
+      | Some buf ->
+        let json = Json.of_string buf in
+        Io.return (Some (Jsonrpc.Packet.t_of_yojson json)))
 
   let write chan packet =
-    let json = Jsonrpc.yojson_of_packet packet in
+    let json = Jsonrpc.Packet.yojson_of_t packet in
     let data = Json.to_string json in
     let content_length = String.length data in
     let header = Header.create ~content_length () in

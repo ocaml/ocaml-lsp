@@ -53,20 +53,6 @@ module Structured : sig
   include Json.Jsonable.S with type t := t
 end
 
-module Message : sig
-  type 'id t =
-    { id : 'id
-    ; method_ : string
-    ; params : Structured.t option
-    }
-
-  type either = Id.t option t
-
-  val either_of_yojson : Json.t -> either
-
-  val yojson_of_either : either -> Json.t
-end
-
 module Notification : sig
   type t =
     { method_ : string
@@ -76,20 +62,18 @@ module Notification : sig
   val create : ?params:Structured.t -> method_:string -> unit -> t
 
   val yojson_of_t : t -> Json.t
-
-  val of_message : unit Message.t -> t
-
-  val to_message_either : t -> Message.either
 end
 
 module Request : sig
-  type t = Id.t Message.t
+  type t =
+    { id : Id.t
+    ; method_ : string
+    ; params : Structured.t option
+    }
 
   val create : ?params:Structured.t -> id:Id.t -> method_:string -> unit -> t
 
   val yojson_of_t : t -> Json.t
-
-  val to_message_either : t -> Message.either
 end
 
 module Response : sig
@@ -140,8 +124,11 @@ module Response : sig
   include Json.Jsonable.S with type t := t
 end
 
-type packet =
-  | Message of Id.t option Message.t
-  | Response of Response.t
+module Packet : sig
+  type t =
+    | Notification of Notification.t
+    | Request of Request.t
+    | Response of Response.t
 
-val yojson_of_packet : packet -> Json.t
+  include Json.Jsonable.S with type t := t
+end

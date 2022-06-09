@@ -209,7 +209,7 @@ struct
   let state t = Session.state (Fdecl.get t.session)
 
   let to_jsonrpc (type state) (t : state t) h_on_request h_on_notification =
-    let on_request (ctx : (state, Id.t) Session.Context.t) =
+    let on_request (ctx : (state, Jsonrpc.Request.t) Session.Context.t) =
       let req = Session.Context.message ctx in
       let state = Session.Context.state ctx in
       match In_request.of_jsonrpc req with
@@ -238,7 +238,7 @@ struct
     in
     let on_notification ctx =
       let r = Session.Context.message ctx in
-      match In_notification.of_jsonrpc (Jsonrpc.Notification.of_message r) with
+      match In_notification.of_jsonrpc r with
       | Ok r -> h_on_notification t r
       | Error error ->
         Log.log ~section:"lsp" (fun () ->
