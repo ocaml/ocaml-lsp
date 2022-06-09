@@ -244,7 +244,7 @@ module Json = struct
   end
 
   let read_json_params f v =
-    match f (Jsonrpc.Structured.to_json v) with
+    match f (Jsonrpc.Structured.yojson_of_t v) with
     | r -> Ok r
     | exception Ppx_yojson_conv_lib.Yojson_conv.Of_yojson_error (Failure msg, _)
       -> Error msg

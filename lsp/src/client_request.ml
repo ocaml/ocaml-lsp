@@ -282,7 +282,7 @@ let method_ (type a) (t : a t) =
   | _ -> assert false
 
 let params (type a) (t : a t) =
-  Jsonrpc.Structured.of_json
+  Jsonrpc.Structured.t_of_yojson
     (match t with
     | Initialize params -> InitializeParams.yojson_of_t params
     | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params

@@ -105,5 +105,5 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
 
 let to_jsonrpc t =
   let method_ = method_ t in
-  let params = yojson_of_t t |> Option.map Jsonrpc.Structured.of_json in
+  let params = yojson_of_t t |> Option.map Jsonrpc.Structured.t_of_yojson in
   { Jsonrpc.Message.id = (); params; method_ }

@@ -33,7 +33,7 @@ let method_ (type a) (t : a t) =
   | UnknownRequest (r, _) -> r
 
 let params =
-  let ret x = Some (Jsonrpc.Structured.of_json x) in
+  let ret x = Some (Jsonrpc.Structured.t_of_yojson x) in
   fun (type a) (t : a t) ->
     match t with
     | WorkspaceApplyEdit params ->
