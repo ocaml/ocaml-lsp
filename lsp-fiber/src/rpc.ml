@@ -238,7 +238,7 @@ struct
     in
     let on_notification ctx =
       let r = Session.Context.message ctx in
-      match In_notification.of_jsonrpc r with
+      match In_notification.of_jsonrpc (Jsonrpc.Notification.of_message r) with
       | Ok r -> h_on_notification t r
       | Error error ->
         Log.log ~section:"lsp" (fun () ->

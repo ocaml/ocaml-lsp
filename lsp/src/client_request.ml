@@ -171,7 +171,7 @@ type packed = E : 'r t -> packed
 
 let of_jsonrpc (r : Jsonrpc.Request.t) =
   let open Result.O in
-  let parse f = Json.message_params r f in
+  let parse f = Json.message_params r.params f in
   match r.method_ with
   | "initialize" ->
     let+ params = parse InitializeParams.t_of_yojson in

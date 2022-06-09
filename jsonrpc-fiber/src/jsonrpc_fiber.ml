@@ -252,7 +252,7 @@ struct
       | Error errors ->
         Format.eprintf
           "Uncaught error when handling notification:@.%a@.Error:@.%s@." Json.pp
-          (Notification.yojson_of_t r)
+          (Notification.yojson_of_t (Notification.of_message r))
           (Dyn.to_string (Dyn.list Exn_with_backtrace.to_dyn errors));
         loop ()
     in
@@ -271,11 +271,10 @@ struct
     (* TODO we should also error out when making requests after a disconnect. *)
     if not t.running then Code_error.raise "jsonrpc must be running" []
 
-  let notification t (req : Notification.t) =
+  let notification t (n : Notification.t) =
     Fiber.of_thunk (fun () ->
         check_running t;
-        let req = { req with Message.id = None } in
-        Chan.send t.chan [ Message req ])
+        Chan.send t.chan [ Message (Jsonrpc.Notification.to_message_either n) ])
 
   let register_request_ivar t id ivar =
     match Id.Table.find_opt t.pending id with
@@ -327,7 +326,8 @@ struct
           List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) ->
             function
             | `Notification n ->
-              (Jsonrpc.Message { n with Message.id = None } :: pending, ivars)
+              ( Jsonrpc.Message (Notification.to_message_either n) :: pending
+              , ivars )
             | `Request ((r : Request.t), ivar) ->
               ( Jsonrpc.Message { r with Message.id = Some r.id } :: pending
               , (r.id, ivar) :: ivars ))
