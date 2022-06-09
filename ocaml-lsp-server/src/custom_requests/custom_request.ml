@@ -1,8 +1,8 @@
 open Import
 
 type 't req_params_spec =
-  { params_schema : Jsonrpc.Message.Structured.t
-  ; of_jsonrpc_params : Jsonrpc.Message.Structured.t -> 't option
+  { params_schema : Jsonrpc.Structured.t
+  ; of_jsonrpc_params : Jsonrpc.Structured.t -> 't option
   }
 
 let of_jsonrpc_params_exn spec params =

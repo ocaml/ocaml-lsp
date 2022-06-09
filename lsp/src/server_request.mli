@@ -15,7 +15,7 @@ type _ t =
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | CodeLensRefresh : unit t
   | SemanticTokensRefresh : unit t
-  | UnknownRequest : string * Jsonrpc.Message.Structured.t option -> Json.t t
+  | UnknownRequest : string * Jsonrpc.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
 

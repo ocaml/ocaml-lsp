@@ -44,18 +44,18 @@ module Id : sig
   val equal : t -> t -> bool
 end
 
+module Structured : sig
+  type t =
+    [ `Assoc of (string * Json.t) list
+    | `List of Json.t list
+    ]
+
+  val of_json : Json.t -> t
+
+  val to_json : t -> Json.t
+end
+
 module Message : sig
-  module Structured : sig
-    type t =
-      [ `Assoc of (string * Json.t) list
-      | `List of Json.t list
-      ]
-
-    val of_json : Json.t -> t
-
-    val to_json : t -> Json.t
-  end
-
   type 'id t =
     { id : 'id
     ; method_ : string
