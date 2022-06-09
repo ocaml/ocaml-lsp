@@ -57,7 +57,7 @@ let to_jsonrpc t =
     | None -> None
     | Some s -> Some (Jsonrpc.Structured.t_of_yojson s)
   in
-  { Jsonrpc.Message.id = (); params; method_ }
+  { Jsonrpc.Notification.params; method_ }
 
 let of_jsonrpc (r : Jsonrpc.Notification.t) =
   let open Result.O in

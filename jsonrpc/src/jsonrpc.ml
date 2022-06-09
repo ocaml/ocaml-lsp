@@ -103,13 +103,20 @@ module Message = struct
 end
 
 module Notification = struct
-  type t = unit Message.t
+  type t =
+    { method_ : string
+    ; params : Structured.t option
+    }
 
-  let create ?params ~method_ () = { Message.params; id = (); method_ }
+  let create ?params ~method_ () = { params; method_ }
 
-  let yojson_of_t = Message.yojson_of_t (fun () -> None)
+  let of_message { Message.params; method_; id = () } = { params; method_ }
 
-  let to_message_either t = { t with Message.id = None }
+  let to_message_either { method_; params } =
+    { Message.id = None; method_; params }
+
+  let yojson_of_t (t : t) =
+    Message.yojson_of_t (fun () -> None) { (to_message_either t) with id = () }
 end
 
 module Request = struct

@@ -60,7 +60,7 @@ let to_jsonrpc_request t ~id =
 
 let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
   let open Result.O in
-  let parse f = Json.message_params r f in
+  let parse f = Json.message_params r.params f in
   match r.method_ with
   | "workspace/configuration" ->
     let+ params = parse ConfigurationParams.t_of_yojson in

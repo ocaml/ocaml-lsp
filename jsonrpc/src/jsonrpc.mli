@@ -68,11 +68,16 @@ module Message : sig
 end
 
 module Notification : sig
-  type t = unit Message.t
+  type t =
+    { method_ : string
+    ; params : Structured.t option
+    }
 
   val create : ?params:Structured.t -> method_:string -> unit -> t
 
   val yojson_of_t : t -> Json.t
+
+  val of_message : unit Message.t -> t
 
   val to_message_either : t -> Message.either
 end
