@@ -1,13 +1,23 @@
-(* TODO remove stdune dependence *)
-module Ordering = Stdune.Ordering
-module Code_error = Stdune.Code_error
-module Exn_with_backtrace = Stdune.Exn_with_backtrace
-module List = Stdlib.ListLabels
-module Id = Jsonrpc.Id
-module Message = Jsonrpc.Message
-module Response = Jsonrpc.Response
+module List = ListLabels
 
-type packet = Jsonrpc.packet
+include struct
+  (* TODO remove stdune dependence *)
+
+  open Stdune
+  module Code_error = Code_error
+  module Exn_with_backtrace = Exn_with_backtrace
+end
+
+include struct
+  open Jsonrpc
+  module Id = Id
+  module Message = Message
+  module Response = Response
+  module Request = Request
+  module Notification = Notification
+
+  type nonrec packet = packet
+end
 
 module Json = struct
   type t = Ppx_yojson_conv_lib.Yojson.Safe.t

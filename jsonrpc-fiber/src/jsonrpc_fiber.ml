@@ -34,7 +34,7 @@ exception Stopped of Message.request
 let () =
   Printexc.register_printer (function
     | Stopped req ->
-      let json = Message.yojson_of_request req in
+      let json = Request.yojson_of_t req in
       Some
         ("Session closed. Request will not be answered. "
        ^ Json.to_pretty_string json)
@@ -252,7 +252,7 @@ struct
       | Error errors ->
         Format.eprintf
           "Uncaught error when handling notification:@.%a@.Error:@.%s@." Json.pp
-          (Message.yojson_of_notification r)
+          (Notification.yojson_of_t r)
           (Dyn.to_string (Dyn.list Exn_with_backtrace.to_dyn errors));
         loop ()
     in

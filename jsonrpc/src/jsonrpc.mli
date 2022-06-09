@@ -73,10 +73,18 @@ module Message : sig
   val either_of_yojson : Json.t -> either
 
   val yojson_of_either : either -> Json.t
+end
 
-  val yojson_of_notification : notification -> Json.t
+module Notification : sig
+  type t = Message.notification
 
-  val yojson_of_request : request -> Json.t
+  val yojson_of_t : t -> Json.t
+end
+
+module Request : sig
+  type t = Message.request
+
+  val yojson_of_t : t -> Json.t
 end
 
 module Response : sig

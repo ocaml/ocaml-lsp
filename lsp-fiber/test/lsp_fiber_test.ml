@@ -55,7 +55,7 @@ module End_to_end_client = struct
     let received_notification = state in
     let req = Server_notification.to_jsonrpc n in
     Format.eprintf "client: received notification@.%a@.%!" json_pp
-      (Jsonrpc.Message.yojson_of_notification req);
+      (Jsonrpc.Notification.yojson_of_t req);
     let+ () = Fiber.Ivar.fill received_notification () in
     Format.eprintf "client: filled received_notification@.%!";
     state
