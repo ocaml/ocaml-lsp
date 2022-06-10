@@ -960,6 +960,28 @@ module Position = struct
   let create ~(line : int) ~(character : int) : t = { line; character }
 end
 
+module PositionEncodingKind =
+struct
+  type t = string
+  [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+
+  let _ = t_of_yojson
+
+  let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let utf_8 = "utf-8"
+  let utf_16 = "utf-16"
+  let utf_32 = "utf-32"
+end
+
 module Range = struct
   type t =
     { start : Position.t
@@ -30277,7 +30299,9 @@ module ServerCapabilities = struct
     | `WorkspaceSymbolOptions s -> WorkspaceSymbolOptions.yojson_of_t s
 
   type t =
-    { textDocumentSync : textDocumentSync_pvar Json.Nullable_option.t
+    { positionEncoding : PositionEncodingKind.t Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
+    ; textDocumentSync : textDocumentSync_pvar Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; completionProvider : CompletionOptions.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -30354,7 +30378,8 @@ module ServerCapabilities = struct
     (let _tp_loc = "lsp/src/types.ml.ServerCapabilities.t" in
      function
      | `Assoc field_yojsons as yojson -> (
-       let textDocumentSync_field = ref Ppx_yojson_conv_lib.Option.None
+       let positionEncoding_field = ref Ppx_yojson_conv_lib.Option.None
+       and textDocumentSync_field = ref Ppx_yojson_conv_lib.Option.None
        and completionProvider_field = ref Ppx_yojson_conv_lib.Option.None
        and hoverProvider_field = ref Ppx_yojson_conv_lib.Option.None
        and signatureHelpProvider_field = ref Ppx_yojson_conv_lib.Option.None
@@ -30392,6 +30417,17 @@ module ServerCapabilities = struct
        let rec iter = function
          | (field_name, _field_yojson) :: tail ->
            (match field_name with
+	   | "positionEncoding" -> (
+	     match Ppx_yojson_conv_lib.( ! ) positionEncoding_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson
+                   PositionEncodingKind.t_of_yojson _field_yojson
+               in
+               positionEncoding_field :=
+                 Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
            | "textDocumentSync" -> (
              match Ppx_yojson_conv_lib.( ! ) textDocumentSync_field with
              | Ppx_yojson_conv_lib.Option.None ->
@@ -30727,7 +30763,8 @@ module ServerCapabilities = struct
              (Ppx_yojson_conv_lib.( ! ) extra)
              yojson
          | [] ->
-           let ( textDocumentSync_value
+           let ( positionEncoding_value
+	       , textDocumentSync_value
                , completionProvider_value
                , hoverProvider_value
                , signatureHelpProvider_value
@@ -30756,7 +30793,8 @@ module ServerCapabilities = struct
                , workspaceSymbolProvider_value
                , workspace_value
                , experimental_value ) =
-             ( Ppx_yojson_conv_lib.( ! ) textDocumentSync_field
+             ( Ppx_yojson_conv_lib.( ! ) positionEncoding_field
+             , Ppx_yojson_conv_lib.( ! ) textDocumentSync_field
              , Ppx_yojson_conv_lib.( ! ) completionProvider_field
              , Ppx_yojson_conv_lib.( ! ) hoverProvider_field
              , Ppx_yojson_conv_lib.( ! ) signatureHelpProvider_field
@@ -30786,7 +30824,11 @@ module ServerCapabilities = struct
              , Ppx_yojson_conv_lib.( ! ) workspace_field
              , Ppx_yojson_conv_lib.( ! ) experimental_field )
            in
-           { textDocumentSync =
+           { positionEncoding =
+               (match positionEncoding_value with
+               | Ppx_yojson_conv_lib.Option.None -> None
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+	   ; textDocumentSync =
                (match textDocumentSync_value with
                | Ppx_yojson_conv_lib.Option.None -> None
                | Ppx_yojson_conv_lib.Option.Some v -> v)
@@ -30909,7 +30951,8 @@ module ServerCapabilities = struct
 
   let yojson_of_t =
     (function
-     | { textDocumentSync = v_textDocumentSync
+     | { positionEncoding = v_positionEncoding
+       ; textDocumentSync = v_textDocumentSync
        ; completionProvider = v_completionProvider
        ; hoverProvider = v_hoverProvider
        ; signatureHelpProvider = v_signatureHelpProvider
@@ -31241,6 +31284,16 @@ module ServerCapabilities = struct
            let bnd = ("textDocumentSync", arg) in
            bnd :: bnds
        in
+       let bnds =
+         if None = v_positionEncoding then bnds
+         else
+           let arg =
+             (Json.Nullable_option.yojson_of_t PositionEncodingKind.yojson_of_t)
+               v_positionEncoding
+           in
+           let bnd = ("positionEncoding", arg) in
+           bnd :: bnds
+       in
        `Assoc bnds
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
 
@@ -31248,7 +31301,8 @@ module ServerCapabilities = struct
 
   [@@@end]
 
-  let create ?(textDocumentSync : textDocumentSync_pvar option)
+  let create ?(positionEncoding : PositionEncodingKind.t option)
+      ?(textDocumentSync : textDocumentSync_pvar option)
       ?(completionProvider : CompletionOptions.t option)
       ?(hoverProvider : hoverProvider_pvar option)
       ?(signatureHelpProvider : SignatureHelpOptions.t option)
@@ -31279,7 +31333,8 @@ module ServerCapabilities = struct
       ?(workspaceSymbolProvider : workspaceSymbolProvider_pvar option)
       ?(workspace : workspace option) ?(experimental : Json.t option)
       (() : unit) : t =
-    { textDocumentSync
+    { positionEncoding
+    ; textDocumentSync
     ; completionProvider
     ; hoverProvider
     ; signatureHelpProvider
