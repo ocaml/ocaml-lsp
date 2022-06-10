@@ -1412,11 +1412,13 @@ module ClientCapabilities : sig
   type general =
     { regularExpressions : RegularExpressionsClientCapabilities.t option
     ; markdown : MarkdownClientCapabilities.t option
+    ; positionEncodings : PositionEncodingKind.t list option
     }
 
   val create_general :
     ?regularExpressions:RegularExpressionsClientCapabilities.t
     -> ?markdown:MarkdownClientCapabilities.t
+    -> ?positionEncodings:PositionEncodingKind.t list
     -> unit
     -> general
 
