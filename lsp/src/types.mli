@@ -328,6 +328,16 @@ module Position : sig
   include Json.Jsonable.S with type t := t
 end
 
+module PositionEncodingKind : sig
+  type t =
+    | Utf8
+    | Utf16
+    | Utf32
+    | Other of string
+
+  include Json.Jsonable.S with type t := t
+end
+
 module Range : sig
   type t =
     { start : Position.t
@@ -1402,11 +1412,13 @@ module ClientCapabilities : sig
   type general =
     { regularExpressions : RegularExpressionsClientCapabilities.t option
     ; markdown : MarkdownClientCapabilities.t option
+    ; positionEncodings : PositionEncodingKind.t list option
     }
 
   val create_general :
        ?regularExpressions:RegularExpressionsClientCapabilities.t
     -> ?markdown:MarkdownClientCapabilities.t
+    -> ?positionEncodings:PositionEncodingKind.t list
     -> unit
     -> general
 
@@ -3207,7 +3219,8 @@ module ServerCapabilities : sig
     -> workspace
 
   type t =
-    { textDocumentSync :
+    { positionEncoding : PositionEncodingKind.t option
+    ; textDocumentSync :
         [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
         | `TextDocumentSyncKind of TextDocumentSyncKind.t
         ]
@@ -3320,7 +3333,8 @@ module ServerCapabilities : sig
     }
 
   val create :
-       ?textDocumentSync:
+       ?positionEncoding:PositionEncodingKind.t
+    -> ?textDocumentSync:
          [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
          | `TextDocumentSyncKind of TextDocumentSyncKind.t
          ]
