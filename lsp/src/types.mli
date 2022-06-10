@@ -368,7 +368,7 @@ module AnnotatedTextEdit : sig
     }
 
   val create :
-    range:Range.t
+       range:Range.t
     -> newText:string
     -> annotationId:ChangeAnnotationIdentifier.t
     -> t
@@ -408,7 +408,7 @@ module DeleteFile : sig
     }
 
   val create :
-    uri:DocumentUri.t
+       uri:DocumentUri.t
     -> ?options:DeleteFileOptions.t
     -> ?annotationId:ChangeAnnotationIdentifier.t
     -> unit
@@ -437,7 +437,7 @@ module RenameFile : sig
     }
 
   val create :
-    oldUri:DocumentUri.t
+       oldUri:DocumentUri.t
     -> newUri:DocumentUri.t
     -> ?options:RenameFileOptions.t
     -> ?annotationId:ChangeAnnotationIdentifier.t
@@ -466,7 +466,7 @@ module CreateFile : sig
     }
 
   val create :
-    uri:DocumentUri.t
+       uri:DocumentUri.t
     -> ?options:CreateFileOptions.t
     -> ?annotationId:ChangeAnnotationIdentifier.t
     -> unit
@@ -505,14 +505,14 @@ module TextDocumentEdit : sig
     { textDocument : OptionalVersionedTextDocumentIdentifier.t
     ; edits :
         [ `TextEdit of TextEdit.t | `AnnotatedTextEdit of AnnotatedTextEdit.t ]
-          list
+        list
     }
 
   val create :
-    textDocument:OptionalVersionedTextDocumentIdentifier.t
+       textDocument:OptionalVersionedTextDocumentIdentifier.t
     -> edits:
          [ `TextEdit of TextEdit.t | `AnnotatedTextEdit of AnnotatedTextEdit.t ]
-           list
+         list
     -> t
 
   include Json.Jsonable.S with type t := t
@@ -527,20 +527,20 @@ module WorkspaceEdit : sig
         | `RenameFile of RenameFile.t
         | `DeleteFile of DeleteFile.t
         ]
-          list
-          option
+        list
+        option
     ; changeAnnotations : (string, ChangeAnnotation.t) Json.Assoc.t option
     }
 
   val create :
-    ?changes:(DocumentUri.t, TextEdit.t list) Json.Assoc.t
+       ?changes:(DocumentUri.t, TextEdit.t list) Json.Assoc.t
     -> ?documentChanges:
          [ `TextDocumentEdit of TextDocumentEdit.t
          | `CreateFile of CreateFile.t
          | `RenameFile of RenameFile.t
          | `DeleteFile of DeleteFile.t
          ]
-           list
+         list
     -> ?changeAnnotations:(string, ChangeAnnotation.t) Json.Assoc.t
     -> unit
     -> t
@@ -593,7 +593,7 @@ module CallHierarchyItem : sig
     }
 
   val create :
-    name:string
+       name:string
     -> kind:SymbolKind.t
     -> ?tags:SymbolTag.t list
     -> ?detail:string
@@ -642,7 +642,7 @@ module CallHierarchyIncomingCallsParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> item:CallHierarchyItem.t
     -> unit
@@ -686,7 +686,7 @@ module CallHierarchyOutgoingCallsParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> item:CallHierarchyItem.t
     -> unit
@@ -714,7 +714,7 @@ module CallHierarchyPrepareParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> unit
@@ -766,7 +766,7 @@ module CallHierarchyRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?id:string
     -> unit
@@ -858,7 +858,7 @@ module SemanticTokensClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> requests:requests
     -> tokenTypes:string list
     -> tokenModifiers:string list
@@ -895,7 +895,7 @@ module FoldingRangeClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?rangeLimit:int
     -> ?lineFoldingOnly:bool
     -> unit
@@ -918,7 +918,7 @@ module PublishDiagnosticsClientCapabilities : sig
     }
 
   val create :
-    ?relatedInformation:bool
+       ?relatedInformation:bool
     -> ?tagSupport:tagSupport
     -> ?versionSupport:bool
     -> ?codeDescriptionSupport:bool
@@ -938,7 +938,7 @@ module RenameClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?prepareSupport:bool
     -> ?prepareSupportDefaultBehavior:PrepareSupportDefaultBehavior.t
     -> ?honorsChangeAnnotations:bool
@@ -1024,7 +1024,7 @@ module CodeActionClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?codeActionLiteralSupport:codeActionLiteralSupport
     -> ?isPreferredSupport:bool
     -> ?disabledSupport:bool
@@ -1055,7 +1055,7 @@ module DocumentSymbolClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?symbolKind:symbolKind
     -> ?hierarchicalDocumentSymbolSupport:bool
     -> ?tagSupport:tagSupport
@@ -1139,7 +1139,7 @@ module SignatureHelpClientCapabilities : sig
     }
 
   val create_signatureInformation :
-    ?documentationFormat:MarkupKind.t list
+       ?documentationFormat:MarkupKind.t list
     -> ?parameterInformation:parameterInformation
     -> ?activeParameterSupport:bool
     -> unit
@@ -1152,7 +1152,7 @@ module SignatureHelpClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?signatureInformation:signatureInformation
     -> ?contextSupport:bool
     -> unit
@@ -1205,7 +1205,7 @@ module CompletionClientCapabilities : sig
     }
 
   val create_completionItem :
-    ?snippetSupport:bool
+       ?snippetSupport:bool
     -> ?commitCharactersSupport:bool
     -> ?documentationFormat:MarkupKind.t list
     -> ?deprecatedSupport:bool
@@ -1225,7 +1225,7 @@ module CompletionClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?completionItem:completionItem
     -> ?completionItemKind:completionItemKind
     -> ?contextSupport:bool
@@ -1244,7 +1244,7 @@ module TextDocumentSyncClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?willSave:bool
     -> ?willSaveWaitUntil:bool
     -> ?didSave:bool
@@ -1285,7 +1285,7 @@ module TextDocumentClientCapabilities : sig
     }
 
   val create :
-    ?synchronization:TextDocumentSyncClientCapabilities.t
+       ?synchronization:TextDocumentSyncClientCapabilities.t
     -> ?completion:CompletionClientCapabilities.t
     -> ?hover:HoverClientCapabilities.t
     -> ?signatureHelp:SignatureHelpClientCapabilities.t
@@ -1357,7 +1357,7 @@ module WorkspaceSymbolClientCapabilities : sig
     }
 
   val create :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?symbolKind:symbolKind
     -> ?tagSupport:tagSupport
     -> unit
@@ -1397,7 +1397,7 @@ module WorkspaceEditClientCapabilities : sig
     }
 
   val create :
-    ?documentChanges:bool
+       ?documentChanges:bool
     -> ?resourceOperations:ResourceOperationKind.t list
     -> ?failureHandling:FailureHandlingKind.t
     -> ?normalizesLineEndings:bool
@@ -1416,7 +1416,7 @@ module ClientCapabilities : sig
     }
 
   val create_general :
-    ?regularExpressions:RegularExpressionsClientCapabilities.t
+       ?regularExpressions:RegularExpressionsClientCapabilities.t
     -> ?markdown:MarkdownClientCapabilities.t
     -> ?positionEncodings:PositionEncodingKind.t list
     -> unit
@@ -1429,7 +1429,7 @@ module ClientCapabilities : sig
     }
 
   val create_window :
-    ?workDoneProgress:bool
+       ?workDoneProgress:bool
     -> ?showMessage:ShowMessageRequestClientCapabilities.t
     -> ?showDocument:ShowDocumentClientCapabilities.t
     -> unit
@@ -1446,7 +1446,7 @@ module ClientCapabilities : sig
     }
 
   val create_fileOperations :
-    ?dynamicRegistration:bool
+       ?dynamicRegistration:bool
     -> ?didCreate:bool
     -> ?willCreate:bool
     -> ?didRename:bool
@@ -1471,7 +1471,7 @@ module ClientCapabilities : sig
     }
 
   val create_workspace :
-    ?applyEdit:bool
+       ?applyEdit:bool
     -> ?workspaceEdit:WorkspaceEditClientCapabilities.t
     -> ?didChangeConfiguration:DidChangeConfigurationClientCapabilities.t
     -> ?didChangeWatchedFiles:DidChangeWatchedFilesClientCapabilities.t
@@ -1494,7 +1494,7 @@ module ClientCapabilities : sig
     }
 
   val create :
-    ?workspace:workspace
+       ?workspace:workspace
     -> ?textDocument:TextDocumentClientCapabilities.t
     -> ?window:window
     -> ?general:general
@@ -1568,7 +1568,7 @@ module Diagnostic : sig
     }
 
   val create :
-    range:Range.t
+       range:Range.t
     -> ?severity:DiagnosticSeverity.t
     -> ?code:[ `Integer of Integer.t | `String of string ]
     -> ?codeDescription:CodeDescription.t
@@ -1600,7 +1600,7 @@ module CodeAction : sig
     }
 
   val create :
-    title:string
+       title:string
     -> ?kind:CodeActionKind.t
     -> ?diagnostics:Diagnostic.t list
     -> ?isPreferred:bool
@@ -1634,7 +1634,7 @@ module CodeActionOptions : sig
     }
 
   val create :
-    ?workDoneProgress:bool
+       ?workDoneProgress:bool
     -> ?codeActionKinds:CodeActionKind.t list
     -> ?resolveProvider:bool
     -> unit
@@ -1653,7 +1653,7 @@ module CodeActionParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> range:Range.t
@@ -1673,7 +1673,7 @@ module CodeActionRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?codeActionKinds:CodeActionKind.t list
     -> ?resolveProvider:bool
@@ -1714,7 +1714,7 @@ module CodeLensParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> unit
@@ -1731,7 +1731,7 @@ module CodeLensRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?resolveProvider:bool
     -> unit
@@ -1779,7 +1779,7 @@ module ColorPresentation : sig
     }
 
   val create :
-    label:string
+       label:string
     -> ?textEdit:TextEdit.t
     -> ?additionalTextEdits:TextEdit.t list
     -> unit
@@ -1798,7 +1798,7 @@ module ColorPresentationParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> color:Color.t
@@ -1861,7 +1861,7 @@ module CompletionItem : sig
     ; insertTextMode : InsertTextMode.t option
     ; textEdit :
         [ `TextEdit of TextEdit.t | `InsertReplaceEdit of InsertReplaceEdit.t ]
-          option
+        option
     ; additionalTextEdits : TextEdit.t list option
     ; commitCharacters : string list option
     ; command : Command.t option
@@ -1869,7 +1869,7 @@ module CompletionItem : sig
     }
 
   val create :
-    label:string
+       label:string
     -> ?kind:CompletionItemKind.t
     -> ?tags:CompletionItemTag.t list
     -> ?detail:string
@@ -1913,7 +1913,7 @@ module CompletionOptions : sig
     }
 
   val create :
-    ?workDoneProgress:bool
+       ?workDoneProgress:bool
     -> ?triggerCharacters:string list
     -> ?allCommitCharacters:string list
     -> ?resolveProvider:bool
@@ -1933,7 +1933,7 @@ module CompletionParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -1954,7 +1954,7 @@ module CompletionRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?triggerCharacters:string list
     -> ?allCommitCharacters:string list
@@ -2017,7 +2017,7 @@ module DeclarationParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -2035,7 +2035,7 @@ module DeclarationRegistrationOptions : sig
     }
 
   val create :
-    ?workDoneProgress:bool
+       ?workDoneProgress:bool
     -> ?documentSelector:DocumentSelector.t
     -> ?id:string
     -> unit
@@ -2061,7 +2061,7 @@ module DefinitionParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -2137,7 +2137,7 @@ module DidChangeTextDocumentParams : sig
     }
 
   val create :
-    textDocument:VersionedTextDocumentIdentifier.t
+       textDocument:VersionedTextDocumentIdentifier.t
     -> contentChanges:TextDocumentContentChangeEvent.t list
     -> t
 
@@ -2230,7 +2230,7 @@ module TextDocumentItem : sig
     }
 
   val create :
-    uri:DocumentUri.t
+       uri:DocumentUri.t
     -> languageId:string
     -> version:Integer.t
     -> text:string
@@ -2275,7 +2275,7 @@ module DocumentColorParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> unit
@@ -2292,7 +2292,7 @@ module DocumentColorRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?id:string
     -> ?workDoneProgress:bool
     -> unit
@@ -2319,7 +2319,7 @@ module FormattingOptions : sig
     }
 
   val create :
-    tabSize:int
+       tabSize:int
     -> insertSpaces:bool
     -> ?trimTrailingWhitespace:bool
     -> ?insertFinalNewline:bool
@@ -2338,7 +2338,7 @@ module DocumentFormattingParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> options:FormattingOptions.t
     -> unit
@@ -2387,7 +2387,7 @@ module DocumentHighlightParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -2418,7 +2418,7 @@ module DocumentLink : sig
     }
 
   val create :
-    range:Range.t
+       range:Range.t
     -> ?target:DocumentUri.t
     -> ?tooltip:string
     -> ?data:Json.t
@@ -2447,7 +2447,7 @@ module DocumentLinkParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> unit
@@ -2464,7 +2464,7 @@ module DocumentLinkRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?resolveProvider:bool
     -> unit
@@ -2480,7 +2480,7 @@ module DocumentOnTypeFormattingOptions : sig
     }
 
   val create :
-    firstTriggerCharacter:string
+       firstTriggerCharacter:string
     -> ?moreTriggerCharacter:string list
     -> unit
     -> t
@@ -2497,7 +2497,7 @@ module DocumentOnTypeFormattingParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ch:string
     -> options:FormattingOptions.t
@@ -2514,7 +2514,7 @@ module DocumentOnTypeFormattingRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> firstTriggerCharacter:string
     -> ?moreTriggerCharacter:string list
     -> unit
@@ -2540,7 +2540,7 @@ module DocumentRangeFormattingParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> range:Range.t
     -> options:FormattingOptions.t
@@ -2575,7 +2575,7 @@ module DocumentSymbol : sig
     }
 
   val create :
-    name:string
+       name:string
     -> ?detail:string
     -> kind:SymbolKind.t
     -> ?tags:SymbolTag.t list
@@ -2608,7 +2608,7 @@ module DocumentSymbolParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> unit
@@ -2625,7 +2625,7 @@ module DocumentSymbolRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?label:string
     -> unit
@@ -2653,7 +2653,7 @@ module ExecuteCommandParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> command:string
     -> ?arguments:Json.t list
     -> unit
@@ -2689,7 +2689,7 @@ module FileOperationPattern : sig
     }
 
   val create :
-    glob:string
+       glob:string
     -> ?matches:FileOperationPatternKind.t
     -> ?options:FileOperationPatternOptions.t
     -> unit
@@ -2738,7 +2738,7 @@ module FoldingRange : sig
     }
 
   val create :
-    startLine:int
+       startLine:int
     -> ?startCharacter:int
     -> endLine:int
     -> ?endCharacter:int
@@ -2765,7 +2765,7 @@ module FoldingRangeParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> unit
@@ -2782,7 +2782,7 @@ module FoldingRangeRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?id:string
     -> unit
@@ -2802,11 +2802,11 @@ module Hover : sig
     }
 
   val create :
-    contents:
-      [ `MarkedString of MarkedString.t
-      | `List of MarkedString.t list
-      | `MarkupContent of MarkupContent.t
-      ]
+       contents:
+         [ `MarkedString of MarkedString.t
+         | `List of MarkedString.t list
+         | `MarkupContent of MarkupContent.t
+         ]
     -> ?range:Range.t
     -> unit
     -> t
@@ -2830,7 +2830,7 @@ module HoverParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> unit
@@ -2868,7 +2868,7 @@ module ImplementationParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -2886,7 +2886,7 @@ module ImplementationRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?id:string
     -> unit
@@ -2927,7 +2927,7 @@ module InitializeParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?processId:Integer.t
     -> ?clientInfo:clientInfo
     -> ?locale:string
@@ -2950,7 +2950,7 @@ module WorkspaceFoldersServerCapabilities : sig
     }
 
   val create :
-    ?supported:bool
+       ?supported:bool
     -> ?changeNotifications:[ `String of string | `Bool of bool ]
     -> unit
     -> t
@@ -3010,7 +3010,7 @@ module SemanticTokensOptions : sig
     }
 
   val create :
-    ?workDoneProgress:bool
+       ?workDoneProgress:bool
     -> legend:SemanticTokensLegend.t
     -> ?range:bool
     -> ?full:[ `Bool of bool | `Full of full ]
@@ -3035,7 +3035,7 @@ module SemanticTokensRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> legend:SemanticTokensLegend.t
     -> ?range:bool
@@ -3063,7 +3063,7 @@ module LinkedEditingRangeRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?id:string
     -> unit
@@ -3088,7 +3088,7 @@ module SelectionRangeRegistrationOptions : sig
     }
 
   val create :
-    ?workDoneProgress:bool
+       ?workDoneProgress:bool
     -> ?documentSelector:DocumentSelector.t
     -> ?id:string
     -> unit
@@ -3132,7 +3132,7 @@ module TypeDefinitionRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?id:string
     -> unit
@@ -3149,7 +3149,7 @@ module SignatureHelpOptions : sig
     }
 
   val create :
-    ?workDoneProgress:bool
+       ?workDoneProgress:bool
     -> ?triggerCharacters:string list
     -> ?retriggerCharacters:string list
     -> unit
@@ -3176,7 +3176,7 @@ module TextDocumentSyncOptions : sig
     }
 
   val create :
-    ?openClose:bool
+       ?openClose:bool
     -> ?change:TextDocumentSyncKind.t
     -> ?willSave:bool
     -> ?willSaveWaitUntil:bool
@@ -3198,7 +3198,7 @@ module ServerCapabilities : sig
     }
 
   val create_fileOperations :
-    ?didCreate:FileOperationRegistrationOptions.t
+       ?didCreate:FileOperationRegistrationOptions.t
     -> ?willCreate:FileOperationRegistrationOptions.t
     -> ?didRename:FileOperationRegistrationOptions.t
     -> ?willRename:FileOperationRegistrationOptions.t
@@ -3213,7 +3213,7 @@ module ServerCapabilities : sig
     }
 
   val create_workspace :
-    ?workspaceFolders:WorkspaceFoldersServerCapabilities.t
+       ?workspaceFolders:WorkspaceFoldersServerCapabilities.t
     -> ?fileOperations:fileOperations
     -> unit
     -> workspace
@@ -3224,7 +3224,7 @@ module ServerCapabilities : sig
         [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
         | `TextDocumentSyncKind of TextDocumentSyncKind.t
         ]
-          option
+        option
     ; completionProvider : CompletionOptions.t option
     ; hoverProvider : [ `Bool of bool | `HoverOptions of HoverOptions.t ] option
     ; signatureHelpProvider : SignatureHelpOptions.t option
@@ -3233,33 +3233,33 @@ module ServerCapabilities : sig
         | `DeclarationOptions of DeclarationOptions.t
         | `DeclarationRegistrationOptions of DeclarationRegistrationOptions.t
         ]
-          option
+        option
     ; definitionProvider :
         [ `Bool of bool | `DefinitionOptions of DefinitionOptions.t ] option
     ; typeDefinitionProvider :
         [ `Bool of bool
         | `TypeDefinitionOptions of TypeDefinitionOptions.t
         | `TypeDefinitionRegistrationOptions of
-            TypeDefinitionRegistrationOptions.t
+          TypeDefinitionRegistrationOptions.t
         ]
-          option
+        option
     ; implementationProvider :
         [ `Bool of bool
         | `ImplementationOptions of ImplementationOptions.t
         | `ImplementationRegistrationOptions of
-            ImplementationRegistrationOptions.t
+          ImplementationRegistrationOptions.t
         ]
-          option
+        option
     ; referencesProvider :
         [ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ] option
     ; documentHighlightProvider :
         [ `Bool of bool
         | `DocumentHighlightOptions of DocumentHighlightOptions.t
         ]
-          option
+        option
     ; documentSymbolProvider :
         [ `Bool of bool | `DocumentSymbolOptions of DocumentSymbolOptions.t ]
-          option
+        option
     ; codeActionProvider :
         [ `Bool of bool | `CodeActionOptions of CodeActionOptions.t ] option
     ; codeLensProvider : CodeLensOptions.t option
@@ -3268,19 +3268,19 @@ module ServerCapabilities : sig
         [ `Bool of bool
         | `DocumentColorOptions of DocumentColorOptions.t
         | `DocumentColorRegistrationOptions of
-            DocumentColorRegistrationOptions.t
+          DocumentColorRegistrationOptions.t
         ]
-          option
+        option
     ; documentFormattingProvider :
         [ `Bool of bool
         | `DocumentFormattingOptions of DocumentFormattingOptions.t
         ]
-          option
+        option
     ; documentRangeFormattingProvider :
         [ `Bool of bool
         | `DocumentRangeFormattingOptions of DocumentRangeFormattingOptions.t
         ]
-          option
+        option
     ; documentOnTypeFormattingProvider :
         DocumentOnTypeFormattingOptions.t option
     ; renameProvider :
@@ -3290,50 +3290,50 @@ module ServerCapabilities : sig
         | `FoldingRangeOptions of FoldingRangeOptions.t
         | `FoldingRangeRegistrationOptions of FoldingRangeRegistrationOptions.t
         ]
-          option
+        option
     ; executeCommandProvider : ExecuteCommandOptions.t option
     ; selectionRangeProvider :
         [ `Bool of bool
         | `SelectionRangeOptions of SelectionRangeOptions.t
         | `SelectionRangeRegistrationOptions of
-            SelectionRangeRegistrationOptions.t
+          SelectionRangeRegistrationOptions.t
         ]
-          option
+        option
     ; linkedEditingRangeProvider :
         [ `Bool of bool
         | `LinkedEditingRangeOptions of LinkedEditingRangeOptions.t
         | `LinkedEditingRangeRegistrationOptions of
-            LinkedEditingRangeRegistrationOptions.t
+          LinkedEditingRangeRegistrationOptions.t
         ]
-          option
+        option
     ; callHierarchyProvider :
         [ `Bool of bool
         | `CallHierarchyOptions of CallHierarchyOptions.t
         | `CallHierarchyRegistrationOptions of
-            CallHierarchyRegistrationOptions.t
+          CallHierarchyRegistrationOptions.t
         ]
-          option
+        option
     ; semanticTokensProvider :
         [ `SemanticTokensOptions of SemanticTokensOptions.t
         | `SemanticTokensRegistrationOptions of
-            SemanticTokensRegistrationOptions.t
+          SemanticTokensRegistrationOptions.t
         ]
-          option
+        option
     ; monikerProvider :
         [ `Bool of bool
         | `MonikerOptions of MonikerOptions.t
         | `MonikerRegistrationOptions of MonikerRegistrationOptions.t
         ]
-          option
+        option
     ; workspaceSymbolProvider :
         [ `Bool of bool | `WorkspaceSymbolOptions of WorkspaceSymbolOptions.t ]
-          option
+        option
     ; workspace : workspace option
     ; experimental : Json.t option
     }
 
   val create :
-    ?positionEncoding:PositionEncodingKind.t
+       ?positionEncoding:PositionEncodingKind.t
     -> ?textDocumentSync:
          [ `TextDocumentSyncOptions of TextDocumentSyncOptions.t
          | `TextDocumentSyncKind of TextDocumentSyncKind.t
@@ -3352,13 +3352,13 @@ module ServerCapabilities : sig
          [ `Bool of bool
          | `TypeDefinitionOptions of TypeDefinitionOptions.t
          | `TypeDefinitionRegistrationOptions of
-             TypeDefinitionRegistrationOptions.t
+           TypeDefinitionRegistrationOptions.t
          ]
     -> ?implementationProvider:
          [ `Bool of bool
          | `ImplementationOptions of ImplementationOptions.t
          | `ImplementationRegistrationOptions of
-             ImplementationRegistrationOptions.t
+           ImplementationRegistrationOptions.t
          ]
     -> ?referencesProvider:
          [ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ]
@@ -3376,7 +3376,7 @@ module ServerCapabilities : sig
          [ `Bool of bool
          | `DocumentColorOptions of DocumentColorOptions.t
          | `DocumentColorRegistrationOptions of
-             DocumentColorRegistrationOptions.t
+           DocumentColorRegistrationOptions.t
          ]
     -> ?documentFormattingProvider:
          [ `Bool of bool
@@ -3398,24 +3398,24 @@ module ServerCapabilities : sig
          [ `Bool of bool
          | `SelectionRangeOptions of SelectionRangeOptions.t
          | `SelectionRangeRegistrationOptions of
-             SelectionRangeRegistrationOptions.t
+           SelectionRangeRegistrationOptions.t
          ]
     -> ?linkedEditingRangeProvider:
          [ `Bool of bool
          | `LinkedEditingRangeOptions of LinkedEditingRangeOptions.t
          | `LinkedEditingRangeRegistrationOptions of
-             LinkedEditingRangeRegistrationOptions.t
+           LinkedEditingRangeRegistrationOptions.t
          ]
     -> ?callHierarchyProvider:
          [ `Bool of bool
          | `CallHierarchyOptions of CallHierarchyOptions.t
          | `CallHierarchyRegistrationOptions of
-             CallHierarchyRegistrationOptions.t
+           CallHierarchyRegistrationOptions.t
          ]
     -> ?semanticTokensProvider:
          [ `SemanticTokensOptions of SemanticTokensOptions.t
          | `SemanticTokensRegistrationOptions of
-             SemanticTokensRegistrationOptions.t
+           SemanticTokensRegistrationOptions.t
          ]
     -> ?monikerProvider:
          [ `Bool of bool
@@ -3459,7 +3459,7 @@ module LinkedEditingRangeParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> unit
@@ -3488,7 +3488,7 @@ module LocationLink : sig
     }
 
   val create :
-    ?originSelectionRange:Range.t
+       ?originSelectionRange:Range.t
     -> targetUri:DocumentUri.t
     -> targetRange:Range.t
     -> targetSelectionRange:Range.t
@@ -3537,7 +3537,7 @@ module Moniker : sig
     }
 
   val create :
-    scheme:string
+       scheme:string
     -> identifier:string
     -> unique:UniquenessLevel.t
     -> ?kind:MonikerKind.t
@@ -3556,7 +3556,7 @@ module MonikerParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -3574,7 +3574,7 @@ module ParameterInformation : sig
     }
 
   val create :
-    label:[ `String of string | `Offset of int * int ]
+       label:[ `String of string | `Offset of int * int ]
     -> ?documentation:[ `String of string | `MarkupContent of MarkupContent.t ]
     -> unit
     -> t
@@ -3601,7 +3601,7 @@ module PublishDiagnosticsParams : sig
     }
 
   val create :
-    uri:DocumentUri.t
+       uri:DocumentUri.t
     -> ?version:int
     -> diagnostics:Diagnostic.t list
     -> unit
@@ -3628,7 +3628,7 @@ module ReferenceParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -3689,7 +3689,7 @@ module RenameParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> newName:string
@@ -3707,7 +3707,7 @@ module RenameRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?prepareProvider:bool
     -> unit
@@ -3736,7 +3736,7 @@ module SelectionRangeParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> positions:Position.t list
@@ -3789,7 +3789,7 @@ module SemanticTokensDeltaParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> previousResultId:string
@@ -3815,7 +3815,7 @@ module SemanticTokensParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> unit
@@ -3841,7 +3841,7 @@ module SemanticTokensRangeParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> textDocument:TextDocumentIdentifier.t
     -> range:Range.t
@@ -3868,7 +3868,7 @@ module ShowDocumentParams : sig
     }
 
   val create :
-    uri:URI.t
+       uri:URI.t
     -> ?external_:bool
     -> ?takeFocus:bool
     -> ?selection:Range.t
@@ -3905,7 +3905,7 @@ module ShowMessageRequestParams : sig
     }
 
   val create :
-    type_:MessageType.t
+       type_:MessageType.t
     -> message:string
     -> ?actions:MessageActionItem.t list
     -> unit
@@ -3924,7 +3924,7 @@ module SignatureInformation : sig
     }
 
   val create :
-    label:string
+       label:string
     -> ?documentation:[ `String of string | `MarkupContent of MarkupContent.t ]
     -> ?parameters:ParameterInformation.t list
     -> ?activeParameter:int
@@ -3942,7 +3942,7 @@ module SignatureHelp : sig
     }
 
   val create :
-    signatures:SignatureInformation.t list
+       signatures:SignatureInformation.t list
     -> ?activeSignature:int
     -> ?activeParameter:int
     -> unit
@@ -3960,7 +3960,7 @@ module SignatureHelpContext : sig
     }
 
   val create :
-    triggerKind:SignatureHelpTriggerKind.t
+       triggerKind:SignatureHelpTriggerKind.t
     -> ?triggerCharacter:string
     -> isRetrigger:bool
     -> ?activeSignatureHelp:SignatureHelp.t
@@ -3979,7 +3979,7 @@ module SignatureHelpParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?context:SignatureHelpContext.t
@@ -3998,7 +3998,7 @@ module SignatureHelpRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> ?workDoneProgress:bool
     -> ?triggerCharacters:string list
     -> ?retriggerCharacters:string list
@@ -4019,7 +4019,7 @@ module SymbolInformation : sig
     }
 
   val create :
-    name:string
+       name:string
     -> kind:SymbolKind.t
     -> ?tags:SymbolTag.t list
     -> ?deprecated:bool
@@ -4038,7 +4038,7 @@ module TextDocumentChangeRegistrationOptions : sig
     }
 
   val create :
-    ?documentSelector:DocumentSelector.t
+       ?documentSelector:DocumentSelector.t
     -> syncKind:TextDocumentSyncKind.t
     -> unit
     -> t
@@ -4067,7 +4067,7 @@ module TypeDefinitionParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> position:Position.t
     -> ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
@@ -4103,7 +4103,7 @@ module WillSaveTextDocumentParams : sig
     }
 
   val create :
-    textDocument:TextDocumentIdentifier.t
+       textDocument:TextDocumentIdentifier.t
     -> reason:TextDocumentSaveReason.t
     -> t
 
@@ -4119,7 +4119,7 @@ module WorkDoneProgressBegin : sig
     }
 
   val create :
-    title:string
+       title:string
     -> ?cancellable:bool
     -> ?message:string
     -> ?percentage:int
@@ -4174,7 +4174,7 @@ module WorkspaceSymbolParams : sig
     }
 
   val create :
-    ?workDoneToken:ProgressToken.t
+       ?workDoneToken:ProgressToken.t
     -> ?partialResultToken:ProgressToken.t
     -> query:string
     -> unit
