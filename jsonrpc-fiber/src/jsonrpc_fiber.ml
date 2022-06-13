@@ -134,7 +134,10 @@ struct
           in
           Id.Table.clear t.pending;
           Fiber.parallel_iter to_cancel ~f:(fun ivar ->
-              Fiber.Ivar.fill ivar (Error `Stopped))))
+              let* res = Fiber.Ivar.peek ivar in
+              match res with
+              | Some _ -> Fiber.return ()
+              | None -> Fiber.Ivar.fill ivar (Error `Stopped))))
 
   let create ?(on_request = on_request_fail)
       ?(on_notification = on_notification_fail) ~name chan state =

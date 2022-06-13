@@ -265,6 +265,7 @@ let%expect_test "test from jsonrpc_test.ml" =
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
 
 let%expect_test "cancellation" =
+  let () = Printexc.record_backtrace true in
   let print packet =
     print_endline
       (Yojson.Safe.pretty_to_string ~std:false
@@ -294,7 +295,6 @@ let%expect_test "cancellation" =
   let client chan = Jrpc.create ~name:"client" chan () in
   let responses = ref [] in
   let run () =
-    let pool = Fiber.Pool.create () in
     let client_in, _ = pipe () in
     let server_in, client_out = pipe () in
     let out = of_ref responses in
@@ -304,39 +304,32 @@ let%expect_test "cancellation" =
       Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" ()
     in
     let cancel, req = Jrpc.request_with_cancel client request in
-    let* () =
-      Fiber.Pool.task pool ~f:(fun () ->
-          print_endline
-            "client: waiting for server ack before cancelling request";
-          let* () = Fiber.Ivar.read server_req_ack in
-          print_endline "client: got server ack, cancelling request";
-          let* () = Jrpc.fire cancel in
-          Fiber.Ivar.fill client_req_ack ())
+    let fire_cancellation =
+      let* () = Fiber.return () in
+      print_endline "client: waiting for server ack before cancelling request";
+      let* () = Fiber.Ivar.read server_req_ack in
+      print_endline "client: got server ack, cancelling request";
+      let* () = Jrpc.fire cancel in
+      Fiber.Ivar.fill client_req_ack ()
     in
-    let initial_request () =
+    let initial_request =
+      let* () = Fiber.return () in
       print_endline "client: sending request";
-      let* resp = req in
-      (match resp with
+      let+ resp = req in
+      match resp with
       | `Cancelled -> print_endline "request has been cancelled"
       | `Ok resp ->
         print_endline "request response:";
-        print (Response resp));
-      Fiber.return ()
+        print (Response resp)
     in
-    let all =
-      Fiber.all_concurrently
-        [ Fiber.Pool.run pool
-        ; Jrpc.run client
-        ; initial_request ()
-        ; Jrpc.run server
-        ]
-    in
-    Fiber.fork_and_join_unit
-      (fun () ->
-        Fiber.fork_and_join_unit
-          (fun () -> Jrpc.stopped client)
-          (fun () -> Jrpc.stopped server))
-      (fun () -> all)
+    Fiber.all_concurrently
+      [ fire_cancellation
+      ; Jrpc.run client >>> Jrpc.stop server
+      ; initial_request >>> Jrpc.stop client
+      ; Jrpc.run server
+      ; Jrpc.stopped client
+      ; Jrpc.stopped server
+      ]
   in
   Fiber_test.test Dyn.opaque run;
   (* Ensure that server still responds even if the request was cancelled.
@@ -347,8 +340,8 @@ let%expect_test "cancellation" =
          print_json json);
   [%expect
     {|
-    client: sending request
     client: waiting for server ack before cancelling request
+    client: sending request
     server: received request
     { "id": "initial", "method": "init", "jsonrpc": "2.0" }
     server: waiting for client ack before sending response
