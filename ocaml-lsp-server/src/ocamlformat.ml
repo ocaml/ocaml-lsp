@@ -77,7 +77,15 @@ let message = function
   | Unknown_extension uri ->
     Printf.sprintf "Unable to format. File %s has an unknown extension"
       (Uri.to_path uri)
-  | Unexpected_result { message } -> message
+  | Unexpected_result { message } -> (
+    match String.split message ~on:'\n' with
+    | l0 :: l1 :: _ when String.is_suffix l0 ~suffix:"(syntax error)" -> (
+      match String.split l1 ~on:',' with
+      | [ _file; line; chars ] ->
+        sprintf "Syntax error: %s, %s. Formatting failed" line
+          (String.drop_suffix_if_exists chars ~suffix:":")
+      | _ -> message)
+    | _ :: _ | [] -> message)
 
 type formatter =
   | Reason of Document.Kind.t
