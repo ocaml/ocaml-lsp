@@ -277,13 +277,12 @@ struct
       Fiber.Cancel.with_handler cancel
         ~on_cancel:(fun () -> on_cancel jsonrpc_req.id)
         (fun () ->
-          let _, req_f =
-            Session.request_with_cancel (Fdecl.get t.session) jsonrpc_req
-          in
-          let+ resp = req_f in
-          match resp with
-          | `Cancelled -> `Cancelled
-          | `Ok resp -> `Ok (receive_response req resp))
+          let+ resp = Session.request (Fdecl.get t.session) jsonrpc_req in
+          match resp.result with
+          | Error { code = RequestCancelled; _ } -> `Cancelled
+          | Ok _ when Fiber.Cancel.fired cancel -> `Cancelled
+          | Ok s -> `Ok (Out_request.response_of_json req s)
+          | Error e -> raise (Jsonrpc.Response.Error.E e))
     in
     match cancel_status with
     | Cancelled () -> `Cancelled
