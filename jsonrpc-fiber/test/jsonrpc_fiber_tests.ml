@@ -293,13 +293,11 @@ let%expect_test "cancellation" =
     Jrpc.create ~name:"server" ~on_request chan ()
   in
   let client chan = Jrpc.create ~name:"client" chan () in
-  let responses = ref [] in
   let run () =
-    let client_in, _ = pipe () in
-    let server_in, client_out = pipe () in
-    let out = of_ref responses in
-    let client = client (client_in, client_out) in
-    let server = server (server_in, out) in
+    let client_in, client_out = pipe () in
+    let server_in, server_out = pipe () in
+    let client = client (client_in, server_out) in
+    let server = server (server_in, client_out) in
     let request =
       Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" ()
     in
@@ -324,20 +322,17 @@ let%expect_test "cancellation" =
     in
     Fiber.all_concurrently
       [ fire_cancellation
-      ; Jrpc.run client >>> Jrpc.stop server
-      ; initial_request >>> Jrpc.stop client
+      ; Jrpc.run client
+      ; initial_request
+        >>> Fiber.fork_and_join_unit
+              (fun () -> Out.write server_out None >>> Jrpc.stop client)
+              (fun () -> Jrpc.stop server)
       ; Jrpc.run server
       ; Jrpc.stopped client
       ; Jrpc.stopped server
       ]
   in
   Fiber_test.test Dyn.opaque run;
-  (* Ensure that server still responds even if the request was cancelled.
-     Required by the lsp spec *)
-  List.rev !responses
-  |> List.iter ~f:(fun packet ->
-         let json = Jsonrpc.Packet.yojson_of_t packet in
-         print_json json);
   [%expect
     {|
     client: waiting for server ack before cancelling request
@@ -348,5 +343,4 @@ let%expect_test "cancellation" =
     client: got server ack, cancelling request
     request has been cancelled
     server: got client ack, sending response
-    [FAIL] unexpected Never raised
-    { "id": "initial", "jsonrpc": "2.0", "result": "Ok" } |}]
+    <opaque> |}]

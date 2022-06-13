@@ -180,6 +180,7 @@ struct
       t.tick <- t.tick + 1;
       log t (fun () -> Log.msg "new tick" [ ("tick", `Int t.tick) ]);
       let* res = Chan.recv t.chan in
+      log t (fun () -> Log.msg "waited for something" []);
       match res with
       | None -> Fiber.return ()
       | Some packet -> (
@@ -206,6 +207,7 @@ struct
         | Some _ -> Fiber.return ()
         | None -> Fiber.Ivar.fill ivar (Ok r))
     and on_request (r : Request.t) =
+      log t (fun () -> Log.msg "handling request" []);
       let* result =
         let sent = ref false in
         Fiber.map_reduce_errors
@@ -219,6 +221,7 @@ struct
               Fiber.Pool.task later ~f:(fun () -> send_response response))
           (fun () -> t.on_request (t, r))
       in
+      log t (fun () -> Log.msg "received result" []);
       match result with
       | Error () -> loop ()
       | Ok (reply, state) ->
