@@ -960,26 +960,29 @@ module Position = struct
   let create ~(line : int) ~(character : int) : t = { line; character }
 end
 
-module PositionEncodingKind =
-struct
-  type t = string
-  [@@deriving_inline yojson]
+module PositionEncodingKind = struct
+  type t =
+    | Utf8
+    | Utf16
+    | Utf32
+    | Other of string
 
-  let _ = fun (_ : t) -> ()
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | Utf8 -> `String "utf-8"
+    | Utf16 -> `String "utf-16"
+    | Utf32 -> `String "utf-32"
+    | Other s -> `String s
 
-  let t_of_yojson = (string_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-
-  let _ = t_of_yojson
-
-  let yojson_of_t = (yojson_of_string : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-
-  let _ = yojson_of_t
-
-  [@@@end]
-
-  let utf_8 = "utf-8"
-  let utf_16 = "utf-16"
-  let utf_32 = "utf-32"
+  let t_of_yojson (json : Json.t) : t =
+    match json with
+    | `String "utf-8" -> Utf8
+    | `String "utf-16" -> Utf16
+    | `String "utf-32" -> Utf32
+    | `String s -> Other s
+    | _ ->
+      Json.error
+        "Invalid value. Expected one of: \"utf-8\", \"utf-16\", \"utf-32\"" json
 end
 
 module Range = struct
@@ -12409,9 +12412,8 @@ module ClientCapabilities = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   (list_of_yojson
-                     PositionEncodingKind.t_of_yojson)
-		   _field_yojson
+                   (list_of_yojson PositionEncodingKind.t_of_yojson)
+                   _field_yojson
                in
                positionEncodings_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -12433,9 +12435,10 @@ module ClientCapabilities = struct
              (Ppx_yojson_conv_lib.( ! ) extra)
              yojson
          | [] ->
-           let regularExpressions_value, markdown_value, positionEncodings_value =
+           let regularExpressions_value, markdown_value, positionEncodings_value
+               =
              ( Ppx_yojson_conv_lib.( ! ) regularExpressions_field
-             , Ppx_yojson_conv_lib.( ! ) markdown_field 
+             , Ppx_yojson_conv_lib.( ! ) markdown_field
              , Ppx_yojson_conv_lib.( ! ) positionEncodings_field )
            in
            { regularExpressions =
@@ -12446,7 +12449,7 @@ module ClientCapabilities = struct
                (match markdown_value with
                | Ppx_yojson_conv_lib.Option.None -> None
                | Ppx_yojson_conv_lib.Option.Some v -> v)
-	   ; positionEncodings =
+           ; positionEncodings =
                (match positionEncodings_value with
                | Ppx_yojson_conv_lib.Option.None -> None
                | Ppx_yojson_conv_lib.Option.Some v -> v)
@@ -12469,7 +12472,8 @@ module ClientCapabilities = struct
          if None = v_markdown then bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t MarkdownClientCapabilities.yojson_of_t)
+             (Json.Nullable_option.yojson_of_t
+                MarkdownClientCapabilities.yojson_of_t)
                v_markdown
            in
            let bnd = ("markdown", arg) in
@@ -12507,7 +12511,8 @@ module ClientCapabilities = struct
   let create_general
       ?(regularExpressions : RegularExpressionsClientCapabilities.t option)
       ?(markdown : MarkdownClientCapabilities.t option)
-      ?(positionEncodings : PositionEncodingKind.t list option) (() : unit) : general =
+      ?(positionEncodings : PositionEncodingKind.t list option) (() : unit) :
+      general =
     { regularExpressions; markdown; positionEncodings }
 
   type window =
@@ -30451,15 +30456,14 @@ module ServerCapabilities = struct
        let rec iter = function
          | (field_name, _field_yojson) :: tail ->
            (match field_name with
-	   | "positionEncoding" -> (
-	     match Ppx_yojson_conv_lib.( ! ) positionEncoding_field with
+           | "positionEncoding" -> (
+             match Ppx_yojson_conv_lib.( ! ) positionEncoding_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
                    PositionEncodingKind.t_of_yojson _field_yojson
                in
-               positionEncoding_field :=
-                 Ppx_yojson_conv_lib.Option.Some fvalue
+               positionEncoding_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
            | "textDocumentSync" -> (
@@ -30798,7 +30802,7 @@ module ServerCapabilities = struct
              yojson
          | [] ->
            let ( positionEncoding_value
-	       , textDocumentSync_value
+               , textDocumentSync_value
                , completionProvider_value
                , hoverProvider_value
                , signatureHelpProvider_value
@@ -30862,7 +30866,7 @@ module ServerCapabilities = struct
                (match positionEncoding_value with
                | Ppx_yojson_conv_lib.Option.None -> None
                | Ppx_yojson_conv_lib.Option.Some v -> v)
-	   ; textDocumentSync =
+           ; textDocumentSync =
                (match textDocumentSync_value with
                | Ppx_yojson_conv_lib.Option.None -> None
                | Ppx_yojson_conv_lib.Option.Some v -> v)

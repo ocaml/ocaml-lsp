@@ -329,11 +329,11 @@ module Position : sig
 end
 
 module PositionEncodingKind : sig
-  type t = string
-
-  val utf_8 : t
-  val utf_16 : t
-  val utf_32 : t
+  type t =
+    | Utf8
+    | Utf16
+    | Utf32
+    | Other of string
 
   include Json.Jsonable.S with type t := t
 end
