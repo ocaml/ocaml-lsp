@@ -11,6 +11,7 @@ type _ t =
       TextDocumentPositionParams.t
       -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
+  | TextDocumentImplementation : ImplementationParams.t -> Locations.t option t
   | TextDocumentCompletion :
       CompletionParams.t
       -> [ `CompletionList of CompletionList.t
@@ -20,7 +21,13 @@ type _ t =
          t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
+  | TextDocumentPrepareCallHierarchy :
+      CallHierarchyPrepareParams.t
+      -> CallHierarchyItem.t list option t
   | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
+  | TextDocumentRangeFormatting :
+      DocumentRangeFormattingParams.t
+      -> TextEdit.t list option t
   | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
   | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
@@ -79,6 +86,15 @@ type _ t =
   | LinkedEditingRange :
       LinkedEditingRangeParams.t
       -> LinkedEditingRanges.t option t
+  | CallHierarchyIncomingCalls :
+      CallHierarchyIncomingCallsParams.t
+      -> CallHierarchyIncomingCall.t list option t
+  | CallHierarchyOutgoingCalls :
+      CallHierarchyOutgoingCallsParams.t
+      -> CallHierarchyOutgoingCall.t list option t
+  | WillCreateFiles : CreateFilesParams.t -> WorkspaceEdit.t option t
+  | WillDeleteFiles : DeleteFilesParams.t -> WorkspaceEdit.t option t
+  | WillRenameFiles : RenameFilesParams.t -> WorkspaceEdit.t option t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Structured.t option

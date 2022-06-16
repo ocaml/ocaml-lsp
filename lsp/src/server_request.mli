@@ -12,6 +12,7 @@ type _ t =
   | ShowMessageRequest :
       ShowMessageRequestParams.t
       -> MessageActionItem.t option t
+  | ShowDocumentRequest : ShowDocumentParams.t -> ShowDocumentResult.t t
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | CodeLensRefresh : unit t
   | SemanticTokensRefresh : unit t

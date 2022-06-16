@@ -7,12 +7,17 @@ type t =
   | TextDocumentDidChange of DidChangeTextDocumentParams.t
   | DidSaveTextDocument of DidSaveTextDocumentParams.t
   | WillSaveTextDocument of WillSaveTextDocumentParams.t
+  | DidChangeWatchedFiles of DidChangeWatchedFilesParams.t
+  | DidCreateFiles of CreateFilesParams.t
+  | DidDeleteFiles of DeleteFilesParams.t
+  | DidRenameFiles of RenameFilesParams.t
   | ChangeWorkspaceFolders of DidChangeWorkspaceFoldersParams.t
   | ChangeConfiguration of DidChangeConfigurationParams.t
   | Initialized
   | Exit
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
+  | LogTrace of LogTraceParams.t
   | SetTrace of SetTraceParams.t
   | UnknownNotification of Jsonrpc.Notification.t
 
@@ -26,6 +31,11 @@ let method_ = function
   | ChangeConfiguration _ -> "workspace/didChangeConfiguration"
   | WillSaveTextDocument _ -> "textDocument/willSave"
   | DidSaveTextDocument _ -> "textDocument/didSave"
+  | DidChangeWatchedFiles _ -> "workspace/didChangeWatchedFiles"
+  | DidCreateFiles _ -> "workspace/didCreateFiles"
+  | DidDeleteFiles _ -> "workspace/didDeleteFiles"
+  | DidRenameFiles _ -> "workspace/didRenameFiles"
+  | LogTrace _ -> "$/logTrace"
   | SetTrace _ -> "$/setTrace"
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
@@ -48,9 +58,14 @@ let yojson_of_t = function
     Some (WillSaveTextDocumentParams.yojson_of_t params)
   | DidSaveTextDocument params ->
     Some (DidSaveTextDocumentParams.yojson_of_t params)
+  | DidChangeWatchedFiles params -> Some (DidChangeWatchedFilesParams.yojson_of_t params)
+  | DidCreateFiles params -> Some (CreateFilesParams.yojson_of_t params)
+  | DidDeleteFiles params -> Some (DeleteFilesParams.yojson_of_t params)
+  | DidRenameFiles params -> Some (RenameFilesParams.yojson_of_t params)
   | CancelRequest params -> Some (Cancel_request.yojson_of_t params)
   | WorkDoneProgressCancel params ->
     Some (WorkDoneProgressCancelParams.yojson_of_t params)
+  | LogTrace params -> Some (LogTraceParams.yojson_of_t params)
   | SetTrace params -> Some (SetTraceParams.yojson_of_t params)
   | UnknownNotification n -> (n.params :> Json.t option)
 
@@ -95,6 +110,20 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
       Json.message_params params DidSaveTextDocumentParams.t_of_yojson
     in
     DidSaveTextDocument params
+  | "workspace/didChangeWatchedFiles" ->
+     let+ params =
+       Json.message_params r DidChangeWatchedFilesParams.t_of_yojson
+     in
+     DidChangeWatchedFiles params
+  | "workspace/didCreateFiles" ->
+    let+ params = Json.message_params r CreateFilesParams.t_of_yojson in
+    DidCreateFiles params
+  | "workspace/didDeleteFiles" ->
+    let+ params = Json.message_params r DeleteFilesParams.t_of_yojson in
+    DidDeleteFiles params
+  | "workspace/didRenameFiles" ->
+    let+ params = Json.message_params r RenameFilesParams.t_of_yojson in
+    DidRenameFiles params
   | m when m = Cancel_request.meth_ ->
     let+ params = Json.message_params params Cancel_request.t_of_yojson in
     CancelRequest params
@@ -103,6 +132,9 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
       Json.message_params params WorkDoneProgressCancelParams.t_of_yojson
     in
     WorkDoneProgressCancel params
+  | "$/logTrace" ->
+    let+ params = Json.message_params r LogTraceParams.t_of_yojson in
+    LogTrace params
   | "$/setTrace" ->
     let+ params = Json.message_params params SetTraceParams.t_of_yojson in
     SetTrace params
