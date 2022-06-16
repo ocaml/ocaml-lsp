@@ -935,11 +935,19 @@ let on_request :
       ()
   | TextDocumentOnTypeFormatting _ -> now None
   | SelectionRange req -> later selection_range req
-  | TextDocumentMoniker _ -> not_supported ()
-  | SemanticTokensFull _ -> not_supported ()
+  | TextDocumentImplementation _ -> not_supported ()
   | SemanticTokensDelta _ -> not_supported ()
+  | TextDocumentMoniker _ -> not_supported ()
+  | TextDocumentPrepareCallHierarchy _ -> not_supported ()
+  | TextDocumentRangeFormatting _ -> not_supported ()
+  | CallHierarchyIncomingCalls _ -> not_supported ()
+  | CallHierarchyOutgoingCalls _ -> not_supported ()
+  | SemanticTokensFull _ -> not_supported ()
   | SemanticTokensRange _ -> not_supported ()
   | LinkedEditingRange _ -> not_supported ()
+  | WillCreateFiles _ -> not_supported ()
+  | WillRenameFiles _ -> not_supported ()
+  | WillDeleteFiles _ -> not_supported ()
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =
@@ -1001,8 +1009,15 @@ let on_notification server (notification : Client_notification.t) :
     in
     Dune.update_workspaces (State.dune state) (State.workspaces state);
     Fiber.return state
-  | WillSaveTextDocument _ | Initialized | WorkDoneProgressCancel _ | Exit ->
-    Fiber.return state
+  | DidChangeWatchedFiles _
+  | DidCreateFiles _
+  | DidDeleteFiles _
+  | DidRenameFiles _
+  | LogTrace _
+  | WillSaveTextDocument _
+  | Initialized
+  | WorkDoneProgressCancel _
+  | Exit -> Fiber.return state
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | UnknownNotification req ->
     let+ () =

@@ -12,6 +12,7 @@ type _ t =
   | ShowMessageRequest :
       ShowMessageRequestParams.t
       -> MessageActionItem.t option t
+  | ShowDocumentRequest : ShowDocumentParams.t -> ShowDocumentResult.t t
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | CodeLensRefresh : unit t
   | SemanticTokensRefresh : unit t
@@ -27,6 +28,7 @@ let method_ (type a) (t : a t) =
   | ClientRegisterCapability _ -> "client/registerCapability"
   | ClientUnregisterCapability _ -> "client/unregisterCapability"
   | ShowMessageRequest _ -> "window/showMessageRequest"
+  | ShowDocumentRequest _ -> "window/showDocument"
   | WorkDoneProgressCreate _ -> "window/workDoneProgress/create"
   | CodeLensRefresh -> "workspace/codeLens/refresh"
   | SemanticTokensRefresh -> "workspace/semanticTokens/refresh"
@@ -47,6 +49,7 @@ let params =
       ret (UnregistrationParams.yojson_of_t params)
     | ShowMessageRequest params ->
       ret (ShowMessageRequestParams.yojson_of_t params)
+    | ShowDocumentRequest params -> ret (ShowDocumentParams.yojson_of_t params)
     | WorkDoneProgressCreate params ->
       ret (WorkDoneProgressCreateParams.yojson_of_t params)
     | CodeLensRefresh -> None
@@ -78,6 +81,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
   | "window/showMessageRequest" ->
     let+ params = parse ShowMessageRequestParams.t_of_yojson in
     E (ShowMessageRequest params)
+  | "window/showDocument" ->
+    let+ params = parse ShowDocumentParams.t_of_yojson in
+    E (ShowDocumentRequest params)
   | "window/workDoneProgress/create" ->
     let+ params = parse WorkDoneProgressCreateParams.t_of_yojson in
     E (WorkDoneProgressCreate params)
@@ -93,10 +99,10 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   | WorkspaceConfiguration _, r -> Json.Conv.yojson_of_list (fun x -> x) r
   | ClientRegisterCapability _, () -> `Null
   | ClientUnregisterCapability _, () -> `Null
-  | ShowMessageRequest _, None -> `Null
   | WorkDoneProgressCreate _, () -> `Null
   | ShowMessageRequest _, r ->
     Json.Conv.yojson_of_option MessageActionItem.yojson_of_t r
+  | ShowDocumentRequest _, r -> ShowDocumentResult.yojson_of_t r
   | CodeLensRefresh, _ -> `Null
   | SemanticTokensRefresh, _ -> `Null
   | UnknownRequest (_, _), json -> json
@@ -110,6 +116,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | ClientRegisterCapability _ -> unit_of_yojson json
   | ClientUnregisterCapability _ -> unit_of_yojson json
   | ShowMessageRequest _ -> option_of_yojson MessageActionItem.t_of_yojson json
+  | ShowDocumentRequest _ -> ShowDocumentResult.t_of_yojson json
   | WorkDoneProgressCreate _ -> unit_of_yojson json
   | CodeLensRefresh -> unit_of_yojson json
   | SemanticTokensRefresh -> unit_of_yojson json

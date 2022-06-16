@@ -11,6 +11,7 @@ type _ t =
       TextDocumentPositionParams.t
       -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
+  | TextDocumentImplementation : ImplementationParams.t -> Locations.t option t
   | TextDocumentCompletion :
       CompletionParams.t
       -> [ `CompletionList of CompletionList.t
@@ -20,7 +21,13 @@ type _ t =
          t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
+  | TextDocumentPrepareCallHierarchy :
+      CallHierarchyPrepareParams.t
+      -> CallHierarchyItem.t list option t
   | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
+  | TextDocumentRangeFormatting :
+      DocumentRangeFormattingParams.t
+      -> TextEdit.t list option t
   | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
   | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
@@ -79,6 +86,15 @@ type _ t =
   | LinkedEditingRange :
       LinkedEditingRangeParams.t
       -> LinkedEditingRanges.t option t
+  | CallHierarchyIncomingCalls :
+      CallHierarchyIncomingCallsParams.t
+      -> CallHierarchyIncomingCall.t list option t
+  | CallHierarchyOutgoingCalls :
+      CallHierarchyOutgoingCallsParams.t
+      -> CallHierarchyOutgoingCall.t list option t
+  | WillCreateFiles : CreateFilesParams.t -> WorkspaceEdit.t option t
+  | WillDeleteFiles : DeleteFilesParams.t -> WorkspaceEdit.t option t
+  | WillRenameFiles : RenameFilesParams.t -> WorkspaceEdit.t option t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Structured.t option
@@ -118,11 +134,17 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t Locations.yojson_of_t result
   | TextDocumentTypeDefinition _, result ->
     Json.Option.yojson_of_t Locations.yojson_of_t result
+  | TextDocumentImplementation _, result ->
+    Json.Option.yojson_of_t Locations.yojson_of_t result
   | TextDocumentCompletion _, result -> yojson_of_Completion result
   | TextDocumentCodeLens _, result -> Json.To.list CodeLens.yojson_of_t result
   | TextDocumentCodeLensResolve _, result -> CodeLens.yojson_of_t result
+  | TextDocumentPrepareCallHierarchy _, result ->
+    Json.Option.yojson_of_t (Json.To.list CallHierarchyItem.yojson_of_t) result
   | TextDocumentPrepareRename _, result ->
     Json.Option.yojson_of_t Range.yojson_of_t result
+  | TextDocumentRangeFormatting _, result ->
+    Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
   | TextDocumentRename _, result -> WorkspaceEdit.yojson_of_t result
   | DocumentSymbol _, result -> yojson_of_DocumentSymbol result
   | DebugEcho _, result -> DebugEcho.Result.yojson_of_t result
@@ -164,6 +186,20 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t SemanticTokens.yojson_of_t result
   | LinkedEditingRange _, result ->
     Json.Option.yojson_of_t LinkedEditingRanges.yojson_of_t result
+  | CallHierarchyIncomingCalls _, result ->
+    Json.Option.yojson_of_t
+      (Json.To.list CallHierarchyIncomingCall.yojson_of_t)
+      result
+  | CallHierarchyOutgoingCalls _, result ->
+    Json.Option.yojson_of_t
+      (Json.To.list CallHierarchyOutgoingCall.yojson_of_t)
+      result
+  | WillCreateFiles _, result ->
+    Json.Option.yojson_of_t WorkspaceEdit.yojson_of_t result
+  | WillDeleteFiles _, result ->
+    Json.Option.yojson_of_t WorkspaceEdit.yojson_of_t result
+  | WillRenameFiles _, result ->
+    Json.Option.yojson_of_t WorkspaceEdit.yojson_of_t result
   | ExecuteCommand _, result -> result
   | UnknownRequest _, resp -> resp
 
@@ -195,15 +231,24 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/typeDefinition" ->
     let+ params = parse TypeDefinitionParams.t_of_yojson in
     E (TextDocumentTypeDefinition params)
+  | "textDocument/implementation" ->
+    let+ params = parse ImplementationParams.t_of_yojson in
+    E (TextDocumentImplementation params)
   | "textDocument/references" ->
     let+ params = parse ReferenceParams.t_of_yojson in
     E (TextDocumentReferences params)
   | "textDocument/codeLens" ->
     let+ params = parse CodeLensParams.t_of_yojson in
     E (TextDocumentCodeLens params)
+  | "textDocument/prepareCallHierarchy" ->
+    let+ params = parse CallHierarchyPrepareParams.t_of_yojson in
+    E (TextDocumentPrepareCallHierarchy params)
   | "textDocument/prepareRename" ->
     let+ params = parse PrepareRenameParams.t_of_yojson in
     E (TextDocumentPrepareRename params)
+  | "textDocument/rangeFormatting" ->
+    let+ params = parse DocumentRangeFormattingParams.t_of_yojson in
+    E (TextDocumentRangeFormatting params)
   | "textDocument/rename" ->
     let+ params = parse RenameParams.t_of_yojson in
     E (TextDocumentRename params)
@@ -237,7 +282,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/documentLink" ->
     let+ params = parse DocumentLinkParams.t_of_yojson in
     E (TextDocumentLink params)
-  | "textDocument/resolve" ->
+  | "documentLink/resolve" ->
     let+ params = parse DocumentLink.t_of_yojson in
     E (TextDocumentLinkResolve params)
   | "workspace/symbol" ->
@@ -270,34 +315,238 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/linkedEditingRange" ->
     let+ params = parse LinkedEditingRangeParams.t_of_yojson in
     E (LinkedEditingRange params)
+  | "callHierarchy/incomingCalls" ->
+    let+ params = parse CallHierarchyIncomingCallsParams.t_of_yojson in
+    E (CallHierarchyIncomingCalls params)
+  | "callHierarchy/outgoingCalls" ->
+    let+ params = parse CallHierarchyOutgoingCallsParams.t_of_yojson in
+    E (CallHierarchyOutgoingCalls params)
+  | "workspace/willCreateFiles" ->
+    let+ params = parse CreateFilesParams.t_of_yojson in
+    E (WillCreateFiles params)
+  | "workspace/willDeleteFiles" ->
+    let+ params = parse DeleteFilesParams.t_of_yojson in
+    E (WillDeleteFiles params)
+  | "workspace/willRenameFiles" ->
+    let+ params = parse RenameFilesParams.t_of_yojson in
+    E (WillRenameFiles params)
   | "textDocument/moniker" ->
     let+ params = parse MonikerParams.t_of_yojson in
     E (TextDocumentMoniker params)
+  | "codeLens/resolve" ->
+    let+ params = parse CodeLens.t_of_yojson in
+    E (TextDocumentCodeLensResolve params)
+  | "textDocument/willSaveWaitUntil" ->
+    let+ params = parse WillSaveTextDocumentParams.t_of_yojson in
+    E (WillSaveWaitUntilTextDocument params)
   | meth -> Ok (E (UnknownRequest { meth; params = r.params }))
 
 let method_ (type a) (t : a t) =
   match t with
+  | Shutdown -> "shutdown"
   | Initialize _ -> "initialize"
+  | TextDocumentCompletion _ -> "textDocument/completion"
+  | CompletionItemResolve _ -> "completionItem/resolve"
+  | DocumentSymbol _ -> "textDocument/documentSymbol"
+  | TextDocumentHover _ -> "textDocument/hover"
+  | TextDocumentDefinition _ -> "textDocument/definition"
+  | TextDocumentTypeDefinition _ -> "textDocument/typeDefinition"
+  | TextDocumentImplementation _ -> "textDocument/implementation"
+  | TextDocumentReferences _ -> "textDocument/references"
+  | TextDocumentCodeLens _ -> "textDocument/codeLens"
+  | TextDocumentCodeLensResolve _ -> "codeLens/resolve"
+  | TextDocumentPrepareCallHierarchy _ -> "textDocument/prepareCallHierarchy"
+  | TextDocumentPrepareRename _ -> "textDocument/prepareRename"
+  | TextDocumentRangeFormatting _ -> "textDocument/rangeFormatting"
+  | TextDocumentRename _ -> "textDocument/rename"
+  | TextDocumentHighlight _ -> "textDocument/documentHighlight"
+  | TextDocumentFoldingRange _ -> "textDocument/foldingRange"
+  | SignatureHelp _ -> "textDocument/signatureHelp"
+  | CodeAction _ -> "textDocument/codeAction"
+  | CodeActionResolve _ -> "codeAction/resolve"
+  | DebugEcho _ -> "debug/echo"
+  | DebugTextDocumentGet _ -> "debug/textDocument/get"
+  | TextDocumentOnTypeFormatting _ -> "textDocument/onTypeFormatting"
+  | TextDocumentFormatting _ -> "textDocument/formatting"
+  | TextDocumentLink _ -> "textDocument/documentLink"
+  | TextDocumentLinkResolve _ -> "documentLink/resolve"
+  | WorkspaceSymbol _ -> "workspace/symbol"
+  | TextDocumentColorPresentation _ -> "textDocument/colorPresentation"
+  | TextDocumentColor _ -> "textDocument/documentColor"
+  | TextDocumentDeclaration _ -> "textDocument/declaration"
+  | SelectionRange _ -> "textDocument/selectionRange"
   | ExecuteCommand _ -> "workspace/executeCommand"
-  | _ -> assert false
+  | SemanticTokensFull _ -> "textDocument/semanticTokens/full"
+  | SemanticTokensDelta _ -> "textDocument/semanticTokens/full/delta"
+  | SemanticTokensRange _ -> "textDocument/semanticTokens/range"
+  | LinkedEditingRange _ -> "textDocument/linkedEditingRange"
+  | CallHierarchyIncomingCalls _ -> "callHierarchy/incomingCalls"
+  | CallHierarchyOutgoingCalls _ -> "callHierarchy/outgoingCalls"
+  | WillCreateFiles _ -> "workspace/willCreateFiles"
+  | WillDeleteFiles _ -> "workspace/willDeleteFiles"
+  | WillRenameFiles _ -> "workspace/willRenameFiles"
+  | TextDocumentMoniker _ -> "textDocument/moniker"
+  | WillSaveWaitUntilTextDocument _ -> "textDocument/willSaveWaitUntil"
+  | UnknownRequest { meth; _ } -> meth
 
-let params (type a) (t : a t) =
-  Jsonrpc.Structured.t_of_yojson
-    (match t with
-    | Initialize params -> InitializeParams.yojson_of_t params
-    | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
-    | _ -> assert false)
+let params =
+  let ret x = Some (Jsonrpc.Structured.t_of_yojson x) in
+  fun (type a) (t : a t) ->
+    match t with
+    | Shutdown -> None
+    | Initialize params -> ret (InitializeParams.yojson_of_t params)
+    | TextDocumentCompletion params -> ret (CompletionParams.yojson_of_t params)
+    | CompletionItemResolve params -> ret (CompletionItem.yojson_of_t params)
+    | DocumentSymbol params -> ret (DocumentSymbolParams.yojson_of_t params)
+    | TextDocumentHover params -> ret (HoverParams.yojson_of_t params)
+    | TextDocumentDefinition params -> ret (DefinitionParams.yojson_of_t params)
+    | TextDocumentTypeDefinition params ->
+      ret (TypeDefinitionParams.yojson_of_t params)
+    | TextDocumentImplementation params ->
+      ret (ImplementationParams.yojson_of_t params)
+    | TextDocumentReferences params -> ret (ReferenceParams.yojson_of_t params)
+    | TextDocumentCodeLens params -> ret (CodeLensParams.yojson_of_t params)
+    | TextDocumentPrepareCallHierarchy params ->
+      ret (CallHierarchyPrepareParams.yojson_of_t params)
+    | TextDocumentPrepareRename params ->
+      ret (PrepareRenameParams.yojson_of_t params)
+    | TextDocumentRangeFormatting params ->
+      ret (DocumentRangeFormattingParams.yojson_of_t params)
+    | TextDocumentRename params -> ret (RenameParams.yojson_of_t params)
+    | TextDocumentHighlight params ->
+      ret (DocumentHighlightParams.yojson_of_t params)
+    | TextDocumentFoldingRange params ->
+      ret (FoldingRangeParams.yojson_of_t params)
+    | SignatureHelp params -> ret (SignatureHelpParams.yojson_of_t params)
+    | CodeAction params -> ret (CodeActionParams.yojson_of_t params)
+    | CodeActionResolve params -> ret (CodeAction.yojson_of_t params)
+    | DebugEcho params -> ret (DebugEcho.Params.yojson_of_t params)
+    | DebugTextDocumentGet params ->
+      ret (DebugTextDocumentGet.Params.yojson_of_t params)
+    | TextDocumentOnTypeFormatting params ->
+      ret (DocumentOnTypeFormattingParams.yojson_of_t params)
+    | TextDocumentFormatting params ->
+      ret (DocumentFormattingParams.yojson_of_t params)
+    | TextDocumentLink params -> ret (DocumentLinkParams.yojson_of_t params)
+    | TextDocumentLinkResolve params -> ret (DocumentLink.yojson_of_t params)
+    | WorkspaceSymbol params -> ret (WorkspaceSymbolParams.yojson_of_t params)
+    | TextDocumentColorPresentation params ->
+      ret (ColorPresentationParams.yojson_of_t params)
+    | TextDocumentColor params -> ret (DocumentColorParams.yojson_of_t params)
+    | TextDocumentDeclaration params ->
+      ret (TextDocumentPositionParams.yojson_of_t params)
+    | SelectionRange params -> ret (SelectionRangeParams.yojson_of_t params)
+    | ExecuteCommand params -> ret (ExecuteCommandParams.yojson_of_t params)
+    | SemanticTokensFull params -> ret (SemanticTokensParams.yojson_of_t params)
+    | SemanticTokensDelta params ->
+      ret (SemanticTokensDeltaParams.yojson_of_t params)
+    | SemanticTokensRange params ->
+      ret (SemanticTokensRangeParams.yojson_of_t params)
+    | LinkedEditingRange params ->
+      ret (LinkedEditingRangeParams.yojson_of_t params)
+    | CallHierarchyIncomingCalls params ->
+      ret (CallHierarchyIncomingCallsParams.yojson_of_t params)
+    | CallHierarchyOutgoingCalls params ->
+      ret (CallHierarchyOutgoingCallsParams.yojson_of_t params)
+    | WillCreateFiles params -> ret (CreateFilesParams.yojson_of_t params)
+    | WillDeleteFiles params -> ret (DeleteFilesParams.yojson_of_t params)
+    | WillRenameFiles params -> ret (RenameFilesParams.yojson_of_t params)
+    | TextDocumentMoniker params -> ret (MonikerParams.yojson_of_t params)
+    | TextDocumentCodeLensResolve params -> ret (CodeLens.yojson_of_t params)
+    | WillSaveWaitUntilTextDocument params ->
+      ret (WillSaveTextDocumentParams.yojson_of_t params)
+    | UnknownRequest { params; _ } -> params
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in
   let params = params t in
-  Jsonrpc.Request.create ~id ~method_ ~params ()
+  Jsonrpc.Request.create ~id ~method_ ?params ()
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
+  let open Json.Conv in
   match t with
+  | Shutdown -> unit_of_yojson json
   | Initialize _ -> InitializeResult.t_of_yojson json
+  | TextDocumentHover _ -> option_of_yojson Hover.t_of_yojson json
+  | TextDocumentDefinition _ -> option_of_yojson Locations.t_of_yojson json
+  | TextDocumentDeclaration _ -> option_of_yojson Locations.t_of_yojson json
+  | TextDocumentTypeDefinition _ -> option_of_yojson Locations.t_of_yojson json
+  | TextDocumentImplementation _ -> option_of_yojson Locations.t_of_yojson json
+  | TextDocumentCompletion _ ->
+    option_of_yojson
+      (Json.Of.untagged_union "completion_list"
+         [ (fun json -> `CompletionList (CompletionList.t_of_yojson json))
+         ; (fun json -> `List (list_of_yojson CompletionItem.t_of_yojson json))
+         ])
+      json
+  | TextDocumentCodeLens _ -> list_of_yojson CodeLens.t_of_yojson json
+  | TextDocumentCodeLensResolve _ -> CodeLens.t_of_yojson json
+  | TextDocumentPrepareCallHierarchy _ ->
+    option_of_yojson (list_of_yojson CallHierarchyItem.t_of_yojson) json
+  | TextDocumentPrepareRename _ -> option_of_yojson Range.t_of_yojson json
+  | TextDocumentRangeFormatting _ ->
+    option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
+  | TextDocumentRename _ -> WorkspaceEdit.t_of_yojson json
+  | TextDocumentLink _ ->
+    option_of_yojson (list_of_yojson DocumentLink.t_of_yojson) json
+  | TextDocumentLinkResolve _ -> DocumentLink.t_of_yojson json
+  | TextDocumentMoniker _ ->
+    option_of_yojson (list_of_yojson Moniker.t_of_yojson) json
+  | DocumentSymbol _ ->
+    option_of_yojson
+      (Json.Of.untagged_union "document_symbols"
+         [ (fun json ->
+             `DocumentSymbol (list_of_yojson DocumentSymbol.t_of_yojson json))
+         ; (fun json ->
+             `SymbolInformation
+               (list_of_yojson SymbolInformation.t_of_yojson json))
+         ])
+      json
+  | WorkspaceSymbol _ ->
+    option_of_yojson (list_of_yojson SymbolInformation.t_of_yojson) json
+  | DebugEcho _ -> DebugEcho.Result.t_of_yojson json
+  | DebugTextDocumentGet _ -> DebugTextDocumentGet.Result.t_of_yojson json
+  | TextDocumentReferences _ ->
+    option_of_yojson (list_of_yojson Location.t_of_yojson) json
+  | TextDocumentHighlight _ ->
+    option_of_yojson (list_of_yojson DocumentHighlight.t_of_yojson) json
+  | TextDocumentFoldingRange _ ->
+    option_of_yojson (list_of_yojson FoldingRange.t_of_yojson) json
+  | SignatureHelp _ -> SignatureHelp.t_of_yojson json
+  | CodeAction _ -> CodeActionResult.t_of_yojson json
+  | CodeActionResolve _ -> CodeAction.t_of_yojson json
+  | CompletionItemResolve _ -> CompletionItem.t_of_yojson json
+  | WillSaveWaitUntilTextDocument _ ->
+    option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
+  | TextDocumentFormatting _ ->
+    option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
+  | TextDocumentOnTypeFormatting _ ->
+    option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
+  | TextDocumentColorPresentation _ ->
+    list_of_yojson ColorPresentation.t_of_yojson json
+  | TextDocumentColor _ -> list_of_yojson ColorInformation.t_of_yojson json
+  | SelectionRange _ -> list_of_yojson SelectionRange.t_of_yojson json
   | ExecuteCommand _ -> json
-  | _ -> assert false
+  | SemanticTokensFull _ -> option_of_yojson SemanticTokens.t_of_yojson json
+  | SemanticTokensDelta _ ->
+    option_of_yojson
+      (Json.Of.untagged_union "semantic_tokens"
+         [ (fun json -> `SemanticTokens (SemanticTokens.t_of_yojson json))
+         ; (fun json ->
+             `SemanticTokensDelta (SemanticTokensDelta.t_of_yojson json))
+         ])
+      json
+  | SemanticTokensRange _ -> option_of_yojson SemanticTokens.t_of_yojson json
+  | LinkedEditingRange _ ->
+    option_of_yojson LinkedEditingRanges.t_of_yojson json
+  | CallHierarchyIncomingCalls _ ->
+    option_of_yojson (list_of_yojson CallHierarchyIncomingCall.t_of_yojson) json
+  | CallHierarchyOutgoingCalls _ ->
+    option_of_yojson (list_of_yojson CallHierarchyOutgoingCall.t_of_yojson) json
+  | WillCreateFiles _ -> option_of_yojson WorkspaceEdit.t_of_yojson json
+  | WillDeleteFiles _ -> option_of_yojson WorkspaceEdit.t_of_yojson json
+  | WillRenameFiles _ -> option_of_yojson WorkspaceEdit.t_of_yojson json
+  | UnknownRequest _ -> json
 
 let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   match t with
@@ -313,9 +562,12 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | TextDocumentDefinition r -> Some r.textDocument
   | TextDocumentDeclaration r -> Some r.textDocument
   | TextDocumentTypeDefinition r -> Some r.textDocument
+  | TextDocumentImplementation r -> Some r.textDocument
   | TextDocumentCompletion r -> Some r.textDocument
   | TextDocumentCodeLens r -> Some r.textDocument
+  | TextDocumentPrepareCallHierarchy r -> Some r.textDocument
   | TextDocumentPrepareRename r -> Some r.textDocument
+  | TextDocumentRangeFormatting r -> Some r.textDocument
   | TextDocumentRename r -> Some r.textDocument
   | TextDocumentLink r -> Some r.textDocument
   | DocumentSymbol r -> Some r.textDocument
@@ -337,4 +589,9 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | SemanticTokensDelta r -> Some r.textDocument
   | SemanticTokensRange r -> Some r.textDocument
   | LinkedEditingRange r -> Some r.textDocument
+  | CallHierarchyIncomingCalls _ -> None
+  | CallHierarchyOutgoingCalls _ -> None
+  | WillCreateFiles _ -> None
+  | WillDeleteFiles _ -> None
+  | WillRenameFiles _ -> None
   | UnknownRequest { meth; params } -> f ~meth ~params
