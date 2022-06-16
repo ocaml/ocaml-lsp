@@ -383,7 +383,8 @@ end = struct
       match
         List.filter exns ~f:(fun exn ->
             match exn with
-            | { Exn_with_backtrace.exn = Unix.Unix_error (ECONNREFUSED, _, _)
+            | { Exn_with_backtrace.exn =
+                  Unix.Unix_error ((ECONNREFUSED | ENOENT), _, _)
               ; _
               } -> false
             | _ -> true)
