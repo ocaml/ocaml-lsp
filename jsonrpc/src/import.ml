@@ -1,3 +1,5 @@
+module List = ListLabels
+
 module Option = struct
   let map t ~f =
     match t with
