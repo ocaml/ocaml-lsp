@@ -189,7 +189,9 @@ struct
         | Request r -> on_request r
         | Response r ->
           let* () = Fiber.Pool.task later ~f:(fun () -> on_response r) in
-          loop ())
+          loop ()
+        | Batch_call _ -> Code_error.raise "batch requests aren't supported" []
+        | Batch_response _ -> assert false)
     and on_response r =
       let log (what : string) =
         log t (fun () ->

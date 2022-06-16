@@ -129,6 +129,9 @@ module Packet : sig
     | Notification of Notification.t
     | Request of Request.t
     | Response of Response.t
+    | Batch_response of Response.t list
+    | Batch_call of
+        [ `Request of Request.t | `Notification of Notification.t ] list
 
   include Json.Jsonable.S with type t := t
 end
