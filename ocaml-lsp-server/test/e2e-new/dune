@@ -1,0 +1,23 @@
+(library
+ (name ocaml_lsp_e2e)
+ (inline_tests
+  (deps
+   (package ocaml-lsp-server)))
+ (libraries
+  stdune
+  fiber
+  yojson
+  lev_fiber
+  lev
+  spawn
+  lsp
+  lsp_fiber
+  ;; This is because of the (implicit_transitive_deps false)
+  ;; in dune-project
+  base
+  ppx_expect.common
+  ppx_expect.config
+  ppx_expect.config_types
+  ppx_inline_test.config)
+ (preprocess
+  (pps ppx_expect)))

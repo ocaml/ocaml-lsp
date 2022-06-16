@@ -162,13 +162,17 @@ struct
       Format.eprintf "dropped notification@.%!";
       assert false
 
-    let make ?on_request ?(on_notification = on_notification_default) () =
-      let h_on_request =
-        match on_request with
-        | Some t -> t
-        | None -> assert false
-      in
-      { h_on_request; h_on_notification = on_notification }
+    let on_request_default =
+      { on_request =
+          (fun _ _ ->
+            Jsonrpc.Response.Error.make ~code:InternalError
+              ~message:"Not supported" ()
+            |> Jsonrpc.Response.Error.raise)
+      }
+
+    let make ?(on_request = on_request_default)
+        ?(on_notification = on_notification_default) () =
+      { h_on_request = on_request; h_on_notification = on_notification }
   end
 
   let state t = Session.state (Fdecl.get t.session)
@@ -379,7 +383,7 @@ module Client = struct
   let start (t : _ t) (p : InitializeParams.t) =
     Fiber.of_thunk (fun () ->
         assert (t.state = Waiting_for_init);
-        let loop = start_loop t in
+        let loop () = start_loop t in
         let init () =
           let* resp = request t (Client_request.Initialize p) in
           Log.log ~section:"client" (fun () ->
@@ -388,7 +392,7 @@ module Client = struct
           t.state <- Running;
           Fiber.Ivar.fill t.initialized resp
         in
-        Fiber.fork_and_join_unit (fun () -> loop) init)
+        Fiber.fork_and_join_unit loop init)
 end
 
 module Server = struct
