@@ -15,9 +15,17 @@
  (modules gen)
  (libraries lsp_gen dyn stdune))
 
+(test
+ (name test_metamodel)
+ (modules test_metamodel metamodel)
+ (libraries stdune yojson)
+ (deps metaModel.json)
+ (action
+  (run ./test_metamodel.exe %{deps})))
+
 (library
  (name lsp_gen)
  (instrumentation
   (backend bisect_ppx))
- (modules :standard \ gen)
+ (modules :standard \ gen metamodel test_metamodel)
  (libraries stdune dyn pp))
