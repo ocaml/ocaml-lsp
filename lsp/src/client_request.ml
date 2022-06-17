@@ -463,6 +463,7 @@ let to_jsonrpc_request t ~id =
   Jsonrpc.Request.create ~id ~method_ ?params ()
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
+  let open Json.Conv in
   match t with
   | Shutdown -> unit_of_yojson json
   | Initialize _ -> InitializeResult.t_of_yojson json
