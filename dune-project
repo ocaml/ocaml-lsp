@@ -6,7 +6,7 @@
 (implicit_transitive_deps false)
 
 (license ISC)
-(maintainers "Rudi Grinberg <me@rgrinerg.com>")
+(maintainers "Rudi Grinberg <me@rgrinberg.com>")
 (authors
  "Andrey Popp <8mayday@gmail.com>"
  "Rusty Key <iam@stfoo.ru>"
