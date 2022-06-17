@@ -350,16 +350,6 @@ end = struct
             | _ -> false);
           Fiber.return ())
     in
-    let* () =
-      let message =
-        sprintf "Connecting to dune %s (%s)"
-          (Registry.Dune.root source)
-          (match Registry.Dune.where source with
-          | `Unix s -> s
-          | `Ip (`Host h, `Port p) -> sprintf "%s:%d" h p)
-      in
-      config.log ~type_:Info ~message
-    in
     let where = Registry.Dune.where source in
     let sockaddr =
       match where with
@@ -374,32 +364,42 @@ end = struct
     let* session =
       Fiber.map_reduce_errors
         (module Monoid.List (Exn_with_backtrace))
-        ~on_error:(fun exn -> Fiber.return [ exn ])
         (fun () -> Csexp_rpc.connect sock sockaddr)
+        ~on_error:(fun exn ->
+          match exn with
+          | { Exn_with_backtrace.exn =
+                Unix.Unix_error ((ECONNREFUSED | ENOENT), _, _)
+            ; _
+            } -> Fiber.return []
+          | _ -> Fiber.return [ exn ])
     in
     match session with
-    | Error exns -> (
+    | Error exns ->
       Lev_fiber.Fd.close sock;
-      match
-        List.filter exns ~f:(fun exn ->
-            match exn with
-            | { Exn_with_backtrace.exn =
-                  Unix.Unix_error ((ECONNREFUSED | ENOENT), _, _)
-              ; _
-              } -> false
-            | _ -> true)
-      with
-      | [] -> Fiber.return (Error ())
-      | exn :: _ ->
-        let message =
-          Format.asprintf "unable to connect to dune %s@.%a"
-            (Registry.Dune.root source)
-            Exn_with_backtrace.pp_uncaught exn
-        in
-        let+ () = t.config.log ~type_:Error ~message in
-        t.state <- Finished;
-        Error ())
+      let+ () =
+        match exns with
+        | [] -> Fiber.return ()
+        | exn :: _ ->
+          let message =
+            Format.asprintf "unable to connect to dune at %s@.%a"
+              (Registry.Dune.root source)
+              Exn_with_backtrace.pp_uncaught exn
+          in
+          t.config.log ~type_:Error ~message
+      in
+      t.state <- Finished;
+      Error ()
     | Ok session ->
+      let* () =
+        let message =
+          sprintf "Connected to dune %s (%s)"
+            (Registry.Dune.root source)
+            (match Registry.Dune.where source with
+            | `Unix s -> s
+            | `Ip (`Host h, `Port p) -> sprintf "%s:%d" h p)
+        in
+        config.log ~type_:Info ~message
+      in
       t.state <- Connected (session, where);
       Fiber.return (Ok ())
 
