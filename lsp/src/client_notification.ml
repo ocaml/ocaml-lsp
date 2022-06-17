@@ -138,7 +138,7 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
   | "$/setTrace" ->
     let+ params = Json.message_params params SetTraceParams.t_of_yojson in
     SetTrace params
-  | _ -> Ok (UnknownNotification params)
+  | _ -> Ok (UnknownNotification r)
 
 let to_jsonrpc t =
   let method_ = method_ t in
