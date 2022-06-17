@@ -827,7 +827,7 @@ let on_request :
     with
     | None ->
       Jsonrpc.Response.Error.raise
-        (make_error ~code:InternalError ~message:"Unknown method"
+        (make_error ~code:MethodNotFound ~message:"Unknown method"
            ~data:(`Assoc [ ("method", `String meth) ])
            ())
     | Some handler ->
