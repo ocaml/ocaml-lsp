@@ -3749,10 +3749,10 @@ end
 module SemanticTokens : sig
   type t =
     { resultId : string option
-    ; data : int list
+    ; data : int array
     }
 
-  val create : ?resultId:string -> data:int list -> unit -> t
+  val create : ?resultId:string -> data:int array -> unit -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3761,10 +3761,10 @@ module SemanticTokensEdit : sig
   type t =
     { start : int
     ; deleteCount : int
-    ; data : int list option
+    ; data : int array option
     }
 
-  val create : start:int -> deleteCount:int -> ?data:int list -> unit -> t
+  val create : start:int -> deleteCount:int -> ?data:int array -> unit -> t
 
   include Json.Jsonable.S with type t := t
 end
