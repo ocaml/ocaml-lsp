@@ -88,7 +88,12 @@ module Ast_iterator = Ocaml_parsing.Ast_iterator
 module Asttypes = Ocaml_parsing.Asttypes
 module Cmt_format = Ocaml_typing.Cmt_format
 module Ident = Ocaml_typing.Ident
-module Loc = Ocaml_parsing.Location
+
+module Loc = struct
+  include Ocaml_parsing.Location
+  include Ocaml_parsing.Location_aux
+end
+
 module Longident = Ocaml_parsing.Longident
 module Parsetree = Ocaml_parsing.Parsetree
 module Path = Ocaml_typing.Path
