@@ -22,12 +22,14 @@ let first_line =
   let end_ = { Position.line = 1; character = 0 } in
   { start; end_ }
 
-let of_loc (loc : Loc.t) : t =
-  (let open Option.O in
+let of_loc_opt (loc : Loc.t) : t option =
+  let open Option.O in
   let* start = Position.of_lexical_position loc.loc_start in
   let+ end_ = Position.of_lexical_position loc.loc_end in
-  { start; end_ })
-  |> Option.value ~default:first_line
+  { start; end_ }
+
+let of_loc (loc : Loc.t) : t =
+  of_loc_opt loc |> Option.value ~default:first_line
 
 let resize_for_edit { TextEdit.range; newText } =
   let lines = String.split_lines newText in

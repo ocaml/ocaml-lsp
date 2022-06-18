@@ -12,6 +12,10 @@ val compare_size : t -> t -> Ordering.t
 
 val first_line : t
 
+val of_loc_opt : Loc.t -> t option
+
+(** [of_loc loc] if fails to convert [loc] to [t] will return the first (or top)
+    line in the document *)
 val of_loc : Loc.t -> t
 
 (** [resize_for_edit edit] returns shrunk, unchanged, or extended [edit.range]
