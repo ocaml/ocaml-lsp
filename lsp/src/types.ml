@@ -34257,7 +34257,7 @@ module SemanticTokens = struct
   type t =
     { resultId : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
-    ; data : int list
+    ; data : int array
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -34286,7 +34286,7 @@ module SemanticTokens = struct
            | "data" -> (
              match Ppx_yojson_conv_lib.( ! ) data_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue = list_of_yojson int_of_yojson _field_yojson in
+               let fvalue = array_of_yojson int_of_yojson _field_yojson in
                data_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -34338,7 +34338,7 @@ module SemanticTokens = struct
      | { resultId = v_resultId; data = v_data } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         let arg = yojson_of_list yojson_of_int v_data in
+         let arg = yojson_of_array yojson_of_int v_data in
          ("data", arg) :: bnds
        in
        let bnds =
@@ -34357,7 +34357,7 @@ module SemanticTokens = struct
 
   [@@@end]
 
-  let create ?(resultId : string option) ~(data : int list) (() : unit) : t =
+  let create ?(resultId : string option) ~(data : int array) (() : unit) : t =
     { resultId; data }
 end
 
@@ -34365,7 +34365,7 @@ module SemanticTokensEdit = struct
   type t =
     { start : int
     ; deleteCount : int
-    ; data : int list Json.Nullable_option.t
+    ; data : int array Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -34403,7 +34403,7 @@ module SemanticTokensEdit = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
                  Json.Nullable_option.t_of_yojson
-                   (list_of_yojson int_of_yojson)
+                   (array_of_yojson int_of_yojson)
                    _field_yojson
                in
                data_field := Ppx_yojson_conv_lib.Option.Some fvalue
@@ -34468,7 +34468,7 @@ module SemanticTokensEdit = struct
          if None = v_data then bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t (yojson_of_list yojson_of_int))
+             (Json.Nullable_option.yojson_of_t (yojson_of_array yojson_of_int))
                v_data
            in
            let bnd = ("data", arg) in
@@ -34489,7 +34489,7 @@ module SemanticTokensEdit = struct
 
   [@@@end]
 
-  let create ~(start : int) ~(deleteCount : int) ?(data : int list option)
+  let create ~(start : int) ~(deleteCount : int) ?(data : int array option)
       (() : unit) : t =
     { start; deleteCount; data }
 end
