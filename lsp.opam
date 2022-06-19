@@ -6,7 +6,7 @@ description: """
 Implementation of the LSP protocol in OCaml. It is designed to be as portable as
 possible and does not make any assumptions about IO.
 """
-maintainer: ["Rudi Grinberg <me@rgirnberg>"]
+maintainer: ["Rudi Grinberg <me@rgrinberg.com>"]
 authors: [
   "Andrey Popp <8mayday@gmail.com>"
   "Rusty Key <iam@stfoo.ru>"
