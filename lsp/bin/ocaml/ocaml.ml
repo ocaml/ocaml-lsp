@@ -307,9 +307,8 @@ end = struct
         let bindings =
           List.map t.impl.bindings ~f:(fun (x : _ Named.t) ->
               let data =
-                match x.data with
-                | Ml.Module.Type_decl decl ->
-                  Ml.Module.Type_decl (map#decl () decl |> fst)
+                match (x.data : Module.impl) with
+                | Type_decl decl -> Ml.Module.Type_decl (map#decl () decl |> fst)
                 | x -> x
               in
               { x with data })
@@ -342,7 +341,7 @@ end = struct
   let need_unit =
     List.exists ~f:(fun (f : Ml.Type.field) ->
         match f.typ with
-        | Ml.Type.Optional _ -> true
+        | Optional _ -> true
         | _ -> false)
 
   let intf { Named.name; data = fields } =
@@ -594,14 +593,14 @@ end = struct
       let data = make_typ db { Named.name = field.name; data = typ } in
       let typ = Type.assoc_list ~key ~data in
       Left (Ml.Type.field typ ~name:field.name)
-    | Resolved.Single { typ = Literal s; optional = false } ->
+    | Single { typ = Literal s; optional = false } ->
       let literal_value =
         match s with
         | String s -> s
         | _ -> assert false
       in
       Right { literal_value; field_name = field.name }
-    | Resolved.Single { typ; optional } ->
+    | Single { typ; optional } ->
       let typ = make_typ db { Named.name = field.name; data = typ } in
       let typ = if optional then Type.Optional typ else typ in
       Left (Ml.Type.field typ ~name:field.name)
@@ -768,9 +767,9 @@ let expand_super_classes db ts =
   let interface_fields (i : Resolved.interface) =
     let rec interface init (i : Resolved.interface) =
       let init =
-        List.fold_left i.extends ~init ~f:(fun init a ->
+        List.fold_left i.extends ~init ~f:(fun init (a : Prim.t) ->
             match a with
-            | Prim.Resolved r -> type_ init (Entities.find db r).data
+            | Resolved r -> type_ init (Entities.find db r).data
             | _ -> assert false)
       in
       init @ i.fields
