@@ -31,7 +31,7 @@ to use it.
 
 To add the language server to an esy project, run in terminal:
 
-```
+```sh
 $ esy add @opam/ocaml-lsp-server
 ```
 
