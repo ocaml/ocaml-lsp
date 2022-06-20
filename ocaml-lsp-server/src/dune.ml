@@ -569,18 +569,28 @@ let make_finalizer active (instance : Instance.t) =
       Document_store.unregister_promotions active.config.document_store
         to_unregister)
 
-let poll active =
+let poll active last_error =
   (* a single workspaces value for one iteration of the loop *)
   let workspaces = active.workspaces in
   let workspace_folders = Workspaces.workspace_folders workspaces in
   let* res = Poll.poll active.registry in
   match res with
   | Error exn ->
-    let message =
-      sprintf "failed to poll dune registry. %s" (Printexc.to_string exn)
+    let+ () =
+      match
+        match last_error with
+        | `No_error -> `Print
+        | `Exn exn' -> if Poly.equal exn exn' then `Skip else `Print
+      with
+      | `Skip -> Fiber.return ()
+      | `Print ->
+        let message =
+          sprintf "failed to poll dune registry. %s" (Printexc.to_string exn)
+        in
+        active.config.log ~type_:MessageType.Warning ~message
     in
-    active.config.log ~type_:MessageType.Warning ~message
-  | Ok _refresh -> (
+    `Exn exn
+  | Ok _refresh ->
     let remaining, to_kill =
       String.Map.partition active.instances ~f:(fun (running : Instance.t) ->
           let source = Instance.source running in
@@ -650,32 +660,35 @@ let poll active =
       in
       send (Fiber.parallel_iter ~f:Instance.stop) to_kill
     in
-    match connected with
-    | [] -> Fiber.return ()
-    | _ ->
-      active.instances <-
-        List.fold_left connected ~init:active.instances
-          ~f:(fun acc (instance : Instance.t) ->
-            let source = Instance.source instance in
-            (* this is guaranteed not to raise since we don't connect to more
-               than one dune instance per workspace *)
-            String.Map.add_exn acc (Registry.Dune.root source) instance);
-      Fiber.parallel_iter connected ~f:(fun (instance : Instance.t) ->
-          let cleanup = make_finalizer active instance in
-          let* (_ : (unit, unit) result) =
-            Fiber.map_reduce_errors
-              (module Monoid.Unit)
-              (fun () -> Instance.run instance)
-              ~on_error:(fun exn ->
-                let message =
-                  Format.asprintf "disconnected %s:@.%a"
-                    (Registry.Dune.root (Instance.source instance))
-                    Exn_with_backtrace.pp_uncaught exn
-                in
-                let* () = active.config.log ~type_:Error ~message in
-                Lazy_fiber.force cleanup)
-          in
-          Lazy_fiber.force cleanup))
+    let+ () =
+      match connected with
+      | [] -> Fiber.return ()
+      | _ ->
+        active.instances <-
+          List.fold_left connected ~init:active.instances
+            ~f:(fun acc (instance : Instance.t) ->
+              let source = Instance.source instance in
+              (* this is guaranteed not to raise since we don't connect to more
+                 than one dune instance per workspace *)
+              String.Map.add_exn acc (Registry.Dune.root source) instance);
+        Fiber.parallel_iter connected ~f:(fun (instance : Instance.t) ->
+            let cleanup = make_finalizer active instance in
+            let* (_ : (unit, unit) result) =
+              Fiber.map_reduce_errors
+                (module Monoid.Unit)
+                (fun () -> Instance.run instance)
+                ~on_error:(fun exn ->
+                  let message =
+                    Format.asprintf "disconnected %s:@.%a"
+                      (Registry.Dune.root (Instance.source instance))
+                      Exn_with_backtrace.pp_uncaught exn
+                  in
+                  let* () = active.config.log ~type_:Error ~message in
+                  Lazy_fiber.force cleanup)
+            in
+            Lazy_fiber.force cleanup)
+    in
+    `No_error
 
 type state =
   | Closed
@@ -730,15 +743,15 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
       ~log
 
 let run_loop t =
-  Fiber.repeat_while ~init:() ~f:(fun () ->
+  Fiber.repeat_while ~init:`No_error ~f:(fun state ->
       match !t with
       | Closed -> Fiber.return None
       | Active active ->
-        let* () = poll active in
+        let* state = poll active state in
         (* TODO make this a bit more dynamic. if poll completes fast, wait more,
            if it's slow, then wait less *)
         let+ () = Lev_fiber.Timer.sleepf 0.25 in
-        Some ())
+        Some state)
 
 let run t : unit Fiber.t =
   Fiber.of_thunk (fun () ->
