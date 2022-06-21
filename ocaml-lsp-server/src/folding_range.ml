@@ -256,8 +256,11 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_extension _ ->
         Range.of_loc structure_item.pstr_loc |> push;
         Ast_iterator.default_iterator.structure_item self structure_item
-      | Pstr_primitive _ | Pstr_exception _ | Pstr_include _ | Pstr_attribute _
-        -> ()
+      | Pstr_include { pincl_loc; pincl_mod; pincl_attributes } ->
+        push @@ Range.of_loc pincl_loc;
+        self.module_expr self pincl_mod;
+        self.attributes self pincl_attributes
+      | Pstr_primitive _ | Pstr_exception _ | Pstr_attribute _ -> ()
     in
 
     { Ast_iterator.default_iterator with
