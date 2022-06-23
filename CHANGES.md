@@ -1,3 +1,9 @@
+# 1.12.1
+
+## Fixes
+
+- Fix preprocessing, ppx, and reason support (#735 fixes #696, #706)
+
 # 1.12.0
 
 ## Features
