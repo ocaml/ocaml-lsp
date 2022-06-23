@@ -5,6 +5,8 @@
 - Fix a bad interaction between inferred interfaces and promotion code actions
   in watch mode (#753)
 
+- Fix URI parsing (#739 fixes #471 and #459)
+
 # 1.12.2
 
 ## Fixes

@@ -18,6 +18,8 @@ module String = struct
 
   let index = index_opt
 
+  let is_empty s = length s = 0
+
   let rec check_prefix s ~prefix len i =
     i = len || (s.[i] = prefix.[i] && check_prefix s ~prefix len (i + 1))
 
@@ -31,6 +33,9 @@ module String = struct
     let len = length s in
     let prefix_len = length prefix in
     len >= prefix_len && check_prefix s ~prefix prefix_len 0
+
+  let add_prefix_if_not_exists s ~prefix =
+    if is_prefix s ~prefix then s else prefix ^ s
 
   let next_occurrence ~pattern text from =
     let plen = String.length pattern in

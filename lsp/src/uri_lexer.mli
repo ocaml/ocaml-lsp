@@ -1,9 +1,9 @@
 type t =
-  { scheme : string option
+  { scheme : string
   ; authority : string
   ; path : string
   }
 
 val of_string : string -> t
 
-val escape_path : string -> string
+val of_path : string -> t
