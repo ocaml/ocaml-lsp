@@ -155,7 +155,9 @@ let extract_related_errors uri raw_message =
 let set_diagnostics rpc doc =
   let state : State.t = Server.state rpc in
   let uri = Document.uri doc in
-  let create_diagnostic = Diagnostic.create ~source:"ocamllsp" in
+  let create_diagnostic =
+    Diagnostic.create ~source:Diagnostics.ocamllsp_source
+  in
   let async send =
     let+ () =
       task_if_running state.detached ~f:(fun () ->
