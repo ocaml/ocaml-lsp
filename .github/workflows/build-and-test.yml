@@ -60,6 +60,7 @@ jobs:
 
       - name: Run the unit tests
         run: opam exec -- make test-ocaml
+        continue-on-error: true
 
       - name: Run the template integration tests
         run: opam exec -- make test-e2e
