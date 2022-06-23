@@ -1,5 +1,7 @@
 open Import
 
+val ocamllsp_source : string
+
 type t
 
 val create :

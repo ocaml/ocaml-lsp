@@ -1,5 +1,7 @@
 open Import
 
+let ocamllsp_source = "ocamllsp"
+
 module Uri = struct
   include Uri
 
@@ -75,7 +77,7 @@ let create send ~workspace_root =
 let send =
   let module Range_map = Map.Make (Range) in
   (* TODO deduplicate related errors as well *)
-  let add_range pending uri (diagnostic : Diagnostic.t) =
+  let add_dune_diagnostic pending uri (diagnostic : Diagnostic.t) =
     let value =
       match Table.find pending uri with
       | None -> Range_map.singleton diagnostic.range [ diagnostic ]
@@ -87,7 +89,11 @@ let send =
               | Some diagnostics ->
                 if
                   List.exists diagnostics ~f:(fun (d : Diagnostic.t) ->
-                      equal_message d.message diagnostic.message)
+                      match d.source with
+                      | None -> assert false
+                      | Some source ->
+                        String.equal ocamllsp_source source
+                        && equal_message d.message diagnostic.message)
                 then diagnostics
                 else diagnostic :: diagnostics))
     in
@@ -112,7 +118,7 @@ let send =
         Table.iter t.dune ~f:(fun per_dune ->
             Table.iter per_dune ~f:(fun (uri, diagnostic) ->
                 if Uri_set.mem dirty_uris uri then
-                  add_range pending uri diagnostic));
+                  add_dune_diagnostic pending uri diagnostic));
         t.dirty_uris <-
           (match which with
           | `All -> Uri_set.empty
