@@ -36,8 +36,8 @@ possible and does not make any assumptions about IO.
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
   (cinaps :with-test)
-  (menhir (>= 20211230 :with-test))
-  (ppx_expect (>= v0.15.0 :with-test))
+  (menhir (and (>= 20211230) :with-test))
+  (ppx_expect (and (>= v0.15.0) :with-test))
   (uutf (>= 1.0.2))
   (odoc :with-doc)
   (ocaml (>= 4.12))))
