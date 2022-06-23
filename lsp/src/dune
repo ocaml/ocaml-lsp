@@ -3,12 +3,10 @@
 (library
  (name lsp)
  (public_name lsp)
- (libraries jsonrpc ppx_yojson_conv_lib dyn uutf yojson)
+ (libraries jsonrpc ppx_yojson_conv_lib dyn uutf yojson re uri)
  (lint
   (pps ppx_yojson_conv)))
 
 (cinaps
  (files types.ml types.mli)
  (libraries lsp_gen))
-
-(ocamllex uri_lexer)

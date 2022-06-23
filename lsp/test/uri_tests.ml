@@ -21,10 +21,10 @@ let%expect_test "test uri parsing" =
     {|
     Unix:
     file:///Users/foo -> /Users/foo
-    file:///c:/Users/foo -> /c:/Users/foo
+    file:///c:/Users/foo -> c:/Users/foo
     Windows:
-    file:///Users/foo -> Users/foo
-    file:///c:/Users/foo -> c:/Users/foo |}]
+    file:///Users/foo -> \Users\foo
+    file:///c:/Users/foo -> c:\Users\foo |}]
 
 let uri_of_path =
   let test path =
@@ -70,33 +70,33 @@ let%expect_test "of_path -> to_string" =
   [%expect
     {|
     Unix:
-    c:/win/path -> file:///c:/win/path
-    C:/win/path -> file:///C:/win/path
-    c:/win/path/ -> file:///c:/win/path/
-    /c:/win/path -> file:///c:/win/path
-    c:\win\path -> file:///c:/win/path
-    c:\win/path -> file:///c:/win/path
-    \\localhost\c$\GitDevelopment\express -> file:////localhost/c$/GitDevelopment/express
-    c:\test with %\path -> file:///c:/test with %/path
-    c:\test with %25\path -> file:///c:/test with %25/path
-    c:\test with %25\c#code -> file:///c:/test with %25/c#code
-    \\shäres\path\c#\plugin.json -> file:////shäres/path/c#/plugin.json
+    c:/win/path -> file:///c%3A/win/path
+    C:/win/path -> file:///c%3A/win/path
+    c:/win/path/ -> file:///c%3A/win/path/
+    /c:/win/path -> file:///c%3A/win/path
+    c:\win\path -> file:///c%3A%5Cwin%5Cpath
+    c:\win/path -> file:///c%3A%5Cwin/path
+    \\localhost\c$\GitDevelopment\express -> file:///%5C%5Clocalhost%5Cc%24%5CGitDevelopment%5Cexpress
+    c:\test with %\path -> file:///c%3A%5Ctest%20with%20%25%5Cpath
+    c:\test with %25\path -> file:///c%3A%5Ctest%20with%20%2525%5Cpath
+    c:\test with %25\c#code -> file:///c%3A%5Ctest%20with%20%2525%5Cc%23code
+    \\shäres\path\c#\plugin.json -> file:///%5C%5Csh%C3%A4res%5Cpath%5Cc%23%5Cplugin.json
     a.file -> file:///a.file
-    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js
+    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
     Windows:
-    c:/win/path -> file:///c:/win/path
-    C:/win/path -> file:///C:/win/path
-    c:/win/path/ -> file:///c:/win/path/
-    /c:/win/path -> file:///c:/win/path
-    c:\win\path -> file:///c:/win/path
-    c:\win/path -> file:///c:/win/path
-    \\localhost\c$\GitDevelopment\express -> file:////localhost/c$/GitDevelopment/express
-    c:\test with %\path -> file:///c:/test with %/path
-    c:\test with %25\path -> file:///c:/test with %25/path
-    c:\test with %25\c#code -> file:///c:/test with %25/c#code
-    \\shäres\path\c#\plugin.json -> file:////shäres/path/c#/plugin.json
+    c:/win/path -> file:///c%3A/win/path
+    C:/win/path -> file:///c%3A/win/path
+    c:/win/path/ -> file:///c%3A/win/path/
+    /c:/win/path -> file:///c%3A/win/path
+    c:\win\path -> file:///c%3A/win/path
+    c:\win/path -> file:///c%3A/win/path
+    \\localhost\c$\GitDevelopment\express -> file://localhost/c%24/GitDevelopment/express
+    c:\test with %\path -> file:///c%3A/test%20with%20%25/path
+    c:\test with %25\path -> file:///c%3A/test%20with%20%2525/path
+    c:\test with %25\c#code -> file:///c%3A/test%20with%20%2525/c%23code
+    \\shäres\path\c#\plugin.json -> file://sh%C3%A4res/path/c%23/plugin.json
     a.file -> file:///a.file
-    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js
+    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
     |}]
 
 let%expect_test "of_path -> to_path" =
@@ -124,31 +124,31 @@ let%expect_test "of_path -> to_path" =
   [%expect
     {|
     Unix:
-    c:/win/path -> /c:/win/path
-    c:/win/path/ -> /c:/win/path/
-    C:/win/path -> /C:/win/path
-    /c:/win/path -> /c:/win/path
-    ./c/win/path -> /./c/win/path
-    c:\win\path -> /c:/win/path
-    c:\win/path -> /c:/win/path
-    \\localhost\c$\GitDevelopment\express -> ///localhost/c$/GitDevelopment/express
-    \\shares -> ///shares
-    \\shäres\path\c#\plugin.json -> ///shäres/path/c#/plugin.json
-    c:\test with %\path -> /c:/test with %/path
-    c:\test with %25\c#code -> /c:/test with %25/c#code
-    Windows:
     c:/win/path -> c:/win/path
     c:/win/path/ -> c:/win/path/
-    C:/win/path -> C:/win/path
+    C:/win/path -> c:/win/path
     /c:/win/path -> c:/win/path
-    ./c/win/path -> ./c/win/path
-    c:\win\path -> c:/win/path
-    c:\win/path -> c:/win/path
-    \\localhost\c$\GitDevelopment\express -> //localhost/c$/GitDevelopment/express
-    \\shares -> //shares
-    \\shäres\path\c#\plugin.json -> //shäres/path/c#/plugin.json
-    c:\test with %\path -> c:/test with %/path
-    c:\test with %25\c#code -> c:/test with %25/c#code
+    ./c/win/path -> /./c/win/path
+    c:\win\path -> c:\win\path
+    c:\win/path -> c:\win/path
+    \\localhost\c$\GitDevelopment\express -> /\\localhost\c$\GitDevelopment\express
+    \\shares -> /\\shares
+    \\shäres\path\c#\plugin.json -> /\\shäres\path\c#\plugin.json
+    c:\test with %\path -> c:\test with %\path
+    c:\test with %25\c#code -> c:\test with %25\c#code
+    Windows:
+    c:/win/path -> c:\win\path
+    c:/win/path/ -> c:\win\path\
+    C:/win/path -> c:\win\path
+    /c:/win/path -> c:\win\path
+    ./c/win/path -> \.\c\win\path
+    c:\win\path -> c:\win\path
+    c:\win/path -> c:\win\path
+    \\localhost\c$\GitDevelopment\express -> \\localhost\c$\GitDevelopment\express
+    \\shares -> \
+    \\shäres\path\c#\plugin.json -> \\shäres\path\c#\plugin.json
+    c:\test with %\path -> c:\test with %\path
+    c:\test with %25\c#code -> c:\test with %25\c#code
     |}]
 
 let%expect_test "of_string -> to_path" =
@@ -169,14 +169,14 @@ let%expect_test "of_string -> to_path" =
     {|
     Unix:
     file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> /
-    file://shares/pröjects/c%23/#l12 -> /pröjects/c%23/#l12
+    file://shares/pröjects/c%23/#l12 -> //shares/pröjects/c#/
     file:///_:/path -> /_:/path
-    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> /c:/Source/Z%C3%BCrich or Zurich (%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins
+    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> c:/Source/Zürich or Zurich (ˈzjʊərɪk,/Code/resources/app/plugins
     Windows:
-    file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp ->
-    file://shares/pröjects/c%23/#l12 -> pröjects/c%23/#l12
-    file:///_:/path -> _:/path
-    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> c:/Source/Z%C3%BCrich or Zurich (%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins
+    file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> \
+    file://shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
+    file:///_:/path -> \_:\path
+    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> c:\Source\Zürich or Zurich (ˈzjʊərɪk,\Code\resources\app\plugins
     |}]
 
 let%expect_test "of_string -> to_string" =
@@ -199,20 +199,20 @@ let%expect_test "of_string -> to_string" =
   [%expect
     {|
     Unix:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pröjects/c%23/#l12
-    file://sh%c3%a4res/path -> file://sh%c3%a4res/path
-    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:///c:/Users/jrieken/Code/abc.txt
-    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:///C:/Users/jrieken/Code/abc.txt
-    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> ///Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js
-    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c:/Source/Z%C3%BCrich or Zurich (%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins
+    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
+    file://sh%c3%a4res/path -> file://sh%C3%A4res/path
+    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
+    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
+    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
+    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
     file:foo/bar -> file:///foo/bar
     Windows:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pröjects/c%23/#l12
-    file://sh%c3%a4res/path -> file://sh%c3%a4res/path
-    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:///c:/Users/jrieken/Code/abc.txt
-    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:///C:/Users/jrieken/Code/abc.txt
-    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> ///Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js
-    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c:/Source/Z%C3%BCrich or Zurich (%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins
+    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
+    file://sh%c3%a4res/path -> file://sh%C3%A4res/path
+    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
+    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
+    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
+    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
     file:foo/bar -> file:///foo/bar
     |}]
 
@@ -233,10 +233,10 @@ let%expect_test "of_string -> to_path" =
     {|
       Unix:
       file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> /
-      file://shares/pröjects/c%23/#l12 -> /pröjects/c%23/#l12
+      file://shares/pröjects/c%23/#l12 -> //shares/pröjects/c#/
       file:///_:/path -> /_:/path
       Windows:
-      file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp ->
-      file://shares/pröjects/c%23/#l12 -> pröjects/c%23/#l12
-      file:///_:/path -> _:/path
+      file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> \
+      file://shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
+      file:///_:/path -> \_:\path
       |}]

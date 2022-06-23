@@ -18,6 +18,8 @@ module String = struct
 
   let index = index_opt
 
+  let is_empty s = length s = 0
+
   let rec check_prefix s ~prefix len i =
     i = len || (s.[i] = prefix.[i] && check_prefix s ~prefix len (i + 1))
 
