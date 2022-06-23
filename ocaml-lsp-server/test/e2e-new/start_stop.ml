@@ -58,9 +58,7 @@ let%expect_test "start/stop" =
     let+ (_ : Unix.process_status) = Lev_fiber.waitpid ~pid in
     ()
   in
-  Lev_fiber.run
-    ~f:(fun () -> Fiber.all_concurrently_unit [ init; waitpid ])
-    (Lev.Loop.create ());
+  Lev_fiber.run (fun () -> Fiber.all_concurrently_unit [ init; waitpid ]);
   [%expect
     {|
       client: server initialized with:
