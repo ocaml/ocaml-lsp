@@ -4,6 +4,8 @@
 
 - Fix preprocessing, ppx, and reason support (#735 fixes #696, #706)
 
+- Support `include` in folding ranges (#730)
+
 # 1.12.0
 
 ## Features
