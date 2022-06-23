@@ -39,7 +39,7 @@ let test make_client make_server =
     let+ () = Fiber.fork_and_join_unit server client in
     print_endline "Successful termination of test"
   in
-  Lev_fiber.run (Lev.Loop.default ()) ~f:run;
+  Lev_fiber.run (Lev.Loop.create ()) ~f:run;
   print_endline "[TEST] finished"
 
 let json_pp = Yojson.Safe.pretty_print ~std:false
