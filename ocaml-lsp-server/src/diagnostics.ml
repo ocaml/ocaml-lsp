@@ -2,6 +2,8 @@ open Import
 
 let ocamllsp_source = "ocamllsp"
 
+let dune_source = "dune"
+
 module Uri = struct
   include Uri
 
@@ -19,7 +21,29 @@ module Id = struct
   let to_dyn = Dyn.opaque
 end
 
-module Dune = Stdune.Id.Make ()
+module Dune = struct
+  module Id = Stdune.Id.Make ()
+
+  module T = struct
+    type t =
+      { pid : Pid.t
+      ; id : Id.t
+      }
+
+    let compare = Poly.compare
+
+    let equal x y = Ordering.is_eq (compare x y)
+
+    let hash = Poly.hash
+
+    let to_dyn = Dyn.opaque
+  end
+
+  include T
+  module C = Comparable.Make (T)
+
+  let gen pid = { pid; id = Id.gen () }
+end
 
 let equal_message =
   (* because the compiler and merlin wrap messages differently *)
@@ -115,9 +139,17 @@ let send =
             let diagnostics = Table.Multi.find t.merlin uri in
             Table.set pending uri
               (range_map_of_unduplicated_diagnostics diagnostics));
-        Table.iter t.dune ~f:(fun per_dune ->
+        let set_dune_source =
+          let annotate_dune_pid = Table.length t.dune > 1 in
+          if annotate_dune_pid then fun pid (d : Diagnostic.t) ->
+            let source = Some (sprintf "dune (pid=%d)" (Pid.to_int pid)) in
+            { d with source }
+          else fun _pid x -> x
+        in
+        Table.foldi ~init:() t.dune ~f:(fun dune per_dune () ->
             Table.iter per_dune ~f:(fun (uri, diagnostic) ->
                 if Uri_set.mem dirty_uris uri then
+                  let diagnostic = set_dune_source dune.pid diagnostic in
                   add_dune_diagnostic pending uri diagnostic));
         t.dirty_uris <-
           (match which with

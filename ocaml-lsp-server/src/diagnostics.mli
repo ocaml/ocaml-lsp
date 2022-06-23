@@ -2,6 +2,8 @@ open Import
 
 val ocamllsp_source : string
 
+val dune_source : string
+
 type t
 
 val create :
@@ -16,7 +18,7 @@ val workspace_root : t -> Uri.t
 module Dune : sig
   type t
 
-  val gen : unit -> t
+  val gen : Pid.t -> t
 end
 
 val set :

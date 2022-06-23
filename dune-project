@@ -49,7 +49,7 @@ possible and does not make any assumptions about IO.
   yojson
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
-  dune-rpc
+  (dune-rpc (>= 3.4.0))
   (chrome-trace (>= 3.3.0))
   dyn
   stdune

@@ -224,8 +224,8 @@ end = struct
           let promotions = List.map promotions ~f:For_diff.Diff.of_promotion in
           Some (`Assoc [ For_diff.diagnostic_data promotions ]))
     in
-    Diagnostic.create ?relatedInformation ~range ?severity ~source:"dune"
-      ~message ?data ()
+    Diagnostic.create ?relatedInformation ~range ?severity
+      ~source:Diagnostics.dune_source ~message ?data ()
 
   let progress_loop client progress =
     match Progress.should_report_build_progress progress with
@@ -407,7 +407,7 @@ end = struct
       t.state <- Connected (session, where);
       Fiber.return (Ok ())
 
-  let run ({ config; _ } as t) =
+  let run ({ config; source; _ } as t) =
     let* () = Fiber.return () in
     let session, where =
       match t.state with
@@ -421,7 +421,8 @@ end = struct
       ; finish
       ; promotions = String.Map.empty
       ; client = None
-      ; diagnostics_id = Diagnostics.Dune.gen ()
+      ; diagnostics_id =
+          Diagnostics.Dune.gen (Pid.of_int (Registry.Dune.pid source))
       ; id = Id.gen ()
       }
     in
