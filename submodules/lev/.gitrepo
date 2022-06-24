@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/rgrinberg/lev
+	branch = master
+	commit = e8492363b155f9e60da7bd3baca8eb1fcedc25cc
+	parent = 49744d511670e32b2c69edb974ec7fb5b681dee2
+	method = merge
+	cmdver = 0.4.1

@@ -8,6 +8,3 @@
 	url = https://github.com/rgrinberg/jbuilder
 	branch=lsp
 	ignore=dirty
-[submodule "submodules/lev"]
-	path = submodules/lev
-	url = https://github.com/rgrinberg/lev.git

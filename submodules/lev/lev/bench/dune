@@ -1,0 +1,3 @@
+(executable
+ (name ping_pong)
+ (libraries lev unix))

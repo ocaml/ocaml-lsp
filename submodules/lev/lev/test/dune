@@ -1,0 +1,52 @@
+(library
+ (name lev_tests)
+ (modules lev_tests)
+ (libraries
+  lev
+  ;; This is because of the (implicit_transitive_deps false)
+  ;; in dune-project
+  ppx_expect.config
+  ppx_expect.config_types
+  ppx_expect.common
+  base
+  ppx_inline_test.config)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ (name lev_tests_unix)
+ (modules lev_tests_unix)
+ (enabled_if
+  (<> %{system} win))
+ (libraries
+  lev
+  ;; This is because of the (implicit_transitive_deps false)
+  ;; in dune-project
+  ppx_expect.config
+  ppx_expect.config_types
+  ppx_expect.common
+  base
+  ppx_inline_test.config)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ (name lev_tests_signals)
+ (modules lev_tests_signals)
+ (enabled_if
+  (<> %{system} win))
+ (libraries
+  lev
+  threads.posix
+  ;; This is because of the (implicit_transitive_deps false)
+  ;; in dune-project
+  ppx_expect.config
+  ppx_expect.config_types
+  ppx_expect.common
+  base
+  ppx_inline_test.config)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect)))
