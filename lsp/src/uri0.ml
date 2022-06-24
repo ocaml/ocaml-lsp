@@ -93,40 +93,42 @@ let encode ?(allow_slash = false) s =
   Uri.pct_encode ~component:(`Custom (`Generic, allowed_chars, "")) s
 
 let to_string { scheme; authority; path } =
-  let res = ref "" in
+  let buff = Buffer.create 64 in
 
-  if not (String.is_empty scheme) then res := scheme ^ ":";
+  if not (String.is_empty scheme) then (
+    Buffer.add_string buff scheme;
+    Buffer.add_char buff ':');
 
-  if authority = "file" || scheme = "file" then res := !res ^ "//";
+  if authority = "file" || scheme = "file" then Buffer.add_string buff "//";
 
   (*TODO: implement full logic:
     https://github.com/microsoft/vscode-uri/blob/96acdc0be5f9d5f2640e1c1f6733bbf51ec95177/src/uri.ts#L605 *)
   (if not (String.is_empty authority) then
-   let value = String.lowercase_ascii authority in
-   res := !res ^ encode value);
+   let s = String.lowercase_ascii authority in
+   Buffer.add_string buff (encode s));
 
-  if not (String.is_empty path) then (
-    let value = ref path in
-    let len = String.length path in
-    (*TODO: should we use charCode instead ? *)
-    (if len >= 3 && path.[0] = '/' && path.[2] = ':' then (
-     let code = path.[1] in
-     if code >= 'A' && code <= 'Z' then
-       value :=
-         "/"
-         ^ (String.make 1 code |> String.lowercase_ascii)
-         ^ ":"
-         ^ String.sub path ~pos:3 ~len:(len - 3))
-    else if len >= 2 && path.[1] = ':' then
-      let code = path.[0] in
-      if code >= 'A' && code <= 'Z' then
-        value :=
-          (String.make 1 code |> String.lowercase_ascii)
-          ^ ":"
-          ^ String.sub path ~pos:2 ~len:(len - 2));
-    res := !res ^ encode ~allow_slash:true !value);
+  (if not (String.is_empty path) then
+   let encode = encode ~allow_slash:true in
+   let colon = "%3A" in
+   let len = String.length path in
+   if len >= 3 && path.[0] = '/' && path.[2] = ':' then (
+     let code = Char.lowercase_ascii path.[1] in
+     if code >= 'a' && code <= 'z' then (
+       Buffer.add_char buff '/';
+       Buffer.add_char buff code;
+       Buffer.add_string buff colon;
+       let s = String.sub path ~pos:3 ~len:(len - 3) |> encode in
+       Buffer.add_string buff s))
+   else if len >= 2 && path.[1] = ':' then (
+     let code = Char.lowercase_ascii path.[0] in
+     if code >= 'a' && code <= 'z' then (
+       Buffer.add_char buff code;
+       Buffer.add_string buff colon;
+       let s = String.sub path ~pos:2 ~len:(len - 2) |> encode in
+       Buffer.add_string buff s))
+   else Buffer.add_string buff (encode path));
 
-  !res
+  Buffer.contents buff
 
 let yojson_of_t t = `String (to_string t)
 
