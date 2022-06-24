@@ -63,7 +63,7 @@ let rec mark_value_unused_edit name contexts =
   | Pattern { pat_desc = Tpat_var (ident, _); pat_loc = loc; _ } :: _ ->
     if Ident.name ident = name then
       let+ start = Position.of_lexical_position loc.loc_start in
-      { TextEdit. range = Range.create ~start ~end_:start; newText = "_" }
+      { TextEdit.range = Range.create ~start ~end_:start; newText = "_" }
     else None
   | _ :: cs -> mark_value_unused_edit name cs
   | _ -> None
