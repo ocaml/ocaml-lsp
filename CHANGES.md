@@ -1,3 +1,9 @@
+# 1.12.2
+
+## Fixes
+
+- Fix shutting down an already closed socket (#740)
+
 # 1.12.1
 
 ## Fixes
