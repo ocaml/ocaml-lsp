@@ -1,0 +1,12 @@
+(rule
+ (mode promote)
+ (deps
+  (:dep README.cpp.md)
+  (source_tree lev/examples/))
+ (target README.md)
+ (action
+  (run cppo -n %{dep} -o %{target})))
+
+(env
+ (_
+  (flags :standard -alert -unstable)))

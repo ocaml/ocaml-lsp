@@ -1,0 +1,4 @@
+(library
+ (name lev_fiber_csexp)
+ (public_name lev-fiber-csexp)
+ (libraries fiber csexp stdune dyn lev_fiber))

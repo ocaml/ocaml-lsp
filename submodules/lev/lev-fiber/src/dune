@@ -1,0 +1,10 @@
+(env
+ (_
+  (flags :standard -alert -unstable)))
+
+(library
+ (name lev_fiber)
+ (public_name lev-fiber)
+ (instrumentation
+  (backend bisect_ppx))
+ (libraries unix dyn stdune threads.posix fiber lev lev_fiber_util))

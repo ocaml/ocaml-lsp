@@ -1,0 +1,3 @@
+(executables
+ (names readme)
+ (libraries lev unix))
