@@ -112,17 +112,17 @@ let to_string { scheme; authority; path } =
    let colon = "%3A" in
    let len = String.length path in
    if len >= 3 && path.[0] = '/' && path.[2] = ':' then (
-     let code = Char.lowercase_ascii path.[1] in
-     if code >= 'a' && code <= 'z' then (
+     let drive_letter = Char.lowercase_ascii path.[1] in
+     if drive_letter >= 'a' && drive_letter <= 'z' then (
        Buffer.add_char buff '/';
-       Buffer.add_char buff code;
+       Buffer.add_char buff drive_letter;
        Buffer.add_string buff colon;
        let s = String.sub path ~pos:3 ~len:(len - 3) |> encode in
        Buffer.add_string buff s))
    else if len >= 2 && path.[1] = ':' then (
-     let code = Char.lowercase_ascii path.[0] in
-     if code >= 'a' && code <= 'z' then (
-       Buffer.add_char buff code;
+     let drive_letter = Char.lowercase_ascii path.[0] in
+     if drive_letter >= 'a' && drive_letter <= 'z' then (
+       Buffer.add_char buff drive_letter;
        Buffer.add_string buff colon;
        let s = String.sub path ~pos:2 ~len:(len - 2) |> encode in
        Buffer.add_string buff s))
