@@ -68,11 +68,11 @@ let to_path { path; authority; scheme } =
   in
   if !Private.win32 then slash_to_backslash path else path
 
+let re =
+  Re.Perl.re "^(([^:/?#]+?):)?(\\/\\/([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?"
+  |> Re.compile
+
 let of_string s =
-  let re =
-    Re.Perl.re "^(([^:/?#]+?):)?(\\/\\/([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?"
-    |> Re.compile
-  in
   let res = Re.exec re s in
   let scheme = Re.Group.get_opt res 2 |> Option.value ~default:"file" in
   let group re n = Re.Group.get_opt re n |> Option.value ~default:"" in
