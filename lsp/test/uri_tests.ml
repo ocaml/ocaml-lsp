@@ -164,6 +164,9 @@ let%expect_test "of_string -> to_path" =
     ; "file://shares/pröjects/c%23/#l12"
     ; "file:///_:/path"
     ; "file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins"
+    ; "shares/pröjects/c%23/#l12"
+    ; "/shares/pröjects/c%23/#l12"
+    ; "\\shares/pröjects/c%23/#l12"
     ];
   [%expect
     {|
@@ -172,11 +175,17 @@ let%expect_test "of_string -> to_path" =
     file://shares/pröjects/c%23/#l12 -> //shares/pröjects/c#/
     file:///_:/path -> /_:/path
     file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> c:/Source/Zürich or Zurich (ˈzjʊərɪk,/Code/resources/app/plugins
+    shares/pröjects/c%23/#l12 -> /shares/pröjects/c#/
+    /shares/pröjects/c%23/#l12 -> /shares/pröjects/c#/
+    \shares/pröjects/c%23/#l12 -> /\shares/pröjects/c#/
     Windows:
     file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> \
     file://shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
     file:///_:/path -> \_:\path
     file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> c:\Source\Zürich or Zurich (ˈzjʊərɪk,\Code\resources\app\plugins
+    shares/pröjects/c%23/#l12 -> \shares\pröjects\c#\
+    /shares/pröjects/c%23/#l12 -> \shares\pröjects\c#\
+    \shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
     |}]
 
 let%expect_test "of_string -> to_string" =
