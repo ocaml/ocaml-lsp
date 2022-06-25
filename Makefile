@@ -3,7 +3,7 @@
 TEST_E2E_DIR = ocaml-lsp-server/test/e2e
 
 $(TEST_E2E_DIR)/node_modules:
-	cd $(TEST_E2E_DIR) && yarn install
+	cd $(TEST_E2E_DIR) && yarn --frozen-lockfile
 
 -include Makefile.dev
 
@@ -90,3 +90,8 @@ nix/opam-selection.nix:
 nix-tests:
 	(cd $(TEST_E2E_DIR) && yarn --frozen-lockfile)
 	make test
+
+.PHONY: nix-fmt
+nix-fmt: $(TEST_E2E_DIR)/node_modules
+	dune build @fmt --auto-promote
+	cd $(TEST_E2E_DIR) && yarn fmt

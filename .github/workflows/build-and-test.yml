@@ -55,10 +55,6 @@ jobs:
       - name: Install test dependencies
         run: opam exec -- make install-test-deps
 
-      - name: Check formatting
-        run: opam exec -- make fmt
-        if: ${{ matrix.os == 'ubuntu-latest' && always() }}
-
       - name: Run build
         run: opam exec -- make all
 
