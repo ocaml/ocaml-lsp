@@ -204,6 +204,7 @@ let%expect_test "of_string -> to_string" =
     ; "/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js"
     ; "file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins"
     ; "file:foo/bar"
+    ; ""
     ];
   [%expect
     {|
@@ -215,6 +216,7 @@ let%expect_test "of_string -> to_string" =
     /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
     file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
     file:foo/bar -> file:///foo/bar
+     -> file:///
     Windows:
     file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
     file://sh%c3%a4res/path -> file://sh%C3%A4res/path
@@ -223,6 +225,7 @@ let%expect_test "of_string -> to_string" =
     /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
     file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
     file:foo/bar -> file:///foo/bar
+     -> file:///
     |}]
 
 let%expect_test "of_string -> to_path" =
@@ -237,6 +240,7 @@ let%expect_test "of_string -> to_path" =
     [ "file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp"
     ; "file://shares/pröjects/c%23/#l12"
     ; "file:///_:/path"
+    ; ""
     ];
   [%expect
     {|
@@ -244,8 +248,10 @@ let%expect_test "of_string -> to_path" =
       file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> /
       file://shares/pröjects/c%23/#l12 -> //shares/pröjects/c#/
       file:///_:/path -> /_:/path
+       -> /
       Windows:
       file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> \
       file://shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
       file:///_:/path -> \_:\path
+       -> \
       |}]
