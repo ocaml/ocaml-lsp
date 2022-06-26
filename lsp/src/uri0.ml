@@ -25,6 +25,9 @@ let slash_to_backslash =
     | '/' -> '\\'
     | _ as c -> c)
 
+let add_prefix_if_not_exists s ~prefix =
+  if String.is_prefix s ~prefix then s else prefix ^ s
+
 let of_path path =
   let path = if !Private.win32 then backslash_to_slash path else path in
   let path, authority =
@@ -44,7 +47,7 @@ let of_path path =
         (path, authority)
     else (path, "")
   in
-  let path = if path.[0] <> '/' then "/" ^ path else path in
+  let path = add_prefix_if_not_exists path ~prefix:"/" in
   { scheme = "file"; authority; path }
 
 let to_path { path; authority; scheme } =
@@ -84,10 +87,7 @@ let of_string s =
   let path =
     let path = path |> Uri.pct_decode in
     match scheme with
-    | "http" | "https" | "file" ->
-      if String.is_empty path then "/"
-      else if path.[0] <> '/' then "/" ^ path
-      else path
+    | "http" | "https" | "file" -> add_prefix_if_not_exists path ~prefix:"/"
     | _ -> path
   in
   { scheme; authority; path }
