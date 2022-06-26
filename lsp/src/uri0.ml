@@ -30,7 +30,7 @@ let of_path path =
   let path, authority =
     let len = String.length path in
     if len = 0 then ("/", "")
-    else if len > 1 && path.[0] = '/' && path.[1] = '/' then
+    else if String.is_prefix path ~prefix:"//" then
       let offset = 2 in
       let idx = String.index_from_opt path offset '/' in
       match idx with
