@@ -18,12 +18,12 @@ type t =
 let backslash_to_slash =
   String.map ~f:(function
     | '\\' -> '/'
-    | _ as c -> c)
+    | c -> c)
 
 let slash_to_backslash =
   String.map ~f:(function
     | '/' -> '\\'
-    | _ as c -> c)
+    | c -> c)
 
 let add_prefix_if_not_exists s ~prefix =
   if String.is_prefix s ~prefix then s else prefix ^ s
