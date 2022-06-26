@@ -50,21 +50,27 @@ let to_path { path; authority; scheme } =
   let path =
     let len = String.length path in
     if len = 0 then "/"
-    else if (not (String.is_empty authority)) && len > 1 && scheme = "file" then
-      "//" ^ authority ^ path
-    else if len < 3 then path
     else
-      let c0 = path.[0] in
-      let c1 = path.[1] in
-      let c2 = path.[2] in
-      if
-        c0 = '/'
-        && ((c1 >= 'A' && c1 <= 'Z') || (c1 >= 'a' && c1 <= 'z'))
-        && c2 = ':'
-      then
-        String.make 1 (Char.lowercase_ascii c1)
-        ^ String.sub path ~pos:2 ~len:(String.length path - 2)
-      else path
+      let buff = Buffer.create 64 in
+      (if (not (String.is_empty authority)) && len > 1 && scheme = "file" then (
+       Buffer.add_string buff "//";
+       Buffer.add_string buff authority;
+       Buffer.add_string buff path)
+      else if len < 3 then Buffer.add_string buff path
+      else
+        let c0 = path.[0] in
+        let c1 = path.[1] in
+        let c2 = path.[2] in
+        if
+          c0 = '/'
+          && ((c1 >= 'A' && c1 <= 'Z') || (c1 >= 'a' && c1 <= 'z'))
+          && c2 = ':'
+        then (
+          Buffer.add_char buff (Char.lowercase_ascii c1);
+          Buffer.add_string buff
+            (String.sub path ~pos:2 ~len:(String.length path - 2)))
+        else Buffer.add_string buff path);
+      Buffer.contents buff
   in
   if !Private.win32 then slash_to_backslash path else path
 
