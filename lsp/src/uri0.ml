@@ -31,11 +31,12 @@ let of_path path =
     let len = String.length path in
     if len = 0 then ("/", "")
     else if len > 1 && path.[0] = '/' && path.[1] = '/' then
-      let idx = String.index_from_opt path 2 '/' in
+      let offset = 2 in
+      let idx = String.index_from_opt path offset '/' in
       match idx with
-      | None -> ("/", String.sub path ~pos:2 ~len:(len - 2))
+      | None -> ("/", String.sub path ~pos:offset ~len:(len - offset))
       | Some i ->
-        let authority = String.sub path ~pos:2 ~len:(i - 2) in
+        let authority = String.sub path ~pos:offset ~len:(i - offset) in
         let path =
           let path = String.sub path ~pos:i ~len:(len - i) in
           if String.is_empty path then "/" else path
