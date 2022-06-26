@@ -68,17 +68,14 @@ let to_path { path; authority; scheme } =
   in
   if !Private.win32 then slash_to_backslash path else path
 
-let re =
-  Re.Perl.re "^(([^:/?#]+?):)?(\\/\\/([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?"
-  |> Re.compile
-
 let of_string s =
-  let res = Re.exec re s in
-  let scheme = Re.Group.get_opt res 2 |> Option.value ~default:"file" in
-  let group re n = Re.Group.get_opt re n |> Option.value ~default:"" in
-  let authority = group res 4 |> Uri.pct_decode in
+  let Uri_lexer.{ scheme; authority; path } = Uri_lexer.of_string s in
+  let scheme = scheme |> Option.value ~default:"file" in
+  let authority =
+    authority |> Option.map Uri.pct_decode |> Option.value ~default:""
+  in
   let path =
-    let path = group res 5 |> Uri.pct_decode in
+    let path = path |> Uri.pct_decode in
     match scheme with
     | "http" | "https" | "file" ->
       if String.is_empty path then "/"
