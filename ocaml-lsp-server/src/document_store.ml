@@ -3,6 +3,26 @@ open Fiber.O
 
 type server = Server : 'a Server.t Fdecl.t -> server
 
+(** The following code attempts to resolve the issue of displaying code actions
+    for unopened document.
+
+    Unopened documents require a dynamic registration (DR) for code actions,
+    while open documents do not.
+
+    Here are the four states of the documents and the DR status they require.
+    "X" marks that DR is required while "O" marks that no Dr should be present
+
+    {|
+                          | Open | Closed |
+                          -----------------
+      Promotions Pending  |  O   |   X    |
+      No Promotions       |  O   |   O    |
+    |}
+
+    From the above, we see that we need to unregister when transitioning from X
+    to O and to register while transitioning from X to O.
+    *)
+
 type doc =
   { (* invariant: if [document <> None], then no promotions are active *)
     document : Document.t option
