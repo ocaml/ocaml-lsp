@@ -64,7 +64,7 @@ describe("workspace/symbol", () => {
 
     buildProject(workspaceA.path);
 
-    let symbols: Types.SymbolInformation[] = await queryWorkspaceSymbol({
+    let symbols = await queryWorkspaceSymbol({
       query: "",
     });
 
@@ -119,7 +119,7 @@ describe("workspace/symbol", () => {
 
     buildProject(workspaceA.path);
 
-    let symbols: Types.SymbolInformation[] = await queryWorkspaceSymbol({
+    let symbols = await queryWorkspaceSymbol({
       query: "a_",
     });
 
@@ -144,7 +144,7 @@ describe("workspace/symbol", () => {
     buildProject(workspaceA.path);
     buildProject(workspaceB.path);
 
-    let symbols: Types.SymbolInformation[] = await queryWorkspaceSymbol({
+    let symbols = await queryWorkspaceSymbol({
       query: "",
     });
 
@@ -201,7 +201,8 @@ describe("workspace/symbol", () => {
     child_process.execSync("dune clean", { cwd: workspaceA.path });
     child_process.execSync("dune clean", { cwd: workspaceB.path });
 
-    type StarNotificationHandlerParams = Parameters<Protocol.StarNotificationHandler>;
+    type StarNotificationHandlerParams =
+      Parameters<Protocol.StarNotificationHandler>;
     let receivedNotification: Promise<{
       method: StarNotificationHandlerParams[0];
       params: StarNotificationHandlerParams[1];
