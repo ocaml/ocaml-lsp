@@ -1,20 +1,23 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("ocamllsp/typedHoles", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source: string) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   async function sendTypedHolesReq() {
@@ -29,11 +32,10 @@ describe("ocamllsp/typedHoles", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("empty when no holes in file", async () => {
-    await openDocument(
+    openDocument(
       outdent`
 let u = 1
 `,
@@ -44,7 +46,7 @@ let u = 1
   });
 
   it("one hole", async () => {
-    await openDocument(
+    openDocument(
       outdent`
 let k = match () with () -> _
 `,
@@ -68,7 +70,7 @@ let k = match () with () -> _
   });
 
   it("several holes", async () => {
-    await openDocument(
+    openDocument(
       outdent`
 let u =
   let i = match Some 1 with None -> _ | Some -> _ in

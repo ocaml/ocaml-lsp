@@ -1,10 +1,10 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/foldingRange", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
   beforeEach(async () => {
     languageServer = await LanguageServer.startAndInitialize();
@@ -12,18 +12,20 @@ describe("textDocument/foldingRange", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
-  async function openDocument(source: string) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   async function foldingRange() {
@@ -33,7 +35,7 @@ describe("textDocument/foldingRange", () => {
   }
 
   it("returns folding ranges for `let`", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let a = 
       let b = 1 
       in 
@@ -65,7 +67,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for open expressions", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     open struct 
       let u = 
         ()
@@ -101,7 +103,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for Pexp_apply expressions", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     Stdlib.print_endline "one
     two
     three"`);
@@ -121,7 +123,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for Pexp_letop", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let () = 
       let+ outline =
         Stdlib.print_endline "one";
@@ -160,7 +162,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for Pexp_newtype", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let magic_of_kind : type a . a ast_kind -> string = 
       let () = 
         Stdlib.print_endline "one";
@@ -189,7 +191,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for type_extension", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     type t +=
       | A
       | B
@@ -237,7 +239,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for match expressions", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     match 
       Some 
         "large expr" 
@@ -278,7 +280,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for records", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     type r = { 
       a: string;
       b: int
@@ -327,7 +329,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for classes", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     class foobar =
       let a =
         let () = Stdlib.print_endline "" in
@@ -408,7 +410,7 @@ describe("textDocument/foldingRange", () => {
     `);
   });
   it("returns folding ranges Pexp_while", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     while true do
       Stdlib.print_endline "one";
       Stdlib.print_endline "two";
@@ -430,7 +432,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges Pexp_for", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     for j = 0 to Array.length index - 1 do
       Stdlib.print_endline "one";
       Stdlib.print_endline "two";
@@ -452,7 +454,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges Pexp_object", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     object
       method print =
         Stdlib.print_enline "one";
@@ -482,7 +484,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges Pexp_pack", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     (module Set.Make (struct
       type t = s
       let compare = cmp
@@ -521,7 +523,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges Pexp_letmodule", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let module W = Set.Make (struct
       type t = s
 
@@ -562,7 +564,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for value_description", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     module Type : sig
       val mk: ?loc:loc -> ?attrs:attrs -> ?docs:docs -> ?text:text ->
         ?params:(core_type * (variance * injectivity)) list ->
@@ -601,7 +603,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for Pstr_extension", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     [%%expect{|
       module type Module =
         sig
@@ -626,7 +628,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("traverses Pexp_lazy nodes", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let res =
       lazy
         (let () =
@@ -659,7 +661,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("traverses Pexp_letexception nodes", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let decode_map str =
       let exception Shortcut of error_message in
       let () =
@@ -692,7 +694,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("traverses Pexp_sequence nodes", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let a = 
       Stdlib.print_endline "";
       let b = 
@@ -721,7 +723,7 @@ describe("textDocument/foldingRange", () => {
     `);
   });
   it("supports if/else", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let fn a =
       if a == true then
         let () =
@@ -788,7 +790,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("supports return type annotation", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let fn a b : int = 
       let result = 
         Stdlib.print_endline "";
@@ -819,7 +821,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for try/with", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let result =
       try
         let () =
@@ -879,7 +881,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("traverses Pexp_construct", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let a =
       Some
         (let () =
@@ -912,7 +914,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for modules", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
           module type X = sig
             type t =
               | A
@@ -1127,7 +1129,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("traverses Pstr_extension structure item", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     let%expect_test "test from jsonrpc_test.ml" =
       let a =
         let b = 5 in
@@ -1165,7 +1167,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for class_type", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     class type foo_t =
     object
       inherit castable
@@ -1195,7 +1197,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for class_type_field", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     module type Type = sig
       class reload_generic :
         object
@@ -1251,7 +1253,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for class_description", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     module type T = sig
       class cse_generic : 
         object 
@@ -1295,7 +1297,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for class_expr", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     class x =
       object
         val x = 3
@@ -1326,7 +1328,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for class_type", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     class type t =
       object
         val x : t
@@ -1356,7 +1358,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for Pmod_functor and Pmod_structure", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     module M =
       functor (M : S) ->
         (val x)
@@ -1404,7 +1406,7 @@ describe("textDocument/foldingRange", () => {
   });
 
   it("returns folding ranges for Pmty_functor and Pmty_signature", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
     module type S = 
       functor (M : S) (_ : module type of M) -> 
         sig

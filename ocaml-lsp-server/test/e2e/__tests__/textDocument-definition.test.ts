@@ -2,26 +2,42 @@ import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
 import * as Types from "vscode-languageserver-types";
 import { testUri } from "./../src/LanguageServer";
+import * as Protocol from "vscode-languageserver-protocol";
+import { isNotNullable } from "../src/utils";
 
 describe("textDocument/definition", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        testUri("test.ml"),
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          testUri("test.ml"),
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
-  async function queryDefinition(position) {
-    return await languageServer.sendRequest("textDocument/definition", {
-      textDocument: Types.TextDocumentIdentifier.create(testUri("test.ml")),
-      position,
-    });
+  async function queryDefinition(position: Types.Position) {
+    let result = await languageServer.sendRequest(
+      Protocol.DefinitionRequest.type,
+      {
+        textDocument: Types.TextDocumentIdentifier.create(testUri("test.ml")),
+        position,
+      },
+    );
+
+    if (result === null) return [];
+
+    result = Array.isArray(result) ? result : [result];
+
+    return result
+      .map((location) => (Types.Location.is(location) ? location : null))
+      .filter(isNotNullable);
   }
 
   beforeEach(async () => {
@@ -30,11 +46,10 @@ describe("textDocument/definition", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("returns location of a definition", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       let x = 43
 
       let () =

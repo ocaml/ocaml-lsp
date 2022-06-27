@@ -1,21 +1,24 @@
 import outdent from "outdent";
 import * as rpc from "vscode-jsonrpc/node";
 import * as LanguageServer from "../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/diagnostics", () => {
-  let languageServer: rpc.MessageConnection = null;
+  let languageServer: rpc.MessageConnection;
 
-  async function openDocument(source: string) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   beforeEach(async () => {
@@ -24,7 +27,6 @@ describe("textDocument/diagnostics", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("has related diagnostics", async () => {
@@ -76,7 +78,7 @@ describe("textDocument/diagnostics", () => {
         resolve(null);
       }),
     );
-    await openDocument(outdent`
+    openDocument(outdent`
 (* " *)
     `);
     await receivedDiganostics;
@@ -113,7 +115,7 @@ describe("textDocument/diagnostics", () => {
         resolve(null);
       }),
     );
-    await openDocument(outdent`
+    openDocument(outdent`
       let () =
         let x = 123 in
         ()
@@ -153,7 +155,7 @@ describe("textDocument/diagnostics", () => {
         resolve(null);
       }),
     );
-    await openDocument(outdent`
+    openDocument(outdent`
       module X : sig
         val x : unit
         [@@ocaml.deprecated "do not use"]
@@ -236,7 +238,7 @@ describe("textDocument/diagnostics", () => {
         resolve(null);
       }),
     );
-    await openDocument(outdent`
+    openDocument(outdent`
       module X : sig
         val x : unit
       end = struct
@@ -262,7 +264,7 @@ describe("textDocument/diagnostics", () => {
       }),
     );
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let num = 42
     `);
 
@@ -302,7 +304,7 @@ describe("textDocument/diagnostics", () => {
       }),
     );
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let a : int = _
     `);
 
@@ -389,7 +391,7 @@ describe("textDocument/diagnostics", () => {
       }),
     );
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let _a : int = _ in
       let b : string = match Some 1 with None -> _ | Some _ -> _ in
       ()
@@ -477,7 +479,7 @@ describe("textDocument/diagnostics", () => {
       }),
     );
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let _u =
         let _i = List.map (fun i -> i) [1; 2; ()] in
         let b = 234 in

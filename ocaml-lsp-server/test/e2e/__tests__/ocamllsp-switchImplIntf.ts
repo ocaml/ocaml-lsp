@@ -4,14 +4,18 @@ import * as path from "path";
 import { DocumentUri, TextDocumentItem } from "vscode-languageserver-types";
 import { URI } from "vscode-uri";
 import * as LanguageServer from "./../src/LanguageServer";
+import * as Protocol from "vscode-languageserver-protocol";
 
 describe("ocamllsp/switchImplIntf", () => {
-  let languageServer: LanguageServer.LanguageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(documentUri: DocumentUri) {
-    languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: TextDocumentItem.create(documentUri, "ocaml", 0, ""),
-    });
+  function openDocument(documentUri: DocumentUri) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: TextDocumentItem.create(documentUri, "ocaml", 0, ""),
+      },
+    );
   }
 
   /* sends request "ocamllsp/switchImplIntf" */
@@ -31,7 +35,6 @@ describe("ocamllsp/switchImplIntf", () => {
   afterEach(async () => {
     await fs.rm(testWorkspacePath, { recursive: true });
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   let createPathForFile = (filename: string) =>

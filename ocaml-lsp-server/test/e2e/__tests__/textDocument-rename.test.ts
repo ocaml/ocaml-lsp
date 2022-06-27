@@ -1,25 +1,28 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/rename", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source: string) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   async function query(position: Types.Position, newNameOpt?: string) {
     let newName = newNameOpt ? newNameOpt : "new_num";
-    return await languageServer.sendRequest("textDocument/rename", {
+    return await languageServer.sendRequest(Protocol.RenameRequest.type, {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
       newName,
@@ -27,15 +30,17 @@ describe("textDocument/rename", () => {
   }
 
   async function query_prepare(position: Types.Position) {
-    return await languageServer.sendRequest("textDocument/prepareRename", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position,
-    });
+    return await languageServer.sendRequest(
+      Protocol.PrepareRenameRequest.type,
+      {
+        textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+        position,
+      },
+    );
   }
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("can reject invalid rename request", async () => {
@@ -45,7 +50,7 @@ describe("textDocument/rename", () => {
       },
     });
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let num = 42
       let num = num + 13
       let num2 = num
@@ -62,7 +67,7 @@ describe("textDocument/rename", () => {
       },
     });
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let num = 42
       let num = num + 13
       let num2 = num
@@ -82,7 +87,7 @@ describe("textDocument/rename", () => {
       },
     });
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let num = 42
       let num = num + 13
       let num2 = num
@@ -131,7 +136,7 @@ describe("textDocument/rename", () => {
       },
     });
 
-    await openDocument(outdent`
+    openDocument(outdent`
       let num = 42
       let num = num + 13
       let num2 = num
@@ -186,7 +191,7 @@ describe("textDocument/rename", () => {
       },
     });
 
-    await openDocument(outdent`
+    openDocument(outdent`
 let foo x = x
 
 let bar ~foo = foo ()
@@ -239,7 +244,7 @@ let () = bar ~foo
       },
     });
 
-    await openDocument(outdent`
+    openDocument(outdent`
 let foo = Some ()
 
 let bar ?foo () = foo
