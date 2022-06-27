@@ -9,6 +9,22 @@ let not_supported () =
   Jsonrpc.Response.Error.raise
     (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
+let view_metrics_command_name = "ocamllsp/view-metrics"
+
+let view_metrics server =
+  let* json = Metrics.dump () in
+  let uri, chan =
+    Filename.open_temp_file (sprintf "lsp-metrics.%d" (Unix.getpid ())) ".json"
+  in
+  output_string chan json;
+  close_out_noerr chan;
+  let req =
+    Server_request.ShowDocumentRequest
+      (ShowDocumentParams.create ~uri ~takeFocus:true ())
+  in
+  let+ { ShowDocumentResult.success = _ } = Server.request server req in
+  `Null
+
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
@@ -66,7 +82,9 @@ let initialize_info : InitializeResult.t =
         ]
     in
     let executeCommandProvider =
-      ExecuteCommandOptions.create ~commands:Dune.commands ()
+      ExecuteCommandOptions.create
+        ~commands:(view_metrics_command_name :: Dune.commands)
+        ()
     in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~declarationProvider:(`Bool true) ~definitionProvider:(`Bool true)
@@ -853,12 +871,14 @@ let on_request :
     later (fun state () -> workspace_symbol server state req) ()
   | CodeActionResolve ca -> now ca
   | ExecuteCommand command ->
-    later
-      (fun state () ->
-        let dune = State.dune state in
-        (* all of our commands are handled by dune for now *)
-        Dune.on_command dune command)
-      ()
+    if String.equal command.command view_metrics_command_name then
+      later (fun _state server -> view_metrics server) server
+    else
+      later
+        (fun state () ->
+          let dune = State.dune state in
+          Dune.on_command dune command)
+        ()
   | CompletionItemResolve ci ->
     later
       (fun state () ->
@@ -1074,46 +1094,50 @@ let start () =
     Fdecl.get server
   in
   let state = Server.state server in
-  Fiber.all_concurrently_unit
-    [ Fiber.Pool.run detached
-    ; Lev_fiber.Timer.Wheel.run wheel
-    ; Merlin_config.DB.run state.merlin_config
-    ; (let* () = Server.start server in
-       let finalize =
-         [ Document_store.close_all store
-         ; Fiber.Pool.stop detached
-         ; Ocamlformat_rpc.stop ocamlformat_rpc
-         ; Lev_fiber.Timer.Wheel.stop wheel
-         ; Merlin_config.DB.stop state.merlin_config
-         ]
-       in
-       let finalize =
-         match (Server.state server).init with
-         | Uninitialized -> finalize
-         | Initialized init -> Dune.stop init.dune :: finalize
-       in
-       Fiber.all_concurrently_unit finalize)
-    ; (let* state =
-         Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc
-       in
-       let message =
-         match state with
-         | Error `Binary_not_found ->
-           Some
-             "ocamlformat-rpc is missing, displayed types might not be \
-              properly formatted. Hint: $ opam install ocamlformat-rpc and \
-              restart the lsp server"
-         | Error `Disabled | Ok () -> None
-       in
-       match message with
-       | None -> Fiber.return ()
-       | Some message ->
-         let* (_ : InitializeParams.t) = Server.initialized server in
-         let state = Server.state server in
-         task_if_running state.detached ~f:(fun () ->
-             let log = ShowMessageParams.create ~type_:Info ~message in
-             Server.notification server (Server_notification.ShowMessage log)))
-    ]
+  let run () =
+    Fiber.all_concurrently_unit
+      [ Fiber.Pool.run detached
+      ; Lev_fiber.Timer.Wheel.run wheel
+      ; Merlin_config.DB.run state.merlin_config
+      ; (let* () = Server.start server in
+         let finalize =
+           [ Document_store.close_all store
+           ; Fiber.Pool.stop detached
+           ; Ocamlformat_rpc.stop ocamlformat_rpc
+           ; Lev_fiber.Timer.Wheel.stop wheel
+           ; Merlin_config.DB.stop state.merlin_config
+           ]
+         in
+         let finalize =
+           match (Server.state server).init with
+           | Uninitialized -> finalize
+           | Initialized init -> Dune.stop init.dune :: finalize
+         in
+         Fiber.all_concurrently_unit finalize)
+      ; (let* state =
+           Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc
+         in
+         let message =
+           match state with
+           | Error `Binary_not_found ->
+             Some
+               "ocamlformat-rpc is missing, displayed types might not be \
+                properly formatted. Hint: $ opam install ocamlformat-rpc and \
+                restart the lsp server"
+           | Error `Disabled | Ok () -> None
+         in
+         match message with
+         | None -> Fiber.return ()
+         | Some message ->
+           let* (_ : InitializeParams.t) = Server.initialized server in
+           let state = Server.state server in
+           task_if_running state.detached ~f:(fun () ->
+               let log = ShowMessageParams.create ~type_:Info ~message in
+               Server.notification server (Server_notification.ShowMessage log)))
+      ]
+  in
+  let metrics = Metrics.create () in
+  Metrics.with_metrics metrics run
 
 let run ~read_dot_merlin () =
   Merlin_config.should_read_dot_merlin := read_dot_merlin;

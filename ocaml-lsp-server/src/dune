@@ -5,6 +5,7 @@
   xdg
   dune-build-info
   fiber
+  chrome-trace
   lev
   lev_fiber
   lev_fiber_csexp
