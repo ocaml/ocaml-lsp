@@ -17,6 +17,7 @@ include struct
   module Pid = Pid
   module Poly = Poly
   module Result = Result
+  module Queue = Queue
 
   module String = struct
     include String
@@ -184,6 +185,8 @@ include struct
   module ServerCapabilities = ServerCapabilities
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams
+  module ShowDocumentParams = ShowDocumentParams
+  module ShowDocumentResult = ShowDocumentResult
   module ShowMessageParams = ShowMessageParams
   module SignatureHelp = SignatureHelp
   module SignatureHelpOptions = SignatureHelpOptions

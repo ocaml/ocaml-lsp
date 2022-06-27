@@ -155,17 +155,35 @@ let await task =
 let with_pipeline (t : t) f =
   match t with
   | Other _ -> Code_error.raise "Document.dune" []
-  | Merlin t ->
+  | Merlin t -> (
     let* pipeline = Lazy_fiber.force t.pipeline in
     let* task =
       match
         Lev_fiber.Thread.task t.merlin ~f:(fun () ->
-            Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
+            let start = Unix.time () in
+            let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
+            let stop = Unix.time () in
+            let event =
+              let module Event = Chrome_trace.Event in
+              let dur = Event.Timestamp.of_float_seconds (stop -. start) in
+              let fields =
+                Event.common_fields
+                  ~ts:(Event.Timestamp.of_float_seconds start)
+                  ~name:"merlin" ()
+              in
+              Event.complete ~dur fields
+            in
+            (event, res))
       with
       | Error `Stopped -> Fiber.never
       | Ok task -> Fiber.return task
     in
-    await task
+    let* res = await task in
+    match res with
+    | Ok (event, result) ->
+      let+ () = Metrics.report event in
+      Ok result
+    | Error e -> Fiber.return (Error e))
 
 let with_pipeline_exn doc f =
   let+ res = with_pipeline doc f in
