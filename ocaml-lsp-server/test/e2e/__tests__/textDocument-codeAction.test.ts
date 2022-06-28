@@ -1,5 +1,6 @@
 import outdent from "outdent";
 import * as path from "path";
+import { URI } from "vscode-uri";
 import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
@@ -237,7 +238,7 @@ let f (x : t) = x
   it("opens the implementation if not in store", async () => {
     let testWorkspacePath = path.join(__dirname, "declaration_files/");
     let intfFilepath = path.join(testWorkspacePath, "lib.mli");
-    let intfUri = "file://" + intfFilepath;
+    let intfUri = URI.file(intfFilepath).toString();
     openDocument("", intfUri);
     let start = Types.Position.create(0, 0);
     let end = Types.Position.create(0, 0);
