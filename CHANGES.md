@@ -1,3 +1,10 @@
+# 1.12.3
+
+## Fixes
+
+- Fix a bad interaction between inferred interfaces and promotion code actions
+  in watch mode (#753)
+
 # 1.12.2
 
 ## Fixes
