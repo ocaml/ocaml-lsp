@@ -33,8 +33,6 @@ let initialize_info : InitializeResult.t =
   in
   let codeLensProvider = CodeLensOptions.create ~resolveProvider:false () in
   let completionProvider =
-    (* TODO even if this re-enabled in general, it should stay disabled for
-       emacs. It makes completion too slow *)
     CompletionOptions.create ~triggerCharacters:[ "."; "#" ]
       ~resolveProvider:true ()
   in
