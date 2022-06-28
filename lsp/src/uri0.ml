@@ -71,8 +71,7 @@ let to_path { path; authority; scheme } =
           && c2 = ':'
         then (
           Buffer.add_char buff (Char.lowercase_ascii c1);
-          Buffer.add_string buff
-            (String.sub path ~pos:2 ~len:(String.length path - 2)))
+          Buffer.add_substring buff path 2 (String.length path - 2))
         else Buffer.add_string buff path);
       Buffer.contents buff
   in
