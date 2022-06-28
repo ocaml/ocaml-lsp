@@ -1,6 +1,5 @@
-import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 import * as fs from "fs";
 import * as path from "path";
@@ -31,28 +30,40 @@ function setupOcamlFormat(ocamlFormat: string) {
   return tmpdir;
 }
 
-async function openDocument(languageServer, source, name) {
-  await languageServer.sendNotification("textDocument/didOpen", {
-    textDocument: Types.TextDocumentItem.create(name, "ocaml", 0, source),
-  });
+function openDocument(
+  languageServer: LanguageServer.LanguageServer,
+  source: string,
+  name: string,
+) {
+  languageServer.sendNotification(
+    Protocol.DidOpenTextDocumentNotification.type,
+    {
+      textDocument: Types.TextDocumentItem.create(name, "ocaml", 0, source),
+    },
+  );
 }
 
-async function query(languageServer, name) {
-  return await languageServer.sendRequest("textDocument/formatting", {
-    textDocument: Types.TextDocumentIdentifier.create(name),
-    options: Types.FormattingOptions.create(2, true),
-  });
+async function query(
+  languageServer: LanguageServer.LanguageServer,
+  name: string,
+) {
+  return await languageServer.sendRequest(
+    Protocol.DocumentFormattingRequest.type,
+    {
+      textDocument: Types.TextDocumentIdentifier.create(name),
+      options: Types.FormattingOptions.create(2, true),
+    },
+  );
 }
 
 const maybeDescribe = os.type() === "Windows_NT" ? describe.skip : describe;
 
 maybeDescribe("textDocument/formatting", () => {
   maybeDescribe("reformatter binary present", () => {
-    let languageServer = null;
+    let languageServer: LanguageServer.LanguageServer;
 
     afterEach(async () => {
       await LanguageServer.exit(languageServer);
-      languageServer = null;
     });
 
     it("can format an ocaml impl file", async () => {
@@ -60,7 +71,7 @@ maybeDescribe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
 
-      await openDocument(
+      openDocument(
         languageServer,
         "let rec gcd a b =\n" +
           "  match (a, b) with\n" +
@@ -88,7 +99,7 @@ maybeDescribe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
 
-      await openDocument(
+      openDocument(
         languageServer,
         "let rec gcd a b =\n" +
           "  match (a, b) with\n" +
@@ -108,7 +119,7 @@ maybeDescribe("textDocument/formatting", () => {
 
       let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
 
-      await openDocument(
+      openDocument(
         languageServer,
         "module Test :           sig\n  type t =\n    | Foo\n    | Bar\n    | Baz\nend\n",
         name,
@@ -137,7 +148,7 @@ maybeDescribe("textDocument/formatting", () => {
 
       let name = path.join(tmpdir, "test.ml");
 
-      await openDocument(
+      openDocument(
         languageServer,
         "let rec gcd a b = match (a, b) with\n" +
           "  | 0, n\n" +

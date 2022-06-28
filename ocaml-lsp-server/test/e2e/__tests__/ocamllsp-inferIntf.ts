@@ -1,20 +1,24 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
+import * as Protocol from "vscode-languageserver-protocol";
 
 import * as Types from "vscode-languageserver-types";
 
 describe("ocamllsp/inferIntf", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source, name) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///" + name,
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string, name: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          LanguageServer.toURI(name),
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   beforeEach(async () => {
@@ -23,7 +27,6 @@ describe("ocamllsp/inferIntf", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   async function inferIntf(name: string) {
@@ -34,7 +37,7 @@ describe("ocamllsp/inferIntf", () => {
   }
 
   it("can infer module interfaces", async () => {
-    await openDocument(
+    openDocument(
       outdent`
 type t = Foo of int | Bar of bool
 

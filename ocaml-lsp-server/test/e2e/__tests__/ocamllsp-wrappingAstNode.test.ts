@@ -1,21 +1,24 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 import { Position } from "vscode-languageserver-types";
 
 describe("ocamllsp/wrappingAstNode", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source: string) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   async function sendWrappingAstNodeRequest({
@@ -37,11 +40,10 @@ describe("ocamllsp/wrappingAstNode", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("empty document", async () => {
-    await openDocument(
+    openDocument(
       outdent`
 `,
     );
@@ -63,7 +65,7 @@ end
   `;
 
   it("when on a toplevel let binding", async () => {
-    await openDocument(code_snippet_0);
+    openDocument(code_snippet_0);
 
     let r = await sendWrappingAstNodeRequest({ line: 0, character: 5 });
 
@@ -85,7 +87,7 @@ end
   });
 
   it("in between toplevel bindings (let and module def)", async () => {
-    await openDocument(code_snippet_0);
+    openDocument(code_snippet_0);
 
     let r = await sendWrappingAstNodeRequest({ line: 1, character: 0 });
 
@@ -107,7 +109,7 @@ end
   });
 
   it("on keyword struct", async () => {
-    await openDocument(code_snippet_0);
+    openDocument(code_snippet_0);
 
     let r = await sendWrappingAstNodeRequest({ line: 2, character: 14 });
 
@@ -135,7 +137,7 @@ end
   });
 
   it("on `b`'s let-binding (nested let-binding in a module def)", async () => {
-    await openDocument(code_snippet_0);
+    openDocument(code_snippet_0);
     let r = await sendWrappingAstNodeRequest({ line: 4, character: 10 });
 
     /* given range corresponds to:
@@ -158,7 +160,7 @@ end
   });
 
   it("between `a`'s and `c`'s let-bindings in a module def", async () => {
-    await openDocument(code_snippet_0);
+    openDocument(code_snippet_0);
 
     let r = await sendWrappingAstNodeRequest({ line: 6, character: 0 });
 

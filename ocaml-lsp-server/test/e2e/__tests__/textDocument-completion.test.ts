@@ -1,5 +1,6 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
+import * as Protocol from "vscode-languageserver-protocol";
 
 import * as Types from "vscode-languageserver-types";
 import { Position } from "vscode-languageserver-types";
@@ -9,30 +10,44 @@ const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0")
   : xdescribe;
 
 describe_opt("textDocument/completion", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source) {
-    return languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    return languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
-  async function queryCompletion(position) {
-    let result = await languageServer.sendRequest("textDocument/completion", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position,
-    });
-    return result.items.map((item) => {
-      return {
-        label: item.label,
-        textEdit: item.textEdit,
-      };
-    });
+  async function queryCompletion(position: Types.Position) {
+    let result =
+      (await languageServer.sendRequest(Protocol.CompletionRequest.type, {
+        textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+        position,
+      })) ?? [];
+
+    if ("items" in result) {
+      return result.items.map((item) => {
+        return {
+          label: item.label,
+          textEdit: item.textEdit,
+        };
+      });
+    } else {
+      result.map((item) => {
+        return {
+          label: item.label,
+          textEdit: item.textEdit,
+        };
+      });
+    }
   }
 
   beforeEach(async () => {
@@ -41,11 +56,10 @@ describe_opt("textDocument/completion", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("can start completion at arbitrary position (before the dot)", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       Strin.func
     `);
 
@@ -57,7 +71,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("can start completion at arbitrary position", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       StringLabels
     `);
 
@@ -69,7 +83,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("can start completion at arbitrary position 2", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       StringLabels
     `);
 
@@ -78,7 +92,7 @@ describe_opt("textDocument/completion", () => {
   });
 
   it("can complete symbol passed as a named argument", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
 let g ~f = f 0 in
 g ~f:ig
     `);
@@ -107,7 +121,7 @@ g ~f:ig
   });
 
   it("can complete symbol passed as a named argument - 2", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
 module M = struct let igfoo _x = () end
 let g ~f = f 0 in
 g ~f:M.ig
@@ -137,7 +151,7 @@ g ~f:M.ig
   });
 
   it("can complete symbol passed as an optional argument", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
 let g ?f = f in
 g ?f:ig
     `);
@@ -166,7 +180,7 @@ g ?f:ig
   });
 
   it("can complete symbol passed as a optional argument - 2", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
 module M = struct let igfoo _x = () end
 let g ?f = f in
 g ?f:M.ig
@@ -196,7 +210,7 @@ g ?f:M.ig
   });
 
   it("completes identifier at top level", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       let somenum = 42
       let somestring = "hello"
 
@@ -212,7 +226,7 @@ g ?f:M.ig
   });
 
   it("completes identifier after completion-triggering character", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       module Test = struct
         let somenum = 42
         let somestring = "hello"
@@ -262,7 +276,7 @@ g ?f:M.ig
   });
 
   it("completes infix operators", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       let (>>|) = (+)
       let y = 1 >
     `);
@@ -323,7 +337,7 @@ g ?f:M.ig
   });
 
   it("completes from a module", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       let f = List.m
     `);
 
@@ -341,11 +355,11 @@ g ?f:M.ig
   });
 
   it("completes a module name", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       let f = L
     `);
 
-    let items = await queryCompletion(Types.Position.create(0, 9));
+    let items = (await queryCompletion(Types.Position.create(0, 9))) ?? [];
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchObject([
       { label: "LargeFile" },
@@ -357,14 +371,14 @@ g ?f:M.ig
   });
 
   it("completes without prefix", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       let somenum = 42
       let somestring = "hello"
 
       let plus_42 (x:int) (y:int) =
         somenum +    `);
 
-    let items = await queryCompletion(Types.Position.create(4, 12));
+    let items = (await queryCompletion(Types.Position.create(4, 12))) ?? [];
     let items_top5 = items.slice(0, 5);
     expect(items_top5).toMatchInlineSnapshot(`
       Array [
@@ -453,9 +467,9 @@ g ?f:M.ig
   });
 
   it("completes labels", async () => {
-    await openDocument("let f = ListLabels.map ~");
+    openDocument("let f = ListLabels.map ~");
 
-    let items = await queryCompletion(Types.Position.create(0, 24));
+    let items = (await queryCompletion(Types.Position.create(0, 24))) ?? [];
     let items_top5 = items.slice(0, 10);
     expect(items_top5).toMatchInlineSnapshot(`
       Array [
@@ -544,7 +558,7 @@ g ?f:M.ig
   });
 
   it("completion doesn't autocomplete record fields", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       type r = {
         x: int;
         y: string
@@ -553,7 +567,7 @@ g ?f:M.ig
       let _ =
     `);
 
-    let items: Array<any> = await queryCompletion(Types.Position.create(5, 8));
+    let items = (await queryCompletion(Types.Position.create(5, 8))) ?? [];
     expect(
       items.filter((compl) => compl.label === "x" || compl.label === "y"),
     ).toHaveLength(0);
@@ -653,13 +667,11 @@ let x : t = \`I
   });
 
   it("completion for holes", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
 let u : int = _
 `);
 
-    let items: Types.CompletionItem[] = await queryCompletion(
-      Types.Position.create(0, 15),
-    );
+    let items = (await queryCompletion(Types.Position.create(0, 15))) ?? [];
 
     items = items.filter(
       (completionItem) => !completionItem.label.startsWith("__"),

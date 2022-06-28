@@ -28,10 +28,8 @@ let serverPath = path.join(
 
 export type LanguageServer = rpc.MessageConnection;
 
-let prefix = process.platform === "win32" ? "file:///" : "file://";
-
-export const toURI = (s) => {
-  return prefix + s;
+export const toURI = (s: string) => {
+  return URI.parse(s).toString();
 };
 
 export const start = (opts?: cp.SpawnOptions) => {
@@ -41,11 +39,11 @@ export const start = (opts?: cp.SpawnOptions) => {
   let childProcess = cp.spawn(serverPath, [], opts);
 
   let connection = rpc.createMessageConnection(
-    new rpc.StreamMessageReader(childProcess.stdout),
-    new rpc.StreamMessageWriter(childProcess.stdin),
+    new rpc.StreamMessageReader(childProcess.stdout!),
+    new rpc.StreamMessageWriter(childProcess.stdin!),
   );
 
-  childProcess.stderr.on("data", (d) => {
+  childProcess.stderr!.on("data", (d) => {
     if (process.env.OCAMLLSP_TEST_DEBUG) {
       console.log("Received data: " + d);
     }
@@ -94,7 +92,10 @@ export const testUri = (file: string) => {
   return URI.file(file).toString();
 };
 
-export const toEqualUri = function (received: string, expected: string) {
+export const toEqualUri: jest.CustomMatcher = function (
+  received: string,
+  expected: string,
+) {
   const obj = this;
 
   const options = {

@@ -1,6 +1,6 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0")
@@ -8,24 +8,30 @@ const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0")
   : xdescribe;
 
 describe_opt("textDocument/completion", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
-  async function querySignatureHelp(position) {
-    return await languageServer.sendRequest("textDocument/signatureHelp", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position,
-    });
+  async function querySignatureHelp(position: Types.Position) {
+    return await languageServer.sendRequest(
+      Protocol.SignatureHelpRequest.type,
+      {
+        textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+        position,
+      },
+    );
   }
 
   beforeEach(async () => {
@@ -49,7 +55,6 @@ describe_opt("textDocument/completion", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("can provide signature help after a function-type value", async () => {

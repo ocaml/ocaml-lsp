@@ -1,24 +1,27 @@
 import outdent from "outdent";
 import * as LanguageServer from "../src/LanguageServer";
-
+import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/references", () => {
-  let languageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source: string) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   async function query(position: Types.Position) {
-    return await languageServer.sendRequest("textDocument/references", {
+    return await languageServer.sendRequest(Protocol.ReferencesRequest.type, {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
       context: { includeDeclaration: false },
@@ -31,11 +34,10 @@ describe("textDocument/references", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("finds references in a file", async () => {
-    await openDocument(outdent`
+    openDocument(outdent`
       let num = 42
       let sum = num + 13
       let sum2 = sum + num

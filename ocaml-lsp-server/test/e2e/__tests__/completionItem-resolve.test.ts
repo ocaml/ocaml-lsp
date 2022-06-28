@@ -1,20 +1,24 @@
 import outdent from "outdent";
 import * as LanguageServer from "./../src/LanguageServer";
+import * as Protocol from "vscode-languageserver-protocol";
 
 import * as Types from "vscode-languageserver-types";
 
 describe("textDocument/completion", () => {
-  let languageServer: LanguageServer.LanguageServer = null;
+  let languageServer: LanguageServer.LanguageServer;
 
-  async function openDocument(source) {
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        source,
-      ),
-    });
+  function openDocument(source: string) {
+    languageServer.sendNotification(
+      Protocol.DidOpenTextDocumentNotification.type,
+      {
+        textDocument: Types.TextDocumentItem.create(
+          "file:///test.ml",
+          "ocaml",
+          0,
+          source,
+        ),
+      },
+    );
   }
 
   async function queryCompletionItemResolve(
@@ -38,7 +42,6 @@ describe("textDocument/completion", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   it("can get documentation for the end of document", async () => {

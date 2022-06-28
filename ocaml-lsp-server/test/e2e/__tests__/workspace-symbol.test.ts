@@ -19,13 +19,18 @@ let createWorkspaces = (names: string[]) => {
 
   let workspaces = names.map(createSingleWorkspace);
 
-  let toTestResult = (symbol: Types.SymbolInformation) =>
-    `${symbol.name} ${symbol.kind} ${workspaces.reduce(
+  let toTestResult = (
+    symbol: Types.SymbolInformation | Types.WorkspaceSymbol,
+  ) => {
+    const location = Types.Location.is(symbol.location)
+      ? `${symbol.location.range.start.line}:${symbol.location.range.start.character} ${symbol.location.range.end.line}:${symbol.location.range.end.character}`
+      : "";
+
+    return `${symbol.name} ${symbol.kind} ${workspaces.reduce(
       (uri, { path, name }) => uri.replace(path, `<${name}>`),
       symbol.location.uri,
-    )} ${symbol.location.range.start.line}:${
-      symbol.location.range.start.character
-    } ${symbol.location.range.end.line}:${symbol.location.range.end.character}`;
+    )} ${location}`;
+  };
 
   return {
     workspaces,
@@ -38,7 +43,7 @@ let buildProject = (cwd: string): void => {
 };
 
 describe("workspace/symbol", () => {
-  let languageServer: Protocol.MessageConnection = null;
+  let languageServer: LanguageServer.LanguageServer;
 
   let {
     workspaces: [workspaceA, workspaceB],
@@ -47,13 +52,14 @@ describe("workspace/symbol", () => {
 
   afterEach(async () => {
     await LanguageServer.exit(languageServer);
-    languageServer = null;
   });
 
   async function queryWorkspaceSymbol(params: Protocol.WorkspaceSymbolParams) {
-    return await languageServer.sendRequest(
-      Protocol.WorkspaceSymbolRequest.type,
-      params,
+    return (
+      (await languageServer.sendRequest(
+        Protocol.WorkspaceSymbolRequest.type,
+        params,
+      )) ?? []
     );
   }
 
