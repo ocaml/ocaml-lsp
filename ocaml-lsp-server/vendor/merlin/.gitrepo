@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/rgrinberg/merlin
+	branch = lsp
+	commit = ac7b1267e3211b747c170ca58f5631716d72884b
+	parent = fb8b19c09f05dcc91b624fd0c9b0d13790dfa5b4
+	method = rebase
+	cmdver = 0.4.1
