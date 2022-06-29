@@ -346,6 +346,7 @@ type nonrec t =
   }
 
 let destroy t =
+  let* () = Fiber.return () in
   match t.entry with
   | None -> Fiber.return ()
   | Some entry ->
