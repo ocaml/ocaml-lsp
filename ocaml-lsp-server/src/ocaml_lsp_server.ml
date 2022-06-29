@@ -804,8 +804,8 @@ let start stream =
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
   let* configuration = Configuration.default () in
   let wheel = Configuration.wheel configuration in
-  let* server =
-    let+ merlin = Lev_fiber.Thread.create () in
+  let* merlin = Lev_fiber.Thread.create () in
+  let server =
     let symbols_thread = Lazy_fiber.create Lev_fiber.Thread.create in
     Fdecl.set
       server
@@ -869,6 +869,9 @@ let start stream =
            ; Ocamlformat_rpc.stop ocamlformat_rpc
            ; Lev_fiber.Timer.Wheel.stop wheel
            ; Merlin_config.DB.stop state.merlin_config
+           ; Fiber.of_thunk (fun () ->
+                 Lev_fiber.Thread.close merlin;
+                 Fiber.return ())
            ]
          in
          let finalize =
