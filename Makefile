@@ -34,7 +34,7 @@ install: ## Install the packages on the system
 lock: ## Generate the lock files
 	opam lock -y .
 
-.PHONY: test
+.PHONY: test-ocaml
 test-ocaml: ## Run the unit tests
 	dune build @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
 
