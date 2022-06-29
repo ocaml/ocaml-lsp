@@ -158,8 +158,12 @@ let with_pipeline (t : t) f =
   | Merlin t ->
     let* pipeline = Lazy_fiber.force t.pipeline in
     let* task =
-      Lev_fiber.Thread.task t.merlin ~f:(fun () ->
-          Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
+      match
+        Lev_fiber.Thread.task t.merlin ~f:(fun () ->
+            Mpipeline.with_pipeline pipeline (fun () -> f pipeline))
+      with
+      | Error `Stopped -> Fiber.never
+      | Ok task -> Fiber.return task
     in
     await task
 
@@ -175,8 +179,12 @@ let make_pipeline merlin_config thread tdoc =
   Lazy_fiber.create (fun () ->
       let* config = Merlin_config.config merlin_config in
       let* async_make_pipeline =
-        Lev_fiber.Thread.task thread ~f:(fun () ->
-            Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
+        match
+          Lev_fiber.Thread.task thread ~f:(fun () ->
+              Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
+        with
+        | Error `Stopped -> Fiber.never
+        | Ok task -> Fiber.return task
       in
       let+ res = await async_make_pipeline in
       match res with
