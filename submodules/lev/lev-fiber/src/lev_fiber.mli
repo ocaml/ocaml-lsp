@@ -47,7 +47,7 @@ module Thread : sig
 
   type 'a task
 
-  val task : t -> f:(unit -> 'a) -> 'a task Fiber.t
+  val task : t -> f:(unit -> 'a) -> ('a task, [ `Stopped ]) result
   val cancel : 'a task -> unit Fiber.t
 
   val await :

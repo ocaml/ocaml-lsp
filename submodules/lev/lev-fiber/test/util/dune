@@ -1,9 +1,7 @@
 (library
- (name lev_fiber_tests)
+ (name lev_fiber_util_tests)
  (libraries
-  fiber
-  lev
-  lev_fiber
+  lev_fiber_util
   stdune
   unix
   threads.posix

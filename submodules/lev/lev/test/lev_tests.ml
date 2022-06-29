@@ -2,6 +2,8 @@ open Printf
 open Lev
 module List = ListLabels
 
+let immediately = 0.00001
+
 let%expect_test "version" =
   let major, minor = ev_version () in
   printf "version (%d, %d)\n" major minor;
@@ -33,44 +35,6 @@ let%expect_test "create and run" =
   | `Otherwise -> assert false);
   [%expect {||}]
 
-let%expect_test "read from pipe" =
-  let r, w = Unix.pipe () in
-  Unix.set_nonblock r;
-  Unix.set_nonblock w;
-  let loop = Loop.create () in
-  let io_r =
-    Io.create
-      (fun io fd events ->
-        let b = Bytes.make 1 '0' in
-        match Unix.read fd b 0 1 with
-        | exception Unix.Unix_error (EAGAIN, _, _) -> ()
-        | s ->
-            assert (Io.Event.Set.mem events Read);
-            assert (s = 1);
-            printf "read char %s\n" (Bytes.to_string b);
-            Unix.close r;
-            Io.stop io loop)
-      r
-      (Io.Event.Set.create ~read:true ())
-  in
-  let io_w =
-    Io.create
-      (fun io fd events ->
-        assert (Io.Event.Set.mem events Write);
-        ignore (Unix.write fd (Bytes.make 1 'c') 0 1);
-        print_endline "written to pipe";
-        Unix.close w;
-        Io.stop io loop)
-      w
-      (Io.Event.Set.create ~write:true ())
-  in
-  Io.start io_r loop;
-  Io.start io_w loop;
-  ignore (Loop.run_until_done loop);
-  [%expect {|
-    written to pipe
-    read char c |}]
-
 let%expect_test "timer" =
   let loop = Loop.create () in
   let timer =
@@ -85,7 +49,9 @@ let%expect_test "timer" =
 
 let%expect_test "timer - not repeats" =
   let loop = Loop.create () in
-  let timer = Timer.create ~after:0.0 (fun _ -> print_endline "fired timer") in
+  let timer =
+    Timer.create ~after:immediately (fun _ -> print_endline "fired timer")
+  in
   Timer.start timer loop;
   ignore (Lev.Loop.run loop Once);
   ignore (Lev.Loop.run loop Once);
@@ -235,7 +201,7 @@ let%expect_test "timer - stops automatically" =
   let loop = Loop.create () in
   let another = ref true in
   let timer =
-    Timer.create ~after:0.01 (fun t ->
+    Timer.create ~after:immediately (fun t ->
         print_endline "timer fired";
         if !another then (
           another := false;
@@ -251,7 +217,7 @@ let%expect_test "timer/again cancels start" =
   let loop = Loop.create () in
   let count = ref 0 in
   let timer =
-    Timer.create ~after:0.0 (fun _ ->
+    Timer.create ~after:immediately (fun _ ->
         incr count;
         printf "timer fired %d\n" !count)
   in
@@ -276,7 +242,7 @@ let%expect_test "timer/consecutive again" =
   in
   let control =
     let count = ref 3 in
-    Timer.create ~after:0.0 ~repeat:0.2 (fun t ->
+    Timer.create ~after:immediately ~repeat:0.2 (fun t ->
         if !count = 0 then Timer.stop t loop
         else (
           decr count;
@@ -305,60 +271,6 @@ let%expect_test "callback exception" =
   [%expect {|
     caught idle!
     caught idle! |}]
-
-let%expect_test "watch closed" =
-  let r, w = Unix.pipe ~cloexec:true () in
-  Unix.close w;
-  Unix.set_nonblock r;
-  let loop = Loop.create ~flags:(Loop.Flag.Set.singleton (Backend Select)) () in
-  let io_r =
-    Io.create
-      (fun io fd _events ->
-        let b = Bytes.make 1 '0' in
-        match Unix.read fd b 0 1 with
-        | exception Unix.Unix_error (EAGAIN, _, _) -> assert false
-        | 0 ->
-            Lev.Io.stop io loop;
-            print_endline "read 0 bytes"
-        | _ -> assert false)
-      r
-      (Io.Event.Set.create ~read:true ())
-  in
-  Io.start io_r loop;
-  ignore (Loop.run_until_done loop);
-  [%expect {|
-    read 0 bytes
-  |}]
-
-let%expect_test "watch closed" =
-  let r, w = Unix.pipe ~cloexec:true () in
-  Unix.set_nonblock r;
-  let loop = Loop.create ~flags:(Loop.Flag.Set.singleton (Backend Select)) () in
-  let io_r =
-    Io.create
-      (fun io fd _events ->
-        let b = Bytes.make 1 '0' in
-        match Unix.read fd b 0 1 with
-        | exception Unix.Unix_error (EAGAIN, _, _) -> assert false
-        | 0 ->
-            Lev.Io.stop io loop;
-            print_endline "read 0 bytes"
-        | _ -> assert false)
-      r
-      (Io.Event.Set.create ~read:true ())
-  in
-  Io.start io_r loop;
-  let check =
-    Check.create (fun _ ->
-        printf "closing after start\n";
-        Unix.close w;
-        Unix.close r)
-  in
-  Check.start check loop;
-  ignore (Loop.run loop Nowait);
-  [%expect {|
-    closing after start
-  |}]
 
 let%expect_test "unref" =
   let loop = Loop.create () in

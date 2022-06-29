@@ -20,6 +20,13 @@
 #include <caml/mlvalues.h>
 #include <caml/signals.h>
 #include <caml/threads.h>
+#include <caml/unixsupport.h>
+
+#if _WIN32
+#define FD_val(value) win_CRT_fd_of_filedescr(value)
+#else
+#define FD_val(value) Int_val(value)
+#endif
 
 #define Ev_val(__typ, __v) *(struct __typ **)Data_custom_val(__v)
 #define Ev_watcher_val(v) *(struct ev_watcher **)Data_custom_val(v)
@@ -335,7 +342,7 @@ CAMLprim value lev_io_create(value v_cb, value v_fd, value v_flags) {
   CAMLparam3(v_cb, v_fd, v_flags);
   CAMLlocal2(v_io, v_cb_applied);
   ev_io *io = caml_stat_alloc(sizeof(ev_io));
-  ev_io_init(io, lev_io_cb, Int_val(v_fd), Int_val(v_flags));
+  ev_io_init(io, lev_io_cb, FD_val(v_fd), Int_val(v_flags));
   v_io = caml_alloc_custom(&watcher_ops, sizeof(struct ev_io *), 0, 1);
   Ev_io_val(v_io) = io;
   v_cb_applied = caml_callback(v_cb, v_io);

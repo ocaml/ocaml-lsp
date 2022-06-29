@@ -29,3 +29,95 @@ let%expect_test "child" =
   Child.start child loop;
   Loop.run_until_done loop;
   [%expect {| exited with status 42 |}]
+
+let%expect_test "read from pipe" =
+  let r, w = Unix.pipe () in
+  Unix.set_nonblock r;
+  Unix.set_nonblock w;
+  let loop = Loop.create () in
+  let io_r =
+    Io.create
+      (fun io fd events ->
+        let b = Bytes.make 1 '0' in
+        match Unix.read fd b 0 1 with
+        | exception Unix.Unix_error (EAGAIN, _, _) -> ()
+        | s ->
+            assert (Io.Event.Set.mem events Read);
+            assert (s = 1);
+            printf "read char %s\n" (Bytes.to_string b);
+            Unix.close r;
+            Io.stop io loop)
+      r
+      (Io.Event.Set.create ~read:true ())
+  in
+  let io_w =
+    Io.create
+      (fun io fd events ->
+        assert (Io.Event.Set.mem events Write);
+        ignore (Unix.write fd (Bytes.make 1 'c') 0 1);
+        print_endline "written to pipe";
+        Unix.close w;
+        Io.stop io loop)
+      w
+      (Io.Event.Set.create ~write:true ())
+  in
+  Io.start io_r loop;
+  Io.start io_w loop;
+  ignore (Loop.run_until_done loop);
+  [%expect {|
+    written to pipe
+    read char c |}]
+
+let%expect_test "watch closed" =
+  let r, w = Unix.pipe ~cloexec:true () in
+  Unix.close w;
+  Unix.set_nonblock r;
+  let loop = Loop.create ~flags:(Loop.Flag.Set.singleton (Backend Select)) () in
+  let io_r =
+    Io.create
+      (fun io fd _events ->
+        let b = Bytes.make 1 '0' in
+        match Unix.read fd b 0 1 with
+        | exception Unix.Unix_error (EAGAIN, _, _) -> assert false
+        | 0 ->
+            Lev.Io.stop io loop;
+            print_endline "read 0 bytes"
+        | _ -> assert false)
+      r
+      (Io.Event.Set.create ~read:true ())
+  in
+  Io.start io_r loop;
+  ignore (Loop.run_until_done loop);
+  [%expect {|
+    read 0 bytes
+  |}]
+
+let%expect_test "watch closed" =
+  let r, w = Unix.pipe ~cloexec:true () in
+  Unix.set_nonblock r;
+  let loop = Loop.create ~flags:(Loop.Flag.Set.singleton (Backend Select)) () in
+  let io_r =
+    Io.create
+      (fun io fd _events ->
+        let b = Bytes.make 1 '0' in
+        match Unix.read fd b 0 1 with
+        | exception Unix.Unix_error (EAGAIN, _, _) -> assert false
+        | 0 ->
+            Lev.Io.stop io loop;
+            print_endline "read 0 bytes"
+        | _ -> assert false)
+      r
+      (Io.Event.Set.create ~read:true ())
+  in
+  Io.start io_r loop;
+  let check =
+    Check.create (fun _ ->
+        printf "closing after start\n";
+        Unix.close w;
+        Unix.close r)
+  in
+  Check.start check loop;
+  ignore (Loop.run loop Nowait);
+  [%expect {|
+    closing after start
+  |}]

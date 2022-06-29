@@ -734,11 +734,15 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
-      let* task =
+      let task =
         Lev_fiber.Thread.task thread ~f:(fun () ->
             Workspace_symbol.run params workspaces)
       in
-      let+ res = Lev_fiber.Thread.await task in
+      let+ res =
+        match task with
+        | Ok task -> Lev_fiber.Thread.await task
+        | Error `Stopped -> Fiber.never
+      in
       match res with
       | Ok s -> s
       | Error `Cancelled -> assert false

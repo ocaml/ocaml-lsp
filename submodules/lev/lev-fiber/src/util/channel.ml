@@ -38,22 +38,6 @@ let send_removable t v =
 
 let send t v = send_removable t v |> Result.map ~f:ignore
 
-let send_removable_many t = function
-  | [] -> Ok []
-  | lst ->
-      with_mutex t.m ~f:(fun () ->
-          if t.is_closed then Error `Closed
-          else
-            let node_lst =
-              List.map lst ~f:(fun v ->
-                  let n = Removable_queue.push t.q v in
-                  Node (t.m, n))
-            in
-            Condition.signal t.c;
-            Ok node_lst)
-
-let send_many t lst = send_removable_many t lst |> Result.map ~f:ignore
-
 let get t =
   with_mutex t.m ~f:(fun () ->
       let rec aux () =
@@ -71,4 +55,7 @@ let remove_if_not_consumed (Node (m, n)) =
   with_mutex m ~f:(fun () -> Removable_queue.remove n)
 
 let close t =
-  with_mutex t.m ~f:(fun () -> if not t.is_closed then t.is_closed <- true)
+  with_mutex t.m ~f:(fun () ->
+      if not t.is_closed then (
+        t.is_closed <- true;
+        Condition.signal t.c))
