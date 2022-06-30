@@ -1,6 +1,6 @@
 type t =
-  { scheme : string option
-  ; authority : string option
+  { scheme : string
+  ; authority : string
   ; path : string
   }
 

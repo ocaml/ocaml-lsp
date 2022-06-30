@@ -79,16 +79,6 @@ let to_path { path; authority; scheme } =
 
 let of_string s =
   let Uri_lexer.{ scheme; authority; path } = Uri_lexer.of_string s in
-  let scheme = scheme |> Option.value ~default:"file" in
-  let authority =
-    authority |> Option.map Uri.pct_decode |> Option.value ~default:""
-  in
-  let path =
-    let path = path |> Uri.pct_decode in
-    match scheme with
-    | "http" | "https" | "file" -> add_prefix_if_not_exists path ~prefix:"/"
-    | _ -> path
-  in
   { scheme; authority; path }
 
 let encode ?(allow_slash = false) s =
