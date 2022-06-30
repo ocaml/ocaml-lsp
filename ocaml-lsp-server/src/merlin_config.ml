@@ -409,5 +409,10 @@ module DB = struct
 
   let run t = Fiber.Pool.run t.pool
 
-  let stop t = Fiber.Pool.stop t.pool
+  let stop t =
+    let* () = Fiber.return () in
+    Table.iter t.running ~f:(fun running ->
+        let pid = Pid.to_int running.process.pid in
+        Unix.kill pid Sys.sigkill);
+    Fiber.Pool.stop t.pool
 end
