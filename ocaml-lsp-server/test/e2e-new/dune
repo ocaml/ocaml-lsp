@@ -1,6 +1,8 @@
 (library
  (name ocaml_lsp_e2e)
  (inline_tests
+  (enabled_if
+   (= %{os_type} Unix))
   (deps
    (package ocaml-lsp-server)))
  (libraries
