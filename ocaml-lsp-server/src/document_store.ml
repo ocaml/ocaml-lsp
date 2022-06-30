@@ -12,16 +12,15 @@ type server = Server : 'a Server.t Fdecl.t -> server
     Here are the four states of the documents and the DR status they require.
     "X" marks that DR is required while "O" marks that no Dr should be present
 
-    {|
+    {v
                           | Open | Closed |
                           -----------------
       Promotions Pending  |  O   |   X    |
       No Promotions       |  O   |   O    |
-    |}
+    v}
 
     From the above, we see that we need to unregister when transitioning from X
-    to O and to register while transitioning from X to O.
-    *)
+    to O and to register while transitioning from X to O. *)
 
 type doc =
   { (* invariant: if [document <> None], then no promotions are active *)
