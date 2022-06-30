@@ -1,4 +1,4 @@
-(lang dune 2.9)
+(lang dune 3.0)
 (using menhir 2.0)
 (using cinaps 1.0)
 (name lsp)
