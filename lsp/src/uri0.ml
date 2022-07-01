@@ -25,30 +25,10 @@ let slash_to_backslash =
     | '/' -> '\\'
     | c -> c)
 
-let add_prefix_if_not_exists s ~prefix =
-  if String.is_prefix s ~prefix then s else prefix ^ s
-
 let of_path path =
   let path = if !Private.win32 then backslash_to_slash path else path in
-  let path, authority =
-    let len = String.length path in
-    if len = 0 then ("/", "")
-    else if String.is_prefix path ~prefix:"//" then
-      let offset = 2 in
-      let idx = String.index_from_opt path offset '/' in
-      match idx with
-      | None -> ("/", String.sub path ~pos:offset ~len:(len - offset))
-      | Some i ->
-        let authority = String.sub path ~pos:offset ~len:(i - offset) in
-        let path =
-          let path = String.sub path ~pos:i ~len:(len - i) in
-          if String.is_empty path then "/" else path
-        in
-        (path, authority)
-    else (path, "")
-  in
-  let path = add_prefix_if_not_exists path ~prefix:"/" in
-  { scheme = "file"; authority; path }
+  let Uri_lexer.{ scheme; authority; path } = Uri_lexer.of_path path in
+  { scheme; authority; path }
 
 let to_path { path; authority; scheme } =
   let path =
