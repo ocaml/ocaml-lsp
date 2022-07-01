@@ -64,6 +64,7 @@ let%expect_test "of_path -> to_string" =
     ; "c:\\test with %25\\path"
     ; "c:\\test with %25\\c#code"
     ; "\\\\shäres\\path\\c#\\plugin.json"
+    ; "\\\\shares\\"
     ; "a.file"
     ; "/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js"
     ];
@@ -81,6 +82,7 @@ let%expect_test "of_path -> to_string" =
     c:\test with %25\path -> file:///c%3A%5Ctest%20with%20%2525%5Cpath
     c:\test with %25\c#code -> file:///c%3A%5Ctest%20with%20%2525%5Cc%23code
     \\shäres\path\c#\plugin.json -> file:///%5C%5Csh%C3%A4res%5Cpath%5Cc%23%5Cplugin.json
+    \\shares\ -> file:///%5C%5Cshares%5C
     a.file -> file:///a.file
     /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
     Windows:
@@ -95,6 +97,7 @@ let%expect_test "of_path -> to_string" =
     c:\test with %25\path -> file:///c%3A/test%20with%20%2525/path
     c:\test with %25\c#code -> file:///c%3A/test%20with%20%2525/c%23code
     \\shäres\path\c#\plugin.json -> file://sh%C3%A4res/path/c%23/plugin.json
+    \\shares\ -> file://shares/
     a.file -> file:///a.file
     /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
     |}]
@@ -117,9 +120,11 @@ let%expect_test "of_path -> to_path" =
     ; "c:\\win/path"
     ; "\\\\localhost\\c$\\GitDevelopment\\express"
     ; "\\\\shares"
+    ; "\\\\shares\\"
     ; "\\\\shäres\\path\\c#\\plugin.json"
     ; "c:\\test with %\\path"
     ; "c:\\test with %25\\c#code"
+    ; "hello"
     ];
   [%expect
     {|
@@ -133,9 +138,11 @@ let%expect_test "of_path -> to_path" =
     c:\win/path -> c:\win/path
     \\localhost\c$\GitDevelopment\express -> /\\localhost\c$\GitDevelopment\express
     \\shares -> /\\shares
+    \\shares\ -> /\\shares\
     \\shäres\path\c#\plugin.json -> /\\shäres\path\c#\plugin.json
     c:\test with %\path -> c:\test with %\path
     c:\test with %25\c#code -> c:\test with %25\c#code
+    hello -> /hello
     Windows:
     c:/win/path -> c:\win\path
     c:/win/path/ -> c:\win\path\
@@ -146,9 +153,11 @@ let%expect_test "of_path -> to_path" =
     c:\win/path -> c:\win\path
     \\localhost\c$\GitDevelopment\express -> \\localhost\c$\GitDevelopment\express
     \\shares -> \
+    \\shares\ -> \
     \\shäres\path\c#\plugin.json -> \\shäres\path\c#\plugin.json
     c:\test with %\path -> c:\test with %\path
     c:\test with %25\c#code -> c:\test with %25\c#code
+    hello -> \hello
     |}]
 
 let%expect_test "of_string -> to_path" =
