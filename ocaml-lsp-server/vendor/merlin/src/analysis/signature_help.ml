@@ -2,8 +2,6 @@ open Std
 
 open Browse_raw
 
-open Extend_protocol.Reader
-
 type parameter_info =
   { label : Asttypes.arg_label
   ; param_start : int
@@ -23,8 +21,8 @@ type application_signature =
    from (expression_desc (Texp_ident (Longident))) *)
 let extract_ident (exp_desc : Typedtree.expression_desc) =
   let rec longident ppf : Longident.t -> unit = function
-    | Lident s -> fprintf ppf "%s" (Completion.parenthesize_name s)
-    | Ldot (p, s) -> fprintf ppf "%a.%s" longident p (Completion.parenthesize_name s)
+    | Lident s -> fprintf ppf "%s" (Misc_utils.parenthesize_name s)
+    | Ldot (p, s) -> fprintf ppf "%a.%s" longident p (Misc_utils.parenthesize_name s)
     | Lapply (p1, p2) -> fprintf ppf "%a(%a)" longident p1 longident p2
   in
   match exp_desc with
@@ -83,7 +81,7 @@ let separate_function_signature ~args (e : Typedtree.expression) =
   let ppf = Format.formatter_of_buffer buffer in
   let rec separate ?(i=0) ?(parameters=[]) args ty =
     match (args, Types.get_desc ty) with
-    | (l, arg)::args, Tarrow (label, ty1, ty2, _) ->
+    | (_, arg)::args, Tarrow (label, ty1, ty2, _) ->
       let parameter = print_parameter_offset ppf buffer e.exp_env label ty1 ?arg in
       separate args ty2 ~i:(succ i) ~parameters:(parameter::parameters)
 
