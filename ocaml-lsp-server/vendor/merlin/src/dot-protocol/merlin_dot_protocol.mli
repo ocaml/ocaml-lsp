@@ -51,12 +51,15 @@ module Directive : sig
     | `STDLIB of string
     | `SUFFIX of string
     | `READER of string list
-    | `EXCLUDE_QUERY_DIR ]
+    | `EXCLUDE_QUERY_DIR
+    | `UNKNOWN_TAG of string ]
 
   module Processed : sig
     type acceptable_in_input = [ include_path | no_processing_required ]
 
-    type t = [ acceptable_in_input | `ERROR_MSG of string ]
+    type t =
+      [  acceptable_in_input
+      | `ERROR_MSG of string ]
   end
 
   module Raw : sig
@@ -85,6 +88,8 @@ type read_error =
 (** [read inc] reads one csexp from the channel [inc] and returns the list of
   directives it represents *)
 val read : in_channel:in_channel -> (directive list, read_error) Merlin_utils.Std.Result.t
+
+val write : out_channel:out_channel -> directive list -> unit
 
 module Make (IO : sig
   type 'a t

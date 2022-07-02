@@ -1,13 +1,30 @@
-unreleased
+merlin 4.6
 ==========
+Thu Jun 30 14:51:42 CEST 2022
 
   + merlin binary
     - make most library public and split merlin in two packages: the
       `merlin-lib` package that exposes merlin's internals and the `merlin`
-      package with the frontend. (#1448, #1455, #1457, @rgrinberg, @tmattio,
-      @kit-ty-kate)
+      package with the frontend. (#1448, #1455, #1457, #1497, @rgrinberg,
+      @tmattio, @kit-ty-kate)
+    - Type printing: use best_module_path for paths from Mty_alias (#1470)
     - Attempt at finding the 'real' capitalization of files on windows (#1462 by
       @mlasson)
+    - Use newer `Seq`-based API of Yojson 2.0, avoiding the need for the
+      deprecated `Stream` module (#1475 by @Leonidas-from-XIV)
+    - unify parsing of `MERLIN_LOG` (#1480 by @ulugbekna)
+    - Fix type deduplication in `type-enclosing` results (#1483, fixes #1477)
+    - Only weakly reduce the shapes to speed up the new Merlin locate
+      implementation. (#1488)
+    - Ignore unknown configuration tags from dune configuration provider but not
+      from dot-merlin-reader (#1486)
+    - typing recovery: recover at the granularity of `core_type` (#1484)
+  + editor modes
+    - add method imenu items for emacs (#1481, @mndrix)
+    - emacs: Make the prefix argument to `merlin-locate` optional, both for
+      consistency with Emacs convention and for backwards compatibility. (#1476,
+      @antalsz)
+    - emacs: fix duplicated prefix path in imenu entries (#1495, @bcc32)
 
 merlin 4.5
 ==========

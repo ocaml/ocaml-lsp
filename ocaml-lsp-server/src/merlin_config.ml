@@ -110,6 +110,7 @@ module Config = struct
       | `STDLIB path -> ({ config with stdlib = Some path }, errors)
       | `READER reader -> ({ config with reader }, errors)
       | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
+      | `UNKNOWN_TAG s -> (config, sprintf "Unknown tag %S" s :: errors)
       | `ERROR_MSG str -> (config, str :: errors))
 
   let postprocess =
