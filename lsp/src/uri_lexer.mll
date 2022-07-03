@@ -30,14 +30,9 @@ and path = parse
 | "" { { scheme = "file"; authority = ""; path = "/" } }
 | "//" ([^ '/']* as authority) (['/']_* as path) { { scheme = "file"; authority; path } }
 | "//" ([^ '/']* as authority) { { scheme = "file"; authority; path = "/" } }
-| _* as path 
-{ 
-  let open Import in
-  { scheme = "file"
-  ; authority = ""
-  ; path = String.add_prefix_if_not_exists path ~prefix:"/"
-  }
-}
+| ("/" _* as path) { { scheme = "file"; authority = ""; path } }
+| (_* as path) { { scheme = "file"; authority = ""; path = "/" ^ path } }
+
 
 {
   let of_string s =
