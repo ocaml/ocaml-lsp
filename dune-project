@@ -59,7 +59,7 @@ possible and does not make any assumptions about IO.
   ordering
   dune-build-info
   spawn
-  (omd (<= 1.3.1))
+  (omd (and (>= 1.3.2) (< 2.0.0~alpha1)))
   (octavius (>= 1.2.2))
   (uutf (>= 1.0.2))
   (pp (>= 1.1.2))
