@@ -9,7 +9,7 @@ module Private = struct
   let win32 = ref Sys.win32
 end
 
-type t =
+type t = Uri_lexer.t =
   { scheme : string
   ; authority : string
   ; path : string
@@ -27,8 +27,7 @@ let slash_to_backslash =
 
 let of_path path =
   let path = if !Private.win32 then backslash_to_slash path else path in
-  let Uri_lexer.{ scheme; authority; path } = Uri_lexer.of_path path in
-  { scheme; authority; path }
+  Uri_lexer.of_path path
 
 let to_path { path; authority; scheme } =
   let path =
@@ -57,9 +56,7 @@ let to_path { path; authority; scheme } =
   in
   if !Private.win32 then slash_to_backslash path else path
 
-let of_string s =
-  let Uri_lexer.{ scheme; authority; path } = Uri_lexer.of_string s in
-  { scheme; authority; path }
+let of_string = Uri_lexer.of_string
 
 let encode ?(allow_slash = false) s =
   let allowed_chars = if allow_slash then "/" else "" in
