@@ -9,6 +9,7 @@
   stdune
   fiber
   yojson
+  ppx_yojson_conv_lib
   lev_fiber
   lev
   spawn
