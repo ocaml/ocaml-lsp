@@ -8,7 +8,8 @@ end
 open Import
 
 module T : sig
-  val run : (unit Client.t -> unit Fiber.t) -> unit
+  val run :
+    ?handler:unit Client.Handler.t -> (unit Client.t -> unit Fiber.t) -> unit
 end = struct
   let _PATH =
     Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
@@ -18,7 +19,7 @@ end = struct
 
   let env = Spawn.Env.of_list [ "OCAMLLSP_TEST=true" ]
 
-  let run f =
+  let run ?handler f =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
@@ -27,7 +28,11 @@ end = struct
     in
     Unix.close stdin_i;
     Unix.close stdout_o;
-    let handler = Client.Handler.make () in
+    let handler =
+      match handler with
+      | Some h -> h
+      | None -> Client.Handler.make ()
+    in
     let init =
       let blockity =
         if Sys.win32 then `Blocking
