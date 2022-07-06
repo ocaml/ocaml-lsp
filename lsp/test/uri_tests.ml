@@ -214,6 +214,8 @@ let%expect_test "of_string -> to_string" =
     ; "file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins"
     ; "file:foo/bar"
     ; ""
+    ; "file://LöC%2FAL/host:8080/projects/"
+    ; "file:///pro%2Fjects/"
     ];
   [%expect
     {|
@@ -226,6 +228,8 @@ let%expect_test "of_string -> to_string" =
     file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
     file:foo/bar -> file:///foo/bar
      -> file:///
+    file://LöC%2FAL/host:8080/projects/ -> file://l%C3%B6c%2Fal/host%3A8080/projects/
+    file:///pro%2Fjects/ -> file:///pro/jects/
     Windows:
     file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
     file://sh%c3%a4res/path -> file://sh%C3%A4res/path
@@ -235,6 +239,8 @@ let%expect_test "of_string -> to_string" =
     file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
     file:foo/bar -> file:///foo/bar
      -> file:///
+    file://LöC%2FAL/host:8080/projects/ -> file://l%C3%B6c%2Fal/host%3A8080/projects/
+    file:///pro%2Fjects/ -> file:///pro/jects/
     |}]
 
 let%expect_test "of_string -> to_path" =
@@ -250,6 +256,7 @@ let%expect_test "of_string -> to_path" =
     ; "file://shares/pröjects/c%23/#l12"
     ; "file:///_:/path"
     ; ""
+    ; "file://LöC%2FAL/host:8080/projects/"
     ];
   [%expect
     {|
@@ -258,9 +265,11 @@ let%expect_test "of_string -> to_path" =
       file://shares/pröjects/c%23/#l12 -> //shares/pröjects/c#/
       file:///_:/path -> /_:/path
        -> /
+      file://LöC%2FAL/host:8080/projects/ -> //LöC/AL/host:8080/projects/
       Windows:
       file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> \
       file://shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
       file:///_:/path -> \_:\path
        -> \
+      file://LöC%2FAL/host:8080/projects/ -> \\LöC\AL\host:8080\projects\
       |}]
