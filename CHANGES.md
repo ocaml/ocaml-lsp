@@ -1,3 +1,7 @@
+# master
+
+- Allow cancellation of workspace symbols requests (#777)
+
 # 1.12.3
 
 ## Fixes

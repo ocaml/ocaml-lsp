@@ -658,19 +658,40 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
+      let* cancel = Server.cancel_token () in
       let task =
         Lev_fiber.Thread.task thread ~f:(fun () ->
-            Workspace_symbol.run params workspaces)
+            Workspace_symbol.run params workspaces cancel)
       in
-      let+ res =
+      let* res, cancel =
         match task with
-        | Ok task -> Lev_fiber.Thread.await task
         | Error `Stopped -> Fiber.never
+        | Ok task ->
+          let maybe_cancel =
+            match cancel with
+            | None ->
+              fun f ->
+                let+ res = f () in
+                (res, Fiber.Cancel.Not_cancelled)
+            | Some token ->
+              let on_cancel () = Lev_fiber.Thread.cancel task in
+              fun f -> Fiber.Cancel.with_handler token ~on_cancel f
+          in
+          maybe_cancel @@ fun () -> Lev_fiber.Thread.await task
       in
-      match res with
-      | Ok s -> s
-      | Error `Cancelled -> assert false
-      | Error (`Exn exn) -> Exn_with_backtrace.reraise exn
+      match cancel with
+      | Cancelled () ->
+        let e =
+          Jsonrpc.Response.Error.make ~code:RequestCancelled
+            ~message:"cancelled" ()
+        in
+        raise (Jsonrpc.Response.Error.E e)
+      | Fiber.Cancel.Not_cancelled -> (
+        match res with
+        | Ok (Ok s) -> Fiber.return s
+        | Ok (Error `Cancelled) -> assert false
+        | Error `Cancelled -> assert false
+        | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
     in
     List.partition_map symbols_results ~f:(function
       | Ok r -> Left r

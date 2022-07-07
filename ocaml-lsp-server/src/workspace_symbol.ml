@@ -203,10 +203,18 @@ end = struct
   let get browses = List.concat @@ List.rev_map ~f:remove_top_indir browses
 end
 
-let symbols_from_cm_file ~filter root_uri cm_file =
+exception Cancelled
+
+let symbols_from_cm_file ~filter root_uri (cancel : Fiber.Cancel.t option)
+    cm_file =
   let cmt =
     let filename = string_of_cm cm_file in
-    Cmt_format.read_cmt filename
+    let cancelled =
+      match cancel with
+      | None -> false
+      | Some cancel -> Fiber.Cancel.fired cancel
+    in
+    if cancelled then raise Cancelled else Cmt_format.read_cmt filename
   in
   match cmt.cmt_sourcefile with
   | None -> []
@@ -255,7 +263,8 @@ let find_cm_files dir =
   loop String.Map.empty dir |> String.Map.values
 
 let run ({ query; _ } : WorkspaceSymbolParams.t)
-    (workspace_folders : WorkspaceFolder.t list) =
+    (workspace_folders : WorkspaceFolder.t list)
+    (cancel : Fiber.Cancel.t option) =
   let filter =
     match query with
     | "" -> fun x -> x
@@ -264,13 +273,18 @@ let run ({ query; _ } : WorkspaceSymbolParams.t)
       List.filter ~f:(fun (symbol : SymbolInformation.t) ->
           Re.execp re symbol.name)
   in
-  List.map workspace_folders ~f:(fun (workspace_folder : WorkspaceFolder.t) ->
-      let open Result.O in
-      let* build_dir = find_build_dir workspace_folder in
-      Ok
-        (let cm_files = find_cm_files build_dir in
-         let path =
-           let uri = workspace_folder.uri in
-           Uri.to_path uri
-         in
-         List.concat_map ~f:(symbols_from_cm_file ~filter path) cm_files))
+  try
+    Ok
+      (List.map workspace_folders
+         ~f:(fun (workspace_folder : WorkspaceFolder.t) ->
+           let open Result.O in
+           let+ build_dir = find_build_dir workspace_folder in
+           let cm_files = find_cm_files build_dir in
+           let path =
+             let uri = workspace_folder.uri in
+             Uri.to_path uri
+           in
+           List.concat_map
+             ~f:(symbols_from_cm_file ~filter path cancel)
+             cm_files))
+  with Cancelled -> Error `Cancelled
