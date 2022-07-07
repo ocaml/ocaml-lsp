@@ -58,9 +58,36 @@ let to_path { path; authority; scheme } =
 
 let of_string = Uri_lexer.of_string
 
+let safe_chars =
+  let a = Array.make 256 false in
+  let always_safe =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-~"
+  in
+  for i = 0 to String.length always_safe - 1 do
+    let c = Char.code always_safe.[i] in
+    a.(c) <- true
+  done;
+  a
+
+let slash_code = 47
+
+(* https://github.com/mirage/ocaml-uri/blob/master/lib/uri.ml#L284 *)
 let encode ?(allow_slash = false) s =
-  let allowed_chars = if allow_slash then "/" else "" in
-  Uri.pct_encode ~component:(`Custom (`Generic, allowed_chars, "")) s
+  let len = String.length s in
+  let buf = Buffer.create len in
+  let rec scan start cur =
+    if cur >= len then Buffer.add_substring buf s start (cur - start)
+    else
+      let c = Char.code s.[cur] in
+      if (allow_slash && c = slash_code) || safe_chars.(c) then
+        scan start (cur + 1)
+      else (
+        if cur > start then Buffer.add_substring buf s start (cur - start);
+        Buffer.add_string buf (Printf.sprintf "%%%02X" c);
+        scan (cur + 1) (cur + 1))
+  in
+  scan 0 0;
+  Buffer.contents buf
 
 let to_string { scheme; authority; path } =
   let buff = Buffer.create 64 in

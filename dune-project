@@ -48,7 +48,6 @@ possible and does not make any assumptions about IO.
  (description "An LSP server for OCaml.")
  (depends
   yojson
-  uri
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
   dune-rpc
