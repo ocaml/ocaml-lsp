@@ -660,7 +660,6 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     let+ symbols_results =
       let task =
         Lev_fiber.Thread.task thread ~f:(fun () ->
-            let+ () = Fiber.return () in
             Workspace_symbol.run params workspaces)
       in
       let* res, cancel =
@@ -689,7 +688,7 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
         raise (Jsonrpc.Response.Error.E e)
       | Fiber.Cancel.Not_cancelled -> (
         match res with
-        | Ok s -> s
+        | Ok s -> Fiber.return s
         | Error `Cancelled -> assert false
         | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
     in
