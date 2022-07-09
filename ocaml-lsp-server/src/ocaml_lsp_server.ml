@@ -658,14 +658,14 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     let workspaces = Workspaces.workspace_folders (State.workspaces state) in
     let* thread = Lazy_fiber.force state.symbols_thread in
     let+ symbols_results =
+      let* cancel = Server.cancel_token () in
       let task =
         Lev_fiber.Thread.task thread ~f:(fun () ->
-            Workspace_symbol.run params workspaces)
+            Workspace_symbol.run params workspaces cancel)
       in
       let* res, cancel =
         match task with
         | Ok task ->
-          let* cancel = Server.cancel_token () in
           let maybe_cancel =
             match cancel with
             | None ->
@@ -688,7 +688,8 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
         raise (Jsonrpc.Response.Error.E e)
       | Fiber.Cancel.Not_cancelled -> (
         match res with
-        | Ok s -> Fiber.return s
+        | Ok (Ok s) -> Fiber.return s
+        | Ok (Error `Cancelled) -> assert false
         | Error `Cancelled -> assert false
         | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
     in
