@@ -50,19 +50,22 @@ let run_command cancel prog stdin_value args =
       let* stdout_i = make stdout_i Input in
       let* stderr_i = make stderr_i Input in
       let stdin () =
-        let+ () =
-          Lev_fiber.Io.with_write stdin_o ~f:(fun w ->
-              Lev_fiber.Io.Writer.add_string w stdin_value;
-              Lev_fiber.Io.Writer.flush w)
-        in
-        Lev_fiber.Io.close stdin_o
+        Fiber.finalize
+          ~finally:(fun () ->
+            Lev_fiber.Io.close stdin_o;
+            Fiber.return ())
+          (fun () ->
+            Lev_fiber.Io.with_write stdin_o ~f:(fun w ->
+                Lev_fiber.Io.Writer.add_string w stdin_value;
+                Lev_fiber.Io.Writer.flush w))
       in
       let read from () =
-        let+ res =
-          Lev_fiber.Io.with_read from ~f:Lev_fiber.Io.Reader.to_string
-        in
-        Lev_fiber.Io.close from;
-        res
+        Fiber.finalize
+          ~finally:(fun () ->
+            Lev_fiber.Io.close from;
+            Fiber.return ())
+          (fun () ->
+            Lev_fiber.Io.with_read from ~f:Lev_fiber.Io.Reader.to_string)
       in
       let+ status, (stdout, stderr) =
         Fiber.fork_and_join
