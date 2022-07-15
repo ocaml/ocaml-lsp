@@ -10,7 +10,7 @@
 
 module Session : sig
   type t
-  (** Rpc session backed by two threads. *)
+  (** Rpc session backed by an input & output stream *)
 
   val create :
     socket:bool ->
@@ -18,9 +18,11 @@ module Session : sig
     Lev_fiber.Io.output Lev_fiber.Io.t ->
     t
 
+  val close : t -> unit
+
   (* [write t x] writes the s-expression when [x] is [Some sexp], and closes the
      session if [x = None ] *)
-  val write : t -> Csexp.t list option -> unit Fiber.t
+  val write : t -> Csexp.t list -> unit Fiber.t
 
   val read : t -> Csexp.t option Fiber.t
   (** If [read] returns [None], the session is closed and all subsequent reads

@@ -16,7 +16,7 @@ module Ocamlformat_rpc = Ocamlformat_rpc_lib.Make (struct
 
   let read = Lev_fiber_csexp.Session.read
 
-  let write t s = Lev_fiber_csexp.Session.write t (Some s)
+  let write t s = Lev_fiber_csexp.Session.write t s
 end)
 
 module Process : sig
@@ -120,8 +120,8 @@ end = struct
       Ok process
 
   let run { pid; session; _ } =
-    let* (_ : Unix.process_status) = Lev_fiber.waitpid ~pid:(Pid.to_int pid) in
-    Lev_fiber_csexp.Session.write session None
+    let+ (_ : Unix.process_status) = Lev_fiber.waitpid ~pid:(Pid.to_int pid) in
+    Lev_fiber_csexp.Session.close session
 end
 
 type state =

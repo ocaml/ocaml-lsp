@@ -172,3 +172,46 @@ let%expect_test "read exactly - insufficient" =
               assert (String.length s = len);
               printfn "success: %S\n" s));
   [%expect {| eof: "foobarbaz" |}]
+
+let%expect_test "reading from closed pipe" =
+  let r, w = Unix.pipe () in
+  ( Lev_fiber.run @@ fun () ->
+    let* io = Io.create (Fd.create r `Blocking) Input in
+    let close () =
+      let+ () = Timer.sleepf 0.3 in
+      Unix.close w
+    in
+    let read () =
+      let+ contents = Io.with_read io ~f:Io.Reader.to_string in
+      printfn "contents: %S" contents;
+      Io.close io
+    in
+    Fiber.fork_and_join_unit close read );
+  [%expect {| contents: "" |}]
+
+let%expect_test "writing to a closed pipe" =
+  let r, w = Unix.pipe () in
+  Unix.close r;
+  ( Lev_fiber.run ~sigpipe:`Ignore @@ fun () ->
+    let* io = Io.create (Fd.create w `Blocking) Output in
+    print_endline "writing to closed pipe";
+    let+ res =
+      let on_error (exn : Exn_with_backtrace.t) =
+        match exn.exn with
+        | Unix.Unix_error (error, _, _) ->
+            printfn "error: %s" @@ Unix.error_message error;
+            Fiber.return ()
+        | _ -> Exn_with_backtrace.reraise exn
+      in
+      Fiber.map_reduce_errors (module Monoid.Unit) ~on_error @@ fun () ->
+      Io.with_write io ~f:(fun w ->
+          Io.Writer.add_string w "foobar";
+          Io.Writer.flush w)
+    in
+    (match res with Error () -> () | Ok () -> assert false);
+    print_endline "finished writing" );
+  [%expect
+    {|
+    writing to closed pipe
+    error: Broken pipe
+    finished writing |}]

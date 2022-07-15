@@ -23,15 +23,15 @@ let%expect_test "serve/connect" =
       let* session = Csexp_rpc.connect (socket ()) sockaddr in
       let* () =
         Csexp_rpc.Session.write session
-          (Some [ Csexp.List [ Atom "one"; List [ Atom "two"; Atom "three" ] ] ])
+          [ Csexp.List [ Atom "one"; List [ Atom "two"; Atom "three" ] ] ]
       in
-      let* response = Csexp_rpc.Session.read session in
+      let+ response = Csexp_rpc.Session.read session in
       (match response with
       | None -> assert false
       | Some s ->
           let resp = Csexp.to_string s in
           printfn "client: received %S" resp);
-      Csexp_rpc.Session.write session None
+      Csexp_rpc.Session.close session
     and server () =
       let fd = socket () in
       let unix_fd = Lev_fiber.Fd.fd_exn fd in
@@ -50,9 +50,9 @@ let%expect_test "serve/connect" =
           | Some req -> printfn "server: request %S" (Csexp.to_string req));
           let* () =
             Csexp_rpc.Session.write session
-              (Some [ Atom "response"; List [ Atom "foo" ] ])
+              [ Atom "response"; List [ Atom "foo" ] ]
           in
-          let* () = Csexp_rpc.Session.write session None in
+          Csexp_rpc.Session.close session;
           Lev_fiber.Socket.Server.close server)
     in
     Fiber.fork_and_join_unit client server

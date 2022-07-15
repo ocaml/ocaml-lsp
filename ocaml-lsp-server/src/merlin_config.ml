@@ -205,7 +205,7 @@ module Dot_protocol_io =
     (struct
       include Lev_fiber_csexp.Session
 
-      let write t x = write t (Some [ x ])
+      let write t x = write t [ x ]
     end)
 
 let should_read_dot_merlin = ref false

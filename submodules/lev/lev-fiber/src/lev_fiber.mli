@@ -62,7 +62,9 @@ module Fd : sig
 
   val close : t -> unit
   val create : Unix.file_descr -> [ `Blocking | `Non_blocking of bool ] -> t
+
   val fd_exn : t -> Unix.file_descr
+  (** [fd_exn [Unix.EBADF] if the underlying FD is closed. *)
 end
 
 module Io : sig
@@ -119,7 +121,10 @@ module Io : sig
 
   val with_read : input t -> f:(Reader.t -> 'a Fiber.t) -> 'a Fiber.t
   val with_write : output t -> f:(Writer.t -> 'a Fiber.t) -> 'a Fiber.t
+
   val close : 'a t -> unit
+  (** close the underlying file descriptor, watchers, threads (if any) *)
+
   val pipe : ?cloexec:bool -> unit -> (input t * output t) Fiber.t
 
   val stdin : input t Fiber.t
@@ -156,5 +161,9 @@ end
 val yield : unit -> unit Fiber.t
 (** [yield ()] wait for one iteration of the event loop *)
 
-val run : ?flags:Lev.Loop.Flag.Set.t -> (unit -> 'a Fiber.t) -> 'a
+val run :
+  ?sigpipe:[ `Inherit | `Ignore ] ->
+  ?flags:Lev.Loop.Flag.Set.t ->
+  (unit -> 'a Fiber.t) ->
+  'a
 (** If you set [flags] manually, you must include the [Nosigprocmask] flag *)
