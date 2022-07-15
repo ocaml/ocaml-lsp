@@ -2,7 +2,7 @@ open Import
 open Fiber.O
 module Lio = Lev_fiber.Io
 
-type t = Lio.input Lio.t * Lio.output Lio.t
+type t = Lio.input Lio.t * Lio.output Lio.t * Fiber.Mutex.t
 
 module Io =
   Io.Make
@@ -34,16 +34,17 @@ module Io =
             Fiber.return ())
     end)
 
-let send (_, oc) packets =
-  Lio.with_write oc ~f:(fun writer ->
-      let* () = Fiber.sequential_iter packets ~f:(Io.write writer) in
-      Lio.Writer.flush writer)
+let send (_, oc, m) packets =
+  Fiber.Mutex.with_lock m ~f:(fun () ->
+      Lio.with_write oc ~f:(fun writer ->
+          let* () = Fiber.sequential_iter packets ~f:(Io.write writer) in
+          Lio.Writer.flush writer))
 
-let recv (ic, _) = Lio.with_read ic ~f:Io.read
+let recv (ic, _, _) = Lio.with_read ic ~f:Io.read
 
-let make ic oc = (ic, oc)
+let make ic oc = (ic, oc, Fiber.Mutex.create ())
 
-let close (ic, oc) what =
+let close (ic, oc, _) what =
   Fiber.of_thunk (fun () ->
       (match what with
       | `Write -> Lio.close oc
