@@ -1,7 +1,6 @@
 open! Import
 open Fiber.O
 module Registry = Drpc.Registry
-module Csexp_rpc = Lev_fiber_csexp
 
 let view_promotion_capability = ("diagnostic_promotions", `Bool true)
 
@@ -31,7 +30,7 @@ end
 module Chan : sig
   type t
 
-  val create : Csexp_rpc.Session.t -> t
+  val create : Lev_fiber_csexp.Session.t -> t
 
   val write : t -> Csexp.t list option -> unit Fiber.t
 
@@ -44,16 +43,16 @@ end = struct
   open Fiber.O
 
   type t =
-    { session : Csexp_rpc.Session.t
+    { session : Lev_fiber_csexp.Session.t
     ; finished : unit Fiber.Ivar.t
     }
 
-  let stop t = Csexp_rpc.Session.write t.session None
+  let stop t = Lev_fiber_csexp.Session.write t.session None
 
-  let write t sexp = Csexp_rpc.Session.write t.session sexp
+  let write t sexp = Lev_fiber_csexp.Session.write t.session sexp
 
   let read t =
-    let* read = Csexp_rpc.Session.read t.session in
+    let* read = Lev_fiber_csexp.Session.read t.session in
     match read with
     | Some _ -> Fiber.return read
     | None ->
@@ -145,7 +144,7 @@ end = struct
 
   type state =
     | Idle
-    | Connected of Csexp_rpc.Session.t * Drpc.Where.t
+    | Connected of Lev_fiber_csexp.Session.t * Drpc.Where.t
     | Running of running
     | Finished
 
@@ -364,7 +363,7 @@ end = struct
     let* session =
       Fiber.map_reduce_errors
         (module Monoid.List (Exn_with_backtrace))
-        (fun () -> Csexp_rpc.connect sock sockaddr)
+        (fun () -> Lev_fiber_csexp.connect sock sockaddr)
         ~on_error:(fun exn ->
           match exn with
           | { Exn_with_backtrace.exn =
