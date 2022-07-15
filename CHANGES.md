@@ -2,6 +2,11 @@
 
 - Allow cancellation of workspace symbols requests (#777)
 
+- Fix unintentionally interleaved jsonrpc IO that would corrupt the session
+  (#786)
+
+- Ignore `SIGPIPE` . (#788)
+
 # 1.12.3
 
 ## Fixes
