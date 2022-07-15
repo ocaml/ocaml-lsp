@@ -37,10 +37,14 @@ module Session = struct
   let close t =
     match t.state with
     | Closed -> ()
-    | Open { in_channel; out_channel; read = _; write = _; socket = _ } ->
-        (* with a socket, there's only one fd. We make sure to close it only once.
-           with dune rpc init, we have two separate fd's (stdin/stdout) so we must
-           close both. *)
+    | Open { in_channel; out_channel; read = _; write = _; socket } ->
+        (match socket with
+        | false -> ()
+        | true -> (
+            try
+              let fd = Io.fd out_channel in
+              Unix.shutdown (Lev_fiber.Fd.fd_exn fd) Unix.SHUTDOWN_ALL
+            with Unix.Unix_error (_, _, _) -> ()));
         Io.close in_channel;
         Io.close out_channel;
         t.state <- Closed
@@ -96,11 +100,7 @@ module Session = struct
                 Io.Reader.Expert.consume reader ~len:len_read;
                 atom reader parser (len - len_read)
         in
-        let+ res =
-          Io.with_read in_channel ~f:(fun reader -> loop reader Stack.Empty)
-        in
-        (match res with None -> Io.close in_channel | Some _ -> ());
-        res
+        Io.with_read in_channel ~f:(fun reader -> loop reader Stack.Empty)
 
   let read t =
     match t.state with
@@ -109,54 +109,39 @@ module Session = struct
         Fiber.Mutex.with_lock mutex ~f:(fun () -> read t)
 
   let write_closed sexps =
-    match sexps with
-    | None -> Fiber.return ()
-    | Some sexps ->
-        Code_error.raise "attempting to write to a closed channel"
-          [ ("sexp", Dyn.(list Sexp.to_dyn) sexps) ]
+    Code_error.raise "attempting to write to a closed channel"
+      [ ("sexp", Dyn.(list Sexp.to_dyn) sexps) ]
 
   let write t sexps =
     match t.state with
     | Closed -> write_closed sexps
-    | Open { out_channel; socket; _ } -> (
-        match sexps with
-        | None ->
-            (match socket with
-            | false -> ()
-            | true -> (
-                try
-                  let fd = Io.fd out_channel in
-                  Unix.shutdown (Lev_fiber.Fd.fd_exn fd) Unix.SHUTDOWN_ALL
-                with Unix.Unix_error (_, _, _) -> ()));
-            close t;
-            Fiber.return ()
-        | Some sexps ->
-            Io.with_write out_channel ~f:(fun writer ->
-                let rec write sexp src_pos =
-                  if src_pos = String.length sexp then Fiber.return ()
+    | Open { out_channel; _ } ->
+        Io.with_write out_channel ~f:(fun writer ->
+            let rec write sexp src_pos =
+              if src_pos = String.length sexp then Fiber.return ()
+              else
+                let* size =
+                  let size = Io.Writer.Expert.available writer in
+                  if size > 0 then Fiber.return size
                   else
-                    let* size =
-                      let size = Io.Writer.Expert.available writer in
-                      if size > 0 then Fiber.return size
-                      else
-                        let+ () = Io.Writer.flush writer in
-                        Io.Writer.Expert.available writer
-                    in
-                    let dst, { Io.Slice.pos = dst_pos; len } =
-                      Io.Writer.Expert.prepare writer ~len:size
-                    in
-                    let len = min len (String.length sexp - src_pos) in
-                    Bytes.blit_string ~src:sexp ~src_pos ~dst ~dst_pos ~len;
-                    Io.Writer.Expert.commit writer ~len;
-                    write sexp (src_pos + len)
+                    let+ () = Io.Writer.flush writer in
+                    Io.Writer.Expert.available writer
                 in
-                let rec loop = function
-                  | [] -> Io.Writer.flush writer
-                  | sexp :: sexps ->
-                      let* () = write (Csexp.to_string sexp) 0 in
-                      loop sexps
+                let dst, { Io.Slice.pos = dst_pos; len } =
+                  Io.Writer.Expert.prepare writer ~len:size
                 in
-                loop sexps))
+                let len = min len (String.length sexp - src_pos) in
+                Bytes.blit_string ~src:sexp ~src_pos ~dst ~dst_pos ~len;
+                Io.Writer.Expert.commit writer ~len;
+                write sexp (src_pos + len)
+            in
+            let rec loop = function
+              | [] -> Io.Writer.flush writer
+              | sexp :: sexps ->
+                  let* () = write (Csexp.to_string sexp) 0 in
+                  loop sexps
+            in
+            loop sexps)
 
   let write t sexps =
     match t.state with

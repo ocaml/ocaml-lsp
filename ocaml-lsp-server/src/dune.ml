@@ -47,9 +47,14 @@ end = struct
     ; finished : unit Fiber.Ivar.t
     }
 
-  let stop t = Lev_fiber_csexp.Session.write t.session None
+  let stop t =
+    let+ () = Fiber.return () in
+    Lev_fiber_csexp.Session.close t.session
 
-  let write t sexp = Lev_fiber_csexp.Session.write t.session sexp
+  let write t sexp =
+    match sexp with
+    | None -> stop t
+    | Some sexp -> Lev_fiber_csexp.Session.write t.session sexp
 
   let read t =
     let* read = Lev_fiber_csexp.Session.read t.session in

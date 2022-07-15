@@ -27,6 +27,7 @@
  (name lev-fiber)
  (depends
   (ppx_expect :with-test)
+  (ocaml (>= 4.14.0))
   lev
   dyn
   fiber

@@ -10,15 +10,15 @@
 #define TAG_WSIGNALED 1
 #define TAG_WSTOPPED 2
 
-#define CAML_INTERNALS
-
 #include <caml/alloc.h>
 #include <caml/callback.h>
 #include <caml/custom.h>
 #include <caml/fail.h>
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
+#define CAML_INTERNALS
 #include <caml/signals.h>
+#undef CAML_INTERNALS
 #include <caml/threads.h>
 #include <caml/unixsupport.h>
 
