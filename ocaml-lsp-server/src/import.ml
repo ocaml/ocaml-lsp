@@ -2,7 +2,29 @@
    listed alphabetically. Try to keep the order. *)
 include struct
   open Stdune
-  module Array = Array
+
+  module Array = struct
+    include Array
+    module View = Array_view
+
+    let split_into_subs arr ~at =
+      if at < 0 then
+        invalid_arg "split_into_subs: [~at] argument must be non-negative";
+      if at < Array.length arr then
+        let left = View.make arr ~pos:0 ~len:at () in
+        let right = View.make arr ~pos:at () in
+        (left, right)
+      else invalid_arg "split_into_subs: [~at] argument out of bounds of array"
+
+    let common_prefix_len ~equal (a : 'a array) (b : 'a array) : int =
+      let i = ref 0 in
+      let min_len = min (Array.length a) (Array.length b) in
+      while !i < min_len && equal (Array.get a !i) (Array.get b !i) do
+        incr i
+      done;
+      !i
+  end
+
   module Code_error = Code_error
   module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
