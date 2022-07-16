@@ -154,12 +154,20 @@ module Process = struct
     ; session : Lev_fiber_csexp.Session.t
     }
 
+  let to_dyn { pid; initial_cwd; _ } =
+    let open Dyn in
+    record [ ("pid", Pid.to_dyn pid); ("initial_cwd", string initial_cwd) ]
+
   let waitpid t =
     let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
     (match status with
-    | Unix.WEXITED n when n <> 0 ->
-      Format.eprintf "dune finished with code = %d@.%!" n
-    | _ -> ());
+    | Unix.WEXITED n -> (
+      match n with
+      | 0 -> ()
+      | n -> Format.eprintf "dune finished with code = %d@.%!" n)
+    | WSIGNALED s -> Format.eprintf "dune finished signal = %d@.%!" s
+    | WSTOPPED _ -> ());
+    Format.eprintf "closed merlin process@.%s@." (Dyn.to_string @@ to_dyn t);
     Lev_fiber.Io.close t.stdin;
     Lev_fiber.Io.close t.stdout
 
@@ -236,6 +244,8 @@ module Entry = struct
     if t.ref_count > 0 then Fiber.return ()
     else (
       Table.remove t.db.running t.process.initial_cwd;
+      Format.eprintf "halting dune merlin process@.%s@."
+        (Dyn.to_string (Process.to_dyn t.process));
       Dot_protocol_io.Commands.halt t.process.session)
 end
 
