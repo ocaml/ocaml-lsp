@@ -1021,11 +1021,45 @@ let start () =
     Fdecl.get server
   in
   let state = Server.state server in
+  let with_log_errors what f =
+    let+ (_ : (unit, unit) result) =
+      Fiber.map_reduce_errors
+        (module Monoid.Unit)
+        f
+        ~on_error:(fun exn ->
+          Format.eprintf "%s: %a@." what Exn_with_backtrace.pp_uncaught exn;
+          Fiber.return ())
+    in
+    ()
+  in
+  let run_ocamlformat_rpc () =
+    let* state =
+      Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc
+    in
+    let message =
+      match state with
+      | Error `Binary_not_found ->
+        Some
+          "ocamlformat-rpc is missing, displayed types might not be properly \
+           formatted. Hint: $ opam install ocamlformat-rpc and restart the lsp \
+           server"
+      | Error `Disabled | Ok () -> None
+    in
+    match message with
+    | None -> Fiber.return ()
+    | Some message ->
+      let* (_ : InitializeParams.t) = Server.initialized server in
+      let state = Server.state server in
+      task_if_running state.detached ~f:(fun () ->
+          let log = ShowMessageParams.create ~type_:Info ~message in
+          Server.notification server (Server_notification.ShowMessage log))
+  in
   let run () =
     Fiber.all_concurrently_unit
-      [ Fiber.Pool.run detached
+      [ with_log_errors "detached" (fun () -> Fiber.Pool.run detached)
       ; Lev_fiber.Timer.Wheel.run wheel
-      ; Merlin_config.DB.run state.merlin_config
+      ; with_log_errors "merlin" (fun () ->
+            Merlin_config.DB.run state.merlin_config)
       ; (let* () = Server.start server in
          let finalize =
            [ Document_store.close_all store
@@ -1041,26 +1075,7 @@ let start () =
            | Initialized init -> Dune.stop init.dune :: finalize
          in
          Fiber.all_concurrently_unit finalize)
-      ; (let* state =
-           Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc
-         in
-         let message =
-           match state with
-           | Error `Binary_not_found ->
-             Some
-               "ocamlformat-rpc is missing, displayed types might not be \
-                properly formatted. Hint: $ opam install ocamlformat-rpc and \
-                restart the lsp server"
-           | Error `Disabled | Ok () -> None
-         in
-         match message with
-         | None -> Fiber.return ()
-         | Some message ->
-           let* (_ : InitializeParams.t) = Server.initialized server in
-           let state = Server.state server in
-           task_if_running state.detached ~f:(fun () ->
-               let log = ShowMessageParams.create ~type_:Info ~message in
-               Server.notification server (Server_notification.ShowMessage log)))
+      ; with_log_errors "ocamlformat-rpc" run_ocamlformat_rpc
       ]
   in
   let metrics = Metrics.create () in
