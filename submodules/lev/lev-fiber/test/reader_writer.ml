@@ -28,7 +28,7 @@ let%expect_test "pipe" =
         Exn_with_backtrace.reraise exn)
       f
   in
-  Lev_fiber.run (print_errors run);
+  Lev_fiber.run (print_errors run) |> Lev_fiber.Error.ok_exn;
   [%expect {|
     writer: finished
     read: "foobar" |}]
@@ -62,7 +62,7 @@ let%expect_test "write with resize" =
         Exn_with_backtrace.reraise exn)
       f
   in
-  Lev_fiber.run (print_errors run);
+  print_errors run |> Lev_fiber.run |> Lev_fiber.Error.ok_exn;
   [%expect {|
     writer: finished
     read: 6120 length |}]
@@ -88,7 +88,7 @@ let%expect_test "blocking pipe" =
     in
     Fiber.fork_and_join_unit reader writer
   in
-  Lev_fiber.run run;
+  Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
   [%expect {|
     writer: finished
     read: "foo bar baz" |}]
@@ -139,7 +139,8 @@ let%expect_test "read lines" =
                  printfn "eof: %S" s;
                  Fiber.return ()
            in
-           loop));
+           loop))
+  |> Lev_fiber.Error.ok_exn;
   [%expect
     {|
     line: "foo"
@@ -157,7 +158,8 @@ let%expect_test "read exactly - sufficient" =
           | Error (`Partial_eof s) -> printfn "eof: %S" s
           | Ok s ->
               assert (String.length s = len);
-              printfn "success: %S\n" s));
+              printfn "success: %S\n" s))
+  |> Lev_fiber.Error.ok_exn;
   [%expect {| success: "foobar" |}]
 
 let%expect_test "read exactly - insufficient" =
@@ -170,7 +172,8 @@ let%expect_test "read exactly - insufficient" =
           | Error (`Partial_eof s) -> printfn "eof: %S" s
           | Ok s ->
               assert (String.length s = len);
-              printfn "success: %S\n" s));
+              printfn "success: %S\n" s))
+  |> Lev_fiber.Error.ok_exn;
   [%expect {| eof: "foobarbaz" |}]
 
 let%expect_test "reading from closed pipe" =
@@ -186,7 +189,8 @@ let%expect_test "reading from closed pipe" =
       printfn "contents: %S" contents;
       Io.close io
     in
-    Fiber.fork_and_join_unit close read );
+    Fiber.fork_and_join_unit close read )
+  |> Lev_fiber.Error.ok_exn;
   [%expect {| contents: "" |}]
 
 let%expect_test "writing to a closed pipe" =
@@ -209,7 +213,8 @@ let%expect_test "writing to a closed pipe" =
           Io.Writer.flush w)
     in
     (match res with Error () -> () | Ok () -> assert false);
-    print_endline "finished writing" );
+    print_endline "finished writing" )
+  |> Lev_fiber.Error.ok_exn;
   [%expect
     {|
     writing to closed pipe

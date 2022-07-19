@@ -56,6 +56,7 @@ end = struct
       ()
     in
     Lev_fiber.run (fun () -> Fiber.all_concurrently_unit [ init; waitpid ])
+    |> Lev_fiber.Error.ok_exn
 end
 
 include T

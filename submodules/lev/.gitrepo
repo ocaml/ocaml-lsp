@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/rgrinberg/lev
 	branch = master
-	commit = 8c48b28c1505dd8c53c7a3e2e90c4c5d772e7bce
-	parent = fba2cb0686043388f66de74c3723523344154918
+	commit = 2fc77dc618ef148636ddad7f57336f22f5dd1be6
+	parent = 743c18dddd9ac675bce7bb90e31549e9a48819cc
 	method = rebase
 	cmdver = 0.4.1

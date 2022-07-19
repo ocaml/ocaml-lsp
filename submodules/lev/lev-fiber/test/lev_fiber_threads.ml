@@ -16,7 +16,7 @@ let%expect_test "create thread" =
     let+ result = Thread.await task in
     match result with Error _ -> assert false | Ok () -> Thread.close thread
   in
-  run f;
+  run f |> Error.ok_exn;
   [%expect {| in thread |}]
 
 let%expect_test "cancellation" =
@@ -49,7 +49,7 @@ let%expect_test "cancellation" =
     (match res with Ok () -> () | Error _ -> assert false);
     Thread.close thread
   in
-  run f;
+  run f |> Error.ok_exn;
   [%expect {| Successful cancellation |}]
 
 let%expect_test "deadlock" =
@@ -58,8 +58,8 @@ let%expect_test "deadlock" =
     ()
   in
   try
-    run f;
+    run f |> Error.ok_exn;
     assert false
   with Code_error.E e ->
     print_endline e.message;
-    [%expect {| deadlock |}]
+    [%expect {| Deadlock |}]

@@ -13,5 +13,6 @@ let%expect_test "wait for simple process" =
       let+ status = Lev_fiber.waitpid ~pid in
       match status with
       | WEXITED n -> printfn "status: %d" n
-      | _ -> assert false);
+      | _ -> assert false)
+  |> Lev_fiber.Error.ok_exn;
   [%expect {| status: 0 |}]

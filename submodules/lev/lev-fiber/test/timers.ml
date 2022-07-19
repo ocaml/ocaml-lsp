@@ -7,7 +7,8 @@ let%expect_test "sleep" =
   Lev_fiber.run (fun () ->
       print_endline "sleep";
       let+ () = Lev_fiber.Timer.sleepf 0.1 in
-      print_endline "awake");
+      print_endline "awake")
+  |> Lev_fiber.Error.ok_exn;
   [%expect {|
     sleep
     awake |}]
@@ -21,7 +22,8 @@ let%expect_test "timer wheel start/stop" =
           Wheel.run wheel)
         (fun () ->
           print_endline "wheel: stop";
-          Wheel.stop wheel));
+          Wheel.stop wheel))
+  |> Lev_fiber.Error.ok_exn;
   [%expect {|
     wheel: run
     wheel: stop |}]
@@ -41,7 +43,8 @@ let%expect_test "timer wheel cancellation" =
               Wheel.stop wheel)
         (fun () ->
           print_endline "wheel: stop";
-          Wheel.run wheel));
+          Wheel.run wheel))
+  |> Lev_fiber.Error.ok_exn;
   [%expect {|
     cancellation succeeded
     wheel: stop |}]
@@ -61,7 +64,8 @@ let%expect_test "wheel - stopping with running timers" =
           let+ res = Wheel.await task in
           match res with
           | `Ok -> assert false
-          | `Cancelled -> printfn "timer cancelled"));
+          | `Cancelled -> printfn "timer cancelled"))
+  |> Lev_fiber.Error.ok_exn;
   [%expect
     {|
     wheel: run
@@ -92,7 +96,8 @@ let%expect_test "wheel - reset" =
             | `Ok -> printfn "success after reset");
             Wheel.stop wheel)
       in
-      Fiber.fork_and_join_unit (fun () -> Wheel.run wheel) test);
+      Fiber.fork_and_join_unit (fun () -> Wheel.run wheel) test)
+  |> Lev_fiber.Error.ok_exn;
   [%expect {|
     cancelling task
     cancelled
@@ -111,5 +116,6 @@ let%expect_test "wheel - set_delay" =
             printfn "immediately finished after delay";
             Wheel.stop wheel
       in
-      Fiber.fork_and_join_unit (fun () -> Wheel.run wheel) test);
+      Fiber.fork_and_join_unit (fun () -> Wheel.run wheel) test)
+  |> Lev_fiber.Error.ok_exn;
   [%expect {| immediately finished after delay |}]
