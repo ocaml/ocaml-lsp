@@ -161,9 +161,28 @@ end
 val yield : unit -> unit Fiber.t
 (** [yield ()] wait for one iteration of the event loop *)
 
+module Error : sig
+  type t =
+    | Aborted of Exn_with_backtrace.t
+        (** An error from the scheduler itself. Usually due to a bug *)
+    | Already_reported
+        (** An exception from the fiber was bubbled up to the toplevel *)
+    | Deadlock
+
+  val ok_exn : ('a, t) result -> 'a
+end
+
 val run :
   ?sigpipe:[ `Inherit | `Ignore ] ->
   ?flags:Lev.Loop.Flag.Set.t ->
   (unit -> 'a Fiber.t) ->
-  'a
-(** If you set [flags] manually, you must include the [Nosigprocmask] flag *)
+  ('a, Error.t) result
+(** [Scheduler.run ?flags f] runs [f].
+
+    If you set [flags] manually, you must include the [Nosigprocmask] flag.
+
+    Returns [Error ()] if [f] raises at least once. By default, errors that
+    will be leaked to the toplevel will be logged to stderr. To customize this
+    behavior, wrap [f] with one of the various error handling functions in
+    [Fiber].
+ *)

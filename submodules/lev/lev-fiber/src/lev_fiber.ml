@@ -1165,9 +1165,21 @@ let yield () =
   Queue.push scheduler.queue (Fiber.Fill (ivar, ()));
   Fiber.Ivar.read ivar
 
+module Error = struct
+  type t = Aborted of Exn_with_backtrace.t | Already_reported | Deadlock
+
+  let ok_exn = function
+    | Ok s -> s
+    | Error (Aborted exn) -> Exn_with_backtrace.reraise exn
+    | Error Already_reported -> Code_error.raise "Already_reported" []
+    | Error Deadlock -> Code_error.raise "Deadlock" []
+end
+
+exception Deadlock
+
 let run (type a) ?(sigpipe = `Inherit)
-    ?(flags = Lev.Loop.Flag.Set.singleton Nosigmask) (f : unit -> a Fiber.t) : a
-    =
+    ?(flags = Lev.Loop.Flag.Set.singleton Nosigmask) (f : unit -> a Fiber.t) :
+    (a, Error.t) result =
   if not (Lev.Loop.Flag.Set.mem flags Nosigmask) then
     Code_error.raise "flags must include Nosigmask" [];
   let lev_loop = Lev.Loop.create ~flags () in
@@ -1214,14 +1226,13 @@ let run (type a) ?(sigpipe = `Inherit)
       thread_workers = [];
     }
   in
-  let f = Fiber.Var.set t_var t f in
   let rec events q acc =
     match Queue.pop q with None -> acc | Some e -> events q (e :: acc)
   in
   let rec iter_or_deadlock q =
     match Nonempty_list.of_list (events q []) with
     | Some e -> e
-    | None -> Code_error.raise "deadlock" []
+    | None -> raise_notrace Deadlock
   and iter loop q =
     match Nonempty_list.of_list (events q []) with
     | Some e -> e
@@ -1231,13 +1242,30 @@ let run (type a) ?(sigpipe = `Inherit)
         | `No_more_active_watchers -> iter_or_deadlock q
         | `Otherwise -> iter loop q)
   in
-  Exn.protect
-    ~f:(fun () -> Fiber.run f ~iter:(fun () -> iter lev_loop queue))
-    ~finally:(fun () ->
-      Process_watcher.cleanup process_watcher;
-      Lev.Async.stop async lev_loop;
-      Option.iter signal_watcher ~f:Signal_watcher.stop;
-      List.iter t.thread_workers ~f:(fun (Worker w) ->
-          Worker.complete_tasks_and_stop w;
-          Worker.join w);
-      Lev.Async.destroy async)
+  let f =
+    let on_error exn =
+      Format.eprintf "%a@." Exn_with_backtrace.pp_uncaught exn;
+      Fiber.return ()
+    in
+    let f () = Fiber.Var.set t_var t f in
+    Fiber.map_reduce_errors (module Monoid.Unit) ~on_error f
+  in
+  let res : (a, Error.t) result =
+    match Fiber.run f ~iter:(fun () -> iter lev_loop queue) with
+    | Error () -> Error Already_reported
+    | Ok s -> Ok s
+    | exception Deadlock -> Error Deadlock
+    | exception exn ->
+        let exn = Exn_with_backtrace.capture exn in
+        Error (Aborted exn)
+  in
+  let () =
+    Process_watcher.cleanup process_watcher;
+    Lev.Async.stop async lev_loop;
+    Option.iter signal_watcher ~f:Signal_watcher.stop;
+    List.iter t.thread_workers ~f:(fun (Worker w) ->
+        Worker.complete_tasks_and_stop w;
+        Worker.join w);
+    Lev.Async.destroy async
+  in
+  res

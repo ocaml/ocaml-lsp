@@ -1084,4 +1084,4 @@ let start () =
 let run ~read_dot_merlin () =
   Merlin_config.should_read_dot_merlin := read_dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Lev_fiber.run ~sigpipe:`Ignore start
+  Lev_fiber.run ~sigpipe:`Ignore start |> Lev_fiber.Error.ok_exn

@@ -60,4 +60,4 @@ let run sock_path =
   in
   Socket.Server.serve server ~f:serve
 
-let () = Lev_fiber.run (fun () -> run Sys.argv.(1))
+let () = Lev_fiber.run (fun () -> run Sys.argv.(1)) |> Lev_fiber.Error.ok_exn
