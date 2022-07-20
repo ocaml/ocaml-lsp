@@ -50,7 +50,8 @@ let foo = 123
     in
     Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client)
   );
-  [%expect {|
+  [%expect
+    {|
     Code actions:
     {
       "title": "Type-annotate",
@@ -71,5 +72,17 @@ let foo = 123
             ]
           }
         ]
+      }
+    }
+    {
+      "title": "Create foo.mli",
+      "kind": "switch",
+      "edit": {
+        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
+      },
+      "command": {
+        "title": "Create foo.mli",
+        "command": "ocamllsp/open-related-source",
+        "arguments": [ "file:///foo.mli" ]
       }
     } |}]

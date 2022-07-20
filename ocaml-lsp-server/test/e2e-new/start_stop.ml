@@ -58,7 +58,10 @@ let%expect_test "start/stop" =
           "renameProvider": { "prepareProvider": true },
           "foldingRangeProvider": true,
           "executeCommandProvider": {
-            "commands": [ "ocamllsp/view-metrics", "dune/promote" ]
+            "commands": [
+              "ocamllsp/view-metrics", "ocamllsp/open-related-source",
+              "dune/promote"
+            ]
           },
           "selectionRangeProvider": true,
           "workspaceSymbolProvider": true,

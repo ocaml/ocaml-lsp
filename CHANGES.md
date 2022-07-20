@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Code actions for jumping to related files (`.ml`, `.mli`, etc.) (#795)
+
 # 1.12.4
 
 - Allow cancellation of workspace symbols requests (#777)
