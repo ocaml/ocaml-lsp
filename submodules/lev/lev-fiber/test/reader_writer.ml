@@ -202,8 +202,9 @@ let%expect_test "writing to a closed pipe" =
     let+ res =
       let on_error (exn : Exn_with_backtrace.t) =
         match exn.exn with
-        | Unix.Unix_error (error, _, _) ->
-            printfn "error: %s" @@ Unix.error_message error;
+        | Code_error.E e ->
+            printfn "error: %s" @@ Dyn.to_string
+            @@ Code_error.to_dyn_without_loc e;
             Fiber.return ()
         | _ -> Exn_with_backtrace.reraise exn
       in
@@ -215,8 +216,8 @@ let%expect_test "writing to a closed pipe" =
     (match res with Error () -> () | Ok () -> assert false);
     print_endline "finished writing" )
   |> Lev_fiber.Error.ok_exn;
-  [%expect
-    {|
+  [%expect{|
     writing to closed pipe
-    error: Broken pipe
+    error: ("fd closed unflushed", { remaining = 6; contents = "foobar\n\
+                                                         " })
     finished writing |}]

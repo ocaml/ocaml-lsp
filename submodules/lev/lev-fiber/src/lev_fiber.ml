@@ -692,18 +692,28 @@ module Io = struct
                     | Write t -> t.flush_counter <- t.flush_counter + len))
           in
           match res with
-          | Error `Eof ->
-              Code_error.raise "fd closed unflushed"
+          | Ok () -> loop t stop_count
+          | Error (`Exn (Unix.Unix_error (Unix.EAGAIN, _, _))) ->
+              loop t stop_count
+          | Error (`Exn (Unix.Unix_error (EPIPE, _, _))) | Error `Eof ->
+              let args =
                 [
                   ("remaining", Dyn.int stop_count);
                   ( "contents",
                     Dyn.string (Format.asprintf "%a@." Buffer.Bytes.pp t.buffer)
                   );
                 ]
-          | Error (`Exn (Unix.Unix_error (Unix.EAGAIN, _, _))) ->
-              loop t stop_count
+              in
+              let args =
+                match t.source with
+                | None -> args
+                | Some source ->
+                    ( "source",
+                      Dyn.string @@ Printexc.raw_backtrace_to_string source )
+                    :: args
+              in
+              Code_error.raise "fd closed unflushed" args
           | Error (`Exn exn) -> reraise exn
-          | Ok () -> loop t stop_count
       in
       fun t ->
         Fiber.of_thunk (fun () ->
