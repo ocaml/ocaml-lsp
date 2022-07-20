@@ -215,6 +215,13 @@ include struct
   module RenameParams = RenameParams
   module SelectionRange = SelectionRange
   module SelectionRangeParams = SelectionRangeParams
+  module SemanticTokens = SemanticTokens
+  module SemanticTokensEdit = SemanticTokensEdit
+  module SemanticTokensLegend = SemanticTokensLegend
+  module SemanticTokensDelta = SemanticTokensDelta
+  module SemanticTokensDeltaParams = SemanticTokensDeltaParams
+  module SemanticTokensOptions = SemanticTokensOptions
+  module SemanticTokensParams = SemanticTokensParams
   module ServerCapabilities = ServerCapabilities
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams

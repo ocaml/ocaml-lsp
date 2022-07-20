@@ -88,6 +88,14 @@ let initialize_info : InitializeResult.t =
          :: Dune.commands)
         ()
     in
+    let semanticTokensProvider =
+      Option.map (Sys.getenv_opt "OCAMLLSP_SEMANTIC_HIGHLIGHTING") ~f:(fun v ->
+          let delta = String.equal v "full/delta" in
+          let full = `Full (SemanticTokensOptions.create_full ~delta ()) in
+          `SemanticTokensOptions
+            (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend
+               ~full ()))
+    in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~declarationProvider:(`Bool true) ~definitionProvider:(`Bool true)
       ~typeDefinitionProvider:(`Bool true) ~completionProvider
@@ -96,7 +104,8 @@ let initialize_info : InitializeResult.t =
       ~documentFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true) ~foldingRangeProvider:(`Bool true)
-      ~experimental ~renameProvider ~workspace ~executeCommandProvider ()
+      ?semanticTokensProvider ~experimental ~renameProvider ~workspace
+      ~executeCommandProvider ()
   in
   let serverInfo =
     let version = Version.get () in
@@ -773,6 +782,8 @@ let on_request :
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
       ; (Req_typed_holes.meth, Req_typed_holes.on_request)
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
+      ; ( Semantic_highlighting.Debug.meth_request_full
+        , Semantic_highlighting.Debug.on_request_full )
       ]
       |> List.assoc_opt meth
     with
@@ -893,13 +904,13 @@ let on_request :
   | TextDocumentOnTypeFormatting _ -> now None
   | SelectionRange req -> later selection_range req
   | TextDocumentImplementation _ -> not_supported ()
-  | SemanticTokensDelta _ -> not_supported ()
+  | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
+  | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p
   | TextDocumentMoniker _ -> not_supported ()
   | TextDocumentPrepareCallHierarchy _ -> not_supported ()
   | TextDocumentRangeFormatting _ -> not_supported ()
   | CallHierarchyIncomingCalls _ -> not_supported ()
   | CallHierarchyOutgoingCalls _ -> not_supported ()
-  | SemanticTokensFull _ -> not_supported ()
   | SemanticTokensRange _ -> not_supported ()
   | LinkedEditingRange _ -> not_supported ()
   | WillCreateFiles _ -> not_supported ()
