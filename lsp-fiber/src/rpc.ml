@@ -158,9 +158,15 @@ struct
       ; h_on_notification : 'state t -> In_notification.t -> 'state Fiber.t
       }
 
-    let on_notification_default _ _ =
+    let on_notification_default _ notification =
       Format.eprintf "dropped notification@.%!";
-      assert false
+      let notification = In_notification.to_jsonrpc notification in
+      Code_error.raise "unexpected notification"
+        [ ( "notification"
+          , Dyn.string
+            @@ Yojson.Safe.pretty_to_string ~std:false
+                 (Jsonrpc.Notification.yojson_of_t notification) )
+        ]
 
     let on_request_default =
       { on_request =
