@@ -26,8 +26,8 @@ end
 
 let compute server (params : CodeActionParams.t) =
   let state : State.t = Server.state server in
+  let uri = params.textDocument.uri in
   let doc =
-    let uri = params.textDocument.uri in
     let store = state.store in
     Document_store.get_opt store uri
   in
@@ -41,10 +41,11 @@ let compute server (params : CodeActionParams.t) =
   match doc with
   | None -> Fiber.return (Reply.now (actions dune_actions), state)
   | Some doc -> (
+    let open_related = Action_open_related.for_uri uri in
     match Document.syntax doc with
     | Ocamllex | Menhir | Cram | Dune ->
       let state : State.t = Server.state server in
-      Fiber.return (Reply.now (actions dune_actions), state)
+      Fiber.return (Reply.now (actions (dune_actions @ open_related)), state)
     | Ocaml | Reason ->
       let reply () =
         let code_action (ca : Code_action.t) =
@@ -83,8 +84,9 @@ let compute server (params : CodeActionParams.t) =
             ; Action_mark_remove_unused.remove
             ]
         in
-        List.filter_opt code_action_results
-        |> List.append dune_actions |> actions
+        List.concat
+          [ List.filter_opt code_action_results; dune_actions; open_related ]
+        |> actions
       in
       let later f =
         Fiber.return

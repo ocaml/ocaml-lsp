@@ -182,6 +182,25 @@ let f (x : t) = x
           "kind": "type-annotate",
           "title": "Type-annotate",
         },
+        Object {
+          "command": Object {
+            "arguments": Array [
+              "file:///test.mli",
+            ],
+            "command": "ocamllsp/open-related-source",
+            "title": "Create test.mli",
+          },
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "kind": "create",
+                "uri": "file:///test.mli",
+              },
+            ],
+          },
+          "kind": "switch",
+          "title": "Create test.mli",
+        },
       ]
     `);
   });
@@ -464,7 +483,29 @@ type x =
     let start = Types.Position.create(2, 5);
     let end = Types.Position.create(2, 6);
     let actions = await codeAction("file:///test.ml", start, end);
-    expect(actions).toBeNull();
+    expect(actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "command": Object {
+            "arguments": Array [
+              "file:///test.mli",
+            ],
+            "command": "ocamllsp/open-related-source",
+            "title": "Create test.mli",
+          },
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "kind": "create",
+                "uri": "file:///test.mli",
+              },
+            ],
+          },
+          "kind": "switch",
+          "title": "Create test.mli",
+        },
+      ]
+    `);
   });
 
   it("offers `Construct an expression` code action", async () => {
@@ -480,7 +521,67 @@ let x = _
       (await codeAction(uri, Position.create(0, 8), Position.create(0, 9))) ??
       [];
 
-    expect(actions).not.toBeNull();
+    expect(actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "edits": Array [
+                  Object {
+                    "newText": "(_ : 'a)",
+                    "range": Object {
+                      "end": Object {
+                        "character": 9,
+                        "line": 0,
+                      },
+                      "start": Object {
+                        "character": 8,
+                        "line": 0,
+                      },
+                    },
+                  },
+                ],
+                "textDocument": Object {
+                  "uri": "file:///test.ml",
+                  "version": 0,
+                },
+              },
+            ],
+          },
+          "isPreferred": false,
+          "kind": "type-annotate",
+          "title": "Type-annotate",
+        },
+        Object {
+          "command": Object {
+            "command": "editor.action.triggerSuggest",
+            "title": "Trigger Suggest",
+          },
+          "kind": "construct",
+          "title": "Construct an expression",
+        },
+        Object {
+          "command": Object {
+            "arguments": Array [
+              "file:///test.mli",
+            ],
+            "command": "ocamllsp/open-related-source",
+            "title": "Create test.mli",
+          },
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "kind": "create",
+                "uri": "file:///test.mli",
+              },
+            ],
+          },
+          "kind": "switch",
+          "title": "Create test.mli",
+        },
+      ]
+    `);
 
     let construct_actions = actions.find(
       (codeAction: Types.CodeAction) =>

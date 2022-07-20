@@ -83,7 +83,9 @@ let initialize_info : InitializeResult.t =
     in
     let executeCommandProvider =
       ExecuteCommandOptions.create
-        ~commands:(view_metrics_command_name :: Dune.commands)
+        ~commands:
+          (view_metrics_command_name :: Action_open_related.command_name
+         :: Dune.commands)
         ()
     in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
@@ -800,6 +802,10 @@ let on_request :
   | ExecuteCommand command ->
     if String.equal command.command view_metrics_command_name then
       later (fun _state server -> view_metrics server) server
+    else if String.equal command.command Action_open_related.command_name then
+      later
+        (fun _state server -> Action_open_related.command_run server command)
+        server
     else
       later
         (fun state () ->
