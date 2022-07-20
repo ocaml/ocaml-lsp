@@ -13,6 +13,7 @@
   lev_fiber
   lev
   spawn
+  jsonrpc
   lsp
   lsp_fiber
   ;; This is because of the (implicit_transitive_deps false)
