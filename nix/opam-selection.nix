@@ -249,10 +249,6 @@ in
         package = "packages/dune/dune.3.3.1";
         hash = "sha256:1nc99m7yaakz8ggdjj1lafim37ahafp17v48ai0iafdvdj3pxixv";
       };
-      buildInputs = lib.optional self.pkgs.stdenv.isDarwin (with self.pkgs.darwin.apple_sdk.frameworks; [
-        Foundation
-        CoreServices
-      ]);
     };
     dune-build-info = 
     {
