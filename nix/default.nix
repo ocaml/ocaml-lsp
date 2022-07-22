@@ -6,19 +6,31 @@ let
              + builtins.foldl' (acc: e: acc + "\n" + e) "\n"
                  [ "nix" "shell.nix" "default.nix" ];
            in pkgs.nix-gitignore.gitignoreSourcePure ignores ../.;
-  args = {
+  argsBase = {
     inherit (pkgs.ocaml-ng.ocamlPackages_4_14) ocaml;
-    selection = ./opam-selection.nix;
     src = {
       lsp = ourSrc;
       jsonrpc = ourSrc;
       ocaml-lsp-server = ourSrc;
     };
   };
-  opam-selection = opam2nix.build args;
+  argsResolve = argsBase // {
+    selection = ./opam-selection.nix;
+  };
+  argsBuild = argsBase // {
+    selection = (self:
+      let selection = import ./opam-selection.nix self;
+      in self.lib.attrsets.recursiveUpdate selection {
+        selection.dune.buildInputs = self.lib.optional self.pkgs.stdenv.isDarwin (with self.pkgs.darwin.apple_sdk.frameworks; [
+          Foundation
+          CoreServices
+        ]);
+      });
+  };
+  opam-selection = opam2nix.build argsBuild;
   localPackages = let contents = builtins.attrNames (builtins.readDir ../.);
   in builtins.filter (strings.hasSuffix ".opam") contents;
-  resolve = opam2nix.resolve args (localPackages ++ [
+  resolve = opam2nix.resolve argsResolve (localPackages ++ [
     # dev deps
     "cinaps"
     "menhir"
