@@ -35,6 +35,7 @@ let
     "cinaps"
     "menhir"
     "ppx_yojson_conv"
+    "ocamlfind=1.9.3"
 
     # test deps
     "ppx_expect"
