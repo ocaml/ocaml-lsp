@@ -32,7 +32,6 @@ possible and does not make any assumptions about IO.
 ")
  (depends
   (jsonrpc (= :version))
-  dyn
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
   (cinaps :with-test)

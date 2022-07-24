@@ -163,9 +163,7 @@ struct
       let notification = In_notification.to_jsonrpc notification in
       Code_error.raise "unexpected notification"
         [ ( "notification"
-          , Dyn.string
-            @@ Yojson.Safe.pretty_to_string ~std:false
-                 (Jsonrpc.Notification.yojson_of_t notification) )
+          , Json.to_dyn (Jsonrpc.Notification.yojson_of_t notification) )
         ]
 
     let on_request_default =

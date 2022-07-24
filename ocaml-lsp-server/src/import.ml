@@ -70,10 +70,14 @@ include struct
   open Lsp
   module Client_notification = Client_notification
   module Client_request = Client_request
-  module Json = Import.Json
   module Server_request = Server_request
   module Text_document = Text_document
-  module Uri = Uri
+
+  module Uri = struct
+    include Uri
+
+    let to_dyn t = Dyn.string (to_string t)
+  end
 end
 
 (* Misc modules *)
@@ -107,6 +111,7 @@ include struct
   module Reply = Rpc.Reply
   module Server = Server
   module Lazy_fiber = Lsp_fiber.Lazy_fiber
+  module Json = Json
 end
 
 (* All modules from [Lsp.Types] should be in the struct below. The modules are
