@@ -136,11 +136,3 @@ let equal = ( = )
 let compare (x : t) (y : t) = Stdlib.compare x y
 
 let hash = Hashtbl.hash
-
-let to_dyn { scheme; authority; path } =
-  let open Dyn in
-  record
-    [ ("scheme", string scheme)
-    ; ("authority", string authority)
-    ; ("path", string path)
-    ]
