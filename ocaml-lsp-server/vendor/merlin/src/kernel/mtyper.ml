@@ -208,5 +208,3 @@ let node_at ?(skip_recovered=false) t pos_cursor =
     log ~title:"node_at" "Deepest before %s"
       (Mbrowse.print () path);
     path
-
-let initial_env res = res.initial_env

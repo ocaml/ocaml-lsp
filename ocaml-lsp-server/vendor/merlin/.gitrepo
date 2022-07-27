@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = https://github.com/rgrinberg/merlin
-	branch = lsp
-	commit = d9022fde15484e03b5616ad038f56f31af8084d4
-	parent = fb8b19c09f05dcc91b624fd0c9b0d13790dfa5b4
+	branch = master
+	commit = a66e05c3bb7e28e04394572739e881a748482925
+	parent = c8be46208ea40578ce6b9029c172615a522de6b3
 	method = rebase
 	cmdver = 0.4.1
