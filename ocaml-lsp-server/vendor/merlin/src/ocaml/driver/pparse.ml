@@ -49,7 +49,11 @@ let merlin_system_command =
       let prog = "/bin/bash" in
       let argv = ["sh"; "-c"; cmd] in
       let stdin = Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0x777  in
-      let pid = Spawn.spawn ~prog ~argv ~stdin ~stdout:Unix.stderr ~stderr:Unix.stderr () in
+      let pid =
+        let cwd : Spawn.Working_dir.t = Path cwd in
+        let stdout = Unix.stderr in
+        Spawn.spawn ~cwd ~prog ~argv ~stdin ~stdout ()
+      in
       let (_, status) = Unix.waitpid [] pid in
       let res =
         match (status : Unix.process_status) with

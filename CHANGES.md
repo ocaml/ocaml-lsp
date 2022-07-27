@@ -1,3 +1,9 @@
+# 1.13.1
+
+## Fixes
+
+- Fix cwd when executing ppx (#805)
+
 # 1.13.0
 
 ## Features
