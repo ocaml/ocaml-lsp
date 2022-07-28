@@ -57,6 +57,9 @@
     CAMLreturn(Val_long(__value));                                             \
   }
 
+CAMLextern int caml_convert_signal_number(int);
+CAMLextern int caml_rev_convert_signal_number(int);
+
 DEF_CONST(lev_loop_break_cancel_code, EVBREAK_CANCEL)
 DEF_CONST(lev_loop_break_one_code, EVBREAK_ONE)
 DEF_CONST(lev_loop_break_all_code, EVBREAK_ALL)
