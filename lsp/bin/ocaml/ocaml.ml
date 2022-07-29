@@ -78,8 +78,6 @@ let preprocess =
         else super#field x
 
       method! typ x =
-        (* XXX what does this to? I don't see any sums of records in
-           TextDocumentContentChangeEvent *)
         match x with
         | Sum [ Record f1; Record f2 ]
           when self#name = "TextDocumentContentChangeEvent" ->
