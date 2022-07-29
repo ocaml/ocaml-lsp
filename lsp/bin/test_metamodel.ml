@@ -1,3 +1,5 @@
+module Metamodel = Lsp_gen.Metamodel
+
 let file = Sys.argv.(1)
 
 let () =
