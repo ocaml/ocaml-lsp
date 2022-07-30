@@ -560,7 +560,7 @@ end = struct
     and poly topmost_field_name s : Ml.Type.t =
       let type_ = type_ topmost_field_name in
       try
-        Type.Poly_variant
+        Poly_variant
           (List.map s ~f:(fun t ->
                let name, constrs =
                  match (t : Resolved.typ) with
