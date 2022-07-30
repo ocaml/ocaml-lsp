@@ -367,7 +367,8 @@ end = struct
       | Ident (Resolved { id = _; name = "URI"; kind = _ }) ->
         Type.module_t "DocumentUri"
       | Ident (Resolved { id = _; name = "LSPAny"; kind = _ }) -> Type.json
-      | Ident (Resolved { id = _; name = "LSPObject"; kind = _ }) -> Type.json
+      | Ident (Resolved { id = _; name = "LSPObject"; kind = _ }) ->
+        Type.json_object
       | Ident (Resolved r) -> (
         match r.kind with
         | Type_variable -> Type.unit
