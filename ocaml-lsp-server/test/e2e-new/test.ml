@@ -3,6 +3,7 @@ module Import = struct
   include Fiber.O
   module Client = Lsp_fiber.Client
   include Lsp.Types
+  module Uri = Lsp.Uri
 end
 
 open Import

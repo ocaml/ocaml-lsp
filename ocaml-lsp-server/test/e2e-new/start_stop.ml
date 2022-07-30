@@ -25,27 +25,6 @@ let%expect_test "start/stop" =
       client: server initialized with:
       {
         "capabilities": {
-          "textDocumentSync": {
-            "openClose": true,
-            "change": 2,
-            "willSave": false,
-            "willSaveWaitUntil": false,
-            "save": true
-          },
-          "completionProvider": {
-            "triggerCharacters": [ ".", "#" ],
-            "resolveProvider": true
-          },
-          "hoverProvider": true,
-          "signatureHelpProvider": {
-            "triggerCharacters": [ " ", "~", "?", ":", "(" ]
-          },
-          "declarationProvider": true,
-          "definitionProvider": true,
-          "typeDefinitionProvider": true,
-          "referencesProvider": true,
-          "documentHighlightProvider": true,
-          "documentSymbolProvider": true,
           "codeActionProvider": {
             "codeActionKinds": [
               "quickfix", "construct", "destruct", "inferred_intf",
@@ -54,19 +33,20 @@ let%expect_test "start/stop" =
             ]
           },
           "codeLensProvider": { "resolveProvider": false },
+          "completionProvider": {
+            "resolveProvider": true,
+            "triggerCharacters": [ ".", "#" ]
+          },
+          "declarationProvider": true,
+          "definitionProvider": true,
           "documentFormattingProvider": true,
-          "renameProvider": { "prepareProvider": true },
-          "foldingRangeProvider": true,
+          "documentHighlightProvider": true,
+          "documentSymbolProvider": true,
           "executeCommandProvider": {
             "commands": [
               "ocamllsp/view-metrics", "ocamllsp/open-related-source",
               "dune/promote"
             ]
-          },
-          "selectionRangeProvider": true,
-          "workspaceSymbolProvider": true,
-          "workspace": {
-            "workspaceFolders": { "supported": true, "changeNotifications": true }
           },
           "experimental": {
             "ocamllsp": {
@@ -77,7 +57,27 @@ let%expect_test "start/stop" =
               "handleWrappingAstNode": true,
               "diagnostic_promotions": true
             }
-          }
+          },
+          "foldingRangeProvider": true,
+          "hoverProvider": true,
+          "referencesProvider": true,
+          "renameProvider": { "prepareProvider": true },
+          "selectionRangeProvider": true,
+          "signatureHelpProvider": {
+            "triggerCharacters": [ " ", "~", "?", ":", "(" ]
+          },
+          "textDocumentSync": {
+            "change": 2,
+            "openClose": true,
+            "save": true,
+            "willSave": false,
+            "willSaveWaitUntil": false
+          },
+          "typeDefinitionProvider": true,
+          "workspace": {
+            "workspaceFolders": { "changeNotifications": true, "supported": true }
+          },
+          "workspaceSymbolProvider": true
         },
         "serverInfo": { "name": "ocamllsp", "version": "dev" }
       }

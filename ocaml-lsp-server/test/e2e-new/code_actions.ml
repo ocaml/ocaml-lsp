@@ -32,7 +32,7 @@ let foo = 123
         let context = CodeActionContext.create ~diagnostics:[] () in
         let request =
           let textDocument = TextDocumentIdentifier.create ~uri in
-          CodeActionParams.create ~textDocument ~range ~context ()
+          CodeActionParams.create ~textDocument ~range ~context
         in
         Client.request client (CodeAction request)
       in
@@ -54,35 +54,35 @@ let foo = 123
     {|
     Code actions:
     {
-      "title": "Type-annotate",
-      "kind": "type-annotate",
-      "isPreferred": false,
       "edit": {
         "documentChanges": [
           {
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 },
             "edits": [
               {
+                "newText": "(foo : int)",
                 "range": {
-                  "start": { "line": 1, "character": 4 },
-                  "end": { "line": 1, "character": 7 }
-                },
-                "newText": "(foo : int)"
+                  "end": { "character": 7, "line": 1 },
+                  "start": { "character": 4, "line": 1 }
+                }
               }
-            ]
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
           }
         ]
-      }
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
     }
     {
-      "title": "Create foo.mli",
-      "kind": "switch",
+      "command": {
+        "arguments": [ "file:///foo.mli" ],
+        "command": "ocamllsp/open-related-source",
+        "title": "Create foo.mli"
+      },
       "edit": {
         "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
       },
-      "command": {
-        "title": "Create foo.mli",
-        "command": "ocamllsp/open-related-source",
-        "arguments": [ "file:///foo.mli" ]
-      }
+      "kind": "switch",
+      "title": "Create foo.mli"
     } |}]

@@ -323,6 +323,43 @@ let t json =
   let typeAliases = field "typeAliases" (list typeAlias) fields in
   { requests; notifications; structures; enumerations; typeAliases }
 
+type metamodel = t
+
+module Entity = struct
+  type t =
+    | Structure of structure
+    | Enumeration of enumeration
+    | Alias of typeAlias
+
+  module DB = struct
+    type nonrec t = t String.Map.t
+
+    let create
+        ({ structures
+         ; requests = _
+         ; notifications = _
+         ; enumerations
+         ; typeAliases
+         } :
+          metamodel) : t =
+      let structures =
+        String.Map.of_list_map_exn structures ~f:(fun s ->
+            (s.name, Structure s))
+      in
+      let enumerations =
+        String.Map.of_list_map_exn enumerations ~f:(fun s ->
+            (s.name, Enumeration s))
+      in
+      let typeAliases =
+        String.Map.of_list_map_exn typeAliases ~f:(fun a -> (a.name, Alias a))
+      in
+      String.Map.union_exn structures enumerations
+      |> String.Map.union_exn typeAliases
+
+    let find t x = String.Map.find_exn t x
+  end
+end
+
 module Path = struct
   type top =
     | Request of request
@@ -348,12 +385,14 @@ class map =
       | Record ps -> Record (List.map ps ~f:(self#property path))
       | _ -> t
 
+    method or_ path types = Or (List.map types ~f:(self#type_ path))
+
     method type_ path t : type_ =
       match t with
       | Base _ as t -> t
       | Reference _ -> t
       | Array t -> Array (self#type_ path t)
-      | Or ts -> Or (List.map ts ~f:(self#type_ path))
+      | Or types -> self#or_ path types
       | And ts -> And (List.map ts ~f:(self#type_ path))
       | Tuple ts -> Tuple (List.map ts ~f:(self#type_ path))
       | Literal lt -> Literal (self#literal path lt)

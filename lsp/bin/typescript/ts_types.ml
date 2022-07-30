@@ -361,9 +361,11 @@ module Prim = struct
     | "boolean" -> Bool
     | "number" -> Number
     | "uinteger" -> Uinteger
-    | "any" -> Any
+    | "json" -> Any
+    | "lspany" -> Any
     | "array" -> List
-    | "unknown" | "object" -> Object
+    | "object" -> Object
+    | "lspobject" -> Object
     | _ -> resolve s
 end
 

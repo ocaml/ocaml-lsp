@@ -13,12 +13,13 @@ let command_run server (params : ExecuteCommandParams.t) =
            ~code:Jsonrpc.Response.Error.Code.InvalidParams
            ~message:"takes a single uri as input" ()
   in
-  let uri = Uri.to_string uri in
   let+ { ShowDocumentResult.success } =
     let req = ShowDocumentParams.create ~uri ~takeFocus:true () in
     Server.request server (Server_request.ShowDocumentRequest req)
   in
-  if not success then Format.eprintf "failed to open %s@." uri;
+  (if not success then
+   let uri = Uri.to_string uri in
+   Format.eprintf "failed to open %s@." uri);
   `Null
 
 let for_uri uri =

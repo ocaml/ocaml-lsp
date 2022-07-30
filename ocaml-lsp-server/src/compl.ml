@@ -281,7 +281,8 @@ let complete (state : State.t)
           construct_completionItems @ compl_by_prefix_completionItems
           |> reindex_sortText |> preselect_first
       in
-      Some (`CompletionList (CompletionList.create ~isIncomplete:false ~items)))
+      Some
+        (`CompletionList (CompletionList.create ~isIncomplete:false ~items ())))
 
 let format_doc ~markdown doc =
   match markdown with

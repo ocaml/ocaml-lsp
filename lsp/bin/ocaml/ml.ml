@@ -276,6 +276,10 @@ module Type = struct
     let void = Path.Dot (Ident "Json", "Void") in
     Path (Dot (void, "t"))
 
+  let json_object =
+    let obj = Path.Dot (Ident "Json", "Object") in
+    Path (Dot (obj, "t"))
+
   module Type = W.Type
 
   let pp_prim (p : prim) : W.t =

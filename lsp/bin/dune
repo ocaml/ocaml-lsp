@@ -4,24 +4,11 @@
 
 (rule
  (with-stdout-to
-  spec.ml
-  (progn
-   (echo "let _3_16 = {spec|")
-   (echo "%{read:specifications/specification-3-16.md}")
-   (echo "|spec}"))))
-
-(rule
- (with-stdout-to
   metamodel_lsp.ml
   (progn
    (echo "let t () = Metamodel.t @@ Yojson.Safe.from_string {json|")
    (echo "%{read:metaModel.json}")
    (echo "|json}"))))
-
-(executable
- (name gen)
- (modules gen)
- (libraries lsp_gen dyn stdune))
 
 (test
  (name test_metamodel)
@@ -35,5 +22,5 @@
  (name lsp_gen)
  (instrumentation
   (backend bisect_ppx))
- (modules :standard \ gen test_metamodel)
+ (modules :standard \ test_metamodel)
  (libraries stdune dyn pp yojson))
