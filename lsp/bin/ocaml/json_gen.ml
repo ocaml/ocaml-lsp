@@ -141,11 +141,11 @@ module Poly_variant = struct
     { json_constrs; untagged_constrs }
 
   let conv_of_constr target (utc : Ml.Type.constr) =
-    let rec conv (p : Ml.Path.t) =
+    let rec conv (p : Ml.Path.t) : Ml.Path.t =
       match p with
-      | Ident name -> Ml.Path.Ident (Name.conv target name)
-      | Dot (s, name) -> Ml.Path.Dot (s, Name.conv target name)
-      | Apply (s, y) -> Path.Apply (s, conv y)
+      | Ident name -> Ident (Name.conv target name)
+      | Dot (s, name) -> Dot (s, Name.conv target name)
+      | Apply (s, y) -> Apply (s, conv y)
     in
     let conv p = Ml.Path.to_string (conv p) in
     let open Ml.Expr in
