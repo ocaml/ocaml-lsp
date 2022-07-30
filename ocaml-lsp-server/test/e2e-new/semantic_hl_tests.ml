@@ -110,7 +110,7 @@ let test :
         in
         let* resp =
           let textDocument = TextDocumentIdentifier.create ~uri in
-          let params = SemanticTokensParams.create ~textDocument () in
+          let params = SemanticTokensParams.create ~textDocument in
           Client.request client (req params)
         in
         let* () =
@@ -139,7 +139,6 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
   [%expect
     {|
     {
-      "resultId": "0",
       "data": [
         1, 7, 3, 0, 2, 1, 7, 1, 1, 1, 2, 7, 3, 3, 1, 1, 6, 3, 10, 1, 0, 7, 6, 1,
         0, 1, 6, 3, 10, 1, 0, 17, 3, 1, 0, 0, 17, 6, 1, 0, 2, 6, 1, 8, 1, 0, 4,
@@ -157,7 +156,8 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         7, 3, 0, 2, 0, 5, 3, 0, 0, 0, 6, 3, 4, 0, 1, 9, 9, 0, 2, 1, 9, 1, 1, 1,
         0, 4, 6, 1, 0, 4, 7, 8, 0, 2, 0, 11, 3, 0, 0, 1, 7, 1, 5, 1, 1, 6, 3, 9,
         0, 0, 6, 3, 0, 0, 0, 4, 1, 1, 0, 1, 6, 3, 9, 0, 0, 6, 3, 1, 0
-      ]
+      ],
+      "resultId": "0"
     } |}]
 
 let test_semantic_tokens_full_debug src =
@@ -178,451 +178,451 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
     {|
     [
       {
-        "start_pos": { "line": 1, "character": 7 },
+        "start_pos": { "character": 7, "line": 1 },
         "length": 3,
         "type": "namespace",
         "modifiers": [ "definition" ]
       },
       {
-        "start_pos": { "line": 2, "character": 7 },
+        "start_pos": { "character": 7, "line": 2 },
         "length": 1,
         "type": "type",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 4, "character": 7 },
+        "start_pos": { "character": 7, "line": 4 },
         "length": 3,
         "type": "enum",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 5, "character": 6 },
+        "start_pos": { "character": 6, "line": 5 },
         "length": 3,
         "type": "enumMember",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 5, "character": 13 },
+        "start_pos": { "character": 13, "line": 5 },
         "length": 6,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 6, "character": 6 },
+        "start_pos": { "character": 6, "line": 6 },
         "length": 3,
         "type": "enumMember",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 6, "character": 23 },
+        "start_pos": { "character": 23, "line": 6 },
         "length": 3,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 6, "character": 40 },
+        "start_pos": { "character": 40, "line": 6 },
         "length": 6,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 8, "character": 6 },
+        "start_pos": { "character": 6, "line": 8 },
         "length": 1,
         "type": "variable",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 8, "character": 10 },
+        "start_pos": { "character": 10, "line": 8 },
         "length": 4,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 10, "character": 6 },
+        "start_pos": { "character": 6, "line": 10 },
         "length": 1,
         "type": "function",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 10, "character": 10 },
+        "start_pos": { "character": 10, "line": 10 },
         "length": 4,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 10, "character": 18 },
+        "start_pos": { "character": 18, "line": 10 },
         "length": 1,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 12, "character": 7 },
+        "start_pos": { "character": 7, "line": 12 },
         "length": 1,
         "type": "type",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 12, "character": 11 },
+        "start_pos": { "character": 11, "line": 12 },
         "length": 3,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 14, "character": 7 },
+        "start_pos": { "character": 7, "line": 14 },
         "length": 3,
         "type": "enum",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 15, "character": 6 },
+        "start_pos": { "character": 6, "line": 15 },
         "length": 3,
         "type": "enumMember",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 15, "character": 13 },
+        "start_pos": { "character": 13, "line": 15 },
         "length": 6,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 16, "character": 6 },
+        "start_pos": { "character": 6, "line": 16 },
         "length": 3,
         "type": "enumMember",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 16, "character": 23 },
+        "start_pos": { "character": 23, "line": 16 },
         "length": 3,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 16, "character": 40 },
+        "start_pos": { "character": 40, "line": 16 },
         "length": 6,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 18, "character": 6 },
+        "start_pos": { "character": 6, "line": 18 },
         "length": 1,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 18, "character": 10 },
+        "start_pos": { "character": 10, "line": 18 },
         "length": 2,
         "type": "enumMember",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 20, "character": 6 },
+        "start_pos": { "character": 6, "line": 20 },
         "length": 1,
         "type": "function",
         "modifiers": [ "definition" ]
       },
       {
-        "start_pos": { "line": 20, "character": 8 },
+        "start_pos": { "character": 8, "line": 20 },
         "length": 2,
         "type": "enumMember",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 20, "character": 13 },
+        "start_pos": { "character": 13, "line": 20 },
         "length": 1,
         "type": "number",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 23, "character": 12 },
+        "start_pos": { "character": 12, "line": 23 },
         "length": 3,
         "type": "interface",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 24, "character": 7 },
+        "start_pos": { "character": 7, "line": 24 },
         "length": 1,
         "type": "struct",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 25, "character": 6 },
+        "start_pos": { "character": 6, "line": 25 },
         "length": 3,
         "type": "property",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 25, "character": 12 },
+        "start_pos": { "character": 12, "line": 25 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 25, "character": 16 },
+        "start_pos": { "character": 16, "line": 25 },
         "length": 1,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 26, "character": 6 },
+        "start_pos": { "character": 6, "line": 26 },
         "length": 3,
         "type": "property",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 26, "character": 12 },
+        "start_pos": { "character": 12, "line": 26 },
         "length": 3,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 30, "character": 5 },
+        "start_pos": { "character": 5, "line": 30 },
         "length": 1,
         "type": "enum",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 30, "character": 9 },
+        "start_pos": { "character": 9, "line": 30 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 30, "character": 13 },
+        "start_pos": { "character": 13, "line": 30 },
         "length": 3,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 31, "character": 4 },
-        "length": 3,
-        "type": "enumMember",
-        "modifiers": [ "declaration" ]
-      },
-      {
-        "start_pos": { "line": 31, "character": 11 },
-        "length": 6,
-        "type": "type",
-        "modifiers": []
-      },
-      {
-        "start_pos": { "line": 32, "character": 4 },
+        "start_pos": { "character": 4, "line": 31 },
         "length": 3,
         "type": "enumMember",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 32, "character": 24 },
-        "length": 3,
-        "type": "type",
-        "modifiers": []
-      },
-      {
-        "start_pos": { "line": 32, "character": 44 },
+        "start_pos": { "character": 11, "line": 31 },
         "length": 6,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 34, "character": 4 },
+        "start_pos": { "character": 4, "line": 32 },
+        "length": 3,
+        "type": "enumMember",
+        "modifiers": [ "declaration" ]
+      },
+      {
+        "start_pos": { "character": 24, "line": 32 },
+        "length": 3,
+        "type": "type",
+        "modifiers": []
+      },
+      {
+        "start_pos": { "character": 44, "line": 32 },
+        "length": 6,
+        "type": "type",
+        "modifiers": []
+      },
+      {
+        "start_pos": { "character": 4, "line": 34 },
         "length": 1,
         "type": "function",
         "modifiers": [ "definition" ]
       },
       {
-        "start_pos": { "line": 34, "character": 7 },
+        "start_pos": { "character": 7, "line": 34 },
         "length": 3,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 34, "character": 13 },
+        "start_pos": { "character": 13, "line": 34 },
         "length": 1,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 35, "character": 8 },
+        "start_pos": { "character": 8, "line": 35 },
         "length": 3,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 36, "character": 4 },
+        "start_pos": { "character": 4, "line": 36 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 36, "character": 8 },
+        "start_pos": { "character": 8, "line": 36 },
         "length": 3,
         "type": "enumMember",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 36, "character": 12 },
+        "start_pos": { "character": 12, "line": 36 },
         "length": 1,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 36, "character": 17 },
+        "start_pos": { "character": 17, "line": 36 },
         "length": 1,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 36, "character": 19 },
+        "start_pos": { "character": 19, "line": 36 },
         "length": 1,
         "type": "function",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 36, "character": 21 },
+        "start_pos": { "character": 21, "line": 36 },
         "length": 13,
         "type": "function",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 36, "character": 35 },
+        "start_pos": { "character": 35, "line": 36 },
         "length": 1,
         "type": "number",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 37, "character": 4 },
+        "start_pos": { "character": 4, "line": 37 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 37, "character": 8 },
+        "start_pos": { "character": 8, "line": 37 },
         "length": 3,
         "type": "enumMember",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 37, "character": 21 },
+        "start_pos": { "character": 21, "line": 37 },
         "length": 1,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 37, "character": 27 },
+        "start_pos": { "character": 27, "line": 37 },
         "length": 13,
         "type": "function",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 37, "character": 41 },
+        "start_pos": { "character": 41, "line": 37 },
         "length": 1,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 38, "character": 4 },
+        "start_pos": { "character": 4, "line": 38 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 38, "character": 8 },
+        "start_pos": { "character": 8, "line": 38 },
         "length": 3,
         "type": "enumMember",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 38, "character": 24 },
+        "start_pos": { "character": 24, "line": 38 },
         "length": 1,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 38, "character": 30 },
+        "start_pos": { "character": 30, "line": 38 },
         "length": 1,
         "type": "variable",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 40, "character": 7 },
+        "start_pos": { "character": 7, "line": 40 },
         "length": 3,
         "type": "namespace",
         "modifiers": [ "definition" ]
       },
       {
-        "start_pos": { "line": 40, "character": 12 },
+        "start_pos": { "character": 12, "line": 40 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 40, "character": 18 },
+        "start_pos": { "character": 18, "line": 40 },
         "length": 3,
         "type": "interface",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 41, "character": 9 },
+        "start_pos": { "character": 9, "line": 41 },
         "length": 9,
         "type": "namespace",
         "modifiers": [ "definition" ]
       },
       {
-        "start_pos": { "line": 42, "character": 9 },
+        "start_pos": { "character": 9, "line": 42 },
         "length": 1,
         "type": "type",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 42, "character": 13 },
+        "start_pos": { "character": 13, "line": 42 },
         "length": 6,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 46, "character": 7 },
+        "start_pos": { "character": 7, "line": 46 },
         "length": 8,
         "type": "namespace",
         "modifiers": [ "definition" ]
       },
       {
-        "start_pos": { "line": 46, "character": 18 },
+        "start_pos": { "character": 18, "line": 46 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 47, "character": 7 },
+        "start_pos": { "character": 7, "line": 47 },
         "length": 1,
         "type": "struct",
         "modifiers": [ "declaration" ]
       },
       {
-        "start_pos": { "line": 48, "character": 6 },
+        "start_pos": { "character": 6, "line": 48 },
         "length": 3,
         "type": "property",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 48, "character": 12 },
+        "start_pos": { "character": 12, "line": 48 },
         "length": 3,
         "type": "namespace",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 48, "character": 16 },
+        "start_pos": { "character": 16, "line": 48 },
         "length": 1,
         "type": "type",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 49, "character": 6 },
+        "start_pos": { "character": 6, "line": 49 },
         "length": 3,
         "type": "property",
         "modifiers": []
       },
       {
-        "start_pos": { "line": 49, "character": 12 },
+        "start_pos": { "character": 12, "line": 49 },
         "length": 3,
         "type": "type",
         "modifiers": []

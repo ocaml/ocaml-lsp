@@ -19,6 +19,7 @@ let view_metrics server =
   output_string chan json;
   close_out_noerr chan;
   let req =
+    let uri = Uri.of_path uri in
     Server_request.ShowDocumentRequest
       (ShowDocumentParams.create ~uri ~takeFocus:true ())
   in
@@ -86,7 +87,6 @@ let initialize_info : InitializeResult.t =
         ~commands:
           (view_metrics_command_name :: Action_open_related.command_name
          :: Dune.commands)
-        ()
     in
     let semanticTokensProvider =
       Option.map (Sys.getenv_opt "OCAMLLSP_SEMANTIC_HIGHLIGHTING") ~f:(fun v ->
@@ -332,7 +332,9 @@ let on_initialize server (ip : InitializeParams.t) =
                      let documentSelector =
                        [ "cram"; "dune"; "dune-project"; "dune-workspace" ]
                        |> List.map ~f:(fun language ->
-                              DocumentFilter.create ~language ())
+                              `DocumentFilter
+                                (`TextDocumentFilter
+                                  (TextDocumentFilter.create ~language ())))
                      in
                      TextDocumentRegistrationOptions.create ~documentSelector ()
                      |> TextDocumentRegistrationOptions.yojson_of_t

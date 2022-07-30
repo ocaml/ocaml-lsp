@@ -18,7 +18,6 @@ let skipped_ts_decls =
   ; "MarkedString"
   ; "ProgressToken"
   ; "ProgressParams"
-  ; "CallHierarchyOptions"
   ; "TextDocumentFilter"
   ; "PrepareRenameResult"
   ; "LSPAny"
@@ -31,100 +30,9 @@ let skipped_ts_decls =
   ; "URI"
   ]
 
-(* Super classes to remove because we handle their concerns differently (or not
-   at all) *)
-let removed_super_classes = []
-
-(* The preprocessing stage maps over the typescript AST. It should only do very
-   simple clean ups *)
-let preprocess =
-  let union_fields l1 l2 ~f =
-    let of_map =
-      String.Map.of_list_map_exn ~f:(fun (x : _ Named.t) -> (x.name, x))
-    in
-    String.Map.union (of_map l1) (of_map l2) ~f |> String.Map.values
-  in
-  let open Unresolved in
-  let traverse =
-    object (self)
-      inherit Unresolved.map as super
-
-      val mutable current_name = None
-
-      method name =
-        match current_name with
-        | None -> assert false
-        | Some n -> n
-
-      method! sum vars =
-        match
-          List.filter_map vars ~f:(function
-            | Record [] -> None
-            | _ as t -> Some (self#typ t))
-        with
-        | [] -> assert false
-        | [ t ] -> t
-        | ts -> Sum ts
-
-      method! field x =
-        if x.name = "documentChanges" then
-          (* This gross hack is needed for the documentChanges field. We can
-             ignore the first constructor since it's completely representable
-             with the second one. *)
-          match x.data with
-          | Single
-              { typ = Sum [ List (Ident "TextDocumentEdit"); (List _ as typ) ]
-              ; optional
-              } ->
-            let data = Single { typ; optional } in
-            super#field { x with data }
-          | _ -> super#field x
-        else if x.name = "change" then
-          match x.data with
-          | Single { typ = Ident "number"; optional = true } ->
-            let typ = Ident "TextDocumentSyncKind" in
-            let data = Single { typ; optional = true } in
-            super#field { x with data }
-          | _ -> super#field x
-        else super#field x
-
-      method! typ x =
-        match x with
-        | Sum [ Record f1; Record f2 ]
-          when self#name = "TextDocumentContentChangeEvent" ->
-          let t =
-            Record
-              (union_fields f1 f2 ~f:(fun k t1 t2 ->
-                   assert (k = "text");
-                   assert (t1 = t2);
-                   Some t1))
-          in
-          super#typ t
-        | t -> super#typ t
-
-      (* all toplevel declarations that we decide to skip *)
-      method! t x =
-        current_name <- Some x.name;
-        super#t x
-
-      method! interface i =
-        let extends =
-          List.filter i.extends ~f:(fun name ->
-              not (List.mem removed_super_classes name ~equal:String.equal))
-        in
-        let fields =
-          (* We ignore this field until we switch to our own code gen. *)
-          if self#name = "FormattingOptions" then
-            List.filter i.fields ~f:(fun (f : field) ->
-                match f.data with
-                | Pattern _ when f.name = "key" -> false
-                | _ -> true)
-          else i.fields
-        in
-        super#interface { i with extends; fields }
-    end
-  in
-  fun i -> traverse#t i
+(* XXX this is temporary until we support the [supportsCustomValues] field *)
+let with_custom_values =
+  [ "FoldingRangeKind"; "CodeActionKind"; "PositionEncodingKind"; "WatchKind" ]
 
 module Expanded = struct
   (** The expanded form is still working with typescript types. However, all
@@ -451,14 +359,23 @@ end = struct
       | Ident Number -> Type.int
       | Ident String -> Type.string
       | Ident Bool -> Type.bool
-      | Ident Any | Ident Object -> Type.json
+      | Ident Object -> Type.json_object
       | Ident Self -> Type.t (* XXX wrong *)
+      | Ident Any -> Type.json
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
+      | Ident (Resolved { id = _; name = "URI"; kind = _ }) ->
+        Type.module_t "DocumentUri"
+      | Ident (Resolved { id = _; name = "LSPAny"; kind = _ }) -> Type.json
+      | Ident (Resolved { id = _; name = "LSPObject"; kind = _ }) -> Type.json
       | Ident (Resolved r) -> (
         match r.kind with
         | Type_variable -> Type.unit
-        | Name -> Type.module_t (Entities.find db r).name)
+        | Name ->
+          let entity = Entities.find db r in
+          Type.module_t entity.name)
+      | List (Ident (Uinteger | Number)) when topmost_field_name = Some "data"
+        -> Type.array Type.int
       | List t -> Type.list (type_ topmost_field_name t)
       | Tuple ts -> Type.Tuple (List.map ~f:(type_ topmost_field_name) ts)
       | Sum s -> sum topmost_field_name s
@@ -482,6 +399,7 @@ end = struct
         let key = type_ topmost_field_name pat in
         let data = type_ topmost_field_name typ in
         Some (Type.assoc_list ~key ~data)
+      | [] -> Some Type.json_object
       | _ -> None
     and record fields =
       match simplify_record fields with
@@ -497,7 +415,7 @@ end = struct
                  | Ident Self | Ident Null -> assert false
                  | Ident String -> ("String", [ type_ t ])
                  | Ident Number -> ("Int", [ type_ t ])
-                 | Ident Any | Ident Object -> ("Assoc", [ type_ t ])
+                 | Ident Object -> ("Assoc", [ type_ t ])
                  | Ident Bool -> ("Bool", [ type_ t ])
                  | List _ | Ident List -> ("List", [ type_ t ])
                  | Ident (Resolved r) -> ((Entities.find db r).name, [ type_ t ])
@@ -542,6 +460,7 @@ end = struct
         let key = make_typ db { Named.name; data = pat } in
         let data = make_typ db { Named.name; data = typ } in
         (Type.Alias (Type.assoc_list ~key ~data), [])
+      | [] -> (Type.Alias Type.json_object, [])
       | _ ->
         let fields, literals = List.partition_map fields ~f:(make_field db) in
         (Type.Record fields, literals)
@@ -590,12 +509,9 @@ end = struct
     in
     [ main_type ]
 
-  let record db ({ Named.name = _; data = fields } as t) =
+  let record db ({ Named.name = _; data = _ } as t) =
     let main_type, literals = Mapper.record_ db t in
-    (* why do we need this check at all? *)
-    match fields with
-    | [] -> None
-    | _ :: _ -> Some (main_type, literals)
+    Some (main_type, literals)
 
   let poly_enum { Named.name; data = _ } : Type.decl Named.t list =
     [ { Named.name; data = Type.Alias Type.unit } ]
@@ -743,8 +659,7 @@ class name_idents =
       | _ -> init
   end
 
-let resolve_and_pp_typescript (ts : Unresolved.t list) =
-  let ts = List.map ts ~f:preprocess in
+let resolve_typescript (ts : Unresolved.t list) =
   let ts, db = Typescript.resolve_all ts in
   let db = Entities.of_map db ts in
   match
@@ -771,7 +686,9 @@ let of_resolved_typescript db (ts : Resolved.t list) =
   let simple_enums =
     List.map simple_enums ~f:(fun (t : _ Named.t) ->
         (* "open" enums need an `Other constructor *)
-        let allow_other = t.name = "CodeActionKind" in
+        let allow_other =
+          List.mem ~equal:String.equal with_custom_values t.name
+        in
         let data =
           List.filter_map t.data ~f:(fun (constr, v) ->
               match (v : Ts_types.Enum.case) with
@@ -796,5 +713,5 @@ let of_resolved_typescript db (ts : Resolved.t list) =
          Module.use_json_conv_types decl)
 
 let of_typescript ts =
-  let db, ts = resolve_and_pp_typescript ts in
+  let db, ts = resolve_typescript ts in
   of_resolved_typescript db ts

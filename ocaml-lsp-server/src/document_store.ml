@@ -75,7 +75,10 @@ let register_request t uris =
           let id = code_action_id uri in
           let registerOptions =
             let documentSelector =
-              [ DocumentFilter.create ~pattern:(Uri.to_path uri) () ]
+              [ `DocumentFilter
+                  (`TextDocumentFilter
+                    (TextDocumentFilter.create ~pattern:(Uri.to_path uri) ()))
+              ]
             in
             CodeActionRegistrationOptions.create ~documentSelector
               ~codeActionKinds:[ CodeActionKind.Other "Promote" ]

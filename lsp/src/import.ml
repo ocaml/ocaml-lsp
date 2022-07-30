@@ -108,6 +108,19 @@ module Json = struct
       | (exception Conv.Of_yojson_error (_, _)) -> c2 json
   end
 
+  module Object = struct
+    type json = t
+
+    type nonrec t = (string * t) list
+
+    let yojson_of_t t : json = `Assoc t
+
+    let t_of_yojson (t : json) : t =
+      match t with
+      | `Assoc t -> t
+      | json -> error "object expected" json
+  end
+
   module Option = struct
     type 'a t = 'a option
 

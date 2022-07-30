@@ -31,7 +31,7 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
   ; merlin
   ; detached
   ; configuration
-  ; trace = `Off
+  ; trace = Off
   ; ocamlformat_rpc
   ; diagnostics
   ; symbols_thread

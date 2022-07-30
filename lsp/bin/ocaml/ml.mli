@@ -130,6 +130,8 @@ module Type : sig
 
   val json : t
 
+  val json_object : t
+
   val unit : t
 
   val void : t

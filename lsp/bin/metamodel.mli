@@ -105,6 +105,25 @@ type t =
 
 val t : Yojson.Safe.t -> t
 
+module Entity : sig
+  type metamodel := t
+
+  type t =
+    | Structure of structure
+    | Enumeration of enumeration
+    | Alias of typeAlias
+
+  module DB : sig
+    type entity := t
+
+    type t
+
+    val create : metamodel -> t
+
+    val find : t -> string -> entity
+  end
+end
+
 module Path : sig
   type top =
     | Request of request
@@ -123,6 +142,8 @@ class map :
     method literal : Path.t -> literalType -> literalType
 
     method property : Path.t -> property -> property
+
+    method or_ : Path.t -> type_ list -> type_
 
     method type_ : Path.t -> type_ -> type_
 

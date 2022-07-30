@@ -199,7 +199,7 @@ let%expect_test "end to end run of lsp tests" =
     server: sending message notification to client
     client: received notification
     {
-      "params": { "type": 3, "message": "notifying client" },
+      "params": { "message": "notifying client", "type": 3 },
       "method": "window/showMessage",
       "jsonrpc": "2.0"
     }

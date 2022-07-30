@@ -8,12 +8,13 @@ let%expect_test "start/stop" =
       | ShowDocumentRequest p ->
         print_endline "client: received show document params";
         let json =
-          ShowDocumentParams.yojson_of_t { p with uri = "<redacted>" }
+          ShowDocumentParams.yojson_of_t
+            { p with uri = Uri.of_path "<redacted>" }
         in
         Yojson.Safe.to_channel stdout json;
         print_endline "";
         print_endline "metrics contents:";
-        print_endline (Stdune.Io.String_path.read_file p.uri);
+        print_endline (Stdune.Io.String_path.read_file (Uri.to_path p.uri));
         let res = ShowDocumentResult.create ~success:true in
         Fiber.return (Lsp_fiber.Rpc.Reply.now res, ())
       | _ -> assert false
@@ -41,7 +42,7 @@ let%expect_test "start/stop" =
   [%expect
     {|
       client: received show document params
-      {"uri":"<redacted>","takeFocus":true}
+      {"takeFocus":true,"uri":"file:///%3Credacted%3E"}
       metrics contents:
       {"traceEvents":[]}
       server: receiving response

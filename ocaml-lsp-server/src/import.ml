@@ -237,6 +237,7 @@ include struct
   module TextDocumentClientCapabilities = TextDocumentClientCapabilities
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
   module TextDocumentEdit = TextDocumentEdit
+  module TextDocumentFilter = TextDocumentFilter
   module TextDocumentIdentifier = TextDocumentIdentifier
   module TextDocumentItem = TextDocumentItem
   module TextDocumentRegistrationOptions = TextDocumentRegistrationOptions
@@ -244,7 +245,11 @@ include struct
   module TextDocumentSyncOptions = TextDocumentSyncOptions
   module TextDocumentSyncClientCapabilities = TextDocumentSyncClientCapabilities
   module TextEdit = TextEdit
-  module TraceValue = TraceValue
+
+  (** deprecated *)
+  module TraceValue = TraceValues
+
+  module TraceValues = TraceValues
   module Unregistration = Unregistration
   module UnregistrationParams = UnregistrationParams
   module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier

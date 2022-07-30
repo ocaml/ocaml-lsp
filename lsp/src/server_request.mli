@@ -4,7 +4,7 @@ open Types
 type _ t =
   | WorkspaceApplyEdit :
       ApplyWorkspaceEditParams.t
-      -> ApplyWorkspaceEditResponse.t t
+      -> ApplyWorkspaceEditResult.t t
   | WorkspaceFolders : WorkspaceFolder.t list t
   | WorkspaceConfiguration : ConfigurationParams.t -> Json.t list t
   | ClientRegisterCapability : RegistrationParams.t -> unit t
