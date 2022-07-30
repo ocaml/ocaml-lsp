@@ -39,6 +39,13 @@ module Arg = struct
     | Unnamed of 'e
     | Labeled of string * 'e
     | Optional of string * 'e
+
+  let to_dyn f =
+    let open Dyn in
+    function
+    | Unnamed a -> Dyn.variant "Unnamed" [ f a ]
+    | Labeled (s, a) -> Dyn.variant "Labeled" [ string s; f a ]
+    | Optional (s, a) -> Dyn.variant "Optional" [ string s; f a ]
 end
 
 module Path = struct
@@ -67,6 +74,14 @@ module Type = struct
     | Int
     | Bool
 
+  let dyn_of_prim : prim -> Dyn.t =
+    let open Dyn in
+    function
+    | Unit -> variant "Unit" []
+    | String -> variant "String" []
+    | Int -> variant "Int" []
+    | Bool -> variant "Bool" []
+
   type t =
     | Path of Path.t
     | Var of string
@@ -90,10 +105,42 @@ module Type = struct
     ; attrs : (string * string list) list
     }
 
+  let rec to_dyn =
+    let open Dyn in
+    function
+    | Var v -> variant "Var" [ string v ]
+    | List v -> variant "List" [ to_dyn v ]
+    | Assoc (x, y) -> variant "Assoc" [ to_dyn x; to_dyn y ]
+    | Tuple xs -> variant "Tuple" (List.map ~f:to_dyn xs)
+    | Optional t -> variant "Optional" [ to_dyn t ]
+    | Path p -> variant "Path" [ string @@ Path.to_string p ]
+    | Poly_variant xs -> variant "Poly_variant" (List.map ~f:dyn_of_constr xs)
+    | App (x, y) -> variant "App" (to_dyn x :: List.map y ~f:to_dyn)
+    | Prim p -> variant "Prim" [ dyn_of_prim p ]
+    | Fun (arg, t) -> variant "Fun" [ Arg.to_dyn to_dyn arg; to_dyn t ]
+
+  and dyn_of_constr { name; args } =
+    Dyn.(record [ ("name", string name); ("args", (list to_dyn) args) ])
+
+  and dyn_of_field { name; typ; attrs } =
+    let open Dyn in
+    record
+      [ ("name", string name)
+      ; ("typ", to_dyn typ)
+      ; ("attrs", list (pair string (list string)) attrs)
+      ]
+
   type decl =
     | Alias of t
     | Record of field list
     | Variant of constr list
+
+  let dyn_of_decl =
+    let open Dyn in
+    function
+    | Alias a -> variant "Alias" [ to_dyn a ]
+    | Record fs -> variant "Record" (List.map ~f:dyn_of_field fs)
+    | Variant cs -> variant "Variant" (List.map ~f:dyn_of_constr cs)
 
   class virtual ['env, 'm] mapreduce =
     object (self : 'self)
@@ -222,6 +269,8 @@ module Type = struct
   let json = Path (Dot (Ident "Json", "t"))
 
   let unit = Prim Unit
+
+  let array t = App (Path (Ident "array"), [ t ])
 
   let void =
     let void = Path.Dot (Ident "Json", "Void") in

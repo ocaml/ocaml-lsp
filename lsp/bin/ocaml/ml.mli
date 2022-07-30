@@ -82,10 +82,16 @@ module Type : sig
     ; args : t list
     }
 
+  val to_dyn : t -> Dyn.t
+
+  val dyn_of_constr : constr -> Dyn.t
+
   type decl =
     | Alias of t
     | Record of field list
     | Variant of constr list
+
+  val dyn_of_decl : decl -> Dyn.t
 
   val fun_ : t Arg.t list -> t -> t
 
@@ -127,6 +133,8 @@ module Type : sig
   val unit : t
 
   val void : t
+
+  val array : t -> t
 
   (** Fold and map over a type expression.
 
