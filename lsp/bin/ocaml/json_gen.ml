@@ -157,6 +157,13 @@ module Poly_variant = struct
     let conv t = Create (Ident (conv t)) in
     match (utc.args : Ml.Type.t list) with
     | [ Path p ] -> conv p
+    | [ List (Prim p) ] ->
+      let ident =
+        match p with
+        | String -> "string"
+        | _ -> assert false
+      in
+      App (Create (json_mod "list"), [ Unnamed (conv (Ident ident)) ])
     | [ List (Path p) ] -> App (Create (json_mod "list"), [ Unnamed (conv p) ])
     | [ Tuple [ Prim Int; Prim Int ] ] -> Create (json_mod "int_pair")
     | [] -> assert false
