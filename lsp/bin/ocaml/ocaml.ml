@@ -18,6 +18,17 @@ let skipped_ts_decls =
   ; "MarkedString"
   ; "ProgressToken"
   ; "ProgressParams"
+  ; "CallHierarchyOptions"
+  ; "TextDocumentFilter"
+  ; "PrepareRenameResult"
+  ; "LSPAny"
+  ; "LSPObject"
+  ; "LSPArray"
+  ; "LSPErrorCodes"
+  ; "NotebookDocumentSyncOptions"
+  ; "NotebookDocumentFilter"
+  ; "NotebookDocumentSyncRegistrationOptions"
+  ; "URI"
   ]
 
 (* Super classes to remove because we handle their concerns differently (or not
