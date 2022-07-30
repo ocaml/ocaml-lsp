@@ -167,7 +167,7 @@ module Poly_variant = struct
     | [ List (Path p) ] -> App (Create (json_mod "list"), [ Unnamed (conv p) ])
     | [ Tuple [ Prim Int; Prim Int ] ] -> Create (json_mod "int_pair")
     | [] -> assert false
-    | _ -> Code_error.raise "untagged" [ ("utc.name", Dyn.string utc.name) ]
+    | _ -> Code_error.raise "untagged" [ ("utc", Ml.Type.dyn_of_constr utc) ]
 
   let json_clauses json_constrs =
     List.map json_constrs ~f:(fun (c : Ml.Type.constr) ->
