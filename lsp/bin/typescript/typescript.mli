@@ -4,6 +4,8 @@ type test
 
 val of_snippets : string list -> Ts_types.Unresolved.t list
 
+val of_metamodel : Metamodel.t -> Ts_types.Unresolved.t list
+
 val test_snippets : string list -> test list
 
 val resolve_all :
