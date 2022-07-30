@@ -137,7 +137,7 @@ module Expanded = struct
       | f -> Some (Record f)
     in
     match x with
-    | Record d -> record d
+    | List (Record d) | Record d -> record d
     | Sum [ _; Record d ] -> record d
     | _ -> None
 
