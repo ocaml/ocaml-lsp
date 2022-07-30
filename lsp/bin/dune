@@ -10,6 +10,14 @@
    (echo "%{read:specifications/specification-3-16.md}")
    (echo "|spec}"))))
 
+(rule
+ (with-stdout-to
+  metamodel_lsp.ml
+  (progn
+   (echo "let t () = Metamodel.t @@ Yojson.Safe.from_string {json|")
+   (echo "%{read:metaModel.json}")
+   (echo "|json}"))))
+
 (executable
  (name gen)
  (modules gen)
