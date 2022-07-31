@@ -155,7 +155,10 @@ module Expanded = struct
           | Single { optional = _; typ } -> (
             match new_binding_of_typ typ with
             | None -> init
-            | Some data -> { f with data } :: init)
+            | Some data ->
+              let new_record = { f with data } in
+              if List.mem ~equal:Poly.equal init new_record then init
+              else new_record :: init)
         in
         super#field f ~init
     end
