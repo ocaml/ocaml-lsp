@@ -326,11 +326,6 @@ end = struct
   let pp t = { Ml.Kind.intf = pp t ~kind:Intf; impl = pp t ~kind:Impl }
 end
 
-let pp_file pp ch =
-  let fmt = Format.formatter_of_out_channel ch in
-  Pp.to_fmt fmt pp;
-  Format.pp_print_flush fmt ()
-
 let enum_module ~allow_other ({ Named.name; data = constrs } as t) =
   let json_bindings =
     Json_gen.Enum.conv ~allow_other ~poly:false { t with name = "t" }
@@ -792,16 +787,3 @@ let of_resolved_typescript db (ts : Resolved.t list) =
 let of_typescript ts =
   let db, ts = resolve_and_pp_typescript ts in
   of_resolved_typescript db ts
-
-let output modules ~kind out =
-  let open Ml.Kind in
-  let intf, impl =
-    List.map modules ~f:(fun m ->
-        let { intf; impl } = Module.pp m in
-        (intf, impl))
-    |> List.unzip
-  in
-  let def = { intf; impl } in
-  let def = Ml.Kind.Map.map def ~f:(Pp.concat ~sep:Pp.newline) in
-  let pp = Ml.Kind.Map.get def kind in
-  pp_file pp out
