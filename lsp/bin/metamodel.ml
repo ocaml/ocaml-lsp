@@ -322,3 +322,87 @@ let t json =
   let enumerations = field "enumerations" (list enumeration) fields in
   let typeAliases = field "typeAliases" (list typeAlias) fields in
   { requests; notifications; structures; enumerations; typeAliases }
+
+module Path = struct
+  type top =
+    | Request of request
+    | Notification of notification
+    | Structure of structure
+    | Enumeration of enumeration
+    | Alias of typeAlias
+
+  type t =
+    | Top of top
+    | Property of property * t
+end
+
+class map =
+  let open Path in
+  object (self)
+    method property path (p : property) =
+      let path = Property (p, path) in
+      { p with type_ = self#type_ path p.type_ }
+
+    method literal path t =
+      match (t : literalType) with
+      | Record ps -> Record (List.map ps ~f:(self#property path))
+      | _ -> t
+
+    method type_ path t : type_ =
+      match t with
+      | Base _ as t -> t
+      | Reference _ -> t
+      | Array t -> Array (self#type_ path t)
+      | Or ts -> Or (List.map ts ~f:(self#type_ path))
+      | And ts -> And (List.map ts ~f:(self#type_ path))
+      | Tuple ts -> Tuple (List.map ts ~f:(self#type_ path))
+      | Literal lt -> Literal (self#literal path lt)
+      | Map mt -> Map { mt with value = self#type_ path mt.value }
+
+    method private call path (c : call) =
+      let params =
+        let params = function
+          | `Param t -> `Param (self#type_ path t)
+          | `Params ts -> `Params (List.map ts ~f:(self#type_ path))
+        in
+        Option.map ~f:params c.params
+      in
+      let registrationOptions =
+        Option.map ~f:(self#type_ path) c.registrationOptions
+      in
+      { c with params; registrationOptions }
+
+    method request (r : request) =
+      let path = Top (Request r) in
+      let call = self#call path r.call in
+      let errorData = Option.map ~f:(self#type_ path) r.errorData in
+      let partialResult = Option.map ~f:(self#type_ path) r.partialResult in
+      let result = self#type_ path r.result in
+      { call; errorData; partialResult; result }
+
+    method notification { call } =
+      let path = Top (Notification { call }) in
+      { call = self#call path call }
+
+    method structure s =
+      let path = Top (Structure s) in
+      let extends = List.map s.extends ~f:(self#type_ path) in
+      let mixins = List.map s.mixins ~f:(self#type_ path) in
+      let properties = List.map s.properties ~f:(self#property path) in
+      { s with extends; mixins; properties }
+
+    method typeAlias (a : typeAlias) =
+      let path = Top (Alias a) in
+      { a with type_ = self#type_ path a.type_ }
+
+    method enumeration (e : enumeration) : enumeration = e
+
+    method t { requests; notifications; structures; enumerations; typeAliases }
+        =
+      let requests = List.map requests ~f:self#request in
+      let notifications = List.map notifications ~f:self#notification in
+      let structures = List.map structures ~f:self#structure in
+      let typeAliases = List.map typeAliases ~f:self#typeAlias in
+      let enumerations = List.map enumerations ~f:self#enumeration in
+      { enumerations; requests; notifications; structures; typeAliases }
+  end

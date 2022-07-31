@@ -104,3 +104,37 @@ type t =
   }
 
 val t : Yojson.Safe.t -> t
+
+module Path : sig
+  type top =
+    | Request of request
+    | Notification of notification
+    | Structure of structure
+    | Enumeration of enumeration
+    | Alias of typeAlias
+
+  type t =
+    | Top of top
+    | Property of property * t
+end
+
+class map :
+  object
+    method literal : Path.t -> literalType -> literalType
+
+    method property : Path.t -> property -> property
+
+    method type_ : Path.t -> type_ -> type_
+
+    method t : t -> t
+
+    method request : request -> request
+
+    method structure : structure -> structure
+
+    method notification : notification -> notification
+
+    method typeAlias : typeAlias -> typeAlias
+
+    method enumeration : enumeration -> enumeration
+  end
