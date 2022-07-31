@@ -764,23 +764,28 @@ end = struct
 end
 
 let expand_super_classes db ts =
+  let uniquify_fields fields =
+    List.fold_left fields ~init:String.Map.empty
+      ~f:(fun acc (f : Resolved.field) -> String.Map.set acc f.name f)
+    |> String.Map.values
+  in
   let interface_fields (i : Resolved.interface) =
-    let rec interface init (i : Resolved.interface) =
-      let init =
-        List.fold_left i.extends ~init ~f:(fun init (a : Prim.t) ->
+    let rec interface (i : Resolved.interface) =
+      let extends =
+        List.map i.extends ~f:(fun (a : Prim.t) ->
             match a with
-            | Resolved r -> type_ init (Entities.find db r).data
+            | Resolved r -> type_ (Entities.find db r).data
             | _ -> assert false)
       in
-      init @ i.fields
-    and type_ init (i : Resolved.decl) : Resolved.field list =
+      uniquify_fields @@ List.concat extends @ i.fields
+    and type_ (i : Resolved.decl) : Resolved.field list =
       match i with
       | Enum_anon _ -> assert false
-      | Type (Record fields) -> List.rev_append fields init
+      | Type (Record fields) -> fields
       | Type _ -> assert false
-      | Interface i -> interface init i
+      | Interface i -> interface i
     in
-    interface [] i
+    interface i
   in
   List.map ts ~f:(fun (r : Resolved.t) ->
       let data =
