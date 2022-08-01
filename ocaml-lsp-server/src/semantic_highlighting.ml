@@ -894,8 +894,13 @@ module Debug = struct
     Fiber.of_thunk (fun () ->
         match params with
         | None ->
-          invalid_arg @@ meth_request_full
-          ^ "expects an argument but didn't receive any"
+          Jsonrpc.Response.Error.raise
+          @@ Jsonrpc.Response.Error.make
+               ~code:Jsonrpc.Response.Error.Code.InvalidParams
+               ~message:
+                 (meth_request_full
+                ^ " expects an argument but didn't receive any")
+               ()
         | Some (`Assoc _ as json) | Some (`List _ as json) ->
           let params = SemanticTokensParams.t_of_yojson json in
           let store = state.store in
