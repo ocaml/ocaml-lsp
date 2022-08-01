@@ -110,7 +110,7 @@ let test :
         in
         let* resp =
           let textDocument = TextDocumentIdentifier.create ~uri in
-          let params = SemanticTokensParams.create ~textDocument in
+          let params = SemanticTokensParams.create ~textDocument () in
           Client.request client (req params)
         in
         let* () =

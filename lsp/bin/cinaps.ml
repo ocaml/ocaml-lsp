@@ -80,12 +80,40 @@ let preprocess_metamodel =
            { m with values })
   end
 
+let expand_superclasses db (m : Metamodel.t) =
+  let structures =
+    let uniquify_fields fields =
+      List.fold_left fields ~init:String.Map.empty
+        ~f:(fun acc (f : Metamodel.property) -> String.Map.set acc f.name f)
+      |> String.Map.values
+    in
+    let rec fields_of_type (t : Metamodel.type_) =
+      match t with
+      | Reference s -> (
+        match Metamodel.Entity.DB.find db s with
+        | Structure s -> fields_of_structure s
+        | Enumeration _ -> assert false
+        | Alias a -> fields_of_type a.type_)
+      | _ -> assert false
+    and fields_of_structure (s : Metamodel.structure) =
+      let fields =
+        List.map (s.extends @ s.mixins) ~f:fields_of_type @ [ s.properties ]
+      in
+      List.concat fields
+    in
+    List.map m.structures ~f:(fun s ->
+        let properties = fields_of_structure s |> uniquify_fields in
+        { s with properties })
+  in
+  { m with structures }
+
 let ocaml =
   lazy
-    (let metamodel = Metamodel_lsp.t () |> preprocess_metamodel#t in
-     let asts = Typescript.of_metamodel metamodel in
-     let _db = Metamodel.Entity.DB.create metamodel in
-     Ocaml.of_typescript asts)
+    (Metamodel_lsp.t () |> preprocess_metamodel#t
+    |> (fun metamodel ->
+         let db = Metamodel.Entity.DB.create metamodel in
+         expand_superclasses db metamodel)
+    |> Typescript.of_metamodel |> Ocaml.of_typescript)
 
 module Output = struct
   open Ocaml
