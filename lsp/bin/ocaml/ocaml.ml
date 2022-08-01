@@ -612,40 +612,6 @@ end = struct
     { Ml.Kind.intf = module_ intf; impl = module_ impl }
 end
 
-let expand_super_classes db ts =
-  let uniquify_fields fields =
-    List.fold_left fields ~init:String.Map.empty
-      ~f:(fun acc (f : Resolved.field) -> String.Map.set acc f.name f)
-    |> String.Map.values
-  in
-  let interface_fields (i : Resolved.interface) =
-    let rec interface (i : Resolved.interface) =
-      let extends =
-        List.map i.extends ~f:(fun (a : Prim.t) ->
-            match a with
-            | Resolved r -> type_ (Entities.find db r).data
-            | _ -> assert false)
-      in
-      uniquify_fields @@ List.concat extends @ i.fields
-    and type_ (i : Resolved.decl) : Resolved.field list =
-      match i with
-      | Enum_anon _ -> assert false
-      | Type (Record fields) -> fields
-      | Type _ -> assert false
-      | Interface i -> interface i
-    in
-    interface i
-  in
-  List.map ts ~f:(fun (r : Resolved.t) ->
-      let data =
-        match r.data with
-        | Interface i ->
-          let fields = interface_fields i in
-          Resolved.Interface { i with fields; extends = [] }
-        | r -> r
-      in
-      { r with data })
-
 (* extract all resovled identifiers *)
 class name_idents =
   object
@@ -675,7 +641,6 @@ let resolve_typescript (ts : Unresolved.t list) =
   | Ok ts -> (db, ts)
 
 let of_resolved_typescript db (ts : Resolved.t list) =
-  let ts = expand_super_classes db ts in
   let simple_enums, everything_else =
     List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
         if List.mem skipped_ts_decls t.name ~equal:String.equal then Skip

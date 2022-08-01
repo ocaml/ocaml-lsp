@@ -32,7 +32,7 @@ let foo = 123
         let context = CodeActionContext.create ~diagnostics:[] () in
         let request =
           let textDocument = TextDocumentIdentifier.create ~uri in
-          CodeActionParams.create ~textDocument ~range ~context
+          CodeActionParams.create ~textDocument ~range ~context ()
         in
         Client.request client (CodeAction request)
       in

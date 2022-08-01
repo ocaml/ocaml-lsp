@@ -87,6 +87,7 @@ let initialize_info : InitializeResult.t =
         ~commands:
           (view_metrics_command_name :: Action_open_related.command_name
          :: Dune.commands)
+        ()
     in
     let semanticTokensProvider =
       Option.map (Sys.getenv_opt "OCAMLLSP_SEMANTIC_HIGHLIGHTING") ~f:(fun v ->
@@ -876,7 +877,8 @@ let on_request :
       ()
   | TextDocumentCompletion params ->
     later (fun _ () -> Compl.complete state params) ()
-  | TextDocumentPrepareRename { textDocument = { uri }; position } ->
+  | TextDocumentPrepareRename
+      { textDocument = { uri }; position; workDoneToken = _ } ->
     later
       (fun _ () ->
         let doc = Document_store.get store uri in
