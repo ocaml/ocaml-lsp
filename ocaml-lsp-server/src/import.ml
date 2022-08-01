@@ -220,6 +220,7 @@ include struct
   module SemanticTokensLegend = SemanticTokensLegend
   module SemanticTokensDelta = SemanticTokensDelta
   module SemanticTokensDeltaParams = SemanticTokensDeltaParams
+  module SemanticTokenModifiers = SemanticTokenModifiers
   module SemanticTokensOptions = SemanticTokensOptions
   module SemanticTokensParams = SemanticTokensParams
   module ServerCapabilities = ServerCapabilities
