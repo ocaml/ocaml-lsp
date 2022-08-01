@@ -273,9 +273,9 @@ end = struct
     Option.iter range ~f:(fun ({ start; end_ } : Range.t) ->
         (* TODO: we currently don't handle multi-line range; could handle if
            client supports it - see client's capabilities on initialization *)
-        if Int.equal start.Position.line end_.Position.line then (
-          let length = end_.character - start.character in
+        if Int.equal start.line end_.line then (
           let new_token : token =
+            let length = end_.character - start.character in
             { start; length; token_type; token_modifiers }
           in
           t.tokens <- new_token :: t.tokens;
@@ -451,7 +451,7 @@ module Parsetree_fold () = struct
         when Loc.compare pat_ct.ptyp_loc exp_ct.ptyp_loc = 0 ->
         (* handles [let f : t -> unit = fun t -> ()] *)
         add_token n.loc
-          (match pat_ct.Parsetree.ptyp_desc with
+          (match pat_ct.ptyp_desc with
           | Ptyp_poly (_, { ptyp_desc = Ptyp_arrow _; _ }) | Ptyp_arrow _ ->
             Token_type.function_
           | _ -> Token_type.variable)
@@ -506,14 +506,14 @@ module Parsetree_fold () = struct
     | Pconst_char _ | Pconst_string _ ->
       add_token loc Token_type.string Token_modifiers.empty
 
-  let pexp_apply self expr args =
-    match expr.Parsetree.pexp_desc with
+  let pexp_apply (self : Ast_iterator.iterator) (expr : Parsetree.expression)
+      args =
+    match expr.pexp_desc with
     | Pexp_ident { txt = Ldot (Lident "Array", "set"); _ }
     | Pexp_ident { txt = Ldot (Lident "Array", "get"); _ }
     | Pexp_ident { txt = Ldot (Lident "String", "set"); _ }
     | Pexp_ident { txt = Ldot (Lident "String", "get"); _ } ->
-      List.iter args ~f:(fun ((_ : Asttypes.arg_label), e) ->
-          self.Ast_iterator.expr self e);
+      List.iter args ~f:(fun ((_ : Asttypes.arg_label), e) -> self.expr self e);
       `Custom_iterator
     | Pexp_ident lid ->
       (match args with
@@ -559,7 +559,7 @@ module Parsetree_fold () = struct
         (match expr_opt with
         | None -> self.pat self pat
         | Some e ->
-          if Loc.compare e.Parsetree.pexp_loc pat.Parsetree.ppat_loc < 0 then (
+          if Loc.compare e.pexp_loc pat.ppat_loc < 0 then (
             self.expr self e;
             self.pat self pat)
           else (
@@ -629,8 +629,7 @@ module Parsetree_fold () = struct
           ~f:(fun { Parsetree.pbop_op = _; pbop_pat; pbop_exp; pbop_loc = _ } ->
             self.pat self pbop_pat;
             if
-              Loc.compare pbop_pat.Parsetree.ppat_loc
-                pbop_exp.Parsetree.pexp_loc
+              Loc.compare pbop_pat.ppat_loc pbop_exp.pexp_loc
               <> 0 (* handles punning as in e.g. [let* foo in <expr>]*)
             then self.expr self pbop_exp);
         self.expr self body;
@@ -697,10 +696,10 @@ module Parsetree_fold () = struct
         lident t Token_type.type_ ();
         `Custom_iterator
       | Ppat_record (flds, _) ->
-        List.iter flds ~f:(fun (fld, pat) ->
+        List.iter flds ~f:(fun (fld, (pat : Parsetree.pattern)) ->
             lident fld Token_type.property ();
             if
-              Loc.compare fld.Loc.loc pat.Parsetree.ppat_loc
+              Loc.compare fld.Loc.loc pat.ppat_loc
               <> 0 (* handles field punning *)
             then self.pat self pat);
         `Custom_iterator
@@ -978,11 +977,8 @@ let on_request_full_delta :
       Document_store.update_semantic_tokens_cache store uri ~resultId ~tokens;
       match cached_token_info with
       | Some cached_v
-        when String.equal cached_v.Document_store.resultId
-               params.SemanticTokensDeltaParams.previousResultId ->
-        let edits =
-          find_diff ~old:cached_v.Document_store.tokens ~new_:tokens
-        in
+        when String.equal cached_v.resultId params.previousResultId ->
+        let edits = find_diff ~old:cached_v.tokens ~new_:tokens in
         Some
           (`SemanticTokensDelta
             { SemanticTokensDelta.resultId = Some resultId; edits })
