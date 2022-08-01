@@ -144,62 +144,32 @@ end [@warning "-32"] = struct
   let to_legend t = (Lazy.force array).(t)
 end
 
-module Token_modifiers : sig
+module Token_modifiers_set : sig
   type t = private int
 
+  val singleton : SemanticTokenModifiers.t -> t
+
   val empty : t
-
-  val declaration : t
-
-  val definition : t
-
-  val readonly : t
-
-  val static : t
-
-  val deprecated : t
-
-  val abstract : t
-
-  val async : t
-
-  val modification : t
-
-  val documentation : t
-
-  val default_library : t
-
-  val union : t -> t -> t
 
   val list : string list
 
   val to_legend : t -> string list
-end [@warning "-32"] = struct
+end = struct
   type t = int
 
   let empty = 0
 
-  let declaration = 1 lsl 0
-
-  let definition = 1 lsl 1
-
-  let readonly = 1 lsl 2
-
-  let static = 1 lsl 3
-
-  let deprecated = 1 lsl 4
-
-  let abstract = 1 lsl 5
-
-  let async = 1 lsl 6
-
-  let modification = 1 lsl 7
-
-  let documentation = 1 lsl 8
-
-  let default_library = 1 lsl 9
-
-  let union = ( lor )
+  let singleton : SemanticTokenModifiers.t -> t = function
+    | Declaration -> 1 lsl 0
+    | Definition -> 1 lsl 1
+    | Readonly -> 1 lsl 2
+    | Static -> 1 lsl 3
+    | Deprecated -> 1 lsl 4
+    | Abstract -> 1 lsl 5
+    | Async -> 1 lsl 6
+    | Modification -> 1 lsl 7
+    | Documentation -> 1 lsl 8
+    | DefaultLibrary -> 1 lsl 9
 
   let list =
     [ "declaration"
@@ -236,17 +206,22 @@ end
 
 let legend =
   SemanticTokensLegend.create ~tokenTypes:Token_type.list
-    ~tokenModifiers:Token_modifiers.list
+    ~tokenModifiers:Token_modifiers_set.list
 
 module Tokens : sig
   type t
 
   val create : unit -> t
 
-  val append_token : t -> Loc.t -> Token_type.t -> Token_modifiers.t -> unit
+  val append_token : t -> Loc.t -> Token_type.t -> Token_modifiers_set.t -> unit
 
   val append_token' :
-    t -> Position.t -> length:int -> Token_type.t -> Token_modifiers.t -> unit
+       t
+    -> Position.t
+    -> length:int
+    -> Token_type.t
+    -> Token_modifiers_set.t
+    -> unit
 
   val yojson_of_t : t -> Yojson.Safe.t
 
@@ -256,7 +231,7 @@ end = struct
     { start : Position.t
     ; length : int
     ; token_type : Token_type.t
-    ; token_modifiers : Token_modifiers.t
+    ; token_modifiers : Token_modifiers_set.t
     }
 
   type t =
@@ -267,7 +242,8 @@ end = struct
 
   let create () : t = { tokens = []; count = 0 }
 
-  let append_token : t -> Loc.t -> Token_type.t -> Token_modifiers.t -> unit =
+  let append_token : t -> Loc.t -> Token_type.t -> Token_modifiers_set.t -> unit
+      =
    fun t loc token_type token_modifiers ->
     let range = Range.of_loc_opt loc in
     Option.iter range ~f:(fun ({ start; end_ } : Range.t) ->
@@ -282,8 +258,12 @@ end = struct
           t.count <- t.count + 1))
 
   let append_token' :
-      t -> Position.t -> length:int -> Token_type.t -> Token_modifiers.t -> unit
-      =
+         t
+      -> Position.t
+      -> length:int
+      -> Token_type.t
+      -> Token_modifiers_set.t
+      -> unit =
    fun t start ~length token_type token_modifiers ->
     let new_token : token = { start; length; token_type; token_modifiers } in
     t.tokens <- new_token :: t.tokens;
@@ -304,7 +284,7 @@ end = struct
       ; ("type", `String (Token_type.to_legend token_type))
       ; ( "modifiers"
         , Json.Conv.yojson_of_list Json.Conv.yojson_of_string
-            (Token_modifiers.to_legend token_modifiers) )
+            (Token_modifiers_set.to_legend token_modifiers) )
       ]
 
   let yojson_of_t t =
@@ -348,7 +328,7 @@ module Parsetree_fold () = struct
     Tokens.append_token' tokens pos ~length token_type token_modifiers
 
   let lident ({ txt = lid; loc } : Longident.t Loc.loc) rightmost_name
-      ?(modifiers = Token_modifiers.empty) () =
+      ?(modifiers = Token_modifiers_set.empty) () =
     let start : Position.t option =
       Position.of_lexical_position loc.loc_start
     in
@@ -365,7 +345,7 @@ module Parsetree_fold () = struct
             add_token'
               { start with character = start.character + offset }
               ~length:(String.length mod_name) Token_type.module_
-              Token_modifiers.empty;
+              Token_modifiers_set.empty;
             aux (offset + String.length mod_name + 1) rest
         in
         aux 0 lst)
@@ -379,7 +359,8 @@ module Parsetree_fold () = struct
   let module_binding (self : Ast_iterator.iterator)
       ({ pmb_name; pmb_expr; pmb_attributes; pmb_loc = _ } :
         Parsetree.module_binding) =
-    add_token pmb_name.loc Token_type.module_ Token_modifiers.definition;
+    add_token pmb_name.loc Token_type.module_
+      (Token_modifiers_set.singleton Definition);
     self.module_expr self pmb_expr;
     self.attributes self pmb_attributes
 
@@ -389,7 +370,7 @@ module Parsetree_fold () = struct
     let iter =
       match ptyp_desc with
       | Ptyp_var _ ->
-        add_token ptyp_loc Token_type.type_parameter Token_modifiers.empty;
+        add_token ptyp_loc Token_type.type_parameter Token_modifiers_set.empty;
         `Custom_iterator
       | Ptyp_constr (name, cts) | Ptyp_class (name, cts) ->
         List.iter cts ~f:(fun ct -> self.typ self ct);
@@ -397,7 +378,8 @@ module Parsetree_fold () = struct
         `Custom_iterator
       | Ptyp_poly (tps, ct) ->
         List.iter tps ~f:(fun tp ->
-            add_token tp.Loc.loc Token_type.type_parameter Token_modifiers.empty);
+            add_token tp.Loc.loc Token_type.type_parameter
+              Token_modifiers_set.empty);
         self.typ self ct;
         `Custom_iterator
       | Ptyp_variant (_, _, _)
@@ -419,9 +401,11 @@ module Parsetree_fold () = struct
   let constructor_declaration (self : Ast_iterator.iterator)
       ({ pcd_name; pcd_vars; pcd_args; pcd_res; pcd_loc = _; pcd_attributes } :
         Parsetree.constructor_declaration) =
-    add_token pcd_name.loc Token_type.enum_member Token_modifiers.declaration;
+    add_token pcd_name.loc Token_type.enum_member
+      (Token_modifiers_set.singleton Declaration);
     List.iter pcd_vars ~f:(fun var ->
-        add_token var.Loc.loc Token_type.type_parameter Token_modifiers.empty);
+        add_token var.Loc.loc Token_type.type_parameter
+          Token_modifiers_set.empty);
     constructor_arguments self pcd_args;
     Option.iter pcd_res ~f:(fun ct -> self.typ self ct);
     self.attributes self pcd_attributes
@@ -430,7 +414,7 @@ module Parsetree_fold () = struct
   let label_declaration (self : Ast_iterator.iterator)
       ({ pld_name; pld_mutable = _; pld_type; pld_loc = _; pld_attributes } :
         Parsetree.label_declaration) =
-    add_token pld_name.loc Token_type.property Token_modifiers.empty;
+    add_token pld_name.loc Token_type.property Token_modifiers_set.empty;
     self.typ self pld_type;
     self.attributes self pld_attributes
 
@@ -442,7 +426,8 @@ module Parsetree_fold () = struct
       | Parsetree.Ppat_var fn_name, _ -> (
         match pvb_expr.pexp_desc with
         | Pexp_fun _ | Pexp_function _ ->
-          add_token fn_name.loc Token_type.function_ Token_modifiers.definition;
+          add_token fn_name.loc Token_type.function_
+            (Token_modifiers_set.singleton Definition);
           self.expr self pvb_expr;
           `Custom_iterator
         | _ -> `Default_iterator)
@@ -455,7 +440,7 @@ module Parsetree_fold () = struct
           | Ptyp_poly (_, { ptyp_desc = Ptyp_arrow _; _ }) | Ptyp_arrow _ ->
             Token_type.function_
           | _ -> Token_type.variable)
-          Token_modifiers.empty;
+          Token_modifiers_set.empty;
         self.typ self pat_ct;
         self.expr self e;
         `Custom_iterator
@@ -481,13 +466,13 @@ module Parsetree_fold () = struct
              Parsetree.core_type * (Asttypes.variance * Asttypes.injectivity))
          ->
         add_token core_type.ptyp_loc Token_type.type_parameter
-          Token_modifiers.empty);
+          Token_modifiers_set.empty);
     add_token ptype_name.loc
       (match ptype_kind with
       | Parsetree.Ptype_abstract | Ptype_open -> Token_type.type_
       | Ptype_variant _ -> Token_type.enum
       | Ptype_record _ -> Token_type.record)
-      Token_modifiers.declaration;
+      (Token_modifiers_set.singleton Declaration);
     List.iter ptype_cstrs ~f:(fun (ct0, ct1, (_ : Loc.t)) ->
         self.typ self ct0;
         self.typ self ct1);
@@ -502,9 +487,9 @@ module Parsetree_fold () = struct
 
   let const loc = function
     | Parsetree.Pconst_integer _ | Pconst_float _ ->
-      add_token loc Token_type.number Token_modifiers.empty
+      add_token loc Token_type.number Token_modifiers_set.empty
     | Pconst_char _ | Pconst_string _ ->
-      add_token loc Token_type.string Token_modifiers.empty
+      add_token loc Token_type.string Token_modifiers_set.empty
 
   let pexp_apply (self : Ast_iterator.iterator) (expr : Parsetree.expression)
       args =
@@ -588,7 +573,7 @@ module Parsetree_fold () = struct
         `Custom_iterator
       | Pexp_send (e, m) ->
         self.expr self e;
-        add_token m.loc Token_type.method_ Token_modifiers.empty;
+        add_token m.loc Token_type.method_ Token_modifiers_set.empty;
         `Custom_iterator
       | Pexp_setfield (e0, l, e1) ->
         self.expr self e0;
@@ -599,11 +584,11 @@ module Parsetree_fold () = struct
         lident l Token_type.class_ ();
         `Custom_iterator
       | Pexp_newtype (t, e) ->
-        add_token t.loc Token_type.type_parameter Token_modifiers.empty;
+        add_token t.loc Token_type.type_parameter Token_modifiers_set.empty;
         self.expr self e;
         `Custom_iterator
       | Pexp_letmodule (name, me, e) ->
-        add_token name.loc Token_type.module_ Token_modifiers.empty;
+        add_token name.loc Token_type.module_ Token_modifiers_set.empty;
         self.module_expr self me;
         (* ^ handle function applications like this *)
         self.expr self e;
@@ -660,18 +645,18 @@ module Parsetree_fold () = struct
     match
       match ppat_desc with
       | Parsetree.Ppat_var v ->
-        add_token v.loc Token_type.variable Token_modifiers.empty;
+        add_token v.loc Token_type.variable Token_modifiers_set.empty;
         `Custom_iterator
       | Ppat_alias (p, a) ->
         self.pat self p;
-        add_token a.loc Token_type.variable Token_modifiers.empty;
+        add_token a.loc Token_type.variable Token_modifiers_set.empty;
         `Custom_iterator
       | Ppat_construct (c, args) ->
         let process_args () =
           Option.iter args ~f:(fun (tvs, pat) ->
               List.iter tvs ~f:(fun tv ->
                   add_token tv.Loc.loc Token_type.type_parameter
-                    Token_modifiers.empty);
+                    Token_modifiers_set.empty);
               self.pat self pat)
         in
         (match c.txt with
@@ -690,7 +675,7 @@ module Parsetree_fold () = struct
         `Custom_iterator
       | Ppat_unpack m ->
         Option.iter m.txt ~f:(fun _ ->
-            add_token m.loc Token_type.module_ Token_modifiers.empty);
+            add_token m.loc Token_type.module_ Token_modifiers_set.empty);
         `Custom_iterator
       | Ppat_type t ->
         lident t Token_type.type_ ();
@@ -732,7 +717,7 @@ module Parsetree_fold () = struct
         (match fp with
         | Unit -> ()
         | Named (n, mt) ->
-          add_token n.loc Token_type.module_ Token_modifiers.empty;
+          add_token n.loc Token_type.module_ Token_modifiers_set.empty;
           self.module_type self mt);
         self.module_expr self me;
         `Custom_iterator
@@ -754,7 +739,7 @@ module Parsetree_fold () = struct
   let module_type_declaration (self : Ast_iterator.iterator)
       ({ pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc = _ } :
         Parsetree.module_type_declaration) =
-    add_token pmtd_name.loc Token_type.module_type Token_modifiers.empty;
+    add_token pmtd_name.loc Token_type.module_type Token_modifiers_set.empty;
     Option.iter pmtd_type ~f:(fun mdtt -> self.module_type self mdtt);
     self.attributes self pmtd_attributes
 
@@ -773,7 +758,7 @@ module Parsetree_fold () = struct
       | Ptyp_variant (_, _, _)
       | Ptyp_poly (_, _)
       | Ptyp_tuple _ | Ptyp_any | Ptyp_var _ -> Token_type.variable)
-      Token_modifiers.declaration;
+      (Token_modifiers_set.singleton Declaration);
     self.typ self pval_type;
     (* TODO: handle pval_prim ? *)
     self.attributes self pval_attributes
@@ -781,7 +766,8 @@ module Parsetree_fold () = struct
   let module_declaration (self : Ast_iterator.iterator)
       ({ pmd_name; pmd_type; pmd_attributes; pmd_loc = _ } :
         Parsetree.module_declaration) =
-    add_token pmd_name.loc Token_type.module_ Token_modifiers.declaration;
+    add_token pmd_name.loc Token_type.module_
+      (Token_modifiers_set.singleton Declaration);
     self.module_type self pmd_type;
     self.attributes self pmd_attributes
 
@@ -795,7 +781,7 @@ module Parsetree_fold () = struct
         (match fp with
         | Unit -> ()
         | Named (n, mt) ->
-          add_token n.loc Token_type.module_ Token_modifiers.empty;
+          add_token n.loc Token_type.module_ Token_modifiers_set.empty;
           self.module_type self mt);
         self.module_type self mt;
         `Custom_iterator
