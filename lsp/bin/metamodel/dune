@@ -1,0 +1,9 @@
+; get rid of this gross hack once dune has proper crunch support
+
+(rule
+ (with-stdout-to
+  metamodel_lsp.ml
+  (progn
+   (echo "let t () = Metamodel.t @@ Yojson.Safe.from_string {json|")
+   (echo "%{read:metaModel.json}")
+   (echo "|json}"))))
