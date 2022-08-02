@@ -364,17 +364,12 @@ end = struct
       | Ident Any -> Type.json
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
-      | Ident (Resolved { id = _; name = "URI"; kind = _ }) ->
-        Type.module_t "DocumentUri"
-      | Ident (Resolved { id = _; name = "LSPAny"; kind = _ }) -> Type.json
-      | Ident (Resolved { id = _; name = "LSPObject"; kind = _ }) ->
-        Type.json_object
-      | Ident (Resolved r) -> (
-        match r.kind with
-        | Type_variable -> Type.unit
-        | Name ->
-          let entity = Entities.find db r in
-          Type.module_t entity.name)
+      | Ident (Resolved { id = _; name = "URI" }) -> Type.module_t "DocumentUri"
+      | Ident (Resolved { id = _; name = "LSPAny" }) -> Type.json
+      | Ident (Resolved { id = _; name = "LSPObject" }) -> Type.json_object
+      | Ident (Resolved r) ->
+        let entity = Entities.find db r in
+        Type.module_t entity.name
       | List (Ident (Uinteger | Number)) when topmost_field_name = Some "data"
         -> Type.array Type.int
       | List t -> Type.list (type_ topmost_field_name t)
@@ -619,10 +614,7 @@ class name_idents =
 
     method! ident i ~init =
       match i with
-      | Resolved r -> (
-        match r.kind with
-        | Name -> r :: init
-        | Type_variable -> init)
+      | Resolved r -> r :: init
       | _ -> init
   end
 
