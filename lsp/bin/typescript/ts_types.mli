@@ -50,7 +50,6 @@ module type S = sig
   and interface =
     { extends : ident list
     ; fields : field list
-    ; params : ident list
     }
 
   and decl =
@@ -99,11 +98,7 @@ module Unresolved : sig
   val enum : name:string -> constrs:Enum.t -> Enum.t Named.t
 
   val interface :
-       name:string
-    -> extends:string list
-    -> fields:field list
-    -> params:string list
-    -> interface Named.t
+    name:string -> extends:string list -> fields:field list -> interface Named.t
 
   val pattern_field : name:string -> pat:typ -> typ:typ -> field_def Named.t
 
@@ -113,19 +108,14 @@ end
 module Ident : sig
   module Id : Id.S
 
-  type kind =
-    | Type_variable
-    | Name
-
   type t =
     { id : Id.t
     ; name : string
-    ; kind : kind
     }
 
   val to_dyn : t -> Dyn.t
 
-  val make : kind -> string -> t
+  val make : string -> t
 
   module Top_closure : sig
     val top_closure :

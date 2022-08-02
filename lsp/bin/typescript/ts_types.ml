@@ -67,7 +67,6 @@ module type S = sig
   and interface =
     { extends : ident list
     ; fields : field list
-    ; params : ident list
     }
 
   and decl =
@@ -140,7 +139,6 @@ struct
   and interface =
     { extends : Ident.t list
     ; fields : field list
-    ; params : Ident.t list
     }
 
   and decl =
@@ -171,12 +169,11 @@ struct
 
   and dyn_of_field f = Named.to_dyn field_def_of_dyn f
 
-  let dyn_of_interface { extends; fields; params } =
+  let dyn_of_interface { extends; fields } =
     let open Dyn in
     record
       [ ("extends", (list Ident.to_dyn) extends)
       ; ("fields", (list dyn_of_field) fields)
-      ; ("params", (list Ident.to_dyn) params)
       ]
 
   let dyn_of_decl =
@@ -277,8 +274,8 @@ module Unresolved = struct
 
   let enum ~name ~constrs : Enum.t Named.t = { Named.name; data = constrs }
 
-  let interface ~name ~extends ~fields ~params : interface Named.t =
-    { Named.name; data = { extends; fields; params } }
+  let interface ~name ~extends ~fields : interface Named.t =
+    { Named.name; data = { extends; fields } }
 
   let pattern_field ~name ~pat ~typ =
     { Named.name; data = Pattern { pat; typ } }
@@ -290,37 +287,22 @@ end
 module Ident = struct
   module Id = Stdune.Id.Make ()
 
-  type kind =
-    | Type_variable
-    | Name
-
-  let dyn_of_kind =
-    let open Dyn in
-    function
-    | Type_variable -> string "type_variable"
-    | Name -> string "Name"
-
   module T = struct
     type t =
       { id : Id.t
       ; name : string
-      ; kind : kind
       }
 
-    let to_dyn { id; name; kind } =
+    let to_dyn { id; name } =
       let open Dyn in
-      record
-        [ ("id", Id.to_dyn id)
-        ; ("name", String name)
-        ; ("kind", dyn_of_kind kind)
-        ]
+      record [ ("id", Id.to_dyn id); ("name", String name) ]
 
-    let compare t { id; name = _; kind = _ } = Id.compare t.id id
+    let compare t { id; name = _ } = Id.compare t.id id
   end
 
   include T
 
-  let make kind name = { id = Id.gen (); name; kind }
+  let make name = { name; id = Id.gen () }
 
   module C = Comparable.Make (T)
   module Set = C.Set
@@ -442,15 +424,8 @@ and resolve_type (t : Unresolved.typ) ~names : Resolved.typ =
 and resolve_interface i ~names : Resolved.interface =
   let names = names#inside i.name in
   let i = i.data in
-  let params = List.map ~f:(Ident.make Type_variable) i.params in
   { extends = List.map ~f:(resolve_ident ~names) i.extends
-  ; params = List.map params ~f:(fun i -> Prim.Resolved i)
-  ; fields =
-      (let names =
-         List.fold_left ~init:names params ~f:(fun acc (x : Ident.t) ->
-             acc#push x.name (Prim.Resolved x))
-       in
-       List.map ~f:(resolve_field ~names) i.fields)
+  ; fields = List.map ~f:(resolve_field ~names) i.fields
   }
 
 and resolve_field f ~names : Resolved.field =

@@ -3,7 +3,7 @@ open Ts_types
 
 let name_table (defns : Unresolved.t list) =
   List.map defns ~f:(fun (def : _ Named.t) ->
-      (def.name, (def, Ts_types.Ident.make Name def.name)))
+      (def.name, (def, Ts_types.Ident.make def.name)))
   |> String.Map.of_list_reducei ~f:(fun name (v1, id1) (v2, id2) ->
          let open Unresolved in
          match (v1.Named.data, v2.data) with
@@ -99,7 +99,7 @@ let structure
           | _ -> assert false)
     in
     let fields = List.map properties ~f:field in
-    { extends; fields; params = [] }
+    { extends; fields }
   in
   named ~name (Interface interface)
 
