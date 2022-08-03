@@ -65,7 +65,12 @@ describe("textDocument/codeAction", () => {
 
   beforeEach(async () => {
     languageServer = await LanguageServer.startAndInitialize({
-      capabilities: { experimental: { jumpToNextHole: true } },
+      capabilities: {
+        experimental: { jumpToNextHole: true },
+        window: {
+          showDocument: { support: true },
+        },
+      },
     });
   });
 
