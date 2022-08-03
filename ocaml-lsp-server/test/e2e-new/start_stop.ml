@@ -3,7 +3,15 @@ open Test.Import
 let%expect_test "start/stop" =
   ( Test.run @@ fun client ->
     let run_client () =
-      let capabilities = ClientCapabilities.create () in
+      let capabilities =
+        let window =
+          let showDocument =
+            ShowDocumentClientCapabilities.create ~support:true
+          in
+          WindowClientCapabilities.create ~showDocument ()
+        in
+        ClientCapabilities.create ~window ()
+      in
       Client.start client (InitializeParams.create ~capabilities ())
     in
     let print_init =
