@@ -22,10 +22,15 @@ let command_run server (params : ExecuteCommandParams.t) =
    Format.eprintf "failed to open %s@." uri);
   `Null
 
-let for_uri (capabilities : ShowDocumentClientCapabilities.t option) uri =
+let available (capabilities : ShowDocumentClientCapabilities.t option) =
   match capabilities with
-  | None | Some { support = false } -> []
-  | Some { support = true } ->
+  | None | Some { support = false } -> false
+  | Some { support = true } -> true
+
+let for_uri (capabilities : ShowDocumentClientCapabilities.t option) uri =
+  match available capabilities with
+  | false -> []
+  | true ->
     Document.get_impl_intf_counterparts uri
     |> List.map ~f:(fun uri ->
            let path = Uri.to_path uri in
