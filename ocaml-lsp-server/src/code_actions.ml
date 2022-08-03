@@ -41,7 +41,14 @@ let compute server (params : CodeActionParams.t) =
   match doc with
   | None -> Fiber.return (Reply.now (actions dune_actions), state)
   | Some doc -> (
-    let open_related = Action_open_related.for_uri uri in
+    let open_related =
+      let capabilities =
+        let open Option.O in
+        let* window = (State.client_capabilities state).window in
+        window.showDocument
+      in
+      Action_open_related.for_uri capabilities uri
+    in
     match Document.syntax doc with
     | Ocamllex | Menhir | Cram | Dune ->
       let state : State.t = Server.state server in

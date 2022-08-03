@@ -22,28 +22,31 @@ let command_run server (params : ExecuteCommandParams.t) =
    Format.eprintf "failed to open %s@." uri);
   `Null
 
-let for_uri uri =
-  Document.get_impl_intf_counterparts uri
-  |> List.map ~f:(fun uri ->
-         let path = Uri.to_path uri in
-         let exists = Sys.file_exists path in
-         let title =
-           sprintf "%s %s"
-             (if exists then "Open" else "Create")
-             (Filename.basename path)
-         in
-         let command =
-           let arguments = [ DocumentUri.yojson_of_t uri ] in
-           Command.create ~title ~command:command_name ~arguments ()
-         in
-         let edit =
-           match exists with
-           | true -> None
-           | false ->
-             let documentChanges =
-               [ `CreateFile (CreateFile.create ~uri ()) ]
-             in
-             Some (WorkspaceEdit.create ~documentChanges ())
-         in
-         CodeAction.create ?edit ~title ~kind:(CodeActionKind.Other "switch")
-           ~command ())
+let for_uri (capabilities : ShowDocumentClientCapabilities.t option) uri =
+  match capabilities with
+  | None | Some { support = false } -> []
+  | Some { support = true } ->
+    Document.get_impl_intf_counterparts uri
+    |> List.map ~f:(fun uri ->
+           let path = Uri.to_path uri in
+           let exists = Sys.file_exists path in
+           let title =
+             sprintf "%s %s"
+               (if exists then "Open" else "Create")
+               (Filename.basename path)
+           in
+           let command =
+             let arguments = [ DocumentUri.yojson_of_t uri ] in
+             Command.create ~title ~command:command_name ~arguments ()
+           in
+           let edit =
+             match exists with
+             | true -> None
+             | false ->
+               let documentChanges =
+                 [ `CreateFile (CreateFile.create ~uri ()) ]
+               in
+               Some (WorkspaceEdit.create ~documentChanges ())
+           in
+           CodeAction.create ?edit ~title ~kind:(CodeActionKind.Other "switch")
+             ~command ())
