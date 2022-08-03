@@ -73,16 +73,4 @@ let foo = 123
       "isPreferred": false,
       "kind": "type-annotate",
       "title": "Type-annotate"
-    }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
     } |}]

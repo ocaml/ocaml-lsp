@@ -226,6 +226,7 @@ include struct
   module ServerCapabilities = ServerCapabilities
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams
+  module ShowDocumentClientCapabilities = ShowDocumentClientCapabilities
   module ShowDocumentParams = ShowDocumentParams
   module ShowDocumentResult = ShowDocumentResult
   module ShowMessageParams = ShowMessageParams
