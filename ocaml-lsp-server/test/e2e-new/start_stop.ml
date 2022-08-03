@@ -3,7 +3,15 @@ open Test.Import
 let%expect_test "start/stop" =
   ( Test.run @@ fun client ->
     let run_client () =
-      let capabilities = ClientCapabilities.create () in
+      let capabilities =
+        let window =
+          let showDocument =
+            ShowDocumentClientCapabilities.create ~support:true
+          in
+          WindowClientCapabilities.create ~showDocument ()
+        in
+        ClientCapabilities.create ~window ()
+      in
       Client.start client (InitializeParams.create ~capabilities ())
     in
     let print_init =
@@ -42,7 +50,12 @@ let%expect_test "start/stop" =
           "documentFormattingProvider": true,
           "documentHighlightProvider": true,
           "documentSymbolProvider": true,
-          "executeCommandProvider": { "commands": [ "dune/promote" ] },
+          "executeCommandProvider": {
+            "commands": [
+              "ocamllsp/view-metrics", "ocamllsp/open-related-source",
+              "dune/promote"
+            ]
+          },
           "experimental": {
             "ocamllsp": {
               "interfaceSpecificLangId": true,

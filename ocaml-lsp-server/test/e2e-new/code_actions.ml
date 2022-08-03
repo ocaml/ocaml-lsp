@@ -9,7 +9,15 @@ let foo = 123
   in
   ( Test.run ~handler @@ fun client ->
     let run_client () =
-      let capabilities = ClientCapabilities.create () in
+      let capabilities =
+        let window =
+          let showDocument =
+            ShowDocumentClientCapabilities.create ~support:true
+          in
+          WindowClientCapabilities.create ~showDocument ()
+        in
+        ClientCapabilities.create ~window ()
+      in
       Client.start client (InitializeParams.create ~capabilities ())
     in
     let run =
@@ -73,4 +81,16 @@ let foo = 123
       "isPreferred": false,
       "kind": "type-annotate",
       "title": "Type-annotate"
+    }
+    {
+      "command": {
+        "arguments": [ "file:///foo.mli" ],
+        "command": "ocamllsp/open-related-source",
+        "title": "Create foo.mli"
+      },
+      "edit": {
+        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
+      },
+      "kind": "switch",
+      "title": "Create foo.mli"
     } |}]
