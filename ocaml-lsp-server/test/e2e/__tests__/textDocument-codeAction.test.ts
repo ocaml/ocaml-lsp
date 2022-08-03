@@ -1080,7 +1080,7 @@ let f x =
             },
           ],
         },
-        "isPreferred": false,
+        "isPreferred": true,
         "kind": "quickfix",
         "title": "Mark as unused",
       }

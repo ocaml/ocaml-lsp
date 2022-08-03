@@ -80,7 +80,7 @@ let code_action_mark_value_unused doc (diagnostic : Diagnostic.t) =
       in
       let edit = Document.edit doc text_edit in
       CodeAction.create ~diagnostics:[ diagnostic ] ~title:"Mark as unused"
-        ~kind:CodeActionKind.QuickFix ~edit ~isPreferred:false ())
+        ~kind:CodeActionKind.QuickFix ~edit ~isPreferred:true ())
 
 (* Takes a list of contexts enclosing a binding of `name`. Returns the range of
    the most specific binding. *)
