@@ -42,12 +42,7 @@ let%expect_test "start/stop" =
           "documentFormattingProvider": true,
           "documentHighlightProvider": true,
           "documentSymbolProvider": true,
-          "executeCommandProvider": {
-            "commands": [
-              "ocamllsp/view-metrics", "ocamllsp/open-related-source",
-              "dune/promote"
-            ]
-          },
+          "executeCommandProvider": { "commands": [ "dune/promote" ] },
           "experimental": {
             "ocamllsp": {
               "interfaceSpecificLangId": true,

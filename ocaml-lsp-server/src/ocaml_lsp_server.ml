@@ -26,7 +26,8 @@ let view_metrics server =
   let+ { ShowDocumentResult.success = _ } = Server.request server req in
   `Null
 
-let initialize_info : InitializeResult.t =
+let initialize_info (client_capabilities : ClientCapabilities.t) :
+    InitializeResult.t =
   let codeActionProvider =
     let codeActionKinds =
       Action_inferred_intf.kind :: Action_destruct.kind
@@ -83,11 +84,18 @@ let initialize_info : InitializeResult.t =
         ]
     in
     let executeCommandProvider =
-      ExecuteCommandOptions.create
-        ~commands:
-          (view_metrics_command_name :: Action_open_related.command_name
-         :: Dune.commands)
-        ()
+      let commands =
+        if
+          Action_open_related.available
+            (let open Option.O in
+            let* window = client_capabilities.window in
+            window.showDocument)
+        then
+          view_metrics_command_name :: Action_open_related.command_name
+          :: Dune.commands
+        else Dune.commands
+      in
+      ExecuteCommandOptions.create ~commands ()
     in
     let semanticTokensProvider =
       Option.map (Sys.getenv_opt "OCAMLLSP_SEMANTIC_HIGHLIGHTING") ~f:(fun v ->
@@ -322,7 +330,7 @@ let on_initialize server (ip : InitializeParams.t) =
         ; _
         } ->
       Reply.later (fun send ->
-          let* () = send initialize_info in
+          let* () = send (initialize_info ip.capabilities) in
           let register =
             RegistrationParams.create
               ~registrations:
@@ -346,7 +354,7 @@ let on_initialize server (ip : InitializeParams.t) =
           in
           Server.request server
             (Server_request.ClientRegisterCapability register))
-    | _ -> Reply.now initialize_info
+    | _ -> Reply.now (initialize_info ip.capabilities)
   in
   (resp, state)
 
