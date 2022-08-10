@@ -64,10 +64,7 @@ module type S = sig
     | Tuple of typ list
     | App of typ * typ
 
-  and interface =
-    { extends : ident list
-    ; fields : field list
-    }
+  and interface = { fields : field list }
 
   and decl =
     | Interface of interface
@@ -136,10 +133,7 @@ struct
     | Tuple of typ list
     | App of typ * typ
 
-  and interface =
-    { extends : Ident.t list
-    ; fields : field list
-    }
+  and interface = { fields : field list }
 
   and decl =
     | Interface of interface
@@ -169,12 +163,9 @@ struct
 
   and dyn_of_field f = Named.to_dyn field_def_of_dyn f
 
-  let dyn_of_interface { extends; fields } =
+  let dyn_of_interface { fields } =
     let open Dyn in
-    record
-      [ ("extends", (list Ident.to_dyn) extends)
-      ; ("fields", (list dyn_of_field) fields)
-      ]
+    record [ ("fields", (list dyn_of_field) fields) ]
 
   let dyn_of_decl =
     let open Dyn in
@@ -190,10 +181,6 @@ struct
       method t (t : t) ~init =
         match t.data with
         | Interface (i : interface) ->
-          let init =
-            List.fold_left i.extends ~init ~f:(fun acc e ->
-                self#ident e ~init:acc)
-          in
           List.fold_left ~init i.fields ~f:(fun init f -> self#field f ~init)
         | Type (t : typ) -> self#typ t ~init
         | Enum_anon _ -> init
@@ -238,7 +225,7 @@ struct
 
       method interface (i : interface) =
         let fields = List.map ~f:self#field i.fields in
-        { i with fields }
+        { fields }
 
       method sum (constrs : typ list) = Sum (List.map constrs ~f:self#typ)
 
@@ -274,8 +261,8 @@ module Unresolved = struct
 
   let enum ~name ~constrs : Enum.t Named.t = { Named.name; data = constrs }
 
-  let interface ~name ~extends ~fields : interface Named.t =
-    { Named.name; data = { extends; fields } }
+  let interface ~name ~fields : interface Named.t =
+    { Named.name; data = { fields } }
 
   let pattern_field ~name ~pat ~typ =
     { Named.name; data = Pattern { pat; typ } }
@@ -424,9 +411,7 @@ and resolve_type (t : Unresolved.typ) ~names : Resolved.typ =
 and resolve_interface i ~names : Resolved.interface =
   let names = names#inside i.name in
   let i = i.data in
-  { extends = List.map ~f:(resolve_ident ~names) i.extends
-  ; fields = List.map ~f:(resolve_field ~names) i.fields
-  }
+  { fields = List.map ~f:(resolve_field ~names) i.fields }
 
 and resolve_field f ~names : Resolved.field =
   let data : Resolved.field_def =

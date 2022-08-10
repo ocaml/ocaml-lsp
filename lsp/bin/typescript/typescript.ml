@@ -89,17 +89,11 @@ and field { Metamodel.name; optional; doc = _; type_ } :
   named ~name field
 
 let structure
-    ({ doc = _; extends; mixins = _; name; properties } : Metamodel.structure) :
-    Ts_types.Unresolved.t =
+    ({ doc = _; extends = _; mixins = _; name; properties } :
+      Metamodel.structure) : Ts_types.Unresolved.t =
   let interface : Ts_types.Unresolved.interface =
-    let extends =
-      List.map extends ~f:(fun (t : Metamodel.type_) ->
-          match t with
-          | Reference s -> reference s
-          | _ -> assert false)
-    in
     let fields = List.map properties ~f:field in
-    { extends; fields }
+    { fields }
   in
   named ~name (Interface interface)
 
