@@ -47,10 +47,7 @@ module type S = sig
     | Tuple of typ list
     | App of typ * typ
 
-  and interface =
-    { extends : ident list
-    ; fields : field list
-    }
+  and interface = { fields : field list }
 
   and decl =
     | Interface of interface
@@ -97,8 +94,7 @@ module Unresolved : sig
 
   val enum : name:string -> constrs:Enum.t -> Enum.t Named.t
 
-  val interface :
-    name:string -> extends:string list -> fields:field list -> interface Named.t
+  val interface : name:string -> fields:field list -> interface Named.t
 
   val pattern_field : name:string -> pat:typ -> typ:typ -> field_def Named.t
 
