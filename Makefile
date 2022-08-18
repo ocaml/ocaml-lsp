@@ -2,7 +2,8 @@
 
 TEST_E2E_DIR = ocaml-lsp-server/test/e2e
 
-$(TEST_E2E_DIR)/node_modules:
+.PHONY: yarn-install
+yarn-install:
 	cd $(TEST_E2E_DIR) && yarn --frozen-lockfile
 
 -include Makefile.dev
@@ -47,11 +48,11 @@ check:
 	dune build @check
 
 .PHONY: test-e2e
-test-e2e: $(TEST_E2E_DIR)/node_modules ## Run the template integration tests
+test-e2e:
 	dune build @install && dune exec -- ocaml-lsp-server/test/run_test_e2e.exe
 
 .PHONY: promote-e2e
-promote-e2e: $(TEST_E2E_DIR)/node_modules
+promote-e2e:
 	dune build @install && cd $(TEST_E2E_DIR) && dune exec -- yarn run promote
 
 .PHONY: test
@@ -82,16 +83,13 @@ release: ## Release on Opam
 	dune-release opam pkg
 	dune-release opam submit
 
-.PHONY: nix/opam-selection.nix
-nix/opam-selection.nix:
-	nix-shell -A resolve default.nix
-
 .PHONY: nix-tests
 nix-tests:
 	(cd $(TEST_E2E_DIR) && yarn --frozen-lockfile)
 	make test
 
 .PHONY: nix-fmt
-nix-fmt: $(TEST_E2E_DIR)/node_modules
+nix-fmt:
+	$(MAKE) yarn-install
 	dune build @fmt --auto-promote
 	cd $(TEST_E2E_DIR) && yarn fmt
