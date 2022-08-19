@@ -5,6 +5,8 @@
 - Respect `showDocument` capabilities. Do not offer commands or code actions
   that rely on this request without client support. (#836)
 
+- Fix signatureHelp on .mll files: avoid "Document.dune" exceptions
+
 # 1.13.1
 
 ## Fixes

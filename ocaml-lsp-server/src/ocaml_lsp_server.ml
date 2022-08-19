@@ -471,11 +471,13 @@ let signature_help (state : State.t)
   in
   (* TODO use merlin resources efficiently and do everything in 1 thread *)
   let* application_signature =
-    Document.with_pipeline_exn doc (fun pipeline ->
-        let typer = Mpipeline.typer_result pipeline in
-        let pos = Mpipeline.get_lexing_pos pipeline pos in
-        let node = Mtyper.node_at typer pos in
-        Merlin_analysis.Signature_help.application_signature node ~prefix)
+    if Document.is_merlin doc then
+      Document.with_pipeline_exn doc (fun pipeline ->
+          let typer = Mpipeline.typer_result pipeline in
+          let pos = Mpipeline.get_lexing_pos pipeline pos in
+          let node = Mtyper.node_at typer pos in
+          Merlin_analysis.Signature_help.application_signature node ~prefix)
+    else Fiber.return None
   in
   match application_signature with
   | None ->
