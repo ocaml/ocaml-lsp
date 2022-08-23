@@ -33,6 +33,9 @@ val remove :
 
 val disconnect : t -> Dune.t -> unit
 
+val tags_of_message :
+  src:[< `Dune | `Merlin ] -> string -> DiagnosticTag.t list option
+
 (** Exposed for testing *)
 
 val equal_message : string -> string -> bool

@@ -180,6 +180,7 @@ include struct
   module Diagnostic = Diagnostic
   module DiagnosticRelatedInformation = DiagnosticRelatedInformation
   module DiagnosticSeverity = DiagnosticSeverity
+  module DiagnosticTag = DiagnosticTag
   module DidChangeConfigurationParams = DidChangeConfigurationParams
   module DidChangeWorkspaceFoldersParams = DidChangeWorkspaceFoldersParams
   module DidOpenTextDocumentParams = DidOpenTextDocumentParams

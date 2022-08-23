@@ -265,7 +265,10 @@ let set_diagnostics rpc doc =
                                  DiagnosticRelatedInformation.create ~location
                                    ~message)) )
                     in
-                    create_diagnostic ?relatedInformation ~range ~message
+                    let tags =
+                      Diagnostics.tags_of_message ~src:`Merlin message
+                    in
+                    create_diagnostic ?tags ?relatedInformation ~range ~message
                       ~severity ())
               in
               let holes_as_err_diags =

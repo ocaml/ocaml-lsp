@@ -214,6 +214,7 @@ end = struct
                DiagnosticRelatedInformation.create ~location ~message))
     in
     let message = make_message (D.message diagnostic) in
+    let tags = Diagnostics.tags_of_message ~src:`Dune message in
     let data =
       match include_promotions with
       | false -> None
@@ -225,7 +226,7 @@ end = struct
           Some (`Assoc [ For_diff.diagnostic_data promotions ]))
     in
     Diagnostic.create ?relatedInformation ~range ?severity
-      ~source:Diagnostics.dune_source ~message ?data ()
+      ~source:Diagnostics.dune_source ~message ?tags ?data ()
 
   let progress_loop client progress =
     match Progress.should_report_build_progress progress with
