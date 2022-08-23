@@ -128,7 +128,7 @@ let find_unused_diagnostic pos (ds : Diagnostic.t list) =
         | `Outside _ -> false
         | `Inside -> true
       in
-      in_range && Diagnostic_util.is_unused_var_warning d)
+      in_range && Diagnostic_util.is_unused_var_warning d.message)
 
 let code_action_mark doc (params : CodeActionParams.t) =
   let pos = params.range.start in

@@ -196,3 +196,14 @@ let disconnect t dune =
          Table.iter dune_diagnostics ~f:(fun (uri, _) ->
              t.dirty_uris <- Uri_set.add t.dirty_uris uri);
          Table.remove t.dune dune)
+
+(* this is not inlined in [tags_of_message] for reusability *)
+let diagnostic_tags_unnecessary = Some [ DiagnosticTag.Unnecessary ]
+
+let tags_of_message ~src message =
+  match src with
+  | `Dune when String.is_prefix message ~prefix:"unused" ->
+    diagnostic_tags_unnecessary
+  | `Merlin when Diagnostic_util.is_unused_var_warning message ->
+    diagnostic_tags_unnecessary
+  | `Dune | `Merlin -> None
