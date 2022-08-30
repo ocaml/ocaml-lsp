@@ -61,9 +61,18 @@ let iter_ident_locs id expr k =
   in
   iterator.expr iterator expr
 
-let iter_inline_edits task k =
+(** Iterate over the inlining edits, one for each occurrence of the bound
+    variable. *)
+let iter_inline_edits task _doc k =
+  let newText =
+    Format.asprintf "(%a)" Ocaml_parsing.Pprintast.expression
+      (Ocaml_typing.Untypeast.untype_expression task.body)
+    (* let start = task.body.exp_loc.loc_start.pos_cnum in *)
+    (* let end_ = task.body.exp_loc.loc_end.pos_cnum in *)
+    (* "(" ^ String.sub (Document.text doc) ~pos:start ~len:(end_ - start) ^ ")" *)
+  in
   iter_ident_locs task.ident task.context (fun loc ->
-      let textedit = TextEdit.create ~newText:"??" ~range:(Range.of_loc loc) in
+      let textedit = TextEdit.create ~newText ~range:(Range.of_loc loc) in
       k textedit)
 
 module Test = struct
@@ -74,6 +83,10 @@ module Test = struct
   let h g x = g x
 
   let j x = h g x
+
+  let test () =
+    let y x = x + 1 in
+    y 0 + 2
 end
 
 let code_action doc (params : CodeActionParams.t) =
@@ -84,7 +97,7 @@ let code_action doc (params : CodeActionParams.t) =
   in
   Option.map m_inline_task ~f:(fun task ->
       let edits = Queue.create () in
-      iter_inline_edits task (Queue.push edits);
+      iter_inline_edits task doc (Queue.push edits);
 
       let edit =
         let version = Document.version doc in
