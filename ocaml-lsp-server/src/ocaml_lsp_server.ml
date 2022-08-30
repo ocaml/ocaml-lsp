@@ -33,13 +33,12 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
       Action_inferred_intf.kind :: Action_destruct.kind
       :: List.map
            ~f:(fun (c : Code_action.t) -> c.kind)
-           [ (* Action_type_annotate.t *)
-             (* ; Action_construct.t *)
-             (* ; Action_refactor_open.unqualify *)
-             (* ; Action_refactor_open.qualify *)
-             (* ; Action_add_rec.t *)
-             (* ; *)
-             Action_inline.t
+           [ Action_type_annotate.t
+           ; Action_construct.t
+           ; Action_refactor_open.unqualify
+           ; Action_refactor_open.qualify
+           ; Action_add_rec.t
+           ; Action_inline.t
            ]
       |> List.sort_uniq ~compare:Poly.compare
     in

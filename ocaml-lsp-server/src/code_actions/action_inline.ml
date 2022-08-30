@@ -75,20 +75,6 @@ let iter_inline_edits task k =
   in
   iterator.expr iterator task.context
 
-module Test = struct
-  let f x y = x + y
-
-  let g y = f y y
-
-  let h g x = g x
-
-  let j x = h g x
-
-  let test () =
-    let y x = x + 1 in
-    y 0 + 2
-end
-
 let code_action doc (params : CodeActionParams.t) =
   let open Fiber.O in
   let+ m_inline_task =

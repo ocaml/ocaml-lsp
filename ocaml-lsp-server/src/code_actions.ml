@@ -82,7 +82,8 @@ let compute server (params : CodeActionParams.t) =
           Fiber.parallel_map
             ~f:code_action
             [ Action_destruct.t state
-            ; Action_inferred_intf.t state (* ; Action_type_annotate.t *)
+            ; Action_inferred_intf.t state
+            ; Action_type_annotate.t
             ; Action_construct.t
             ; Action_refactor_open.unqualify
             ; Action_refactor_open.qualify
