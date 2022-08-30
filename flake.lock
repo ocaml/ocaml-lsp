@@ -46,6 +46,23 @@
         "type": "github"
       }
     },
+    "git-subrepo-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1598529383,
+        "narHash": "sha256-tOCAB4wV/ZSVqNJ01iuEqTdY2QNzuWnQmUoCg4ZsVWQ=",
+        "owner": "rgrinberg",
+        "repo": "git-subrepo",
+        "rev": "8fb6be3fb1500ab845081fc26ecdb950e9c0438c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "rgrinberg",
+        "repo": "git-subrepo",
+        "rev": "8fb6be3fb1500ab845081fc26ecdb950e9c0438c",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1660646295,
@@ -139,6 +156,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "git-subrepo-src": "git-subrepo-src",
         "nixpkgs": [
           "opam-nix",
           "nixpkgs"
