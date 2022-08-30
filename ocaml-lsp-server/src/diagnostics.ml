@@ -206,4 +206,6 @@ let tags_of_message ~src message =
     diagnostic_tags_unnecessary
   | `Merlin when Diagnostic_util.is_unused_var_warning message ->
     diagnostic_tags_unnecessary
+  | `Merlin when Diagnostic_util.is_deprecated_warning message ->
+    Some [ DiagnosticTag.Deprecated ]
   | `Dune | `Merlin -> None
