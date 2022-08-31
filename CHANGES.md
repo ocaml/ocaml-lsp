@@ -1,5 +1,10 @@
 # Unreleased
 
+## Features
+
+- Tag "unused code" and "deprecated" warnings, allowing clients to better
+  display them. (#848)
+
 ## Fixes
 
 - Respect `showDocument` capabilities. Do not offer commands or code actions
