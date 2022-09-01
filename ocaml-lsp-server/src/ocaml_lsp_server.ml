@@ -124,79 +124,11 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
 
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
-let extract_related_errors uri raw_message =
-  match Ocamlc_loc.parse_raw raw_message with
-  | `Message message :: related ->
-    let string_of_message message =
-      String.trim
-        (match (message : Ocamlc_loc.message) with
-        | Raw s -> s
-        | Structured { message; severity; file_excerpt = _ } ->
-          let severity =
-            match severity with
-            | Error -> "Error"
-            | Warning { code; name } ->
-              sprintf "Warning %s"
-                (match (code, name) with
-                | None, Some name -> sprintf "[%s]" name
-                | Some code, None -> sprintf "%d" code
-                | Some code, Some name -> sprintf "%d [%s]" code name
-                | None, None -> assert false)
-          in
-          sprintf "%s: %s" severity message)
-    in
-    let related =
-      let rec loop acc = function
-        | `Loc (_, loc) :: `Message m :: xs -> loop ((loc, m) :: acc) xs
-        | [] -> List.rev acc
-        | _ ->
-          (* give up when we see something unexpected *)
-          Log.log ~section:"debug" (fun () ->
-              Log.msg "unable to parse error" [ ("error", `String raw_message) ]);
-          []
-      in
-      loop [] related
-    in
-    let related =
-      match related with
-      | [] -> None
-      | related ->
-        let make_related ({ Ocamlc_loc.path = _; line; chars }, message) =
-          let location =
-            let start, end_ =
-              let line_start, line_end =
-                match line with
-                | `Single i -> (i, i)
-                | `Range (i, j) -> (i, j)
-              in
-              let char_start, char_end =
-                match chars with
-                | None -> (1, 1)
-                | Some (x, y) -> (x, y)
-              in
-              ( Position.create ~line:line_start ~character:char_start
-              , Position.create ~line:line_end ~character:char_end )
-            in
-            let range = Range.create ~start ~end_ in
-            Location.create ~range ~uri
-          in
-          let message = string_of_message message in
-          DiagnosticRelatedInformation.create ~location ~message
-        in
-        Some (List.map related ~f:make_related)
-    in
-    (string_of_message message, related)
-  | _ -> (raw_message, None)
-
-let set_diagnostics rpc doc =
-  let state : State.t = Server.state rpc in
+let set_diagnostics detached diagnostics doc =
   let uri = Document.uri doc in
-  let create_diagnostic =
-    Diagnostic.create ~source:Diagnostics.ocamllsp_source
-  in
   let async send =
     let+ () =
-      task_if_running state.detached ~f:(fun () ->
+      task_if_running detached ~f:(fun () ->
           let timer = Document.timer doc in
           let* () = Lev_fiber.Timer.Wheel.cancel timer in
           let* () = Lev_fiber.Timer.Wheel.reset timer in
@@ -214,87 +146,15 @@ let set_diagnostics rpc doc =
       let message =
         sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason
       in
-      create_diagnostic ~range:Range.first_line ~message ()
+      Diagnostic.create ~source:Diagnostics.ocamllsp_source
+        ~range:Range.first_line ~message ()
     in
-    Diagnostics.set state.diagnostics (`Merlin (uri, [ no_reason_merlin ]));
-    async (fun () -> Diagnostics.send state.diagnostics (`One uri))
+    Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
+    async (fun () -> Diagnostics.send diagnostics (`One uri))
   | Reason | Ocaml ->
-    let send () =
-      let* diagnostics =
-        let command =
-          Query_protocol.Errors { lexing = true; parsing = true; typing = true }
-        in
-        Document.with_pipeline_exn doc (fun pipeline ->
-            match Query_commands.dispatch pipeline command with
-            | exception Merlin_extend.Extend_main.Handshake.Error error ->
-              let message =
-                sprintf
-                  "%s.\n\
-                   Hint: install the following packages: merlin-extend, reason"
-                  error
-              in
-              [ create_diagnostic ~range:Range.first_line ~message () ]
-            | errors ->
-              let merlin_diagnostics =
-                List.rev_map errors ~f:(fun (error : Loc.error) ->
-                    let loc = Loc.loc_of_report error in
-                    let range = Range.of_loc loc in
-                    let severity =
-                      match error.source with
-                      | Warning -> DiagnosticSeverity.Warning
-                      | _ -> DiagnosticSeverity.Error
-                    in
-                    let make_message ppf m =
-                      String.trim (Format.asprintf "%a@." ppf m)
-                    in
-                    let message = make_message Loc.print_main error in
-                    let message, relatedInformation =
-                      match error.sub with
-                      | [] -> extract_related_errors uri message
-                      | _ :: _ ->
-                        ( message
-                        , Some
-                            (List.map error.sub ~f:(fun (sub : Loc.msg) ->
-                                 let location =
-                                   let range = Range.of_loc sub.loc in
-                                   Location.create ~range ~uri
-                                 in
-                                 let message =
-                                   make_message Loc.print_sub_msg sub
-                                 in
-                                 DiagnosticRelatedInformation.create ~location
-                                   ~message)) )
-                    in
-                    let tags =
-                      Diagnostics.tags_of_message ~src:`Merlin message
-                    in
-                    create_diagnostic ?tags ?relatedInformation ~range ~message
-                      ~severity ())
-              in
-              let holes_as_err_diags =
-                Query_commands.dispatch pipeline Holes
-                |> List.rev_map ~f:(fun (loc, typ) ->
-                       let range = Range.of_loc loc in
-                       let severity = DiagnosticSeverity.Error in
-                       let message =
-                         "This typed hole should be replaced with an \
-                          expression of type " ^ typ
-                       in
-                       (* we set specific diagnostic code = "hole" to be able to
-                          filter through diagnostics easily *)
-                       create_diagnostic ~code:(`String "hole") ~range ~message
-                         ~severity ())
-              in
-              (* Can we use [List.merge] instead? *)
-              List.rev_append holes_as_err_diags merlin_diagnostics
-              |> List.sort
-                   ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
-                     Range.compare d1.range d2.range))
-      in
-      Diagnostics.set state.diagnostics (`Merlin (uri, diagnostics));
-      Diagnostics.send state.diagnostics (`One uri)
-    in
-    async send
+    async (fun () ->
+        let* () = Diagnostics.merlin_diagnostics diagnostics doc in
+        Diagnostics.send diagnostics (`One uri))
 
 let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
@@ -946,7 +806,7 @@ let on_notification server (notification : Client_notification.t) :
     in
     assert (Document_store.get_opt store params.textDocument.uri = None);
     let* () = Document_store.open_document store doc in
-    let+ () = set_diagnostics server doc in
+    let+ () = set_diagnostics state.detached state.diagnostics doc in
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let+ () =
@@ -961,7 +821,7 @@ let on_notification server (notification : Client_notification.t) :
       Document_store.change_document store uri ~f:(fun prev_doc ->
           Document.update_text ~version prev_doc contentChanges)
     in
-    let+ () = set_diagnostics server doc in
+    let+ () = set_diagnostics state.detached state.diagnostics doc in
     state
   | CancelRequest _ ->
     Log.log ~section:"debug" (fun () -> Log.msg "ignoring cancellation" []);
@@ -985,7 +845,7 @@ let on_notification server (notification : Client_notification.t) :
                pipeline; otherwise the diagnostics don't get updated *)
             Document.update_text doc [])
       in
-      let+ () = set_diagnostics server doc in
+      let+ () = set_diagnostics state.detached state.diagnostics doc in
       state)
   | ChangeWorkspaceFolders change ->
     let state =
