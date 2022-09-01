@@ -235,21 +235,41 @@ end = struct
       ?data
       ()
 
-  let progress_loop client progress =
-    match Progress.should_report_build_progress progress with
-    | false -> Fiber.return ()
-    | true -> (
-      let* res = Client.poll client Drpc.Sub.progress in
-      match res with
-      | Error v -> raise (Drpc.Version_error.E v)
-      | Ok poll ->
-        Fiber.repeat_while ~init:() ~f:(fun () ->
-            let* res = Client.Stream.next poll in
-            match res with
-            | None -> Fiber.return None
-            | Some p ->
-              let+ () = Progress.build_progress progress p in
-              Some ()))
+  let progress_loop client diagnostics document_store progress =
+    (* We get all the progress updates even if the user can't see them to
+       refresh the merlin config at the end of every build. Not very clean, but
+       the assumption is that most good lsp clients will have progress reporting
+       anyway *)
+    let* res = Client.poll client Drpc.Sub.progress in
+    match res with
+    | Error v -> raise (Drpc.Version_error.E v)
+    | Ok poll ->
+      Fiber.repeat_while ~init:() ~f:(fun () ->
+          let* res = Client.Stream.next poll in
+          match res with
+          | None -> Fiber.return None
+          | Some p ->
+            let+ () =
+              Fiber.fork_and_join_unit
+                (fun () -> Progress.build_progress progress p)
+                (fun () ->
+                  match p with
+                  | Failed | Interrupted | Success ->
+                    let* () =
+                      Document_store.change_all document_store ~f:(fun doc ->
+                          match Document.is_merlin doc with
+                          | false -> Fiber.return doc
+                          | true ->
+                            let doc = Document.update_text doc [] in
+                            let+ () =
+                              Diagnostics.merlin_diagnostics diagnostics doc
+                            in
+                            doc)
+                    in
+                    Diagnostics.send diagnostics `All
+                  | _ -> Fiber.return ())
+            in
+            Some ())
 
   let diagnostic_loop client config (running : running) diagnostics =
     let* res = Client.poll client Drpc.Sub.diagnostic in
@@ -453,7 +473,7 @@ end = struct
         ; diagnostics
         ; include_promotions = _
         ; log = _
-        ; document_store = _
+        ; document_store
         } =
       config
     in
@@ -498,7 +518,9 @@ end = struct
                  in
                  config.log ~type_:Info ~message
                in
-               let progress = progress_loop client progress in
+               let progress =
+                 progress_loop client diagnostics document_store progress
+               in
                let diagnostics =
                  diagnostic_loop client config running diagnostics
                in

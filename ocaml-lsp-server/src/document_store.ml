@@ -190,6 +190,20 @@ let get_semantic_tokens_cache : t -> Uri.t -> semantic_tokens_cache option =
   let doc = get' t uri in
   doc.semantic_tokens_cache
 
+let change_all t ~f =
+  let all =
+    Table.foldi ~init:[] t.db ~f:(fun uri doc acc -> (uri, doc) :: acc)
+  in
+  Fiber.parallel_iter all ~f:(fun (uri, doc) ->
+      let+ doc =
+        match doc.document with
+        | None -> Fiber.return doc
+        | Some document ->
+          let+ document = f document in
+          { doc with document = Some document }
+      in
+      Table.set t.db uri doc)
+
 let close_all t =
   Fiber.of_thunk (fun () ->
       let docs = Table.fold t.db ~init:[] ~f:(fun doc acc -> doc :: acc) in
