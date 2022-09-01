@@ -42,27 +42,25 @@
           scope =
             on.buildOpamProject { resolveArgs = { with-test = true; }; } package
             ./. (allPackages);
-            overlay = final: prev: {
-              git-subrepo =
-                prev.git-subrepo.overrideAttr (old: {
-                  src = inputs.git-subrepo-src;
-                });
-            };
+          overlay = final: prev: {
+            git-subrepo = prev.git-subrepo.overrideAttr
+              (old: { src = inputs.git-subrepo-src; });
+          };
         in scope.overrideScope' overlay;
 
         defaultPackage = self.legacyPackages.${system}.${package};
 
-        devShell = pkgs.mkShell {
-          nativeBuildInputs = let scope = self.legacyPackages.${system};
-          in with pkgs;
-          [
+        devShell = let scope = self.legacyPackages.${system};
+        in pkgs.mkShell {
+          nativeBuildInputs = with pkgs; [
             # dev tools
             git-subrepo
             ocamlformat_0_21_0
             yarn
-          ] ++ (builtins.map (s: builtins.getAttr s scope)
-            (builtins.attrNames allPackages));
-          inputsFrom = [ self.defaultPackage.${system} ];
+          ];
+          inputsFrom = [ self.defaultPackage.${system} ]
+            ++ (builtins.map (s: builtins.getAttr s scope)
+              (builtins.attrNames allPackages));
         };
       });
 }
