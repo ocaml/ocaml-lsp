@@ -5,6 +5,8 @@
 - Tag "unused code" and "deprecated" warnings, allowing clients to better
   display them. (#848)
 
+- Refresh merlin configuration after every dune build in watch mode (#853)
+
 ## Fixes
 
 - Respect `showDocument` capabilities. Do not offer commands or code actions

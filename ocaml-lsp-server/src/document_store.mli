@@ -28,4 +28,6 @@ val get_semantic_tokens_cache : t -> Uri.t -> semantic_tokens_cache option
 
 val close_document : t -> Uri.t -> unit Fiber.t
 
+val change_all : t -> f:(Document.t -> Document.t Fiber.t) -> unit Fiber.t
+
 val close_all : t -> unit Fiber.t
