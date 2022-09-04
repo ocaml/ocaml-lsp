@@ -76,8 +76,8 @@ let iter_inline_edits pipeline task k =
           match (label, m_arg_expr) with
           (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
           | ( Asttypes.Labelled name
-            , Some { exp_desc = Texp_ident (Pident name', { loc; _ }, _); _ } )
-            when String.equal name (Ident.name name') ->
+            , Some { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } )
+            when Ident.same task.ident id ->
             let newText = sprintf "%s:%s" name newText in
             let textedit = TextEdit.create ~newText ~range:(Range.of_loc loc) in
             k textedit
