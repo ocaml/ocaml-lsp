@@ -42,12 +42,29 @@ let find_inline_task pipeline pos =
          Some { ident = id; body = vb_expr; context = rhs }
        | _ -> None)
 
-(** Iterator over the text edits performed by the inlining task. *)
-let iter_inline_edits task k =
-  let newText =
-    Format.asprintf "(%a)" Ocaml_parsing.Pprintast.expression
-      (Ocaml_typing.Untypeast.untype_expression task.body)
+let find_parsetree_loc pipeline loc k =
+  let expr_iter (iter : Ocaml_parsing.Ast_iterator.iterator)
+      (expr : Parsetree.expression) =
+    if expr.pexp_loc = loc then k expr
+    else Ocaml_parsing.Ast_iterator.default_iterator.expr iter expr
   in
+  let iterator =
+    { Ocaml_parsing.Ast_iterator.default_iterator with expr = expr_iter }
+  in
+  match Mpipeline.reader_parsetree pipeline with
+  | `Implementation s -> iterator.structure iterator s
+  | _ -> ()
+
+let inlined_text pipeline task =
+  let ret = ref None in
+  find_parsetree_loc pipeline task.body.exp_loc (fun expr ->
+      ret :=
+        Some (Format.asprintf "(%a)" Ocaml_parsing.Pprintast.expression expr));
+  Option.value_exn !ret
+
+(** Iterator over the text edits performed by the inlining task. *)
+let iter_inline_edits pipeline task k =
+  let newText = inlined_text pipeline task in
 
   let expr_iter (iter : Ocaml_typing.Tast_iterator.iterator)
       (expr : Typedtree.expression) =
@@ -76,28 +93,26 @@ let iter_inline_edits task k =
   iterator.expr iterator task.context
 
 let code_action doc (params : CodeActionParams.t) =
-  let open Fiber.O in
-  let+ m_inline_task =
-    Document.with_pipeline_exn doc (fun pipeline ->
-        find_inline_task pipeline params.range.start)
-  in
-  Option.map m_inline_task ~f:(fun task ->
-      let edits = Queue.create () in
-      iter_inline_edits task (Queue.push edits);
+  Document.with_pipeline_exn doc (fun pipeline ->
+      let m_inline_task = find_inline_task pipeline params.range.start in
+      Option.map m_inline_task ~f:(fun task ->
+          let edits = Queue.create () in
+          iter_inline_edits pipeline task (Queue.push edits);
 
-      let edit =
-        let version = Document.version doc in
-        let textDocument =
-          OptionalVersionedTextDocumentIdentifier.create
-            ~uri:params.textDocument.uri ~version ()
-        in
-        let edit =
-          TextDocumentEdit.create ~textDocument
-            ~edits:(Queue.to_list edits |> List.map ~f:(fun e -> `TextEdit e))
-        in
-        WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-      in
-      CodeAction.create ~title:action_title ~kind:CodeActionKind.RefactorInline
-        ~edit ~isPreferred:false ())
+          let edit =
+            let version = Document.version doc in
+            let textDocument =
+              OptionalVersionedTextDocumentIdentifier.create
+                ~uri:params.textDocument.uri ~version ()
+            in
+            let edit =
+              TextDocumentEdit.create ~textDocument
+                ~edits:
+                  (Queue.to_list edits |> List.map ~f:(fun e -> `TextEdit e))
+            in
+            WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
+          in
+          CodeAction.create ~title:action_title
+            ~kind:CodeActionKind.RefactorInline ~edit ~isPreferred:false ()))
 
 let t = { Code_action.kind = RefactorInline; run = code_action }
