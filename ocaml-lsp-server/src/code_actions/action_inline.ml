@@ -65,6 +65,9 @@ let inlined_text pipeline task =
 (** Iterator over the text edits performed by the inlining task. *)
 let iter_inline_edits pipeline task k =
   let newText = inlined_text pipeline task in
+  let make_edit newText loc =
+    TextEdit.create ~newText ~range:(Range.of_loc loc)
+  in
 
   let expr_iter (iter : Ocaml_typing.Tast_iterator.iterator)
       (expr : Typedtree.expression) =
@@ -79,12 +82,10 @@ let iter_inline_edits pipeline task k =
             , Some { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } )
             when Ident.same task.ident id ->
             let newText = sprintf "%s:%s" name newText in
-            let textedit = TextEdit.create ~newText ~range:(Range.of_loc loc) in
-            k textedit
+            k (make_edit newText loc)
           | _, m_expr -> Option.iter m_expr ~f:(iter.expr iter))
     | Texp_ident (Pident id, { loc; _ }, _) when Ident.same task.ident id ->
-      let textedit = TextEdit.create ~newText ~range:(Range.of_loc loc) in
-      k textedit
+      k (make_edit newText loc)
     | _ -> Ocaml_typing.Tast_iterator.default_iterator.expr iter expr
   in
   let iterator =
