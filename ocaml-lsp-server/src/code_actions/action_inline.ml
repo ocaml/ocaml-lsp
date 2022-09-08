@@ -42,26 +42,29 @@ let find_inline_task pipeline pos =
          Some { inlined_var = id; inlined_expr = vb_expr; context = rhs }
        | _ -> None)
 
-let find_parsetree_loc pipeline loc k =
-  let expr_iter (iter : Ast_iterator.iterator) (expr : Parsetree.expression) =
-    if Loc.compare expr.pexp_loc loc = 0 then k expr
-    else Ast_iterator.default_iterator.expr iter expr
-  in
-  let iterator = { Ast_iterator.default_iterator with expr = expr_iter } in
-  match Mpipeline.ppx_parsetree pipeline with
-  | `Implementation s -> iterator.structure iterator s
-  | `Interface _ -> ()
+let find_parsetree_loc pipeline loc =
+  let exception Found of Parsetree.expression in
+  try
+    let expr_iter (iter : Ast_iterator.iterator) (expr : Parsetree.expression) =
+      if Loc.compare expr.pexp_loc loc = 0 then raise (Found expr)
+      else Ast_iterator.default_iterator.expr iter expr
+    in
+    let iterator = { Ast_iterator.default_iterator with expr = expr_iter } in
+    (match Mpipeline.ppx_parsetree pipeline with
+    | `Implementation s -> iterator.structure iterator s
+    | `Interface _ -> ());
+    None
+  with Found e -> Some e
 
 let inlined_text pipeline task =
-  let ret = ref None in
-  find_parsetree_loc pipeline task.inlined_expr.exp_loc (fun expr ->
-      ret :=
-        Some (Format.asprintf "(%a)" Ocaml_parsing.Pprintast.expression expr));
-  Option.value_exn !ret
+  let open Option.O in
+  let+ expr = find_parsetree_loc pipeline task.inlined_expr.exp_loc in
+  Format.asprintf "(%a)" Ocaml_parsing.Pprintast.expression expr
 
 (** Iterator over the text edits performed by the inlining task. *)
 let inline_edits pipeline task =
-  let newText = inlined_text pipeline task in
+  let open Option.O in
+  let+ newText = inlined_text pipeline task in
   let make_edit newText loc =
     TextEdit.create ~newText ~range:(Range.of_loc loc)
   in
@@ -111,7 +114,7 @@ let code_action doc (params : CodeActionParams.t) =
   let* m_edits =
     Document.with_pipeline_exn doc (fun pipeline ->
         find_inline_task pipeline params.range.start
-        |> Option.map ~f:(inline_edits pipeline))
+        |> Option.bind ~f:(inline_edits pipeline))
   in
   Option.map m_edits ~f:(fun edits ->
       let edit =
@@ -129,5 +132,12 @@ let code_action doc (params : CodeActionParams.t) =
       CodeAction.create ~title:action_title ~kind:CodeActionKind.RefactorInline
         ~edit ~isPreferred:false ())
   |> Fiber.return
+
+module Test = struct
+  let x =
+    let k = 0 in
+    let f ?(k = 1) ~j () = k + j in
+    f ~j:0 ~k ()
+end
 
 let t = { Code_action.kind = RefactorInline; run = code_action }
