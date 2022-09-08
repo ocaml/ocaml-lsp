@@ -68,21 +68,34 @@ let inline_edits pipeline task =
   let edits = Queue.create () in
   let insert_edit newText loc = Queue.push edits (make_edit newText loc) in
 
+  let arg_iter (iter : Ocaml_typing.Tast_iterator.iterator)
+      (label : Asttypes.arg_label) (m_arg_expr : Typedtree.expression option) =
+    match (label, m_arg_expr) with
+    (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
+    | ( Labelled name
+      , Some { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } )
+    (* optional arguments have a different representation *)
+    | ( Optional name
+      , Some
+          { exp_desc =
+              Texp_construct
+                ( _
+                , _
+                , [ { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } ] )
+          ; _
+          } )
+      when Ident.same task.inlined_var id ->
+      let newText = sprintf "%s:%s" name newText in
+      insert_edit newText loc
+    | _, m_expr -> Option.iter m_expr ~f:(iter.expr iter)
+  in
+
   let expr_iter (iter : Ocaml_typing.Tast_iterator.iterator)
       (expr : Typedtree.expression) =
     match expr.exp_desc with
     | Texp_apply (func, args) ->
       iter.expr iter func;
-      List.iter args
-        ~f:(fun (label, (m_arg_expr : Typedtree.expression option)) ->
-          match (label, m_arg_expr) with
-          (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
-          | ( Asttypes.Labelled name
-            , Some { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } )
-            when Ident.same task.inlined_var id ->
-            let newText = sprintf "%s:%s" name newText in
-            insert_edit newText loc
-          | _, m_expr -> Option.iter m_expr ~f:(iter.expr iter))
+      List.iter args ~f:(fun (l, e) -> arg_iter iter l e)
     | Texp_ident (Pident id, { loc; _ }, _) when Ident.same task.inlined_var id
       -> insert_edit newText loc
     | _ -> Ocaml_typing.Tast_iterator.default_iterator.expr iter expr
