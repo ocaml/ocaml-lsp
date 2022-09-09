@@ -7,7 +7,8 @@ let find_offset ~utf8 ~utf16_range:range =
   let dec =
     Uutf.decoder
       ~nln:(`ASCII (Uchar.of_char '\n'))
-      ~encoding:`UTF_8 (`String utf8)
+      ~encoding:`UTF_8
+      (`String utf8)
   in
   let utf16_codepoint_size = 4 in
   let utf16_codepoints_buf = Bytes.create utf16_codepoint_size in
@@ -81,10 +82,13 @@ let apply_content_change ?version (t : TextDocumentItem.t)
   | Some utf16_range ->
     let start_offset, end_offset = find_offset ~utf8:t.text ~utf16_range in
     let text =
-      String.concat ~sep:""
+      String.concat
+        ~sep:""
         [ String.sub t.text ~pos:0 ~len:start_offset
         ; change.text
-        ; String.sub t.text ~pos:end_offset
+        ; String.sub
+            t.text
+            ~pos:end_offset
             ~len:(String.length t.text - end_offset)
         ]
     in

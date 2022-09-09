@@ -90,7 +90,8 @@ module Enum = struct
         else clauses
       in
       let msg =
-        sprintf "Invalid value. Expected one of: %s"
+        sprintf
+          "Invalid value. Expected one of: %s"
           (List.map constrs ~f:(fun (_, literal) ->
                Ts_types.Literal.to_maybe_quoted_string literal)
           |> String.concat ~sep:", ")

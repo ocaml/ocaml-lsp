@@ -541,8 +541,8 @@ end = struct
     in
     let intf : Ml.Module.sig_ Named.t list =
       List.map type_decls ~f:(function
-        | `Record (t, _) -> t
-        | `Type t -> t)
+          | `Record (t, _) -> t
+          | `Type t -> t)
       |> List.concat_map ~f:(fun (td : Ml.Type.decl Named.t) ->
              let td =
                { td with data = Module.rename_invalid_fields Intf td.data }
@@ -584,7 +584,9 @@ end = struct
             match literal_wrapper with
             | None -> []
             | Some { field_name; literal_value } ->
-              Json_gen.make_literal_wrapper_conv ~field_name ~literal_value
+              Json_gen.make_literal_wrapper_conv
+                ~field_name
+                ~literal_value
                 ~type_name:typ_.name
           in
           let typ_ =
@@ -623,7 +625,8 @@ let resolve_typescript (ts : Unresolved.t list) =
   let db = Entities.of_map db ts in
   match
     let idents = new name_idents in
-    Ident.Top_closure.top_closure ts
+    Ident.Top_closure.top_closure
+      ts
       ~key:(fun x -> Entities.rev_find db x)
       ~deps:(fun x -> idents#t x ~init:[] |> List.map ~f:(Entities.find db))
   with

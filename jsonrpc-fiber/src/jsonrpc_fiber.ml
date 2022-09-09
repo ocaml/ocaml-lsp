@@ -33,12 +33,12 @@ exception Stopped of Request.t
 
 let () =
   Printexc.register_printer (function
-    | Stopped req ->
-      let json = Request.yojson_of_t req in
-      Some
-        ("Session closed. Request will not be answered. "
-       ^ Json.to_pretty_string json)
-    | _ -> None)
+      | Stopped req ->
+        let json = Request.yojson_of_t req in
+        Some
+          ("Session closed. Request will not be answered. "
+         ^ Json.to_pretty_string json)
+      | _ -> None)
 
 module Reply = struct
   type t =
@@ -104,8 +104,11 @@ struct
       | Jsonrpc.Response.Error.E resp -> resp
       | _ ->
         let data = exn |> Exn_with_backtrace.to_dyn |> Json.of_dyn in
-        Response.Error.make ~code:InternalError ~data
-          ~message:"uncaught exception" ()
+        Response.Error.make
+          ~code:InternalError
+          ~data
+          ~message:"uncaught exception"
+          ()
     in
     Response.error id error
 
@@ -258,7 +261,8 @@ struct
         | Continue -> loop ())
       | Error errors ->
         Format.eprintf
-          "Uncaught error when handling notification:@.%a@.Error:@.%s@." Json.pp
+          "Uncaught error when handling notification:@.%a@.Error:@.%s@."
+          Json.pp
           (Notification.yojson_of_t r)
           (Dyn.to_string (Dyn.list Exn_with_backtrace.to_dyn errors));
         loop ()

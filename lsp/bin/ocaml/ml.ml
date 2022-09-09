@@ -457,7 +457,8 @@ module Expr = struct
     | Record fields ->
       let record =
         let open Pp.O in
-        Pp.concat_map fields
+        Pp.concat_map
+          fields
           ~sep:(Pp.verbatim ";" ++ Pp.space)
           ~f:(fun (name, expr) ->
             if expr = Create (Ident name) then pp expr
@@ -502,7 +503,8 @@ module Expr = struct
       in
       Pp.concat [ pp x; Pp.space; args ]
     | Fun (pats, expr) ->
-      W.surround `Paren
+      W.surround
+        `Paren
         (Pp.concat
            [ Pp.verbatim "fun"
            ; Pp.space

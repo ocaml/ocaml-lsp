@@ -253,8 +253,8 @@ module Packet = struct
     | Batch_call r ->
       `List
         (List.map r ~f:(function
-          | `Request r -> Request.yojson_of_t r
-          | `Notification r -> Notification.yojson_of_t r))
+            | `Request r -> Request.yojson_of_t r
+            | `Notification r -> Notification.yojson_of_t r))
 
   let t_of_fields (fields : (string * Json.t) list) =
     assert_jsonrpc_version fields;

@@ -26,8 +26,10 @@ let update t { DidChangeConfigurationParams.settings } =
       | None -> None
       | _ ->
         Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make ~code:InvalidRequest
-             ~message:"invalid value for diagnostics_delay" ()))
+          (Jsonrpc.Response.Error.make
+             ~code:InvalidRequest
+             ~message:"invalid value for diagnostics_delay"
+             ()))
     | _ -> None
   with
   | None -> Fiber.return t

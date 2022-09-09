@@ -14,7 +14,10 @@ let to_dyn { start; end_ } =
 let compare_size (x : t) (y : t) =
   let dx = Position.(x.end_ - x.start) in
   let dy = Position.(y.end_ - y.start) in
-  Tuple.T2.compare Int.compare Int.compare (dx.line, dy.line)
+  Tuple.T2.compare
+    Int.compare
+    Int.compare
+    (dx.line, dy.line)
     (dx.character, dy.character)
 
 let first_line =

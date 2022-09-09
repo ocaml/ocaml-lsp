@@ -474,7 +474,8 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | TextDocumentImplementation _ -> option_of_yojson Locations.t_of_yojson json
   | TextDocumentCompletion _ ->
     option_of_yojson
-      (Json.Of.untagged_union "completion_list"
+      (Json.Of.untagged_union
+         "completion_list"
          [ (fun json -> `CompletionList (CompletionList.t_of_yojson json))
          ; (fun json -> `List (list_of_yojson CompletionItem.t_of_yojson json))
          ])
@@ -494,7 +495,8 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
     option_of_yojson (list_of_yojson Moniker.t_of_yojson) json
   | DocumentSymbol _ ->
     option_of_yojson
-      (Json.Of.untagged_union "document_symbols"
+      (Json.Of.untagged_union
+         "document_symbols"
          [ (fun json ->
              `DocumentSymbol (list_of_yojson DocumentSymbol.t_of_yojson json))
          ; (fun json ->
@@ -530,7 +532,8 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | SemanticTokensFull _ -> option_of_yojson SemanticTokens.t_of_yojson json
   | SemanticTokensDelta _ ->
     option_of_yojson
-      (Json.Of.untagged_union "semantic_tokens"
+      (Json.Of.untagged_union
+         "semantic_tokens"
          [ (fun json -> `SemanticTokens (SemanticTokens.t_of_yojson json))
          ; (fun json ->
              `SemanticTokensDelta (SemanticTokensDelta.t_of_yojson json))

@@ -40,7 +40,8 @@ let on_request ~params state =
             let typer = Mpipeline.typer_result pipeline in
             let pos = Mpipeline.get_lexing_pos pipeline pos in
             let enclosing_nodes (* from smallest node to largest *) =
-              Mbrowse.enclosing pos
+              Mbrowse.enclosing
+                pos
                 [ Mbrowse.of_typedtree (Mtyper.get_typedtree typer) ]
             in
             let loc_of_structure_item { Typedtree.str_loc; _ } = str_loc in
@@ -57,7 +58,8 @@ let on_request ~params state =
                   Some { Loc.loc_start; loc_end; loc_ghost = false })
               | _ -> None
             in
-            List.find_map enclosing_nodes
+            List.find_map
+              enclosing_nodes
               ~f:find_fst_structure_item_or_structure)
       in
       match node with

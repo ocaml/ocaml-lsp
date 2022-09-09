@@ -10,7 +10,8 @@ let make arr ~pos ?len () =
     invalid_arg
       (Printf.sprintf
          "Array_view.make: expected pos to be in [0, %d) but received %d"
-         arr_len pos);
+         arr_len
+         pos);
   let length = Option.value len ~default:(arr_len - pos) in
   let view_last_idx = pos + length in
   if view_last_idx > arr_len then
@@ -18,7 +19,8 @@ let make arr ~pos ?len () =
       (Printf.sprintf
          "Array_view.make: view's last idx = %d occurs after the array length \
           = %d"
-         view_last_idx arr_len);
+         view_last_idx
+         arr_len);
   { arr; start = pos; end_excl = pos + length }
 
 let offset_index t i =

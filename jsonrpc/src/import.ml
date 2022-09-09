@@ -25,8 +25,8 @@ module Json = struct
 
   let () =
     Printexc.register_printer (function
-      | Of_json (msg, _) -> Some ("Jsonrpc: json conversion failed: " ^ msg)
-      | _ -> None)
+        | Of_json (msg, _) -> Some ("Jsonrpc: json conversion failed: " ^ msg)
+        | _ -> None)
 
   let error msg json = raise (Of_json (msg, json))
 

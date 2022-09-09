@@ -17,7 +17,8 @@ let of_lexical_position (lex_position : Lexing.position) : t option =
     let character = lex_position.pos_cnum - lex_position.pos_bol in
     if not (line >= 0 && character >= 0) then
       Log.log ~section:"debug" (fun () ->
-          Log.msg "merlin returned dummy position %a"
+          Log.msg
+            "merlin returned dummy position %a"
             [ ("pos_fname", `String lex_position.pos_fname)
             ; ("pos_lnum", `Int lex_position.pos_lnum)
             ; ("pos_bol", `Int lex_position.pos_bol)
@@ -34,7 +35,10 @@ let abs ({ line; character } : t) : t =
   { line = abs line; character = abs character }
 
 let compare ({ line; character } : t) (t : t) : Ordering.t =
-  Stdune.Tuple.T2.compare Int.compare Int.compare (line, character)
+  Stdune.Tuple.T2.compare
+    Int.compare
+    Int.compare
+    (line, character)
     (t.line, t.character)
 
 let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =

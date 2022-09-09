@@ -79,7 +79,7 @@ let sprintf = Printf.sprintf
 
 let () =
   Printexc.register_printer (function
-    | Jsonrpc.Response.Error.E t ->
-      let json = Jsonrpc.Response.Error.yojson_of_t t in
-      Some ("jsonrpc response error " ^ Json.to_pretty_string (json :> Json.t))
-    | _ -> None)
+      | Jsonrpc.Response.Error.E t ->
+        let json = Jsonrpc.Response.Error.yojson_of_t t in
+        Some ("jsonrpc response error " ^ Json.to_pretty_string (json :> Json.t))
+      | _ -> None)

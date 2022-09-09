@@ -175,8 +175,10 @@ module Process = struct
     match Bin.which "dune" with
     | None ->
       Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make ~code:InternalError
-           ~message:"dune binary not found" ())
+        (Jsonrpc.Response.Error.make
+           ~code:InternalError
+           ~message:"dune binary not found"
+           ())
     | Some prog ->
       let prog = Fpath.to_string prog in
       let stdin_r, stdin_w = Unix.pipe () in
@@ -185,8 +187,13 @@ module Process = struct
       let pid =
         let argv = [ prog; "ocaml-merlin"; "--no-print-directory" ] in
         Pid.of_int
-          (Spawn.spawn ~cwd:(Path dir) ~prog ~argv ~stdin:stdin_r
-             ~stdout:stdout_w ())
+          (Spawn.spawn
+             ~cwd:(Path dir)
+             ~prog
+             ~argv
+             ~stdin:stdin_r
+             ~stdout:stdout_w
+             ())
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
@@ -244,7 +251,8 @@ module Entry = struct
     if t.ref_count > 0 then Fiber.return ()
     else (
       Table.remove t.db.running t.process.initial_cwd;
-      Format.eprintf "halting dune merlin process@.%s@."
+      Format.eprintf
+        "halting dune merlin process@.%s@."
         (Dyn.to_string (Process.to_dyn t.process));
       Dot_protocol_io.Commands.halt t.process.session)
 end

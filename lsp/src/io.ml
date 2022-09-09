@@ -4,8 +4,8 @@ exception Error of string
 
 let () =
   Printexc.register_printer (function
-    | Error msg -> Some ("Error: " ^ msg)
-    | _ -> None)
+      | Error msg -> Some ("Error: " ^ msg)
+      | _ -> None)
 
 let caseless_equal a b =
   if a == b then true

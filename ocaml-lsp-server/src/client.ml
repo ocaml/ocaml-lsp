@@ -16,8 +16,10 @@ end
 module Vscode = struct
   module Commands = struct
     let triggerSuggest =
-      Command.create ~title:"Trigger Suggest"
-        ~command:"editor.action.triggerSuggest" ()
+      Command.create
+        ~title:"Trigger Suggest"
+        ~command:"editor.action.triggerSuggest"
+        ()
   end
 end
 
@@ -40,6 +42,9 @@ module Custom_commands = struct
            command is intended *)
         [ `Assoc fields ]
     in
-    Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole"
-      ~arguments ()
+    Command.create
+      ~title:"Jump to Next Hole"
+      ~command:"ocaml.next-hole"
+      ~arguments
+      ()
 end

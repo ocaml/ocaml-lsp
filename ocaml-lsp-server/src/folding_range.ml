@@ -2,8 +2,13 @@ open Import
 open Fiber.O
 
 let folding_range { Range.start; end_ } =
-  FoldingRange.create ~startLine:start.line ~startCharacter:start.character
-    ~endLine:end_.line ~endCharacter:end_.character ~kind:Region ()
+  FoldingRange.create
+    ~startLine:start.line
+    ~startCharacter:start.character
+    ~endLine:end_.line
+    ~endCharacter:end_.character
+    ~kind:Region
+    ()
 
 let fold_over_parsetree (parsetree : Mreader.parsetree) =
   let ranges = ref [] in

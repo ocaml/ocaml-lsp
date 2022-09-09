@@ -45,14 +45,20 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
   in
   let textDocumentSync =
     `TextDocumentSyncOptions
-      (TextDocumentSyncOptions.create ~openClose:true
-         ~change:TextDocumentSyncKind.Incremental ~willSave:false
-         ~save:(`Bool true) ~willSaveWaitUntil:false ())
+      (TextDocumentSyncOptions.create
+         ~openClose:true
+         ~change:TextDocumentSyncKind.Incremental
+         ~willSave:false
+         ~save:(`Bool true)
+         ~willSaveWaitUntil:false
+         ())
   in
   let codeLensProvider = CodeLensOptions.create ~resolveProvider:false () in
   let completionProvider =
-    CompletionOptions.create ~triggerCharacters:[ "."; "#" ]
-      ~resolveProvider:true ()
+    CompletionOptions.create
+      ~triggerCharacters:[ "."; "#" ]
+      ~resolveProvider:true
+      ()
   in
   let signatureHelpProvider =
     SignatureHelpOptions.create
@@ -64,8 +70,10 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
   in
   let workspace =
     let workspaceFolders =
-      WorkspaceFoldersServerCapabilities.create ~supported:true
-        ~changeNotifications:(`Bool true) ()
+      WorkspaceFoldersServerCapabilities.create
+        ~supported:true
+        ~changeNotifications:(`Bool true)
+        ()
     in
     ServerCapabilities.create_workspace ~workspaceFolders ()
   in
@@ -102,19 +110,34 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
           let delta = String.equal v "full/delta" in
           let full = `Full (SemanticTokensOptions.create_full ~delta ()) in
           `SemanticTokensOptions
-            (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend
-               ~full ()))
+            (SemanticTokensOptions.create
+               ~legend:Semantic_highlighting.legend
+               ~full
+               ()))
     in
-    ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
-      ~declarationProvider:(`Bool true) ~definitionProvider:(`Bool true)
-      ~typeDefinitionProvider:(`Bool true) ~completionProvider
-      ~signatureHelpProvider ~codeActionProvider ~codeLensProvider
-      ~referencesProvider:(`Bool true) ~documentHighlightProvider:(`Bool true)
+    ServerCapabilities.create
+      ~textDocumentSync
+      ~hoverProvider:(`Bool true)
+      ~declarationProvider:(`Bool true)
+      ~definitionProvider:(`Bool true)
+      ~typeDefinitionProvider:(`Bool true)
+      ~completionProvider
+      ~signatureHelpProvider
+      ~codeActionProvider
+      ~codeLensProvider
+      ~referencesProvider:(`Bool true)
+      ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
-      ~selectionRangeProvider:(`Bool true) ~documentSymbolProvider:(`Bool true)
-      ~workspaceSymbolProvider:(`Bool true) ~foldingRangeProvider:(`Bool true)
-      ?semanticTokensProvider ~experimental ~renameProvider ~workspace
-      ~executeCommandProvider ()
+      ~selectionRangeProvider:(`Bool true)
+      ~documentSymbolProvider:(`Bool true)
+      ~workspaceSymbolProvider:(`Bool true)
+      ~foldingRangeProvider:(`Bool true)
+      ?semanticTokensProvider
+      ~experimental
+      ~renameProvider
+      ~workspace
+      ~executeCommandProvider
+      ()
   in
   let serverInfo =
     let version = Version.get () in
@@ -146,8 +169,11 @@ let set_diagnostics detached diagnostics doc =
       let message =
         sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason
       in
-      Diagnostic.create ~source:Diagnostics.ocamllsp_source
-        ~range:Range.first_line ~message ()
+      Diagnostic.create
+        ~source:Diagnostics.ocamllsp_source
+        ~range:Range.first_line
+        ~message
+        ()
     in
     Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
     async (fun () -> Diagnostics.send diagnostics (`One uri))
@@ -161,16 +187,23 @@ let on_initialize server (ip : InitializeParams.t) =
   let workspaces = Workspaces.create ip in
   let+ dune =
     let progress =
-      Progress.create ip.capabilities
+      Progress.create
+        ip.capabilities
         ~report_progress:(fun progress ->
-          Server.notification server
+          Server.notification
+            server
             (Server_notification.WorkDoneProgress progress))
         ~create_task:(fun task ->
           Server.request server (Server_request.WorkDoneProgressCreate task))
     in
     let dune =
-      Dune.create workspaces ip.capabilities state.diagnostics progress
-        state.store ~log:(State.log_msg server)
+      Dune.create
+        workspaces
+        ip.capabilities
+        state.diagnostics
+        progress
+        state.store
+        ~log:(State.log_msg server)
     in
     let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
     dune
@@ -215,7 +248,8 @@ let on_initialize server (ip : InitializeParams.t) =
                  in
                  [ make "textDocument/didOpen"; make "textDocument/didClose" ])
           in
-          Server.request server
+          Server.request
+            server
             (Server_request.ClientRegisterCapability register))
     | _ -> Reply.now (initialize_info ip.capabilities)
   in
@@ -259,7 +293,8 @@ module Formatter = struct
       match Dune.for_doc (State.dune state) doc with
       | [] ->
         let message =
-          sprintf "No dune instance found. Please run dune in watch mode for %s"
+          sprintf
+            "No dune instance found. Please run dune in watch mode for %s"
             (Uri.to_path (Document.uri doc))
         in
         Jsonrpc.Response.Error.raise
@@ -359,7 +394,8 @@ let signature_help (state : State.t)
     in
     let info =
       let parameters =
-        List.map application_signature.parameters
+        List.map
+          application_signature.parameters
           ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
             let label =
               `Offset (offset + p.param_start, offset + p.param_end)
@@ -370,7 +406,8 @@ let signature_help (state : State.t)
         let open Option.O in
         let+ doc in
         let markdown =
-          ClientCapabilities.markdown_support (State.client_capabilities state)
+          ClientCapabilities.markdown_support
+            (State.client_capabilities state)
             ~field:(fun td ->
               let* sh = td.signatureHelp in
               let+ si = sh.signatureInformation in
@@ -381,8 +418,11 @@ let signature_help (state : State.t)
       let label = prefix ^ application_signature.signature in
       SignatureInformation.create ~label ?documentation ~parameters ()
     in
-    SignatureHelp.create ~signatures:[ info ] ~activeSignature:0
-      ?activeParameter:application_signature.active_param ()
+    SignatureHelp.create
+      ~signatures:[ info ]
+      ~activeSignature:0
+      ?activeParameter:application_signature.active_param
+      ()
 
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri }; _ } =
@@ -397,7 +437,8 @@ let text_document_lens (state : State.t)
     in
     let rec symbol_info_of_outline_item item =
       let children =
-        List.concat_map item.Query_protocol.children
+        List.concat_map
+          item.Query_protocol.children
           ~f:symbol_info_of_outline_item
       in
       match item.Query_protocol.outline_type with
@@ -447,14 +488,16 @@ let rename (state : State.t)
               let occur_end_pos = range.Range.end_ in
               { range with start = occur_end_pos }
             in
-            TextEdit.create ~range:empty_range_at_occur_end
+            TextEdit.create
+              ~range:empty_range_at_occur_end
               ~newText:(":" ^ newName)
           | _ -> make_edit ()))
   in
   let workspace_edits =
     let documentChanges =
       let open Option.O in
-      Option.value ~default:false
+      Option.value
+        ~default:false
         (let client_capabilities = State.client_capabilities state in
          let* workspace = client_capabilities.workspace in
          let* edit = workspace.workspaceEdit in
@@ -569,8 +612,10 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
       match cancel with
       | Cancelled () ->
         let e =
-          Jsonrpc.Response.Error.make ~code:RequestCancelled
-            ~message:"cancelled" ()
+          Jsonrpc.Response.Error.make
+            ~code:RequestCancelled
+            ~message:"cancelled"
+            ()
         in
         raise (Jsonrpc.Response.Error.E e)
       | Fiber.Cancel.Not_cancelled -> (
@@ -581,8 +626,8 @@ let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
         | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
     in
     List.partition_map symbols_results ~f:(function
-      | Ok r -> Left r
-      | Error e -> Right e)
+        | Ok r -> Left r
+        | Error e -> Right e)
   in
   let+ () =
     match errors with
@@ -665,7 +710,9 @@ let on_request :
     with
     | None ->
       Jsonrpc.Response.Error.raise
-        (make_error ~code:MethodNotFound ~message:"Unknown method"
+        (make_error
+           ~code:MethodNotFound
+           ~message:"Unknown method"
            ~data:(`Assoc [ ("method", `String meth) ])
            ())
     | Some handler ->
@@ -703,7 +750,8 @@ let on_request :
     later
       (fun state () ->
         let markdown =
-          ClientCapabilities.markdown_support (State.client_capabilities state)
+          ClientCapabilities.markdown_support
+            (State.client_capabilities state)
             ~field:(fun d ->
               let open Option.O in
               let+ completion = d.completion in
@@ -801,7 +849,10 @@ let on_notification server (notification : Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let* doc =
-      Document.make (State.wheel state) state.merlin_config params
+      Document.make
+        (State.wheel state)
+        state.merlin_config
+        params
         ~merlin_thread:state.merlin
     in
     assert (Document_store.get_opt store params.textDocument.uri = None);
@@ -866,7 +917,9 @@ let on_notification server (notification : Client_notification.t) :
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | UnknownNotification req ->
     let+ () =
-      State.log_msg server ~type_:Error
+      State.log_msg
+        server
+        ~type_:Error
         ~message:("Unknown notication " ^ req.method_)
     in
     state
@@ -892,15 +945,15 @@ let start () =
          State.workspace_root state)
     in
     Diagnostics.create ~workspace_root (function
-      | [] -> Fiber.return ()
-      | diagnostics ->
-        let server = Fdecl.get server in
-        let state = Server.state server in
-        task_if_running state.detached ~f:(fun () ->
-            let batch = Server.Batch.create server in
-            List.iter diagnostics ~f:(fun d ->
-                Server.Batch.notification batch (PublishDiagnostics d));
-            Server.Batch.submit batch))
+        | [] -> Fiber.return ()
+        | diagnostics ->
+          let server = Fdecl.get server in
+          let state = Server.state server in
+          task_if_running state.detached ~f:(fun () ->
+              let batch = Server.Batch.create server in
+              List.iter diagnostics ~f:(fun d ->
+                  Server.Batch.notification batch (PublishDiagnostics d));
+              Server.Batch.submit batch))
   in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
   let* configuration = Configuration.default () in
@@ -908,10 +961,20 @@ let start () =
   let* server =
     let+ merlin = Lev_fiber.Thread.create () in
     let symbols_thread = Lazy_fiber.create Lev_fiber.Thread.create in
-    Fdecl.set server
-      (Server.make handler stream
-         (State.create ~store ~merlin ~ocamlformat_rpc ~configuration ~detached
-            ~diagnostics ~symbols_thread ~wheel));
+    Fdecl.set
+      server
+      (Server.make
+         handler
+         stream
+         (State.create
+            ~store
+            ~merlin
+            ~ocamlformat_rpc
+            ~configuration
+            ~detached
+            ~diagnostics
+            ~symbols_thread
+            ~wheel));
     Fdecl.get server
   in
   let state = Server.state server in

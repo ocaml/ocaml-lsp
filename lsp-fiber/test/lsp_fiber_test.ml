@@ -47,14 +47,18 @@ let json_pp = Yojson.Safe.pretty_print ~std:false
 module End_to_end_client = struct
   let on_request (type a) _ (_ : a Server_request.t) =
     Jsonrpc.Response.Error.raise
-      (Jsonrpc.Response.Error.make ~message:"not implemented"
-         ~code:InternalError ())
+      (Jsonrpc.Response.Error.make
+         ~message:"not implemented"
+         ~code:InternalError
+         ())
 
   let on_notification (client : _ Client.t) n =
     let state = Client.state client in
     let received_notification = state in
     let req = Server_notification.to_jsonrpc n in
-    Format.eprintf "client: received notification@.%a@.%!" json_pp
+    Format.eprintf
+      "client: received notification@.%a@.%!"
+      json_pp
       (Jsonrpc.Notification.yojson_of_t req);
     let+ () = Fiber.Ivar.fill received_notification () in
     Format.eprintf "client: filled received_notification@.%!";
@@ -101,7 +105,8 @@ module End_to_end_client = struct
       | `Cancelled -> Format.eprintf "client: req_cancel got cancelled@.%!"
       | `Ok _ -> assert false);
       Format.eprintf
-        "client: Successfully executed req_reply with result:@.%a@." json_pp
+        "client: Successfully executed req_reply with result:@.%a@."
+        json_pp
         res_reply;
       Format.eprintf "client: sending request to shutdown@.%!";
       let* () = Fiber.Pool.stop detached in
@@ -139,7 +144,8 @@ module End_to_end_server = struct
                 Format.eprintf
                   "server: sending message notification to client@.%!";
                 let msg =
-                  ShowMessageParams.create ~type_:MessageType.Info
+                  ShowMessageParams.create
+                    ~type_:MessageType.Info
                     ~message:"notifying client"
                 in
                 Server.notification self (Server_notification.ShowMessage msg))
@@ -164,8 +170,10 @@ module End_to_end_server = struct
           Fiber.return (Rpc.Reply.now result, state))
       | _ ->
         Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make ~code:InternalError
-             ~message:"not supported" ())
+          (Jsonrpc.Response.Error.make
+             ~code:InternalError
+             ~message:"not supported"
+             ())
     in
     { Server.Handler.on_request }
 

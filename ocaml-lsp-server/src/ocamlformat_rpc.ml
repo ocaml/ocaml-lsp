@@ -61,7 +61,8 @@ end = struct
       | Ok () -> Fiber.return ()
       | Error (`Msg msg) ->
         let message =
-          Printf.sprintf "An error occured while configuring ocamlformat: %s"
+          Printf.sprintf
+            "An error occured while configuring ocamlformat: %s"
             msg
         in
         logger ~type_:MessageType.Warning ~message)
@@ -147,7 +148,8 @@ let get_process t =
     | Disabled | Stopped -> Error `No_process
     | Waiting_for_init _ ->
       Code_error.raise
-        "Expected to receive `Started` or `Stopped` after mailing `Start`" [])
+        "Expected to receive `Started` or `Stopped` after mailing `Start`"
+        [])
 
 let format_type t ~typ =
   let* p = get_process t in
@@ -160,7 +162,8 @@ let format_type t ~typ =
       let config = Some type_option in
       Ocamlformat_rpc.V2.Client.format
         ~format_args:{ Ocamlformat_rpc_lib.empty_args with config }
-        typ p)
+        typ
+        p)
 
 let format_doc t doc =
   let txt = Document.source doc |> Msource.text in
@@ -174,7 +177,8 @@ let format_doc t doc =
       let+ res =
         Ocamlformat_rpc.V2.Client.format
           ~format_args:Ocamlformat_rpc_lib.{ empty_args with path }
-          txt p
+          txt
+          p
       in
       Result.map res ~f:(fun to_ -> Diff.edit ~from:txt ~to_)
     | `V1 _ -> Fiber.return @@ Error `No_V2)

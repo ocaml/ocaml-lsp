@@ -29,7 +29,11 @@ end = struct
     let pid =
       Spawn.spawn
         ~env:(Spawn.Env.of_list (extra_env @ env))
-        ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ()
+        ~prog:bin
+        ~argv:[ bin ]
+        ~stdin:stdin_i
+        ~stdout:stdout_o
+        ()
     in
     Unix.close stdin_i;
     Unix.close stdout_o;

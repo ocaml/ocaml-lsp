@@ -13,7 +13,8 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
         match Document_store.get_opt state.store json_uri with
         | None ->
           Jsonrpc.Response.Error.raise
-            (Jsonrpc.Response.Error.make ~code:InvalidParams
+            (Jsonrpc.Response.Error.make
+               ~code:InvalidParams
                ~message:
                  "ocamllsp/inferIntf received a URI for an unloaded file. Load \
                   the file first."
@@ -23,11 +24,14 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
           Json.t_of_yojson (`String intf))
       | Some json ->
         Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make ~code:InvalidRequest
+          (Jsonrpc.Response.Error.make
+             ~code:InvalidRequest
              ~message:"The input parameter for ocamllsp/inferIntf is invalid"
              ~data:(`Assoc [ ("param", (json :> Json.t)) ])
              ())
       | None ->
         Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make ~code:InvalidRequest
-             ~message:"ocamllsp/inferIntf must receive param: DocumentUri.t" ()))
+          (Jsonrpc.Response.Error.make
+             ~code:InvalidRequest
+             ~message:"ocamllsp/inferIntf must receive param: DocumentUri.t"
+             ()))

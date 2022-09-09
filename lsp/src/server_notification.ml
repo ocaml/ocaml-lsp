@@ -13,7 +13,8 @@ module Progress = struct
     | End e -> WorkDoneProgressEnd.yojson_of_t e
 
   let t_of_yojson json =
-    Json.Of.untagged_union "Progress"
+    Json.Of.untagged_union
+      "Progress"
       [ (fun j -> Begin (WorkDoneProgressBegin.t_of_yojson j))
       ; (fun j -> Report (WorkDoneProgressReport.t_of_yojson j))
       ; (fun j -> End (WorkDoneProgressEnd.t_of_yojson j))
@@ -79,7 +80,8 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
     TelemetryNotification params
   | "$/progress" ->
     let+ params =
-      Json.message_params params
+      Json.message_params
+        params
         (ProgressParams.t_of_yojson Progress.t_of_yojson)
     in
     WorkDoneProgress params

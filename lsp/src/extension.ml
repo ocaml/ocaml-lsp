@@ -37,13 +37,15 @@ module DebugEcho = struct
          iter field_yojsons;
          match Ppx_yojson_conv_lib.( ! ) duplicates with
          | _ :: _ ->
-           Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields _tp_loc
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+             _tp_loc
              (Ppx_yojson_conv_lib.( ! ) duplicates)
              yojson
          | [] -> (
            match Ppx_yojson_conv_lib.( ! ) extra with
            | _ :: _ ->
-             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields _tp_loc
+             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+               _tp_loc
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] -> (
@@ -52,14 +54,16 @@ module DebugEcho = struct
                { message = message_value }
              | _ ->
                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                 _tp_loc yojson
+                 _tp_loc
+                 yojson
                  [ ( Ppx_yojson_conv_lib.poly_equal
                        (Ppx_yojson_conv_lib.( ! ) message_field)
                        Ppx_yojson_conv_lib.Option.None
                    , "message" )
                  ])))
        | _ as yojson ->
-         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom
+           _tp_loc
            yojson
         : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
 

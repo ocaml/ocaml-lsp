@@ -137,7 +137,9 @@ let send =
         let pending = Table.create (module Uri) 4 in
         Uri_set.iter dirty_uris ~f:(fun uri ->
             let diagnostics = Table.Multi.find t.merlin uri in
-            Table.set pending uri
+            Table.set
+              pending
+              uri
               (range_map_of_unduplicated_diagnostics diagnostics));
         let set_dune_source =
           let annotate_dune_pid = Table.length t.dune > 1 in
@@ -222,7 +224,8 @@ let extract_related_errors uri raw_message =
             match severity with
             | Error -> "Error"
             | Warning { code; name } ->
-              sprintf "Warning %s"
+              sprintf
+                "Warning %s"
                 (match (code, name) with
                 | None, Some name -> sprintf "[%s]" name
                 | Some code, None -> sprintf "%d" code
@@ -317,12 +320,18 @@ let merlin_diagnostics diagnostics doc =
                                Location.create ~range ~uri
                              in
                              let message = make_message Loc.print_sub_msg sub in
-                             DiagnosticRelatedInformation.create ~location
+                             DiagnosticRelatedInformation.create
+                               ~location
                                ~message)) )
                 in
                 let tags = tags_of_message ~src:`Merlin message in
-                create_diagnostic ?tags ?relatedInformation ~range ~message
-                  ~severity ())
+                create_diagnostic
+                  ?tags
+                  ?relatedInformation
+                  ~range
+                  ~message
+                  ~severity
+                  ())
           in
           let holes_as_err_diags =
             Query_commands.dispatch pipeline Holes
@@ -335,8 +344,12 @@ let merlin_diagnostics diagnostics doc =
                    in
                    (* we set specific diagnostic code = "hole" to be able to
                       filter through diagnostics easily *)
-                   create_diagnostic ~code:(`String "hole") ~range ~message
-                     ~severity ())
+                   create_diagnostic
+                     ~code:(`String "hole")
+                     ~range
+                     ~message
+                     ~severity
+                     ())
           in
           (* Can we use [List.merge] instead? *)
           List.rev_append holes_as_err_diags merlin_diagnostics

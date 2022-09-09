@@ -23,24 +23,24 @@ let has_missing_rec pipeline pos_start =
   let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
   Mbrowse.enclosing (Mpipeline.get_lexing_pos pipeline pos_start) [ browse ]
   |> List.find_map ~f:(function
-       | ( _
-         , Browse_raw.Structure_item
-             ({ str_desc = Tstr_value (Nonrecursive, bound); _ }, _) )
-       | ( _
-         , Browse_raw.Expression
-             { exp_desc = Texp_let (Nonrecursive, bound, _); _ } ) ->
-         let bound_vars = let_bound_vars bound in
-         if
-           List.exists bound_vars ~f:(fun (id, _) ->
-               String.equal ident (Ident.name id))
-         then
-           (* Return the location of the first pattern in the let binding (the
-              rec goes right before it) *)
-           let+ first_pat = List.hd_opt bound in
-           let first_pat_loc = first_pat.vb_pat.pat_loc in
-           { first_pat_loc with loc_end = first_pat_loc.loc_start }
-         else None
-       | _ -> None)
+         | ( _
+           , Browse_raw.Structure_item
+               ({ str_desc = Tstr_value (Nonrecursive, bound); _ }, _) )
+         | ( _
+           , Browse_raw.Expression
+               { exp_desc = Texp_let (Nonrecursive, bound, _); _ } ) ->
+           let bound_vars = let_bound_vars bound in
+           if
+             List.exists bound_vars ~f:(fun (id, _) ->
+                 String.equal ident (Ident.name id))
+           then
+             (* Return the location of the first pattern in the let binding (the
+                rec goes right before it) *)
+             let+ first_pat = List.hd_opt bound in
+             let first_pat_loc = first_pat.vb_pat.pat_loc in
+             { first_pat_loc with loc_end = first_pat_loc.loc_start }
+           else None
+         | _ -> None)
 
 let code_action_add_rec uri diagnostics doc loc =
   let edit =
@@ -56,8 +56,13 @@ let code_action_add_rec uri diagnostics doc loc =
     in
     WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
   in
-  CodeAction.create ~diagnostics ~title:action_title
-    ~kind:CodeActionKind.QuickFix ~edit ~isPreferred:false ()
+  CodeAction.create
+    ~diagnostics
+    ~title:action_title
+    ~kind:CodeActionKind.QuickFix
+    ~edit
+    ~isPreferred:false
+    ()
 
 let code_action doc (params : CodeActionParams.t) =
   let pos_start = Position.logical params.range.start in

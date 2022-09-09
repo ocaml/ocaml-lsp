@@ -17,7 +17,8 @@ let create (ip : InitializeParams.t) =
     match ip.workspaceFolders with
     | None | Some None -> None
     | Some (Some workspace_folders) ->
-      Uri_map.of_list_map_exn workspace_folders
+      Uri_map.of_list_map_exn
+        workspace_folders
         ~f:(fun (ws : WorkspaceFolder.t) -> (ws.uri, ws))
       |> Option.some
   in
@@ -52,15 +53,18 @@ let workspace_folders { root_uri; root_path; workspace_folders } =
     match (workspace_folders, root_uri, root_path) with
     | Some workspace_folders, _, _ -> Uri_map.values workspace_folders
     | _, Some root_uri, _ ->
-      [ WorkspaceFolder.create ~uri:root_uri
+      [ WorkspaceFolder.create
+          ~uri:root_uri
           ~name:(Filename.basename (Uri.to_path root_uri))
       ]
     | _, _, Some root_path ->
-      [ WorkspaceFolder.create ~uri:(Uri.of_path root_path)
+      [ WorkspaceFolder.create
+          ~uri:(Uri.of_path root_path)
           ~name:(Filename.basename root_path)
       ]
     | _ ->
       let cwd = Sys.getcwd () in
-      [ WorkspaceFolder.create ~uri:(Uri.of_path cwd)
+      [ WorkspaceFolder.create
+          ~uri:(Uri.of_path cwd)
           ~name:(Filename.basename cwd)
       ])

@@ -119,7 +119,9 @@ let pp_impl add_string (snippet : t) : unit =
       ctx
     | Tabstop (i, `Choice values) ->
       with_ctx ctx i (fun i ->
-          sprintf "${%d|%s|}" i
+          sprintf
+            "${%d|%s|}"
+            i
             (values
             |> List.map ~f:(escape ~in_choice:true)
             |> String.concat ~sep:","))
@@ -135,7 +137,11 @@ let pp_impl add_string (snippet : t) : unit =
         add_string "}";
         ctx
       | `Transform t ->
-        sprintf "${%s/%s/%s/%s}" var t.regex t.format_string
+        sprintf
+          "${%s/%s/%s/%s}"
+          var
+          t.regex
+          t.format_string
           (Option.value ~default:"" t.regex_options)
         |> add_string;
         ctx)
