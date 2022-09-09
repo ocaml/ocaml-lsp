@@ -25,11 +25,17 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText)
       Some
         (Client.Custom_commands.next_hole
            ~in_range:(Range.resize_for_edit textedit)
-           ~notify_if_no_hole:false ())
+           ~notify_if_no_hole:false
+           ())
     else None
   in
-  CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
-    ?command ~isPreferred:false ()
+  CodeAction.create
+    ~title
+    ~kind:(CodeActionKind.Other action_kind)
+    ~edit
+    ?command
+    ~isPreferred:false
+    ()
 
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
   let uri = params.textDocument.uri in
@@ -57,7 +63,10 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
         |> Client.Experimental_capabilities.supportsJumpToNextHole
       in
       Some
-        (code_action_of_case_analysis ~supportsJumpToNextHole doc uri
+        (code_action_of_case_analysis
+           ~supportsJumpToNextHole
+           doc
+           uri
            (loc, newText))
     | Error
         { exn =

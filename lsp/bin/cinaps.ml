@@ -7,8 +7,8 @@ let preprocess_metamodel =
     method! or_ path (types : Metamodel.type_ list) =
       match
         List.filter_map types ~f:(function
-          | Literal (Record []) -> None
-          | _ as t -> Some (self#type_ path t))
+            | Literal (Record []) -> None
+            | _ as t -> Some (self#type_ path t))
       with
       | [] -> assert false
       | [ t ] -> t
@@ -83,7 +83,9 @@ let preprocess_metamodel =
 let expand_superclasses db (m : Metamodel.t) =
   let structures =
     let uniquify_fields fields =
-      List.fold_left fields ~init:String.Map.empty
+      List.fold_left
+        fields
+        ~init:String.Map.empty
         ~f:(fun acc (f : Metamodel.property) -> String.Map.set acc f.name f)
       |> String.Map.values
     in

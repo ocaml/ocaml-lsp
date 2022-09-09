@@ -13,12 +13,14 @@ module Simple_diff = struct
 
   let longest_subsequence old_lines new_lines =
     let _, old_index_map =
-      Array.fold_left old_lines ~init:(0, String.Map.empty)
+      Array.fold_left
+        old_lines
+        ~init:(0, String.Map.empty)
         ~f:(fun (i, m) line ->
           ( i + 1
           , String.Map.update m line ~f:(function
-              | None -> Some [ i ]
-              | Some xs -> Some (i :: xs)) ))
+                | None -> Some [ i ]
+                | Some xs -> Some (i :: xs)) ))
     in
     let overlap = ref Int.Map.empty in
 
@@ -127,14 +129,17 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
   in
   let line, prev_deleted_lines, edits_rev =
     Simple_diff.get_diff orig_lines formatted_lines
-    |> List.fold_left ~init:(0, [||], [])
+    |> List.fold_left
+         ~init:(0, [||], [])
          ~f:(fun (line, prev_deleted_lines, edits_rev) edit ->
            match (edit : Simple_diff.diff) with
            | Deleted deleted_lines ->
              (line, Array.append prev_deleted_lines deleted_lines, edits_rev)
            | Added added_lines ->
              let edit =
-               text_edit ~line_sep ~line
+               text_edit
+                 ~line_sep
+                 ~line
                  (if Array.length prev_deleted_lines > 0 then
                   Replace (prev_deleted_lines, added_lines)
                  else Insert added_lines)

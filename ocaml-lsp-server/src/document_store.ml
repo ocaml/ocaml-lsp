@@ -80,7 +80,8 @@ let register_request t uris =
                     (TextDocumentFilter.create ~pattern:(Uri.to_path uri) ()))
               ]
             in
-            CodeActionRegistrationOptions.create ~documentSelector
+            CodeActionRegistrationOptions.create
+              ~documentSelector
               ~codeActionKinds:[ CodeActionKind.Other "Promote" ]
               ()
             |> CodeActionRegistrationOptions.yojson_of_t
@@ -98,7 +99,9 @@ let open_document t doc =
   let key = Document.uri doc in
   match Table.find t.db key with
   | None ->
-    Table.set t.db key
+    Table.set
+      t.db
+      key
       { document = Some doc; promotions = 0; semantic_tokens_cache = None };
     Fiber.return ()
   | Some d ->
@@ -112,9 +115,12 @@ let no_document_found uri = function
   | Some s -> s
   | None ->
     Jsonrpc.Response.Error.raise
-      (Jsonrpc.Response.Error.make ~code:InvalidRequest
+      (Jsonrpc.Response.Error.make
+         ~code:InvalidRequest
          ~message:
-           (Format.asprintf "no document found with uri: %s" (Uri.to_string uri))
+           (Format.asprintf
+              "no document found with uri: %s"
+              (Uri.to_string uri))
          ())
 
 let get' t uri = Table.find t.db uri |> no_document_found uri

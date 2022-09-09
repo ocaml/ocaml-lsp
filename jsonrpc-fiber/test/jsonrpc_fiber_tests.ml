@@ -26,11 +26,11 @@ let print_json json =
 let no_output () =
   let received_none = ref false in
   Out.create (function
-    | None ->
-      if !received_none then failwith "received None more than once"
-      else received_none := true;
-      Fiber.return ()
-    | Some _ -> failwith "unexpected element")
+      | None ->
+        if !received_none then failwith "received None more than once"
+        else received_none := true;
+        Fiber.return ()
+      | Some _ -> failwith "unexpected element")
 
 let%expect_test "start and stop server" =
   let run () =
@@ -70,10 +70,10 @@ let%expect_test "server accepts notifications" =
 
 let of_ref ref =
   Fiber.Stream.Out.create (function
-    | None -> Fiber.return ()
-    | Some x ->
-      ref := x :: !ref;
-      Fiber.return ())
+      | None -> Fiber.return ()
+      | Some x ->
+        ref := x :: !ref;
+        Fiber.return ())
 
 let%expect_test "serving requests" =
   let id = `Int 1 in
@@ -109,7 +109,8 @@ let%expect_test "serving requests" =
 let%expect_test "concurrent requests" =
   let print packet =
     print_endline
-      (Yojson.Safe.pretty_to_string ~std:false
+      (Yojson.Safe.pretty_to_string
+         ~std:false
          (Jsonrpc.Packet.yojson_of_t packet))
   in
   let waiter chan =
@@ -268,7 +269,8 @@ let%expect_test "cancellation" =
   let () = Printexc.record_backtrace true in
   let print packet =
     print_endline
-      (Yojson.Safe.pretty_to_string ~std:false
+      (Yojson.Safe.pretty_to_string
+         ~std:false
          (Jsonrpc.Packet.yojson_of_t packet))
   in
   let server_req_ack = Fiber.Ivar.create () in

@@ -177,7 +177,8 @@ let mapKeyType json : mapKeyType =
   match kind with
   | "reference" -> Reference (name fields)
   | "base" ->
-    field "name"
+    field
+      "name"
       (enum
          [ ("Uri", Uri)
          ; ("DocumentUri", DocumentUri)
@@ -222,7 +223,8 @@ let rec type_ json =
     Map { key; value }
   | "literal" ->
     let fields =
-      field "value"
+      field
+        "value"
         (fun json ->
           let fields = fields_conv json in
           properties fields)
@@ -280,7 +282,8 @@ let enumerationType json =
   let fields = fields json in
   let () = field "kind" (literal (`String "base")) fields in
   let name =
-    field "name"
+    field
+      "name"
       (enum
          [ ("integer", `Integer); ("string", `String); ("uinteger", `Uinteger) ])
       fields

@@ -205,7 +205,8 @@ end = struct
 end
 
 let legend =
-  SemanticTokensLegend.create ~tokenTypes:Token_type.list
+  SemanticTokensLegend.create
+    ~tokenTypes:Token_type.list
     ~tokenModifiers:Token_modifiers_set.list
 
 module Tokens : sig
@@ -283,7 +284,8 @@ end = struct
       ; ("length", `Int length)
       ; ("type", `String (Token_type.to_legend token_type))
       ; ( "modifiers"
-        , Json.Conv.yojson_of_list Json.Conv.yojson_of_string
+        , Json.Conv.yojson_of_list
+            Json.Conv.yojson_of_string
             (Token_modifiers_set.to_legend token_modifiers) )
       ]
 
@@ -295,8 +297,12 @@ end = struct
     let rec aux ix = function
       | [] -> ()
       | [ { start; length; token_type; token_modifiers } ] ->
-        set_token data ~delta_line_index:0 ~delta_line:start.Position.line
-          ~delta_start:start.character ~length
+        set_token
+          data
+          ~delta_line_index:0
+          ~delta_line:start.Position.line
+          ~delta_start:start.character
+          ~length
           ~token_type:(token_type :> int)
           ~token_modifiers:(token_modifiers :> int)
       | current :: previous :: rest ->
@@ -308,7 +314,12 @@ end = struct
         in
         let { length; token_type; token_modifiers; _ } = current in
         let delta_line_index = (ix - 1) * 5 in
-        set_token data ~delta_line_index ~delta_line ~delta_start ~length
+        set_token
+          data
+          ~delta_line_index
+          ~delta_line
+          ~delta_start
+          ~length
           ~token_type:(token_type :> int)
           ~token_modifiers:(token_modifiers :> int);
         aux (ix - 1) (previous :: rest)
@@ -340,11 +351,13 @@ module Parsetree_fold () = struct
             add_token'
               { start with character = start.character + offset }
               ~length:(String.length constr_name)
-              rightmost_name modifiers
+              rightmost_name
+              modifiers
           | mod_name :: rest ->
             add_token'
               { start with character = start.character + offset }
-              ~length:(String.length mod_name) Token_type.module_
+              ~length:(String.length mod_name)
+              Token_type.module_
               Token_modifiers_set.empty;
             aux (offset + String.length mod_name + 1) rest
         in
@@ -359,7 +372,9 @@ module Parsetree_fold () = struct
   let module_binding (self : Ast_iterator.iterator)
       ({ pmb_name; pmb_expr; pmb_attributes; pmb_loc = _ } :
         Parsetree.module_binding) =
-    add_token pmb_name.loc Token_type.module_
+    add_token
+      pmb_name.loc
+      Token_type.module_
       (Token_modifiers_set.singleton Definition);
     self.module_expr self pmb_expr;
     self.attributes self pmb_attributes
@@ -378,7 +393,9 @@ module Parsetree_fold () = struct
         `Custom_iterator
       | Ptyp_poly (tps, ct) ->
         List.iter tps ~f:(fun tp ->
-            add_token tp.Loc.loc Token_type.type_parameter
+            add_token
+              tp.Loc.loc
+              Token_type.type_parameter
               Token_modifiers_set.empty);
         self.typ self ct;
         `Custom_iterator
@@ -401,10 +418,14 @@ module Parsetree_fold () = struct
   let constructor_declaration (self : Ast_iterator.iterator)
       ({ pcd_name; pcd_vars; pcd_args; pcd_res; pcd_loc = _; pcd_attributes } :
         Parsetree.constructor_declaration) =
-    add_token pcd_name.loc Token_type.enum_member
+    add_token
+      pcd_name.loc
+      Token_type.enum_member
       (Token_modifiers_set.singleton Declaration);
     List.iter pcd_vars ~f:(fun var ->
-        add_token var.Loc.loc Token_type.type_parameter
+        add_token
+          var.Loc.loc
+          Token_type.type_parameter
           Token_modifiers_set.empty);
     constructor_arguments self pcd_args;
     Option.iter pcd_res ~f:(fun ct -> self.typ self ct);
@@ -426,7 +447,9 @@ module Parsetree_fold () = struct
       | Parsetree.Ppat_var fn_name, _ -> (
         match pvb_expr.pexp_desc with
         | Pexp_fun _ | Pexp_function _ ->
-          add_token fn_name.loc Token_type.function_
+          add_token
+            fn_name.loc
+            Token_type.function_
             (Token_modifiers_set.singleton Definition);
           self.expr self pvb_expr;
           `Custom_iterator
@@ -435,7 +458,8 @@ module Parsetree_fold () = struct
         , Pexp_constraint (e, exp_ct) )
         when Loc.compare pat_ct.ptyp_loc exp_ct.ptyp_loc = 0 ->
         (* handles [let f : t -> unit = fun t -> ()] *)
-        add_token n.loc
+        add_token
+          n.loc
           (match pat_ct.ptyp_desc with
           | Ptyp_poly (_, { ptyp_desc = Ptyp_arrow _; _ }) | Ptyp_arrow _ ->
             Token_type.function_
@@ -460,14 +484,18 @@ module Parsetree_fold () = struct
        ; ptype_loc = _
        } :
         Parsetree.type_declaration) =
-    List.iter ptype_params
+    List.iter
+      ptype_params
       ~f:(fun
            ((core_type, _) :
              Parsetree.core_type * (Asttypes.variance * Asttypes.injectivity))
          ->
-        add_token core_type.ptyp_loc Token_type.type_parameter
+        add_token
+          core_type.ptyp_loc
+          Token_type.type_parameter
           Token_modifiers_set.empty);
-    add_token ptype_name.loc
+    add_token
+      ptype_name.loc
       (match ptype_kind with
       | Parsetree.Ptype_abstract | Ptype_open -> Token_type.type_
       | Ptype_variant _ -> Token_type.enum
@@ -610,7 +638,8 @@ module Parsetree_fold () = struct
           self.typ self ct);
         `Custom_iterator
       | Pexp_letop { let_; ands; body } ->
-        List.iter (let_ :: ands)
+        List.iter
+          (let_ :: ands)
           ~f:(fun { Parsetree.pbop_op = _; pbop_pat; pbop_exp; pbop_loc = _ } ->
             self.pat self pbop_pat;
             if
@@ -655,7 +684,9 @@ module Parsetree_fold () = struct
         let process_args () =
           Option.iter args ~f:(fun (tvs, pat) ->
               List.iter tvs ~f:(fun tv ->
-                  add_token tv.Loc.loc Token_type.type_parameter
+                  add_token
+                    tv.Loc.loc
+                    Token_type.type_parameter
                     Token_modifiers_set.empty);
               self.pat self pat)
         in
@@ -746,7 +777,8 @@ module Parsetree_fold () = struct
   let value_description (self : Ast_iterator.iterator)
       ({ pval_name; pval_type; pval_prim = _; pval_attributes; pval_loc = _ } :
         Parsetree.value_description) =
-    add_token pval_name.Loc.loc
+    add_token
+      pval_name.Loc.loc
       (match pval_type.ptyp_desc with
       | Ptyp_arrow (_, _, _) -> Token_type.function_
       | Ptyp_class (_, _) -> Token_type.class_
@@ -766,7 +798,9 @@ module Parsetree_fold () = struct
   let module_declaration (self : Ast_iterator.iterator)
       ({ pmd_name; pmd_type; pmd_attributes; pmd_loc = _ } :
         Parsetree.module_declaration) =
-    add_token pmd_name.loc Token_type.module_
+    add_token
+      pmd_name.loc
+      Token_type.module_
       (Token_modifiers_set.singleton Declaration);
     self.module_type self pmd_type;
     self.attributes self pmd_attributes
@@ -921,14 +955,18 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
     if left_offset = new_len then (* [old] and [new_] are simply equal *) []
     else
       (* [old] is prefix of [new_] *)
-      [ SemanticTokensEdit.create ~start:left_offset ~deleteCount:0
+      [ SemanticTokensEdit.create
+          ~start:left_offset
+          ~deleteCount:0
           ~data:(Array.sub new_ ~pos:left_offset ~len:(new_len - left_offset))
           ()
       ]
   else if left_offset = new_len then
     (* [new_] is prefix of [old] *)
-    [ SemanticTokensEdit.create ~start:left_offset
-        ~deleteCount:(old_len - left_offset) ()
+    [ SemanticTokensEdit.create
+        ~start:left_offset
+        ~deleteCount:(old_len - left_offset)
+        ()
     ]
   else
     let old_noncommon = Array.View.make old ~pos:left_offset () in
@@ -941,9 +979,11 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
     let data =
       Array.sub new_ ~pos:left_offset ~len:(right_offset_new - left_offset)
     in
-    [ SemanticTokensEdit.create ~start:left_offset
+    [ SemanticTokensEdit.create
+        ~start:left_offset
         ~deleteCount:(right_offset_old - left_offset)
-        ~data ()
+        ~data
+        ()
     ]
 
 let on_request_full_delta :
@@ -962,7 +1002,8 @@ let on_request_full_delta :
       let+ tokens = compute_encoded_tokens doc in
       let resultId = gen_new_id () in
       let cached_token_info =
-        Document_store.get_semantic_tokens_cache state.store
+        Document_store.get_semantic_tokens_cache
+          state.store
           params.textDocument.uri
       in
       Document_store.update_semantic_tokens_cache store uri ~resultId ~tokens;

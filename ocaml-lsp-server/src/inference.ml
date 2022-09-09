@@ -5,7 +5,8 @@ let infer_intf_for_impl doc =
   match Document.kind doc with
   | Intf ->
     Code_error.raise
-      "expected an implementation document, got an interface instead" []
+      "expected an implementation document, got an interface instead"
+      []
   | Impl ->
     Document.with_pipeline_exn doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
@@ -48,8 +49,11 @@ let open_document_from_file (state : State.t) uri =
           DidOpenTextDocumentParams.create ~textDocument:text_document
         in
         let+ doc =
-          Document.make (State.wheel state) state.merlin_config
-            ~merlin_thread:state.merlin params
+          Document.make
+            (State.wheel state)
+            state.merlin_config
+            ~merlin_thread:state.merlin
+            params
         in
         Some doc)
 

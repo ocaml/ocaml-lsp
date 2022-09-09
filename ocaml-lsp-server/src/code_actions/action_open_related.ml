@@ -11,7 +11,8 @@ let command_run server (params : ExecuteCommandParams.t) =
       Jsonrpc.Response.Error.raise
       @@ Jsonrpc.Response.Error.make
            ~code:Jsonrpc.Response.Error.Code.InvalidParams
-           ~message:"takes a single uri as input" ()
+           ~message:"takes a single uri as input"
+           ()
   in
   let+ { ShowDocumentResult.success } =
     let req = ShowDocumentParams.create ~uri ~takeFocus:true () in
@@ -36,7 +37,8 @@ let for_uri (capabilities : ShowDocumentClientCapabilities.t option) uri =
            let path = Uri.to_path uri in
            let exists = Sys.file_exists path in
            let title =
-             sprintf "%s %s"
+             sprintf
+               "%s %s"
                (if exists then "Open" else "Create")
                (Filename.basename path)
            in
@@ -53,5 +55,9 @@ let for_uri (capabilities : ShowDocumentClientCapabilities.t option) uri =
                in
                Some (WorkspaceEdit.create ~documentChanges ())
            in
-           CodeAction.create ?edit ~title ~kind:(CodeActionKind.Other "switch")
-             ~command ())
+           CodeAction.create
+             ?edit
+             ~title
+             ~kind:(CodeActionKind.Other "switch")
+             ~command
+             ())

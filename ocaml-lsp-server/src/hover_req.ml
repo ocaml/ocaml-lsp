@@ -57,7 +57,9 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } =
                 sprintf
                   "An error occured while querying ocamlformat:\n\
                    Input type: %s\n\n\
-                   Answer: %s" typ message
+                   Answer: %s"
+                  typ
+                  message
               in
               State.log_msg server ~type_:Warning ~message
             in
@@ -66,7 +68,8 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } =
         let contents =
           let markdown =
             let client_capabilities = State.client_capabilities state in
-            ClientCapabilities.markdown_support client_capabilities
+            ClientCapabilities.markdown_support
+              client_capabilities
               ~field:(fun td ->
                 Option.map td.hover ~f:(fun h -> h.contentFormat))
           in

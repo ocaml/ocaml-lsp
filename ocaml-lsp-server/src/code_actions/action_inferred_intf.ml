@@ -17,8 +17,12 @@ let code_action_of_intf doc intf range =
     WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
   in
   let title = String.capitalize_ascii "Insert inferred interface" in
-  CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
-    ~isPreferred:false ()
+  CodeAction.create
+    ~title
+    ~kind:(CodeActionKind.Other action_kind)
+    ~edit
+    ~isPreferred:false
+    ()
 
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
   match Document.kind doc with

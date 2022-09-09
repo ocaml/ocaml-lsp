@@ -79,7 +79,8 @@ let compute server (params : CodeActionParams.t) =
         let+ code_action_results =
           (* XXX this is a really bad use of resources. we should be batching
              all the merlin related work *)
-          Fiber.parallel_map ~f:code_action
+          Fiber.parallel_map
+            ~f:code_action
             [ Action_destruct.t state
             ; Action_inferred_intf.t state
             ; Action_type_annotate.t

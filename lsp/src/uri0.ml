@@ -17,13 +17,13 @@ type t = Uri_lexer.t =
 
 let backslash_to_slash =
   String.map ~f:(function
-    | '\\' -> '/'
-    | c -> c)
+      | '\\' -> '/'
+      | c -> c)
 
 let slash_to_backslash =
   String.map ~f:(function
-    | '/' -> '\\'
-    | c -> c)
+      | '/' -> '\\'
+      | c -> c)
 
 let of_path path =
   let path = if !Private.win32 then backslash_to_slash path else path in

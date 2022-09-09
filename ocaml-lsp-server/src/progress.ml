@@ -28,7 +28,8 @@ let end_build (t : enabled) ~message =
       | Some token ->
         t.token <- None;
         t.report_progress
-          (ProgressParams.create ~token
+          (ProgressParams.create
+             ~token
              ~value:
                (Server_notification.Progress.End
                   (WorkDoneProgressEnd.create ~message ()))))
@@ -46,10 +47,14 @@ let start_build (t : enabled) =
   t.token <- Some token;
   let+ () =
     t.report_progress
-      (ProgressParams.create ~token
+      (ProgressParams.create
+         ~token
          ~value:
            (Server_notification.Progress.Begin
-              (WorkDoneProgressBegin.create ~title:"Build" ~message:"started" ())))
+              (WorkDoneProgressBegin.create
+                 ~title:"Build"
+                 ~message:"started"
+                 ())))
   in
   token
 
@@ -80,7 +85,8 @@ let build_progress t (progress : Drpc.Progress.t) =
             int_of_float (fraction *. 100.)
           in
           report_progress
-            (ProgressParams.create ~token
+            (ProgressParams.create
+               ~token
                ~value:
                  (Server_notification.Progress.Report
                     (let message = sprintf "Building [%d/%d]" complete total in

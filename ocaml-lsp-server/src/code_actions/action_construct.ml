@@ -43,9 +43,11 @@ let code_action doc (params : CodeActionParams.t) =
            only a command to trigger all completion providers at the current
            cursor position *)
         let code_action =
-          CodeAction.create ~title:"Construct an expression"
+          CodeAction.create
+            ~title:"Construct an expression"
             ~kind:(CodeActionKind.Other action_kind)
-            ~command:Client.Vscode.Commands.triggerSuggest ()
+            ~command:Client.Vscode.Commands.triggerSuggest
+            ()
         in
         Some code_action
 

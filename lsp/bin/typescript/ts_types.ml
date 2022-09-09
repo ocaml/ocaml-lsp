@@ -360,20 +360,20 @@ let subst unresolved =
     method push x y =
       let params =
         String.Map.update params x ~f:(function
-          | None -> Some [ y ]
-          | Some [] -> assert false
-          | Some (y' :: xs) -> if y = y' then Some xs else Some (y :: y' :: xs))
+            | None -> Some [ y ]
+            | Some [] -> assert false
+            | Some (y' :: xs) -> if y = y' then Some xs else Some (y :: y' :: xs))
       in
       {<params>}
 
     method pop x =
       let params =
         String.Map.update params x ~f:(function
-          | None ->
-            ignore (String.Map.find_exn params x);
-            None
-          | Some [] -> assert false
-          | Some (_ :: xs) -> Some xs)
+            | None ->
+              ignore (String.Map.find_exn params x);
+              None
+            | Some [] -> assert false
+            | Some (_ :: xs) -> Some xs)
       in
       {<params>}
   end

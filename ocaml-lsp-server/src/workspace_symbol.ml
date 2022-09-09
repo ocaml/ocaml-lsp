@@ -256,7 +256,9 @@ let find_cm_files dir =
             match current_file with
             | None -> String.Map.set acc path_without_ext cmi_file
             | Some current_file ->
-              String.Map.set acc path_without_ext
+              String.Map.set
+                acc
+                path_without_ext
                 (choose_file current_file cmi_file))
           | _ -> acc)
   in
@@ -275,7 +277,8 @@ let run ({ query; _ } : WorkspaceSymbolParams.t)
   in
   try
     Ok
-      (List.map workspace_folders
+      (List.map
+         workspace_folders
          ~f:(fun (workspace_folder : WorkspaceFolder.t) ->
            let open Result.O in
            let+ build_dir = find_build_dir workspace_folder in

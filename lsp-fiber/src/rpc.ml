@@ -161,7 +161,8 @@ struct
     let on_notification_default _ notification =
       Format.eprintf "dropped notification@.%!";
       let notification = In_notification.to_jsonrpc notification in
-      Code_error.raise "unexpected notification"
+      Code_error.raise
+        "unexpected notification"
         [ ( "notification"
           , Json.to_dyn (Jsonrpc.Notification.yojson_of_t notification) )
         ]
@@ -169,8 +170,10 @@ struct
     let on_request_default =
       { on_request =
           (fun _ _ ->
-            Jsonrpc.Response.Error.make ~code:InternalError
-              ~message:"Not supported" ()
+            Jsonrpc.Response.Error.make
+              ~code:InternalError
+              ~message:"Not supported"
+              ()
             |> Jsonrpc.Response.Error.raise)
       }
 
@@ -282,7 +285,8 @@ struct
     let* () = Fiber.return () in
     let jsonrpc_req = create_request t req in
     let+ resp, cancel_status =
-      Fiber.Cancel.with_handler cancel
+      Fiber.Cancel.with_handler
+        cancel
         ~on_cancel:(fun () -> on_cancel jsonrpc_req.id)
         (fun () ->
           let+ resp = Session.request (Fdecl.get t.session) jsonrpc_req in

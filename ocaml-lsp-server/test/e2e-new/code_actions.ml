@@ -25,10 +25,14 @@ let foo = 123
       let uri = DocumentUri.of_path "foo.ml" in
       let* () =
         let textDocument =
-          TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0
+          TextDocumentItem.create
+            ~uri
+            ~languageId:"ocaml"
+            ~version:0
             ~text:source
         in
-        Client.notification client
+        Client.notification
+          client
           (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
       in
       let+ resp =

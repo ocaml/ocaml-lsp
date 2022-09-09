@@ -91,10 +91,13 @@ let test :
           | _ -> Fiber.return ())
       ()
   in
-  Test.run ~handler ~extra_env:[ "OCAMLLSP_SEMANTIC_HIGHLIGHTING=full/delta" ]
+  Test.run
+    ~handler
+    ~extra_env:[ "OCAMLLSP_SEMANTIC_HIGHLIGHTING=full/delta" ]
     (fun client ->
       let run_client () =
-        Client.start client
+        Client.start
+          client
           (InitializeParams.create ~capabilities:client_capabilities ())
       in
       let run () =
@@ -104,7 +107,8 @@ let test :
           TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:src
         in
         let* () =
-          Client.notification client
+          Client.notification
+            client
             (TextDocumentDidOpen
                (DidOpenTextDocumentParams.create ~textDocument))
         in
@@ -128,7 +132,8 @@ let test :
       Fiber.fork_and_join_unit run_client run)
 
 let test_semantic_tokens_full src =
-  test ~src
+  test
+    ~src
     (fun p -> SemanticTokensFull p)
     (fun resp ->
       Option.map resp ~f:SemanticTokens.yojson_of_t
@@ -161,7 +166,8 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
     } |}]
 
 let test_semantic_tokens_full_debug src =
-  test ~src
+  test
+    ~src
     (fun p ->
       UnknownRequest
         { meth = semantic_tokens_full_debug

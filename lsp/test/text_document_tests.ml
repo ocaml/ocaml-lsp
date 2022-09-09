@@ -20,7 +20,8 @@ let test text range ~change =
     Text_document.make { DidOpenTextDocumentParams.textDocument }
   in
   let td =
-    Text_document.apply_content_change td
+    Text_document.apply_content_change
+      td
       (TextDocumentContentChangeEvent.create ?range ~text:change ())
   in
   print_endline (String.escaped (Text_document.text td))

@@ -14,7 +14,12 @@ let run_command cancel prog stdin_value args =
       let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
       let pid =
         let argv = prog :: args in
-        Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o
+        Spawn.spawn
+          ~prog
+          ~argv
+          ~stdin:stdin_i
+          ~stdout:stdout_o
+          ~stderr:stderr_o
           ()
         |> Stdune.Pid.of_int
       in
@@ -84,15 +89,18 @@ type error =
 
 let message = function
   | Unsupported_syntax syntax ->
-    sprintf "formatting %s files is not supported"
+    sprintf
+      "formatting %s files is not supported"
       (Document.Syntax.human_name syntax)
   | Missing_binary { binary } ->
     sprintf
       "Unable to find %s binary. You need to install %s manually to use the \
        formatting feature."
-      binary binary
+      binary
+      binary
   | Unknown_extension uri ->
-    Printf.sprintf "Unable to format. File %s has an unknown extension"
+    Printf.sprintf
+      "Unable to format. File %s has an unknown extension"
       (Uri.to_path uri)
   | Unexpected_result { message } -> message
 

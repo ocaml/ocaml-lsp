@@ -19,3 +19,4 @@ break-cases=fit-or-vertical
 indicate-nested-or-patterns=unsafe-no
 parse-docstrings=true
 module-item-spacing=sparse
+wrap-fun-args=false

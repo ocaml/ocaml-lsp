@@ -12,7 +12,8 @@ module Kind = struct
     | ".mli" | ".eliomi" | ".rei" -> Intf
     | ext ->
       Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make ~code:InvalidRequest
+        (Jsonrpc.Response.Error.make
+           ~code:InvalidRequest
            ~message:(Printf.sprintf "unsupported file extension")
            ~data:(`Assoc [ ("extension", `String ext) ])
            ())
@@ -64,7 +65,8 @@ module Syntax = struct
       | Ok x -> x
       | Error ext ->
         Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make ~code:InvalidRequest
+          (Jsonrpc.Response.Error.make
+             ~code:InvalidRequest
              ~message:(Printf.sprintf "unsupported file extension")
              ~data:(`Assoc [ ("extension", `String ext) ])
              ())
@@ -147,7 +149,9 @@ let await task =
     | Not_cancelled -> without_cancellation res
     | Cancelled () ->
       let e =
-        Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled"
+        Jsonrpc.Response.Error.make
+          ~code:RequestCancelled
+          ~message:"cancelled"
           ()
       in
       raise (Jsonrpc.Response.Error.E e))
@@ -169,7 +173,8 @@ let with_pipeline (t : t) f =
               let fields =
                 Event.common_fields
                   ~ts:(Event.Timestamp.of_float_seconds start)
-                  ~name:"merlin" ()
+                  ~name:"merlin"
+                  ()
               in
               Event.complete ~dur fields
             in
@@ -234,9 +239,11 @@ let update_text ?version t changes =
   with
   | exception Text_document.Invalid_utf8 ->
     Log.log ~section:"warning" (fun () ->
-        Log.msg "dropping update due to invalid utf8"
+        Log.msg
+          "dropping update due to invalid utf8"
           [ ( "changes"
-            , Json.yojson_of_list TextDocumentContentChangeEvent.yojson_of_t
+            , Json.yojson_of_list
+                TextDocumentContentChangeEvent.yojson_of_t
                 changes )
           ]);
     t

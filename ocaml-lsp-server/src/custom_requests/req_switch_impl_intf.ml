@@ -16,11 +16,14 @@ let on_request ~(params : Jsonrpc.Structured.t option) =
     switch file_uri
   | Some json ->
     Jsonrpc.Response.Error.raise
-      (Jsonrpc.Response.Error.make ~code:InvalidRequest
+      (Jsonrpc.Response.Error.make
+         ~code:InvalidRequest
          ~message:"The input parameter for ocamllsp/switchImplIntf is invalid"
          ~data:(`Assoc [ ("param", (json :> Json.t)) ])
          ())
   | None ->
     Jsonrpc.Response.Error.raise
-      (Jsonrpc.Response.Error.make ~code:InvalidRequest
-         ~message:"ocamllsp/switchImplIntf must receive param: DocumentUri.t" ())
+      (Jsonrpc.Response.Error.make
+         ~code:InvalidRequest
+         ~message:"ocamllsp/switchImplIntf must receive param: DocumentUri.t"
+         ())

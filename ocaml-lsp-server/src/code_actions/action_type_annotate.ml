@@ -36,8 +36,12 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
     WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
   in
   let title = String.capitalize_ascii action_kind in
-  CodeAction.create ~title ~kind:(CodeActionKind.Other action_kind) ~edit
-    ~isPreferred:false ()
+  CodeAction.create
+    ~title
+    ~kind:(CodeActionKind.Other action_kind)
+    ~edit
+    ~isPreferred:false
+    ()
 
 let code_action doc (params : CodeActionParams.t) =
   let pos_start = Position.logical params.range.start in

@@ -140,11 +140,17 @@ module Complete_by_prefix = struct
       (entry : Query_protocol.Compl.entry) ~compl_params ~range =
     let kind = completion_kind entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
-    CompletionItem.create ~label:entry.name ?kind ~detail:entry.desc
+    CompletionItem.create
+      ~label:entry.name
+      ?kind
+      ~detail:entry.desc
       ~deprecated:entry.deprecated
         (* Without this field the client is not forced to respect the order
            provided by merlin. *)
-      ~sortText:(sortText_of_index idx) ~data:compl_params ~textEdit ()
+      ~sortText:(sortText_of_index idx)
+      ~data:compl_params
+      ~textEdit
+      ()
 
   let dispatch_cmd ~prefix position pipeline =
     let complete =
@@ -155,7 +161,8 @@ module Complete_by_prefix = struct
   let process_dispatch_resp doc pos (completion : Query_protocol.completions) =
     let range =
       let logical_pos = Position.logical pos in
-      range_prefix pos
+      range_prefix
+        pos
         (prefix_of_position ~short_path:true (Document.source doc) logical_pos)
     in
     let completion_entries =
@@ -181,7 +188,8 @@ module Complete_by_prefix = struct
       CompletionParams.create ~textDocument ~position:pos ()
       |> CompletionParams.yojson_of_t
     in
-    List.mapi completion_entries
+    List.mapi
+      completion_entries
       ~f:(completionItem_of_completion_entry ~range ~compl_params)
 
   let complete doc prefix pos =
@@ -224,12 +232,18 @@ module Complete_with_construct = struct
             Some
               (Client.Custom_commands.next_hole
                  ~in_range:(Range.resize_for_edit edit)
-                 ~notify_if_no_hole:false ())
+                 ~notify_if_no_hole:false
+                 ())
           else None
         in
-        CompletionItem.create ~label:expr_wo_parens ~textEdit:(`TextEdit edit)
-          ~filterText:("_" ^ expr) ~kind:CompletionItemKind.Text
-          ~sortText:(sortText_of_index idx) ?command ()
+        CompletionItem.create
+          ~label:expr_wo_parens
+          ~textEdit:(`TextEdit edit)
+          ~filterText:("_" ^ expr)
+          ~kind:CompletionItemKind.Text
+          ~sortText:(sortText_of_index idx)
+          ?command
+          ()
       in
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
@@ -272,10 +286,13 @@ let complete (state : State.t)
               |> Client.Experimental_capabilities.supportsJumpToNextHole
             in
             Complete_with_construct.process_dispatch_resp
-              ~supportsJumpToNextHole construct_cmd_resp
+              ~supportsJumpToNextHole
+              construct_cmd_resp
           in
           let compl_by_prefix_completionItems =
-            Complete_by_prefix.process_dispatch_resp doc pos
+            Complete_by_prefix.process_dispatch_resp
+              doc
+              pos
               compl_by_prefix_resp
           in
           construct_completionItems @ compl_by_prefix_completionItems
@@ -305,7 +322,9 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
         let complete =
           let start =
             let prefix =
-              prefix_of_position ~short_path:true (Document.source doc)
+              prefix_of_position
+                ~short_path:true
+                (Document.source doc)
                 logical_position
             in
             { position with
