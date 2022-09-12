@@ -44,7 +44,10 @@ let string_of_error (ident, reason) =
     | `Unbound -> "unbound"
     | `Shadowed -> "shadowed"
   in
-  Format.asprintf "'%a' is %s in inlining context" Pprintast.longident ident
+  Format.asprintf
+    "'%a' is %s in inlining context"
+    Pprintast.longident
+    ident
     reason
 
 let find_inline_task pipeline pos =
@@ -64,22 +67,22 @@ let find_inline_task pipeline pos =
     (Mpipeline.get_lexing_pos pipeline (Position.logical pos))
     [ browse ]
   |> List.find_map ~f:(function
-       | ( (_ : Ocaml_typing.Env.t)
-         , Browse_raw.Expression
-             { exp_desc =
-                 Texp_let
-                   ( Nonrecursive
-                   , [ { vb_pat = { pat_desc = Tpat_var (id, s); _ }
-                       ; vb_expr
-                       ; _
-                       }
-                     ]
-                   , rhs )
-             ; _
-             } )
-         when contains s.loc pos ->
-         Some { inlined_var = id; inlined_expr = vb_expr; context = rhs }
-       | _ -> None)
+         | ( (_ : Ocaml_typing.Env.t)
+           , Browse_raw.Expression
+               { exp_desc =
+                   Texp_let
+                     ( Nonrecursive
+                     , [ { vb_pat = { pat_desc = Tpat_var (id, s); _ }
+                         ; vb_expr
+                         ; _
+                         }
+                       ]
+                     , rhs )
+               ; _
+               } )
+           when contains s.loc pos ->
+           Some { inlined_var = id; inlined_expr = vb_expr; context = rhs }
+         | _ -> None)
 
 let find_parsetree_loc pipeline loc =
   let exception Found of Parsetree.expression in
@@ -183,8 +186,10 @@ let code_action doc (params : CodeActionParams.t) =
       | [], None -> None
       | [], Some error ->
         let action =
-          CodeAction.create ~title:action_title
-            ~kind:CodeActionKind.RefactorInline ~isPreferred:false
+          CodeAction.create
+            ~title:action_title
+            ~kind:CodeActionKind.RefactorInline
+            ~isPreferred:false
             ~disabled:
               (CodeAction.create_disabled ~reason:(string_of_error error))
             ()
@@ -195,17 +200,24 @@ let code_action doc (params : CodeActionParams.t) =
           let version = Document.version doc in
           let textDocument =
             OptionalVersionedTextDocumentIdentifier.create
-              ~uri:params.textDocument.uri ~version ()
+              ~uri:params.textDocument.uri
+              ~version
+              ()
           in
           let edit =
-            TextDocumentEdit.create ~textDocument
+            TextDocumentEdit.create
+              ~textDocument
               ~edits:(List.map edits ~f:(fun e -> `TextEdit e))
           in
           WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
         in
         let action =
-          CodeAction.create ~title:action_title
-            ~kind:CodeActionKind.RefactorInline ~edit ~isPreferred:false ()
+          CodeAction.create
+            ~title:action_title
+            ~kind:CodeActionKind.RefactorInline
+            ~edit
+            ~isPreferred:false
+            ()
         in
         Some action)
   |> Fiber.return
