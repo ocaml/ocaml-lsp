@@ -119,6 +119,7 @@ end
 module Longident = Ocaml_parsing.Longident
 module Parsetree = Ocaml_parsing.Parsetree
 module Path = Ocaml_typing.Path
+module Pprintast = Ocaml_parsing.Pprintast
 module Typedtree = Ocaml_typing.Typedtree
 module Types = Ocaml_typing.Types
 module Warnings = Ocaml_utils.Warnings

@@ -44,8 +44,8 @@ let string_of_error (ident, reason) =
     | `Unbound -> "unbound"
     | `Shadowed -> "shadowed"
   in
-  Format.asprintf "'%a' is %s in inlining context"
-    Ocaml_parsing.Pprintast.longident ident reason
+  Format.asprintf "'%a' is %s in inlining context" Pprintast.longident ident
+    reason
 
 let find_inline_task pipeline pos =
   let contains loc pos =
@@ -113,10 +113,11 @@ let inlined_text pipeline task =
   let open Option.O in
   let+ expr = find_parsetree_loc pipeline task.inlined_expr.exp_loc in
   let expr = strip_attribute "merlin.loc" expr in
-  Format.asprintf "(%a)" Ocaml_parsing.Pprintast.expression expr
+  Format.asprintf "(%a)" Pprintast.expression expr
 
 (** Iterator over the text edits performed by the inlining task. *)
 let inline_edits pipeline task =
+  let module I = Ocaml_typing.Tast_iterator in
   let open Option.O in
   let+ newText = inlined_text pipeline task in
   let make_edit newText loc =
@@ -134,8 +135,8 @@ let inline_edits pipeline task =
       false
   in
 
-  let arg_iter env (iter : Ocaml_typing.Tast_iterator.iterator)
-      (label : Asttypes.arg_label) (m_arg_expr : Typedtree.expression option) =
+  let arg_iter env (iter : I.iterator) (label : Asttypes.arg_label)
+      (m_arg_expr : Typedtree.expression option) =
     match (label, m_arg_expr) with
     (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
     | ( Labelled name
@@ -156,8 +157,7 @@ let inline_edits pipeline task =
     | _, m_expr -> Option.iter m_expr ~f:(iter.expr iter)
   in
 
-  let expr_iter (iter : Ocaml_typing.Tast_iterator.iterator)
-      (expr : Typedtree.expression) =
+  let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
     match expr.exp_desc with
     | Texp_apply (func, args) ->
       iter.expr iter func;
@@ -165,11 +165,9 @@ let inline_edits pipeline task =
     | Texp_ident (Pident id, { loc; _ }, _)
       when Ident.same task.inlined_var id && not_shadowed expr.exp_env ->
       insert_edit newText loc
-    | _ -> Ocaml_typing.Tast_iterator.default_iterator.expr iter expr
+    | _ -> I.default_iterator.expr iter expr
   in
-  let iterator =
-    { Ocaml_typing.Tast_iterator.default_iterator with expr = expr_iter }
-  in
+  let iterator = { I.default_iterator with expr = expr_iter } in
   iterator.expr iterator task.context;
   (Queue.to_list edits, !error)
 
@@ -184,14 +182,14 @@ let code_action doc (params : CodeActionParams.t) =
       match (edits, m_error) with
       | [], None -> None
       | [], Some error ->
-        let _action =
+        let action =
           CodeAction.create ~title:action_title
             ~kind:CodeActionKind.RefactorInline ~isPreferred:false
             ~disabled:
               (CodeAction.create_disabled ~reason:(string_of_error error))
             ()
         in
-        None
+        Some action
       | _ :: _, (Some _ | None) ->
         let edit =
           let version = Document.version doc in
