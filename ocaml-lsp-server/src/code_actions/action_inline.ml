@@ -56,9 +56,24 @@ let find_parsetree_loc pipeline loc =
     None
   with Found e -> Some e
 
+(** [strip_attribute name e] removes all instances of the attribute called
+    [name] in [e]. *)
+let strip_attribute attr_name expr =
+  let module M = Ocaml_parsing.Ast_mapper in
+  let expr_map (map : M.mapper) expr =
+    { (M.default_mapper.expr map expr) with
+      pexp_attributes =
+        List.filter expr.pexp_attributes ~f:(fun (a : Parsetree.attribute) ->
+            not (String.equal a.attr_name.txt attr_name))
+    }
+  in
+  let mapper = { M.default_mapper with expr = expr_map } in
+  mapper.expr mapper expr
+
 let inlined_text pipeline task =
   let open Option.O in
   let+ expr = find_parsetree_loc pipeline task.inlined_expr.exp_loc in
+  let expr = strip_attribute "merlin.loc" expr in
   Format.asprintf "(%a)" Ocaml_parsing.Pprintast.expression expr
 
 (** Iterator over the text edits performed by the inlining task. *)
