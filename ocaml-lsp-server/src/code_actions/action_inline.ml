@@ -50,7 +50,7 @@ let find_parsetree_loc pipeline loc =
       else Ast_iterator.default_iterator.expr iter expr
     in
     let iterator = { Ast_iterator.default_iterator with expr = expr_iter } in
-    (match Mpipeline.ppx_parsetree pipeline with
+    (match Mpipeline.reader_parsetree pipeline with
     | `Implementation s -> iterator.structure iterator s
     | `Interface _ -> ());
     None
