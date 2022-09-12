@@ -8,6 +8,45 @@ type inline_task =
   ; context : Typedtree.expression  (** where to perform inlining *)
   }
 
+let find_path_by_name id env =
+  try Some (fst (Ocaml_typing.Env.find_value_by_name id env))
+  with Not_found -> None
+
+let check_shadowing (inlined_expr : Typedtree.expression) new_env =
+  let module I = Ocaml_typing.Tast_iterator in
+  let orig_env = inlined_expr.exp_env in
+  let exception Env_mismatch of (Longident.t * [ `Unbound | `Shadowed ]) in
+  let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
+    match expr.exp_desc with
+    | Texp_ident (path, { txt = ident; _ }, _) -> (
+      let in_orig_env =
+        find_path_by_name ident orig_env
+        |> Option.map ~f:(Path.same path)
+        |> Option.value ~default:false
+      in
+      if in_orig_env then
+        match find_path_by_name ident new_env with
+        | Some path' ->
+          if not (Path.same path path') then
+            raise (Env_mismatch (ident, `Shadowed))
+        | None -> raise (Env_mismatch (ident, `Unbound)))
+    | _ -> I.default_iterator.expr iter expr
+  in
+  let iter = { I.default_iterator with expr = expr_iter } in
+  try
+    iter.expr iter inlined_expr;
+    Ok ()
+  with Env_mismatch m -> Error m
+
+let string_of_error (ident, reason) =
+  let reason =
+    match reason with
+    | `Unbound -> "unbound"
+    | `Shadowed -> "shadowed"
+  in
+  Format.asprintf "'%a' is %s in inlining context"
+    Ocaml_parsing.Pprintast.longident ident reason
+
 let find_inline_task pipeline pos =
   let contains loc pos =
     match Position.compare_inclusion pos (Range.of_loc loc) with
@@ -84,9 +123,18 @@ let inline_edits pipeline task =
     TextEdit.create ~newText ~range:(Range.of_loc loc)
   in
   let edits = Queue.create () in
-  let insert_edit newText loc = Queue.push edits (make_edit newText loc) in
+  let error = ref None in
 
-  let arg_iter (iter : Ocaml_typing.Tast_iterator.iterator)
+  let insert_edit newText loc = Queue.push edits (make_edit newText loc) in
+  let not_shadowed env =
+    match check_shadowing task.inlined_expr env with
+    | Ok () -> true
+    | Error e ->
+      error := Some e;
+      false
+  in
+
+  let arg_iter env (iter : Ocaml_typing.Tast_iterator.iterator)
       (label : Asttypes.arg_label) (m_arg_expr : Typedtree.expression option) =
     match (label, m_arg_expr) with
     (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
@@ -102,7 +150,7 @@ let inline_edits pipeline task =
                 , [ { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } ] )
           ; _
           } )
-      when Ident.same task.inlined_var id ->
+      when Ident.same task.inlined_var id && not_shadowed env ->
       let newText = sprintf "%s:%s" name newText in
       insert_edit newText loc
     | _, m_expr -> Option.iter m_expr ~f:(iter.expr iter)
@@ -113,16 +161,17 @@ let inline_edits pipeline task =
     match expr.exp_desc with
     | Texp_apply (func, args) ->
       iter.expr iter func;
-      List.iter args ~f:(fun (l, e) -> arg_iter iter l e)
-    | Texp_ident (Pident id, { loc; _ }, _) when Ident.same task.inlined_var id
-      -> insert_edit newText loc
+      List.iter args ~f:(fun (l, e) -> arg_iter expr.exp_env iter l e)
+    | Texp_ident (Pident id, { loc; _ }, _)
+      when Ident.same task.inlined_var id && not_shadowed expr.exp_env ->
+      insert_edit newText loc
     | _ -> Ocaml_typing.Tast_iterator.default_iterator.expr iter expr
   in
   let iterator =
     { Ocaml_typing.Tast_iterator.default_iterator with expr = expr_iter }
   in
   iterator.expr iterator task.context;
-  Queue.to_list edits
+  (Queue.to_list edits, !error)
 
 let code_action doc (params : CodeActionParams.t) =
   let open Fiber.O in
@@ -131,21 +180,36 @@ let code_action doc (params : CodeActionParams.t) =
         find_inline_task pipeline params.range.start
         |> Option.bind ~f:(inline_edits pipeline))
   in
-  Option.map m_edits ~f:(fun edits ->
-      let edit =
-        let version = Document.version doc in
-        let textDocument =
-          OptionalVersionedTextDocumentIdentifier.create
-            ~uri:params.textDocument.uri ~version ()
+  Option.bind m_edits ~f:(fun (edits, m_error) ->
+      match (edits, m_error) with
+      | [], None -> None
+      | [], Some error ->
+        let _action =
+          CodeAction.create ~title:action_title
+            ~kind:CodeActionKind.RefactorInline ~isPreferred:false
+            ~disabled:
+              (CodeAction.create_disabled ~reason:(string_of_error error))
+            ()
         in
+        None
+      | _ :: _, (Some _ | None) ->
         let edit =
-          TextDocumentEdit.create ~textDocument
-            ~edits:(List.map edits ~f:(fun e -> `TextEdit e))
+          let version = Document.version doc in
+          let textDocument =
+            OptionalVersionedTextDocumentIdentifier.create
+              ~uri:params.textDocument.uri ~version ()
+          in
+          let edit =
+            TextDocumentEdit.create ~textDocument
+              ~edits:(List.map edits ~f:(fun e -> `TextEdit e))
+          in
+          WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
         in
-        WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-      in
-      CodeAction.create ~title:action_title ~kind:CodeActionKind.RefactorInline
-        ~edit ~isPreferred:false ())
+        let action =
+          CodeAction.create ~title:action_title
+            ~kind:CodeActionKind.RefactorInline ~edit ~isPreferred:false ()
+        in
+        Some action)
   |> Fiber.return
 
 module Test = struct
