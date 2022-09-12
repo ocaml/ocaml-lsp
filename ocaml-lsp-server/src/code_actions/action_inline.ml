@@ -210,11 +210,4 @@ let code_action doc (params : CodeActionParams.t) =
         Some action)
   |> Fiber.return
 
-module Test = struct
-  let x =
-    let k = 0 in
-    let f ?(k = 1) ~j () = k + j in
-    f ~j:0 ~k ()
-end
-
 let t = { Code_action.kind = RefactorInline; run = code_action }
