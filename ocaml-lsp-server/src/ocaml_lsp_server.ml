@@ -538,39 +538,19 @@ let selection_range (state : State.t)
   match Document.kind doc with
   | `Other -> Fiber.return []
   | `Merlin merlin ->
-    let selection_range_of_shapes (cursor_position : Position.t)
-        (shapes : Query_protocol.shape list) : SelectionRange.t option =
-      let rec ranges_of_shape parent s =
-        let selectionRange =
-          let range = Range.of_loc s.Query_protocol.shape_loc in
-          { SelectionRange.range; parent }
-        in
-        match s.Query_protocol.shape_sub with
-        | [] -> [ selectionRange ]
-        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
-      in
-      (* try to find the nearest range inside first, then outside *)
-      let nearest_range =
-        let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
-        List.min ranges ~f:(fun r1 r2 ->
-            let inc (r : SelectionRange.t) =
-              Position.compare_inclusion cursor_position r.range
-            in
-            match (inc r1, inc r2) with
-            | `Outside x, `Outside y -> Position.compare x y
-            | `Outside _, `Inside -> Gt
-            | `Inside, `Outside _ -> Lt
-            | `Inside, `Inside -> Range.compare_size r1.range r2.range)
-      in
-      nearest_range
+    let rec selection_range_of_enclosings = function
+      | hd :: tl ->
+        let parent = selection_range_of_enclosings tl in
+        Some { SelectionRange.range = Range.of_loc hd; parent }
+      | [] -> None
     in
     let+ ranges =
       Fiber.sequential_map positions ~f:(fun x ->
-          let+ shapes =
-            let command = Query_protocol.Shape (Position.logical x) in
+          let+ enclosings =
+            let command = Query_protocol.Enclosing (Position.logical x) in
             Document.Merlin.dispatch_exn merlin command
           in
-          selection_range_of_shapes x shapes)
+          selection_range_of_enclosings enclosings)
     in
     List.filter_opt ranges
 
