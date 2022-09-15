@@ -118,7 +118,6 @@ let inlined_text pipeline task =
   let expr = strip_attribute "merlin.loc" expr in
   Format.asprintf "(%a)" Pprintast.expression expr
 
-(** Iterator over the text edits performed by the inlining task. *)
 let inline_edits pipeline task =
   let module I = Ocaml_typing.Tast_iterator in
   let open Option.O in
