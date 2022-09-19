@@ -26,6 +26,11 @@
 
 - Fix signatureHelp on .mll files: avoid "Document.dune" exceptions
 
+- Use Merlin's `enclosing` command instead of `shape` to answer `selectionRange`
+  queries since it is the more appropriate one. This notably removes the need
+  for checking which enclosing is the closest to the cursor since Merlin already
+  does it. (#860)
+
 # 1.13.1
 
 ## Fixes
