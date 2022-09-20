@@ -126,6 +126,7 @@ let strip_attribute attr_name expr =
   let mapper = { M.default_mapper with expr = expr_map } in
   mapper.expr mapper expr
 
+(** Overapproximation of the number of uses of a [Path.t] in an expression. *)
 module Uses = struct
   type t = int Path.Map.t
 
@@ -151,6 +152,8 @@ module Uses = struct
     !uses
 end
 
+(** Mapping from [Location.t] to [Path.t]. Computed from the typedtree. Useful
+    for determining whether two parsetree identifiers refer to the same path. *)
 module Paths = struct
   module Location_map = Map.Make (struct
     include Loc
@@ -223,13 +226,18 @@ let rec is_pure (expr : Parsetree.expression) =
   | Pexp_field (lhs, _) -> is_pure lhs
   | _ -> false
 
+let rec find_map_remove ~f = function
+  | [] -> (None, [])
+  | x :: xs -> (
+    match f x with
+    | Some x' -> (Some x', xs)
+    | None ->
+      let ret, xs' = find_map_remove ~f xs in
+      (ret, x :: xs'))
+
 let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
     (app : Parsetree.expression) =
-  match app.pexp_desc with
-  | Pexp_apply
-      ( { pexp_desc = Pexp_fun (Nolabel, None, pat, body); _ }
-      , (Nolabel, arg) :: args' ) -> (
-    let body = if List.is_empty args' then body else H.Exp.apply body args' in
+  let beta_reduce_arg (pat : Parsetree.pattern) body arg =
     match pat.ppat_desc with
     | Ppat_any | Ppat_construct ({ txt = Lident "()"; _ }, _) ->
       beta_reduce uses paths body
@@ -257,16 +265,35 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
             [ H.Vb.mk pat arg ]
             (beta_reduce uses paths body))
     | _ ->
-      H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] (beta_reduce uses paths body))
+      H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] (beta_reduce uses paths body)
+  in
+  let apply func args =
+    if List.is_empty args then func else H.Exp.apply func args
+  in
+  match app.pexp_desc with
+  | Pexp_apply
+      ( { pexp_desc = Pexp_fun (Nolabel, None, pat, body); _ }
+      , (Nolabel, arg) :: args' ) -> beta_reduce_arg pat (apply body args') arg
+  | Pexp_apply
+      ({ pexp_desc = Pexp_fun ((Labelled l as lbl), None, pat, body); _ }, args)
+    -> (
+    let m_matching_arg, args' =
+      find_map_remove args ~f:(function
+          | Asttypes.Labelled l', e when String.(l = l') -> Some e
+          | _ -> None)
+    in
+    match m_matching_arg with
+    | Some arg -> beta_reduce_arg pat (apply body args') arg
+    | None -> H.Exp.fun_ lbl None pat (beta_reduce uses paths (apply body args))
+    )
   | _ -> app
 
 module Test = struct
   type t = { x : int }
 
   let z =
-    let f y = y + 1 in
-    let y = { x = 0 } in
-    f y.x
+    let f ~y ~z a = y + z + a in
+    f 2 ~z:0
 end
 
 let inlined_text pipeline task =
