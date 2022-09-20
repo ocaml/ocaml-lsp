@@ -194,6 +194,9 @@ module Paths = struct
       match pat.pat_desc with
       | Tpat_var (id, { loc; _ }) ->
         paths := Location_map.set !paths loc (Pident id)
+      | Tpat_alias (pat, id, { loc; _ }) ->
+        paths := Location_map.set !paths loc (Pident id);
+        I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
     in
     let iterator =
@@ -222,8 +225,8 @@ let subst same subst_expr subst_id body =
     side effects. *)
 let rec is_pure (expr : Parsetree.expression) =
   match expr.pexp_desc with
-  | Pexp_ident _ | Pexp_constant _ -> true
-  | Pexp_field (lhs, _) -> is_pure lhs
+  | Pexp_ident _ | Pexp_constant _ | Pexp_hole | Pexp_unreachable -> true
+  | Pexp_field (e, _) | Pexp_constraint (e, _) -> is_pure e
   | _ -> false
 
 let rec find_map_remove ~f = function
@@ -241,7 +244,8 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
     match pat.ppat_desc with
     | Ppat_any | Ppat_construct ({ txt = Lident "()"; _ }, _) ->
       beta_reduce uses paths body
-    | Ppat_var param -> (
+    | Ppat_var param | Ppat_constraint ({ ppat_desc = Ppat_var param; _ }, _)
+      -> (
       let open Option.O in
       let m_uses =
         let* path = Paths.find paths param.loc in
@@ -279,7 +283,7 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
     -> (
     let m_matching_arg, args' =
       find_map_remove args ~f:(function
-          | Asttypes.Labelled l', e when String.(l = l') -> Some e
+          | Asttypes.Labelled l', e when String.equal l l' -> Some e
           | _ -> None)
     in
     match m_matching_arg with
@@ -292,8 +296,8 @@ module Test = struct
   type t = { x : int }
 
   let z =
-    let f ~y ~z a = y + z + a in
-    f 2 ~z:0
+    let f (y : int) (z : int) a = y + z + a in
+    f 2 0
 end
 
 let inlined_text pipeline task =
@@ -344,11 +348,6 @@ let inline_edits pipeline task =
     | _, m_expr -> Option.iter m_expr ~f:(iter.expr iter)
   in
 
-  let apply_iter env (iter : I.iterator) (func : Typedtree.expression) args =
-    iter.expr iter func;
-    List.iter args ~f:(fun (l, e) -> arg_iter env iter l e)
-  in
-
   let uses = Uses.of_typedtree task.inlined_expr in
   let paths = Paths.of_typedtree task.inlined_expr in
   let inlined_pexpr =
@@ -373,7 +372,9 @@ let inline_edits pipeline task =
         @@ strip_attribute "merlin.loc" reduced_pexpr
       in
       insert_edit newText expr.exp_loc
-    | Texp_apply (func, args) -> apply_iter expr.exp_env iter func args
+    | Texp_apply (func, args) ->
+      iter.expr iter func;
+      List.iter args ~f:(fun (l, e) -> arg_iter expr.exp_env iter l e)
     | Texp_ident (Pident id, { loc; _ }, _)
       when Ident.same task.inlined_var id && not_shadowed expr.exp_env ->
       insert_edit newText loc
