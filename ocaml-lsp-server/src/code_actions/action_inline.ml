@@ -98,6 +98,9 @@ let find_parsetree_loc pipeline loc =
     None
   with Found e -> Some e
 
+let find_parsetree_loc_exn pipeline loc =
+  Option.value_exn (find_parsetree_loc pipeline loc)
+
 (** [strip_attribute name e] removes all instances of the attribute called
     [name] in [e]. *)
 let strip_attribute attr_name expr =
@@ -112,91 +115,139 @@ let strip_attribute attr_name expr =
   let mapper = { M.default_mapper with expr = expr_map } in
   mapper.expr mapper expr
 
-(** [uses expr path] returns the number of uses of [path] in [expr]. *)
-let uses expr path =
-  let module I = Ocaml_typing.Tast_iterator in
-  let count = ref 0 in
-  let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
-    match expr.exp_desc with
-    | Texp_ident (path', _, _) when Path.same path path' -> incr count
-    | _ -> I.default_iterator.expr iter expr
-  in
-  let iterator = { I.default_iterator with expr = expr_iter } in
-  iterator.expr iterator expr;
-  !count
+module Uses = struct
+  type t = int Path.Map.t
 
-let subst task =
-  let module M = Ocaml_typing.Tast_mapper in
-  let expr_map (map : M.mapper) (expr : Typedtree.expression) =
-    match expr.exp_desc with
-    | Texp_ident (Pident id, _, _) when Ident.same task.inlined_var id ->
-      task.inlined_expr
-    | _ -> M.default.expr map expr
+  let find m k = Path.Map.find k m
+
+  let of_typedtree (expr : Typedtree.expression) =
+    let module I = Ocaml_typing.Tast_iterator in
+    let uses = ref Path.Map.empty in
+    let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
+      match expr.exp_desc with
+      | Texp_ident (path, _, _) ->
+        uses :=
+          Path.Map.update
+            path
+            (function
+              | Some c -> Some (c + 1)
+              | None -> Some 1)
+            !uses
+      | _ -> I.default_iterator.expr iter expr
+    in
+    let iterator = { I.default_iterator with expr = expr_iter } in
+    iterator.expr iterator expr;
+    !uses
+end
+
+module Paths = struct
+  module Location_map = Map.Make (struct
+    include Loc
+
+    let compare x x' = Ordering.of_int (compare x x')
+
+    let position_to_dyn (pos : Lexing.position) =
+      Dyn.Record
+        [ ("pos_fname", Dyn.String pos.pos_fname)
+        ; ("pos_lnum", Dyn.Int pos.pos_lnum)
+        ; ("pos_bol", Dyn.Int pos.pos_bol)
+        ; ("pos_cnum", Dyn.Int pos.pos_cnum)
+        ]
+
+    let to_dyn loc =
+      Dyn.Record
+        [ ("loc_start", position_to_dyn loc.loc_start)
+        ; ("loc_end", position_to_dyn loc.loc_end)
+        ; ("loc_ghost", Dyn.Bool loc.loc_ghost)
+        ]
+  end)
+
+  type t = Path.t Location_map.t
+
+  let find = Location_map.find
+
+  let of_typedtree (expr : Typedtree.expression) =
+    let module I = Ocaml_typing.Tast_iterator in
+    let paths = ref Location_map.empty in
+    let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
+      match expr.exp_desc with
+      | Texp_ident (path, { loc; _ }, _) ->
+        paths := Location_map.set !paths loc path
+      | _ -> I.default_iterator.expr iter expr
+    in
+    let iterator = { I.default_iterator with expr = expr_iter } in
+    iterator.expr iterator expr;
+    !paths
+
+  let same_path ps l l' =
+    match (find ps l, find ps l') with
+    | Some p, Some p' -> Path.same p p'
+    | _ -> false
+end
+
+let subst same lhs var rhs =
+  let module M = Ocaml_parsing.Ast_mapper in
+  let expr_map (map : M.mapper) (expr : Parsetree.expression) =
+    match expr.pexp_desc with
+    | Pexp_ident id when same var id -> lhs
+    | _ -> M.default_mapper.expr map expr
   in
-  let mapper = { M.default with expr = expr_map } in
-  mapper.expr mapper task.context
+  let mapper = { M.default_mapper with expr = expr_map } in
+  mapper.expr mapper rhs
 
 (** Rough check for pure expressions. Identifiers and constants are pure. *)
-let is_pure (expr : Typedtree.expression) =
-  match expr.exp_desc with
-  | Texp_ident _ | Texp_constant _ -> true
+let rec is_pure (expr : Parsetree.expression) =
+  match expr.pexp_desc with
+  | Pexp_ident _ | Pexp_constant _ -> true
+  | Pexp_field (lhs, _) -> is_pure lhs
   | _ -> false
 
-let rec beta_reduce (app : Typedtree.expression) =
-  let untype_expression = Ocaml_typing.Untypeast.untype_expression in
-  match app.exp_desc with
-  | Texp_apply
-      ( { exp_desc =
-            Texp_function
-              { arg_label = Nolabel
-              ; cases =
-                  [ { c_lhs = { pat_desc = pat; _ }
-                    ; c_guard = None
-                    ; c_rhs = body
-                    }
-                  ]
-              ; _
-              }
-        ; _
-        }
-      , (Nolabel, Some arg) :: args' ) -> (
-    let body =
-      if List.is_empty args' then body
-      else { app with exp_desc = Texp_apply (body, args') }
-    in
-    match pat with
-    | Tpat_any -> beta_reduce body
-    | Tpat_var (param, _) ->
-      let n_uses = uses body (Path.Pident param) in
-      Printf.eprintf "uses: %d\n%!" n_uses;
-      Out_channel.flush stderr;
-      if n_uses = 0 then Ocaml_typing.Untypeast.untype_expression body
-      else if n_uses = 1 || is_pure arg then
-        beta_reduce
-          (subst { inlined_var = param; inlined_expr = arg; context = body })
-      else
-        (* if the parameter is used multiple times in the body, introduce a let
-           binding so that the parameter is evaluated only once *)
-        let module H = Ocaml_parsing.Ast_helper in
-        let body = untype_expression body in
-        let arg = untype_expression arg in
-        H.Exp.let_
-          Nonrecursive
-          [ H.Vb.mk
-              (H.Pat.var { txt = Ident.name param; loc = !H.default_loc })
-              arg
-          ]
-          body
-    | _ -> untype_expression app)
-  | _ -> untype_expression app
+let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
+    (app : Parsetree.expression) =
+  let module H = Ocaml_parsing.Ast_helper in
+  match app.pexp_desc with
+  | Pexp_apply
+      ( { pexp_desc = Pexp_fun (Nolabel, None, pat, body); _ }
+      , (Nolabel, arg) :: args' ) -> (
+    let body = if List.is_empty args' then body else H.Exp.apply body args' in
+    match pat.ppat_desc with
+    | Ppat_any | Ppat_construct ({ txt = Lident "()"; _ }, _) ->
+      beta_reduce uses paths body
+    | Ppat_var param -> (
+      let open Option.O in
+      let m_uses =
+        let+ path = Paths.find paths param.loc in
+        Uses.find uses path
+      in
+      match m_uses with
+      | Some 0 -> beta_reduce uses paths body
+      | Some 1 ->
+        beta_reduce uses paths (subst (Paths.same_path paths) arg param body)
+      | Some _ | None ->
+        if is_pure arg then
+          beta_reduce uses paths (subst (Paths.same_path paths) arg param body)
+        else
+          (* if the parameter is used multiple times in the body, introduce a
+             let binding so that the parameter is evaluated only once *)
+          H.Exp.let_
+            Nonrecursive
+            [ H.Vb.mk pat arg ]
+            (beta_reduce uses paths body))
+    | _ ->
+      H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] (beta_reduce uses paths body))
+  | _ -> app
+
+let rec beta_reduce (app : Typedtree.expression) (p_app : Parsetree.expression)
+    =
+  assert false
 
 module Test = struct
+  type t = { x : int }
+
   let z =
-    let k = 1 in
-    let f y = y + k in
-    let k = 2 in
-    let y = 2 in
-    f y
+    let f y = [%yojson_of: int] y in
+    let y = { x = 0 } in
+    f y.x
 end
 
 let inlined_text pipeline task =
