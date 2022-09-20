@@ -1,4 +1,5 @@
 open Import
+module H = Ocaml_parsing.Ast_helper
 
 let action_title = "Inline"
 
@@ -128,7 +129,7 @@ let strip_attribute attr_name expr =
 module Uses = struct
   type t = int Path.Map.t
 
-  let find m k = Path.Map.find k m
+  let find m k = Path.Map.find_opt k m
 
   let of_typedtree (expr : Typedtree.expression) =
     let module I = Ocaml_typing.Tast_iterator in
@@ -185,7 +186,16 @@ module Paths = struct
         paths := Location_map.set !paths loc path
       | _ -> I.default_iterator.expr iter expr
     in
-    let iterator = { I.default_iterator with expr = expr_iter } in
+    let pat_iter (type k) (iter : I.iterator)
+        (pat : k Typedtree.general_pattern) =
+      match pat.pat_desc with
+      | Tpat_var (id, { loc; _ }) ->
+        paths := Location_map.set !paths loc (Pident id)
+      | _ -> I.default_iterator.pat iter pat
+    in
+    let iterator =
+      { I.default_iterator with expr = expr_iter; pat = pat_iter }
+    in
     iterator.expr iterator expr;
     !paths
 
@@ -195,17 +205,18 @@ module Paths = struct
     | _ -> false
 end
 
-let subst same lhs var rhs =
+let subst same subst_expr subst_id body =
   let module M = Ocaml_parsing.Ast_mapper in
   let expr_map (map : M.mapper) (expr : Parsetree.expression) =
     match expr.pexp_desc with
-    | Pexp_ident id when same var id -> lhs
+    | Pexp_ident id when same subst_id id -> subst_expr
     | _ -> M.default_mapper.expr map expr
   in
   let mapper = { M.default_mapper with expr = expr_map } in
-  mapper.expr mapper rhs
+  mapper.expr mapper body
 
-(** Rough check for pure expressions. Identifiers and constants are pure. *)
+(** Rough check for expressions that can be duplicated without duplicating any
+    side effects. *)
 let rec is_pure (expr : Parsetree.expression) =
   match expr.pexp_desc with
   | Pexp_ident _ | Pexp_constant _ -> true
@@ -214,7 +225,6 @@ let rec is_pure (expr : Parsetree.expression) =
 
 let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
     (app : Parsetree.expression) =
-  let module H = Ocaml_parsing.Ast_helper in
   match app.pexp_desc with
   | Pexp_apply
       ( { pexp_desc = Pexp_fun (Nolabel, None, pat, body); _ }
@@ -226,16 +236,19 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
     | Ppat_var param -> (
       let open Option.O in
       let m_uses =
-        let+ path = Paths.find paths param.loc in
+        let* path = Paths.find paths param.loc in
         Uses.find uses path
+      in
+      let same_path paths (id : _ H.with_loc) (id' : _ H.with_loc) =
+        Paths.same_path paths id.loc id'.loc
       in
       match m_uses with
       | Some 0 -> beta_reduce uses paths body
       | Some 1 ->
-        beta_reduce uses paths (subst (Paths.same_path paths) arg param body)
+        beta_reduce uses paths (subst (same_path paths) arg param body)
       | Some _ | None ->
         if is_pure arg then
-          beta_reduce uses paths (subst (Paths.same_path paths) arg param body)
+          beta_reduce uses paths (subst (same_path paths) arg param body)
         else
           (* if the parameter is used multiple times in the body, introduce a
              let binding so that the parameter is evaluated only once *)
@@ -247,15 +260,11 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
       H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] (beta_reduce uses paths body))
   | _ -> app
 
-let rec beta_reduce (app : Typedtree.expression) (p_app : Parsetree.expression)
-    =
-  assert false
-
 module Test = struct
   type t = { x : int }
 
   let z =
-    let f y = [%yojson_of: int] y in
+    let f y = y + 1 in
     let y = { x = 0 } in
     f y.x
 end
@@ -313,19 +322,28 @@ let inline_edits pipeline task =
     List.iter args ~f:(fun (l, e) -> arg_iter env iter l e)
   in
 
+  let uses = Uses.of_typedtree task.inlined_expr in
+  let paths = Paths.of_typedtree task.inlined_expr in
+  let inlined_pexpr =
+    find_parsetree_loc_exn pipeline task.inlined_expr.exp_loc
+  in
+
   let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
     match expr.exp_desc with
     (* when inlining into an application context, attempt to beta reduce the
        result *)
-    | Texp_apply ({ exp_desc = Texp_ident (Pident id, _, _); _ }, args)
+    | Texp_apply ({ exp_desc = Texp_ident (Pident id, _, _); _ }, _)
       when Ident.same task.inlined_var id && not_shadowed expr.exp_env ->
-      let reduced_expr =
-        beta_reduce
-          { expr with exp_desc = Texp_apply (task.inlined_expr, args) }
+      let reduced_pexpr =
+        let app_pexpr = find_parsetree_loc_exn pipeline expr.exp_loc in
+        match app_pexpr.pexp_desc with
+        | Pexp_apply ({ pexp_desc = Pexp_ident _; _ }, args) ->
+          beta_reduce uses paths (H.Exp.apply inlined_pexpr args)
+        | _ -> app_pexpr
       in
       let newText =
         Format.asprintf "(%a)" Pprintast.expression
-        @@ strip_attribute "merlin.loc" reduced_expr
+        @@ strip_attribute "merlin.loc" reduced_pexpr
       in
       insert_edit newText expr.exp_loc
     | Texp_apply (func, args) -> apply_iter expr.exp_env iter func args
