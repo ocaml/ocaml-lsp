@@ -50,6 +50,14 @@ let string_of_error (ident, reason) =
     ident
     reason
 
+let rec find_map_until ~f = function
+  | [] -> None
+  | x :: xs -> (
+    match f x with
+    | `Return x' -> Some x'
+    | `Skip -> find_map_until ~f xs
+    | `Done -> None)
+
 let find_inline_task pipeline pos =
   let contains loc pos =
     match Position.compare_inclusion pos (Range.of_loc loc) with
@@ -66,9 +74,10 @@ let find_inline_task pipeline pos =
   Mbrowse.enclosing
     (Mpipeline.get_lexing_pos pipeline (Position.logical pos))
     [ browse ]
-  |> List.find_map ~f:(function
-         | ( (_ : Ocaml_typing.Env.t)
-           , Browse_raw.Expression
+  |> find_map_until ~f:(fun (_, expr) ->
+         if contains (Mbrowse.node_loc expr) pos then
+           match expr with
+           | Browse_raw.Expression
                { exp_desc =
                    Texp_let
                      ( Nonrecursive
@@ -79,10 +88,11 @@ let find_inline_task pipeline pos =
                        ]
                      , rhs )
                ; _
-               } )
-           when contains s.loc pos ->
-           Some { inlined_var = id; inlined_expr = vb_expr; context = rhs }
-         | _ -> None)
+               }
+             when contains s.loc pos ->
+             `Return { inlined_var = id; inlined_expr = vb_expr; context = rhs }
+           | _ -> `Skip
+         else `Done)
 
 let find_parsetree_loc pipeline loc =
   let exception Found of Parsetree.expression in
