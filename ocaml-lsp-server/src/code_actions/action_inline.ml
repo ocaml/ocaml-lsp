@@ -242,7 +242,10 @@ let rec find_map_remove ~f = function
 
 let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
     (app : Parsetree.expression) =
-  let beta_reduce_arg (pat : Parsetree.pattern) body arg =
+  let rec beta_reduce_arg (pat : Parsetree.pattern) body arg =
+    let default () =
+      H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] (beta_reduce uses paths body)
+    in
     match pat.ppat_desc with
     | Ppat_any | Ppat_construct ({ txt = Lident "()"; _ }, _) ->
       beta_reduce uses paths body
@@ -266,12 +269,17 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
         else
           (* if the parameter is used multiple times in the body, introduce a
              let binding so that the parameter is evaluated only once *)
-          H.Exp.let_
-            Nonrecursive
-            [ H.Vb.mk pat arg ]
-            (beta_reduce uses paths body))
-    | _ ->
-      H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] (beta_reduce uses paths body)
+          default ())
+    | Ppat_tuple pats -> (
+      match arg.pexp_desc with
+      | Pexp_tuple args ->
+        List.fold_left2
+          ~f:(fun body pat arg -> beta_reduce_arg pat body arg)
+          ~init:body
+          pats
+          args
+      | _ -> default ())
+    | _ -> default ()
   in
   let apply func args =
     if List.is_empty args then func else H.Exp.apply func args

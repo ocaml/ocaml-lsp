@@ -133,7 +133,8 @@ let _ =
   let $x = 0 in
   (fun ~x -> x) ~x:(x + 1)
 |};
-  [%expect {|
+  [%expect
+    {|
     let _ =
       let x = 0 in
       (fun ~x -> x) ~x:((0) + 1) |}]
@@ -144,7 +145,8 @@ let _ =
   let $x = 0 in
   (fun ?(x = 1) -> x) ~x:(x + 1)
 |};
-  [%expect {|
+  [%expect
+    {|
     let _ =
       let x = 0 in
       (fun ?(x = 1) -> x) ~x:((0) + 1) |}]
@@ -311,18 +313,28 @@ let _ =
       let f 1 = 2 in
       (let 1 = 2 in 2) |}]
 
-(* TODO *)
 let%expect_test "" =
   inline_test {|
 let _ =
   let $f (x, y) = x + y in
   f (1, 2)
 |};
+  [%expect {|
+    let _ =
+      let f (x, y) = x + y in
+      (1 + 2) |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ =
+  let $f (x, y) = x + y + y in
+  f (1, 2 + 3)
+|};
   [%expect
     {|
     let _ =
-      let f (x, y) = x + y in
-      (let (x, y) = (1, 2) in x + y) |}]
+      let f (x, y) = x + y + y in
+      (let y = 2 + 3 in (1 + y) + y) |}]
 
 (* TODO *)
 let%expect_test "" =
