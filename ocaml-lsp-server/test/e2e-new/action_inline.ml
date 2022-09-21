@@ -87,6 +87,53 @@ let _ =
 let%expect_test "" =
   inline_test {|
 let _ =
+  let $x = 0 + 1 in
+  (fun x -> x) x
+|};
+  [%expect {|
+    let _ =
+      let x = 0 + 1 in
+      (fun x -> x) (0 + 1) |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ =
+  let $x = 0 + 1 in
+  (fun ~x -> x) ~x
+|};
+  [%expect
+    {|
+    let _ =
+      let x = 0 + 1 in
+      (fun ~x -> x) ~x:(0 + 1) |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ =
+  let $x = 0 + 1 in
+  (fun ?(x = 2) -> x) ~x
+|};
+  [%expect
+    {|
+    let _ =
+      let x = 0 + 1 in
+      (fun ?(x = 2) -> x) ~x:(0 + 1) |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ =
+  let $x = Some 0 in
+  (fun ?(x = 2) -> x) ?x
+|};
+  [%expect
+    {|
+    let _ =
+      let x = 0 + 1 in
+      (fun ?(x = 2) -> x) ~x:(0 + 1) |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ =
   let $f x = x in
   f 1
 |};
@@ -181,12 +228,12 @@ let _ =
   let $f (x : int) = x + 1 in
   f 0
 |};
-  [%expect
-    {|
+  [%expect {|
     let _ =
       let f (x : int) = x + 1 in
       (0 + 1) |}]
 
+(* TODO *)
 let%expect_test "" =
   inline_test {|
 let _ =
@@ -205,8 +252,7 @@ let _ =
   let $f : int -> int = fun x -> x in
   f 0
 |};
-  [%expect
-    {|
+  [%expect {|
     let _ =
       let f : int -> int = fun x -> x in
       (0) |}]
@@ -242,12 +288,12 @@ let _ =
   let $f 1 = 2 in
   f 2
 |};
-  [%expect
-    {|
+  [%expect {|
     let _ =
       let f 1 = 2 in
       (let 1 = 2 in 2) |}]
 
+(* TODO *)
 let%expect_test "" =
   inline_test {|
 let _ =
@@ -260,6 +306,7 @@ let _ =
       let f (x, y) = x + y in
       (let (x, y) = (1, 2) in x + y) |}]
 
+(* TODO *)
 let%expect_test "" =
   inline_test
     {|
@@ -275,6 +322,7 @@ let _ =
       let f { x; y } = x + y in
       (let { x; y } = { x = 1; y = 1 } in x + y) |}]
 
+(* TODO *)
 let%expect_test "" =
   inline_test
     {|
@@ -296,8 +344,7 @@ let _ =
   let $f x = [%test] x in
   f 1
 |};
-  [%expect
-    {|
+  [%expect {|
     let _ =
       let f x = [%test] x in
       (([%test ]) 1) |}]
@@ -308,8 +355,7 @@ let _ =
   let $f x = x in
   [%test] (f 1)
 |};
-  [%expect
-    {|
+  [%expect {|
     let _ =
       let f x = x in
       [%test] (1) |}]
@@ -320,8 +366,7 @@ let _ =
   let $f x = (* test comment *) x in
   f 1
 |};
-  [%expect
-    {|
+  [%expect {|
     let _ =
       let f x = (* test comment *) x in
       (1) |}]
@@ -332,8 +377,34 @@ let _ =
   let $f x = x in
   (* test comment *) f 1
 |};
-  [%expect
-    {|
+  [%expect {|
     let _ =
       let f x = x in
       (* test comment *) (1) |}]
+
+let%expect_test "" =
+  inline_test {|
+let $f x = x
+let g y = f y
+|};
+  [%expect {|
+    let f x = x
+    let g y = (y) |}]
+
+(* TODO *)
+let%expect_test "" =
+  inline_test
+    {|
+module M = struct
+  let $f x = x
+  let g y = f y
+end
+let h = M.f
+|};
+  [%expect
+    {|
+    module M = struct
+      let f x = x
+      let g y = (y)
+    end
+    let h = M.f |}]

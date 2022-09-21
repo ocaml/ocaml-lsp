@@ -6,7 +6,6 @@ let action_title = "Inline"
 type inline_task =
   { inlined_var : Ident.t
   ; inlined_expr : Typedtree.expression  (** the expression to inline *)
-  ; context : Typedtree.expression  (** where to perform inlining *)
   }
 
 let find_path_by_name id env =
@@ -51,49 +50,52 @@ let string_of_error (ident, reason) =
     ident
     reason
 
-let rec find_map_until ~f = function
-  | [] -> None
-  | x :: xs -> (
-    match f x with
-    | `Return x' -> Some x'
-    | `Skip -> find_map_until ~f xs
-    | `Done -> None)
+let contains loc pos =
+  match Position.compare_inclusion pos (Range.of_loc loc) with
+  | `Outside _ -> false
+  | `Inside -> true
 
-let find_inline_task pipeline pos =
-  let contains loc pos =
-    match Position.compare_inclusion pos (Range.of_loc loc) with
-    | `Outside _ -> false
-    | `Inside -> true
+let find_inline_task typedtree pos =
+  let exception Found of inline_task in
+  let module I = Ocaml_typing.Tast_iterator in
+  let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
+    if contains expr.exp_loc pos then
+      match expr.exp_desc with
+      | Texp_let
+          ( Nonrecursive
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+              ; vb_expr = inlined_expr
+              ; _
+              }
+            ]
+          , _ )
+        when contains loc pos -> raise (Found { inlined_var; inlined_expr })
+      | _ -> I.default_iterator.expr iter expr
   in
-
-  (* Find most enclosing nonrecursive let binding *)
-  let browse =
-    Mpipeline.typer_result pipeline
-    |> Mtyper.get_typedtree |> Mbrowse.of_typedtree
+  let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item)
+      =
+    if contains item.str_loc pos then
+      match item.str_desc with
+      | Tstr_value
+          ( Nonrecursive
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+              ; vb_expr = inlined_expr
+              ; _
+              }
+            ] )
+        when contains loc pos -> raise (Found { inlined_var; inlined_expr })
+      | _ -> I.default_iterator.structure_item iter item
   in
-
-  Mbrowse.enclosing
-    (Mpipeline.get_lexing_pos pipeline (Position.logical pos))
-    [ browse ]
-  |> find_map_until ~f:(fun (_, expr) ->
-         if contains (Mbrowse.node_loc expr) pos then
-           match expr with
-           | Browse_raw.Expression
-               { exp_desc =
-                   Texp_let
-                     ( Nonrecursive
-                     , [ { vb_pat = { pat_desc = Tpat_var (id, s); _ }
-                         ; vb_expr
-                         ; _
-                         }
-                       ]
-                     , rhs )
-               ; _
-               }
-             when contains s.loc pos ->
-             `Return { inlined_var = id; inlined_expr = vb_expr; context = rhs }
-           | _ -> `Skip
-         else `Done)
+  let iterator =
+    { I.default_iterator with
+      expr = expr_iter
+    ; structure_item = structure_item_iter
+    }
+  in
+  try
+    iterator.structure iterator typedtree;
+    None
+  with Found task -> Some task
 
 let find_parsetree_loc pipeline loc =
   let exception Found of Parsetree.expression in
@@ -381,15 +383,28 @@ let inline_edits pipeline task =
     | _ -> I.default_iterator.expr iter expr
   in
   let iterator = { I.default_iterator with expr = expr_iter } in
-  iterator.expr iterator task.context;
-  (Queue.to_list edits, !error)
+
+  let edits =
+    match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
+    | `Interface _ -> []
+    | `Implementation structure ->
+      iterator.structure iterator structure;
+      Queue.to_list edits
+  in
+  (edits, !error)
 
 let code_action doc (params : CodeActionParams.t) =
   let open Fiber.O in
   let* m_edits =
     Document.with_pipeline_exn doc (fun pipeline ->
-        find_inline_task pipeline params.range.start
-        |> Option.bind ~f:(inline_edits pipeline))
+        let open Option.O in
+        let* typedtree =
+          match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
+          | `Interface _ -> None
+          | `Implementation x -> Some x
+        in
+        let* task = find_inline_task typedtree params.range.start in
+        inline_edits pipeline task)
   in
   Option.bind m_edits ~f:(fun (edits, m_error) ->
       match (edits, m_error) with
