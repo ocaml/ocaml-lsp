@@ -334,10 +334,13 @@ let inline_edits pipeline task =
     (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
     | ( Labelled name
       , Some { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } )
-    (* optional arguments have a different representation *)
+    (* inlining is allowed for optional arguments that are being passed a Some
+       parameter, i.e. `x` may be inlined in `let x = 1 in (fun ?(x = 0) -> x)
+       ~x` *)
     | ( Optional name
       , Some
           { exp_desc =
+              (* construct is part of desugaring, assumed to be Some *)
               Texp_construct
                 ( _
                 , _
@@ -347,7 +350,13 @@ let inline_edits pipeline task =
       when Ident.same task.inlined_var id && not_shadowed env ->
       let newText = sprintf "%s:%s" name newText in
       insert_edit newText loc
-    | _, m_expr -> Option.iter m_expr ~f:(iter.expr iter)
+    | Optional _, Some ({ exp_desc = Texp_construct _; _ } as arg_expr) ->
+      iter.expr iter arg_expr
+    (* inlining is _not_ allowed for optional arguments that are being passed an
+       optional parameter i.e. `x` may _not_ be inlined in `let x = Some 1 in
+       (fun ?(x = 0) -> x) ?x` *)
+    | Optional _, Some _ -> ()
+    | _, _ -> Option.iter m_arg_expr ~f:(iter.expr iter)
   in
 
   let uses = Uses.of_typedtree task.inlined_expr in

@@ -125,11 +125,29 @@ let _ =
   let $x = Some 0 in
   (fun ?(x = 2) -> x) ?x
 |};
-  [%expect
-    {|
+  [%expect {| |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ =
+  let $x = 0 in
+  (fun ~x -> x) ~x:(x + 1)
+|};
+  [%expect {|
     let _ =
-      let x = 0 + 1 in
-      (fun ?(x = 2) -> x) ~x:(0 + 1) |}]
+      let x = 0 in
+      (fun ~x -> x) ~x:((0) + 1) |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ =
+  let $x = 0 in
+  (fun ?(x = 1) -> x) ~x:(x + 1)
+|};
+  [%expect {|
+    let _ =
+      let x = 0 in
+      (fun ?(x = 1) -> x) ~x:((0) + 1) |}]
 
 let%expect_test "" =
   inline_test {|
