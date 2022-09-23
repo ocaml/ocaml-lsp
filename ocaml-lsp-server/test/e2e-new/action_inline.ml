@@ -84,6 +84,83 @@ let _ =
       let x = 0 in
       (0) + 1 |}]
 
+let%expect_test "shadow-1" =
+  inline_test
+    {|
+let _ =
+  let y = 1 in
+  let $x = y in
+  let y = 0 in
+  x + 1
+|};
+  [%expect {| |}]
+
+let%expect_test "shadow-2" =
+  inline_test
+    {|
+let _ =
+  let y = 1 in
+  let $x y = y in
+  let y = 0 in
+  x y + 1
+|};
+  [%expect {|
+    let _ =
+      let y = 1 in
+      let x y = y in
+      let y = 0 in
+      (y) + 1 |}]
+
+let%expect_test "shadow-3" =
+  inline_test
+    {|
+let _ =
+  let y = 1 in
+  let $x z = y + z in
+  let y = 0 in
+  x y + 1
+|};
+  [%expect {| |}]
+
+let%expect_test "shadow-4" =
+  inline_test
+    {|
+module M = struct
+  let y = 1
+end
+let _ =
+  let $x = M.y in
+  let module M = struct
+    let y = 2
+  end in
+  x
+|};
+  [%expect {| |}]
+
+let%expect_test "shadow-5" =
+  inline_test
+    {|
+module M = struct
+  let y = 1
+end
+let _ =
+  let $x = M.y in
+  let module N = struct
+    let y = 2
+  end in
+  x
+|};
+  [%expect {|
+    module M = struct
+      let y = 1
+    end
+    let _ =
+      let x = M.y in
+      let module N = struct
+        let y = 2
+      end in
+      (M.y) |}]
+
 let%expect_test "" =
   inline_test {|
 let _ =
@@ -290,6 +367,7 @@ let _ =
       let f = function Some x -> x | None -> 0 in
       ((function | Some x -> x | None -> 0) (Some 1)) |}]
 
+(* TODO *)
 let%expect_test "" =
   inline_test {|
 let _ =
@@ -335,6 +413,21 @@ let _ =
     let _ =
       let f (x, y) = x + y + y in
       (let y = 2 + 3 in (1 + y) + y) |}]
+
+let%expect_test "" =
+  inline_test
+    {|
+let _ =
+  let $f (x, y) = x + y + y in
+  let z = (1, 2) in
+  f z
+|};
+  [%expect
+    {|
+    let _ =
+      let f (x, y) = x + y + y in
+      let z = (1, 2) in
+      (let (x, y) = z in (x + y) + y) |}]
 
 (* TODO *)
 let%expect_test "" =

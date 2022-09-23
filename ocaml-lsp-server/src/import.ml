@@ -110,6 +110,7 @@ module Ast_iterator = Ocaml_parsing.Ast_iterator
 module Asttypes = Ocaml_parsing.Asttypes
 module Cmt_format = Ocaml_typing.Cmt_format
 module Ident = Ocaml_typing.Ident
+module Env = Ocaml_typing.Env
 
 module Loc = struct
   include Ocaml_parsing.Location
