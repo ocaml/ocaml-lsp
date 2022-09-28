@@ -374,7 +374,7 @@ let signature_help (state : State.t)
           let typer = Mpipeline.typer_result pipeline in
           let pos = Mpipeline.get_lexing_pos pipeline pos in
           let node = Mtyper.node_at typer pos in
-          Merlin_analysis.Signature_help.application_signature node ~prefix)
+          Signature_help.application_signature node ~prefix)
     else Fiber.return None
   in
   match application_signature with
@@ -396,7 +396,7 @@ let signature_help (state : State.t)
       let parameters =
         List.map
           application_signature.parameters
-          ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
+          ~f:(fun (p : Signature_help.parameter_info) ->
             let label =
               `Offset (offset + p.param_start, offset + p.param_end)
             in
