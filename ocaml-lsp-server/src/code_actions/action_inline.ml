@@ -302,14 +302,6 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
     )
   | _ -> app
 
-module Test = struct
-  type t = { x : int }
-
-  let z =
-    let f (y : int) (z : int) a = y + z + a in
-    f 2 0
-end
-
 let inlined_text pipeline task =
   let open Option.O in
   let+ expr = find_parsetree_loc pipeline task.inlined_expr.exp_loc in
