@@ -104,7 +104,8 @@ let _ =
   let y = 0 in
   x y + 1
 |};
-  [%expect {|
+  [%expect
+    {|
     let _ =
       let y = 1 in
       let x y = y in
@@ -150,7 +151,8 @@ let _ =
   end in
   x
 |};
-  [%expect {|
+  [%expect
+    {|
     module M = struct
       let y = 1
     end
