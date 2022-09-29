@@ -2,6 +2,8 @@
 
 ## Features
 
+- Code action for inlining let bindings within a module or expression. (#847)
+
 - Tag "unused code" and "deprecated" warnings, allowing clients to better
   display them. (#848)
 
