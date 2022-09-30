@@ -24,15 +24,15 @@
         pkgs = nixpkgs.legacyPackages.${system};
         on = opam-nix.lib.${system};
         localPackages = {
-          jsonrpc = null;
-          lsp = null;
+          jsonrpc = "*";
+          lsp = "*";
         };
         devPackages = {
-          menhir = null;
-          ppx_yojson_conv = null;
-          cinaps = null;
-          ppx_expect = null;
-          ocamlformat-rpc = null;
+          menhir = "*";
+          ppx_yojson_conv = "*";
+          cinaps = "*";
+          ppx_expect = "*";
+          ocamlformat-rpc = "*";
           ocamlfind = "1.9.2";
         };
         allPackages = localPackages // devPackages;
