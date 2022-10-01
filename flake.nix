@@ -26,7 +26,7 @@
         localPackages = {
           jsonrpc = "*";
           lsp = "*";
-          ocaml-base-compiler = "4.14.0";
+          ocaml-lsp-server = "*";
         };
         devPackages = {
           menhir = "*";
