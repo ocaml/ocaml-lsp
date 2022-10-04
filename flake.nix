@@ -36,31 +36,46 @@
           ocamlformat-rpc = "*";
           ocamlfind = "1.9.2";
         };
+        packagesFromNames = set:
+          (builtins.map (s: builtins.getAttr s scope)
+            (builtins.attrNames set));
         allPackages = localPackages // devPackages;
-      in {
-        legacyPackages = let
-          scope =
-            on.buildOpamProject { resolveArgs = { with-test = true; }; } package
-            ./. (allPackages);
-          overlay = final: prev: {
-            git-subrepo = prev.git-subrepo.overrideAttr
-              (old: { src = inputs.git-subrepo-src; });
+        scope =
+          (
+            let
+              scope =
+                on.buildOpamProject { resolveArgs = { with-test = true; }; } package
+                  ./.
+                  (allPackages);
+              overlay = final: prev: {
+                ${package} = prev.${package}.overrideAttrs (_: {
+                  # Do not add share/nix-support, so that dependencies from
+                  # the scope don't leak into dependent derivations
+                  doNixSupport = false;
+                });
+                git-subrepo = prev.git-subrepo.overrideAttr
+                  (old: { src = inputs.git-subrepo-src; });
+              };
+            in
+            scope.overrideScope' overlay
+          );
+      in
+      {
+        packages =
+          (nixpkgs.lib.filterAttrs (name: value: builtins.hasAttr name localPackages) scope) //
+          { default = self.packages.${system}.${package}; };
+
+        devShell =
+          pkgs.mkShell {
+            buildInputs = (with pkgs;
+              [
+                # dev tools
+                git-subrepo
+                ocamlformat_0_21_0
+                yarn
+              ]) ++ packagesFromNames devPackages;
+            inputsFrom = [ self.packages.${system}.default ]
+              ++ packagesFromNames localPackages;
           };
-        in scope.overrideScope' overlay;
-
-        defaultPackage = self.legacyPackages.${system}.${package};
-
-        devShell = let scope = self.legacyPackages.${system};
-        in pkgs.mkShell {
-          nativeBuildInputs = with pkgs; [
-            # dev tools
-            git-subrepo
-            ocamlformat_0_21_0
-            yarn
-          ];
-          inputsFrom = [ self.defaultPackage.${system} ]
-            ++ (builtins.map (s: builtins.getAttr s scope)
-              (builtins.attrNames allPackages));
-        };
       });
 }
