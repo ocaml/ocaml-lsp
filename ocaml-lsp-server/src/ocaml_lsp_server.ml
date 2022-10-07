@@ -88,6 +88,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
               ; Req_typed_holes.capability
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
+              ; Req_hover_extended.capability
               ] )
         ]
     in
@@ -705,6 +706,7 @@ let on_request :
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
       ; ( Semantic_highlighting.Debug.meth_request_full
         , Semantic_highlighting.Debug.on_request_full )
+      ; (Req_hover_extended.meth, Req_hover_extended.on_request)
       ]
       |> List.assoc_opt meth
     with

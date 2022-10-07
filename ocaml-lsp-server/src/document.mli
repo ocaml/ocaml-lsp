@@ -74,4 +74,5 @@ type type_enclosing =
   ; doc : string option
   }
 
-val type_enclosing : t -> Msource.position -> type_enclosing option Fiber.t
+val type_enclosing :
+  ?verbosity:int -> t -> Msource.position -> type_enclosing option Fiber.t
