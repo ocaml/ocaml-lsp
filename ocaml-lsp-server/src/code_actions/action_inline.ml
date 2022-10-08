@@ -405,57 +405,54 @@ let inline_edits pipeline task =
   (edits, !error)
 
 let code_action doc (params : CodeActionParams.t) =
-  let open Fiber.O in
-  let* m_edits =
-    Document.with_pipeline_exn doc (fun pipeline ->
-        let open Option.O in
-        let* typedtree =
-          match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
-          | `Interface _ -> None
-          | `Implementation x -> Some x
-        in
-        let* task = find_inline_task typedtree params.range.start in
-        inline_edits pipeline task)
-  in
-  Option.bind m_edits ~f:(fun (edits, m_error) ->
-      match (edits, m_error) with
-      | [], None -> None
-      | [], Some error ->
-        let action =
-          CodeAction.create
-            ~title:action_title
-            ~kind:CodeActionKind.RefactorInline
-            ~isPreferred:false
-            ~disabled:
-              (CodeAction.create_disabled ~reason:(string_of_error error))
-            ()
-        in
-        Some action
-      | _ :: _, (Some _ | None) ->
-        let edit =
-          let version = Document.version doc in
-          let textDocument =
-            OptionalVersionedTextDocumentIdentifier.create
-              ~uri:params.textDocument.uri
-              ~version
-              ()
-          in
-          let edit =
-            TextDocumentEdit.create
-              ~textDocument
-              ~edits:(List.map edits ~f:(fun e -> `TextEdit e))
-          in
-          WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-        in
-        let action =
-          CodeAction.create
-            ~title:action_title
-            ~kind:CodeActionKind.RefactorInline
-            ~edit
-            ~isPreferred:false
-            ()
-        in
-        Some action)
-  |> Fiber.return
+  let open Option.O in
+  Document.with_pipeline_exn doc (fun pipeline ->
+      let* typedtree =
+        match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
+        | `Interface _ -> None
+        | `Implementation x -> Some x
+      in
+      let* task = find_inline_task typedtree params.range.start in
+      inline_edits pipeline task)
+  |> Fiber.map ~f:(fun m_edits ->
+         let* edits, m_error = m_edits in
+         match (edits, m_error) with
+         | [], None -> None
+         | [], Some error ->
+           let action =
+             CodeAction.create
+               ~title:action_title
+               ~kind:CodeActionKind.RefactorInline
+               ~isPreferred:false
+               ~disabled:
+                 (CodeAction.create_disabled ~reason:(string_of_error error))
+               ()
+           in
+           Some action
+         | _ :: _, (Some _ | None) ->
+           let edit =
+             let version = Document.version doc in
+             let textDocument =
+               OptionalVersionedTextDocumentIdentifier.create
+                 ~uri:params.textDocument.uri
+                 ~version
+                 ()
+             in
+             let edit =
+               TextDocumentEdit.create
+                 ~textDocument
+                 ~edits:(List.map edits ~f:(fun e -> `TextEdit e))
+             in
+             WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
+           in
+           let action =
+             CodeAction.create
+               ~title:action_title
+               ~kind:CodeActionKind.RefactorInline
+               ~edit
+               ~isPreferred:false
+               ()
+           in
+           Some action)
 
 let t = { Code_action.kind = RefactorInline; run = code_action }
