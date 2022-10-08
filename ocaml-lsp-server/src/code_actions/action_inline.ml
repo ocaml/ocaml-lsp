@@ -310,6 +310,10 @@ let inlined_text pipeline task =
   let expr = strip_attribute "merlin.loc" expr in
   Format.asprintf "(%a)" Pprintast.expression expr
 
+(** [inline_edits pipeline task] returns a list of inlining edits and an
+    optional error value. An error will be generated if any of the potential
+    inlinings is not allowed due to shadowing. The successful edits will still
+    be returned *)
 let inline_edits pipeline task =
   let module I = Ocaml_typing.Tast_iterator in
   let open Option.O in
