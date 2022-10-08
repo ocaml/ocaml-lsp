@@ -85,6 +85,14 @@ The server supports the following LSP requests:
 
 Note that degrees of support for each LSP request are varying.
 
+The server also supports a number of OCaml specific extensions to the protocol:
+- [Infer interface](ocaml-lsp-server/docs/ocamllsp/inferIntf-spec.md)
+- [Switch to implementation/interface](ocaml-lsp-server/docs/ocamllsp/switchImplIntf-spec.md)
+- [Locate typed holes](ocaml-lsp-server/docs/ocamllsp/typedHoles-spec.md)
+- [Find wrapping AST node](ocaml-lsp-server/docs/ocamllsp/wrappingAstNode-spec.md)
+
+Note that editor support for these extensions varies. In general, the OCaml Platform extension for Visual Studio Code will have the best support.
+
 ## Integration with other tools
 
 ### Source file formatting: OCamlFormat & Refmt
