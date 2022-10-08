@@ -28,8 +28,8 @@ let check_shadowing (inlined_expr : Typedtree.expression) new_env =
         match find_path_by_name ident new_env with
         | Some path' ->
           if not (Path.same path path') then
-            raise (Env_mismatch (ident, `Shadowed))
-        | None -> raise (Env_mismatch (ident, `Unbound)))
+            raise_notrace (Env_mismatch (ident, `Shadowed))
+        | None -> raise_notrace (Env_mismatch (ident, `Unbound)))
     | _ -> I.default_iterator.expr iter expr
   in
   let iter = { I.default_iterator with expr = expr_iter } in
@@ -69,7 +69,8 @@ let find_inline_task typedtree pos =
               }
             ]
           , _ )
-        when contains loc pos -> raise (Found { inlined_var; inlined_expr })
+        when contains loc pos ->
+        raise_notrace (Found { inlined_var; inlined_expr })
       | _ -> I.default_iterator.expr iter expr
   in
   let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item)
@@ -83,7 +84,8 @@ let find_inline_task typedtree pos =
               ; _
               }
             ] )
-        when contains loc pos -> raise (Found { inlined_var; inlined_expr })
+        when contains loc pos ->
+        raise_notrace (Found { inlined_var; inlined_expr })
       | _ -> I.default_iterator.structure_item iter item
   in
   let iterator =
@@ -101,7 +103,7 @@ let find_parsetree_loc pipeline loc =
   let exception Found of Parsetree.expression in
   try
     let expr_iter (iter : Ast_iterator.iterator) (expr : Parsetree.expression) =
-      if Loc.compare expr.pexp_loc loc = 0 then raise (Found expr)
+      if Loc.compare expr.pexp_loc loc = 0 then raise_notrace (Found expr)
       else Ast_iterator.default_iterator.expr iter expr
     in
     let iterator = { Ast_iterator.default_iterator with expr = expr_iter } in
