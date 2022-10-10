@@ -1,7 +1,7 @@
 open Import
 module H = Ocaml_parsing.Ast_helper
 
-let action_title = "Inline"
+let action_title = "Inline into uses"
 
 type inline_task =
   { inlined_var : Ident.t
@@ -99,6 +99,8 @@ let find_inline_task typedtree pos =
     None
   with Found task -> Some task
 
+(** [find_parsetree_loc pl loc] finds an expression node in the parsetree with
+    location [loc] *)
 let find_parsetree_loc pipeline loc =
   let exception Found of Parsetree.expression in
   try
@@ -131,7 +133,13 @@ let strip_attribute attr_name expr =
   mapper.expr mapper expr
 
 (** Overapproximation of the number of uses of a [Path.t] in an expression. *)
-module Uses = struct
+module Uses : sig
+  type t
+
+  val find : t -> Path.t -> int option
+
+  val of_typedtree : Typedtree.expression -> t
+end = struct
   type t = int Path.Map.t
 
   let find m k = Path.Map.find_opt k m
@@ -158,48 +166,33 @@ end
 
 (** Mapping from [Location.t] to [Path.t]. Computed from the typedtree. Useful
     for determining whether two parsetree identifiers refer to the same path. *)
-module Paths = struct
-  module Location_map = Map.Make (struct
-    include Loc
+module Paths : sig
+  type t
 
-    let compare x x' = Ordering.of_int (compare x x')
+  val find : t -> Loc.t -> Path.t option
 
-    let position_to_dyn (pos : Lexing.position) =
-      Dyn.Record
-        [ ("pos_fname", Dyn.String pos.pos_fname)
-        ; ("pos_lnum", Dyn.Int pos.pos_lnum)
-        ; ("pos_bol", Dyn.Int pos.pos_bol)
-        ; ("pos_cnum", Dyn.Int pos.pos_cnum)
-        ]
+  val of_typedtree : Typedtree.expression -> t
 
-    let to_dyn loc =
-      Dyn.Record
-        [ ("loc_start", position_to_dyn loc.loc_start)
-        ; ("loc_end", position_to_dyn loc.loc_end)
-        ; ("loc_ghost", Dyn.Bool loc.loc_ghost)
-        ]
-  end)
+  val same_path : t -> Loc.t -> Loc.t -> bool
+end = struct
+  type t = Path.t Loc.Map.t
 
-  type t = Path.t Location_map.t
-
-  let find = Location_map.find
+  let find = Loc.Map.find
 
   let of_typedtree (expr : Typedtree.expression) =
     let module I = Ocaml_typing.Tast_iterator in
-    let paths = ref Location_map.empty in
+    let paths = ref Loc.Map.empty in
     let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
       match expr.exp_desc with
-      | Texp_ident (path, { loc; _ }, _) ->
-        paths := Location_map.set !paths loc path
+      | Texp_ident (path, { loc; _ }, _) -> paths := Loc.Map.set !paths loc path
       | _ -> I.default_iterator.expr iter expr
     in
     let pat_iter (type k) (iter : I.iterator)
         (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
-      | Tpat_var (id, { loc; _ }) ->
-        paths := Location_map.set !paths loc (Pident id)
+      | Tpat_var (id, { loc; _ }) -> paths := Loc.Map.set !paths loc (Pident id)
       | Tpat_alias (pat, id, { loc; _ }) ->
-        paths := Location_map.set !paths loc (Pident id);
+        paths := Loc.Map.set !paths loc (Pident id);
         I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
     in

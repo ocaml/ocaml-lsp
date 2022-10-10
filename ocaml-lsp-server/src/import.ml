@@ -113,8 +113,33 @@ module Ident = Ocaml_typing.Ident
 module Env = Ocaml_typing.Env
 
 module Loc = struct
-  include Ocaml_parsing.Location
-  include Ocaml_parsing.Location_aux
+  module T = struct
+    include Ocaml_parsing.Location
+    include Ocaml_parsing.Location_aux
+  end
+
+  include T
+
+  module Map = Map.Make (struct
+    include T
+
+    let compare x x' = Ordering.of_int (compare x x')
+
+    let position_to_dyn (pos : Lexing.position) =
+      Dyn.Record
+        [ ("pos_fname", Dyn.String pos.pos_fname)
+        ; ("pos_lnum", Dyn.Int pos.pos_lnum)
+        ; ("pos_bol", Dyn.Int pos.pos_bol)
+        ; ("pos_cnum", Dyn.Int pos.pos_cnum)
+        ]
+
+    let to_dyn loc =
+      Dyn.Record
+        [ ("loc_start", position_to_dyn loc.loc_start)
+        ; ("loc_end", position_to_dyn loc.loc_end)
+        ; ("loc_ghost", Dyn.Bool loc.loc_ghost)
+        ]
+  end)
 end
 
 module Longident = Ocaml_parsing.Longident
