@@ -1,20 +1,10 @@
 open Test.Import
 open Code_actions
 
-let find_mapi ~f l =
-  let rec k i = function
-    | [] -> None
-    | x :: xs -> (
-      match f i x with
-      | Some x' -> Some x'
-      | None -> k (i + 1) xs)
-  in
-  k 0 l
-
 let parse_cursor src =
   let cursor =
     String.split_lines src
-    |> find_mapi ~f:(fun lnum line ->
+    |> List.find_mapi ~f:(fun lnum line ->
            match String.index line '$' with
            | Some cnum -> Some (Position.create ~character:cnum ~line:lnum)
            | None -> None)
@@ -25,16 +15,9 @@ let parse_cursor src =
         | c -> Some c)
   , Range.create ~start:cursor ~end_:cursor )
 
-let rec take n l =
-  if n = 0 then []
-  else
-    match l with
-    | [] -> failwith "list shorter than n"
-    | x :: xs -> x :: take (n - 1) xs
-
 let offset_of_position src (pos : Position.t) =
   let line_offset =
-    String.split_lines src |> take pos.line
+    String.split_lines src |> List.take pos.line
     |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
   in
   line_offset + pos.line (* account for line endings *) + pos.character

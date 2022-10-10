@@ -1,5 +1,32 @@
 module Import = struct
-  include Stdune
+  include struct
+    include Stdune
+
+    module List = struct
+      include List
+
+      let find_mapi ~f l =
+        let rec k i = function
+          | [] -> None
+          | x :: xs -> (
+            match f i x with
+            | Some x' -> Some x'
+            | None -> (k [@tailcall]) (i + 1) xs)
+        in
+        k 0 l
+
+      let take n l =
+        let rec take acc n l =
+          if n = 0 then acc
+          else
+            match l with
+            | [] -> failwith "list shorter than n"
+            | x :: xs -> (take [@tailcall]) (x :: acc) (n - 1) xs
+        in
+        List.rev (take [] n l)
+    end
+  end
+
   include Fiber.O
   module Client = Lsp_fiber.Client
   include Lsp.Types
