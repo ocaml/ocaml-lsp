@@ -110,15 +110,42 @@ module Ast_iterator = Ocaml_parsing.Ast_iterator
 module Asttypes = Ocaml_parsing.Asttypes
 module Cmt_format = Ocaml_typing.Cmt_format
 module Ident = Ocaml_typing.Ident
+module Env = Ocaml_typing.Env
 
 module Loc = struct
-  include Ocaml_parsing.Location
-  include Ocaml_parsing.Location_aux
+  module T = struct
+    include Ocaml_parsing.Location
+    include Ocaml_parsing.Location_aux
+  end
+
+  include T
+
+  module Map = Map.Make (struct
+    include T
+
+    let compare x x' = Ordering.of_int (compare x x')
+
+    let position_to_dyn (pos : Lexing.position) =
+      Dyn.Record
+        [ ("pos_fname", Dyn.String pos.pos_fname)
+        ; ("pos_lnum", Dyn.Int pos.pos_lnum)
+        ; ("pos_bol", Dyn.Int pos.pos_bol)
+        ; ("pos_cnum", Dyn.Int pos.pos_cnum)
+        ]
+
+    let to_dyn loc =
+      Dyn.Record
+        [ ("loc_start", position_to_dyn loc.loc_start)
+        ; ("loc_end", position_to_dyn loc.loc_end)
+        ; ("loc_ghost", Dyn.Bool loc.loc_ghost)
+        ]
+  end)
 end
 
 module Longident = Ocaml_parsing.Longident
 module Parsetree = Ocaml_parsing.Parsetree
 module Path = Ocaml_typing.Path
+module Pprintast = Ocaml_parsing.Pprintast
 module Typedtree = Ocaml_typing.Typedtree
 module Types = Ocaml_typing.Types
 module Warnings = Ocaml_utils.Warnings
