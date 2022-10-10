@@ -315,7 +315,7 @@ let _ =
       let f (x : int) = x + 1 in
       (0 + 1) |}]
 
-(* TODO *)
+(* TODO: allow beta reduction with locally abstract types *)
 let%expect_test "" =
   inline_test {|
 let _ =
@@ -352,7 +352,7 @@ let _ =
       let f = function Some x -> x | None -> 0 in
       ((function | Some x -> x | None -> 0) (Some 1)) |}]
 
-(* TODO *)
+(* TODO: allow beta reduction with `as` *)
 let%expect_test "" =
   inline_test {|
 let _ =
@@ -430,7 +430,7 @@ let _ =
       let f { x; y } = x + y in
       (let { x; y } = { x = 1; y = 1 } in x + y) |}]
 
-(* TODO *)
+(* TODO: beta reduce record literals as with tuples *)
 let%expect_test "" =
   inline_test
     {|
