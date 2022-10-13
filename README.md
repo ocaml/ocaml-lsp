@@ -126,6 +126,8 @@ for errors such as logged exceptions.
 # clone repo with submodules
 git clone --recursive git@github.com:ocaml/ocaml-lsp.git
 
+cd ocaml-lsp
+
 # if you already cloned, pull submodules
 git submodule update --init --recursive
 
