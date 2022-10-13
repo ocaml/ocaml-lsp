@@ -152,8 +152,8 @@ To run tests execute:
 $ make test
 ```
 
-Note that tests require [Node.js](https://nodejs.org/en/) and
-[Yarn](https://yarnpkg.com/lang/en/) installed.
+Note that tests require [Node.js](https://nodejs.org/en/),
+[Yarn](https://yarnpkg.com/lang/en/) and [Jest](https://jestjs.io/) installed.
 
 ## Relationship to Other Tools
 
