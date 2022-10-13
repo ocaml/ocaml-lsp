@@ -55,7 +55,7 @@ describe("textDocument/completion", () => {
     );
 
     expect(response).toMatchInlineSnapshot(`
-      Object {
+      {
         "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is
          [[f a1 b1; ...; f an bn]].
          @raise Invalid_argument if the two lists are determined
@@ -76,7 +76,7 @@ describe("textDocument/completion", () => {
     );
 
     expect(response).toMatchInlineSnapshot(`
-      Object {
+      {
         "documentation": "[find_all] is another name for {!filter}.",
         "label": "find_all",
       }
@@ -103,7 +103,7 @@ describe("textDocument/completion", () => {
     );
 
     expect(response).toMatchInlineSnapshot(`
-      Object {
+      {
         "documentation": "documentation for [Inner]",
         "label": "Inner",
       }

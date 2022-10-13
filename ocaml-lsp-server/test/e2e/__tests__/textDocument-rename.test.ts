@@ -202,30 +202,30 @@ let () = bar ~foo
     let result = await query(Types.Position.create(0, 4), "ident");
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "changes": Object {
-          "file:///test.ml": Array [
-            Object {
+      {
+        "changes": {
+          "file:///test.ml": [
+            {
               "newText": "ident",
-              "range": Object {
-                "end": Object {
+              "range": {
+                "end": {
                   "character": 7,
                   "line": 0,
                 },
-                "start": Object {
+                "start": {
                   "character": 4,
                   "line": 0,
                 },
               },
             },
-            Object {
+            {
               "newText": ":ident",
-              "range": Object {
-                "end": Object {
+              "range": {
+                "end": {
                   "character": 17,
                   "line": 4,
                 },
-                "start": Object {
+                "start": {
                   "character": 17,
                   "line": 4,
                 },
@@ -256,30 +256,30 @@ ignore (bar ?foo ())
     let result = await query(Types.Position.create(0, 4), "sunit");
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "changes": Object {
-          "file:///test.ml": Array [
-            Object {
+      {
+        "changes": {
+          "file:///test.ml": [
+            {
               "newText": "sunit",
-              "range": Object {
-                "end": Object {
+              "range": {
+                "end": {
                   "character": 7,
                   "line": 0,
                 },
-                "start": Object {
+                "start": {
                   "character": 4,
                   "line": 0,
                 },
               },
             },
-            Object {
+            {
               "newText": ":sunit",
-              "range": Object {
-                "end": Object {
+              "range": {
+                "end": {
                   "character": 16,
                   "line": 5,
                 },
-                "start": Object {
+                "start": {
                   "character": 16,
                   "line": 5,
                 },

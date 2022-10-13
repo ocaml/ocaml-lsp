@@ -36,29 +36,29 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
+          {
+            "diagnostics": [
+              {
                 "message": "This comment contains an unterminated string literal",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 2,
                     "line": 0,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 0,
                     "line": 0,
                   },
                 },
-                "relatedInformation": Array [
-                  Object {
-                    "location": Object {
-                      "range": Object {
-                        "end": Object {
+                "relatedInformation": [
+                  {
+                    "location": {
+                      "range": {
+                        "end": {
                           "character": 4,
                           "line": 0,
                         },
-                        "start": Object {
+                        "start": {
                           "character": 3,
                           "line": 0,
                         },
@@ -91,16 +91,16 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
+          {
+            "diagnostics": [
+              {
                 "message": "Warning 26: unused variable x.",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 7,
                     "line": 1,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 6,
                     "line": 1,
                   },
@@ -130,17 +130,17 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
+          {
+            "diagnostics": [
+              {
                 "message": "Alert deprecated: X.x
           do not use",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 19,
                     "line": 6,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 16,
                     "line": 6,
                   },
@@ -174,9 +174,9 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
+          {
+            "diagnostics": [
+              {
                 "message": "Signature mismatch:
           Modules do not match:
             sig val x : int end
@@ -184,25 +184,25 @@ describe("textDocument/diagnostics", () => {
             sig val x : unit end
           Values do not match: val x : int is not included in val x : unit
           The type int is not compatible with the type unit",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 3,
                     "line": 4,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 6,
                     "line": 2,
                   },
                 },
-                "relatedInformation": Array [
-                  Object {
-                    "location": Object {
-                      "range": Object {
-                        "end": Object {
+                "relatedInformation": [
+                  {
+                    "location": {
+                      "range": {
+                        "end": {
                           "character": 14,
                           "line": 2,
                         },
-                        "start": Object {
+                        "start": {
                           "character": 2,
                           "line": 2,
                         },
@@ -211,14 +211,14 @@ describe("textDocument/diagnostics", () => {
                     },
                     "message": "Expected declaration",
                   },
-                  Object {
-                    "location": Object {
-                      "range": Object {
-                        "end": Object {
+                  {
+                    "location": {
+                      "range": {
+                        "end": {
                           "character": 7,
                           "line": 4,
                         },
-                        "start": Object {
+                        "start": {
                           "character": 6,
                           "line": 4,
                         },
@@ -255,8 +255,8 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [],
+          {
+            "diagnostics": [],
             "uri": "file:///test.ml",
           }
         `);
@@ -278,17 +278,17 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
+          {
+            "diagnostics": [
+              {
                 "code": "hole",
                 "message": "This typed hole should be replaced with an expression of type int",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 15,
                     "line": 0,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 14,
                     "line": 0,
                   },
@@ -318,17 +318,17 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
+          {
+            "diagnostics": [
+              {
                 "code": "hole",
                 "message": "This typed hole should be replaced with an expression of type int",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 16,
                     "line": 0,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 15,
                     "line": 0,
                   },
@@ -336,14 +336,14 @@ describe("textDocument/diagnostics", () => {
                 "severity": 1,
                 "source": "ocamllsp",
               },
-              Object {
+              {
                 "message": "Warning 26: unused variable b.",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 5,
                     "line": 1,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 4,
                     "line": 1,
                   },
@@ -351,15 +351,15 @@ describe("textDocument/diagnostics", () => {
                 "severity": 2,
                 "source": "ocamllsp",
               },
-              Object {
+              {
                 "code": "hole",
                 "message": "This typed hole should be replaced with an expression of type string",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 44,
                     "line": 1,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 43,
                     "line": 1,
                   },
@@ -367,15 +367,15 @@ describe("textDocument/diagnostics", () => {
                 "severity": 1,
                 "source": "ocamllsp",
               },
-              Object {
+              {
                 "code": "hole",
                 "message": "This typed hole should be replaced with an expression of type string",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 58,
                     "line": 1,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 57,
                     "line": 1,
                   },
@@ -407,16 +407,16 @@ describe("textDocument/diagnostics", () => {
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
+          {
+            "diagnostics": [
+              {
                 "message": "This expression has type unit but an expression was expected of type int",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 42,
                     "line": 1,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 40,
                     "line": 1,
                   },
@@ -424,15 +424,15 @@ describe("textDocument/diagnostics", () => {
                 "severity": 1,
                 "source": "ocamllsp",
               },
-              Object {
+              {
                 "code": "hole",
                 "message": "This typed hole should be replaced with an expression of type 'a",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 12,
                     "line": 3,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 11,
                     "line": 3,
                   },
@@ -440,15 +440,15 @@ describe("textDocument/diagnostics", () => {
                 "severity": 1,
                 "source": "ocamllsp",
               },
-              Object {
+              {
                 "code": "hole",
                 "message": "This typed hole should be replaced with an expression of type 'a",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 12,
                     "line": 4,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 11,
                     "line": 4,
                   },
@@ -456,14 +456,14 @@ describe("textDocument/diagnostics", () => {
                 "severity": 1,
                 "source": "ocamllsp",
               },
-              Object {
+              {
                 "message": "This expression has type string but an expression was expected of type int",
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 9,
                     "line": 5,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 6,
                     "line": 5,
                   },

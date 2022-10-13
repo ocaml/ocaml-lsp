@@ -83,7 +83,7 @@ describe("workspace/symbol", () => {
     });
 
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
-      Array [
+      [
         "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
         "size 6 /workspace_symbol_A/bin/a.ml 64:11 64:15",
         "peek 6 /workspace_symbol_A/bin/a.ml 62:11 62:15",
@@ -138,7 +138,7 @@ describe("workspace/symbol", () => {
     });
 
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
-      Array [
+      [
         "a_i 12 /workspace_symbol_A/bin/a.ml 22:0 24:7",
         "a_arr 12 /workspace_symbol_A/bin/a.ml 18:0 18:14",
         "a_u 12 /workspace_symbol_A/bin/a.ml 16:0 16:15",
@@ -163,7 +163,7 @@ describe("workspace/symbol", () => {
     });
 
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
-      Array [
+      [
         "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
         "size 6 /workspace_symbol_A/bin/a.ml 64:11 64:15",
         "peek 6 /workspace_symbol_A/bin/a.ml 62:11 62:15",

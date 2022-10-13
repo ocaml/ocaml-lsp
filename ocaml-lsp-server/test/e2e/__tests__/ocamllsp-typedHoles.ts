@@ -42,7 +42,7 @@ let u = 1
     );
 
     let r = await sendTypedHolesReq();
-    expect(r).toMatchInlineSnapshot(`Array []`);
+    expect(r).toMatchInlineSnapshot(`[]`);
   });
 
   it("one hole", async () => {
@@ -54,13 +54,13 @@ let k = match () with () -> _
 
     let r = await sendTypedHolesReq();
     expect(r).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "end": Object {
+      [
+        {
+          "end": {
             "character": 29,
             "line": 0,
           },
-          "start": Object {
+          "start": {
             "character": 28,
             "line": 0,
           },
@@ -80,33 +80,33 @@ let u =
     );
     let r = await sendTypedHolesReq();
     expect(r).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "end": Object {
+      [
+        {
+          "end": {
             "character": 31,
             "line": 2,
           },
-          "start": Object {
+          "start": {
             "character": 30,
             "line": 2,
           },
         },
-        Object {
-          "end": Object {
+        {
+          "end": {
             "character": 37,
             "line": 1,
           },
-          "start": Object {
+          "start": {
             "character": 36,
             "line": 1,
           },
         },
-        Object {
-          "end": Object {
+        {
+          "end": {
             "character": 49,
             "line": 1,
           },
-          "start": Object {
+          "start": {
             "character": 48,
             "line": 1,
           },

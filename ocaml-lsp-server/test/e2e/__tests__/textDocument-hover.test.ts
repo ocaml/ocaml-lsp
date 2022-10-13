@@ -304,19 +304,19 @@ describe("textDocument/hover", () => {
     });
 
     expect(hover1).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
+      {
+        "contents": {
           "kind": "markdown",
           "value": "\`\`\`ocaml
       type s = t
       \`\`\`",
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 14,
             "line": 1,
           },
-          "start": Object {
+          "start": {
             "character": 0,
             "line": 1,
           },
@@ -330,19 +330,19 @@ describe("textDocument/hover", () => {
     });
 
     expect(hover2).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
+      {
+        "contents": {
           "kind": "markdown",
           "value": "\`\`\`ocaml
       type 'a fib = ('a -> unit) -> unit
       \`\`\`",
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 34,
             "line": 2,
           },
-          "start": Object {
+          "start": {
             "character": 0,
             "line": 2,
           },
@@ -372,17 +372,17 @@ let x : foo = 1
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
+      {
+        "contents": {
           "kind": "plaintext",
           "value": "foo",
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 5,
             "line": 2,
           },
-          "start": Object {
+          "start": {
             "character": 4,
             "line": 2,
           },
@@ -448,19 +448,19 @@ let x : foo = 1
     });
 
     expect(hoverOverK).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
+      {
+        "contents": {
           "kind": "markdown",
           "value": "\`\`\`ocaml
       unit
       \`\`\`",
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 5,
             "line": 24,
           },
-          "start": Object {
+          "start": {
             "character": 4,
             "line": 24,
           },
@@ -487,19 +487,19 @@ let x : foo = 1
 
     // now the same hover as before comes with unrelated documentation
     expect(buggedHoverOverK).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
+      {
+        "contents": {
           "kind": "markdown",
           "value": "\`\`\`ocaml
       unit
       \`\`\`",
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 5,
             "line": 24,
           },
-          "start": Object {
+          "start": {
             "character": 4,
             "line": 24,
           },
