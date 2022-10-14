@@ -9,14 +9,18 @@ module Request_params = struct
   type t =
     { text_document : TextDocumentIdentifier.t
     ; cursor_position : Position.t
-    ; verbosity : int
+    ; verbosity : int Json.Nullable_option.t
+          [@default None] [@yojson_drop_default ( = )]
     }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  [@@@end]
 
   let params_schema =
     `Assoc
       [ ("textDocument", `String "<TextDocumentIdentifier>")
       ; ("position", `String "<Position>")
-      ; ("verbosity", `String "<integer>")
+      ; ("verbosity", `String "<integer?>")
       ]
 
   let of_jsonrpc_params params : t option =
@@ -28,7 +32,12 @@ module Request_params = struct
         ] ->
       let text_document = TextDocumentIdentifier.t_of_yojson text_document in
       let cursor_position = Position.t_of_yojson position in
-      let verbosity = Yojson.Safe.Util.to_int verbosity in
+      let verbosity = Some (Yojson.Safe.Util.to_int verbosity) in
+      Some { text_document; cursor_position; verbosity }
+    | `Assoc [ ("textDocument", text_document); ("position", position) ] ->
+      let text_document = TextDocumentIdentifier.t_of_yojson text_document in
+      let cursor_position = Position.t_of_yojson position in
+      let verbosity = None in
       Some { text_document; cursor_position; verbosity }
     | _ -> None
 
@@ -72,6 +81,20 @@ let hover server (state : State.t) text_document position verbosity =
     Document_store.get state.store text_document.TextDocumentIdentifier.uri
   in
   let pos = Position.logical position in
+  let verbosity =
+    match verbosity with
+    | Some v -> v
+    | None -> (
+      match state.hover_extended.history with
+      | None -> 0
+      | Some (h_uri, h_position, h_verbosity) ->
+        if
+          Uri.equal text_document.uri h_uri
+          && Ordering.is_eq (Position.compare position h_position)
+        then succ h_verbosity
+        else 0)
+  in
+  state.hover_extended.history <- Some (text_document.uri, position, verbosity);
   (* TODO we shouldn't be acquiring the merlin thread twice per request *)
   let* type_enclosing = Document.type_enclosing ~verbosity doc pos in
   match type_enclosing with

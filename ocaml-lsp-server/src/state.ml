@@ -9,6 +9,8 @@ type init =
       ; exp_client_caps : Client.Experimental_capabilities.t
       }
 
+type hover_extended = { mutable history : (Uri.t * Position.t * int) option }
+
 type t =
   { store : Document_store.t
   ; merlin : Lev_fiber.Thread.t
@@ -21,6 +23,7 @@ type t =
   ; diagnostics : Diagnostics.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
+  ; hover_extended : hover_extended
   }
 
 let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
@@ -36,6 +39,7 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
   ; diagnostics
   ; symbols_thread
   ; wheel
+  ; hover_extended = { history = None }
   }
 
 let wheel t = t.wheel
