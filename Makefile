@@ -48,7 +48,7 @@ check:
 	dune build @check
 
 .PHONY: test-e2e
-test-e2e:
+test-e2e: yarn-install
 	dune build @install && dune exec -- ocaml-lsp-server/test/run_test_e2e.exe
 
 .PHONY: promote-e2e
