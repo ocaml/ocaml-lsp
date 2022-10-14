@@ -9,7 +9,8 @@ let switch (param : DocumentUri.t) : Json.t =
   let files_to_switch_to = Document.get_impl_intf_counterparts param in
   Json.yojson_of_list Uri.yojson_of_t files_to_switch_to
 
-let on_request ~(params : Jsonrpc.Structured.t option) =
+let on_request ~(params : Jsonrpc.Structured.t option)
+    (_server : State.t Server.t) =
   match params with
   | Some (`List [ file_uri ]) ->
     let file_uri = DocumentUri.t_of_yojson file_uri in

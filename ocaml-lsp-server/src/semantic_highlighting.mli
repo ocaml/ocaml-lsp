@@ -18,5 +18,8 @@ module Debug : sig
   val meth_request_full : string
 
   val on_request_full :
-    params:Jsonrpc.Structured.t option -> State.t -> Json.t Fiber.t
+       params:Jsonrpc.Structured.t option
+    -> State.t Server.t
+    -> State.t
+    -> Json.t Fiber.t
 end

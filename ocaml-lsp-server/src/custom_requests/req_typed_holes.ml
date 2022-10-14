@@ -46,7 +46,8 @@ module Request_params = struct
           ())
 end
 
-let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
+let on_request ~(params : Jsonrpc.Structured.t option)
+    (_server : State.t Server.t) (state : State.t) =
   Fiber.of_thunk (fun () ->
       let uri = Request_params.parse_exn params in
       let store = state.store in

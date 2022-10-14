@@ -67,7 +67,7 @@ let format_contents ~syntax ~markdown ~typ ~doc =
       in
       { MarkupContent.value; kind = MarkupKind.PlainText })
 
-let hover (* server *) (state : State.t) text_document position verbosity =
+let hover server (state : State.t) text_document position verbosity =
   let doc =
     Document_store.get state.store text_document.TextDocumentIdentifier.uri
   in
@@ -86,13 +86,20 @@ let hover (* server *) (state : State.t) text_document position verbosity =
         (* OCamlformat adds an unnecessay newline at the end of the type *)
         Fiber.return (String.trim v)
       | Error `No_process -> Fiber.return typ
-      | Error (`Msg _message) ->
+      | Error (`Msg message) ->
         (* We log OCamlformat errors and display the unformated type *)
-        (* TODO: how to obtain the server *)
-        (* let+ () = let message = sprintf "An error occured while querying
-           ocamlformat:\n\ Input type: %s\n\n\ Answer: %s" typ message in
-           State.log_msg server ~type_:Warning ~message in typ *)
-        Fiber.return typ
+        let+ () =
+          let message =
+            sprintf
+              "An error occured while querying ocamlformat:\n\
+               Input type: %s\n\n\
+               Answer: %s"
+              typ
+              message
+          in
+          State.log_msg server ~type_:Warning ~message
+        in
+        typ
     in
     let contents =
       let markdown =
@@ -106,11 +113,12 @@ let hover (* server *) (state : State.t) text_document position verbosity =
     let range = Range.of_loc loc in
     Some (Hover.create ~contents ~range ())
 
-let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
+let on_request ~(params : Jsonrpc.Structured.t option)
+    (server : State.t Server.t) (state : State.t) =
   let { Request_params.text_document; cursor_position; verbosity } =
     Request_params.of_jsonrpc_params_exn params
   in
-  let+ hover = hover state text_document cursor_position verbosity in
+  let+ hover = hover server state text_document cursor_position verbosity in
   match hover with
   | None -> `Null
   | Some hover -> Hover.yojson_of_t hover

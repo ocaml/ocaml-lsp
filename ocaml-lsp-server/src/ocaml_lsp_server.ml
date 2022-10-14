@@ -698,9 +698,9 @@ let on_request :
   | Client_request.UnknownRequest { meth; params } -> (
     match
       [ ( Req_switch_impl_intf.meth
-        , fun ~params _ ->
+        , fun ~params rpc _ ->
             Fiber.of_thunk (fun () ->
-                Fiber.return (Req_switch_impl_intf.on_request ~params)) )
+                Fiber.return (Req_switch_impl_intf.on_request ~params rpc)) )
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
       ; (Req_typed_holes.meth, Req_typed_holes.on_request)
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
@@ -720,7 +720,7 @@ let on_request :
     | Some handler ->
       Fiber.return
         ( Reply.later (fun send ->
-              let* res = handler ~params state in
+              let* res = handler ~params rpc state in
               send res)
         , state ))
   | Initialize ip ->

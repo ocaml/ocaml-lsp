@@ -908,8 +908,11 @@ module Debug = struct
   let meth_request_full = "ocamllsp/textDocument/semanticTokens/full"
 
   let on_request_full :
-      params:Jsonrpc.Structured.t option -> State.t -> Json.t Fiber.t =
-   fun ~params state ->
+         params:Jsonrpc.Structured.t option
+      -> State.t Server.t
+      -> State.t
+      -> Json.t Fiber.t =
+   fun ~params _server state ->
     Fiber.of_thunk (fun () ->
         match params with
         | None ->
