@@ -774,7 +774,9 @@ let on_request :
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
-    later (fun (_ : State.t) () -> Hover_req.handle rpc req) ()
+    later
+      (fun (_ : State.t) () -> Hover_req.handle rpc req Hover_req.Default)
+      ()
   | TextDocumentReferences req -> later references req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> later text_document_lens req
