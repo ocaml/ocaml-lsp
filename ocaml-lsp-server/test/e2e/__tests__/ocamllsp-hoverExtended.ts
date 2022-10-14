@@ -451,11 +451,14 @@ let x : foo = 1
     });
 
     // here we see that all is ok
-    let hoverOverK = await languageServer.sendRequest("ocamllsp/hoverExtended", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(24, 4),
-      verbosity: 0,
-    });
+    let hoverOverK = await languageServer.sendRequest(
+      "ocamllsp/hoverExtended",
+      {
+        textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+        position: Types.Position.create(24, 4),
+        verbosity: 0,
+      },
+    );
 
     expect(hoverOverK).toMatchInlineSnapshot(`
       Object {
@@ -528,10 +531,10 @@ let x : foo = 1
         "ocaml",
         0,
         outdent`
-type foo = int
+type foo = int option
 
-let x : foo = 1
-        `
+let x : foo = Some 1
+        `,
       ),
     });
 
@@ -570,7 +573,7 @@ let x : foo = 1
       Object {
         "contents": Object {
           "kind": "plaintext",
-          "value": "int",
+          "value": "int option",
         },
         "range": Object {
           "end": Object {
@@ -595,7 +598,7 @@ let x : foo = 1
       Object {
         "contents": Object {
           "kind": "plaintext",
-          "value": "int",
+          "value": "int option",
         },
         "range": Object {
           "end": Object {
@@ -619,10 +622,10 @@ let x : foo = 1
         "ocaml",
         0,
         outdent`
-type foo = int
+type foo = int option
 
-let x : foo = 1
-        `
+let x : foo = Some 1
+        `,
       ),
     });
 
@@ -659,7 +662,7 @@ let x : foo = 1
       Object {
         "contents": Object {
           "kind": "plaintext",
-          "value": "int",
+          "value": "int option",
         },
         "range": Object {
           "end": Object {
@@ -683,7 +686,7 @@ let x : foo = 1
       Object {
         "contents": Object {
           "kind": "plaintext",
-          "value": "int",
+          "value": "int option",
         },
         "range": Object {
           "end": Object {
@@ -697,44 +700,5 @@ let x : foo = 1
         },
       }
     `);
-  });
-
-  it("returns type inferred under cursor with increased verbosity", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
-    await languageServer.sendNotification("textDocument/didOpen", {
-      textDocument: Types.TextDocumentItem.create(
-        "file:///test.ml",
-        "ocaml",
-        0,
-        outdent`
-        type t = int
-        let x : t = 1
-        `
-      ),
-    });
-
-    let result0 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(1, 4),
-    });
-    let result1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
-      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(1, 4),
-    });
-
-    expect(result0).toMatchObject({
-      contents: { kind: "plaintext", value: "t" },
-      range: {
-        end: { character: 5, line: 1 },
-        start: { character: 4, line: 1 },
-      },
-    });
-    expect(result1).toMatchObject({
-      contents: { kind: "plaintext", value: "int" },
-      range: {
-        end: { character: 5, line: 1 },
-        start: { character: 4, line: 1 },
-      },
-    });
   });
 });
