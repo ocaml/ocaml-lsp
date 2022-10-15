@@ -86,7 +86,7 @@ release: ## Release on Opam
 	dune-release opam submit
 
 .PHONY: nix-tests
-nix-tests:
+nix-tests: $(YARN)
 	(cd $(TEST_E2E_DIR) && $(PWD)/$(YARN) --frozen-lockfile)
 	make test
 
