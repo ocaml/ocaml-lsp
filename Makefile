@@ -2,9 +2,10 @@
 
 TEST_E2E_DIR = ocaml-lsp-server/test/e2e
 
-.PHONY: yarn-install
-yarn-install:
-	cd $(TEST_E2E_DIR) && yarn --frozen-lockfile
+YARN = $(TEST_E2E_DIR)/node_modules/yarn/bin/yarn
+
+$(YARN):
+	cd $(TEST_E2E_DIR) && npm install --no-save --no-package-lock yarn
 
 -include Makefile.dev
 
@@ -48,12 +49,12 @@ check:
 	dune build @check
 
 .PHONY: test-e2e
-test-e2e:
+test-e2e: $(YARN)
 	dune build @install && dune exec -- ocaml-lsp-server/test/run_test_e2e.exe
 
 .PHONY: promote-e2e
-promote-e2e:
-	dune build @install && cd $(TEST_E2E_DIR) && dune exec -- yarn run promote
+promote-e2e: $(YARN)
+	dune build @install && cd $(TEST_E2E_DIR) && dune exec -- $(PWD)/$(YARN) run promote
 
 .PHONY: test
 test: test-ocaml test-e2e
@@ -61,11 +62,12 @@ test: test-ocaml test-e2e
 .PHONY: clean
 clean: ## Clean build artifacts and other generated files
 	dune clean
+	rm -fr $(TEST_E2E_DIR)/node_modules
 
 .PHONY: fmt
-fmt: ## Format the codebase with ocamlformat
+fmt: $(YARN) ## Format the codebase with ocamlformat
 	dune build @fmt --auto-promote
-	cd $(TEST_E2E_DIR) && yarn fmt
+	cd $(TEST_E2E_DIR) && $(PWD)/$(YARN) fmt
 
 .PHONY: watch
 watch: ## Watch for the filesystem and rebuild on every change
@@ -85,11 +87,11 @@ release: ## Release on Opam
 
 .PHONY: nix-tests
 nix-tests:
-	(cd $(TEST_E2E_DIR) && yarn --frozen-lockfile)
+	(cd $(TEST_E2E_DIR) && $(PWD)/$(YARN) --frozen-lockfile)
 	make test
 
 .PHONY: nix-fmt
 nix-fmt:
-	$(MAKE) yarn-install
+	$(MAKE) $(YARN)
 	dune build @fmt --auto-promote
-	cd $(TEST_E2E_DIR) && yarn fmt
+	cd $(TEST_E2E_DIR) && $(PWD)/$(YARN) fmt
