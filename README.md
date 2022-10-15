@@ -132,7 +132,7 @@ cd ocaml-lsp
 git submodule update --init --recursive
 
 # create local switch (or use global one)
-opam switch create . ocaml-base-compiler.4.14.0
+opam switch --yes create . ocaml-base-compiler.4.14.0
 
 # don't forget to set your environment to use the local switch
 eval $(opam env)

@@ -18,7 +18,7 @@ all:
 # results in a conflict
 .PHONY: install-test-deps
 install-test-deps:
-	opam install 'menhir>20211230' cinaps 'ppx_expect>=v0.15.0' \
+	opam install --yes 'menhir>20211230' cinaps 'ppx_expect>=v0.15.0' \
 		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat) ocamlformat-rpc
 
 .PHONY: dev
@@ -49,6 +49,7 @@ check:
 	dune build @check
 
 .PHONY: test-e2e
+
 test-e2e: $(YARN)
 	dune build @install && dune exec -- ocaml-lsp-server/test/run_test_e2e.exe
 
