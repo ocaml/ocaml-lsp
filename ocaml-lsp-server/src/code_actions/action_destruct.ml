@@ -40,8 +40,8 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText)
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
   let uri = params.textDocument.uri in
   match Document.kind doc with
-  | Intf -> Fiber.return None
-  | Impl -> (
+  | `Other | `Merlin Intf -> Fiber.return None
+  | `Merlin Impl -> (
     let command =
       let start = Position.logical params.range.start in
       let finish = Position.logical params.range.end_ in

@@ -1,6 +1,9 @@
-# Unreleased
+# 1.14.1
 
-## Features
+## Fixes
+
+- Do no crash server when code actions when merlin code actions are asked for
+  merlin documents (#884, fixes #871)
 
 - Ignore unknown tags in merlin configuration to improve forward compatibility
   with Dune. (#883)

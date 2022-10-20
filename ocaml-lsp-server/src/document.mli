@@ -24,7 +24,7 @@ end
 
 val is_merlin : t -> bool
 
-val kind : t -> Kind.t
+val kind : t -> [ `Merlin of Kind.t | `Other ]
 
 val syntax : t -> Syntax.t
 

@@ -111,8 +111,8 @@ let is_merlin = function
   | Merlin _ -> true
 
 let kind = function
-  | Merlin _ as t -> Kind.of_fname (Uri.to_path (uri t))
-  | Other _ -> Code_error.raise "non merlin document has no kind" []
+  | Merlin _ as t -> `Merlin (Kind.of_fname (Uri.to_path (uri t)))
+  | Other _ -> `Other
 
 let syntax = function
   | Merlin m -> m.syntax

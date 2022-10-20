@@ -5,8 +5,8 @@ let action_kind = "construct"
 
 let code_action doc (params : CodeActionParams.t) =
   match Document.kind doc with
-  | Intf -> Fiber.return None
-  | Impl ->
+  | `Other | `Merlin Intf -> Fiber.return None
+  | `Merlin Impl ->
     let pos = Position.logical params.range.Range.end_ in
     (* we want this predicate to quickly eliminate prefixes that don't fit to be
        a hole *)
