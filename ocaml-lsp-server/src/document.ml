@@ -106,10 +106,6 @@ let tdoc = function
 
 let uri t = Text_document.documentUri (tdoc t)
 
-let is_merlin = function
-  | Other _ -> false
-  | Merlin _ -> true
-
 let kind = function
   | Merlin _ as t -> `Merlin (Kind.of_fname (Uri.to_path (uri t)))
   | Other _ -> `Other
