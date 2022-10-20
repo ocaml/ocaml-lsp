@@ -110,7 +110,10 @@ module Config = struct
       | `STDLIB path -> ({ config with stdlib = Some path }, errors)
       | `READER reader -> ({ config with reader }, errors)
       | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
-      | `UNKNOWN_TAG s -> (config, sprintf "Unknown tag %S" s :: errors)
+      | `UNKNOWN_TAG _ ->
+        (* For easier forward compatibility we ignore unknown configuration tags
+           when they are provided by dune *)
+        (config, errors)
       | `ERROR_MSG str -> (config, str :: errors))
 
   let postprocess =
