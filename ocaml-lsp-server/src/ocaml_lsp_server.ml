@@ -150,38 +150,43 @@ let ocamlmerlin_reason = "ocamlmerlin-reason"
 
 let set_diagnostics detached diagnostics doc =
   let uri = Document.uri doc in
-  let async send =
-    let+ () =
-      task_if_running detached ~f:(fun () ->
-          let timer = Document.timer doc in
-          let* () = Lev_fiber.Timer.Wheel.cancel timer in
-          let* () = Lev_fiber.Timer.Wheel.reset timer in
-          let* res = Lev_fiber.Timer.Wheel.await timer in
-          match res with
-          | `Cancelled -> Fiber.return ()
-          | `Ok -> send ())
-    in
-    ()
-  in
-  match Document.syntax doc with
-  | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
-  | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
-    let no_reason_merlin =
-      let message =
-        sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason
+  match Document.kind doc with
+  | `Other -> Fiber.return ()
+  | `Merlin _ -> (
+    let async send =
+      let+ () =
+        task_if_running detached ~f:(fun () ->
+            let timer = Document.timer doc in
+            let* () = Lev_fiber.Timer.Wheel.cancel timer in
+            let* () = Lev_fiber.Timer.Wheel.reset timer in
+            let* res = Lev_fiber.Timer.Wheel.await timer in
+            match res with
+            | `Cancelled -> Fiber.return ()
+            | `Ok -> send ())
       in
-      Diagnostic.create
-        ~source:Diagnostics.ocamllsp_source
-        ~range:Range.first_line
-        ~message
-        ()
+      ()
     in
-    Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
-    async (fun () -> Diagnostics.send diagnostics (`One uri))
-  | Reason | Ocaml ->
-    async (fun () ->
-        let* () = Diagnostics.merlin_diagnostics diagnostics doc in
-        Diagnostics.send diagnostics (`One uri))
+    match Document.syntax doc with
+    | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
+    | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
+      let no_reason_merlin =
+        let message =
+          sprintf
+            "Could not detect %s. Please install reason"
+            ocamlmerlin_reason
+        in
+        Diagnostic.create
+          ~source:Diagnostics.ocamllsp_source
+          ~range:Range.first_line
+          ~message
+          ()
+      in
+      Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
+      async (fun () -> Diagnostics.send diagnostics (`One uri))
+    | Reason | Ocaml ->
+      async (fun () ->
+          let* () = Diagnostics.merlin_diagnostics diagnostics doc in
+          Diagnostics.send diagnostics (`One uri)))
 
 let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
