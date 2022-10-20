@@ -65,25 +65,28 @@ let code_action_add_rec uri diagnostics doc loc =
     ()
 
 let code_action doc (params : CodeActionParams.t) =
-  let pos_start = Position.logical params.range.start in
-  let m_diagnostic =
-    List.find params.context.diagnostics ~f:(fun d ->
-        let is_unbound () =
-          String.is_prefix d.Diagnostic.message ~prefix:"Unbound value"
-        and in_range () =
-          match Position.compare_inclusion params.range.start d.range with
-          | `Outside _ -> false
-          | `Inside -> true
-        in
-        in_range () && is_unbound ())
-  in
-  match m_diagnostic with
-  | None -> Fiber.return None
-  | Some d ->
-    let+ loc =
-      Document.with_pipeline_exn doc (fun pipeline ->
-          has_missing_rec pipeline pos_start)
+  match Document.kind doc with
+  | `Other -> Fiber.return None
+  | `Merlin merlin -> (
+    let pos_start = Position.logical params.range.start in
+    let m_diagnostic =
+      List.find params.context.diagnostics ~f:(fun d ->
+          let is_unbound () =
+            String.is_prefix d.Diagnostic.message ~prefix:"Unbound value"
+          and in_range () =
+            match Position.compare_inclusion params.range.start d.range with
+            | `Outside _ -> false
+            | `Inside -> true
+          in
+          in_range () && is_unbound ())
     in
-    Option.map loc ~f:(code_action_add_rec params.textDocument.uri [ d ] doc)
+    match m_diagnostic with
+    | None -> Fiber.return None
+    | Some d ->
+      let+ loc =
+        Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+            has_missing_rec pipeline pos_start)
+      in
+      Option.map loc ~f:(code_action_add_rec params.textDocument.uri [ d ] doc))
 
 let t = { Code_action.kind = QuickFix; run = code_action }

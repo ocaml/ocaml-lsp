@@ -152,11 +152,11 @@ let set_diagnostics detached diagnostics doc =
   let uri = Document.uri doc in
   match Document.kind doc with
   | `Other -> Fiber.return ()
-  | `Merlin _ -> (
+  | `Merlin merlin -> (
     let async send =
       let+ () =
         task_if_running detached ~f:(fun () ->
-            let timer = Document.timer doc in
+            let timer = Document.Merlin.timer merlin in
             let* () = Lev_fiber.Timer.Wheel.cancel timer in
             let* () = Lev_fiber.Timer.Wheel.reset timer in
             let* res = Lev_fiber.Timer.Wheel.await timer in
@@ -185,7 +185,7 @@ let set_diagnostics detached diagnostics doc =
       async (fun () -> Diagnostics.send diagnostics (`One uri))
     | Reason | Ocaml ->
       async (fun () ->
-          let* () = Diagnostics.merlin_diagnostics diagnostics doc in
+          let* () = Diagnostics.merlin_diagnostics diagnostics merlin in
           Diagnostics.send diagnostics (`One uri)))
 
 let on_initialize server (ip : InitializeParams.t) =
@@ -375,73 +375,78 @@ let signature_help (state : State.t)
     Compl.prefix_of_position (Document.source doc) pos ~short_path:true
   in
   (* TODO use merlin resources efficiently and do everything in 1 thread *)
-  let* application_signature =
-    match Document.kind doc with
-    | `Other -> Fiber.return None
-    | `Merlin _ ->
-      Document.with_pipeline_exn doc (fun pipeline ->
+  match Document.kind doc with
+  | `Other ->
+    let help = SignatureHelp.create ~signatures:[] () in
+    Fiber.return help
+  | `Merlin merlin -> (
+    let* application_signature =
+      Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
           let typer = Mpipeline.typer_result pipeline in
           let pos = Mpipeline.get_lexing_pos pipeline pos in
           let node = Mtyper.node_at typer pos in
           Signature_help.application_signature node ~prefix)
-  in
-  match application_signature with
-  | None ->
-    let help = SignatureHelp.create ~signatures:[] () in
-    Fiber.return help
-  | Some application_signature ->
-    let prefix =
-      let fun_name =
-        Option.value ~default:"_" application_signature.function_name
-      in
-      sprintf "%s : " fun_name
     in
-    let offset = String.length prefix in
-    let+ doc =
-      Document.doc_comment doc application_signature.function_position
-    in
-    let info =
-      let parameters =
-        List.map
-          application_signature.parameters
-          ~f:(fun (p : Signature_help.parameter_info) ->
-            let label =
-              `Offset (offset + p.param_start, offset + p.param_end)
-            in
-            ParameterInformation.create ~label ())
-      in
-      let documentation =
-        let open Option.O in
-        let+ doc in
-        let markdown =
-          ClientCapabilities.markdown_support
-            (State.client_capabilities state)
-            ~field:(fun td ->
-              let* sh = td.signatureHelp in
-              let+ si = sh.signatureInformation in
-              si.documentationFormat)
+    match application_signature with
+    | None ->
+      let help = SignatureHelp.create ~signatures:[] () in
+      Fiber.return help
+    | Some application_signature ->
+      let prefix =
+        let fun_name =
+          Option.value ~default:"_" application_signature.function_name
         in
-        format_doc ~markdown ~doc
+        sprintf "%s : " fun_name
       in
-      let label = prefix ^ application_signature.signature in
-      SignatureInformation.create ~label ?documentation ~parameters ()
-    in
-    SignatureHelp.create
-      ~signatures:[ info ]
-      ~activeSignature:0
-      ?activeParameter:application_signature.active_param
-      ()
+      let offset = String.length prefix in
+      let+ doc =
+        Document.Merlin.doc_comment
+          merlin
+          application_signature.function_position
+      in
+      let info =
+        let parameters =
+          List.map
+            application_signature.parameters
+            ~f:(fun (p : Signature_help.parameter_info) ->
+              let label =
+                `Offset (offset + p.param_start, offset + p.param_end)
+              in
+              ParameterInformation.create ~label ())
+        in
+        let documentation =
+          let open Option.O in
+          let+ doc in
+          let markdown =
+            ClientCapabilities.markdown_support
+              (State.client_capabilities state)
+              ~field:(fun td ->
+                let* sh = td.signatureHelp in
+                let+ si = sh.signatureInformation in
+                si.documentationFormat)
+          in
+          format_doc ~markdown ~doc
+        in
+        let label = prefix ^ application_signature.signature in
+        SignatureInformation.create ~label ?documentation ~parameters ()
+      in
+      SignatureHelp.create
+        ~signatures:[ info ]
+        ~activeSignature:0
+        ?activeParameter:application_signature.active_param
+        ())
 
 let text_document_lens (state : State.t)
     { CodeLensParams.textDocument = { uri }; _ } =
   let store = state.store in
   let doc = Document_store.get store uri in
   match Document.kind doc with
-  | `Other | `Merlin Intf -> Fiber.return []
-  | `Merlin Impl ->
+  | `Other -> Fiber.return []
+  | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return []
+  | `Merlin doc ->
     let+ outline =
       let command = Query_protocol.Outline in
-      Document.dispatch_exn doc command
+      Document.Merlin.dispatch_exn doc command
     in
     let rec symbol_info_of_outline_item item =
       let children =
@@ -465,130 +470,142 @@ let text_document_lens (state : State.t)
 let rename (state : State.t)
     { RenameParams.textDocument = { uri }; position; newName; _ } =
   let doc = Document_store.get state.store uri in
-  let command =
-    Query_protocol.Occurrences (`Ident_at (Position.logical position))
-  in
-  let+ locs = Document.dispatch_exn doc command in
-  let version = Document.version doc in
-  let source = Document.source doc in
-  let edits =
-    List.map locs ~f:(fun (loc : Warnings.loc) ->
-        let range = Range.of_loc loc in
-        let make_edit () = TextEdit.create ~range ~newText:newName in
-        match
-          let occur_start_pos =
-            Position.of_lexical_position loc.loc_start |> Option.value_exn
-          in
-          occur_start_pos
-        with
-        | { character = 0; _ } -> make_edit ()
-        | pos -> (
-          let mpos = Position.logical pos in
-          let (`Offset index) = Msource.get_offset source mpos in
-          assert (index > 0)
-          (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
-             when [character = 0] in a separate matching branch *);
-          let source_txt = Msource.text source in
-          match source_txt.[index - 1] with
-          | '~' (* the occurrence is a named argument *)
-          | '?' (* is an optional argument *) ->
-            let empty_range_at_occur_end =
-              let occur_end_pos = range.Range.end_ in
-              { range with start = occur_end_pos }
-            in
-            TextEdit.create
-              ~range:empty_range_at_occur_end
-              ~newText:(":" ^ newName)
-          | _ -> make_edit ()))
-  in
-  let workspace_edits =
-    let documentChanges =
-      let open Option.O in
-      Option.value
-        ~default:false
-        (let client_capabilities = State.client_capabilities state in
-         let* workspace = client_capabilities.workspace in
-         let* edit = workspace.workspaceEdit in
-         edit.documentChanges)
+  match Document.kind doc with
+  | `Other -> Fiber.return (WorkspaceEdit.create ())
+  | `Merlin merlin ->
+    let command =
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
     in
-    if documentChanges then
-      let textDocument =
-        OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+    let+ locs = Document.Merlin.dispatch_exn merlin command in
+    let version = Document.version doc in
+    let source = Document.source doc in
+    let edits =
+      List.map locs ~f:(fun (loc : Warnings.loc) ->
+          let range = Range.of_loc loc in
+          let make_edit () = TextEdit.create ~range ~newText:newName in
+          match
+            let occur_start_pos =
+              Position.of_lexical_position loc.loc_start |> Option.value_exn
+            in
+            occur_start_pos
+          with
+          | { character = 0; _ } -> make_edit ()
+          | pos -> (
+            let mpos = Position.logical pos in
+            let (`Offset index) = Msource.get_offset source mpos in
+            assert (index > 0)
+            (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
+               when [character = 0] in a separate matching branch *);
+            let source_txt = Msource.text source in
+            match source_txt.[index - 1] with
+            | '~' (* the occurrence is a named argument *)
+            | '?' (* is an optional argument *) ->
+              let empty_range_at_occur_end =
+                let occur_end_pos = range.Range.end_ in
+                { range with start = occur_end_pos }
+              in
+              TextEdit.create
+                ~range:empty_range_at_occur_end
+                ~newText:(":" ^ newName)
+            | _ -> make_edit ()))
+    in
+    let workspace_edits =
+      let documentChanges =
+        let open Option.O in
+        Option.value
+          ~default:false
+          (let client_capabilities = State.client_capabilities state in
+           let* workspace = client_capabilities.workspace in
+           let* edit = workspace.workspaceEdit in
+           edit.documentChanges)
       in
-      let edits = List.map edits ~f:(fun e -> `TextEdit e) in
-      WorkspaceEdit.create
-        ~documentChanges:
-          [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
-        ()
-    else WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
-  in
-  workspace_edits
+      if documentChanges then
+        let textDocument =
+          OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+        in
+        let edits = List.map edits ~f:(fun e -> `TextEdit e) in
+        WorkspaceEdit.create
+          ~documentChanges:
+            [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
+          ()
+      else WorkspaceEdit.create ~changes:[ (uri, edits) ] ()
+    in
+    workspace_edits
 
 let selection_range (state : State.t)
     { SelectionRangeParams.textDocument = { uri }; positions; _ } =
-  let selection_range_of_shapes (cursor_position : Position.t)
-      (shapes : Query_protocol.shape list) : SelectionRange.t option =
-    let rec ranges_of_shape parent s =
-      let selectionRange =
-        let range = Range.of_loc s.Query_protocol.shape_loc in
-        { SelectionRange.range; parent }
-      in
-      match s.Query_protocol.shape_sub with
-      | [] -> [ selectionRange ]
-      | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
-    in
-    (* try to find the nearest range inside first, then outside *)
-    let nearest_range =
-      let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
-      List.min ranges ~f:(fun r1 r2 ->
-          let inc (r : SelectionRange.t) =
-            Position.compare_inclusion cursor_position r.range
-          in
-          match (inc r1, inc r2) with
-          | `Outside x, `Outside y -> Position.compare x y
-          | `Outside _, `Inside -> Gt
-          | `Inside, `Outside _ -> Lt
-          | `Inside, `Inside -> Range.compare_size r1.range r2.range)
-    in
-    nearest_range
-  in
   let doc = Document_store.get state.store uri in
-  let+ ranges =
-    Fiber.sequential_map positions ~f:(fun x ->
-        let+ shapes =
-          let command = Query_protocol.Shape (Position.logical x) in
-          Document.dispatch_exn doc command
+  match Document.kind doc with
+  | `Other -> Fiber.return []
+  | `Merlin merlin ->
+    let selection_range_of_shapes (cursor_position : Position.t)
+        (shapes : Query_protocol.shape list) : SelectionRange.t option =
+      let rec ranges_of_shape parent s =
+        let selectionRange =
+          let range = Range.of_loc s.Query_protocol.shape_loc in
+          { SelectionRange.range; parent }
         in
-        selection_range_of_shapes x shapes)
-  in
-  List.filter_opt ranges
+        match s.Query_protocol.shape_sub with
+        | [] -> [ selectionRange ]
+        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
+      in
+      (* try to find the nearest range inside first, then outside *)
+      let nearest_range =
+        let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
+        List.min ranges ~f:(fun r1 r2 ->
+            let inc (r : SelectionRange.t) =
+              Position.compare_inclusion cursor_position r.range
+            in
+            match (inc r1, inc r2) with
+            | `Outside x, `Outside y -> Position.compare x y
+            | `Outside _, `Inside -> Gt
+            | `Inside, `Outside _ -> Lt
+            | `Inside, `Inside -> Range.compare_size r1.range r2.range)
+      in
+      nearest_range
+    in
+    let+ ranges =
+      Fiber.sequential_map positions ~f:(fun x ->
+          let+ shapes =
+            let command = Query_protocol.Shape (Position.logical x) in
+            Document.Merlin.dispatch_exn merlin command
+          in
+          selection_range_of_shapes x shapes)
+    in
+    List.filter_opt ranges
 
 let references (state : State.t)
     { ReferenceParams.textDocument = { uri }; position; _ } =
   let doc = Document_store.get state.store uri in
-  let command =
-    Query_protocol.Occurrences (`Ident_at (Position.logical position))
-  in
-  let+ locs = Document.dispatch_exn doc command in
-  Some
-    (List.map locs ~f:(fun loc ->
-         let range = Range.of_loc loc in
-         (* using original uri because merlin is looking only in local file *)
-         { Location.uri; range }))
+  match Document.kind doc with
+  | `Other -> Fiber.return None
+  | `Merlin doc ->
+    let command =
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+    in
+    let+ locs = Document.Merlin.dispatch_exn doc command in
+    Some
+      (List.map locs ~f:(fun loc ->
+           let range = Range.of_loc loc in
+           (* using original uri because merlin is looking only in local file *)
+           { Location.uri; range }))
 
 let definition_query server (state : State.t) uri position merlin_request =
   let doc = Document_store.get state.store uri in
-  let position = Position.logical position in
-  let command = merlin_request position in
-  let* result = Document.dispatch_exn doc command in
-  match location_of_merlin_loc uri result with
-  | Ok s -> Fiber.return s
-  | Error message ->
-    let+ () =
-      let message = sprintf "Locate failed. %s" message in
-      State.log_msg server ~type_:Error ~message
-    in
-    None
+  match Document.kind doc with
+  | `Other -> Fiber.return None
+  | `Merlin doc -> (
+    let position = Position.logical position in
+    let command = merlin_request position in
+    let* result = Document.Merlin.dispatch_exn doc command in
+    match location_of_merlin_loc uri result with
+    | Ok s -> Fiber.return s
+    | Error message ->
+      let+ () =
+        let message = sprintf "Locate failed. %s" message in
+        State.log_msg server ~type_:Error ~message
+      in
+      None)
 
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
@@ -660,18 +677,21 @@ let highlight (state : State.t)
     { DocumentHighlightParams.textDocument = { uri }; position; _ } =
   let store = state.store in
   let doc = Document_store.get store uri in
-  let command =
-    Query_protocol.Occurrences (`Ident_at (Position.logical position))
-  in
-  let+ locs = Document.dispatch_exn doc command in
-  let lsp_locs =
-    List.map locs ~f:(fun loc ->
-        let range = Range.of_loc loc in
-        (* using the default kind as we are lacking info to make a difference
-           between assignment and usage. *)
-        DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
-  in
-  Some lsp_locs
+  match Document.kind doc with
+  | `Other -> Fiber.return None
+  | `Merlin m ->
+    let command =
+      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+    in
+    let+ locs = Document.Merlin.dispatch_exn m command in
+    let lsp_locs =
+      List.map locs ~f:(fun loc ->
+          let range = Range.of_loc loc in
+          (* using the default kind as we are lacking info to make a difference
+             between assignment and usage. *)
+          DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
+    in
+    Some lsp_locs
 
 let document_symbol (state : State.t) uri =
   let doc =
@@ -766,12 +786,15 @@ let on_request :
         let resolve = Compl.Resolve.of_completion_item ci in
         match resolve with
         | None -> Fiber.return ci
-        | Some resolve ->
+        | Some resolve -> (
           let doc =
             let uri = Compl.Resolve.uri resolve in
             Document_store.get state.store uri
           in
-          Compl.resolve doc ci resolve Document.doc_comment ~markdown)
+          match Document.kind doc with
+          | `Other -> Fiber.return ci
+          | `Merlin doc ->
+            Compl.resolve doc ci resolve Document.Merlin.doc_comment ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
   | TextDocumentColor _ -> now []
@@ -808,16 +831,19 @@ let on_request :
     later
       (fun _ () ->
         let doc = Document_store.get store uri in
-        let command =
-          Query_protocol.Occurrences (`Ident_at (Position.logical position))
-        in
-        let+ locs = Document.dispatch_exn doc command in
-        let loc =
-          List.find_opt locs ~f:(fun loc ->
-              let range = Range.of_loc loc in
-              Position.compare_inclusion position range = `Inside)
-        in
-        Option.map loc ~f:Range.of_loc)
+        match Document.kind doc with
+        | `Other -> Fiber.return None
+        | `Merlin doc ->
+          let command =
+            Query_protocol.Occurrences (`Ident_at (Position.logical position))
+          in
+          let+ locs = Document.Merlin.dispatch_exn doc command in
+          let loc =
+            List.find_opt locs ~f:(fun loc ->
+                let range = Range.of_loc loc in
+                Position.compare_inclusion position range = `Inside)
+          in
+          Option.map loc ~f:Range.of_loc)
       ()
   | TextDocumentRename req -> later rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req

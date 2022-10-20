@@ -277,7 +277,8 @@ let extract_related_errors uri raw_message =
     (string_of_message message, related)
   | _ -> (raw_message, None)
 
-let merlin_diagnostics diagnostics doc =
+let merlin_diagnostics diagnostics merlin =
+  let doc = Document.Merlin.to_doc merlin in
   let uri = Document.uri doc in
   let create_diagnostic = Diagnostic.create ~source:ocamllsp_source in
   let open Fiber.O in
@@ -285,7 +286,7 @@ let merlin_diagnostics diagnostics doc =
     let command =
       Query_protocol.Errors { lexing = true; parsing = true; typing = true }
     in
-    Document.with_pipeline_exn doc (fun pipeline ->
+    Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
         match Query_commands.dispatch pipeline command with
         | exception Merlin_extend.Extend_main.Handshake.Error error ->
           let message =

@@ -136,7 +136,7 @@ let formatter doc =
     Ok
       (Reason
          (match Document.kind doc with
-         | `Merlin i -> i
+         | `Merlin m -> Document.Merlin.kind m
          | `Other -> Code_error.raise "unable to format non merlin document" []))
 
 let exec cancel bin args stdin =

@@ -26,8 +26,9 @@ let code_action_of_intf doc intf range =
 
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
   match Document.kind doc with
-  | `Other | `Merlin Impl -> Fiber.return None
-  | `Merlin Intf -> (
+  | `Other -> Fiber.return None
+  | `Merlin m when Document.Merlin.kind m = Impl -> Fiber.return None
+  | `Merlin _ -> (
     let* intf = Inference.infer_intf state doc in
     match intf with
     | None -> Fiber.return None
