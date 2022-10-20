@@ -115,8 +115,11 @@ let syntax = function
   | Other t -> t.syntax
 
 let timer = function
-  | Other _ -> Code_error.raise "Document.dune" []
   | Merlin m -> m.timer
+  | Other _ as t ->
+    Code_error.raise
+      "Document.timer"
+      [ ("t", Dyn.string @@ DocumentUri.to_string @@ uri t) ]
 
 let text t = Text_document.text (tdoc t)
 
@@ -154,7 +157,10 @@ let await task =
 
 let with_pipeline (t : t) f =
   match t with
-  | Other _ -> Code_error.raise "Document.dune" []
+  | Other _ ->
+    Code_error.raise
+      "Document.with_pipeline"
+      [ ("t", Dyn.string @@ DocumentUri.to_string @@ uri t) ]
   | Merlin t -> (
     let* pipeline = Lazy_fiber.force t.pipeline in
     let* task =
