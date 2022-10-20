@@ -430,8 +430,8 @@ let text_document_lens (state : State.t)
   let store = state.store in
   let doc = Document_store.get store uri in
   match Document.kind doc with
-  | Intf -> Fiber.return []
-  | Impl ->
+  | `Other | `Merlin Intf -> Fiber.return []
+  | `Merlin Impl ->
     let+ outline =
       let command = Query_protocol.Outline in
       Document.dispatch_exn doc command

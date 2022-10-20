@@ -3,11 +3,15 @@ open Fiber.O
 
 let infer_intf_for_impl doc =
   match Document.kind doc with
-  | Intf ->
+  | `Other ->
+    Code_error.raise
+      "expected an implementation document, got a non merlin document"
+      []
+  | `Merlin Intf ->
     Code_error.raise
       "expected an implementation document, got an interface instead"
       []
-  | Impl ->
+  | `Merlin Impl ->
     Document.with_pipeline_exn doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
         let sig_ : Types.signature =
@@ -59,8 +63,11 @@ let open_document_from_file (state : State.t) uri =
 
 let infer_intf (state : State.t) doc =
   match Document.kind doc with
-  | Impl -> Code_error.raise "the provided document is not an interface." []
-  | Intf ->
+  | `Other ->
+    Code_error.raise "the provided document is not a merlin source." []
+  | `Merlin Impl ->
+    Code_error.raise "the provided document is not an interface." []
+  | `Merlin Intf ->
     Fiber.of_thunk (fun () ->
         let intf_uri = Document.uri doc in
         let impl_uri =
