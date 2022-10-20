@@ -1,3 +1,10 @@
+# Unreleased
+
+## Features
+
+- Ignore unknown tags in merlin configuration to improve forward compatibility
+  with Dune. (#883)
+
 # 1.14.0
 
 ## Features
