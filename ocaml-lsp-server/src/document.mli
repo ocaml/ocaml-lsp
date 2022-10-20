@@ -22,8 +22,6 @@ module Kind : sig
     | Impl
 end
 
-val is_merlin : t -> bool
-
 val kind : t -> [ `Merlin of Kind.t | `Other ]
 
 val syntax : t -> Syntax.t

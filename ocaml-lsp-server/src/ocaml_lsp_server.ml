@@ -269,7 +269,8 @@ module Formatter = struct
 
   let run rpc doc =
     let state : State.t = Server.state rpc in
-    if Document.is_merlin doc then
+    match Document.kind doc with
+    | `Merlin _ -> (
       let* res =
         let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
         match res with
@@ -289,8 +290,8 @@ module Formatter = struct
           task_if_running state.detached ~f:(fun () ->
               Server.notification rpc (ShowMessage msg))
         in
-        Jsonrpc.Response.Error.raise error
-    else
+        Jsonrpc.Response.Error.raise error)
+    | `Other -> (
       match Dune.for_doc (State.dune state) doc with
       | [] ->
         let message =
@@ -314,7 +315,7 @@ module Formatter = struct
             State.log_msg rpc ~type_:MessageType.Warning ~message
         in
         let+ to_ = Dune.Instance.format_dune_file dune doc in
-        Some (Diff.edit ~from:(Document.text doc) ~to_)
+        Some (Diff.edit ~from:(Document.text doc) ~to_))
 end
 
 let location_of_merlin_loc uri : _ -> (_, string) result = function
@@ -370,13 +371,14 @@ let signature_help (state : State.t)
   in
   (* TODO use merlin resources efficiently and do everything in 1 thread *)
   let* application_signature =
-    if Document.is_merlin doc then
+    match Document.kind doc with
+    | `Other -> Fiber.return None
+    | `Merlin _ ->
       Document.with_pipeline_exn doc (fun pipeline ->
           let typer = Mpipeline.typer_result pipeline in
           let pos = Mpipeline.get_lexing_pos pipeline pos in
           let node = Mtyper.node_at typer pos in
           Signature_help.application_signature node ~prefix)
-    else Fiber.return None
   in
   match application_signature with
   | None ->
