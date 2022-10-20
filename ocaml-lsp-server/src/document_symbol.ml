@@ -48,16 +48,18 @@ let symbols_of_outline uri outline =
   List.concat_map ~f:(symbol_info uri) outline
 
 let run (client_capabilities : ClientCapabilities.t) doc uri =
-  let+ outline = Document.dispatch_exn doc Outline in
-  match
-    Option.value
-      ~default:false
-      (let open Option.O in
-      let* textDocument = client_capabilities.textDocument in
-      let* ds = textDocument.documentSymbol in
-      ds.hierarchicalDocumentSymbolSupport)
-  with
-  | true ->
-    let symbols = List.map outline ~f:symbol in
-    `DocumentSymbol symbols
-  | false -> `SymbolInformation (symbols_of_outline uri outline)
+  match Document.kind doc with
+  | `Other -> Fiber.return None
+  | `Merlin _ ->
+    let+ outline = Document.dispatch_exn doc Outline in
+    Some
+      (match
+         Option.value
+           ~default:false
+           (let open Option.O in
+           let* textDocument = client_capabilities.textDocument in
+           let* ds = textDocument.documentSymbol in
+           ds.hierarchicalDocumentSymbolSupport)
+       with
+      | true -> `DocumentSymbol (List.map outline ~f:symbol)
+      | false -> `SymbolInformation (symbols_of_outline uri outline))
