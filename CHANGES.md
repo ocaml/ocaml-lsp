@@ -2,8 +2,8 @@
 
 ## Fixes
 
-- Do no crash server when code actions when merlin code actions are asked for
-  merlin documents (#884, fixes #871)
+- Fix various server crashes when opening non OCaml/Reason files. Files such as
+  dune, cram, etc. would cause the server to crash. (#884, fixes #871)
 
 - Ignore unknown tags in merlin configuration to improve forward compatibility
   with Dune. (#883)
