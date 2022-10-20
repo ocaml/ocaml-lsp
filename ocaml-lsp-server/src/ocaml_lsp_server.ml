@@ -667,15 +667,12 @@ let highlight (state : State.t)
   Some lsp_locs
 
 let document_symbol (state : State.t) uri =
-  let+ symbols =
-    let doc =
-      let store = state.store in
-      Document_store.get store uri
-    in
-    let client_capabilities = State.client_capabilities state in
-    Document_symbol.run client_capabilities doc uri
+  let doc =
+    let store = state.store in
+    Document_store.get store uri
   in
-  Some symbols
+  let client_capabilities = State.client_capabilities state in
+  Document_symbol.run client_capabilities doc uri
 
 let on_request :
     type resp.

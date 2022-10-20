@@ -10,4 +10,5 @@ val run :
   -> [> `DocumentSymbol of DocumentSymbol.t list
      | `SymbolInformation of SymbolInformation.t list
      ]
+     option
      Fiber.t
