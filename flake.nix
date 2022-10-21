@@ -35,6 +35,7 @@
           ppx_expect = "*";
           ocamlformat-rpc = "*";
           ocamlfind = "1.9.2";
+          dune-release = "*";
         };
         packagesFromNames = set:
           (builtins.map (s: builtins.getAttr s scope)
