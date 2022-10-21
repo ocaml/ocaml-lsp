@@ -259,10 +259,10 @@ end = struct
                       Document_store.change_all document_store ~f:(fun doc ->
                           match Document.kind doc with
                           | `Other -> Fiber.return doc
-                          | `Merlin _ ->
+                          | `Merlin merlin ->
                             let doc = Document.update_text doc [] in
                             let+ () =
-                              Diagnostics.merlin_diagnostics diagnostics doc
+                              Diagnostics.merlin_diagnostics diagnostics merlin
                             in
                             doc)
                     in

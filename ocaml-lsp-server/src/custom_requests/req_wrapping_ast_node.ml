@@ -34,34 +34,42 @@ let on_request ~params state =
         Request_params.of_jsonrpc_params_exn params
       in
       let doc = Document_store.get state.State.store text_document_uri in
-      let pos = Position.logical cursor_position in
-      let+ node =
-        Document.with_pipeline_exn doc (fun pipeline ->
-            let typer = Mpipeline.typer_result pipeline in
-            let pos = Mpipeline.get_lexing_pos pipeline pos in
-            let enclosing_nodes (* from smallest node to largest *) =
-              Mbrowse.enclosing
-                pos
-                [ Mbrowse.of_typedtree (Mtyper.get_typedtree typer) ]
-            in
-            let loc_of_structure_item { Typedtree.str_loc; _ } = str_loc in
-            let find_fst_structure_item_or_structure = function
-              | _, Browse_raw.Structure_item (str_item, _) ->
-                Some (loc_of_structure_item str_item)
-              | _, Structure { str_items; _ } -> (
-                match str_items with
-                | [] -> None
-                | hd :: rest ->
-                  let last = List.last rest |> Option.value ~default:hd in
-                  let { Loc.loc_start; _ } = loc_of_structure_item hd in
-                  let { Loc.loc_end; _ } = loc_of_structure_item last in
-                  Some { Loc.loc_start; loc_end; loc_ghost = false })
-              | _ -> None
-            in
-            List.find_map
-              enclosing_nodes
-              ~f:find_fst_structure_item_or_structure)
-      in
-      match node with
-      | None -> `Null
-      | Some loc -> Range.of_loc loc |> Range.yojson_of_t)
+      match Document.kind doc with
+      | `Other ->
+        Jsonrpc.Response.Error.raise
+          (Jsonrpc.Response.Error.make
+             ~code:InvalidRequest
+             ~message:"not a merlin document"
+             ())
+      | `Merlin doc -> (
+        let pos = Position.logical cursor_position in
+        let+ node =
+          Document.Merlin.with_pipeline_exn doc (fun pipeline ->
+              let typer = Mpipeline.typer_result pipeline in
+              let pos = Mpipeline.get_lexing_pos pipeline pos in
+              let enclosing_nodes (* from smallest node to largest *) =
+                Mbrowse.enclosing
+                  pos
+                  [ Mbrowse.of_typedtree (Mtyper.get_typedtree typer) ]
+              in
+              let loc_of_structure_item { Typedtree.str_loc; _ } = str_loc in
+              let find_fst_structure_item_or_structure = function
+                | _, Browse_raw.Structure_item (str_item, _) ->
+                  Some (loc_of_structure_item str_item)
+                | _, Structure { str_items; _ } -> (
+                  match str_items with
+                  | [] -> None
+                  | hd :: rest ->
+                    let last = List.last rest |> Option.value ~default:hd in
+                    let { Loc.loc_start; _ } = loc_of_structure_item hd in
+                    let { Loc.loc_end; _ } = loc_of_structure_item last in
+                    Some { Loc.loc_start; loc_end; loc_ghost = false })
+                | _ -> None
+              in
+              List.find_map
+                enclosing_nodes
+                ~f:find_fst_structure_item_or_structure)
+        in
+        match node with
+        | None -> `Null
+        | Some loc -> Range.of_loc loc |> Range.yojson_of_t))

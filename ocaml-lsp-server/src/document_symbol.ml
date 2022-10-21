@@ -50,8 +50,8 @@ let symbols_of_outline uri outline =
 let run (client_capabilities : ClientCapabilities.t) doc uri =
   match Document.kind doc with
   | `Other -> Fiber.return None
-  | `Merlin _ ->
-    let+ outline = Document.dispatch_exn doc Outline in
+  | `Merlin doc ->
+    let+ outline = Document.Merlin.dispatch_exn doc Outline in
     Some
       (match
          Option.value

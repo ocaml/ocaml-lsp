@@ -303,9 +303,12 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
 let compute (state : State.t) (params : FoldingRangeParams.t) =
   Fiber.of_thunk (fun () ->
       let doc = Document_store.get state.store params.textDocument.uri in
-      let+ ranges =
-        Document.with_pipeline_exn doc (fun pipeline ->
-            let parsetree = Mpipeline.reader_parsetree pipeline in
-            fold_over_parsetree parsetree)
-      in
-      Some ranges)
+      match Document.kind doc with
+      | `Other -> Fiber.return None
+      | `Merlin m ->
+        let+ ranges =
+          Document.Merlin.with_pipeline_exn m (fun pipeline ->
+              let parsetree = Mpipeline.reader_parsetree pipeline in
+              fold_over_parsetree parsetree)
+        in
+        Some ranges)

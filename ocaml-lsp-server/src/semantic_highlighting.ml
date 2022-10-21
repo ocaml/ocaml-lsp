@@ -896,7 +896,9 @@ let gen_new_id =
     string_of_int x
 
 let compute_tokens doc =
-  let+ parsetree = Document.with_pipeline_exn doc Mpipeline.reader_parsetree in
+  let+ parsetree =
+    Document.Merlin.with_pipeline_exn doc Mpipeline.reader_parsetree
+  in
   let module Fold = Parsetree_fold () in
   Fold.apply parsetree
 
@@ -920,13 +922,21 @@ module Debug = struct
                  (meth_request_full
                 ^ " expects an argument but didn't receive any")
                ()
-        | Some (`Assoc _ as json) | Some (`List _ as json) ->
+        | Some (`Assoc _ as json) | Some (`List _ as json) -> (
           let params = SemanticTokensParams.t_of_yojson json in
           let store = state.store in
           let uri = params.textDocument.uri in
           let doc = Document_store.get store uri in
-          let+ tokens = compute_tokens doc in
-          Tokens.yojson_of_t tokens)
+          match Document.kind doc with
+          | `Other ->
+            Jsonrpc.Response.Error.raise
+            @@ Jsonrpc.Response.Error.make
+                 ~code:Jsonrpc.Response.Error.Code.InvalidParams
+                 ~message:"expected a merlin document"
+                 ()
+          | `Merlin merlin ->
+            let+ tokens = compute_tokens merlin in
+            Tokens.yojson_of_t tokens))
 end
 
 let on_request_full :
@@ -936,10 +946,13 @@ let on_request_full :
       let store = state.store in
       let uri = params.textDocument.uri in
       let doc = Document_store.get store uri in
-      let+ tokens = compute_encoded_tokens doc in
-      let resultId = gen_new_id () in
-      Document_store.update_semantic_tokens_cache store uri ~resultId ~tokens;
-      Some { SemanticTokens.resultId = Some resultId; data = tokens })
+      match Document.kind doc with
+      | `Other -> Fiber.return None
+      | `Merlin doc ->
+        let+ tokens = compute_encoded_tokens doc in
+        let resultId = gen_new_id () in
+        Document_store.update_semantic_tokens_cache store uri ~resultId ~tokens;
+        Some { SemanticTokens.resultId = Some resultId; data = tokens })
 
 (* TODO: refactor [find_diff] and write (inline?) tests *)
 
@@ -999,22 +1012,25 @@ let on_request_full_delta :
       let store = state.store in
       let uri = params.textDocument.uri in
       let doc = Document_store.get store uri in
-      let+ tokens = compute_encoded_tokens doc in
-      let resultId = gen_new_id () in
-      let cached_token_info =
-        Document_store.get_semantic_tokens_cache
-          state.store
-          params.textDocument.uri
-      in
-      Document_store.update_semantic_tokens_cache store uri ~resultId ~tokens;
-      match cached_token_info with
-      | Some cached_v
-        when String.equal cached_v.resultId params.previousResultId ->
-        let edits = find_diff ~old:cached_v.tokens ~new_:tokens in
-        Some
-          (`SemanticTokensDelta
-            { SemanticTokensDelta.resultId = Some resultId; edits })
-      | Some _ | None ->
-        Some
-          (`SemanticTokens
-            { SemanticTokens.resultId = Some resultId; data = tokens }))
+      match Document.kind doc with
+      | `Other -> Fiber.return None
+      | `Merlin doc -> (
+        let+ tokens = compute_encoded_tokens doc in
+        let resultId = gen_new_id () in
+        let cached_token_info =
+          Document_store.get_semantic_tokens_cache
+            state.store
+            params.textDocument.uri
+        in
+        Document_store.update_semantic_tokens_cache store uri ~resultId ~tokens;
+        match cached_token_info with
+        | Some cached_v
+          when String.equal cached_v.resultId params.previousResultId ->
+          let edits = find_diff ~old:cached_v.tokens ~new_:tokens in
+          Some
+            (`SemanticTokensDelta
+              { SemanticTokensDelta.resultId = Some resultId; edits })
+        | Some _ | None ->
+          Some
+            (`SemanticTokens
+              { SemanticTokens.resultId = Some resultId; data = tokens })))

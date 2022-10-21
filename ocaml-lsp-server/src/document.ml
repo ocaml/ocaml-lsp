@@ -14,7 +14,7 @@ module Kind = struct
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make
            ~code:InvalidRequest
-           ~message:(Printf.sprintf "unsupported file extension")
+           ~message:"unsupported file extension"
            ~data:(`Assoc [ ("extension", `String ext) ])
            ())
 end
@@ -86,19 +86,21 @@ module Syntax = struct
     | None -> Text_document.documentUri td |> Uri.to_path |> of_fname
 end
 
+type merlin =
+  { tdoc : Text_document.t
+  ; pipeline : Mpipeline.t Lazy_fiber.t
+  ; merlin : Lev_fiber.Thread.t
+  ; timer : Lev_fiber.Timer.Wheel.task
+  ; merlin_config : Merlin_config.t
+  ; syntax : Syntax.t
+  }
+
 type t =
   | Other of
       { tdoc : Text_document.t
       ; syntax : Syntax.t
       }
-  | Merlin of
-      { tdoc : Text_document.t
-      ; pipeline : Mpipeline.t Lazy_fiber.t
-      ; merlin : Lev_fiber.Thread.t
-      ; timer : Lev_fiber.Timer.Wheel.task
-      ; merlin_config : Merlin_config.t
-      ; syntax : Syntax.t
-      }
+  | Merlin of merlin
 
 let tdoc = function
   | Other d -> d.tdoc
@@ -106,20 +108,9 @@ let tdoc = function
 
 let uri t = Text_document.documentUri (tdoc t)
 
-let kind = function
-  | Merlin _ as t -> `Merlin (Kind.of_fname (Uri.to_path (uri t)))
-  | Other _ -> `Other
-
 let syntax = function
   | Merlin m -> m.syntax
   | Other t -> t.syntax
-
-let timer = function
-  | Merlin m -> m.timer
-  | Other _ as t ->
-    Code_error.raise
-      "Document.timer"
-      [ ("t", Dyn.string @@ DocumentUri.to_string @@ uri t) ]
 
 let text t = Text_document.text (tdoc t)
 
@@ -154,49 +145,6 @@ let await task =
           ()
       in
       raise (Jsonrpc.Response.Error.E e))
-
-let with_pipeline (t : t) f =
-  match t with
-  | Other _ ->
-    Code_error.raise
-      "Document.with_pipeline"
-      [ ("t", Dyn.string @@ DocumentUri.to_string @@ uri t) ]
-  | Merlin t -> (
-    let* pipeline = Lazy_fiber.force t.pipeline in
-    let* task =
-      match
-        Lev_fiber.Thread.task t.merlin ~f:(fun () ->
-            let start = Unix.time () in
-            let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
-            let stop = Unix.time () in
-            let event =
-              let module Event = Chrome_trace.Event in
-              let dur = Event.Timestamp.of_float_seconds (stop -. start) in
-              let fields =
-                Event.common_fields
-                  ~ts:(Event.Timestamp.of_float_seconds start)
-                  ~name:"merlin"
-                  ()
-              in
-              Event.complete ~dur fields
-            in
-            (event, res))
-      with
-      | Error `Stopped -> Fiber.never
-      | Ok task -> Fiber.return task
-    in
-    let* res = await task in
-    match res with
-    | Ok (event, result) ->
-      let+ () = Metrics.report event in
-      Ok result
-    | Error e -> Fiber.return (Error e))
-
-let with_pipeline_exn doc f =
-  let+ res = with_pipeline doc f in
-  match res with
-  | Ok s -> s
-  | Error exn -> Exn_with_backtrace.reraise exn
 
 let version t = Text_document.version (tdoc t)
 
@@ -256,39 +204,111 @@ let update_text ?version t changes =
       let pipeline = make_pipeline merlin_config merlin tdoc in
       Merlin { t with tdoc; pipeline })
 
-let dispatch t command =
-  with_pipeline t (fun pipeline -> Query_commands.dispatch pipeline command)
+module Merlin = struct
+  type t = merlin
 
-let dispatch_exn t command =
-  with_pipeline_exn t (fun pipeline -> Query_commands.dispatch pipeline command)
+  let to_doc t = Merlin t
 
-let doc_comment pipeline pos =
-  let res =
-    let command = Query_protocol.Document (None, pos) in
-    Query_commands.dispatch pipeline command
+  let source t = Msource.make (text (Merlin t))
+
+  let timer (t : t) = t.timer
+
+  let kind t = Kind.of_fname (Uri.to_path (uri (Merlin t)))
+
+  let with_pipeline (t : t) f =
+    let* pipeline = Lazy_fiber.force t.pipeline in
+    let* task =
+      match
+        Lev_fiber.Thread.task t.merlin ~f:(fun () ->
+            let start = Unix.time () in
+            let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
+            let stop = Unix.time () in
+            let event =
+              let module Event = Chrome_trace.Event in
+              let dur = Event.Timestamp.of_float_seconds (stop -. start) in
+              let fields =
+                Event.common_fields
+                  ~ts:(Event.Timestamp.of_float_seconds start)
+                  ~name:"merlin"
+                  ()
+              in
+              Event.complete ~dur fields
+            in
+            (event, res))
+      with
+      | Error `Stopped -> Fiber.never
+      | Ok task -> Fiber.return task
+    in
+    let* res = await task in
+    match res with
+    | Ok (event, result) ->
+      let+ () = Metrics.report event in
+      Ok result
+    | Error e -> Fiber.return (Error e)
+
+  let with_pipeline_exn doc f =
+    let+ res = with_pipeline doc f in
+    match res with
+    | Ok s -> s
+    | Error exn -> Exn_with_backtrace.reraise exn
+
+  let dispatch t command =
+    with_pipeline t (fun pipeline -> Query_commands.dispatch pipeline command)
+
+  let dispatch_exn t command =
+    with_pipeline_exn t (fun pipeline ->
+        Query_commands.dispatch pipeline command)
+
+  let doc_comment pipeline pos =
+    let res =
+      let command = Query_protocol.Document (None, pos) in
+      Query_commands.dispatch pipeline command
+    in
+    match res with
+    | `Found s | `Builtin s -> Some s
+    | _ -> None
+
+  type type_enclosing =
+    { loc : Loc.t
+    ; typ : string
+    ; doc : string option
+    }
+
+  let type_enclosing doc pos =
+    with_pipeline_exn doc (fun pipeline ->
+        let command = Query_protocol.Type_enclosing (None, pos, None) in
+        let res = Query_commands.dispatch pipeline command in
+        match res with
+        | [] | (_, `Index _, _) :: _ -> None
+        | (loc, `String typ, _) :: _ ->
+          let doc = doc_comment pipeline pos in
+          Some { loc; typ; doc })
+
+  let doc_comment doc pos =
+    with_pipeline_exn doc (fun pipeline -> doc_comment pipeline pos)
+end
+
+let edit t text_edit =
+  let version = version t in
+  let textDocument =
+    OptionalVersionedTextDocumentIdentifier.create ~uri:(uri t) ~version ()
   in
-  match res with
-  | `Found s | `Builtin s -> Some s
-  | _ -> None
+  let edit =
+    TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit text_edit ]
+  in
+  WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
 
-type type_enclosing =
-  { loc : Loc.t
-  ; typ : string
-  ; doc : string option
-  }
+let kind = function
+  | Merlin merlin -> `Merlin merlin
+  | Other _ -> `Other
 
-let type_enclosing doc pos =
-  with_pipeline_exn doc (fun pipeline ->
-      let command = Query_protocol.Type_enclosing (None, pos, None) in
-      let res = Query_commands.dispatch pipeline command in
-      match res with
-      | [] | (_, `Index _, _) :: _ -> None
-      | (loc, `String typ, _) :: _ ->
-        let doc = doc_comment pipeline pos in
-        Some { loc; typ; doc })
-
-let doc_comment doc pos =
-  with_pipeline_exn doc (fun pipeline -> doc_comment pipeline pos)
+let merlin_exn t =
+  match kind t with
+  | `Merlin m -> m
+  | `Other ->
+    Code_error.raise
+      "Document.merlin_exn"
+      [ ("t", Dyn.string @@ DocumentUri.to_string @@ uri t) ]
 
 let close t =
   match t with
@@ -333,13 +353,3 @@ let get_impl_intf_counterparts uri =
     | to_switch_to -> to_switch_to
   in
   List.map ~f:Uri.of_path files_to_switch_to
-
-let edit t text_edit =
-  let version = version t in
-  let textDocument =
-    OptionalVersionedTextDocumentIdentifier.create ~uri:(uri t) ~version ()
-  in
-  let edit =
-    TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit text_edit ]
-  in
-  WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
