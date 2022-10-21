@@ -174,8 +174,7 @@ the lsp protocol covers a wider scope than merlin.
 
 ## Comparison to other LSP Servers for OCaml
 
-Note that the comparisons below makes no claims of being objective and may be
-entirely out of date:
+Note that the comparisons below makes no claims of being objective. Both are deprecated. 
 
 - [reason-language-server](https://github.com/jaredly/reason-language-server)
   This server supports
