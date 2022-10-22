@@ -17,7 +17,7 @@
     };
   };
 
-  outputs = { self, flake-utils, opam-nix, nixpkgs, ... }@inputs:
+  outputs = { self, flake-utils, opam-nix, opam-repository, nixpkgs, ... }@inputs:
     let package = "ocaml-lsp-server";
     in flake-utils.lib.eachDefaultSystem (system:
       let
@@ -45,7 +45,13 @@
           (
             let
               scope =
-                on.buildOpamProject { resolveArgs = { with-test = true; }; } package
+                on.buildOpamProject
+                  {
+                    repos = [ opam-repository ];
+                    inherit pkgs;
+                    resolveArgs = { with-test = true; };
+                  }
+                  package
                   ./.
                   (allPackages);
               overlay = final: prev: {
