@@ -33,7 +33,6 @@
           ppx_yojson_conv = "*";
           cinaps = "*";
           ppx_expect = "*";
-          ocamlformat-rpc = "*";
           ocamlfind = "1.9.2";
           dune-release = "*";
         };
