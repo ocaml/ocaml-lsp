@@ -59,6 +59,19 @@ Platform Extension implementation
 
 ## Features
 
+<!-- TODO: 
+  this is quite a large list (which becomes even larger since it's missing some requests), which is not necessarily of big interest to users. 
+  
+  We should consider: 
+  1. Moving it to the bottom 
+  2. Converting it into a table 
+     
+     | Description      | Method                  | OCaml | Reason | Dune | Menhir | .ocamlformat | ...
+     | Auto-completion  | textDocument/completion |   x   |    x   |   o  |   o    |      o       | ...
+
+  3. (not sure how) Generate the table automatically because, otherwise, it's outdated frequently. 
+-->
+
 The server supports the following LSP requests:
 
 - [x] `textDocument/completion`
@@ -85,13 +98,95 @@ The server supports the following LSP requests:
 
 Note that degrees of support for each LSP request are varying.
 
+### LSP Extensions
+
 The server also supports a number of OCaml specific extensions to the protocol:
-- [Infer interface](ocaml-lsp-server/docs/ocamllsp/inferIntf-spec.md)
 - [Switch to implementation/interface](ocaml-lsp-server/docs/ocamllsp/switchImplIntf-spec.md)
+- [Infer interface](ocaml-lsp-server/docs/ocamllsp/inferIntf-spec.md)
 - [Locate typed holes](ocaml-lsp-server/docs/ocamllsp/typedHoles-spec.md)
 - [Find wrapping AST node](ocaml-lsp-server/docs/ocamllsp/wrappingAstNode-spec.md)
 
 Note that editor support for these extensions varies. In general, the OCaml Platform extension for Visual Studio Code will have the best support.
+
+### Unorthodox features 
+
+#### Destructing a value
+
+OCaml-LSP has a code action that allows to generate an exhaustive pattern
+matching for values. For example, placing a cursor near a value `(Some 10)|`
+where `|` is your cursor, OCaml-LSP will offer a code action "Destruct", which
+replaces `(Some 10)` with `(match Some with | None -> _ | Some _ -> _)`. 
+
+You can also usually destruct the value by placing the cursor on the wildcard
+(`_`) pattern in a pattern-match. For example, 
+
+```ocaml
+type t = A | B of string option
+
+let f (v : t) = match v with | A -> _ | B _| -> _
+```
+
+invoking destruct near the cursor (`|`) in the snippet above, you get 
+
+```ocaml
+type t = A | B of string option
+
+let f (v : t) = match v with | A -> _ | B (None) | B (Some _) -> _
+```
+
+Importantly, note the undescores in place of expressions in each branch of the
+pattern match above. The underscores that occur in place of expressions are
+called "typed holes" - a concept explained below.
+
+Tip (formatting): generated code may not be greatly formatted. If your project
+uses a formatter such as OCamlFormat, you can run formatting and get a
+well-formatted document (OCamlFormat supports typed holes formatting). 
+
+Tip (for VS Code users): You can destruct a value using a keybinding
+<kbd>Alt</kbd>+<kbd>D</kbd> or on MacOS <kbd>Option</kbd>+<kbd>D</kbd>
+
+#### Typed holes
+
+OCaml-LSP has a concept of a "typed hole" syntactically represented as `_`
+(underscore). A typed hole represents a well-typed "substitute" for an
+expression. OCaml-LSP considers these underscores that occur in place of
+expressions as a valid well-typed OCaml program: `let foo : int = _` (the typed
+hole has type `int` here) or `let bar = _ 10` (the hole has type `int -> 'a`).
+One can use such holes during development as temporary substitutes for
+expressions and "plug" the holes later with appropriate expressions.
+
+Note, files that incorporate typed holes are *not* considered valid OCaml by the
+OCaml compiler and, hence, cannot be compiled. 
+
+Also, an underscore occurring in place of a pattern (for example `let _ = 10`)
+should not be confused with a typed hole that occurs in place of an expression,
+e.g., `let a = _`.
+
+#### Constructing values by type (experimental)
+
+OCaml-LSP can "construct" expressions based on the type required and offer them
+during auto-completion. For example, typing `_` (typed hole) in the snippet
+below will trigger auto-completion (`|` is your cursor):
+
+```ocaml
+(* file foo.ml *)
+type t = A | B of string option
+
+(* file bar.ml *)
+let v : Foo.t = _| 
+```
+
+The auto-completion offers completions `Foo.A` and `Foo.B _`. You can further
+construct values by placing the cursor as such: `Foo.B _|` and triggering code
+action "Construct an expression" which offers completions `None` and `Some _`.
+Trigger the same code action in `Some _|` will offer `""` - one of the possible
+expressions to replace the typed hole with.
+
+Constructing a value is thus triggered either by typing `_` in place of an
+expression or trigger the code action "Construct an Expression".
+
+Tip (for VS Code users): You can construct a value using a keybinding
+<kbd>Alt</kbd>+<kbd>C</kbd> or on MacOS <kbd>Option</kbd>+<kbd>C</kbd>
 
 ## Integration with other tools
 
