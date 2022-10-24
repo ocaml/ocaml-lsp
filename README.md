@@ -199,7 +199,7 @@ formatting support. Note, however, that OCaml-LSP requires presence of
 OCamlFormat configuration file, called `.ocamlformat`, in the project root to
 be able to format source files in your project.
 
-### Formatting code on hover
+### Formatting code on hover <!-- TODO: specify until which olsp version this applies (since ofmt-rpc is inside ofmt now) -->
 
 When you hover the cursor over OCaml code, the extension shows you the type of
 the symbol. To get nicely formatted types, install
