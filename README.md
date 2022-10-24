@@ -57,6 +57,11 @@ For an example of usage of the server in a VS Code extension, see OCaml
 Platform Extension implementation
 [here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/vscode_ocaml_platform.ml).
 
+### Merlin configuration (advanced)
+
+If you would like OCaml-LSP to respect your `.merlin` files, OCaml-LSP needs to
+be invoked with `--fallback-read-dot-merlin` argument passed to it. 
+
 ## Features
 
 <!-- TODO: 
