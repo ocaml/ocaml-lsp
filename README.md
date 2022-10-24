@@ -143,7 +143,12 @@ Note that editor support for these extensions varies. In general, the OCaml Plat
 OCaml-LSP has a code action that allows to generate an exhaustive pattern
 matching for values. For example, placing a cursor near a value `(Some 10)|`
 where `|` is your cursor, OCaml-LSP will offer a code action "Destruct", which
-replaces `(Some 10)` with `(match Some with | None -> _ | Some _ -> _)`. 
+replaces `(Some 10)` with `(match Some with | None -> _ | Some _ -> _)`.
+Importantly, one can only destruct a value if OCaml-LSP can infer the value's
+precise type. The value can be type-annotated, e.g., if it's a function argument
+with polymorphic (or yet unknown) type in this context. In the code snippet
+below, we type-annotate the function parameter `v` because when we type `let f v
+= v|`, the type of `v` is polymorphic, so we can't destruct it.
 
 You can also usually destruct the value by placing the cursor on the wildcard
 (`_`) pattern in a pattern-match. For example, 
@@ -211,7 +216,8 @@ Trigger the same code action in `Some _|` will offer `""` - one of the possible
 expressions to replace the typed hole with.
 
 Constructing a value is thus triggered either by typing `_` in place of an
-expression or trigger the code action "Construct an Expression".
+expression or trigger the code action "Construct an Expression". Also, the type
+of the value needs to be non-polymorphic to construct a meaningful value.
 
 Tip (for VS Code OCaml Platform users): You can construct a value using a keybinding
 <kbd>Alt</kbd>+<kbd>C</kbd> or on MacOS <kbd>Option</kbd>+<kbd>C</kbd>
