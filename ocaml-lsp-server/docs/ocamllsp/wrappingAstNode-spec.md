@@ -1,4 +1,6 @@
-#### Wrapping AST Node
+# Wrapping AST Node
+
+## Description 
 
 (Could also be named `Enclosing AST Node`)
 
@@ -30,16 +32,16 @@ The document URI in the request has to be open before sending a the request. If 
 
 Note: stability of this custom request is not guaranteed. Talk to the maintainers if you want to depend on it.
 
-##### Client capability
+## Client capability
 
 nothing that should be noted
 
-##### Server capability
+## Server capability
 
 property name: `handleWrappingAstNode`
 property type: `boolean`
 
-##### Request
+## Request
 
 - method: `ocamllsp/wrappingAstNode`
 - params:
@@ -51,7 +53,7 @@ property type: `boolean`
   }
   ```
 
-##### Response
+## Response
 
 - result: `Range | null`
 - error: code and message set in case an exception happens during the processing of the request.
