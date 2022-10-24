@@ -98,6 +98,29 @@ The server supports the following LSP requests:
 
 Note that degrees of support for each LSP request are varying.
 
+### Semantic highlighting 
+
+OCaml-LSP implements experimental semantic highlighting support (also known as
+semantic tokens support). The support can be activated by passing an evironment
+variable to OCaml-LSP: 
+
+- To enable non-incremental (expectedly slower but more stable) version, pass
+  `OCAMLLSP_SEMANTIC_HIGHLIGHTING=full` environment variable to OCaml-LSP.
+
+- To enable incremental (potentially faster but more error-prone, at least on VS
+  Code) version, pass `OCAMLLSP_SEMANTIC_HIGHLIGHTING=full/delta` to OCaml-LSP.
+
+Tip (for VS Code OCaml Platform users): You can use `ocaml.server.extraEnv`
+setting in VS Code to pass various environment variables to OCaml-LSP.
+
+```json
+{
+    "ocaml.server.extraEnv": {
+        "OCAMLLSP_SEMANTIC_HIGHLIGHTING": "full"
+    },
+}
+```
+
 ### LSP Extensions
 
 The server also supports a number of OCaml specific extensions to the protocol:
