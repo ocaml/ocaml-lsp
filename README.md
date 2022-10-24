@@ -142,7 +142,7 @@ Tip (formatting): generated code may not be greatly formatted. If your project
 uses a formatter such as OCamlFormat, you can run formatting and get a
 well-formatted document (OCamlFormat supports typed holes formatting). 
 
-Tip (for VS Code users): You can destruct a value using a keybinding
+Tip (for VS Code OCaml Platform users): You can destruct a value using a keybinding
 <kbd>Alt</kbd>+<kbd>D</kbd> or on MacOS <kbd>Option</kbd>+<kbd>D</kbd>
 
 #### Typed holes
@@ -185,7 +185,7 @@ expressions to replace the typed hole with.
 Constructing a value is thus triggered either by typing `_` in place of an
 expression or trigger the code action "Construct an Expression".
 
-Tip (for VS Code users): You can construct a value using a keybinding
+Tip (for VS Code OCaml Platform users): You can construct a value using a keybinding
 <kbd>Alt</kbd>+<kbd>C</kbd> or on MacOS <kbd>Option</kbd>+<kbd>C</kbd>
 
 ## Integration with other tools
