@@ -590,7 +590,7 @@ let references (state : State.t)
            (* using original uri because merlin is looking only in local file *)
            { Location.uri; range }))
 
-let definition_query server (state : State.t) uri position merlin_request =
+let definition_query (state : State.t) uri position merlin_request =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
@@ -601,11 +601,12 @@ let definition_query server (state : State.t) uri position merlin_request =
     match location_of_merlin_loc uri result with
     | Ok s -> Fiber.return s
     | Error message ->
-      let+ () =
-        let message = sprintf "Locate failed. %s" message in
-        State.log_msg server ~type_:Error ~message
-      in
-      None)
+      let message = sprintf "Merlin Locate failed: %s" message in
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make
+           ~code:Jsonrpc.Response.Error.Code.InternalError
+           ~message
+           ()))
 
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
     =
@@ -809,19 +810,19 @@ let on_request :
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
     later
       (fun state () ->
-        definition_query rpc state uri position (fun pos ->
+        definition_query state uri position (fun pos ->
             Query_protocol.Locate (None, `MLI, pos)))
       ()
   | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
-        definition_query rpc state uri position (fun pos ->
+        definition_query state uri position (fun pos ->
             Query_protocol.Locate (None, `ML, pos)))
       ()
   | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
     later
       (fun state () ->
-        definition_query rpc state uri position (fun pos ->
+        definition_query state uri position (fun pos ->
             Query_protocol.Locate_type pos))
       ()
   | TextDocumentCompletion params ->
