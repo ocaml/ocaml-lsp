@@ -590,22 +590,35 @@ let references (state : State.t)
            (* using original uri because merlin is looking only in local file *)
            { Location.uri; range }))
 
-let definition_query (state : State.t) uri position merlin_request =
+let definition_query kind (state : State.t) uri position =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc -> (
-    let position = Position.logical position in
-    let command = merlin_request position in
+    let command =
+      let pos = Position.logical position in
+      match kind with
+      | `Definition -> Query_protocol.Locate (None, `ML, pos)
+      | `Declaration -> Query_protocol.Locate (None, `MLI, pos)
+      | `Type_definition -> Query_protocol.Locate_type pos
+    in
     let* result = Document.Merlin.dispatch_exn doc command in
     match location_of_merlin_loc uri result with
     | Ok s -> Fiber.return s
-    | Error message ->
-      let message = sprintf "Merlin Locate failed: %s" message in
+    | Error err_msg ->
+      let kind =
+        match kind with
+        | `Definition -> "definition"
+        | `Declaration -> "declaration"
+        | `Type_definition -> "type definition"
+      in
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make
            ~code:Jsonrpc.Response.Error.Code.InternalError
-           ~message
+           ~message:(sprintf "Request \"Jump to %s\" failed." kind)
+           ~data:
+             (`String
+               (sprintf "'Locate' query to merlin returned error: %s" err_msg))
            ()))
 
 let workspace_symbol server (state : State.t) (params : WorkspaceSymbolParams.t)
@@ -808,22 +821,12 @@ let on_request :
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
-    later
-      (fun state () ->
-        definition_query state uri position (fun pos ->
-            Query_protocol.Locate (None, `MLI, pos)))
-      ()
+    later (fun state () -> definition_query `Declaration state uri position) ()
   | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
-    later
-      (fun state () ->
-        definition_query state uri position (fun pos ->
-            Query_protocol.Locate (None, `ML, pos)))
-      ()
+    later (fun state () -> definition_query `Definition state uri position) ()
   | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
     later
-      (fun state () ->
-        definition_query state uri position (fun pos ->
-            Query_protocol.Locate_type pos))
+      (fun state () -> definition_query `Type_definition state uri position)
       ()
   | TextDocumentCompletion params ->
     later (fun _ () -> Compl.complete state params) ()
