@@ -615,7 +615,7 @@ let definition_query kind (state : State.t) uri position =
       in
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make
-           ~code:Jsonrpc.Response.Error.Code.InternalError
+           ~code:Jsonrpc.Response.Error.Code.RequestFailed
            ~message:(sprintf "Request \"Jump to %s\" failed." kind)
            ~data:
              (`String
