@@ -591,6 +591,7 @@ let references (state : State.t)
            { Location.uri; range }))
 
 let definition_query kind (state : State.t) uri position =
+  let* () = Fiber.return () in
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
