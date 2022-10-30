@@ -824,7 +824,22 @@ let on_request :
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
     later (fun state () -> definition_query `Declaration state uri position) ()
   | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
-    later (fun state () -> definition_query `Definition state uri position) ()
+    let doc =
+      Document_store.change_document store uri ~f:(fun doc ->
+          (* we need [update_text] with no changes to get a new merlin pipeline;
+             otherwise the diagnostics don't get updated *)
+          Document.update_text doc [])
+    in
+    let+ (), state =
+      Fiber.fork_and_join
+        (fun (* TODO: should we really be updating the diagnostics here? *)
+               () -> set_diagnostics state.detached state.diagnostics doc)
+        (fun () ->
+          later
+            (fun state () -> definition_query `Definition state uri position)
+            ())
+    in
+    state
   | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
     later
       (fun state () -> definition_query `Type_definition state uri position)
