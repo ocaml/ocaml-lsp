@@ -39,71 +39,77 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
         let store = state.store in
         Document_store.get store uri
       in
-      let verbosity =
-        let mode =
-          match (mode, Sys.getenv_opt "OCAMLLSP_HOVER_IS_EXTENDED") with
-          | Default, Some "true" -> Extended_variable
-          | x, _ -> x
-        in
-        match mode with
-        | Default -> 0
-        | Extended_fixed v ->
-          state.hover_extended.history <- None;
-          v
-        | Extended_variable ->
-          let v =
-            match state.hover_extended.history with
-            | None -> 0
-            | Some (h_uri, h_position, h_verbosity) ->
-              if
-                Uri.equal uri h_uri
-                && Ordering.is_eq (Position.compare position h_position)
-              then succ h_verbosity
-              else 0
+      match Document.kind doc with
+      | `Other -> Fiber.return None
+      | `Merlin merlin -> (
+        let verbosity =
+          let mode =
+            match (mode, Sys.getenv_opt "OCAMLLSP_HOVER_IS_EXTENDED") with
+            | Default, Some "true" -> Extended_variable
+            | x, _ -> x
           in
-          state.hover_extended.history <- Some (uri, position, v);
-          v
-      in
-      let pos = Position.logical position in
-      let* type_enclosing = Document.type_enclosing doc pos verbosity in
-      match type_enclosing with
-      | None -> Fiber.return None
-      | Some { Document.loc; typ; doc = documentation } ->
-        let syntax = Document.syntax doc in
-        let+ typ =
-          (* We ask Ocamlformat to format this type *)
-          let* result =
-            Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ
-          in
-          match result with
-          | Ok v ->
-            (* OCamlformat adds an unnecessay newline at the end of the type *)
-            Fiber.return (String.trim v)
-          | Error `No_process -> Fiber.return typ
-          | Error (`Msg message) ->
-            (* We log OCamlformat errors and display the unformated type *)
-            let+ () =
-              let message =
-                sprintf
-                  "An error occured while querying ocamlformat:\n\
-                   Input type: %s\n\n\
-                   Answer: %s"
-                  typ
-                  message
-              in
-              State.log_msg server ~type_:Warning ~message
+          match mode with
+          | Default -> 0
+          | Extended_fixed v ->
+            state.hover_extended.history <- None;
+            v
+          | Extended_variable ->
+            let v =
+              match state.hover_extended.history with
+              | None -> 0
+              | Some (h_uri, h_position, h_verbosity) ->
+                if
+                  Uri.equal uri h_uri
+                  && Ordering.is_eq (Position.compare position h_position)
+                then succ h_verbosity
+                else 0
             in
-            typ
+            state.hover_extended.history <- Some (uri, position, v);
+            v
         in
-        let contents =
-          let markdown =
-            let client_capabilities = State.client_capabilities state in
-            ClientCapabilities.markdown_support
-              client_capabilities
-              ~field:(fun td ->
-                Option.map td.hover ~f:(fun h -> h.contentFormat))
+        let pos = Position.logical position in
+        let* type_enclosing =
+          Document.Merlin.type_enclosing merlin pos verbosity
+        in
+        match type_enclosing with
+        | None -> Fiber.return None
+        | Some { Document.Merlin.loc; typ; doc = documentation } ->
+          let syntax = Document.syntax doc in
+          let+ typ =
+            (* We ask Ocamlformat to format this type *)
+            let* result =
+              Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ
+            in
+            match result with
+            | Ok v ->
+              (* OCamlformat adds an unnecessay newline at the end of the
+                 type *)
+              Fiber.return (String.trim v)
+            | Error `No_process -> Fiber.return typ
+            | Error (`Msg message) ->
+              (* We log OCamlformat errors and display the unformated type *)
+              let+ () =
+                let message =
+                  sprintf
+                    "An error occured while querying ocamlformat:\n\
+                     Input type: %s\n\n\
+                     Answer: %s"
+                    typ
+                    message
+                in
+                State.log_msg server ~type_:Warning ~message
+              in
+              typ
           in
-          format_contents ~syntax ~markdown ~typ ~doc:documentation
-        in
-        let range = Range.of_loc loc in
-        Some (Hover.create ~contents ~range ()))
+          let contents =
+            let markdown =
+              let client_capabilities = State.client_capabilities state in
+              ClientCapabilities.markdown_support
+                client_capabilities
+                ~field:(fun td ->
+                  Option.map td.hover ~f:(fun h -> h.contentFormat))
+            in
+            format_contents ~syntax ~markdown ~typ ~doc:documentation
+          in
+          let range = Range.of_loc loc in
+          Some (Hover.create ~contents ~range ())))

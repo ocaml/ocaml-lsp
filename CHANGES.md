@@ -1,6 +1,18 @@
-# Unreleased
+# 1.14.1
+
+## Fixes
+
+- Fix various server crashes when opening non OCaml/Reason files. Files such as
+  dune, cram, etc. would cause the server to crash. (#884, fixes #871)
+
+- Ignore unknown tags in merlin configuration to improve forward compatibility
+  with Dune. (#883)
+
+# 1.14.0
 
 ## Features
+
+- Code action for inlining let bindings within a module or expression. (#847)
 
 - Tag "unused code" and "deprecated" warnings, allowing clients to better
   display them. (#848)

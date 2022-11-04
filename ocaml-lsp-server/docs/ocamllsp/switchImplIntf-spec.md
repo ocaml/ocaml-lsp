@@ -1,4 +1,4 @@
-#### Switch Implementation/Interface Request
+# Switch Implementation/Interface Request
 
 Switch Implementation/Interface Request is sent from client to server  to get
 URI(s) of the file(s) that the current file can switch to, e.g.,  if the user
@@ -12,22 +12,22 @@ for creation is returned, e.g., if a user wants  to switch from "foo.ml", but no
 files already exist in the project that  could be returned, a URI for "foo.mli"
 is returned.
 
-##### Client capability
+## Client capability
 
 nothing that should be noted
 
-##### Server capability
+## Server capability
 
 property name: `handleSwitchImplIntf`
 
 property type: `boolean`
 
-##### Request
+## Request
 
 - method: `ocamllsp/switchImplIntf`
 - params: `DocumentUri` (see [`DocumentUri`](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#uri) in LSP specification)
 
-##### Response
+## Response
 
 - result: DocumentUri[] (non-empty)
 - error: code and message set in case an exception happens during the `ocamllsp/switchImplIntf` request.

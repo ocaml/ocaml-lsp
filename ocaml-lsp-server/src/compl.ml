@@ -163,7 +163,10 @@ module Complete_by_prefix = struct
       let logical_pos = Position.logical pos in
       range_prefix
         pos
-        (prefix_of_position ~short_path:true (Document.source doc) logical_pos)
+        (prefix_of_position
+           ~short_path:true
+           (Document.Merlin.source doc)
+           logical_pos)
     in
     let completion_entries =
       match completion.context with
@@ -183,7 +186,8 @@ module Complete_by_prefix = struct
        following [completionItem/resolve] requests *)
     let compl_params =
       let textDocument =
-        TextDocumentIdentifier.create ~uri:(Document.uri doc)
+        TextDocumentIdentifier.create
+          ~uri:(Document.uri (Document.Merlin.to_doc doc))
       in
       CompletionParams.create ~textDocument ~position:pos ()
       |> CompletionParams.yojson_of_t
@@ -195,7 +199,7 @@ module Complete_by_prefix = struct
   let complete doc prefix pos =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
-      Document.with_pipeline_exn doc (dispatch_cmd ~prefix logical_pos)
+      Document.Merlin.with_pipeline_exn doc (dispatch_cmd ~prefix logical_pos)
     in
     process_dispatch_resp doc pos completion
 end
@@ -252,54 +256,58 @@ let complete (state : State.t)
     ({ textDocument = { uri }; position = pos; _ } : CompletionParams.t) =
   Fiber.of_thunk (fun () ->
       let doc = Document_store.get state.store uri in
-      let+ items =
-        let position = Position.logical pos in
-        let prefix =
-          prefix_of_position ~short_path:false (Document.source doc) position
-        in
-        if not (Typed_hole.can_be_hole prefix) then
-          Complete_by_prefix.complete doc prefix pos
-        else
-          let reindex_sortText completion_items =
-            List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
-                let sortText = Some (sortText_of_index idx) in
-                { ci with sortText })
+      match Document.kind doc with
+      | `Other -> Fiber.return None
+      | `Merlin merlin ->
+        let+ items =
+          let position = Position.logical pos in
+          let prefix =
+            prefix_of_position ~short_path:false (Document.source doc) position
           in
-          let preselect_first = function
-            | [] -> []
-            | ci :: rest ->
-              { ci with CompletionItem.preselect = Some true } :: rest
-          in
-          let+ construct_cmd_resp, compl_by_prefix_resp =
-            Document.with_pipeline_exn doc (fun pipeline ->
-                let construct_cmd_resp =
-                  Complete_with_construct.dispatch_cmd position pipeline
-                in
-                let compl_by_prefix_resp =
-                  Complete_by_prefix.dispatch_cmd ~prefix position pipeline
-                in
-                (construct_cmd_resp, compl_by_prefix_resp))
-          in
-          let construct_completionItems =
-            let supportsJumpToNextHole =
-              State.experimental_client_capabilities state
-              |> Client.Experimental_capabilities.supportsJumpToNextHole
+          if not (Typed_hole.can_be_hole prefix) then
+            Complete_by_prefix.complete merlin prefix pos
+          else
+            let reindex_sortText completion_items =
+              List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
+                  let sortText = Some (sortText_of_index idx) in
+                  { ci with sortText })
             in
-            Complete_with_construct.process_dispatch_resp
-              ~supportsJumpToNextHole
-              construct_cmd_resp
-          in
-          let compl_by_prefix_completionItems =
-            Complete_by_prefix.process_dispatch_resp
-              doc
-              pos
-              compl_by_prefix_resp
-          in
-          construct_completionItems @ compl_by_prefix_completionItems
-          |> reindex_sortText |> preselect_first
-      in
-      Some
-        (`CompletionList (CompletionList.create ~isIncomplete:false ~items ())))
+            let preselect_first = function
+              | [] -> []
+              | ci :: rest ->
+                { ci with CompletionItem.preselect = Some true } :: rest
+            in
+            let+ construct_cmd_resp, compl_by_prefix_resp =
+              Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+                  let construct_cmd_resp =
+                    Complete_with_construct.dispatch_cmd position pipeline
+                  in
+                  let compl_by_prefix_resp =
+                    Complete_by_prefix.dispatch_cmd ~prefix position pipeline
+                  in
+                  (construct_cmd_resp, compl_by_prefix_resp))
+            in
+            let construct_completionItems =
+              let supportsJumpToNextHole =
+                State.experimental_client_capabilities state
+                |> Client.Experimental_capabilities.supportsJumpToNextHole
+              in
+              Complete_with_construct.process_dispatch_resp
+                ~supportsJumpToNextHole
+                construct_cmd_resp
+            in
+            let compl_by_prefix_completionItems =
+              Complete_by_prefix.process_dispatch_resp
+                merlin
+                pos
+                compl_by_prefix_resp
+            in
+            construct_completionItems @ compl_by_prefix_completionItems
+            |> reindex_sortText |> preselect_first
+        in
+        Some
+          (`CompletionList
+            (CompletionList.create ~isIncomplete:false ~items ())))
 
 let format_doc ~markdown doc =
   match markdown with
@@ -324,7 +332,7 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
             let prefix =
               prefix_of_position
                 ~short_path:true
-                (Document.source doc)
+                (Document.Merlin.source doc)
                 logical_position
             in
             { position with
@@ -333,7 +341,7 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
           in
           let end_ =
             let suffix =
-              suffix_of_position (Document.source doc) logical_position
+              suffix_of_position (Document.Merlin.source doc) logical_position
             in
             { position with
               character = position.character + String.length suffix
@@ -342,10 +350,12 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
           let range = Range.create ~start ~end_ in
           TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
         in
-        Document.update_text doc [ complete ]
+        Document.update_text (Document.Merlin.to_doc doc) [ complete ]
       in
       let+ documentation =
-        let+ documentation = query_doc doc logical_position in
+        let+ documentation =
+          query_doc (Document.merlin_exn doc) logical_position
+        in
         Option.map ~f:(format_doc ~markdown) documentation
       in
       { compl with documentation; data = None })

@@ -71,7 +71,7 @@ let rec mark_value_unused_edit name contexts =
 
 let code_action_mark_value_unused doc (diagnostic : Diagnostic.t) =
   let open Option.O in
-  Document.with_pipeline_exn doc (fun pipeline ->
+  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
       let var_name = slice doc diagnostic.range in
       let pos = diagnostic.range.start in
       let+ text_edit =
@@ -125,10 +125,9 @@ let code_action_remove_range doc (diagnostic : Diagnostic.t) range =
 
 (* Create a code action that removes the value mentioned in [diagnostic]. *)
 let code_action_remove_value doc pos (diagnostic : Diagnostic.t) =
-  Document.with_pipeline_exn doc (fun pipeline ->
+  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
       let var_name = slice doc diagnostic.range in
-      enclosing_pos pipeline pos
-      |> List.map ~f:(fun (_, x) -> x)
+      enclosing_pos pipeline pos |> List.map ~f:snd
       |> enclosing_value_binding_range var_name
       |> Option.map ~f:(fun range ->
              code_action_remove_range doc diagnostic range))

@@ -44,25 +44,31 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
     ()
 
 let code_action doc (params : CodeActionParams.t) =
-  let pos_start = Position.logical params.range.start in
-  let+ res =
-    Document.with_pipeline_exn doc (fun pipeline ->
-        let context = check_typeable_context pipeline pos_start in
-        match context with
-        | `Invalid -> None
-        | `Valid ->
-          let command = Query_protocol.Type_enclosing (None, pos_start, None) in
-          let config = Mpipeline.final_config pipeline in
-          let config =
-            { config with query = { config.query with verbosity = 0 } }
-          in
-          let pipeline = Mpipeline.make config (Document.source doc) in
-          Some (Query_commands.dispatch pipeline command))
-  in
-  match res with
-  | None | Some [] | Some ((_, `Index _, _) :: _) -> None
-  | Some ((location, `String value, _) :: _) ->
-    code_action_of_type_enclosing params.textDocument.uri doc (location, value)
+  match Document.kind doc with
+  | `Other -> Fiber.return None
+  | `Merlin merlin -> (
+    let pos_start = Position.logical params.range.start in
+    let+ res =
+      Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+          let context = check_typeable_context pipeline pos_start in
+          match context with
+          | `Invalid -> None
+          | `Valid ->
+            let command =
+              Query_protocol.Type_enclosing (None, pos_start, None)
+            in
+            let config = Mpipeline.final_config pipeline in
+            let config =
+              { config with query = { config.query with verbosity = 0 } }
+            in
+            let pipeline = Mpipeline.make config (Document.source doc) in
+            Some (Query_commands.dispatch pipeline command))
+    in
+    match res with
+    | None | Some [] | Some ((_, `Index _, _) :: _) -> None
+    | Some ((location, `String value, _) :: _) ->
+      code_action_of_type_enclosing params.textDocument.uri doc (location, value)
+    )
 
 let t =
   { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }

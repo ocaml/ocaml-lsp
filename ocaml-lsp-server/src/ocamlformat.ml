@@ -132,7 +132,12 @@ let formatter doc =
   match Document.syntax doc with
   | (Dune | Cram | Ocamllex | Menhir) as s -> Error (Unsupported_syntax s)
   | Ocaml -> Ok (Ocaml (Document.uri doc))
-  | Reason -> Ok (Reason (Document.kind doc))
+  | Reason ->
+    Ok
+      (Reason
+         (match Document.kind doc with
+         | `Merlin m -> Document.Merlin.kind m
+         | `Other -> Code_error.raise "unable to format non merlin document" []))
 
 let exec cancel bin args stdin =
   let refmt = Fpath.to_string bin in

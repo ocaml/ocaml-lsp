@@ -257,12 +257,12 @@ end = struct
                   | Failed | Interrupted | Success ->
                     let* () =
                       Document_store.change_all document_store ~f:(fun doc ->
-                          match Document.is_merlin doc with
-                          | false -> Fiber.return doc
-                          | true ->
+                          match Document.kind doc with
+                          | `Other -> Fiber.return doc
+                          | `Merlin merlin ->
                             let doc = Document.update_text doc [] in
                             let+ () =
-                              Diagnostics.merlin_diagnostics diagnostics doc
+                              Diagnostics.merlin_diagnostics diagnostics merlin
                             in
                             doc)
                     in

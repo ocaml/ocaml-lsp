@@ -1,5 +1,0 @@
-(subdir ocamlc_loc
- (copy_files %{project_root}/submodules/dune/src/ocamlc_loc/*.{ml,mli})
- (library
-  (name ocamlc_loc)
-  (libraries re dyn stdune)))

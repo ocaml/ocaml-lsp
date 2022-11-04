@@ -5,8 +5,9 @@ let action_kind = "construct"
 
 let code_action doc (params : CodeActionParams.t) =
   match Document.kind doc with
-  | Intf -> Fiber.return None
-  | Impl ->
+  | `Other -> Fiber.return None
+  | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
+  | `Merlin merlin ->
     let pos = Position.logical params.range.Range.end_ in
     (* we want this predicate to quickly eliminate prefixes that don't fit to be
        a hole *)
@@ -17,7 +18,7 @@ let code_action doc (params : CodeActionParams.t) =
     if not (Typed_hole.can_be_hole prefix) then Fiber.return None
     else
       let+ structures =
-        Document.with_pipeline_exn doc (fun pipeline ->
+        Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
             let typedtree =
               let typer = Mpipeline.typer_result pipeline in
               Mtyper.get_typedtree typer
