@@ -34,6 +34,8 @@
   yojson
   dune-rpc
   ocamlformat-rpc-lib
-  ocamlc-loc))
+  ocamlc-loc)
+ (lint
+  (pps ppx_yojson_conv)))
 
 (include_subdirs unqualified)
