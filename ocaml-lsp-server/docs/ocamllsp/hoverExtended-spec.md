@@ -13,7 +13,7 @@ With the cursor on the value `x`, a call with a verbosity of 0 or lower would
 return `t` making it equivalent to a call to `textDocument/hover`. A call with
 a verbosity of 1 would return `int`.
 
-When the verbosity is omitted, the server is picks a number based on previous
+When the verbosity is omitted, the server picks a number based on previous
 calls. It starts with 0. Further calls at the same position will improve the
 verbosity of the displayed type, by expanding aliases. If the position changes,
 the verbosity goes back to 0. This behavior is similar to `type-enclosing` in
