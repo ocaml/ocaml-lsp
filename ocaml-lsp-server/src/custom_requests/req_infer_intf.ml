@@ -5,8 +5,7 @@ let capability = ("handleInferIntf", `Bool true)
 
 let meth = "ocamllsp/inferIntf"
 
-let on_request ~(params : Jsonrpc.Structured.t option)
-    (_server : State.t Server.t) (state : State.t) =
+let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
   Fiber.of_thunk (fun () ->
       match params with
       | Some (`List [ json_uri ]) -> (

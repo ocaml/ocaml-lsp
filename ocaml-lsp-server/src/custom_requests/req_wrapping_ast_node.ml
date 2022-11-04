@@ -28,7 +28,7 @@ module Request_params = struct
     Custom_request.of_jsonrpc_params_exn params_spec params
 end
 
-let on_request ~params _server state =
+let on_request ~params state =
   Fiber.of_thunk (fun () ->
       let { Request_params.text_document_uri; cursor_position } =
         Request_params.of_jsonrpc_params_exn params

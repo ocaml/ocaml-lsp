@@ -46,11 +46,8 @@ module Request_params = struct
     Custom_request.of_jsonrpc_params_exn params_spec params
 end
 
-let client_capabilities (state : State.t) =
-  (State.initialize_params state).capabilities
-
 let on_request ~(params : Jsonrpc.Structured.t option)
-    (server : State.t Server.t) (_state : State.t) =
+    (server : State.t Server.t) =
   let { Request_params.text_document; cursor_position; verbosity } =
     Request_params.of_jsonrpc_params_exn params
   in
