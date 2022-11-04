@@ -75,4 +75,4 @@ type type_enclosing =
   }
 
 val type_enclosing :
-  ?verbosity:int -> t -> Msource.position -> type_enclosing option Fiber.t
+  t -> Msource.position -> (* verbosity *) int -> type_enclosing option Fiber.t

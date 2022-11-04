@@ -275,7 +275,7 @@ type type_enclosing =
   ; doc : string option
   }
 
-let type_enclosing ?(verbosity = 0) doc pos =
+let type_enclosing doc pos verbosity =
   with_pipeline_exn doc (fun pipeline ->
       let command = Query_protocol.Type_enclosing (None, pos, None) in
       let pipeline =

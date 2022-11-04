@@ -46,10 +46,10 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
           | x, _ -> x
         in
         match mode with
-        | Default -> None
+        | Default -> 0
         | Extended_fixed v ->
           state.hover_extended.history <- None;
-          Some v
+          v
         | Extended_variable ->
           let v =
             match state.hover_extended.history with
@@ -62,10 +62,10 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
               else 0
           in
           state.hover_extended.history <- Some (uri, position, v);
-          Some v
+          v
       in
       let pos = Position.logical position in
-      let* type_enclosing = Document.type_enclosing ?verbosity doc pos in
+      let* type_enclosing = Document.type_enclosing doc pos verbosity in
       match type_enclosing with
       | None -> Fiber.return None
       | Some { Document.loc; typ; doc = documentation } ->
