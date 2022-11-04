@@ -43,27 +43,25 @@ let print_hover hover =
     |> Yojson.Safe.pretty_to_string ~std:false
     |> print_endline
 
-let default_hover_params =
-  { HoverParams.position = Position.create ~line:0 ~character:0
-  ; textDocument = TextDocumentIdentifier.create ~uri
-  ; workDoneToken = None
-  }
-
 let hover client position =
   Client.request
     client
-    (TextDocumentHover { default_hover_params with position })
+    (TextDocumentHover
+       { HoverParams.position
+       ; textDocument = TextDocumentIdentifier.create ~uri
+       ; workDoneToken = None
+       })
 
 let print_hover_extended resp =
   resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
 
-let hover_extended client _position verbosity =
+let hover_extended client position verbosity =
   let params =
     let required =
       [ ( "textDocument"
         , TextDocumentIdentifier.yojson_of_t
             (TextDocumentIdentifier.create ~uri) )
-      ; ("position", Position.yojson_of_t (Position.create ~line:0 ~character:0))
+      ; ("position", Position.yojson_of_t position)
       ]
     in
     let params =
@@ -160,7 +158,15 @@ let foo_value : foo = Some 1
     Fiber.return ()
   in
   test source req;
-  [%expect {| null |}]
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "foo" },
+      "range": {
+        "end": { "character": 13, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    } |}]
 
 let%expect_test "explicit verbosity 0" =
   let source =
@@ -177,7 +183,15 @@ let foo_value : foo = Some 1
     Fiber.return ()
   in
   test source req;
-  [%expect {| null |}]
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "foo" },
+      "range": {
+        "end": { "character": 13, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    } |}]
 
 let%expect_test "explicit verbosity 1" =
   let source =
@@ -194,8 +208,15 @@ let foo_value : foo = Some 1
     Fiber.return ()
   in
   test source req;
-  [%expect {|
-    null |}]
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "int option" },
+      "range": {
+        "end": { "character": 13, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    } |}]
 
 let%expect_test "explicit verbosity 2" =
   let source =
@@ -212,8 +233,15 @@ let foo_value : foo = Some 1
     Fiber.return ()
   in
   test source req;
-  [%expect {|
-    null |}]
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "int option" },
+      "range": {
+        "end": { "character": 13, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    } |}]
 
 let%expect_test "implicity verbosity increases" =
   let source =
@@ -234,7 +262,26 @@ let foo_value : foo = Some 1
     Fiber.return ()
   in
   test source req;
-  [%expect {|
-    null
-    null
-    null |}]
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "foo" },
+      "range": {
+        "end": { "character": 13, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    }
+    {
+      "contents": { "kind": "plaintext", "value": "int option" },
+      "range": {
+        "end": { "character": 13, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    }
+    {
+      "contents": { "kind": "plaintext", "value": "int option" },
+      "range": {
+        "end": { "character": 13, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    } |}]
