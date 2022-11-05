@@ -87,16 +87,21 @@ type t =
   ; send : PublishDiagnosticsParams.t list -> unit Fiber.t
   ; mutable dirty_uris : Uri_set.t
   ; related_information : bool
+  ; tags : DiagnosticTag.t list
   }
 
 let workspace_root t = Lazy.force t.workspace_root
 
 let create (capabilities : PublishDiagnosticsClientCapabilities.t option)
     ~workspace_root send =
-  let related_information =
+  let related_information, tags =
     match capabilities with
-    | None -> false
-    | Some c -> Option.value ~default:false c.relatedInformation
+    | None -> (false, [])
+    | Some c -> (
+      ( Option.value ~default:false c.relatedInformation
+      , match c.tagSupport with
+        | None -> []
+        | Some { valueSet } -> valueSet ))
   in
   { dune = Table.create (module Dune) 32
   ; merlin = Table.create (module Uri) 32
@@ -104,6 +109,7 @@ let create (capabilities : PublishDiagnosticsClientCapabilities.t option)
   ; send
   ; workspace_root
   ; related_information
+  ; tags
   }
 
 let send =
@@ -207,18 +213,20 @@ let disconnect t dune =
              t.dirty_uris <- Uri_set.add t.dirty_uris uri);
          Table.remove t.dune dune)
 
-(* this is not inlined in [tags_of_message] for reusability *)
-let diagnostic_tags_unnecessary = Some [ DiagnosticTag.Unnecessary ]
-
-let tags_of_message ~src message =
-  match src with
-  | `Dune when String.is_prefix message ~prefix:"unused" ->
-    diagnostic_tags_unnecessary
-  | `Merlin when Diagnostic_util.is_unused_var_warning message ->
-    diagnostic_tags_unnecessary
-  | `Merlin when Diagnostic_util.is_deprecated_warning message ->
-    Some [ DiagnosticTag.Deprecated ]
-  | `Dune | `Merlin -> None
+let tags_of_message =
+  let tags_of_message ~src message : DiagnosticTag.t option =
+    match src with
+    | `Dune when String.is_prefix message ~prefix:"unused" -> Some Unnecessary
+    | `Merlin when Diagnostic_util.is_unused_var_warning message ->
+      Some Unnecessary
+    | `Merlin when Diagnostic_util.is_deprecated_warning message ->
+      Some Deprecated
+    | `Dune | `Merlin -> None
+  in
+  fun t ~src message ->
+    match tags_of_message ~src message with
+    | None -> None
+    | Some tag -> Option.some_if (List.mem t.tags tag ~equal:Poly.equal) [ tag ]
 
 let extract_related_errors uri raw_message =
   match Ocamlc_loc.parse_raw raw_message with
@@ -320,7 +328,7 @@ let merlin_diagnostics diagnostics merlin =
                                  ~location
                                  ~message)) ))
                 in
-                let tags = tags_of_message ~src:`Merlin message in
+                let tags = tags_of_message diagnostics ~src:`Merlin message in
                 create_diagnostic
                   ?tags
                   ?relatedInformation
