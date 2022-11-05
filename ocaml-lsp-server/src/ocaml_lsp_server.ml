@@ -906,11 +906,7 @@ let on_notification server (notification : Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let* doc =
-      Document.make
-        (State.wheel state)
-        state.merlin_config
-        params
-        ~merlin_thread:state.merlin
+      Document.make (State.wheel state) state.merlin_config state.merlin params
     in
     assert (Document_store.get_opt store params.textDocument.uri = None);
     let* () = Document_store.open_document store doc in

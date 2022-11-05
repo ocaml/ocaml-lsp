@@ -2,6 +2,8 @@
 
 ## Fixes
 
+- Fix random requests failing after switching documents (#904, fixes #898)
+
 - Do not offer related diagnostic information unless the user enables in client
   capabilities (#905)
 
