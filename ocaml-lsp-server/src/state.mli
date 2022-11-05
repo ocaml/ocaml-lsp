@@ -7,6 +7,7 @@ type init =
       ; workspaces : Workspaces.t
       ; dune : Dune.t
       ; exp_client_caps : Client.Experimental_capabilities.t
+      ; diagnostics : Diagnostics.t
       }
 
 type t =
@@ -18,7 +19,6 @@ type t =
   ; configuration : Configuration.t
   ; trace : TraceValue.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
-  ; diagnostics : Diagnostics.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   }
@@ -29,7 +29,6 @@ val create :
   -> detached:Fiber.Pool.t
   -> configuration:Configuration.t
   -> ocamlformat_rpc:Ocamlformat_rpc.t
-  -> diagnostics:Diagnostics.t
   -> symbols_thread:Lev_fiber.Thread.t Lazy_fiber.t
   -> wheel:Lev_fiber.Timer.Wheel.t
   -> t
@@ -38,7 +37,8 @@ val wheel : t -> Lev_fiber.Timer.Wheel.t
 
 val initialize_params : t -> InitializeParams.t
 
-val initialize : t -> InitializeParams.t -> Workspaces.t -> Dune.t -> t
+val initialize :
+  t -> InitializeParams.t -> Workspaces.t -> Dune.t -> Diagnostics.t -> t
 
 val workspace_root : t -> Uri.t
 
@@ -56,6 +56,8 @@ val client_capabilities : t -> ClientCapabilities.t
 
 (** @return experimental client capabilities *)
 val experimental_client_capabilities : t -> Client.Experimental_capabilities.t
+
+val diagnostics : t -> Diagnostics.t
 
 val log_msg :
   t Server.t -> type_:MessageType.t -> message:string -> unit Fiber.t
