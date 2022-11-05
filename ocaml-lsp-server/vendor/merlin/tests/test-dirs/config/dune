@@ -1,8 +1,0 @@
-(cram
- (applies_to path-expansion)
- (enabled_if
-  (<> %{os_type} Win32)))
-
-(cram
- (applies_to symlinks workdir)
- (enabled_if false))
