@@ -86,18 +86,25 @@ type t =
   ; merlin : (Uri.t, Diagnostic.t list) Table.t
   ; send : PublishDiagnosticsParams.t list -> unit Fiber.t
   ; mutable dirty_uris : Uri_set.t
-  ; capabilities : PublishDiagnosticsClientCapabilities.t option
+  ; related_information : bool
   }
 
 let workspace_root t = Lazy.force t.workspace_root
 
-let create capabilities ~workspace_root send =
+
+let create (capabilities : PublishDiagnosticsClientCapabilities.t option)
+    ~workspace_root send =
+  let related_information =
+    match capabilities with
+    | None -> false
+    | Some c -> Option.value ~default:false c.relatedInformation
+  in
   { dune = Table.create (module Dune) 32
   ; merlin = Table.create (module Uri) 32
   ; dirty_uris = Uri_set.empty
   ; send
   ; workspace_root
-  ; capabilities
+  ; related_information
   }
 
 let send =
@@ -294,12 +301,7 @@ let merlin_diagnostics diagnostics merlin =
                 in
                 let message = make_message Loc.print_main error in
                 let message, relatedInformation =
-                  let related_information =
-                    match diagnostics.capabilities with
-                    | None -> false
-                    | Some c -> Option.value ~default:false c.relatedInformation
-                  in
-                  match related_information with
+                  match diagnostics.related_information with
                   | false -> (message, None)
                   | true -> (
                     match error.sub with
