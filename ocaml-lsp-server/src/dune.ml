@@ -171,7 +171,7 @@ end = struct
 
   let source t = t.source
 
-  let lsp_of_dune ~include_promotions diagnostic =
+  let lsp_of_dune diagnostics ~include_promotions diagnostic =
     let module D = Drpc.Diagnostic in
     let range_of_loc loc =
       let loc =
@@ -214,7 +214,7 @@ end = struct
                DiagnosticRelatedInformation.create ~location ~message))
     in
     let message = make_message (D.message diagnostic) in
-    let tags = Diagnostics.tags_of_message ~src:`Dune message in
+    let tags = Diagnostics.tags_of_message diagnostics ~src:`Dune message in
     let data =
       match include_promotions with
       | false -> None
@@ -343,8 +343,10 @@ end = struct
                   ( running.diagnostics_id
                   , id
                   , uri
-                  , lsp_of_dune ~include_promotions:config.include_promotions d
-                  ));
+                  , lsp_of_dune
+                      diagnostics
+                      ~include_promotions:config.include_promotions
+                      d ));
               (promotions, requests :: add, remove))
       in
       (promotions, List.flatten add, List.flatten remove)

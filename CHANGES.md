@@ -5,6 +5,8 @@
 - Do not offer related diagnostic information unless the user enables in client
   capabilities (#905)
 
+- Do not offer diagnostic tags unless the client supports them (#909)
+
 # 1.14.1
 
 ## Fixes

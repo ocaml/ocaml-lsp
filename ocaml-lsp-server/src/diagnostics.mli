@@ -35,7 +35,7 @@ val remove :
 val disconnect : t -> Dune.t -> unit
 
 val tags_of_message :
-  src:[< `Dune | `Merlin ] -> string -> DiagnosticTag.t list option
+  t -> src:[< `Dune | `Merlin ] -> string -> DiagnosticTag.t list option
 
 val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
 
