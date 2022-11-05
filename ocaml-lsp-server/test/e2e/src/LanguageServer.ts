@@ -63,7 +63,13 @@ export const startAndInitialize = async (
     processId: process.pid,
     rootUri: toURI(path.join(__dirname, "..")),
     workspaceFolders: [],
-    capabilities: {},
+    capabilities: {
+      textDocument: {
+        publishDiagnostics: {
+          relatedInformation: true,
+        },
+      },
+    },
     ...initializeParameters,
   };
 
