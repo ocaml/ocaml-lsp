@@ -7,6 +7,7 @@ type init =
       ; workspaces : Workspaces.t
       ; dune : Dune.t
       ; exp_client_caps : Client.Experimental_capabilities.t
+      ; diagnostics : Diagnostics.t
       }
 
 type t =
@@ -18,12 +19,11 @@ type t =
   ; configuration : Configuration.t
   ; trace : TraceValue.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
-  ; diagnostics : Diagnostics.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   }
 
-let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
+let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
     ~symbols_thread ~wheel =
   { init = Uninitialized
   ; merlin_config = Merlin_config.DB.create ()
@@ -33,7 +33,6 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
   ; configuration
   ; trace = Off
   ; ocamlformat_rpc
-  ; diagnostics
   ; symbols_thread
   ; wheel
   }
@@ -63,7 +62,12 @@ let dune t =
   | Uninitialized -> assert false
   | Initialized init -> init.dune
 
-let initialize t params workspaces dune =
+let diagnostics t =
+  match t.init with
+  | Uninitialized -> assert false
+  | Initialized init -> init.diagnostics
+
+let initialize t (params : InitializeParams.t) workspaces dune diagnostics =
   assert (t.init = Uninitialized);
   { t with
     init =
@@ -71,6 +75,7 @@ let initialize t params workspaces dune =
         { params
         ; workspaces
         ; dune
+        ; diagnostics
         ; exp_client_caps =
             Client.Experimental_capabilities.of_opt_json
               params.capabilities.experimental

@@ -1,3 +1,10 @@
+# 1.14.2
+
+## Fixes
+
+- Do not offer related diagnostic information unless the user enables in client
+  capabilities (#905)
+
 # 1.14.1
 
 ## Fixes

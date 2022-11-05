@@ -86,16 +86,18 @@ type t =
   ; merlin : (Uri.t, Diagnostic.t list) Table.t
   ; send : PublishDiagnosticsParams.t list -> unit Fiber.t
   ; mutable dirty_uris : Uri_set.t
+  ; capabilities : PublishDiagnosticsClientCapabilities.t option
   }
 
 let workspace_root t = Lazy.force t.workspace_root
 
-let create send ~workspace_root =
+let create capabilities ~workspace_root send =
   { dune = Table.create (module Dune) 32
   ; merlin = Table.create (module Uri) 32
   ; dirty_uris = Uri_set.empty
   ; send
   ; workspace_root
+  ; capabilities
   }
 
 let send =
@@ -292,20 +294,30 @@ let merlin_diagnostics diagnostics merlin =
                 in
                 let message = make_message Loc.print_main error in
                 let message, relatedInformation =
-                  match error.sub with
-                  | [] -> extract_related_errors uri message
-                  | _ :: _ ->
-                    ( message
-                    , Some
-                        (List.map error.sub ~f:(fun (sub : Loc.msg) ->
-                             let location =
-                               let range = Range.of_loc sub.loc in
-                               Location.create ~range ~uri
-                             in
-                             let message = make_message Loc.print_sub_msg sub in
-                             DiagnosticRelatedInformation.create
-                               ~location
-                               ~message)) )
+                  let related_information =
+                    match diagnostics.capabilities with
+                    | None -> false
+                    | Some c -> Option.value ~default:false c.relatedInformation
+                  in
+                  match related_information with
+                  | false -> (message, None)
+                  | true -> (
+                    match error.sub with
+                    | [] -> extract_related_errors uri message
+                    | _ :: _ ->
+                      ( message
+                      , Some
+                          (List.map error.sub ~f:(fun (sub : Loc.msg) ->
+                               let location =
+                                 let range = Range.of_loc sub.loc in
+                                 Location.create ~range ~uri
+                               in
+                               let message =
+                                 make_message Loc.print_sub_msg sub
+                               in
+                               DiagnosticRelatedInformation.create
+                                 ~location
+                                 ~message)) ))
                 in
                 let tags = tags_of_message ~src:`Merlin message in
                 create_diagnostic

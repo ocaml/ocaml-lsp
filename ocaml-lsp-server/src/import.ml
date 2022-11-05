@@ -236,6 +236,8 @@ include struct
   module ProgressParams = ProgressParams
   module ProgressToken = ProgressToken
   module PublishDiagnosticsParams = PublishDiagnosticsParams
+  module PublishDiagnosticsClientCapabilities =
+    PublishDiagnosticsClientCapabilities
   module ReferenceParams = ReferenceParams
   module Registration = Registration
   module RegistrationParams = RegistrationParams
