@@ -16,6 +16,7 @@ type _ t =
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | CodeLensRefresh : unit t
   | SemanticTokensRefresh : unit t
+  | WorkspaceDiagnosticRefresh : unit t
   | UnknownRequest : string * Jsonrpc.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
@@ -32,6 +33,7 @@ let method_ (type a) (t : a t) =
   | WorkDoneProgressCreate _ -> "window/workDoneProgress/create"
   | CodeLensRefresh -> "workspace/codeLens/refresh"
   | SemanticTokensRefresh -> "workspace/semanticTokens/refresh"
+  | WorkspaceDiagnosticRefresh -> "workspace/diagnostic/refresh"
   | UnknownRequest (r, _) -> r
 
 let params =
@@ -54,6 +56,7 @@ let params =
       ret (WorkDoneProgressCreateParams.yojson_of_t params)
     | CodeLensRefresh -> None
     | SemanticTokensRefresh -> None
+    | WorkspaceDiagnosticRefresh -> None
     | UnknownRequest (_, params) -> params
 
 let to_jsonrpc_request t ~id =
@@ -105,6 +108,7 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   | ShowDocumentRequest _, r -> ShowDocumentResult.yojson_of_t r
   | CodeLensRefresh, _ -> `Null
   | SemanticTokensRefresh, _ -> `Null
+  | WorkspaceDiagnosticRefresh, _ -> `Null
   | UnknownRequest (_, _), json -> json
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
@@ -120,4 +124,5 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | WorkDoneProgressCreate _ -> unit_of_yojson json
   | CodeLensRefresh -> unit_of_yojson json
   | SemanticTokensRefresh -> unit_of_yojson json
+  | WorkspaceDiagnosticRefresh -> unit_of_yojson json
   | UnknownRequest (_, _) -> json
