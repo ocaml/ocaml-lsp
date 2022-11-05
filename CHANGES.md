@@ -7,6 +7,9 @@
 
 - Do not offer diagnostic tags unless the client supports them (#909)
 
+- Do not attach extra data to diagnostics unless the client supports this
+  (#910)
+
 # 1.14.1
 
 ## Fixes
