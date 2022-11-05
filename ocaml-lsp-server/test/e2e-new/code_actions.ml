@@ -1,6 +1,6 @@
 open Test.Import
 
-let iter_code_actions ?(path = "foo.ml") source range k =
+let iter_code_actions ?(path = "foo.ml") ~source range k =
   let handler =
     Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) ()
   in
@@ -41,7 +41,7 @@ let iter_code_actions ?(path = "foo.ml") source range k =
   Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client)
 
 let print_code_actions ?(path = "foo.ml") source range =
-  iter_code_actions ~path source range (function
+  iter_code_actions ~path ~source range (function
       | None -> print_endline "no code actions"
       | Some code_actions ->
         print_endline "Code actions:";

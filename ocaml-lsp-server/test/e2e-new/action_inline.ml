@@ -1,5 +1,4 @@
 open Test.Import
-open Code_actions
 
 let parse_cursor src =
   let cursor =
@@ -29,10 +28,11 @@ let apply_edit (edit : TextEdit.t) src =
   let end_ = String.drop src end_offset in
   start ^ edit.newText ^ end_
 
-let apply_inline_action src range =
+let apply_inline_action source range =
   let open Option.O in
   let code_actions = ref None in
-  iter_code_actions src range (fun ca -> code_actions := Some ca);
+  Code_actions.iter_code_actions ~source range (fun ca ->
+      code_actions := Some ca);
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
   let* { documentChanges; _ } =
@@ -48,8 +48,8 @@ let apply_inline_action src range =
         | _ -> None)
   in
   match edits with
-  | [] -> src
-  | [ { edits = [ `TextEdit e ]; _ } ] -> apply_edit e src
+  | [] -> source
+  | [ { edits = [ `TextEdit e ]; _ } ] -> apply_edit e source
   | _ -> failwith "expected one edit"
 
 let inline_test src =
