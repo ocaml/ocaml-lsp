@@ -12,6 +12,8 @@
 - Do not attach extra data to diagnostics unless the client supports this
   (#910)
 
+- Use /bin/sh instead of /bin/bash. This fixes ocamllsp on NixOS
+
 # 1.14.1
 
 ## Fixes

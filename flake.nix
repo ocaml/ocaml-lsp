@@ -10,11 +10,6 @@
       url = "github:ocaml/opam-repository";
       flake = false;
     };
-    git-subrepo-src = {
-      url =
-        "github:rgrinberg/git-subrepo?rev=8fb6be3fb1500ab845081fc26ecdb950e9c0438c";
-      flake = false;
-    };
   };
 
   outputs = { self, flake-utils, opam-nix, opam-repository, nixpkgs, ... }@inputs:
@@ -58,8 +53,6 @@
                   # the scope don't leak into dependent derivations
                   doNixSupport = false;
                 });
-                git-subrepo = prev.git-subrepo.overrideAttr
-                  (old: { src = inputs.git-subrepo-src; });
               };
             in
             scope.overrideScope' overlay
@@ -75,7 +68,6 @@
             buildInputs = (with pkgs;
               [
                 # dev tools
-                git-subrepo
                 ocamlformat_0_21_0
                 yarn
                 dune-release
