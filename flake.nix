@@ -13,10 +13,22 @@
   };
 
   outputs = { self, flake-utils, opam-nix, opam-repository, nixpkgs, ... }@inputs:
-    let package = "ocaml-lsp-server";
-    in flake-utils.lib.eachDefaultSystem (system:
+    let
+      package = "ocaml-lsp-server";
+      overlay = final: prev: {
+        ${package} = prev.${package}.overrideAttrs (_: {
+          # Do not add share/nix-support, so that dependencies from
+          # the scope don't leak into dependent derivations
+          doNixSupport = false;
+        });
+        dune-release = prev.dune-release.overrideAttrs (_: {
+          doCheck = false;
+        });
+      };
+    in
+    flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs { overlays = [ overlay ]; inherit system; };
         on = opam-nix.lib.${system};
         localPackages = {
           jsonrpc = "*";
@@ -47,13 +59,6 @@
                   package
                   ./.
                   (allPackages);
-              overlay = final: prev: {
-                ${package} = prev.${package}.overrideAttrs (_: {
-                  # Do not add share/nix-support, so that dependencies from
-                  # the scope don't leak into dependent derivations
-                  doNixSupport = false;
-                });
-              };
             in
             scope.overrideScope' overlay
           );
