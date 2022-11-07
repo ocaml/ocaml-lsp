@@ -6,6 +6,12 @@ type mode =
   | Extended_fixed of int
   | Extended_variable
 
+(* possibly overwrite the default mode using an environment variable *)
+let environment_mode =
+  match Sys.getenv_opt "OCAMLLSP_HOVER_IS_EXTENDED" with
+  | Some ("true" | "1") -> Extended_variable
+  | _ -> Default
+
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -44,8 +50,8 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
       | `Merlin merlin -> (
         let verbosity =
           let mode =
-            match (mode, Sys.getenv_opt "OCAMLLSP_HOVER_IS_EXTENDED") with
-            | Default, Some "true" -> Extended_variable
+            match (mode, environment_mode) with
+            | Default, Extended_variable -> Extended_variable
             | x, _ -> x
           in
           match mode with
