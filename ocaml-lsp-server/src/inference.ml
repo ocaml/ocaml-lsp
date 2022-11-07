@@ -56,7 +56,7 @@ let open_document_from_file (state : State.t) uri =
           Document.make
             (State.wheel state)
             state.merlin_config
-            ~merlin_thread:state.merlin
+            state.merlin
             params
         in
         Some doc)

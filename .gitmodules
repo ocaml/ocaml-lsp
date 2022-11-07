@@ -1,0 +1,3 @@
+[submodule "ocaml-lsp-server/vendor/merlin"]
+	path = ocaml-lsp-server/vendor/merlin
+	url = https://github.com/rgrinberg/merlin

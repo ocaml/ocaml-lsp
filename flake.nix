@@ -10,18 +10,25 @@
       url = "github:ocaml/opam-repository";
       flake = false;
     };
-    git-subrepo-src = {
-      url =
-        "github:rgrinberg/git-subrepo?rev=8fb6be3fb1500ab845081fc26ecdb950e9c0438c";
-      flake = false;
-    };
   };
 
   outputs = { self, flake-utils, opam-nix, opam-repository, nixpkgs, ... }@inputs:
-    let package = "ocaml-lsp-server";
-    in flake-utils.lib.eachDefaultSystem (system:
+    let
+      package = "ocaml-lsp-server";
+      overlay = final: prev: {
+        ${package} = prev.${package}.overrideAttrs (_: {
+          # Do not add share/nix-support, so that dependencies from
+          # the scope don't leak into dependent derivations
+          doNixSupport = false;
+        });
+        dune-release = prev.dune-release.overrideAttrs (_: {
+          doCheck = false;
+        });
+      };
+    in
+    flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs { overlays = [ overlay ]; inherit system; };
         on = opam-nix.lib.${system};
         localPackages = {
           jsonrpc = "*";
@@ -52,15 +59,6 @@
                   package
                   ./.
                   (allPackages);
-              overlay = final: prev: {
-                ${package} = prev.${package}.overrideAttrs (_: {
-                  # Do not add share/nix-support, so that dependencies from
-                  # the scope don't leak into dependent derivations
-                  doNixSupport = false;
-                });
-                git-subrepo = prev.git-subrepo.overrideAttr
-                  (old: { src = inputs.git-subrepo-src; });
-              };
             in
             scope.overrideScope' overlay
           );
@@ -75,7 +73,6 @@
             buildInputs = (with pkgs;
               [
                 # dev tools
-                git-subrepo
                 ocamlformat_0_21_0
                 yarn
                 dune-release

@@ -192,6 +192,27 @@ let set_diagnostics detached diagnostics doc =
 let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
+  let diagnostics =
+    let workspace_root =
+      lazy
+        (let state = Server.state server in
+         State.workspace_root state)
+    in
+    Diagnostics.create
+      (let open Option.O in
+      let* td = ip.capabilities.textDocument in
+      td.publishDiagnostics)
+      ~workspace_root
+      (function
+        | [] -> Fiber.return ()
+        | diagnostics ->
+          let state = Server.state server in
+          task_if_running state.detached ~f:(fun () ->
+              let batch = Server.Batch.create server in
+              List.iter diagnostics ~f:(fun d ->
+                  Server.Batch.notification batch (PublishDiagnostics d));
+              Server.Batch.submit batch))
+  in
   let+ dune =
     let progress =
       Progress.create
@@ -207,7 +228,7 @@ let on_initialize server (ip : InitializeParams.t) =
       Dune.create
         workspaces
         ip.capabilities
-        state.diagnostics
+        diagnostics
         progress
         state.store
         ~log:(State.log_msg server)
@@ -215,7 +236,7 @@ let on_initialize server (ip : InitializeParams.t) =
     let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
     dune
   in
-  let state = State.initialize state ip workspaces dune in
+  let state = State.initialize state ip workspaces dune diagnostics in
   let state =
     match ip.trace with
     | None -> state
@@ -890,22 +911,18 @@ let on_notification server (notification : Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let* doc =
-      Document.make
-        (State.wheel state)
-        state.merlin_config
-        params
-        ~merlin_thread:state.merlin
+      Document.make (State.wheel state) state.merlin_config state.merlin params
     in
     assert (Document_store.get_opt store params.textDocument.uri = None);
     let* () = Document_store.open_document store doc in
-    let+ () = set_diagnostics state.detached state.diagnostics doc in
+    let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let+ () =
-      Diagnostics.remove state.diagnostics (`Merlin uri);
+      Diagnostics.remove (State.diagnostics state) (`Merlin uri);
       let* () = Document_store.close_document store uri in
       task_if_running state.detached ~f:(fun () ->
-          Diagnostics.send state.diagnostics (`One uri))
+          Diagnostics.send (State.diagnostics state) (`One uri))
     in
     state
   | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
@@ -913,7 +930,7 @@ let on_notification server (notification : Client_notification.t) :
       Document_store.change_document store uri ~f:(fun prev_doc ->
           Document.update_text ~version prev_doc contentChanges)
     in
-    let+ () = set_diagnostics state.detached state.diagnostics doc in
+    let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
     state
   | CancelRequest _ ->
     Log.log ~section:"debug" (fun () -> Log.msg "ignoring cancellation" []);
@@ -937,7 +954,7 @@ let on_notification server (notification : Client_notification.t) :
                pipeline; otherwise the diagnostics don't get updated *)
             Document.update_text doc [])
       in
-      let+ () = set_diagnostics state.detached state.diagnostics doc in
+      let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
       state)
   | ChangeWorkspaceFolders change ->
     let state =
@@ -978,24 +995,6 @@ let start () =
     let+ stdout = Lev_fiber.Io.stdout in
     Lsp_fiber.Fiber_io.make stdin stdout
   in
-  let diagnostics =
-    let workspace_root =
-      lazy
-        (let server = Fdecl.get server in
-         let state = Server.state server in
-         State.workspace_root state)
-    in
-    Diagnostics.create ~workspace_root (function
-        | [] -> Fiber.return ()
-        | diagnostics ->
-          let server = Fdecl.get server in
-          let state = Server.state server in
-          task_if_running state.detached ~f:(fun () ->
-              let batch = Server.Batch.create server in
-              List.iter diagnostics ~f:(fun d ->
-                  Server.Batch.notification batch (PublishDiagnostics d));
-              Server.Batch.submit batch))
-  in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
   let* configuration = Configuration.default () in
   let wheel = Configuration.wheel configuration in
@@ -1013,7 +1012,6 @@ let start () =
             ~ocamlformat_rpc
             ~configuration
             ~detached
-            ~diagnostics
             ~symbols_thread
             ~wheel));
     Fdecl.get server

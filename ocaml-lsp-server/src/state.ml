@@ -7,36 +7,35 @@ type init =
       ; workspaces : Workspaces.t
       ; dune : Dune.t
       ; exp_client_caps : Client.Experimental_capabilities.t
+      ; diagnostics : Diagnostics.t
       }
 
 type hover_extended = { mutable history : (Uri.t * Position.t * int) option }
 
 type t =
   { store : Document_store.t
-  ; merlin : Lev_fiber.Thread.t
+  ; merlin : Document.Single_pipeline.t
   ; merlin_config : Merlin_config.DB.t
   ; init : init
   ; detached : Fiber.Pool.t
   ; configuration : Configuration.t
   ; trace : TraceValue.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
-  ; diagnostics : Diagnostics.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
   }
 
-let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~diagnostics
+let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
     ~symbols_thread ~wheel =
   { init = Uninitialized
   ; merlin_config = Merlin_config.DB.create ()
   ; store
-  ; merlin
+  ; merlin = Document.Single_pipeline.create merlin
   ; detached
   ; configuration
   ; trace = Off
   ; ocamlformat_rpc
-  ; diagnostics
   ; symbols_thread
   ; wheel
   ; hover_extended = { history = None }
@@ -67,7 +66,12 @@ let dune t =
   | Uninitialized -> assert false
   | Initialized init -> init.dune
 
-let initialize t params workspaces dune =
+let diagnostics t =
+  match t.init with
+  | Uninitialized -> assert false
+  | Initialized init -> init.diagnostics
+
+let initialize t (params : InitializeParams.t) workspaces dune diagnostics =
   assert (t.init = Uninitialized);
   { t with
     init =
@@ -75,6 +79,7 @@ let initialize t params workspaces dune =
         { params
         ; workspaces
         ; dune
+        ; diagnostics
         ; exp_client_caps =
             Client.Experimental_capabilities.of_opt_json
               params.capabilities.experimental

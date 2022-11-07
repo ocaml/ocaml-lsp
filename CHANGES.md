@@ -1,3 +1,19 @@
+# 1.14.2
+
+## Fixes
+
+- Fix random requests failing after switching documents (#904, fixes #898)
+
+- Do not offer related diagnostic information unless the user enables in client
+  capabilities (#905)
+
+- Do not offer diagnostic tags unless the client supports them (#909)
+
+- Do not attach extra data to diagnostics unless the client supports this
+  (#910)
+
+- Use /bin/sh instead of /bin/bash. This fixes ocamllsp on NixOS
+
 # 1.14.1
 
 ## Fixes

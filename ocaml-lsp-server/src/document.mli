@@ -24,10 +24,16 @@ end
 
 val syntax : t -> Syntax.t
 
+module Single_pipeline : sig
+  type t
+
+  val create : Lev_fiber.Thread.t -> t
+end
+
 val make :
      Lev_fiber.Timer.Wheel.t
   -> Merlin_config.DB.t
-  -> merlin_thread:Lev_fiber.Thread.t
+  -> Single_pipeline.t
   -> DidOpenTextDocumentParams.t
   -> t Fiber.t
 

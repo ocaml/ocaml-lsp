@@ -86,36 +86,6 @@ module Syntax = struct
     | None -> Text_document.documentUri td |> Uri.to_path |> of_fname
 end
 
-type merlin =
-  { tdoc : Text_document.t
-  ; pipeline : Mpipeline.t Lazy_fiber.t
-  ; merlin : Lev_fiber.Thread.t
-  ; timer : Lev_fiber.Timer.Wheel.task
-  ; merlin_config : Merlin_config.t
-  ; syntax : Syntax.t
-  }
-
-type t =
-  | Other of
-      { tdoc : Text_document.t
-      ; syntax : Syntax.t
-      }
-  | Merlin of merlin
-
-let tdoc = function
-  | Other d -> d.tdoc
-  | Merlin m -> m.tdoc
-
-let uri t = Text_document.documentUri (tdoc t)
-
-let syntax = function
-  | Merlin m -> m.syntax
-  | Other t -> t.syntax
-
-let text t = Text_document.text (tdoc t)
-
-let source t = Msource.make (text t)
-
 let await task =
   let* cancel_token = Server.cancel_token () in
   let f () = Lev_fiber.Thread.await task in
@@ -146,40 +116,112 @@ let await task =
       in
       raise (Jsonrpc.Response.Error.E e))
 
+module Single_pipeline : sig
+  type t
+
+  val create : Lev_fiber.Thread.t -> t
+
+  val use :
+       t
+    -> doc:Text_document.t
+    -> config:Merlin_config.t
+    -> f:(Mpipeline.t -> 'a)
+    -> ('a, Exn_with_backtrace.t) result Fiber.t
+end = struct
+  type t =
+    { thread : Lev_fiber.Thread.t
+    ; mutable last : (Text_document.t * Mconfig.t * Mpipeline.t) option
+    }
+
+  let create thread = { thread; last = None }
+
+  let use t ~doc ~config ~f =
+    let* config = Merlin_config.config config in
+    let make_pipeline =
+      match t.last with
+      | Some (doc', config', pipeline) when doc' == doc && config == config' ->
+        fun () -> pipeline
+      | _ ->
+        let source = Msource.make (Text_document.text doc) in
+        fun () -> Mpipeline.make config source
+    in
+    let task =
+      match
+        Lev_fiber.Thread.task t.thread ~f:(fun () ->
+            let start = Unix.time () in
+            let pipeline = make_pipeline () in
+            let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
+            let stop = Unix.time () in
+            (res, pipeline, start, stop))
+      with
+      | Error `Stopped -> assert false
+      | Ok task -> task
+    in
+    let* res = await task in
+    match res with
+    | Error exn -> Fiber.return (Error exn)
+    | Ok (res, pipeline, start, stop) ->
+      let event =
+        let module Event = Chrome_trace.Event in
+        let dur = Event.Timestamp.of_float_seconds (stop -. start) in
+        let fields =
+          Event.common_fields
+            ~ts:(Event.Timestamp.of_float_seconds start)
+            ~name:"merlin"
+            ()
+        in
+        Event.complete ~dur fields
+      in
+      t.last <- Some (doc, config, pipeline);
+      let+ () = Metrics.report event in
+      Ok res
+end
+
+type merlin =
+  { tdoc : Text_document.t
+  ; pipeline : Single_pipeline.t
+  ; timer : Lev_fiber.Timer.Wheel.task
+  ; merlin_config : Merlin_config.t
+  ; syntax : Syntax.t
+  }
+
+type t =
+  | Other of
+      { tdoc : Text_document.t
+      ; syntax : Syntax.t
+      }
+  | Merlin of merlin
+
+let tdoc = function
+  | Other d -> d.tdoc
+  | Merlin m -> m.tdoc
+
+let uri t = Text_document.documentUri (tdoc t)
+
+let syntax = function
+  | Merlin m -> m.syntax
+  | Other t -> t.syntax
+
+let text t = Text_document.text (tdoc t)
+
+let source t = Msource.make (text t)
+
 let version t = Text_document.version (tdoc t)
 
-let make_pipeline merlin_config thread tdoc =
-  Lazy_fiber.create (fun () ->
-      let* config = Merlin_config.config merlin_config in
-      let* async_make_pipeline =
-        match
-          Lev_fiber.Thread.task thread ~f:(fun () ->
-              Text_document.text tdoc |> Msource.make |> Mpipeline.make config)
-        with
-        | Error `Stopped -> Fiber.never
-        | Ok task -> Fiber.return task
-      in
-      let+ res = await async_make_pipeline in
-      match res with
-      | Ok s -> s
-      | Error e -> Exn_with_backtrace.reraise e)
-
-let make_merlin wheel merlin_db ~merlin_thread tdoc syntax =
+let make_merlin wheel merlin_db pipeline tdoc syntax =
   let+ timer = Lev_fiber.Timer.Wheel.task wheel in
   let merlin_config =
     let uri = Text_document.documentUri tdoc in
     Merlin_config.DB.get merlin_db uri
   in
-  let pipeline = make_pipeline merlin_config merlin_thread tdoc in
-  Merlin
-    { merlin_config; tdoc; pipeline; merlin = merlin_thread; timer; syntax }
+  Merlin { merlin_config; tdoc; pipeline; timer; syntax }
 
-let make wheel config ~merlin_thread (doc : DidOpenTextDocumentParams.t) =
+let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) =
   Fiber.of_thunk (fun () ->
       let tdoc = Text_document.make doc in
       let syntax = Syntax.of_text_document tdoc in
       match syntax with
-      | Ocaml | Reason -> make_merlin wheel config ~merlin_thread tdoc syntax
+      | Ocaml | Reason -> make_merlin wheel config pipeline tdoc syntax
       | Ocamllex | Menhir | Cram | Dune -> Fiber.return (Other { tdoc; syntax }))
 
 let update_text ?version t changes =
@@ -200,9 +242,7 @@ let update_text ?version t changes =
   | tdoc -> (
     match t with
     | Other o -> Other { o with tdoc }
-    | Merlin ({ merlin_config; merlin; _ } as t) ->
-      let pipeline = make_pipeline merlin_config merlin tdoc in
-      Merlin { t with tdoc; pipeline })
+    | Merlin t -> Merlin { t with tdoc })
 
 module Merlin = struct
   type t = merlin
@@ -216,35 +256,7 @@ module Merlin = struct
   let kind t = Kind.of_fname (Uri.to_path (uri (Merlin t)))
 
   let with_pipeline (t : t) f =
-    let* pipeline = Lazy_fiber.force t.pipeline in
-    let* task =
-      match
-        Lev_fiber.Thread.task t.merlin ~f:(fun () ->
-            let start = Unix.time () in
-            let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
-            let stop = Unix.time () in
-            let event =
-              let module Event = Chrome_trace.Event in
-              let dur = Event.Timestamp.of_float_seconds (stop -. start) in
-              let fields =
-                Event.common_fields
-                  ~ts:(Event.Timestamp.of_float_seconds start)
-                  ~name:"merlin"
-                  ()
-              in
-              Event.complete ~dur fields
-            in
-            (event, res))
-      with
-      | Error `Stopped -> Fiber.never
-      | Ok task -> Fiber.return task
-    in
-    let* res = await task in
-    match res with
-    | Ok (event, result) ->
-      let+ () = Metrics.report event in
-      Ok result
-    | Error e -> Fiber.return (Error e)
+    Single_pipeline.use t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
 
   let with_pipeline_exn doc f =
     let+ res = with_pipeline doc f in

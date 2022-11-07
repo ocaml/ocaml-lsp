@@ -1,8 +1,14 @@
 open Test.Import
 
-let iter_code_actions ?(path = "foo.ml") source range k =
+let iter_code_actions ?(path = "foo.ml") ~source range k =
+  let diagnostics = Fiber.Ivar.create () in
   let handler =
-    Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) ()
+    Client.Handler.make
+      ~on_notification:
+        (fun _ -> function
+          | PublishDiagnostics _ -> Fiber.Ivar.fill diagnostics ()
+          | _ -> Fiber.return ())
+      ()
   in
   Test.run ~handler @@ fun client ->
   let run_client () =
@@ -38,10 +44,11 @@ let iter_code_actions ?(path = "foo.ml") source range k =
     in
     k resp
   in
-  Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client)
+  Fiber.fork_and_join_unit run_client (fun () ->
+      run >>> Fiber.Ivar.read diagnostics >>> Client.stop client)
 
 let print_code_actions ?(path = "foo.ml") source range =
-  iter_code_actions ~path source range (function
+  iter_code_actions ~path ~source range (function
       | None -> print_endline "no code actions"
       | Some code_actions ->
         print_endline "Code actions:";

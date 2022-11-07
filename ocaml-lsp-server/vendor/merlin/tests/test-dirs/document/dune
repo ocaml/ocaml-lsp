@@ -1,3 +1,0 @@
-(cram
- (applies_to src-documentation module-doc)
- (enabled_if (<> %{architecture} i386)))

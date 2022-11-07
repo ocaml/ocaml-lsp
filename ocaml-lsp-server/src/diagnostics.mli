@@ -7,8 +7,9 @@ val dune_source : string
 type t
 
 val create :
-     (PublishDiagnosticsParams.t list -> unit Fiber.t)
+     PublishDiagnosticsClientCapabilities.t option
   -> workspace_root:Uri.t Lazy.t
+  -> (PublishDiagnosticsParams.t list -> unit Fiber.t)
   -> t
 
 val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
@@ -34,7 +35,7 @@ val remove :
 val disconnect : t -> Dune.t -> unit
 
 val tags_of_message :
-  src:[< `Dune | `Merlin ] -> string -> DiagnosticTag.t list option
+  t -> src:[< `Dune | `Merlin ] -> string -> DiagnosticTag.t list option
 
 val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
 
