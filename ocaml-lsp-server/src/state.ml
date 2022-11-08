@@ -10,6 +10,8 @@ type init =
       ; diagnostics : Diagnostics.t
       }
 
+type hover_extended = { mutable history : (Uri.t * Position.t * int) option }
+
 type t =
   { store : Document_store.t
   ; merlin : Document.Single_pipeline.t
@@ -21,6 +23,7 @@ type t =
   ; ocamlformat_rpc : Ocamlformat_rpc.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
+  ; hover_extended : hover_extended
   }
 
 let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
@@ -35,6 +38,7 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
   ; ocamlformat_rpc
   ; symbols_thread
   ; wheel
+  ; hover_extended = { history = None }
   }
 
 let wheel t = t.wheel

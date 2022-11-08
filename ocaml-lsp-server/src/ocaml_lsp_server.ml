@@ -89,6 +89,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
               ; Req_typed_holes.capability
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
+              ; Req_hover_extended.capability
               ] )
         ]
     in
@@ -766,6 +767,8 @@ let on_request :
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
       ; ( Semantic_highlighting.Debug.meth_request_full
         , Semantic_highlighting.Debug.on_request_full )
+      ; ( Req_hover_extended.meth
+        , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
       ]
       |> List.assoc_opt meth
     with
@@ -836,7 +839,9 @@ let on_request :
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
-    later (fun (_ : State.t) () -> Hover_req.handle rpc req) ()
+    later
+      (fun (_ : State.t) () -> Hover_req.handle rpc req Hover_req.Default)
+      ()
   | TextDocumentReferences req -> later references req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> later text_document_lens req

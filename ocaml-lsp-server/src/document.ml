@@ -286,9 +286,20 @@ module Merlin = struct
     ; doc : string option
     }
 
-  let type_enclosing doc pos =
+  let type_enclosing doc pos verbosity =
     with_pipeline_exn doc (fun pipeline ->
         let command = Query_protocol.Type_enclosing (None, pos, None) in
+        let pipeline =
+          match verbosity with
+          | 0 -> pipeline
+          | verbosity ->
+            let source = source doc in
+            let config = Mpipeline.final_config pipeline in
+            let config =
+              { config with query = { config.query with verbosity } }
+            in
+            Mpipeline.make config source
+        in
         let res = Query_commands.dispatch pipeline command in
         match res with
         | [] | (_, `Index _, _) :: _ -> None

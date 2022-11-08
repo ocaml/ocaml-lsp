@@ -1,6 +1,17 @@
 open Import
 open Fiber.O
 
+type mode =
+  | Default
+  | Extended_fixed of int
+  | Extended_variable
+
+(* possibly overwrite the default mode using an environment variable *)
+let environment_mode =
+  match Sys.getenv_opt "OCAMLLSP_HOVER_IS_EXTENDED" with
+  | Some ("true" | "1") -> Extended_variable
+  | _ -> Default
+
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -27,7 +38,7 @@ let format_contents ~syntax ~markdown ~typ ~doc =
       in
       { MarkupContent.value; kind = MarkupKind.PlainText })
 
-let handle server { HoverParams.textDocument = { uri }; position; _ } =
+let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
   Fiber.of_thunk (fun () ->
       let state : State.t = Server.state server in
       let doc =
@@ -37,8 +48,35 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } =
       match Document.kind doc with
       | `Other -> Fiber.return None
       | `Merlin merlin -> (
+        let verbosity =
+          let mode =
+            match (mode, environment_mode) with
+            | Default, Extended_variable -> Extended_variable
+            | x, _ -> x
+          in
+          match mode with
+          | Default -> 0
+          | Extended_fixed v ->
+            state.hover_extended.history <- None;
+            v
+          | Extended_variable ->
+            let v =
+              match state.hover_extended.history with
+              | None -> 0
+              | Some (h_uri, h_position, h_verbosity) ->
+                if
+                  Uri.equal uri h_uri
+                  && Ordering.is_eq (Position.compare position h_position)
+                then succ h_verbosity
+                else 0
+            in
+            state.hover_extended.history <- Some (uri, position, v);
+            v
+        in
         let pos = Position.logical position in
-        let* type_enclosing = Document.Merlin.type_enclosing merlin pos in
+        let* type_enclosing =
+          Document.Merlin.type_enclosing merlin pos verbosity
+        in
         match type_enclosing with
         | None -> Fiber.return None
         | Some { Document.Merlin.loc; typ; doc = documentation } ->

@@ -10,6 +10,14 @@ type init =
       ; diagnostics : Diagnostics.t
       }
 
+(** State specific to the hoverExtended request. *)
+type hover_extended =
+  { mutable history : (Uri.t * Position.t * int) option
+        (** File, position, and verbosity level of the last call to
+            hoverExtended. This value is used to pick a verbosity level when it
+            is not specific by the client. *)
+  }
+
 type t =
   { store : Document_store.t
   ; merlin : Document.Single_pipeline.t
@@ -21,6 +29,7 @@ type t =
   ; ocamlformat_rpc : Ocamlformat_rpc.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
+  ; hover_extended : hover_extended
   }
 
 val create :

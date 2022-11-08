@@ -68,7 +68,11 @@ module Merlin : sig
     ; doc : string option
     }
 
-  val type_enclosing : t -> Msource.position -> type_enclosing option Fiber.t
+  val type_enclosing :
+       t
+    -> Msource.position
+    -> (* verbosity *) int
+    -> type_enclosing option Fiber.t
 
   val kind : t -> Kind.t
 
