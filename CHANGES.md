@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Add custom ocamllsp/hoverExtended request (#561)
+
 # 1.14.2
 
 ## Fixes
