@@ -117,6 +117,15 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
                ~full
                ()))
     in
+    let positionEncoding =
+      let open Option.O in
+      let* general = client_capabilities.general in
+      let* options = general.positionEncodings in
+      List.find_map
+        ([ UTF8; UTF16 ] : PositionEncodingKind.t list)
+        ~f:(fun encoding ->
+          Option.some_if (List.mem options ~equal:Poly.equal encoding) encoding)
+    in
     ServerCapabilities.create
       ~textDocumentSync
       ~hoverProvider:(`Bool true)
@@ -139,6 +148,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
       ~renameProvider
       ~workspace
       ~executeCommandProvider
+      ?positionEncoding
       ()
   in
   let serverInfo =
@@ -236,7 +246,16 @@ let on_initialize server (ip : InitializeParams.t) =
     let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
     dune
   in
-  let state = State.initialize state ip workspaces dune diagnostics in
+  let initialize_info = initialize_info ip.capabilities in
+  let state =
+    let position_encoding =
+      match initialize_info.capabilities.positionEncoding with
+      | None | Some UTF16 -> `UTF16
+      | Some UTF8 -> `UTF8
+      | Some UTF32 | Some (Other _) -> assert false
+    in
+    State.initialize state ~position_encoding ip workspaces dune diagnostics
+  in
   let state =
     match ip.trace with
     | None -> state
@@ -254,7 +273,7 @@ let on_initialize server (ip : InitializeParams.t) =
         ; _
         } ->
       Reply.later (fun send ->
-          let* () = send (initialize_info ip.capabilities) in
+          let* () = send initialize_info in
           let register =
             RegistrationParams.create
               ~registrations:
@@ -279,7 +298,7 @@ let on_initialize server (ip : InitializeParams.t) =
           Server.request
             server
             (Server_request.ClientRegisterCapability register))
-    | _ -> Reply.now (initialize_info ip.capabilities)
+    | _ -> Reply.now initialize_info
   in
   (resp, state)
 
@@ -911,7 +930,13 @@ let on_notification server (notification : Client_notification.t) :
   match notification with
   | TextDocumentDidOpen params ->
     let* doc =
-      Document.make (State.wheel state) state.merlin_config state.merlin params
+      let position_encoding = State.position_encoding state in
+      Document.make
+        ~position_encoding
+        (State.wheel state)
+        state.merlin_config
+        state.merlin
+        params
     in
     assert (Document_store.get_opt store params.textDocument.uri = None);
     let* () = Document_store.open_document store doc in

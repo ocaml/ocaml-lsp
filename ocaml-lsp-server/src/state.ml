@@ -8,6 +8,7 @@ type init =
       ; dune : Dune.t
       ; exp_client_caps : Client.Experimental_capabilities.t
       ; diagnostics : Diagnostics.t
+      ; position_encoding : [ `UTF16 | `UTF8 ]
       }
 
 type hover_extended = { mutable history : (Uri.t * Position.t * int) option }
@@ -66,12 +67,18 @@ let dune t =
   | Uninitialized -> assert false
   | Initialized init -> init.dune
 
+let position_encoding t =
+  match t.init with
+  | Uninitialized -> assert false
+  | Initialized init -> init.position_encoding
+
 let diagnostics t =
   match t.init with
   | Uninitialized -> assert false
   | Initialized init -> init.diagnostics
 
-let initialize t (params : InitializeParams.t) workspaces dune diagnostics =
+let initialize t ~position_encoding (params : InitializeParams.t) workspaces
+    dune diagnostics =
   assert (t.init = Uninitialized);
   { t with
     init =
@@ -80,6 +87,7 @@ let initialize t (params : InitializeParams.t) workspaces dune diagnostics =
         ; workspaces
         ; dune
         ; diagnostics
+        ; position_encoding
         ; exp_client_caps =
             Client.Experimental_capabilities.of_opt_json
               params.capabilities.experimental

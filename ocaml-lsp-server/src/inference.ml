@@ -53,7 +53,9 @@ let open_document_from_file (state : State.t) uri =
           DidOpenTextDocumentParams.create ~textDocument:text_document
         in
         let+ doc =
+          let position_encoding = State.position_encoding state in
           Document.make
+            ~position_encoding
             (State.wheel state)
             state.merlin_config
             state.merlin

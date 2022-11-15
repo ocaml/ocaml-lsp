@@ -2,7 +2,8 @@ open Types
 
 type t
 
-val make : DidOpenTextDocumentParams.t -> t
+val make :
+  position_encoding:[ `UTF8 | `UTF16 ] -> DidOpenTextDocumentParams.t -> t
 
 val languageId : t -> string
 

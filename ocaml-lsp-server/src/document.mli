@@ -35,6 +35,7 @@ val make :
   -> Merlin_config.DB.t
   -> Single_pipeline.t
   -> DidOpenTextDocumentParams.t
+  -> position_encoding:[ `UTF8 | `UTF16 ]
   -> t Fiber.t
 
 val uri : t -> Uri.t

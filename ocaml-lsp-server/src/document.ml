@@ -216,9 +216,10 @@ let make_merlin wheel merlin_db pipeline tdoc syntax =
   in
   Merlin { merlin_config; tdoc; pipeline; timer; syntax }
 
-let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) =
+let make wheel config pipeline (doc : DidOpenTextDocumentParams.t)
+    ~position_encoding =
   Fiber.of_thunk (fun () ->
-      let tdoc = Text_document.make doc in
+      let tdoc = Text_document.make ~position_encoding doc in
       let syntax = Syntax.of_text_document tdoc in
       match syntax with
       | Ocaml | Reason -> make_merlin wheel config pipeline tdoc syntax
