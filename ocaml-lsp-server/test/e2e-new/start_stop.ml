@@ -1,7 +1,13 @@
 open Test.Import
 
 let%expect_test "start/stop" =
-  ( Test.run @@ fun client ->
+  let notifs = Queue.create () in
+  let handler_collecting_notifs =
+    Client.Handler.make
+      ~on_notification:(fun _ notif -> Queue.push notifs notif |> Fiber.return)
+      ()
+  in
+  ( Test.run ~handler:handler_collecting_notifs @@ fun client ->
     let run_client () =
       let capabilities =
         let window =
@@ -28,6 +34,11 @@ let%expect_test "start/stop" =
     in
     Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client)
   );
+  print_endline "\nnotifications received:";
+  Queue.iter notifs ~f:(fun notif ->
+      Lsp.Server_notification.to_jsonrpc notif
+      |> Jsonrpc.Notification.yojson_of_t |> Yojson.Safe.pretty_to_string
+      |> print_endline);
   [%expect
     {|
       client: server initialized with:
@@ -90,4 +101,14 @@ let%expect_test "start/stop" =
         },
         "serverInfo": { "name": "ocamllsp", "version": "dev" }
       }
-      client: shutting down server |}]
+      client: shutting down server
+
+      notifications received:
+      {
+        "params": {
+          "message": "Unable to find 'ocamlformat-rpc' binary. Types on hover may not be well-formatted. You need to install either 'ocamlformat' of version > 0.21.0 or, otherwise, 'ocamlformat-rpc' package.",
+          "type": 3
+        },
+        "method": "window/showMessage",
+        "jsonrpc": "2.0"
+      } |}]

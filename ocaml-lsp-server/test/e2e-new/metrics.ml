@@ -1,6 +1,6 @@
 open Test.Import
 
-let%expect_test "start/stop" =
+let%expect_test "metrics" =
   let handler =
     let on_request (type r) _ (r : r Lsp.Server_request.t) :
         (r Lsp_fiber.Rpc.Reply.t * unit) Fiber.t =
@@ -20,7 +20,11 @@ let%expect_test "start/stop" =
       | _ -> assert false
     in
     let on_request = { Client.Handler.on_request } in
-    Client.Handler.make ~on_request ()
+    let on_notification (_ : _ Client.t) (_ : Client.in_notification) =
+      (* ignore notifications *)
+      Fiber.return ()
+    in
+    Client.Handler.make ~on_request ~on_notification ()
   in
   ( Test.run ~handler @@ fun client ->
     let run_client () =
