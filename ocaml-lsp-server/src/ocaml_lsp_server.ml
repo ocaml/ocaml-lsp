@@ -1036,10 +1036,10 @@ let start () =
       match state with
       | Error `Binary_not_found ->
         Some
-          "ocamlformat-rpc is missing, displayed types might not be properly \
-           formatted. Hint: $ opam install ocamlformat-rpc and restart the lsp \
-           server"
-      | Error `Disabled | Ok () -> None
+          "Unable to find 'ocamlformat-rpc' binary. Types on hover may not be \
+           well-formatted. You need to install either 'ocamlformat' of version \
+           > 0.21.0 or, otherwise, 'ocamlformat-rpc' package."
+      | Ok () -> None
     in
     match message with
     | None -> Fiber.return ()

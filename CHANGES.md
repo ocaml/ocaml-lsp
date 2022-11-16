@@ -2,6 +2,11 @@
 
 ## Features
 
+- Re-enable `ocamlformat-rpc` for code formatting (#920)
+
+  One needs to have either `ocamlformat` version > 0.21.0 or, otherwise,
+  `ocamlformat-rpc` package installed.
+
 - Add custom ocamllsp/hoverExtended request (#561)
 
 # 1.14.2

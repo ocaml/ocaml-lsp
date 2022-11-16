@@ -54,7 +54,16 @@ describe("textDocument/hover", () => {
     expect(result).toMatchObject({
       contents: {
         kind: "plaintext",
-        value: outdent`int -> int -> int -> int -> int -> int -> int -> int -> int -> int`,
+        value: outdent`int ->
+        int ->
+        int ->
+        int ->
+        int ->
+        int ->
+        int ->
+        int ->
+        int ->
+        int`,
       },
       range: {
         end: { character: 5, line: 0 },
