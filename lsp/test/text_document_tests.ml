@@ -64,3 +64,8 @@ let%expect_test "replace first line" =
   let range = tuple_range (0, 0) (1, 0) in
   test "foo\nbar\n" range ~change:"baz\n";
   [%expect {| baz\nbar\n |}]
+
+let%expect_test "beyond max char" =
+  let range = tuple_range (0, 0) (0, 100) in
+  test "foo\nbar\n" range ~change:"baz\n";
+  [%expect {| baz\n |}]
