@@ -59,3 +59,8 @@ let%expect_test "insert at the beginning" =
   test "foo\n\bar\nbaz\n" range ~change:"XXX\n";
   [%expect {|
     XXX\nfoo\n\bar\nbaz\n |}]
+
+let%expect_test "replace first line" =
+  let range = tuple_range (0, 0) (1, 0) in
+  test "foo\nbar\n" range ~change:"baz\n";
+  [%expect {| baz\nbar\n |}]
