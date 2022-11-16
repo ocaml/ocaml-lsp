@@ -18,7 +18,7 @@ all:
 .PHONY: install-test-deps
 install-test-deps:
 	opam install --yes 'menhir>20211230' cinaps 'ppx_expect>=v0.15.0' \
-		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat) ocamlformat-rpc
+		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat)
 
 .PHONY: dev
 dev: ## Setup a development environment
