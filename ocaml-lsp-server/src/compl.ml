@@ -148,7 +148,7 @@ module Complete_by_prefix = struct
         (* Without this field the client is not forced to respect the order
            provided by merlin. *)
       ~sortText:(sortText_of_index idx)
-      ~data:compl_params
+      ?data:compl_params
       ~textEdit
       ()
 
@@ -158,7 +158,8 @@ module Complete_by_prefix = struct
     in
     Query_commands.dispatch pipeline complete
 
-  let process_dispatch_resp doc pos (completion : Query_protocol.completions) =
+  let process_dispatch_resp ~resolve doc pos
+      (completion : Query_protocol.completions) =
     let range =
       let logical_pos = Position.logical pos in
       range_prefix
@@ -185,23 +186,27 @@ module Complete_by_prefix = struct
        [data] field to keep it across [textDocument/completion] and the
        following [completionItem/resolve] requests *)
     let compl_params =
-      let textDocument =
-        TextDocumentIdentifier.create
-          ~uri:(Document.uri (Document.Merlin.to_doc doc))
-      in
-      CompletionParams.create ~textDocument ~position:pos ()
-      |> CompletionParams.yojson_of_t
+      match resolve with
+      | false -> None
+      | true ->
+        Some
+          (let textDocument =
+             TextDocumentIdentifier.create
+               ~uri:(Document.uri (Document.Merlin.to_doc doc))
+           in
+           CompletionParams.create ~textDocument ~position:pos ()
+           |> CompletionParams.yojson_of_t)
     in
     List.mapi
       completion_entries
       ~f:(completionItem_of_completion_entry ~range ~compl_params)
 
-  let complete doc prefix pos =
+  let complete doc prefix pos ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
       Document.Merlin.with_pipeline_exn doc (dispatch_cmd ~prefix logical_pos)
     in
-    process_dispatch_resp doc pos completion
+    process_dispatch_resp ~resolve doc pos completion
 end
 
 module Complete_with_construct = struct
@@ -259,13 +264,26 @@ let complete (state : State.t)
       match Document.kind doc with
       | `Other -> Fiber.return None
       | `Merlin merlin ->
+        let resolve =
+          let capabilities = State.client_capabilities state in
+          match
+            let open Option.O in
+            let* td = capabilities.textDocument in
+            let* compl = td.completion in
+            let* item = compl.completionItem in
+            item.resolveSupport
+          with
+          | None -> false
+          | Some { properties } ->
+            List.mem properties ~equal:String.equal "documentation"
+        in
         let+ items =
           let position = Position.logical pos in
           let prefix =
             prefix_of_position ~short_path:false (Document.source doc) position
           in
           if not (Typed_hole.can_be_hole prefix) then
-            Complete_by_prefix.complete merlin prefix pos
+            Complete_by_prefix.complete merlin prefix pos ~resolve
           else
             let reindex_sortText completion_items =
               List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
@@ -298,6 +316,7 @@ let complete (state : State.t)
             in
             let compl_by_prefix_completionItems =
               Complete_by_prefix.process_dispatch_resp
+                ~resolve
                 merlin
                 pos
                 compl_by_prefix_resp

@@ -4,6 +4,8 @@
 
 - Fix document syncing for ranges that span an entire line (#927)
 
+- Respect the client's completion item resolve capability (#925)
+
 ## Features
 
 - Re-enable `ocamlformat-rpc` for code formatting (#920)
