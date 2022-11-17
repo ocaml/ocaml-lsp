@@ -3,7 +3,64 @@ module String = StringLabels
 
 exception Invalid_utf8
 
-let find_offset ~utf8 ~utf16_range:range =
+exception Outside
+
+let find_nth_nl =
+  let rec find_nth_nl str nth pos len =
+    if nth = 0 then pos
+    else if pos >= len then raise Outside
+    else if str.[pos] = '\n' then find_nth_nl str (nth - 1) (pos + 1) len
+    else find_nth_nl str nth (pos + 1) len
+  in
+  fun s ~nth ~start ->
+    let len = String.length s in
+    match find_nth_nl s nth start len with
+    | n -> n
+    | exception Outside -> len
+
+let find_utf8_pos =
+  let rec find_pos char dec =
+    if char = 0 || Uutf.decoder_line dec = 2 then Uutf.decoder_byte_count dec
+    else
+      match Uutf.decode dec with
+      | `Malformed _ | `Await -> raise Invalid_utf8
+      | `End -> assert false
+      | `Uchar _ -> find_pos (char - 1) dec
+  in
+  fun s ~start ~character ->
+    let dec =
+      Uutf.decoder ~nln:(`ASCII (Uchar.of_char '\n')) ~encoding:`UTF_8 `Manual
+    in
+    Uutf.Manual.src
+      dec
+      (Bytes.unsafe_of_string s)
+      start
+      (String.length s - start);
+    assert (Uutf.decoder_line dec = 1);
+    find_pos character dec + start
+
+let find_offset_8 ~utf8 ~utf8_range:range =
+  let { Range.start; end_ } = range in
+  let start_line_offset = find_nth_nl utf8 ~nth:start.line ~start:0 in
+  let end_line_offset =
+    if end_.line = start.line then start_line_offset
+    else if end_.line > start.line then
+      find_nth_nl utf8 ~nth:(end_.line - start.line) ~start:start_line_offset
+    else invalid_arg "inverted range"
+  in
+  let make_offset ~start ~character =
+    if start = String.length utf8 then start
+    else find_utf8_pos utf8 ~start ~character
+  in
+  let start_offset =
+    make_offset ~start:start_line_offset ~character:start.character
+  in
+  let end_offset =
+    make_offset ~start:end_line_offset ~character:end_.character
+  in
+  (start_offset, end_offset)
+
+let find_offset_16 ~utf8 ~utf16_range:range =
   let dec =
     Uutf.decoder
       ~nln:(`ASCII (Uchar.of_char '\n'))
@@ -57,39 +114,50 @@ let find_offset ~utf8 ~utf16_range:range =
    computed based on UTF-16. Therefore we reencode every file into utf16 for
    analysis. *)
 
-type t = TextDocumentItem.t
+type t =
+  { document : TextDocumentItem.t
+  ; position_encoding : [ `UTF8 | `UTF16 ]
+  }
 
-let text (t : TextDocumentItem.t) = t.text
+let text (t : t) = t.document.text
 
-let make (t : DidOpenTextDocumentParams.t) = t.textDocument
+let make ~position_encoding (t : DidOpenTextDocumentParams.t) =
+  { document = t.textDocument; position_encoding }
 
-let documentUri (t : TextDocumentItem.t) = t.uri
+let documentUri (t : t) = t.document.uri
 
-let version (t : TextDocumentItem.t) = t.version
+let version (t : t) = t.document.version
 
-let languageId (t : TextDocumentItem.t) = t.languageId
+let languageId (t : t) = t.document.languageId
 
-let apply_content_change ?version (t : TextDocumentItem.t)
+let apply_content_change ?version (t : t)
     (change : TextDocumentContentChangeEvent.t) =
-  (* Changes can only be applied using utf16 offsets *)
-  let version =
-    match version with
-    | None -> t.version + 1
-    | Some version -> version
+  let document =
+    match change.range with
+    | None -> { t.document with text = change.text }
+    | Some range ->
+      let start_offset, end_offset =
+        let utf8 = t.document.text in
+        match t.position_encoding with
+        | `UTF16 -> find_offset_16 ~utf8 ~utf16_range:range
+        | `UTF8 -> find_offset_8 ~utf8 ~utf8_range:range
+      in
+      let text =
+        String.concat
+          ~sep:""
+          [ String.sub t.document.text ~pos:0 ~len:start_offset
+          ; change.text
+          ; String.sub
+              t.document.text
+              ~pos:end_offset
+              ~len:(String.length t.document.text - end_offset)
+          ]
+      in
+      { t.document with text }
   in
-  match change.range with
-  | None -> { t with version; text = change.text }
-  | Some utf16_range ->
-    let start_offset, end_offset = find_offset ~utf8:t.text ~utf16_range in
-    let text =
-      String.concat
-        ~sep:""
-        [ String.sub t.text ~pos:0 ~len:start_offset
-        ; change.text
-        ; String.sub
-            t.text
-            ~pos:end_offset
-            ~len:(String.length t.text - end_offset)
-        ]
-    in
-    { t with text; version }
+  let document =
+    match version with
+    | None -> document
+    | Some version -> { document with version }
+  in
+  { t with document }

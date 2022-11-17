@@ -233,6 +233,7 @@ include struct
   module OptionalVersionedTextDocumentIdentifier =
     OptionalVersionedTextDocumentIdentifier
   module ParameterInformation = ParameterInformation
+  module PositionEncodingKind = PositionEncodingKind
   module ProgressParams = ProgressParams
   module ProgressToken = ProgressToken
   module PublishDiagnosticsParams = PublishDiagnosticsParams

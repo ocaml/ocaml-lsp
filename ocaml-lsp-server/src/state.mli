@@ -8,6 +8,7 @@ type init =
       ; dune : Dune.t
       ; exp_client_caps : Client.Experimental_capabilities.t
       ; diagnostics : Diagnostics.t
+      ; position_encoding : [ `UTF16 | `UTF8 ]
       }
 
 (** State specific to the hoverExtended request. *)
@@ -42,12 +43,20 @@ val create :
   -> wheel:Lev_fiber.Timer.Wheel.t
   -> t
 
+val position_encoding : t -> [ `UTF16 | `UTF8 ]
+
 val wheel : t -> Lev_fiber.Timer.Wheel.t
 
 val initialize_params : t -> InitializeParams.t
 
 val initialize :
-  t -> InitializeParams.t -> Workspaces.t -> Dune.t -> Diagnostics.t -> t
+     t
+  -> position_encoding:[ `UTF16 | `UTF8 ]
+  -> InitializeParams.t
+  -> Workspaces.t
+  -> Dune.t
+  -> Diagnostics.t
+  -> t
 
 val workspace_root : t -> Uri.t
 

@@ -9,6 +9,8 @@
 
 - Add custom ocamllsp/hoverExtended request (#561)
 
+- Support utf-8 position encoding clients (#919)
+
 # 1.14.2
 
 ## Fixes
