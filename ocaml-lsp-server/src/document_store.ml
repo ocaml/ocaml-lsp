@@ -204,6 +204,12 @@ let change_all t ~f =
       in
       Table.set t.db uri doc)
 
+let fold t ~init ~f =
+  Table.fold t.db ~init ~f:(fun doc acc ->
+      match doc.document with
+      | None -> acc
+      | Some x -> f x acc)
+
 let close_all t =
   Fiber.of_thunk (fun () ->
       let docs = Table.fold t.db ~init:[] ~f:(fun doc acc -> doc :: acc) in

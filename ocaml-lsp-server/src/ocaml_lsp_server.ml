@@ -102,7 +102,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
             window.showDocument)
         then
           view_metrics_command_name :: Action_open_related.command_name
-          :: Dune.commands
+          :: Merlin_config_command.command_name :: Dune.commands
         else Dune.commands
       in
       ExecuteCommandOptions.create ~commands ()
@@ -817,7 +817,14 @@ let on_request :
     later (fun state () -> workspace_symbol server state req) ()
   | CodeActionResolve ca -> now ca
   | ExecuteCommand command ->
-    if String.equal command.command view_metrics_command_name then
+    if String.equal command.command Merlin_config_command.command_name then
+      later
+        (fun state server ->
+          let store = state.store in
+          let+ () = Merlin_config_command.command_run server store in
+          `Null)
+        server
+    else if String.equal command.command view_metrics_command_name then
       later (fun _state server -> view_metrics server) server
     else if String.equal command.command Action_open_related.command_name then
       later
