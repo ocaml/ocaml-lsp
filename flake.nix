@@ -73,7 +73,7 @@
             buildInputs = (with pkgs;
               [
                 # dev tools
-                ocamlformat_0_21_0
+                ocamlformat_0_24_1
                 yarn
                 dune-release
               ]) ++ packagesFromNames devPackages;
