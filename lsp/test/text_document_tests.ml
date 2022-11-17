@@ -23,9 +23,9 @@ let test text range ~change =
         { DidOpenTextDocumentParams.textDocument }
     in
     let td =
-      Text_document.apply_content_change
+      Text_document.apply_content_changes
         td
-        (TextDocumentContentChangeEvent.create ?range ~text:change ())
+        [ TextDocumentContentChangeEvent.create ?range ~text:change () ]
     in
     (match position_encoding with
     | `UTF8 -> print_endline "UTF8:"
