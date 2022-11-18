@@ -4,7 +4,8 @@
 
 - Fix document syncing for ranges that span an entire line (#927)
 
-- Respect the client's completion item resolve capability (#925)
+- Respect the client's completion item resolve and preSelect capabilities
+  (#925, #936)
 
 ## Features
 
