@@ -108,14 +108,12 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
       ExecuteCommandOptions.create ~commands ()
     in
     let semanticTokensProvider =
-      Option.map (Sys.getenv_opt "OCAMLLSP_SEMANTIC_HIGHLIGHTING") ~f:(fun v ->
-          let delta = String.equal v "full/delta" in
-          let full = `Full (SemanticTokensOptions.create_full ~delta ()) in
-          `SemanticTokensOptions
-            (SemanticTokensOptions.create
-               ~legend:Semantic_highlighting.legend
-               ~full
-               ()))
+      let full = `Full (SemanticTokensOptions.create_full ~delta:true ()) in
+      `SemanticTokensOptions
+        (SemanticTokensOptions.create
+           ~legend:Semantic_highlighting.legend
+           ~full
+           ())
     in
     let positionEncoding =
       let open Option.O in
@@ -143,7 +141,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
       ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true)
       ~foldingRangeProvider:(`Bool true)
-      ?semanticTokensProvider
+      ~semanticTokensProvider
       ~experimental
       ~renameProvider
       ~workspace

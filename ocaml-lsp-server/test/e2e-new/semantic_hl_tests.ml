@@ -96,10 +96,7 @@ let test :
           | _ -> Fiber.return ())
       ()
   in
-  Test.run
-    ~handler
-    ~extra_env:[ "OCAMLLSP_SEMANTIC_HIGHLIGHTING=full/delta" ]
-    (fun client ->
+  Test.run ~handler (fun client ->
       let run_client () =
         Client.start
           client

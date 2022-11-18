@@ -6,6 +6,8 @@
 
 ## Features
 
+- Semantic highlighting support is enabled by default (#TODO)
+
 - Re-enable `ocamlformat-rpc` for code formatting (#920)
 
   One needs to have either `ocamlformat` version > 0.21.0 or, otherwise,

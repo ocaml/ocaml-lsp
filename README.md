@@ -60,21 +60,21 @@ Platform Extension implementation
 ### Merlin configuration (advanced)
 
 If you would like OCaml-LSP to respect your `.merlin` files, OCaml-LSP needs to
-be invoked with `--fallback-read-dot-merlin` argument passed to it. 
+be invoked with `--fallback-read-dot-merlin` argument passed to it.
 
 ## Features
 
-<!-- TODO: 
-  this is quite a large list (which becomes even larger since it's missing some requests), which is not necessarily of big interest to users. 
-  
-  We should consider: 
-  1. Moving it to the bottom 
-  2. Converting it into a table 
-     
+<!-- TODO:
+  this is quite a large list (which becomes even larger since it's missing some requests), which is not necessarily of big interest to users.
+
+  We should consider:
+  1. Moving it to the bottom
+  2. Converting it into a table
+
      | Description      | Method                  | OCaml | Reason | Dune | Menhir | .ocamlformat | ...
      | Auto-completion  | textDocument/completion |   x   |    x   |   o  |   o    |      o       | ...
 
-  3. (not sure how) Generate the table automatically because, otherwise, it's outdated frequently. 
+  3. (not sure how) Generate the table automatically because, otherwise, it's outdated frequently.
 -->
 
 The server supports the following LSP requests:
@@ -103,28 +103,9 @@ The server supports the following LSP requests:
 
 Note that degrees of support for each LSP request are varying.
 
-### Semantic highlighting 
+### Semantic highlighting
 
-OCaml-LSP implements experimental semantic highlighting support (also known as
-semantic tokens support). The support can be activated by passing an evironment
-variable to OCaml-LSP: 
-
-- To enable non-incremental (expectedly slower but more stable) version, pass
-  `OCAMLLSP_SEMANTIC_HIGHLIGHTING=full` environment variable to OCaml-LSP.
-
-- To enable incremental (potentially faster but more error-prone, at least on VS
-  Code) version, pass `OCAMLLSP_SEMANTIC_HIGHLIGHTING=full/delta` to OCaml-LSP.
-
-Tip (for VS Code OCaml Platform users): You can use `ocaml.server.extraEnv`
-setting in VS Code to pass various environment variables to OCaml-LSP.
-
-```json
-{
-    "ocaml.server.extraEnv": {
-        "OCAMLLSP_SEMANTIC_HIGHLIGHTING": "full"
-    },
-}
-```
+OCaml-LSP implements semantic highlighting support enabled by default since OCaml-LSP version 1.15.0.
 
 ### LSP Extensions
 
@@ -136,7 +117,7 @@ The server also supports a number of OCaml specific extensions to the protocol:
 
 Note that editor support for these extensions varies. In general, the OCaml Platform extension for Visual Studio Code will have the best support.
 
-### Unorthodox features 
+### Unorthodox features
 
 #### Destructing a value
 
@@ -151,7 +132,7 @@ below, we type-annotate the function parameter `v` because when we type `let f v
 = v|`, the type of `v` is polymorphic, so we can't destruct it.
 
 You can also usually destruct the value by placing the cursor on the wildcard
-(`_`) pattern in a pattern-match. For example, 
+(`_`) pattern in a pattern-match. For example,
 
 ```ocaml
 type t = A | B of string option
@@ -159,7 +140,7 @@ type t = A | B of string option
 let f (v : t) = match v with | A -> _ | B _| -> _
 ```
 
-invoking destruct near the cursor (`|`) in the snippet above, you get 
+invoking destruct near the cursor (`|`) in the snippet above, you get
 
 ```ocaml
 type t = A | B of string option
@@ -173,7 +154,7 @@ called "typed holes" - a concept explained below.
 
 Tip (formatting): generated code may not be greatly formatted. If your project
 uses a formatter such as OCamlFormat, you can run formatting and get a
-well-formatted document (OCamlFormat supports typed holes formatting). 
+well-formatted document (OCamlFormat supports typed holes formatting).
 
 Tip (for VS Code OCaml Platform users): You can destruct a value using a keybinding
 <kbd>Alt</kbd>+<kbd>D</kbd> or on MacOS <kbd>Option</kbd>+<kbd>D</kbd>
@@ -189,7 +170,7 @@ One can use such holes during development as temporary substitutes for
 expressions and "plug" the holes later with appropriate expressions.
 
 Note, files that incorporate typed holes are *not* considered valid OCaml by the
-OCaml compiler and, hence, cannot be compiled. 
+OCaml compiler and, hence, cannot be compiled.
 
 Also, an underscore occurring in place of a pattern (for example `let _ = 10`)
 should not be confused with a typed hole that occurs in place of an expression,
@@ -206,7 +187,7 @@ below will trigger auto-completion (`|` is your cursor):
 type t = A | B of string option
 
 (* file bar.ml *)
-let v : Foo.t = _| 
+let v : Foo.t = _|
 ```
 
 The auto-completion offers completions `Foo.A` and `Foo.B _`. You can further
@@ -304,7 +285,7 @@ the lsp protocol covers a wider scope than merlin.
 ## Comparison to other LSP Servers for OCaml
 
 Note that the comparisons below make no claims of being objective and may be
-entirely out of 
+entirely out of
 date. Also, both servers seem deprecated.
 
 - [reason-language-server](https://github.com/jaredly/reason-language-server)
