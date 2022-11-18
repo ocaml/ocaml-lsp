@@ -83,6 +83,22 @@ let%expect_test "start/stop" =
           "referencesProvider": true,
           "renameProvider": { "prepareProvider": true },
           "selectionRangeProvider": true,
+          "semanticTokensProvider": {
+            "full": { "delta": true },
+            "legend": {
+              "tokenModifiers": [
+                "declaration", "definition", "readonly", "static", "deprecated",
+                "abstract", "async", "modification", "documentation",
+                "defaultLibrary"
+              ],
+              "tokenTypes": [
+                "namespace", "type", "class", "enum", "interface", "struct",
+                "typeParameter", "parameter", "variable", "property", "enumMember",
+                "event", "function", "method", "macro", "keyword", "modifier",
+                "comment", "string", "number", "regexp", "operator", "decorator"
+              ]
+            }
+          },
           "signatureHelpProvider": {
             "triggerCharacters": [ " ", "~", "?", ":", "(" ]
           },
