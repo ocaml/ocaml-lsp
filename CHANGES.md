@@ -1,5 +1,9 @@
 # Unreleased
 
+## Fixes
+
+- Fix document syncing for ranges that span an entire line (#927)
+
 ## Features
 
 - Re-enable `ocamlformat-rpc` for code formatting (#920)
