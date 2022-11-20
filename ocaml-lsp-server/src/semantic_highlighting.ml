@@ -209,6 +209,7 @@ let legend =
     ~tokenTypes:Token_type.list
     ~tokenModifiers:Token_modifiers_set.list
 
+(** Represents a collection of semantic tokens. *)
 module Tokens : sig
   type t
 
@@ -328,7 +329,10 @@ end = struct
     data
 end
 
-module Parsetree_fold () = struct
+(** To traverse OCaml parsetree and produce semantic tokens. *)
+module Parsetree_fold () : sig
+  val apply : Mreader.parsetree -> Tokens.t
+end = struct
   (* mutable state *)
   let tokens = Tokens.create ()
 
@@ -414,7 +418,6 @@ module Parsetree_fold () = struct
     | `Default_iterator -> Ast_iterator.default_iterator.typ self ct
     | `Custom_iterator -> self.attributes self ptyp_attributes
 
-  (* COMPLETE *)
   let constructor_declaration (self : Ast_iterator.iterator)
       ({ pcd_name; pcd_vars; pcd_args; pcd_res; pcd_loc = _; pcd_attributes } :
         Parsetree.constructor_declaration) =
@@ -431,7 +434,6 @@ module Parsetree_fold () = struct
     Option.iter pcd_res ~f:(fun ct -> self.typ self ct);
     self.attributes self pcd_attributes
 
-  (* COMPLETE *)
   let label_declaration (self : Ast_iterator.iterator)
       ({ pld_name; pld_mutable = _; pld_type; pld_loc = _; pld_attributes } :
         Parsetree.label_declaration) =
@@ -583,8 +585,8 @@ module Parsetree_fold () = struct
       | Pexp_try (_, _)
       | Pexp_tuple _
       | Pexp_variant (_, _)
-      (* ^ label is missing location info -- we could have a workaround by
-         "parsing" this part of code ourselves*)
+      (* ^ label for a poly variant is missing location info -- we could have a
+         workaround by "parsing" this part of code ourselves*)
       | Pexp_match (_, _) -> `Default_iterator
       | Pexp_record (props, exp) ->
         Option.iter exp ~f:(fun e -> self.expr self e);
@@ -665,8 +667,6 @@ module Parsetree_fold () = struct
     with
     | `Default_iterator -> Ast_iterator.default_iterator.expr self exp
     | `Custom_iterator -> self.attributes self pexp_attributes
-
-  (* TODO: handle poly variants *)
 
   let pat (self : Ast_iterator.iterator)
       ({ ppat_desc; ppat_loc; ppat_loc_stack = _; ppat_attributes } as pat :
@@ -862,7 +862,8 @@ module Parsetree_fold () = struct
     tokens
 end
 
-(* Note: this is global mutable state; we could move this to [State.t] *)
+(** File-wide mutable state that allows to generate unique IDs for semantic
+    tokens requests (both [full] and [full/delta]) *)
 let gen_new_id =
   let i = ref 0 in
   fun () ->
@@ -881,6 +882,8 @@ let compute_encoded_tokens doc =
   let+ tokens = compute_tokens doc in
   Tokens.encode tokens
 
+(** Contains implementation of a custom request that provides human-readable
+    tokens representation *)
 module Debug = struct
   let meth_request_full = "ocamllsp/textDocument/semanticTokens/full"
 
