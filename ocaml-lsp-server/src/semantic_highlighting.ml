@@ -830,30 +830,6 @@ module Parsetree_fold () = struct
     | `Custom_iterator -> ()
     | `Default_iterator -> Ast_iterator.default_iterator.module_type self mt
 
-  let signature_item (self : Ast_iterator.iterator)
-      (si : Parsetree.signature_item) =
-    match
-      (* TODO *)
-      match si.psig_desc with
-      | Psig_typext _ | Psig_typesubst _
-      | Psig_type (_, _)
-      | Psig_value _
-      | Psig_modtype _
-      | Psig_exception _
-      | Psig_module _
-      | Psig_modsubst _
-      | Psig_recmodule _
-      | Psig_modtypesubst _
-      | Psig_open _
-      | Psig_include _
-      | Psig_class _
-      | Psig_class_type _
-      | Psig_attribute _
-      | Psig_extension (_, _) -> `Default_iterator
-    with
-    | `Default_iterator -> Ast_iterator.default_iterator.signature_item self si
-    | `Custom_iterator -> ()
-
   (* TODO: *)
   let attribute _self _attr = ()
 
@@ -870,7 +846,6 @@ module Parsetree_fold () = struct
     ; label_declaration
     ; typ
     ; value_binding
-    ; signature_item
     ; module_type_declaration
     ; attribute
     ; attributes
