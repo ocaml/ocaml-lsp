@@ -94,12 +94,19 @@ module Poll =
               | exception Sys_error _ -> Ok []
               | exception exn -> Error exn))
 
+      let is_414 = String.is_prefix Sys.ocaml_version ~prefix:"4.14.0"
+
       let stat s =
-        Fiber.of_thunk (fun () ->
-            Fiber.return
-              (match Unix.stat s with
-              | exception exn -> Error exn
-              | s -> Ok (`Mtime s.st_mtime)))
+        let+ () = Fiber.return () in
+        match
+          if Sys.win32 && is_414 && not (Sys.file_exists s) then
+            (* Mitigate issue ocaml/ocaml#11737; see ocaml/ocaml-lsp#929. Should
+               be reverted as soon as "ocaml 4.14.0" is no longer supported. *)
+            raise (Unix.Unix_error (ENOENT, "stat", s))
+          else Unix.stat s
+        with
+        | exception exn -> Error exn
+        | s -> Ok (`Mtime s.st_mtime)
 
       let read_file s =
         Fiber.of_thunk (fun () ->
