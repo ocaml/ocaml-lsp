@@ -244,6 +244,7 @@ include struct
   module RegistrationParams = RegistrationParams
   module RenameOptions = RenameOptions
   module RenameParams = RenameParams
+  module SaveOptions = SaveOptions
   module SelectionRange = SelectionRange
   module SelectionRangeParams = SelectionRangeParams
   module SemanticTokens = SemanticTokens

@@ -89,7 +89,7 @@ let%expect_test "start/stop" =
           "textDocumentSync": {
             "change": 2,
             "openClose": true,
-            "save": true,
+            "save": { "includeText": false },
             "willSave": false,
             "willSaveWaitUntil": false
           },

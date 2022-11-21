@@ -50,7 +50,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
          ~openClose:true
          ~change:TextDocumentSyncKind.Incremental
          ~willSave:false
-         ~save:(`Bool true)
+         ~save:(`SaveOptions (SaveOptions.create ~includeText:false ()))
          ~willSaveWaitUntil:false
          ())
   in
