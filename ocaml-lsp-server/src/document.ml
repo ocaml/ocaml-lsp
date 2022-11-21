@@ -259,6 +259,8 @@ module Merlin = struct
   let with_pipeline (t : t) f =
     Single_pipeline.use t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
 
+  let mconfig (t : t) = Merlin_config.config t.merlin_config
+
   let with_pipeline_exn doc f =
     let+ res = with_pipeline doc f in
     match res with
