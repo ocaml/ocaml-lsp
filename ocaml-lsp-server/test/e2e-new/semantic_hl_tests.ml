@@ -688,8 +688,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
       }
     ] |}]
 
-let%expect_test "FIXME: highlighting longidents with space between identifiers"
-    =
+let%expect_test "highlighting longidents with space between identifiers" =
   test_semantic_tokens_full
   @@ String.trim {|
 let foo = Bar.jar
@@ -700,10 +699,10 @@ let joo = Bar.   jar
     {|
     let <variable|-0>foo</0> = <namespace|-1>Bar</1>.<variable|-2>jar</2>
 
-    let <variable|-3>joo</3> = <namespace|-4>Bar</4>.<variable|-5>   </5>jar |}]
+    let <variable|-3>joo</3> = <namespace|-4>Bar</4>.   <variable|-5>jar</5> |}]
 
-let%expect_test "FIXME: highlighting longidents with space between identifiers \
-                 and infix fns" =
+let%expect_test "highlighting longidents with space between identifiers and \
+                 infix fns" =
   test_semantic_tokens_full
   @@ String.trim {|
 Bar.(+) ;;
@@ -716,10 +715,24 @@ Bar. ( + ) ;;
     |};
   [%expect
     {|
-    <namespace|-0>Bar</0>.<variable|-1>(</1>+) ;;
+    <namespace|-0>Bar</0>.<variable|-1>(+)</1> ;;
 
-    <namespace|-2>Bar</2>.<variable|-3>(</3> + ) ;;
+    <namespace|-2>Bar</2>.<namespace|-3>(</3> <namespace|-4>+</4> <variable|-5>)</5> ;;
 
-    <namespace|-4>Bar</4>.<variable|-5> </5>(+) ;;
+    <namespace|-6>Bar</6>. <variable|-7>(+)</7> ;;
 
-    <namespace|-6>Bar</6>.<variable|-7> </7>( + ) ;; |}]
+    <namespace|-8>Bar</8>. <namespace|-9>(</9> <namespace|-10>+</10> <variable|-11>)</11> ;; |}]
+
+let%expect_test "longidents in records" =
+  test_semantic_tokens_full
+  @@ String.trim
+       {|
+module M = struct type r = { foo : int ; bar : string } end
+
+let x = { M . foo = 0 ; bar = "bar"}
+      |};
+  [%expect
+    {|
+    module <namespace|definition-0>M</0> = struct type <struct|definition-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
+
+    let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>} |}]

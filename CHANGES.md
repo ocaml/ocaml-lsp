@@ -11,6 +11,10 @@
 
 - Support utf-8 position encoding clients (#919)
 
+## Fixes
+
+- Fix semantic highlighting of "long identifiers," e.g., `Foo.Bar.x` (#TODO)
+
 # 1.14.2
 
 ## Fixes
