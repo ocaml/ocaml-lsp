@@ -330,11 +330,18 @@ end = struct
 end
 
 (** To traverse OCaml parsetree and produce semantic tokens. *)
-module Parsetree_fold () : sig
+module Parsetree_fold (M : sig
+  val source : string
+end) : sig
   val apply : Mreader.parsetree -> Tokens.t
 end = struct
   (* mutable state *)
   let tokens = Tokens.create ()
+
+  let source_excerpt ({ loc_start; loc_end; _ } : Loc.t) =
+    let start_offset = loc_start.pos_cnum in
+    let end_offset = loc_end.pos_cnum in
+    String.sub M.source ~pos:start_offset ~len:(end_offset - start_offset)
 
   let add_token loc token_type token_modifiers =
     Tokens.append_token tokens loc token_type token_modifiers
@@ -342,30 +349,52 @@ end = struct
   let add_token' pos ~length token_type token_modifiers =
     Tokens.append_token' tokens pos ~length token_type token_modifiers
 
-  let lident ({ txt = lid; loc } : Longident.t Loc.loc) rightmost_name
+  (* TODO: make sure we follow specs when parsing -
+     https://v2.ocaml.org/manual/names.html#sss:refer-named *)
+  let lident ({ loc; _ } : Longident.t Loc.loc) rightmost_name
       ?(modifiers = Token_modifiers_set.empty) () =
-    let start : Position.t option =
-      Position.of_lexical_position loc.loc_start
-    in
-    Option.iter start ~f:(fun start ->
-        let lst = Longident.flatten lid in
-        let rec aux offset = function
-          | [] -> ()
-          | [ constr_name ] ->
-            add_token'
-              { start with character = start.character + offset }
-              ~length:(String.length constr_name)
-              rightmost_name
-              modifiers
-          | mod_name :: rest ->
-            add_token'
-              { start with character = start.character + offset }
-              ~length:(String.length mod_name)
-              Token_type.module_
-              Token_modifiers_set.empty;
-            aux (offset + String.length mod_name + 1) rest
-        in
-        aux 0 lst)
+    let start = Position.of_lexical_position loc.loc_start in
+    match start with
+    | None -> ()
+    | Some start ->
+      let lid = source_excerpt loc in
+
+      let i = ref 0 in
+      let line = ref start.line in
+      let character = ref start.character in
+
+      let parse_word () : Position.t * [ `Length of int ] =
+        let left_pos = { Position.line = !line; character = !character } in
+        while
+          !i < String.length lid
+          &&
+          match lid.[!i] with
+          | '\n' | ' ' | '.' -> false
+          | _ -> true
+        do
+          incr character;
+          incr i
+        done;
+        (left_pos, `Length (!character - left_pos.character))
+      in
+
+      while !i < String.length lid do
+        match lid.[!i] with
+        | '\n' ->
+          incr line;
+          character := 0;
+          incr i
+        | ' ' | '.' ->
+          incr character;
+          incr i
+        | _ ->
+          let pos, `Length length = parse_word () in
+          let token_type, mods =
+            if !i = String.length lid then (rightmost_name, modifiers)
+            else (Token_type.module_, Token_modifiers_set.empty)
+          in
+          add_token' pos ~length token_type mods
+      done
 
   let constructor_arguments (self : Ast_iterator.iterator)
       (ca : Parsetree.constructor_arguments) =
@@ -872,10 +901,13 @@ let gen_new_id =
     string_of_int x
 
 let compute_tokens doc =
-  let+ parsetree =
-    Document.Merlin.with_pipeline_exn doc Mpipeline.reader_parsetree
+  let+ parsetree, source =
+    Document.Merlin.with_pipeline_exn doc (fun p ->
+        (Mpipeline.reader_parsetree p, Mpipeline.raw_source p))
   in
-  let module Fold = Parsetree_fold () in
+  let module Fold = Parsetree_fold (struct
+    let source = Msource.text source
+  end) in
   Fold.apply parsetree
 
 let compute_encoded_tokens doc =
