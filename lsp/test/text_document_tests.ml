@@ -106,6 +106,6 @@ let%expect_test "beyond max char" =
   test "foo\nbar\n" range ~change:"baz\n";
   [%expect {|
     UTF16:
-    baz\n
+    baz\nbar\n
     UTF8:
     baz\nbar\n |}]
