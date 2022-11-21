@@ -69,13 +69,18 @@ let client_capabilities =
   in
   ClientCapabilities.create ~textDocument ()
 
+type 'resp req_ctx =
+  { initializeResult : InitializeResult.t
+  ; resp : 'resp
+  }
+
 let test :
     type resp.
        src:string
     -> (SemanticTokensParams.t -> resp Client.out_request)
-    -> (resp -> Yojson.Safe.t)
+    -> (resp req_ctx -> unit Fiber.t)
     -> unit =
- fun ~src req json_of_resp ->
+ fun ~src req consume_resp ->
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
@@ -101,7 +106,9 @@ let test :
           (InitializeParams.create ~capabilities:client_capabilities ())
       in
       let run () =
-        let* (_ : InitializeResult.t) = Client.initialized client in
+        let* (initializeResult : InitializeResult.t) =
+          Client.initialized client
+        in
         let uri = DocumentUri.of_path "test.ml" in
         let textDocument =
           TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:src
@@ -117,11 +124,7 @@ let test :
           let params = SemanticTokensParams.create ~textDocument () in
           Client.request client (req params)
         in
-        let* () =
-          json_of_resp resp
-          |> Yojson.Safe.pretty_to_string ~std:false
-          |> print_endline |> Fiber.return
-        in
+        let* () = consume_resp { initializeResult; resp } in
         let* () =
           Fiber.fork_and_join_unit
             (fun () -> Fiber.Ivar.read wait_for_diagnostics)
@@ -132,38 +135,85 @@ let test :
       Fiber.fork_and_join_unit run_client run)
 
 let test_semantic_tokens_full src =
-  test
-    ~src
-    (fun p -> SemanticTokensFull p)
-    (fun resp ->
-      Option.map resp ~f:SemanticTokens.yojson_of_t
-      |> Option.value ~default:`Null)
+  let print_resp { initializeResult; resp } =
+    Fiber.return
+    @@
+    match resp with
+    | None -> print_endline "empty response"
+    | Some { SemanticTokens.data; _ } ->
+      let legend =
+        match
+          initializeResult.InitializeResult.capabilities
+            .ServerCapabilities.semanticTokensProvider
+        with
+        | None -> failwith "no server capabilities for semantic tokens"
+        | Some (`SemanticTokensOptions { legend; _ }) -> legend
+        | Some (`SemanticTokensRegistrationOptions { legend; _ }) -> legend
+      in
+      print_endline
+      @@ Semantic_hl_helpers.annotate_src_with_tokens
+           ~legend
+           ~encoded_tokens:data
+           ~annot_mods:true
+           src
+  in
+  test ~src (fun p -> SemanticTokensFull p) print_resp
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =
   test_semantic_tokens_full Semantic_hl_data.src0;
   [%expect
     {|
-    {
-      "data": [
-        1, 7, 3, 0, 2, 1, 7, 1, 1, 1, 2, 7, 3, 3, 1, 1, 6, 3, 10, 1, 0, 7, 6, 1,
-        0, 1, 6, 3, 10, 1, 0, 17, 3, 1, 0, 0, 17, 6, 1, 0, 2, 6, 1, 8, 1, 0, 4,
-        4, 1, 0, 2, 6, 1, 12, 1, 0, 4, 4, 1, 0, 0, 8, 1, 1, 0, 2, 7, 1, 1, 1, 0,
-        4, 3, 1, 0, 2, 7, 3, 3, 1, 1, 6, 3, 10, 1, 0, 7, 6, 1, 0, 1, 6, 3, 10, 1,
-        0, 17, 3, 1, 0, 0, 17, 6, 1, 0, 2, 6, 1, 8, 0, 0, 4, 2, 10, 0, 2, 6, 1,
-        12, 2, 0, 2, 2, 10, 0, 0, 5, 1, 19, 0, 3, 12, 3, 4, 0, 1, 7, 1, 5, 1, 1,
-        6, 3, 9, 0, 0, 6, 3, 0, 0, 0, 4, 1, 1, 0, 1, 6, 3, 9, 0, 0, 6, 3, 1, 0,
-        4, 5, 1, 3, 1, 0, 4, 3, 0, 0, 0, 4, 3, 1, 0, 1, 4, 3, 10, 1, 0, 7, 6, 1,
-        0, 1, 4, 3, 10, 1, 0, 20, 3, 1, 0, 0, 20, 6, 1, 0, 2, 4, 1, 12, 2, 0, 3,
-        3, 8, 0, 0, 6, 1, 1, 0, 1, 8, 3, 8, 0, 1, 4, 3, 0, 0, 0, 4, 3, 10, 0, 0,
-        4, 1, 8, 0, 0, 5, 1, 8, 0, 0, 2, 1, 12, 0, 0, 2, 13, 12, 0, 0, 14, 1, 19,
-        0, 1, 4, 3, 0, 0, 0, 4, 3, 10, 0, 0, 13, 1, 8, 0, 0, 6, 13, 12, 0, 0, 14,
-        1, 8, 0, 1, 4, 3, 0, 0, 0, 4, 3, 10, 0, 0, 16, 1, 8, 0, 0, 6, 1, 8, 0, 2,
-        7, 3, 0, 2, 0, 5, 3, 0, 0, 0, 6, 3, 4, 0, 1, 9, 9, 0, 2, 1, 9, 1, 1, 1,
-        0, 4, 6, 1, 0, 4, 7, 8, 0, 2, 0, 11, 3, 0, 0, 1, 7, 1, 5, 1, 1, 6, 3, 9,
-        0, 0, 6, 3, 0, 0, 0, 4, 1, 1, 0, 1, 6, 3, 9, 0, 0, 6, 3, 1, 0
-      ],
-      "resultId": "0"
-    } |}]
+    module <namespace|definition-0>Moo</0> : sig
+      type <type|definition-1>t</1>
+
+      type <enum|definition-2>koo</2> =
+        | <enumMember|definition-3>Foo</3> of <type|-4>string</4>
+        | <enumMember|definition-5>Bar</5> of [ `Int of <type|-6>int</6> | `String of <type|-7>string</7> ]
+
+      val <variable|definition-8>u</8> : <type|-9>unit</9>
+
+      val <function|definition-10>f</10> : <type|-11>unit</11> -> <type|-12>t</12>
+    end = struct
+      type <type|definition-13>t</13> = <type|-14>int</14>
+
+      type <enum|definition-15>koo</15> =
+        | <enumMember|definition-16>Foo</16> of <type|-17>string</17>
+        | <enumMember|definition-18>Bar</18> of [ `Int of <type|-19>int</19> | `String of <type|-20>string</20> ]
+
+      let <variable|-21>u</21> = <enumMember|-22>()</22>
+
+      let <function|definition-23>f</23> <enumMember|-24>()</24> = <number|-25>0</25>
+    end
+
+    module type <interface|-26>Bar</26> = sig
+      type <struct|definition-27>t</27> =
+        { <property|-28>foo</28> : <namespace|-29>Moo</29>.<type|-30>t</30>
+        ; <property|-31>bar</31> : <type|-32>int</32>
+        }
+    end
+
+    type <enum|definition-33>t</33> = <namespace|-34>Moo</34>.<type|-35>koo</35> =
+      | <enumMember|definition-36>Foo</36> of <type|-37>string</37>
+      | <enumMember|definition-38>Bar</38> of [ `BarInt of <type|-39>int</39> | `BarString of <type|-40>string</40> ]
+
+    let <function|definition-41>f</41> (<variable|-42>foo</42> : <type|-43>t</43>) =
+      match <variable|-44>foo</44> with
+      | <namespace|-45>Moo</45>.<enumMember|-46>Foo</46> <variable|-47>s</47> -> <variable|-48>s</48> <function|-49>^</49> <function|-50>string_of_int</50> <number|-51>0</51>
+      | <namespace|-52>Moo</52>.<enumMember|-53>Bar</53> (`BarInt <variable|-54>i</54>) -> <function|-55>string_of_int</55> <variable|-56>i</56>
+      | <namespace|-57>Moo</57>.<enumMember|-58>Bar</58> (`BarString <variable|-59>s</59>) -> <variable|-60>s</60>
+
+    module <namespace|definition-61>Foo</61> (<namespace|-62>Arg</62> : <interface|-63>Bar</63>) = struct
+      module <namespace|definition-64>Inner_foo</64> = struct
+        type <type|definition-65>t</65> = <type|-66>string</66>
+      end
+    end
+
+    module <namespace|definition-67>Foo_inst</67> = <namespace|-68>Foo</68> (struct
+      type <struct|definition-69>t</69> =
+        { <property|-70>foo</70> : <namespace|-71>Moo</71>.<type|-72>t</72>
+        ; <property|-73>bar</73> : <type|-74>int</74>
+        }
+    end) |}]
 
 let test_semantic_tokens_full_debug src =
   test
@@ -176,7 +226,10 @@ let test_semantic_tokens_full_debug src =
               (SemanticTokensParams.yojson_of_t p
               |> Jsonrpc.Structured.t_of_yojson)
         })
-    Fun.id
+    (fun { resp; _ } ->
+      resp
+      |> Yojson.Safe.pretty_to_string ~std:false
+      |> print_endline |> Fiber.return)
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =
   test_semantic_tokens_full_debug Semantic_hl_data.src0;
