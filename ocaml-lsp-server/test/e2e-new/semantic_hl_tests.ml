@@ -687,3 +687,39 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "modifiers": []
       }
     ] |}]
+
+let%expect_test "FIXME: highlighting longidents with space between identifiers"
+    =
+  test_semantic_tokens_full
+  @@ String.trim {|
+let foo = Bar.jar
+
+let joo = Bar.   jar
+  |};
+  [%expect
+    {|
+    let <variable|-0>foo</0> = <namespace|-1>Bar</1>.<variable|-2>jar</2>
+
+    let <variable|-3>joo</3> = <namespace|-4>Bar</4>.<variable|-5>   </5>jar |}]
+
+let%expect_test "FIXME: highlighting longidents with space between identifiers \
+                 and infix fns" =
+  test_semantic_tokens_full
+  @@ String.trim {|
+Bar.(+) ;;
+
+Bar.( + ) ;;
+
+Bar. (+) ;;
+
+Bar. ( + ) ;;
+    |};
+  [%expect
+    {|
+    <namespace|-0>Bar</0>.<variable|-1>(</1>+) ;;
+
+    <namespace|-2>Bar</2>.<variable|-3>(</3> + ) ;;
+
+    <namespace|-4>Bar</4>.<variable|-5> </5>(+) ;;
+
+    <namespace|-6>Bar</6>.<variable|-7> </7>( + ) ;; |}]
