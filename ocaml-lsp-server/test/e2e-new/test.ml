@@ -25,6 +25,39 @@ module Import = struct
         in
         List.rev (take [] n l)
     end
+
+    module Array = struct
+      include Array
+
+      module Iter : sig
+        type 'a t
+
+        val create : 'a array -> 'a t
+
+        val has_next : 'a t -> bool
+
+        val next : 'a t -> 'a option
+
+        val next_exn : 'a t -> 'a
+      end = struct
+        type 'a t =
+          { contents : 'a array
+          ; mutable ix : int
+          }
+
+        let create contents = { contents; ix = 0 }
+
+        let has_next t = t.ix < Array.length t.contents
+
+        let next_exn t =
+          let { contents; ix } = t in
+          let v = contents.(ix) in
+          t.ix <- ix + 1;
+          v
+
+        let next t = if has_next t then Some (next_exn t) else None
+      end
+    end
   end
 
   include Fiber.O
