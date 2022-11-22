@@ -131,8 +131,7 @@ let version (t : t) = t.document.version
 
 let languageId (t : t) = t.document.languageId
 
-let apply_content_change ?version (t : t)
-    (change : TextDocumentContentChangeEvent.t) =
+let apply_change (t : t) (change : TextDocumentContentChangeEvent.t) =
   let document =
     match change.range with
     | None -> { t.document with text = change.text }
@@ -156,9 +155,10 @@ let apply_content_change ?version (t : t)
       in
       { t.document with text }
   in
-  let document =
-    match version with
-    | None -> document
-    | Some version -> { document with version }
-  in
   { t with document }
+
+let apply_content_changes ?version t changes =
+  let t = List.fold_left apply_change t changes in
+  match version with
+  | None -> t
+  | Some version -> { t with document = { t.document with version } }

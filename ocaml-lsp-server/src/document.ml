@@ -226,10 +226,7 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t)
       | Ocamllex | Menhir | Cram | Dune -> Fiber.return (Other { tdoc; syntax }))
 
 let update_text ?version t changes =
-  match
-    List.fold_left changes ~init:(tdoc t) ~f:(fun acc change ->
-        Text_document.apply_content_change ?version acc change)
-  with
+  match Text_document.apply_content_changes ?version (tdoc t) changes with
   | exception Text_document.Invalid_utf8 ->
     Log.log ~section:"warning" (fun () ->
         Log.msg

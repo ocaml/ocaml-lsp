@@ -15,5 +15,5 @@ val text : t -> string
 
 exception Invalid_utf8
 
-val apply_content_change :
-  ?version:int -> t -> TextDocumentContentChangeEvent.t -> t
+val apply_content_changes :
+  ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t
