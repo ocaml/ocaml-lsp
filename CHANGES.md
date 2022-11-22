@@ -6,6 +6,8 @@
 
 - Respect the client's completion item resolve capability (#925)
 
+- Disable polling for dune's watch mode on Windows and OCaml 4.14.0 (#935)
+
 ## Features
 
 - Semantic highlighting support is enabled by default (#TODO)
