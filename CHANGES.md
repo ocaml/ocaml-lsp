@@ -10,7 +10,7 @@
 
 ## Features
 
-- Semantic highlighting support is enabled by default (#TODO)
+- Semantic highlighting support is enabled by default (#933)
 
 - Re-enable `ocamlformat-rpc` for code formatting (#920)
 
