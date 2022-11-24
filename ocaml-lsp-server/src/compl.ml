@@ -264,13 +264,17 @@ let complete (state : State.t)
       match Document.kind doc with
       | `Other -> Fiber.return None
       | `Merlin merlin ->
-        let resolve =
+        let completion_item_capability =
+          let open Option.O in
           let capabilities = State.client_capabilities state in
+          let* td = capabilities.textDocument in
+          let* compl = td.completion in
+          compl.completionItem
+        in
+        let resolve =
           match
             let open Option.O in
-            let* td = capabilities.textDocument in
-            let* compl = td.completion in
-            let* item = compl.completionItem in
+            let* item = completion_item_capability in
             item.resolveSupport
           with
           | None -> false
@@ -290,10 +294,18 @@ let complete (state : State.t)
                   let sortText = Some (sortText_of_index idx) in
                   { ci with sortText })
             in
-            let preselect_first = function
-              | [] -> []
-              | ci :: rest ->
-                { ci with CompletionItem.preselect = Some true } :: rest
+            let preselect_first =
+              match
+                let open Option.O in
+                let* item = completion_item_capability in
+                item.preselectSupport
+              with
+              | None | Some false -> fun x -> x
+              | Some true -> (
+                function
+                | [] -> []
+                | ci :: rest ->
+                  { ci with CompletionItem.preselect = Some true } :: rest)
             in
             let+ construct_cmd_resp, compl_by_prefix_resp =
               Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
