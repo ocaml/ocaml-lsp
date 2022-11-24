@@ -137,14 +137,14 @@ let sortText_of_index idx = Printf.sprintf "%04d" idx
 
 module Complete_by_prefix = struct
   let completionItem_of_completion_entry idx
-      (entry : Query_protocol.Compl.entry) ~compl_params ~range =
+      (entry : Query_protocol.Compl.entry) ~compl_params ~range ~deprecated =
     let kind = completion_kind entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
     CompletionItem.create
       ~label:entry.name
       ?kind
       ~detail:entry.desc
-      ~deprecated:entry.deprecated
+      ?deprecated:(Option.some_if deprecated entry.deprecated)
         (* Without this field the client is not forced to respect the order
            provided by merlin. *)
       ~sortText:(sortText_of_index idx)
@@ -158,7 +158,7 @@ module Complete_by_prefix = struct
     in
     Query_commands.dispatch pipeline complete
 
-  let process_dispatch_resp ~resolve doc pos
+  let process_dispatch_resp ~deprecated ~resolve doc pos
       (completion : Query_protocol.completions) =
     let range =
       let logical_pos = Position.logical pos in
@@ -199,14 +199,14 @@ module Complete_by_prefix = struct
     in
     List.mapi
       completion_entries
-      ~f:(completionItem_of_completion_entry ~range ~compl_params)
+      ~f:(completionItem_of_completion_entry ~deprecated ~range ~compl_params)
 
-  let complete doc prefix pos ~resolve =
+  let complete doc prefix pos ~deprecated ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
       Document.Merlin.with_pipeline_exn doc (dispatch_cmd ~prefix logical_pos)
     in
-    process_dispatch_resp ~resolve doc pos completion
+    process_dispatch_resp ~deprecated ~resolve doc pos completion
 end
 
 module Complete_with_construct = struct
@@ -286,8 +286,15 @@ let complete (state : State.t)
           let prefix =
             prefix_of_position ~short_path:false (Document.source doc) position
           in
+          let deprecated =
+            Option.value
+              ~default:false
+              (let open Option.O in
+              let* item = completion_item_capability in
+              item.deprecatedSupport)
+          in
           if not (Typed_hole.can_be_hole prefix) then
-            Complete_by_prefix.complete merlin prefix pos ~resolve
+            Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
           else
             let reindex_sortText completion_items =
               List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
@@ -329,6 +336,7 @@ let complete (state : State.t)
             let compl_by_prefix_completionItems =
               Complete_by_prefix.process_dispatch_resp
                 ~resolve
+                ~deprecated
                 merlin
                 pos
                 compl_by_prefix_resp
