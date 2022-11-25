@@ -316,10 +316,6 @@ module Formatter = struct
     match Document.kind doc with
     | `Merlin _ -> (
       let* res =
-        let* res = Ocamlformat_rpc.format_doc state.ocamlformat_rpc doc in
-        match res with
-        | Ok res -> Fiber.return @@ Ok res
-        | Error _ ->
           let* cancel = Server.cancel_token () in
           Ocamlformat.run doc cancel
       in

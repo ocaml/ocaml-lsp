@@ -13,7 +13,7 @@
 
 - Semantic highlighting support is enabled by default (#933)
 
-- Re-enable `ocamlformat-rpc` for code formatting (#920)
+- Re-enable `ocamlformat-rpc` for formatting code snippets (but not files) (#920, #939)
 
   One needs to have either `ocamlformat` version > 0.21.0 or, otherwise,
   `ocamlformat-rpc` package installed.
