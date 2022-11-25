@@ -316,21 +316,22 @@ module Formatter = struct
     match Document.kind doc with
     | `Merlin _ -> (
       let* res =
-          let* cancel = Server.cancel_token () in
-          Ocamlformat.run doc cancel
+        let* cancel = Server.cancel_token () in
+        Ocamlformat.run doc cancel
       in
       match res with
       | Ok result -> Fiber.return (Some result)
       | Error e ->
-        let message = Ocamlformat.message e in
-        let error = jsonrpc_error e in
-        let msg = ShowMessageParams.create ~message ~type_:Warning in
         let+ () =
           let state : State.t = Server.state rpc in
+          let msg =
+            let message = Ocamlformat.message e in
+            ShowMessageParams.create ~message ~type_:Warning
+          in
           task_if_running state.detached ~f:(fun () ->
               Server.notification rpc (ShowMessage msg))
         in
-        Jsonrpc.Response.Error.raise error)
+        Jsonrpc.Response.Error.raise (jsonrpc_error e))
     | `Other -> (
       match Dune.for_doc (State.dune state) doc with
       | [] ->
