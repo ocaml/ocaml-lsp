@@ -222,7 +222,7 @@ let subst same subst_expr subst_id body =
     side effects. *)
 let rec is_pure (expr : Parsetree.expression) =
   match expr.pexp_desc with
-  | Pexp_ident _ | Pexp_constant _ | Pexp_hole | Pexp_unreachable -> true
+  | Pexp_ident _ | Pexp_constant _ | Pexp_unreachable -> true
   | Pexp_field (e, _) | Pexp_constraint (e, _) -> is_pure e
   | _ -> false
 

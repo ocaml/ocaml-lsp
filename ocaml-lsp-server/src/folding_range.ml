@@ -74,7 +74,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Parsetree.Pmod_constraint (_, _)
       | Parsetree.Pmod_unpack _ | Parsetree.Pmod_extension _ ->
         Ast_iterator.default_iterator.module_expr self module_expr
-      | Parsetree.Pmod_hole -> ()
     in
 
     let class_declaration (self : Ast_iterator.iterator)
@@ -225,7 +224,6 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_override _
       | Pexp_assert _
       | Pexp_unreachable -> Ast_iterator.default_iterator.expr self expr
-      | Pexp_hole -> ()
     in
 
     let module_binding (self : Ast_iterator.iterator)

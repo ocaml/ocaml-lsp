@@ -59,7 +59,7 @@ let code_action doc (params : CodeActionParams.t) =
             in
             let config = Mpipeline.final_config pipeline in
             let config =
-              { config with query = { config.query with verbosity = 0 } }
+              { config with query = { config.query with verbosity = Lvl 0 } }
             in
             let pipeline = Mpipeline.make config (Document.source doc) in
             Some (Query_commands.dispatch pipeline command))
