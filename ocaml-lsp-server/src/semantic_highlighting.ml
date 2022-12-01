@@ -692,7 +692,7 @@ end = struct
       | Pexp_object _ | Pexp_pack _
       | Pexp_open (_, _)
       | Pexp_extension _ -> `Default_iterator
-      | Pexp_unreachable | Pexp_hole -> `Custom_iterator
+      | Pexp_unreachable -> `Custom_iterator
     with
     | `Default_iterator -> Ast_iterator.default_iterator.expr self exp
     | `Custom_iterator -> self.attributes self pexp_attributes
@@ -789,7 +789,7 @@ end = struct
           self.module_expr self me;
           self.module_type self mt);
         `Custom_iterator
-      | Pmod_extension _ | Pmod_hole -> `Custom_iterator
+      | Pmod_extension _ -> `Custom_iterator
       | Pmod_unpack _ | Pmod_apply (_, _) | Pmod_structure _ ->
         `Default_iterator
     with

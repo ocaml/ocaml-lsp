@@ -42,7 +42,7 @@ let extract_ident (exp_desc : Typedtree.expression_desc) =
    [mark_loops] and [type_sch] provide that *)
 let pp_type env ppf ty =
   let module Printtyp = Type_utils.Printtyp in
-  Printtyp.wrap_printing_env env ~verbosity:0 (fun () ->
+  Printtyp.wrap_printing_env env ~verbosity:(Lvl 0) (fun () ->
       Printtyp.shared_type_scheme ppf ty)
 
 (* surround function types in parentheses *)

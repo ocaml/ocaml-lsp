@@ -296,7 +296,9 @@ module Merlin = struct
             let source = source doc in
             let config = Mpipeline.final_config pipeline in
             let config =
-              { config with query = { config.query with verbosity } }
+              { config with
+                query = { config.query with verbosity = Lvl verbosity }
+              }
             in
             Mpipeline.make config source
         in
