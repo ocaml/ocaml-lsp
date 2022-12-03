@@ -69,6 +69,8 @@ end
 open Import
 
 module T : sig
+  val _PATH : Path.t list
+
   val run :
        ?extra_env:string list
     -> ?handler:unit Client.Handler.t
