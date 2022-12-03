@@ -1,4 +1,32 @@
 module Import = struct
+  let rand_state = Random.State.make_self_init ()
+
+  let rand_digits () = Printf.sprintf "%06x" (Random.State.bits rand_state)
+
+  (* since these are the tests, should we rather simply use [bos] instead of
+     reimplementing things? *)
+
+  let mk_temp_dir ?(attempts = 100) ?(mode = 0o700) ?dir ~pat () =
+    let dir =
+      match dir with
+      | Some d -> d
+      | None -> Filename.get_temp_dir_name ()
+    in
+    let raise_err ~err = failwith @@ Printf.sprintf "mk_temp_dir: %s" err in
+    let rec loop count =
+      if count < 0 then raise_err ~err:"too many failing attempts"
+      else
+        let dir = Printf.sprintf "%s/%s%s" dir pat (rand_digits ()) in
+        try
+          Unix.mkdir dir mode;
+          dir
+        with
+        | Unix.Unix_error (Unix.EEXIST, _, _)
+        | Unix.Unix_error (Unix.EINTR, _, _) -> loop (count - 1)
+        | Unix.Unix_error (e, _, _) -> raise_err ~err:(Unix.error_message e)
+    in
+    loop attempts
+
   include struct
     include Stdune
 
