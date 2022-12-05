@@ -24,7 +24,7 @@
 
 ## Fixes
 
-- Fix semantic highlighting of "long identifiers," e.g., `Foo.Bar.x` (#TODO)
+- Fix semantic highlighting of "long identifiers," e.g., `Foo.Bar.x` (#932)
 
 # 1.14.2
 
