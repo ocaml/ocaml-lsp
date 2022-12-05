@@ -8,7 +8,7 @@ let wheel t = t.wheel
 let default () =
   let+ wheel =
     let delay =
-      match Sys.getenv_opt "OCAMLLSP_TEST" with
+      match Env_vars._TEST () with
       | None -> 0.25
       | Some _ -> 0.0
     in

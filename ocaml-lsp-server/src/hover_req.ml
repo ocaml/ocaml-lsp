@@ -8,9 +8,9 @@ type mode =
 
 (* possibly overwrite the default mode using an environment variable *)
 let environment_mode =
-  match Sys.getenv_opt "OCAMLLSP_HOVER_IS_EXTENDED" with
-  | Some ("true" | "1") -> Extended_variable
-  | _ -> Default
+  match Env_vars._IS_HOVER_EXTENDED () with
+  | Some true -> Extended_variable
+  | Some false | None -> Default
 
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
