@@ -176,13 +176,11 @@ let%expect_test "format code with one syntax error" =
       * response:
       jsonrpc response error {
         "code": -32603,
-        "message": "ocamlformat: ignoring \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1bbf3fba/test.ml\" (syntax error)\nFile \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1bbf3fba/test.ml\", line 2, characters 5-5:\nError: Syntax error\n"
+        "message": "ocamlformat: syntax error on line 2, characters 5-5"
       }
 
       * showMessage notifications:
-      ocamlformat: ignoring "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1bbf3fba/test.ml" (syntax error)
-      File "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1bbf3fba/test.ml", line 2, characters 5-5:
-      Error: Syntax error |}]
+      ocamlformat: syntax error on line 2, characters 5-5 |}]
 
 let%expect_test "format code with two syntax errors" =
   test ~dot_ocamlformat ~src:{|
@@ -194,15 +192,11 @@ type t = A of |} ();
       * response:
       jsonrpc response error {
         "code": -32603,
-        "message": "ocamlformat: ignoring \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1f0ce55f/test.ml\" (syntax error)\nFile \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1f0ce55f/test.ml\", line 3, characters 0-4:\n3 | type t = A of\n    ^^^^\nError: Syntax error\n"
+        "message": "ocamlformat: syntax error on line 3, characters 0-4"
       }
 
       * showMessage notifications:
-      ocamlformat: ignoring "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1f0ce55f/test.ml" (syntax error)
-      File "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project1f0ce55f/test.ml", line 3, characters 0-4:
-      3 | type t = A of
-          ^^^^
-      Error: Syntax error |}]
+      ocamlformat: syntax error on line 3, characters 0-4 |}]
 
 let%expect_test "format code with a misplaced doc comment" =
   test
@@ -220,16 +214,11 @@ let foo =
       * response:
       jsonrpc response error {
         "code": -32603,
-        "message": "ocamlformat: ignoring \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project14acd042/test.ml\" (misplaced documentation comments - warning 50)\nFile \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project14acd042/test.ml\", line 4, characters 2-8:\n4 |   (** *)\n      ^^^^^^\nWarning 50 [unexpected-docstring]: unattached documentation comment (ignored)\nHint: (Warning 50) This file contains a documentation comment (** ... *) that the OCaml compiler does not know how to attach to the AST. OCamlformat does not support these cases. You can find more information at: https://github.com/ocaml-ppx/ocamlformat#overview. If you'd like to disable this check and let ocamlformat make a choice (though it might not be consistent with the ocaml compilers and odoc), you can set the --no-comment-check option.\n"
+        "message": "ocamlformat: warning 50 (unexpected-docstring) on line 4, characters 2-8: unattached documentation comment (ignored). Hint: (Warning 50) This file contains a documentation comment (** ... *) that the OCaml compiler does not know how to attach to the AST. OCamlformat does not support these cases. You can find more information at: https://github.com/ocaml-ppx/ocamlformat#overview. If you'd like to disable this check and let ocamlformat make a choice (though it might not be consistent with the ocaml compilers and odoc), you can set the --no-comment-check option."
       }
 
       * showMessage notifications:
-      ocamlformat: ignoring "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project14acd042/test.ml" (misplaced documentation comments - warning 50)
-      File "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project14acd042/test.ml", line 4, characters 2-8:
-      4 |   (** *)
-            ^^^^^^
-      Warning 50 [unexpected-docstring]: unattached documentation comment (ignored)
-      Hint: (Warning 50) This file contains a documentation comment (** ... *) that the OCaml compiler does not know how to attach to the AST. OCamlformat does not support these cases. You can find more information at: https://github.com/ocaml-ppx/ocamlformat#overview. If you'd like to disable this check and let ocamlformat make a choice (though it might not be consistent with the ocaml compilers and odoc), you can set the --no-comment-check option. |}]
+      ocamlformat: warning 50 (unexpected-docstring) on line 4, characters 2-8: unattached documentation comment (ignored). Hint: (Warning 50) This file contains a documentation comment (** ... *) that the OCaml compiler does not know how to attach to the AST. OCamlformat does not support these cases. You can find more information at: https://github.com/ocaml-ppx/ocamlformat#overview. If you'd like to disable this check and let ocamlformat make a choice (though it might not be consistent with the ocaml compilers and odoc), you can set the --no-comment-check option. |}]
 
 let%expect_test "format code with one syntax error and a misplaced comment" =
   test ~dot_ocamlformat ~src:{|
@@ -244,13 +233,11 @@ let foo
       * response:
       jsonrpc response error {
         "code": -32603,
-        "message": "ocamlformat: ignoring \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project3e5f870f/test.ml\" (syntax error)\nFile \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project3e5f870f/test.ml\", line 6, characters 11-11:\nError: Syntax error\n"
+        "message": "ocamlformat: syntax error on line 6, characters 11-11"
       }
 
       * showMessage notifications:
-      ocamlformat: ignoring "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project3e5f870f/test.ml" (syntax error)
-      File "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project3e5f870f/test.ml", line 6, characters 11-11:
-      Error: Syntax error |}]
+      ocamlformat: syntax error on line 6, characters 11-11 |}]
 
 let%expect_test "format code with one syntax error" =
   test ~dot_ocamlformat ~src:{|
@@ -262,12 +249,8 @@ module M = struct end|} ();
       * response:
       jsonrpc response error {
         "code": -32603,
-        "message": "ocamlformat: ignoring \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project2fe0311b/test.ml\" (syntax error)\nFile \"/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project2fe0311b/test.ml\", line 3, characters 0-6:\n3 | module M = struct end\n    ^^^^^^\nError: Syntax error\n"
+        "message": "ocamlformat: syntax error on line 3, characters 0-6"
       }
 
       * showMessage notifications:
-      ocamlformat: ignoring "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project2fe0311b/test.ml" (syntax error)
-      File "/var/folders/dk/p0r4p89j7xv1q53c1tktzxsr0000gn/T/build_58fd99_dune/ocaml_project2fe0311b/test.ml", line 3, characters 0-6:
-      3 | module M = struct end
-          ^^^^^^
-      Error: Syntax error |}]
+      ocamlformat: syntax error on line 3, characters 0-6 |}]

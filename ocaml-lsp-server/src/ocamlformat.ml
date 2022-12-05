@@ -87,7 +87,62 @@ type error =
   | Unexpected_result of { message : string }
   | Unknown_extension of Uri.t
 
-let message = function
+let err_msg ~fallback_msg ~compiler_err =
+  let print_loc ppf ({ lines; chars; path = _ } : Ocamlc_loc.loc) =
+    let print_line ppf lines =
+      match (lines : Ocamlc_loc.lines) with
+      | Single line -> Format.fprintf ppf "line %d" line
+      | Range (l0, l1) -> Format.fprintf ppf "lines %d-%d" l0 l1
+    in
+    let print_chars ppf = function
+      | None -> ()
+      | Some (c0, c1) -> Format.fprintf ppf ", characters %d-%d" c0 c1
+    in
+    Format.fprintf ppf "%a%a" print_line lines print_chars chars
+  in
+
+  let print_msg ppf err_msg =
+    if not (String.equal err_msg "Syntax error") then
+      Format.fprintf
+        ppf
+        ": %s"
+        (String.drop_prefix_if_exists err_msg ~prefix:"Syntax error: ")
+  in
+
+  let reports = Ocamlc_loc.parse compiler_err in
+
+  let fmter = "ocamlformat" in
+  match reports with
+  | [] -> fallback_msg
+  | [ { loc; severity; message; related = _ } ] ->
+    let reason =
+      if String.equal message "Syntax error" then "syntax error"
+      else
+        match severity with
+        | Ocamlc_loc.Error None -> "error"
+        | Ocamlc_loc.Error (Some (Ocamlc_loc.Code { code; name })) ->
+          sprintf "error %d (%s)" code name
+        | Ocamlc_loc.Error (Some (Ocamlc_loc.Alert a)) ->
+          sprintf "error \"%s\"" a
+        | Ocamlc_loc.Warning (Ocamlc_loc.Code { code; name }) ->
+          sprintf "warning %d (%s)" code name
+        | Ocamlc_loc.Warning (Ocamlc_loc.Alert a) -> sprintf "error \"%s\"" a
+    in
+    Format.asprintf
+      "%s: %s on %a%a"
+      fmter
+      reason
+      print_loc
+      loc
+      print_msg
+      message
+  | _ :: _ ->
+    (* TODO: come up with a reasonable way to display several error messages,
+       given vscode popup doesn't allow newlines. *)
+    fallback_msg
+
+let message err =
+  match err with
   | Unsupported_syntax syntax ->
     sprintf
       "formatting %s files is not supported"
@@ -102,7 +157,25 @@ let message = function
     Printf.sprintf
       "Unable to format. File %s has an unknown extension"
       (Uri.to_path uri)
-  | Unexpected_result { message } -> message
+  | Unexpected_result { message } -> (
+    let lines = String.split ~on:'\n' message in
+    match lines with
+    | fst :: compiler_error_lines
+      when String.is_suffix fst ~suffix:"(syntax error)" ->
+      let compiler_err = String.concat ~sep:"\n" compiler_error_lines in
+      err_msg ~fallback_msg:message ~compiler_err
+    | fst :: rest
+      when String.is_suffix
+             fst
+             ~suffix:"(misplaced documentation comments - warning 50)" -> (
+      let rest = List.filter ~f:(fun s -> not (String.is_empty s)) rest in
+      match List.destruct_last rest with
+      | None -> message
+      | Some (compiler_err_lines, hint) ->
+        let compiler_err = String.concat ~sep:"\n" compiler_err_lines in
+        let err_msg = err_msg ~fallback_msg:message ~compiler_err in
+        String.concat ~sep:". " [ err_msg; hint ])
+    | _ -> message)
 
 type formatter =
   | Reason of Document.Kind.t
