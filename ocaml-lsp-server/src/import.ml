@@ -305,13 +305,4 @@ let task_if_running pool ~f =
   | false -> Fiber.return ()
   | true -> Fiber.Pool.task pool ~f
 
-let inside_test =
-  match Sys.getenv_opt "OCAMLLSP_TEST" with
-  | Some "true" -> true
-  | None | Some "false" -> false
-  | Some b ->
-    Format.eprintf
-      "invalid value %S for OCAMLLSP_TEST ignored. Only true or false are \
-       allowed@."
-      b;
-    false
+let inside_test = Env_vars._TEST () |> Option.value ~default:false
