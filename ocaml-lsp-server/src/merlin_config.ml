@@ -386,7 +386,12 @@ let create db path =
     let init = Mconfig.initial in
     { init with
       ocaml = { init.ocaml with real_paths = false }
-    ; query = { init.query with filename; directory }
+    ; query =
+        { init.query with
+          filename
+        ; directory
+        ; verbosity = Mconfig.Verbosity.Smart
+        }
     }
   in
   { path; directory; initial; db; entry = None }
