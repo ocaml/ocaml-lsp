@@ -131,13 +131,14 @@ describe("ocamllsp/hoverExtended", () => {
         (** This function has a nice documentation *)
         let id x = x
 
+        let () = id ()
         `,
       ),
     });
 
     let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(1, 4),
+      position: Types.Position.create(3, 9),
       verbosity: 0,
     });
 
@@ -196,13 +197,14 @@ describe("ocamllsp/hoverExtended", () => {
         let div x y =
           x / y
 
+        let f = div 4 2
         `,
       ),
     });
 
     let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(20, 4),
+      position: Types.Position.create(23, 10),
       verbosity: 0,
     });
 

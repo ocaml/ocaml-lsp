@@ -107,7 +107,9 @@ describe("textDocument/hover", () => {
     });
   });
 
-  it("returns type inferred under cursor with documentation", async () => {
+  // checks for regression https://github.com/ocaml/merlin/issues/1540
+  // FIXME: when we can again fetch documentation, update this test
+  it("returns type inferred under cursor with documentation in let-definition", async () => {
     languageServer = await LanguageServer.startAndInitialize({
       capabilities: {
         textDocument: {
@@ -135,6 +137,49 @@ describe("textDocument/hover", () => {
     let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(1, 4),
+    });
+
+    expect(result).toMatchObject({
+      contents: {
+        kind: "markdown",
+        value: outdent`
+          \`\`\`ocaml
+          'a -> 'a
+          \`\`\`
+          `,
+      },
+    });
+  });
+
+  it("returns type inferred under cursor with documentation", async () => {
+    languageServer = await LanguageServer.startAndInitialize({
+      capabilities: {
+        textDocument: {
+          hover: {
+            dynamicRegistration: true,
+            contentFormat: ["markdown", "plaintext"],
+          },
+          moniker: {},
+        },
+      },
+    });
+    await languageServer.sendNotification("textDocument/didOpen", {
+      textDocument: Types.TextDocumentItem.create(
+        "file:///test.ml",
+        "ocaml",
+        0,
+        outdent`
+          (** This function has a nice documentation *)
+          let id x = x
+
+          let () = id ()
+        `,
+      ),
+    });
+
+    let result = await languageServer.sendRequest("textDocument/hover", {
+      textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
+      position: Types.Position.create(3, 9),
     });
 
     expect(result).toMatchObject({
@@ -192,13 +237,14 @@ describe("textDocument/hover", () => {
         let div x y =
           x / y
 
+        let f = div 4 2
         `,
       ),
     });
 
     let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(20, 4),
+      position: Types.Position.create(23, 9),
     });
 
     expect(result).toMatchObject({
