@@ -22,6 +22,9 @@
 
 - Support utf-8 position encoding clients (#919)
 
+- Upgrade to merlin 4.7 and use merlin's `verbosity=smart` by default, which
+  allows unwrapping module alias types (#942)
+
 ## Fixes
 
 - Fix semantic highlighting of "long identifiers," e.g., `Foo.Bar.x` (#TODO)
