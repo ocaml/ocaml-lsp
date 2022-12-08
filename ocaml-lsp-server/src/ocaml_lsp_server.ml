@@ -1,6 +1,7 @@
 open Import
 module Version = Version
 module Diagnostics = Diagnostics
+module Diff = Diff
 open Fiber.O
 
 let make_error = Jsonrpc.Response.Error.make
