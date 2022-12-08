@@ -1010,18 +1010,13 @@ let on_notification server (notification : Client_notification.t) :
     in
     state
 
-let start () =
+let start stream =
   let detached = Fiber.Pool.create () in
   let server = Fdecl.create Dyn.opaque in
   let store = Document_store.make server detached in
   let handler =
     let on_request = { Server.Handler.on_request } in
     Server.Handler.make ~on_request ~on_notification ()
-  in
-  let* stream =
-    let* stdin = Lev_fiber.Io.stdin in
-    let+ stdout = Lev_fiber.Io.stdout in
-    Lsp_fiber.Fiber_io.make stdin stdout
   in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
   let* configuration = Configuration.default () in
@@ -1105,8 +1100,37 @@ let start () =
   let metrics = Metrics.create () in
   Metrics.with_metrics metrics run
 
-let run ~read_dot_merlin () =
+let socket sockaddr =
+  let domain = Unix.domain_of_sockaddr sockaddr in
+  let fd =
+    Lev_fiber.Fd.create
+      (Unix.socket ~cloexec:true domain Unix.SOCK_STREAM 0)
+      (`Non_blocking false)
+  in
+  let* () = Lev_fiber.Socket.connect fd sockaddr in
+  Lev_fiber.Io.create_rw fd
+
+let stream_of_channel : Lsp.Cli.Channel.t -> _ = function
+  | Stdio ->
+    let* stdin = Lev_fiber.Io.stdin in
+    let+ stdout = Lev_fiber.Io.stdout in
+    (stdin, stdout)
+  | Pipe path ->
+    if Sys.win32 then (
+      Format.eprintf "windows pipes are not supported";
+      exit 1)
+    else
+      let sockaddr = Unix.ADDR_UNIX path in
+      socket sockaddr
+  | Socket port ->
+    let sockaddr = Unix.ADDR_INET (Unix.inet_addr_loopback, port) in
+    socket sockaddr
+
+let run channel ~read_dot_merlin () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_config.should_read_dot_merlin := read_dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Lev_fiber.run ~sigpipe:`Ignore start |> Lev_fiber.Error.ok_exn
+  Lev_fiber.run ~sigpipe:`Ignore (fun () ->
+      let* input, output = stream_of_channel channel in
+      start (Lsp_fiber.Fiber_io.make input output))
+  |> Lev_fiber.Error.ok_exn
