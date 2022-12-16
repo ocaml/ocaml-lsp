@@ -1,14 +1,5 @@
 # 1.14.3
 
-## Fixes
-
-- Fix document syncing for ranges that span an entire line (#927)
-
-- Respect the client's completion item resolve and preSelect capabilities
-  (#925, #936)
-
-- Disable polling for dune's watch mode on Windows and OCaml 4.14.0 (#935)
-
 ## Features
 
 - Semantic highlighting support is enabled by default (#933)
@@ -26,6 +17,13 @@
   allows unwrapping module alias types (#942)
 
 ## Fixes
+
+- Fix document syncing for ranges that span an entire line (#927)
+
+- Respect the client's completion item resolve and preSelect capabilities
+  (#925, #936)
+
+- Disable polling for dune's watch mode on Windows and OCaml 4.14.0 (#935)
 
 - Fix semantic highlighting of "long identifiers," e.g., `Foo.Bar.x` (#932)
 
