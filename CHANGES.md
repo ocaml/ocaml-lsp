@@ -2,6 +2,8 @@
 
 ## Features
 
+- Add support for OCaml 5.0
+
 - Semantic highlighting support is enabled by default (#933)
 
 - Re-enable `ocamlformat-rpc` for formatting code snippets (but not files) (#920, #939)
