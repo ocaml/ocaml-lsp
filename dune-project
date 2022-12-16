@@ -58,7 +58,7 @@ possible and does not make any assumptions about IO.
   ordering
   dune-build-info
   spawn
-  (ocamlc-loc (>= 3.5.0))
+  (ocamlc-loc (and (>= 3.5.0) (< 3.7.0)))
   (omd (and (>= 1.3.2) (< 2.0.0~alpha1)))
   (octavius (>= 1.2.2))
   (uutf (>= 1.0.2))
