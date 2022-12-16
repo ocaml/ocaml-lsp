@@ -56,6 +56,8 @@ possible and does not make any assumptions about IO.
   ordering
   dune-build-info
   spawn
+  (ppx_expect (and (>= v0.15.0) :with-test))
+  (ocamlformat (and :with-test (= 0.24.1)))
   (ocamlc-loc (and (>= 3.5.0) (< 3.7.0)))
   (omd (and (>= 1.3.2) (< 2.0.0~alpha1)))
   (octavius (>= 1.2.2))
