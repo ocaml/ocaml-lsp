@@ -1010,6 +1010,48 @@ let on_notification server (notification : Client_notification.t) :
     in
     state
 
+module Log_config = struct
+  let parse_log_env_var var_name =
+    match String.split ~on:',' (Sys.getenv var_name) with
+    | value :: sections -> (Some value, sections)
+    | [] -> (None, [])
+    | exception Not_found -> (None, [])
+
+  (* note: merlin logs are buffered, so one has to wait until they see the
+     output; we could flush the buffer after each merlin command dispatch? *)
+  let with_merlin_log_file f =
+    let log_file, sections = parse_log_env_var "MERLIN_LOG" in
+    Merlin_utils.Logger.with_log_file log_file ~sections f
+
+  let with_ocamlsp_log_file f =
+    let log_file, sections = parse_log_env_var "OCAMLLSP_LOG" in
+    let cleanup =
+      match log_file with
+      | None | Some "" -> Fun.id
+      | Some "-" ->
+        Log.out := Format.err_formatter;
+        Fun.id
+      | Some s ->
+        let ch = open_out s in
+        Log.out := Format.formatter_of_out_channel ch;
+        fun () -> close_out ch
+    in
+    let sections =
+      List.fold_left sections ~f:String.Set.add ~init:String.Set.empty
+    in
+    (Log.level :=
+       function
+       | None -> true
+       | Some section -> String.Set.mem sections section);
+    match f () with
+    | v ->
+      cleanup ();
+      v
+    | exception e ->
+      cleanup ();
+      raise e
+end
+
 let start () =
   let detached = Fiber.Pool.create () in
   let server = Fdecl.create Dyn.opaque in
@@ -1109,4 +1151,6 @@ let run ~read_dot_merlin () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_config.should_read_dot_merlin := read_dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
+  Log_config.with_ocamlsp_log_file @@ fun () ->
+  Log_config.with_merlin_log_file @@ fun () ->
   Lev_fiber.run ~sigpipe:`Ignore start |> Lev_fiber.Error.ok_exn
