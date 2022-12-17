@@ -1,3 +1,8 @@
+(env
+ (_
+  (env-vars
+   (LEV_DEBUG 1))))
+
 (library
  (name ocaml_lsp_e2e)
  (inline_tests
