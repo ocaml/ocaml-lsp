@@ -10,142 +10,80 @@ open Fiber.O
    - [ ] support textDocument/semanticTokens/range *)
 
 module Token_type : sig
-  type t = private int
+  type t
+
+  val of_builtin : SemanticTokenTypes.t -> t
 
   val module_ : t
 
-  val type_ : t
-
-  val class_ : t
-
-  val enum : t
-
   val module_type : t
 
-  val record : t
-
-  val type_parameter : t
-
-  val parameter : t
-
-  val variable : t
-
-  val property : t
-
-  val enum_member : t
-
-  val event : t
-
-  val function_ : t
-
-  val method_ : t
-
-  val macro : t
-
-  val keyword : t
-
-  val modifier : t
-
-  val comment : t
-
-  val string : t
-
-  val number : t
-
-  val regexp : t
-
-  val operator : t
-
-  val decorator : t
-
-  val list : string list
+  val to_int : t -> int
 
   val to_legend : t -> string
-end [@warning "-32"] = struct
-  type t = int
 
-  let module_ = 0
-  (* the number is determined by the index in [list] defined below; e.g., we use
-     [0] here because we'd like to use "namespace" token type for module
-     symbols *)
+  val tokenTypes : string list
+end = struct
+  type t = SemanticTokenTypes.t
 
-  let type_ = 1
+  let of_builtin t = t
 
-  let class_ = 2
+  let module_ = SemanticTokenTypes.Namespace
 
-  let enum = 3
+  let module_type = SemanticTokenTypes.Interface
 
-  let module_type = 4
-
-  let record = 5
-
-  let type_parameter = 6
-
-  let parameter = 7
-
-  let variable = 8
-
-  let property = 9
-
-  let enum_member = 10
-
-  let event = 11
-
-  let function_ = 12
-
-  let method_ = 13
-
-  let macro = 14
-
-  let keyword = 15
-
-  let modifier = 16
-
-  let comment = 17
-
-  let string = 18
-
-  let number = 19
-
-  let regexp = 20
-
-  let operator = 21
-
-  let decorator = 22
-
-  let list =
-    [ "namespace"
-    ; "type"
-    ; "class"
-    ; "enum"
-    ; "interface"
-    ; "struct"
-    ; "typeParameter"
-    ; "parameter"
-    ; "variable"
-    ; "property"
-    ; "enumMember"
-    ; "event"
-    ; "function"
-    ; "method"
-    ; "macro"
-    ; "keyword"
-    ; "modifier"
-    ; "comment"
-    ; "string"
-    ; "number"
-    ; "regexp"
-    ; "operator"
-    ; "decorator"
+  let legend : SemanticTokenTypes.t list =
+    [ Namespace
+    ; Type
+    ; Class
+    ; Enum
+    ; Interface
+    ; Struct
+    ; TypeParameter
+    ; Parameter
+    ; Variable
+    ; Property
+    ; EnumMember
+    ; Event
+    ; Function
+    ; Method
+    ; Macro
+    ; Keyword
+    ; Modifier
+    ; Comment
+    ; String
+    ; Number
+    ; Regexp
+    ; Operator
+    ; Decorator
     ]
 
-  let array = lazy (Array.of_list list)
+  let tokenTypes : string list =
+    List.map legend ~f:(fun s ->
+        match SemanticTokenTypes.yojson_of_t s with
+        | `String s -> s
+        | _ -> assert false)
 
-  let to_legend t = (Lazy.force array).(t)
+  let to_int =
+    let module Table = MoreLabels.Hashtbl in
+    let table =
+      lazy
+        (let t = Table.create (List.length legend) in
+         List.iteri legend ~f:(fun data key -> Table.add t ~key ~data);
+         t)
+    in
+    fun t -> Table.find (Lazy.force table) t
+
+  let to_legend t =
+    match SemanticTokenTypes.yojson_of_t t with
+    | `String s -> s
+    | _ -> assert false
 end
 
 module Token_modifiers_set : sig
-  type t = private int
+  type t
+
+  val to_int : t -> int
 
   val singleton : SemanticTokenModifiers.t -> t
 
@@ -156,6 +94,8 @@ module Token_modifiers_set : sig
   val to_legend : t -> string list
 end = struct
   type t = int
+
+  let to_int x = x
 
   let empty = 0
 
@@ -206,7 +146,7 @@ end
 
 let legend =
   SemanticTokensLegend.create
-    ~tokenTypes:Token_type.list
+    ~tokenTypes:Token_type.tokenTypes
     ~tokenModifiers:Token_modifiers_set.list
 
 (** Represents a collection of semantic tokens. *)
@@ -301,11 +241,11 @@ end = struct
         set_token
           data
           ~delta_line_index:0
-          ~delta_line:start.Position.line
+          ~delta_line:start.line
           ~delta_start:start.character
           ~length
-          ~token_type:(token_type :> int)
-          ~token_modifiers:(token_modifiers :> int)
+          ~token_type:(Token_type.to_int token_type)
+          ~token_modifiers:(Token_modifiers_set.to_int token_modifiers)
       | current :: previous :: rest ->
         let delta_line = current.start.line - previous.start.line in
         let delta_start =
@@ -321,8 +261,8 @@ end = struct
           ~delta_line
           ~delta_start
           ~length
-          ~token_type:(token_type :> int)
-          ~token_modifiers:(token_modifiers :> int);
+          ~token_type:(Token_type.to_int token_type)
+          ~token_modifiers:(Token_modifiers_set.to_int token_modifiers);
         aux (ix - 1) (previous :: rest)
     in
     aux t.count t.tokens;
@@ -418,17 +358,20 @@ end = struct
     let iter =
       match ptyp_desc with
       | Ptyp_var _ ->
-        add_token ptyp_loc Token_type.type_parameter Token_modifiers_set.empty;
+        add_token
+          ptyp_loc
+          (Token_type.of_builtin TypeParameter)
+          Token_modifiers_set.empty;
         `Custom_iterator
       | Ptyp_constr (name, cts) | Ptyp_class (name, cts) ->
         List.iter cts ~f:(fun ct -> self.typ self ct);
-        lident name Token_type.type_ ();
+        lident name (Token_type.of_builtin Type) ();
         `Custom_iterator
       | Ptyp_poly (tps, ct) ->
-        List.iter tps ~f:(fun tp ->
+        List.iter tps ~f:(fun (tp : _ Asttypes.loc) ->
             add_token
-              tp.Loc.loc
-              Token_type.type_parameter
+              tp.loc
+              (Token_type.of_builtin TypeParameter)
               Token_modifiers_set.empty);
         self.typ self ct;
         `Custom_iterator
@@ -452,12 +395,12 @@ end = struct
         Parsetree.constructor_declaration) =
     add_token
       pcd_name.loc
-      Token_type.enum_member
+      (Token_type.of_builtin EnumMember)
       (Token_modifiers_set.singleton Declaration);
-    List.iter pcd_vars ~f:(fun var ->
+    List.iter pcd_vars ~f:(fun (var : _ Asttypes.loc) ->
         add_token
-          var.Loc.loc
-          Token_type.type_parameter
+          var.loc
+          (Token_type.of_builtin TypeParameter)
           Token_modifiers_set.empty);
     constructor_arguments self pcd_args;
     Option.iter pcd_res ~f:(fun ct -> self.typ self ct);
@@ -466,7 +409,10 @@ end = struct
   let label_declaration (self : Ast_iterator.iterator)
       ({ pld_name; pld_mutable = _; pld_type; pld_loc = _; pld_attributes } :
         Parsetree.label_declaration) =
-    add_token pld_name.loc Token_type.property Token_modifiers_set.empty;
+    add_token
+      pld_name.loc
+      (Token_type.of_builtin Property)
+      Token_modifiers_set.empty;
     self.typ self pld_type;
     self.attributes self pld_attributes
 
@@ -480,7 +426,7 @@ end = struct
         | Pexp_fun _ | Pexp_function _ ->
           add_token
             fn_name.loc
-            Token_type.function_
+            (Token_type.of_builtin Function)
             (Token_modifiers_set.singleton Definition);
           self.expr self pvb_expr;
           `Custom_iterator
@@ -493,8 +439,8 @@ end = struct
           n.loc
           (match pat_ct.ptyp_desc with
           | Ptyp_poly (_, { ptyp_desc = Ptyp_arrow _; _ }) | Ptyp_arrow _ ->
-            Token_type.function_
-          | _ -> Token_type.variable)
+            Token_type.of_builtin Function
+          | _ -> Token_type.of_builtin Variable)
           Token_modifiers_set.empty;
         self.typ self pat_ct;
         self.expr self e;
@@ -523,14 +469,14 @@ end = struct
          ->
         add_token
           core_type.ptyp_loc
-          Token_type.type_parameter
+          (Token_type.of_builtin TypeParameter)
           Token_modifiers_set.empty);
     add_token
       ptype_name.loc
       (match ptype_kind with
-      | Parsetree.Ptype_abstract | Ptype_open -> Token_type.type_
-      | Ptype_variant _ -> Token_type.enum
-      | Ptype_record _ -> Token_type.record)
+      | Parsetree.Ptype_abstract | Ptype_open -> Token_type.of_builtin Type
+      | Ptype_variant _ -> Token_type.of_builtin Enum
+      | Ptype_record _ -> Token_type.of_builtin Struct)
       (Token_modifiers_set.singleton Declaration);
     List.iter ptype_cstrs ~f:(fun (ct0, ct1, (_ : Loc.t)) ->
         self.typ self ct0;
@@ -544,11 +490,14 @@ end = struct
       List.iter lds ~f:(fun ld -> self.label_declaration self ld));
     self.attributes self ptype_attributes
 
-  let const loc = function
-    | Parsetree.Pconst_integer _ | Pconst_float _ ->
-      add_token loc Token_type.number Token_modifiers_set.empty
-    | Pconst_char _ | Pconst_string _ ->
-      add_token loc Token_type.string Token_modifiers_set.empty
+  let const loc (constant : Parsetree.constant) =
+    let token_type =
+      match constant with
+      | Parsetree.Pconst_integer _ | Pconst_float _ ->
+        Token_type.of_builtin Number
+      | Pconst_char _ | Pconst_string _ -> Token_type.of_builtin String
+    in
+    add_token loc token_type Token_modifiers_set.empty
 
   let pexp_apply (self : Ast_iterator.iterator) (expr : Parsetree.expression)
       args =
@@ -566,15 +515,15 @@ end = struct
                 after the first argument *)
              Loc.compare lid.loc fst_arg.pexp_loc > 0 ->
         self.expr self fst_arg;
-        lident lid Token_type.function_ ();
+        lident lid (Token_type.of_builtin Function) ();
         List.iter rest ~f:(fun (_, e) -> self.expr self e)
       | _ ->
-        lident lid Token_type.function_ ();
+        lident lid (Token_type.of_builtin Function) ();
         List.iter args ~f:(fun (_, e) -> self.expr self e));
       `Custom_iterator
     | Pexp_field (e, l) ->
       self.expr self e;
-      lident l Token_type.function_ ();
+      lident l (Token_type.of_builtin Function) ();
       `Custom_iterator
     | _ -> `Default_iterator
 
@@ -584,7 +533,7 @@ end = struct
     match
       match pexp_desc with
       | Parsetree.Pexp_ident l ->
-        lident l Token_type.variable ();
+        lident l (Token_type.of_builtin Variable) ();
         `Custom_iterator
       | Pexp_construct (c, vo) ->
         (match c.txt with
@@ -594,7 +543,7 @@ end = struct
           Option.iter vo ~f:(fun v -> self.expr self v)
         | Lident "[]" -> () (* TDOO: is this correct? *)
         | _ ->
-          lident c Token_type.enum_member ();
+          lident c (Token_type.of_builtin EnumMember) ();
           Option.iter vo ~f:(fun v -> self.expr self v));
         `Custom_iterator
       | Pexp_apply (expr, args) -> pexp_apply self expr args
@@ -619,31 +568,32 @@ end = struct
       | Pexp_match (_, _) -> `Default_iterator
       | Pexp_record (props, exp) ->
         Option.iter exp ~f:(fun e -> self.expr self e);
-        List.iter props ~f:(fun (lid, exp) ->
-            lident lid Token_type.property ();
-            if
-              Loc.compare lid.Loc.loc exp.Parsetree.pexp_loc
-              <> 0 (* handles field punning *)
+        List.iter props ~f:(fun (lid, (exp : Parsetree.expression)) ->
+            lident lid (Token_type.of_builtin Property) ();
+            if Loc.compare lid.loc exp.pexp_loc <> 0 (* handles field punning *)
             then self.expr self exp);
         `Custom_iterator
       | Pexp_field (e, l) ->
         self.expr self e;
-        lident l Token_type.property ();
+        lident l (Token_type.of_builtin Property) ();
         `Custom_iterator
       | Pexp_send (e, m) ->
         self.expr self e;
-        add_token m.loc Token_type.method_ Token_modifiers_set.empty;
+        add_token m.loc (Token_type.of_builtin Method) Token_modifiers_set.empty;
         `Custom_iterator
       | Pexp_setfield (e0, l, e1) ->
         self.expr self e0;
-        lident l Token_type.variable ();
+        lident l (Token_type.of_builtin Variable) ();
         self.expr self e1;
         `Custom_iterator
       | Pexp_new l ->
-        lident l Token_type.class_ ();
+        lident l (Token_type.of_builtin Class) ();
         `Custom_iterator
       | Pexp_newtype (t, e) ->
-        add_token t.loc Token_type.type_parameter Token_modifiers_set.empty;
+        add_token
+          t.loc
+          (Token_type.of_builtin TypeParameter)
+          Token_modifiers_set.empty;
         self.expr self e;
         `Custom_iterator
       | Pexp_letmodule (name, me, e) ->
@@ -703,19 +653,25 @@ end = struct
     match
       match ppat_desc with
       | Parsetree.Ppat_var v ->
-        add_token v.loc Token_type.variable Token_modifiers_set.empty;
+        add_token
+          v.loc
+          (Token_type.of_builtin Variable)
+          Token_modifiers_set.empty;
         `Custom_iterator
       | Ppat_alias (p, a) ->
         self.pat self p;
-        add_token a.loc Token_type.variable Token_modifiers_set.empty;
+        add_token
+          a.loc
+          (Token_type.of_builtin Variable)
+          Token_modifiers_set.empty;
         `Custom_iterator
       | Ppat_construct (c, args) ->
         let process_args () =
           Option.iter args ~f:(fun (tvs, pat) ->
-              List.iter tvs ~f:(fun tv ->
+              List.iter tvs ~f:(fun (tv : _ Asttypes.loc) ->
                   add_token
-                    tv.Loc.loc
-                    Token_type.type_parameter
+                    tv.loc
+                    (Token_type.of_builtin TypeParameter)
                     Token_modifiers_set.empty);
               self.pat self pat)
         in
@@ -723,7 +679,7 @@ end = struct
         | Lident "::" -> process_args ()
         | Lident "[]" -> ()
         | _ ->
-          lident c Token_type.enum_member ();
+          lident c (Token_type.of_builtin EnumMember) ();
           process_args ());
         `Custom_iterator
       | Ppat_constant c ->
@@ -738,14 +694,12 @@ end = struct
             add_token m.loc Token_type.module_ Token_modifiers_set.empty);
         `Custom_iterator
       | Ppat_type t ->
-        lident t Token_type.type_ ();
+        lident t (Token_type.of_builtin Type) ();
         `Custom_iterator
       | Ppat_record (flds, _) ->
         List.iter flds ~f:(fun (fld, (pat : Parsetree.pattern)) ->
-            lident fld Token_type.property ();
-            if
-              Loc.compare fld.Loc.loc pat.ppat_loc
-              <> 0 (* handles field punning *)
+            lident fld (Token_type.of_builtin Property) ();
+            if Loc.compare fld.loc pat.ppat_loc <> 0 (* handles field punning *)
             then self.pat self pat);
         `Custom_iterator
       | Ppat_constraint (p, ct) ->
@@ -807,10 +761,10 @@ end = struct
       ({ pval_name; pval_type; pval_prim = _; pval_attributes; pval_loc = _ } :
         Parsetree.value_description) =
     add_token
-      pval_name.Loc.loc
+      pval_name.loc
       (match pval_type.ptyp_desc with
-      | Ptyp_arrow (_, _, _) -> Token_type.function_
-      | Ptyp_class (_, _) -> Token_type.class_
+      | Ptyp_arrow (_, _, _) -> Token_type.of_builtin Function
+      | Ptyp_class (_, _) -> Token_type.of_builtin Class
       | Ptyp_package _ -> Token_type.module_
       | Ptyp_extension _
       | Ptyp_constr (_, _)
@@ -818,7 +772,7 @@ end = struct
       | Ptyp_alias (_, _)
       | Ptyp_variant (_, _, _)
       | Ptyp_poly (_, _)
-      | Ptyp_tuple _ | Ptyp_any | Ptyp_var _ -> Token_type.variable)
+      | Ptyp_tuple _ | Ptyp_any | Ptyp_var _ -> Token_type.of_builtin Variable)
       (Token_modifiers_set.singleton Declaration);
     self.typ self pval_type;
     (* TODO: handle pval_prim ? *)
@@ -992,22 +946,20 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
         ()
     ]
   else
-    let old_noncommon = Array.View.make old ~pos:left_offset () in
-    let new_noncommon = Array.View.make new_ ~pos:left_offset () in
     let common_suffix_len =
+      let old_noncommon = Array.View.make old ~pos:left_offset () in
+      let new_noncommon = Array.View.make new_ ~pos:left_offset () in
       Array.View.common_suffix_len old_noncommon new_noncommon
     in
-    let right_offset_old = old_len - common_suffix_len in
-    let right_offset_new = new_len - common_suffix_len in
+    let deleteCount =
+      let right_offset_old = old_len - common_suffix_len in
+      right_offset_old - left_offset
+    in
     let data =
+      let right_offset_new = new_len - common_suffix_len in
       Array.sub new_ ~pos:left_offset ~len:(right_offset_new - left_offset)
     in
-    [ SemanticTokensEdit.create
-        ~start:left_offset
-        ~deleteCount:(right_offset_old - left_offset)
-        ~data
-        ()
-    ]
+    [ SemanticTokensEdit.create ~start:left_offset ~deleteCount ~data () ]
 
 let on_request_full_delta :
        State.t
