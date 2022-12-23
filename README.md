@@ -1,4 +1,5 @@
-# OCaml-LSP
+# OCaml-LSP <!-- omit from toc -->
+<!-- TOC is updated automatically by "Markdown All in One" vscode extension -->
 
 [![Build](https://github.com/ocaml/ocaml-lsp/workflows/Build%20and%20Test/badge.svg)](https://github.com/ocaml/ocaml-lsp/actions)
 
@@ -11,12 +12,33 @@ Protocol](https://microsoft.github.io/language-server-protocol/) (LSP).
 > what packages need to be installed, how to configure your project and get
 > most out of the OCaml editor support, and how to report and debug problems.
 
+- [Installation](#installation)
+  - [Installing with package managers](#installing-with-package-managers)
+    - [Opam](#opam)
+    - [Esy](#esy)
+  - [Installing from sources](#installing-from-sources)
+  - [Additional package installations](#additional-package-installations)
+- [Usage](#usage)
+  - [Integration with Dune RPC](#integration-with-dune-rpc)
+  - [Merlin configuration (advanced)](#merlin-configuration-advanced)
+- [Features](#features)
+  - [Semantic highlighting](#semantic-highlighting)
+  - [LSP Extensions](#lsp-extensions)
+  - [Unusual features](#unusual-features)
+- [Debugging](#debugging)
+- [Contributing to project](#contributing-to-project)
+- [Tests](#tests)
+- [Relationship to Other Tools](#relationship-to-other-tools)
+- [History](#history)
+- [Comparison to other LSP Servers for OCaml](#comparison-to-other-lsp-servers-for-ocaml)
+
 ## Installation
 
-We recommend to install the language server via a package manager such as
-[opam](http://github.com/ocaml/opam) or [esy](https://github.com/esy/esy).
+Below we show how to install OCaml-LSP using opam, esy, and from sources. OCaml-LSP comes in a package called `ocaml-lsp-server` but the installed program (i.e., binary) is called `ocamllsp`.
 
-### Opam
+### Installing with package managers
+
+#### Opam
 
 To install the language server in the currently used opam [switch](https://opam.ocaml.org/doc/Manual.html#Switches):
 
@@ -24,10 +46,10 @@ To install the language server in the currently used opam [switch](https://opam.
 $ opam install ocaml-lsp-server
 ```
 
-_Note:_ you will need to install `ocaml-lsp-server` in every switch where you would like
-to use it.
+_Note:_ you will need to install `ocaml-lsp-server` in every switch where you
+would like to use it.
 
-### Esy
+#### Esy
 
 To add the language server to an esy project, run in terminal:
 
@@ -35,7 +57,7 @@ To add the language server to an esy project, run in terminal:
 $ esy add @opam/ocaml-lsp-server
 ```
 
-### Source
+### Installing from sources
 
 This project uses submodules to handle dependencies. This is done so that users
 who install `ocaml-lsp-server` into their sandbox will not share dependency
@@ -47,15 +69,50 @@ $ cd ocaml-lsp
 $ make install
 ```
 
+### Additional package installations
+
+- Install [ocamlformat](https://github.com/ocaml-ppx/ocamlformat#installation)
+  package if you want source file formatting support.
+
+  Note: To have source file formatting support in your project, there needs to
+  be an `.ocamlformat` file present in your project's root directory.
+
+- OCaml-LSP also uses a program called `ocamlformat-rpc` to format code that is
+  either generated or displayed by OCaml-LSP, e.g., when you hover over a module
+  identifier, you can see its typed nicely formatted. This program comes with
+  `ocamlformat` (version > 0.21.0). Previously, it was a standalone package.
+
 ## Usage
 
-Once `ocaml-lsp-server` is installed, the executable is called `ocamllsp`. For
-now, the server can only be used through the standard input (`stdin`) and
-output (`stdout`) file descriptors.
+Usually, your code editor, or some extension/plugin that you install on it, is
+responsible for launching `ocamllsp`.
 
-For an example of usage of the server in a VS Code extension, see OCaml
-Platform Extension implementation
-[here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/vscode_ocaml_platform.ml).
+Important: OCaml Language Server has its information about the files from the
+last time your built your project. We recommend using the Dune build system and
+running it in "watch" mode to always have correctly functioning OCaml-LSP, e.g.,
+`dune build --watch`.
+
+### Integration with Dune RPC
+
+> since OCaml-LSP 1.11.0
+
+OCaml-LSP can communicate wit Dune's RPC system to offer some interesting
+features. User can launch Dune's RPC system by running Dune in watch mode.
+OCaml-LSP will *not* launch Dune's RPC for you. But OCaml-LSP will see if there
+is an RPC running and will communicate with it automatically.
+
+There are various interesting features and caveats:
+
+1. Dune's RPC enables new kinds of diagnostics (i.e., warnings and errors) to be
+   shown in the editor, e.g., mismatching interface and implementation files.
+   You need to save the file to refresh such diagnostics because Dune doesn't
+   see unsaved files; otherwise, you may see stale (no longer correct) warnings
+   or errors. OCaml-LSP updates diagnostics after each build is complete in
+   watch mode.
+
+2. Dune file promotion support. If you, for example, use `ppx_expect` and have
+   failing tests, you will get a diagnostic when Dune reports that your file can
+   be promoted. You can promote your file using the code action `Promote`.
 
 ### Merlin configuration (advanced)
 
@@ -77,7 +134,7 @@ be invoked with `--fallback-read-dot-merlin` argument passed to it.
   3. (not sure how) Generate the table automatically because, otherwise, it's outdated frequently.
 -->
 
-The server supports the following LSP requests:
+The server supports the following LSP requests (inexhaustive list):
 
 - [x] `textDocument/completion`
 - [x] `completionItem/resolve`
@@ -105,7 +162,32 @@ Note that degrees of support for each LSP request are varying.
 
 ### Semantic highlighting
 
-OCaml-LSP implements semantic highlighting support enabled by default since OCaml-LSP version 1.15.0.
+> since OCaml-LSP 1.15.0 (unreleased for OCaml 4, released for OCaml 5 as `1.15.0~5.0preview1`)
+
+Semantic highlighting support is enabled by default.
+
+> since OCaml-LSP 1.14.0
+
+OCaml-LSP implements experimental semantic highlighting support (also known as
+semantic tokens support). The support can be activated by passing an evironment
+variable to OCaml-LSP:
+
+- To enable non-incremental (expectedly slower but more stable) version, pass
+  `OCAMLLSP_SEMANTIC_HIGHLIGHTING=full` environment variable to OCaml-LSP.
+
+- To enable incremental (potentially faster but more error-prone, at least on VS
+  Code) version, pass `OCAMLLSP_SEMANTIC_HIGHLIGHTING=full/delta` to OCaml-LSP.
+
+Tip (for VS Code OCaml Platform users): You can use `ocaml.server.extraEnv`
+setting in VS Code to pass various environment variables to OCaml-LSP.
+
+```json
+{
+    "ocaml.server.extraEnv": {
+        "OCAMLLSP_SEMANTIC_HIGHLIGHTING": "full"
+    },
+}
+```
 
 ### LSP Extensions
 
@@ -117,9 +199,11 @@ The server also supports a number of OCaml specific extensions to the protocol:
 
 Note that editor support for these extensions varies. In general, the OCaml Platform extension for Visual Studio Code will have the best support.
 
-### Unorthodox features
+### Unusual features
 
-#### Destructing a value
+#### Destructing a value <!-- omit in toc -->
+
+> since OCaml-LSP 1.0.0
 
 OCaml-LSP has a code action that allows to generate an exhaustive pattern
 matching for values. For example, placing a cursor near a value `(Some 10)|`
@@ -159,7 +243,9 @@ well-formatted document (OCamlFormat supports typed holes formatting).
 Tip (for VS Code OCaml Platform users): You can destruct a value using a keybinding
 <kbd>Alt</kbd>+<kbd>D</kbd> or on MacOS <kbd>Option</kbd>+<kbd>D</kbd>
 
-#### Typed holes
+#### Typed holes <!-- omit in toc -->
+
+> since OCaml-LSP 1.8.0
 
 OCaml-LSP has a concept of a "typed hole" syntactically represented as `_`
 (underscore). A typed hole represents a well-typed "substitute" for an
@@ -176,7 +262,9 @@ Also, an underscore occurring in place of a pattern (for example `let _ = 10`)
 should not be confused with a typed hole that occurs in place of an expression,
 e.g., `let a = _`.
 
-#### Constructing values by type (experimental)
+#### Constructing values by type (experimental) <!-- omit in toc -->
+
+> since OCaml-LSP 1.8.0
 
 OCaml-LSP can "construct" expressions based on the type required and offer them
 during auto-completion. For example, typing `_` (typed hole) in the snippet
@@ -202,23 +290,6 @@ of the value needs to be non-polymorphic to construct a meaningful value.
 
 Tip (for VS Code OCaml Platform users): You can construct a value using a keybinding
 <kbd>Alt</kbd>+<kbd>C</kbd> or on MacOS <kbd>Option</kbd>+<kbd>C</kbd>
-
-## Integration with other tools
-
-### Source file formatting: OCamlFormat & Refmt
-
-OCaml-LSP is dependent on external tools (OCamlFormat for OCaml and `refmt` for
-Reason) for formatting source files. You should have the necessary tool
-(OCamlFormat and/or Refmt) installed in your opam switch or esy project to have
-formatting support. Note, however, that OCaml-LSP requires presence of
-OCamlFormat configuration file, called `.ocamlformat`, in the project root to
-be able to format source files in your project.
-
-### Formatting code on hover <!-- TODO: specify until which olsp version this applies (since ofmt-rpc is inside ofmt now) -->
-
-When you hover the cursor over OCaml code, the extension shows you the type of
-the symbol. To get nicely formatted types, install
-[ocamlformat-rpc](https://opam.ocaml.org/packages/ocamlformat-rpc/) package.
 
 ## Debugging
 
