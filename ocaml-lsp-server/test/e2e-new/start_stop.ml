@@ -119,12 +119,4 @@ let%expect_test "start/stop" =
       }
       client: shutting down server
 
-      notifications received:
-      {
-        "params": {
-          "message": "Unable to find 'ocamlformat-rpc' binary. Types on hover may not be well-formatted. You need to install either 'ocamlformat' of version > 0.21.0 or, otherwise, 'ocamlformat-rpc' package.",
-          "type": 3
-        },
-        "method": "window/showMessage",
-        "jsonrpc": "2.0"
-      } |}]
+      notifications received: |}]
