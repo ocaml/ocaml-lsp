@@ -27,10 +27,25 @@ let%test_module "diff" =
 
     let%expect_test "empty strings" =
       test ~from:"" ~to_:"";
-      [%expect {| [] |}]
+      [%expect {|
+        [] |}]
 
     let%expect_test "from empty" =
       test ~from:"" ~to_:"foobar";
+      [%expect
+        {|
+        [
+          {
+            "newText": "foobar\n",
+            "range": {
+              "end": { "character": 0, "line": 0 },
+              "start": { "character": 0, "line": 0 }
+            }
+          }
+        ] |}]
+
+    let%expect_test "from empty - with newline" =
+      test ~from:"" ~to_:"foobar\n";
       [%expect
         {|
         [
@@ -59,7 +74,8 @@ let%test_module "diff" =
 
     let%expect_test "no change" =
       test ~from:"foobar" ~to_:"foobar";
-      [%expect {| [] |}]
+      [%expect {|
+        [] |}]
 
     let%expect_test "multiline" =
       test ~from:"foo" ~to_:"baz\nbar\nxx\n";
@@ -85,6 +101,20 @@ let%test_module "diff" =
             "range": {
               "end": { "character": 0, "line": 1 },
               "start": { "character": 0, "line": 0 }
+            }
+          }
+        ] |}]
+
+    let%expect_test "delete empty line" =
+      test ~from:"xxx\n\nyyy\n" ~to_:"xxx\nyyy\n";
+      [%expect
+        {|
+        [
+          {
+            "newText": "",
+            "range": {
+              "end": { "character": 0, "line": 2 },
+              "start": { "character": 0, "line": 1 }
             }
           }
         ] |}]
