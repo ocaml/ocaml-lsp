@@ -1,3 +1,5 @@
+open Stdune
+
 let%expect_test "eat_message tests" =
   let test e1 e2 expected =
     let result = Ocaml_lsp_server.Diagnostics.equal_message e1 e2 in
@@ -22,8 +24,36 @@ let%test_module "diff" =
   (module struct
     let test ~from ~to_ =
       let edits = Ocaml_lsp_server.Diff.edit ~from ~to_ in
-      let json = `List (List.map Lsp.Types.TextEdit.yojson_of_t edits) in
-      Yojson.Safe.pretty_to_string ~std:false json |> print_endline
+      let module TextEdit = Lsp.Types.TextEdit in
+      let json = `List (List.map ~f:TextEdit.yojson_of_t edits) in
+      Yojson.Safe.pretty_to_string ~std:false json |> print_endline;
+      let module Text_document = Lsp.Text_document in
+      let module TextDocumentContentChangeEvent =
+        Lsp.Types.TextDocumentContentChangeEvent
+      in
+      let module TextDocumentItem = Lsp.Types.TextDocumentItem in
+      let module DidOpenTextDocumentParams = Lsp.Types.DidOpenTextDocumentParams
+      in
+      let textDocument =
+        let uri = Lsp.Uri.of_path "/tmp/test" in
+        TextDocumentItem.create ~languageId:"test" ~text:from ~uri ~version:1
+      in
+      let text_document =
+        Text_document.make
+          ~position_encoding:`UTF8
+          (DidOpenTextDocumentParams.create ~textDocument)
+      in
+
+      let changes =
+        List.map edits ~f:(fun { TextEdit.range; newText = text } ->
+            TextDocumentContentChangeEvent.create ~range ~text ())
+      in
+      let to_' =
+        Text_document.apply_content_changes text_document changes
+        |> Text_document.text
+      in
+      if not @@ String.equal to_ to_' then
+        printfn "[FAILURE]\nresult: %S\nexpected: %S" to_' to_
 
     let%expect_test "empty strings" =
       test ~from:"" ~to_:"";
@@ -42,7 +72,10 @@ let%test_module "diff" =
               "start": { "character": 0, "line": 0 }
             }
           }
-        ] |}]
+        ]
+        [FAILURE]
+        result: "foobar\n"
+        expected: "foobar" |}]
 
     let%expect_test "from empty - with newline" =
       test ~from:"" ~to_:"foobar\n";
@@ -103,7 +136,10 @@ let%test_module "diff" =
               "start": { "character": 0, "line": 0 }
             }
           }
-        ] |}]
+        ]
+        [FAILURE]
+        result: "xxx z xx\n"
+        expected: "xxx z xx" |}]
 
     let%expect_test "delete empty line" =
       test ~from:"xxx\n\nyyy\n" ~to_:"xxx\nyyy\n";
