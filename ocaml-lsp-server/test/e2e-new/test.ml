@@ -81,14 +81,16 @@ end = struct
   let bin =
     Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
 
-  let env = [ "OCAMLLSP_TEST=true" ]
-
   let run ?(extra_env = []) ?handler f =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
+      let env =
+        let current = Unix.environment () in
+        Array.to_list current @ extra_env |> Spawn.Env.of_list
+      in
       Spawn.spawn
-        ~env:(Spawn.Env.of_list (extra_env @ env))
+        ~env
         ~prog:bin
         ~argv:[ bin ]
         ~stdin:stdin_i

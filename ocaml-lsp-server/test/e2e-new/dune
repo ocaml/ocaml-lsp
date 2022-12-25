@@ -1,6 +1,7 @@
 (env
  (_
   (env-vars
+   (OCAMLLSP_TEST true)
    (LEV_DEBUG 1))))
 
 (library
@@ -9,6 +10,7 @@
   (enabled_if
    (= %{os_type} Unix))
   (deps
+   %{bin:ocamlformat-rpc}
    (package ocaml-lsp-server)))
  (libraries
   stdune
