@@ -27,109 +27,77 @@ let test text range ~change =
         td
         [ TextDocumentContentChangeEvent.create ?range ~text:change () ]
     in
-    (match position_encoding with
-    | `UTF8 -> print_endline "UTF8:"
-    | `UTF16 -> print_endline "UTF16:");
-    let result = Text_document.text td in
-    print_endline (String.escaped result);
-    result
+    Text_document.text td
   in
   let utf16 = test `UTF16 in
   let utf8 = test `UTF8 in
-  if not (String.equal utf16 utf8) then
-    print_endline "[FAILURE] utf16 and utf8 disagree"
+  let printf = Printf.printf in
+  if String.equal utf16 utf8 then printf "result: %s\n" (String.escaped utf8)
+  else (
+    print_endline "[FAILURE] utf16 and utf8 disagree";
+    printf "utf16: %s\n" (String.escaped utf16);
+    printf "utf8:  %s\n" (String.escaped utf8))
 
 let%expect_test "first line insert" =
   let range = tuple_range (0, 1) (0, 3) in
   test "foo bar baz" range ~change:"XXXX";
   [%expect {|
-    UTF16:
-    fXXXX bar baz
-    UTF8:
-    fXXXX bar baz |}]
+    result: fXXXX bar baz |}]
 
 let%expect_test "no range" =
   let range = None in
   test "foo bar baz" range ~change:"XXXX";
   [%expect {|
-    UTF16:
-    XXXX
-    UTF8:
-    XXXX |}]
+    result: XXXX |}]
 
 let%expect_test "replace second line" =
   let range = tuple_range (1, 0) (2, 0) in
   test "foo\n\bar\nbaz\n" range ~change:"XXXX\n";
   [%expect {|
-    UTF16:
-    foo\nXXXX\nbaz\n
-    UTF8:
-    foo\nXXXX\nbaz\n |}]
+    result: foo\nXXXX\nbaz\n |}]
 
 let%expect_test "edit in second line" =
   let range = tuple_range (1, 1) (1, 2) in
   test "foo\nbar\nbaz\n" range ~change:"-XXX-";
-  [%expect
-    {|
-    UTF16:
-    foo\nb-XXX-r\nbaz\n
-    UTF8:
-    foo\nb-XXX-r\nbaz\n |}]
+  [%expect {|
+    result: foo\nb-XXX-r\nbaz\n |}]
 
 let%expect_test "insert at the end" =
   let range = tuple_range (3, 1) (4, 0) in
   test "foo\n\bar\nbaz\n" range ~change:"XXX";
-  [%expect
-    {|
-   UTF16:
-   foo\n\bar\nbaz\nXXX
-   UTF8:
-   foo\n\bar\nbaz\nXXX |}]
+  [%expect {|
+   result: foo\n\bar\nbaz\nXXX |}]
 
 let%expect_test "insert at the beginning" =
   let range = tuple_range (0, 0) (0, 0) in
   test "foo\n\bar\nbaz\n" range ~change:"XXX\n";
-  [%expect
-    {|
-    UTF16:
-    XXX\nfoo\n\bar\nbaz\n
-    UTF8:
-    XXX\nfoo\n\bar\nbaz\n |}]
+  [%expect {|
+    result: XXX\nfoo\n\bar\nbaz\n |}]
 
 let%expect_test "replace first line" =
   let range = tuple_range (0, 0) (1, 0) in
   test "foo\nbar\n" range ~change:"baz\n";
   [%expect {|
-    UTF16:
-    baz\nbar\n
-    UTF8:
-    baz\nbar\n |}]
+    result: baz\nbar\n |}]
 
 let%expect_test "beyond max char" =
   let range = tuple_range (0, 0) (0, 100) in
   test "foo\nbar\n" range ~change:"baz";
   [%expect {|
-    UTF16:
-    baz\nbar\n
-    UTF8:
-    baz\nbar\n |}]
+    result: baz\nbar\n |}]
 
 let%expect_test "entire line without newline" =
   test "xxx\n" (tuple_range (0, 0) (0, 3)) ~change:"baz";
   [%expect {|
-    UTF16:
-    baz\n
-    UTF8:
-    baz\n |}];
+    result: baz\n |}];
   test "xxx\n" (tuple_range (0, 0) (0, 4)) ~change:"baz";
   [%expect {|
-    UTF16:
-    baz\n
-    UTF8:
-    baz\n |}];
+    result: baz\n |}];
   test "xxx\n" (tuple_range (0, 0) (1, 0)) ~change:"baz";
   [%expect {|
-    UTF16:
-    baz
-    UTF8:
-    baz |}]
+    result: baz |}]
+
+let%expect_test "replace two lines" =
+  test "a\nb\nc\n" (tuple_range (0, 0) (2, 0)) ~change:"XXX\n";
+  [%expect {|
+    result: XXX\nc\n |}]
