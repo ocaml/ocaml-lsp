@@ -255,6 +255,7 @@ include struct
   module SemanticTokenModifiers = SemanticTokenModifiers
   module SemanticTokensOptions = SemanticTokensOptions
   module SemanticTokensParams = SemanticTokensParams
+  module SemanticTokenTypes = SemanticTokenTypes
   module ServerCapabilities = ServerCapabilities
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams
