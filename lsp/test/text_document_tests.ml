@@ -109,3 +109,23 @@ let%expect_test "beyond max char" =
     baz\nbar\n
     UTF8:
     baz\nbar\n |}]
+
+let%expect_test "entire line without newline" =
+  test "xxx\n" (tuple_range (0, 0) (0, 3)) ~change:"baz";
+  [%expect {|
+    UTF16:
+    baz\n
+    UTF8:
+    baz\n |}];
+  test "xxx\n" (tuple_range (0, 0) (0, 4)) ~change:"baz";
+  [%expect {|
+    UTF16:
+    baz
+    UTF8:
+    baz |}];
+  test "xxx\n" (tuple_range (0, 0) (1, 0)) ~change:"baz";
+  [%expect {|
+    UTF16:
+    baz
+    UTF8:
+    baz |}]
