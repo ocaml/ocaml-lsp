@@ -32,9 +32,7 @@ let find_utf8_pos =
         else find_pos newline (char - 1) dec
   in
   fun s ~start ~character ->
-    let dec =
-      Uutf.decoder ~nln:(`ASCII (Uchar.of_char '\n')) ~encoding:`UTF_8 `Manual
-    in
+    let dec = Uutf.decoder ~nln:(`ASCII newline) ~encoding:`UTF_8 `Manual in
     Uutf.Manual.src
       dec
       (Bytes.unsafe_of_string s)
