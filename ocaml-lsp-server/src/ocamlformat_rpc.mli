@@ -18,4 +18,4 @@ val format_doc :
 val run :
      logger:(type_:MessageType.t -> message:string -> unit Fiber.t)
   -> t
-  -> (unit, [> `Binary_not_found ]) result Fiber.t
+  -> (unit, [> `Disabled | `Binary_not_found ]) result Fiber.t

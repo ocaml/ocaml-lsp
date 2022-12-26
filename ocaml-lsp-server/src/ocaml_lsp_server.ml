@@ -1062,7 +1062,7 @@ let start stream =
           "Unable to find 'ocamlformat-rpc' binary. Types on hover may not be \
            well-formatted. You need to install either 'ocamlformat' of version \
            > 0.21.0 or, otherwise, 'ocamlformat-rpc' package."
-      | Ok () -> None
+      | Error `Disabled | Ok () -> None
     in
     match message with
     | None -> Fiber.return ()
