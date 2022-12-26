@@ -10,13 +10,13 @@ module Simple_diff = struct
   type item = string
 
   type diff =
-    | Deleted of item array
-    | Added of item array
-    | Equal of item array
+    | Deleted of item Array_view.t
+    | Added of item Array_view.t
+    | Equal of item Array_view.t
 
   let longest_subsequence old_lines new_lines =
     let _, old_index_map =
-      Array.fold_left
+      Array_view.fold_left
         old_lines
         ~init:(0, String.Map.empty)
         ~f:(fun (i, m) line ->
@@ -31,7 +31,7 @@ module Simple_diff = struct
     let sub_start_new = ref 0 in
     let sub_length = ref 0 in
 
-    Array.iteri new_lines ~f:(fun inew v ->
+    Array_view.iteri new_lines ~f:(fun inew v ->
         let overlap' = ref Int.Map.empty in
         (* where does the new line appear in the old text *)
         let old_indices =
@@ -55,34 +55,34 @@ module Simple_diff = struct
 
   let get_diff old_lines new_lines =
     let rec get_diff' old_lines new_lines =
-      match (old_lines, new_lines) with
-      | [||], [||] -> []
-      | old_lines, [||] -> [ Deleted old_lines ]
-      | [||], new_lines -> [ Added new_lines ]
-      | _, _ ->
+      match (Array_view.is_empty old_lines, Array_view.is_empty new_lines) with
+      | true, true -> []
+      | false, true -> [ Deleted old_lines ]
+      | true, false -> [ Added new_lines ]
+      | false, false ->
         let sub_start_new, sub_start_old, sub_length =
           longest_subsequence old_lines new_lines
         in
         if sub_length = 0 then [ Deleted old_lines; Added new_lines ]
         else
           let old_lines_presubseq =
-            Array.sub ~pos:0 ~len:sub_start_old old_lines
+            Array_view.sub ~pos:0 ~len:sub_start_old old_lines
           in
           let new_lines_presubseq =
-            Array.sub ~pos:0 ~len:sub_start_new new_lines
+            Array_view.sub ~pos:0 ~len:sub_start_new new_lines
           in
           let old_lines_postsubseq =
             let start_index = sub_start_old + sub_length in
-            let len = Array.length old_lines - start_index in
-            Array.sub ~pos:start_index ~len old_lines
+            let len = Array_view.length old_lines - start_index in
+            Array_view.sub ~pos:start_index ~len old_lines
           in
           let new_lines_postsubseq =
             let start_index = sub_start_new + sub_length in
-            let len = Array.length new_lines - start_index in
-            Array.sub ~pos:start_index ~len new_lines
+            let len = Array_view.length new_lines - start_index in
+            Array_view.sub ~pos:start_index ~len new_lines
           in
           let unchanged_lines =
-            Array.sub ~pos:sub_start_new ~len:sub_length new_lines
+            Array_view.sub ~pos:sub_start_new ~len:sub_length new_lines
           in
           List.concat
             [ get_diff' old_lines_presubseq new_lines_presubseq
@@ -90,7 +90,8 @@ module Simple_diff = struct
             ; get_diff' old_lines_postsubseq new_lines_postsubseq
             ]
     in
-    get_diff' (Array.of_list old_lines) (Array.of_list new_lines)
+    let make list = Array_view.make ~pos:0 (Array.of_list list) in
+    get_diff' (make old_lines) (make new_lines)
 end
 
 type edit =
@@ -144,8 +145,25 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
          ~f:(fun (line, prev_deleted_lines, edits_rev) edit ->
            match (edit : Simple_diff.diff) with
            | Deleted deleted_lines ->
-             (line, Array.append prev_deleted_lines deleted_lines, edits_rev)
+             let new_prev_deleted_lines =
+               Array.make
+                 (Array.length prev_deleted_lines
+                 + Array_view.length deleted_lines)
+                 ""
+             in
+             Array.blit
+               ~src:prev_deleted_lines
+               ~src_pos:0
+               ~dst:new_prev_deleted_lines
+               ~dst_pos:0
+               ~len:(Array.length prev_deleted_lines);
+             Array_view.blit
+               deleted_lines
+               new_prev_deleted_lines
+               ~pos:(Array.length prev_deleted_lines);
+             (line, new_prev_deleted_lines, edits_rev)
            | Added added_lines ->
+             let added_lines = Array_view.copy added_lines in
              let edit =
                text_edit
                  ~line
@@ -162,7 +180,9 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
                else edits_rev
              in
              let line =
-               line + Array.length prev_deleted_lines + Array.length equal_lines
+               line
+               + Array.length prev_deleted_lines
+               + Array_view.length equal_lines
              in
              (line, [||], edits_rev))
   in

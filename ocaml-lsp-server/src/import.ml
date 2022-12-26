@@ -5,16 +5,6 @@ include struct
 
   module Array = struct
     include Array
-    module View = Array_view
-
-    let split_into_subs arr ~at =
-      if at < 0 then
-        invalid_arg "split_into_subs: [~at] argument must be non-negative";
-      if at < Array.length arr then
-        let left = View.make arr ~pos:0 ~len:at () in
-        let right = View.make arr ~pos:at () in
-        (left, right)
-      else invalid_arg "split_into_subs: [~at] argument out of bounds of array"
 
     let common_prefix_len ~equal (a : 'a array) (b : 'a array) : int =
       let i = ref 0 in
