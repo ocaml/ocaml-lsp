@@ -107,7 +107,7 @@ let%expect_test "replace first line" =
 
 let%expect_test "beyond max char" =
   let range = tuple_range (0, 0) (0, 100) in
-  test "foo\nbar\n" range ~change:"baz\n";
+  test "foo\nbar\n" range ~change:"baz";
   [%expect {|
     UTF16:
     baz\nbar\n
@@ -124,9 +124,9 @@ let%expect_test "entire line without newline" =
   test "xxx\n" (tuple_range (0, 0) (0, 4)) ~change:"baz";
   [%expect {|
     UTF16:
-    baz
+    baz\n
     UTF8:
-    baz |}];
+    baz\n |}];
   test "xxx\n" (tuple_range (0, 0) (1, 0)) ~change:"baz";
   [%expect {|
     UTF16:
