@@ -1,4 +1,7 @@
 open Import
+module TextEdit = Types.TextEdit
+module Position = Types.Position
+module Range = Types.Range
 
 module Simple_diff = struct
   (* based on *)
@@ -18,7 +21,7 @@ module Simple_diff = struct
         ~init:(0, String.Map.empty)
         ~f:(fun (i, m) line ->
           ( i + 1
-          , String.Map.update m line ~f:(function
+          , String.Map.update m ~key:line ~f:(function
                 | None -> Some [ i ]
                 | Some xs -> Some (i :: xs)) ))
     in
@@ -30,14 +33,16 @@ module Simple_diff = struct
 
     Array.iteri new_lines ~f:(fun inew v ->
         let overlap' = ref Int.Map.empty in
+        (* where does the new line appear in the old text *)
         let old_indices =
-          String.Map.find old_index_map v |> Option.value ~default:[]
+          String.Map.find_opt v old_index_map |> Option.value ~default:[]
         in
         List.iter old_indices ~f:(fun iold ->
             let o =
-              1 + (Int.Map.find !overlap (iold - 1) |> Option.value ~default:0)
+              1
+              + (Int.Map.find_opt (iold - 1) !overlap |> Option.value ~default:0)
             in
-            overlap' := Int.Map.set !overlap' iold o;
+            overlap' := Int.Map.add !overlap' ~key:iold ~data:o;
 
             if o > !sub_length then (
               sub_length := o;
