@@ -18,14 +18,18 @@ let find_nth_nl =
     | n -> n
     | exception Outside -> len
 
+let newline = Uchar.of_char '\n'
+
 let find_utf8_pos =
-  let rec find_pos char dec =
-    if char = 0 || Uutf.decoder_line dec = 2 then Uutf.decoder_byte_count dec
+  let rec find_pos newline char dec =
+    if char = 0 then Uutf.decoder_byte_count dec
     else
       match Uutf.decode dec with
       | `Malformed _ | `Await -> raise Invalid_utf8
       | `End -> assert false
-      | `Uchar _ -> find_pos (char - 1) dec
+      | `Uchar u ->
+        if Uchar.equal u newline then Uutf.decoder_byte_count dec - 1
+        else find_pos newline (char - 1) dec
   in
   fun s ~start ~character ->
     let dec =
@@ -37,7 +41,7 @@ let find_utf8_pos =
       start
       (String.length s - start);
     assert (Uutf.decoder_line dec = 1);
-    find_pos character dec + start
+    find_pos newline character dec + start
 
 let find_offset_8 ~utf8 ~utf8_range:range =
   let { Range.start; end_ } = range in
@@ -62,35 +66,33 @@ let find_offset_8 ~utf8 ~utf8_range:range =
 
 let find_offset_16 ~utf8 ~utf16_range:range =
   let dec =
-    Uutf.decoder
-      ~nln:(`ASCII (Uchar.of_char '\n'))
-      ~encoding:`UTF_8
-      (`String utf8)
+    Uutf.decoder ~nln:(`ASCII newline) ~encoding:`UTF_8 (`String utf8)
   in
   let utf16_codepoint_size = 4 in
   let utf16_codepoints_buf = Bytes.create utf16_codepoint_size in
   let enc = Uutf.encoder `UTF_16LE `Manual in
   let rec find_char line char =
-    if char = 0 || Uutf.decoder_line dec = line + 2 then
-      Uutf.decoder_byte_count dec
+    if char = 0 then Uutf.decoder_byte_count dec
     else
       match Uutf.decode dec with
       | `Await -> raise Invalid_utf8
       | `End -> Uutf.decoder_byte_count dec
       | `Malformed _ ->
         invalid_arg "Text_document.find_offset: utf8 string is malformed"
-      | `Uchar _ as u ->
-        Uutf.Manual.dst enc utf16_codepoints_buf 0 utf16_codepoint_size;
-        (match Uutf.encode enc u with
-        | `Partial ->
-          (* we always have space for one character *)
-          assert false
-        | `Ok -> ());
-        let char =
-          let bytes_read = utf16_codepoint_size - Uutf.Manual.dst_rem enc in
-          char - (bytes_read / 2)
-        in
-        find_char line char
+      | `Uchar c as u ->
+        if Uchar.equal newline c then Uutf.decoder_byte_count dec - 1
+        else (
+          Uutf.Manual.dst enc utf16_codepoints_buf 0 utf16_codepoint_size;
+          (match Uutf.encode enc u with
+          | `Partial ->
+            (* we always have space for one character *)
+            assert false
+          | `Ok -> ());
+          let char =
+            let bytes_read = utf16_codepoint_size - Uutf.Manual.dst_rem enc in
+            char - (bytes_read / 2)
+          in
+          find_char line char)
   in
   let rec find_pos (pos : Position.t) =
     if Uutf.decoder_line dec = pos.line + 1 then

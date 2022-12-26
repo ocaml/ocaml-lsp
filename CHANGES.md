@@ -30,6 +30,9 @@
 
 - Fix semantic highlighting of "long identifiers," e.g., `Foo.Bar.x` (#932)
 
+- Fix syncing of document contents. Previously, whole line edits would
+  incorrectly eat the newline characters. (#971)
+
 # 1.14.2
 
 ## Fixes
