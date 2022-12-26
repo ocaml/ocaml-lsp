@@ -30,10 +30,14 @@ let test text range ~change =
     (match position_encoding with
     | `UTF8 -> print_endline "UTF8:"
     | `UTF16 -> print_endline "UTF16:");
-    print_endline (String.escaped (Text_document.text td))
+    let result = Text_document.text td in
+    print_endline (String.escaped result);
+    result
   in
-  test `UTF16;
-  test `UTF8
+  let utf16 = test `UTF16 in
+  let utf8 = test `UTF8 in
+  if not (String.equal utf16 utf8) then
+    print_endline "[FAILURE] utf16 and utf8 disagree"
 
 let%expect_test "first line insert" =
   let range = tuple_range (0, 1) (0, 3) in
