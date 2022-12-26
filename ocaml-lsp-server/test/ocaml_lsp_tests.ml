@@ -75,21 +75,36 @@ let%test_module "diff" =
         ]
         [FAILURE]
         result: "foobar\n"
-        expected: "foobar" |}]
-
-    let%expect_test "from empty - with newline" =
-      test ~from:"" ~to_:"foobar\n";
+        expected: "foobar" |}];
+      test ~from:"\n" ~to_:"foobar";
       [%expect
         {|
         [
           {
             "newText": "foobar\n",
             "range": {
-              "end": { "character": 0, "line": 0 },
+              "end": { "character": 0, "line": 1 },
               "start": { "character": 0, "line": 0 }
             }
           }
-        ] |}]
+        ]
+        [FAILURE]
+        result: "foobar\n"
+        expected: "foobar" |}]
+
+    let%expect_test "from empty - with newline" =
+      test ~from:"" ~to_:"foobar\n";
+      [%expect
+        {|
+      [
+        {
+          "newText": "foobar\n",
+          "range": {
+            "end": { "character": 0, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          }
+        }
+      ] |}]
 
     let%expect_test "to empty" =
       test ~from:"foobar" ~to_:"";
