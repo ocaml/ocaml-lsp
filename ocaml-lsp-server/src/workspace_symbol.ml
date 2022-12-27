@@ -291,3 +291,67 @@ let run ({ query; _ } : WorkspaceSymbolParams.t)
              ~f:(symbols_from_cm_file ~filter path cancel)
              cm_files))
   with Cancelled -> Error `Cancelled
+
+let run server (state : State.t) (params : WorkspaceSymbolParams.t) =
+  let open Fiber.O in
+  let* symbols, errors =
+    let workspaces = Workspaces.workspace_folders (State.workspaces state) in
+    let* thread = Lazy_fiber.force state.symbols_thread in
+    let+ symbols_results =
+      let* cancel = Server.cancel_token () in
+      let task =
+        Lev_fiber.Thread.task thread ~f:(fun () -> run params workspaces cancel)
+      in
+      let* res, cancel =
+        match task with
+        | Error `Stopped -> Fiber.never
+        | Ok task ->
+          let maybe_cancel =
+            match cancel with
+            | None ->
+              fun f ->
+                let+ res = f () in
+                (res, Fiber.Cancel.Not_cancelled)
+            | Some token ->
+              let on_cancel () = Lev_fiber.Thread.cancel task in
+              fun f -> Fiber.Cancel.with_handler token ~on_cancel f
+          in
+          maybe_cancel @@ fun () -> Lev_fiber.Thread.await task
+      in
+      match cancel with
+      | Cancelled () ->
+        let e =
+          Jsonrpc.Response.Error.make
+            ~code:RequestCancelled
+            ~message:"cancelled"
+            ()
+        in
+        raise (Jsonrpc.Response.Error.E e)
+      | Fiber.Cancel.Not_cancelled -> (
+        match res with
+        | Ok (Ok s) -> Fiber.return s
+        | Ok (Error `Cancelled) -> assert false
+        | Error `Cancelled -> assert false
+        | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
+    in
+    List.partition_map symbols_results ~f:(function
+        | Ok r -> Left r
+        | Error e -> Right e)
+  in
+  let+ () =
+    match errors with
+    | [] -> Fiber.return ()
+    | _ :: _ ->
+      let msg =
+        let message =
+          List.map errors ~f:(function Build_dir_not_found workspace_name ->
+              workspace_name)
+          |> String.concat ~sep:", "
+          |> sprintf "No build directory found in workspace(s): %s"
+        in
+        ShowMessageParams.create ~message ~type_:Warning
+      in
+      task_if_running state.detached ~f:(fun () ->
+          Server.notification server (ShowMessage msg))
+  in
+  Some (List.concat symbols)
