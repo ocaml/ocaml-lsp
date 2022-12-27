@@ -101,3 +101,8 @@ let%expect_test "replace two lines" =
   test "a\nb\nc\n" (tuple_range (0, 0) (2, 0)) ~change:"XXX\n";
   [%expect {|
     result: XXX\nc\n |}]
+
+let%expect_test "join lines" =
+  test "a\nb" (tuple_range (0, 1) (1, 0)) ~change:"";
+  [%expect {|
+    result: ab |}]
