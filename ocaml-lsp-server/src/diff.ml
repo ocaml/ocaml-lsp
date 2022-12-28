@@ -93,7 +93,7 @@ type edit =
   | Replace of string array * string array
   | Delete of string array
 
-let text_edit ~line_sep ~line edit =
+let text_edit ~line edit =
   let deleted_lines, added_lines =
     match edit with
     | Insert adds -> (None, Some adds)
@@ -113,21 +113,26 @@ let text_edit ~line_sep ~line edit =
   let newText =
     match added_lines with
     | None -> ""
-    | Some adds ->
-      (adds |> Array.to_list |> String.concat ~sep:line_sep) ^ line_sep
+    | Some adds -> adds |> Array.to_list |> String.concat ~sep:""
   in
   { TextEdit.newText; range }
 
-let edit ~from:orig ~to_:formatted : TextEdit.t list =
-  let orig_lines = String.split_lines orig in
-  let formatted_lines = String.split_lines formatted in
-  (* TODO: better way of knowing this ? *)
-  let line_sep =
-    match String.findi ~f:(fun c -> c = '\r') formatted with
-    | Some _ -> "\n\r"
-    | None -> "\n"
+let split_lines =
+  let rec loop acc s len i =
+    if i >= len then acc
+    else
+      match String.index_from_opt s i '\n' with
+      | None -> String.sub s ~pos:i ~len:(len - i) :: acc
+      | Some j ->
+        let acc = String.sub s ~pos:i ~len:(j - i + 1) :: acc in
+        loop acc s len (j + 1)
   in
+  fun s -> List.rev @@ loop [] s (String.length s) 0
+
+let edit ~from:orig ~to_:formatted : TextEdit.t list =
   let line, prev_deleted_lines, edits_rev =
+    let orig_lines = split_lines orig in
+    let formatted_lines = split_lines formatted in
     Simple_diff.get_diff orig_lines formatted_lines
     |> List.fold_left
          ~init:(0, [||], [])
@@ -138,7 +143,6 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
            | Added added_lines ->
              let edit =
                text_edit
-                 ~line_sep
                  ~line
                  (if Array.length prev_deleted_lines > 0 then
                   Replace (prev_deleted_lines, added_lines)
@@ -149,8 +153,7 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
            | Equal equal_lines ->
              let edits_rev =
                if Array.length prev_deleted_lines > 0 then
-                 text_edit ~line_sep ~line (Delete prev_deleted_lines)
-                 :: edits_rev
+                 text_edit ~line (Delete prev_deleted_lines) :: edits_rev
                else edits_rev
              in
              let line =
@@ -158,9 +161,8 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
              in
              (line, [||], edits_rev))
   in
-  let edits_rev =
-    if Array.length prev_deleted_lines > 0 then
-      text_edit ~line_sep ~line (Delete prev_deleted_lines) :: edits_rev
-    else edits_rev
-  in
-  List.rev edits_rev
+  List.rev
+  @@
+  if Array.length prev_deleted_lines > 0 then
+    text_edit ~line (Delete prev_deleted_lines) :: edits_rev
+  else edits_rev

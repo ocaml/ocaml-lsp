@@ -66,31 +66,25 @@ let%test_module "diff" =
         {|
         [
           {
-            "newText": "foobar\n",
+            "newText": "foobar",
             "range": {
               "end": { "character": 0, "line": 0 },
               "start": { "character": 0, "line": 0 }
             }
           }
-        ]
-        [FAILURE]
-        result: "foobar\n"
-        expected: "foobar" |}];
+        ] |}];
       test ~from:"\n" ~to_:"foobar";
       [%expect
         {|
         [
           {
-            "newText": "foobar\n",
+            "newText": "foobar",
             "range": {
               "end": { "character": 0, "line": 1 },
               "start": { "character": 0, "line": 0 }
             }
           }
-        ]
-        [FAILURE]
-        result: "foobar\n"
-        expected: "foobar" |}]
+        ] |}]
 
     let%expect_test "from empty - with newline" =
       test ~from:"" ~to_:"foobar\n";
@@ -145,16 +139,13 @@ let%test_module "diff" =
         {|
         [
           {
-            "newText": "xxx z xx\n",
+            "newText": "xxx z xx",
             "range": {
               "end": { "character": 0, "line": 1 },
               "start": { "character": 0, "line": 0 }
             }
           }
-        ]
-        [FAILURE]
-        result: "xxx z xx\n"
-        expected: "xxx z xx" |}]
+        ] |}]
 
     let%expect_test "delete empty line" =
       test ~from:"xxx\n\nyyy\n" ~to_:"xxx\nyyy\n";
