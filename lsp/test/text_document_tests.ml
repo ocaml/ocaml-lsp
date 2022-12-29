@@ -44,6 +44,11 @@ let%expect_test "first line insert" =
   [%expect {|
     result: fXXXX bar baz |}]
 
+let%expect_test "null edit" =
+  test "foo bar" (tuple_range (0, 2) (0, 2)) ~change:"";
+  [%expect {|
+    result: foo bar |}]
+
 let%expect_test "no range" =
   let range = None in
   test "foo bar baz" range ~change:"XXXX";
@@ -73,6 +78,11 @@ let%expect_test "insert at the beginning" =
   test "foo\n\bar\nbaz\n" range ~change:"XXX\n";
   [%expect {|
     result: XXX\nfoo\n\bar\nbaz\n |}]
+
+let%expect_test "insert in the middle" =
+  test "ab" (tuple_range (0, 1) (0, 1)) ~change:"---";
+  [%expect {|
+    result: a---b |}]
 
 let%expect_test "replace first line" =
   let range = tuple_range (0, 0) (1, 0) in
@@ -104,5 +114,10 @@ let%expect_test "replace two lines" =
 
 let%expect_test "join lines" =
   test "a\nb" (tuple_range (0, 1) (1, 0)) ~change:"";
+  [%expect {|
+    result: ab |}]
+
+let%expect_test "remove text" =
+  test "a---b" (tuple_range (0, 1) (0, 4)) ~change:"";
   [%expect {|
     result: ab |}]
