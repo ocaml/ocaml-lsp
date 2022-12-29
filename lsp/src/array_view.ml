@@ -67,3 +67,5 @@ let blit t arr ~pos =
   ArrayLabels.blit ~src:t.arr ~src_pos:t.start ~dst:arr ~dst_pos:pos ~len
 
 let copy t = Array.init (t.end_excl - t.start) (fun i -> t.arr.(t.start + i))
+
+let backing_array_pos t p = t.start + p
