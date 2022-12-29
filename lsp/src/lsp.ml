@@ -11,3 +11,4 @@ module Types = Types
 module Uri = Uri0
 module Io = Io
 module Cli = Cli
+module Diff = Diff

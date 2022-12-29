@@ -1,5 +1,6 @@
 module List = Stdlib.ListLabels
 module Option = Stdlib.Option
+module Array = Stdlib.ArrayLabels
 
 module Result = struct
   include Stdlib.Result
@@ -68,6 +69,13 @@ module String = struct
         in
         aux 0 j0;
         Buffer.contents buffer
+
+  module Map = MoreLabels.Map.Make (String)
+end
+
+module Int = struct
+  include Int
+  module Map = MoreLabels.Map.Make (Int)
 end
 
 module Json = struct
