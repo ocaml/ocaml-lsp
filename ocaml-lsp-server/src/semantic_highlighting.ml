@@ -1,5 +1,6 @@
 open Import
 open Fiber.O
+module Array_view = Lsp.Private.Array_view
 
 (* TODO:
 
@@ -947,9 +948,9 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
     ]
   else
     let common_suffix_len =
-      let old_noncommon = Array.View.make old ~pos:left_offset () in
-      let new_noncommon = Array.View.make new_ ~pos:left_offset () in
-      Array.View.common_suffix_len old_noncommon new_noncommon
+      let old_noncommon = Array_view.make old ~pos:left_offset in
+      let new_noncommon = Array_view.make new_ ~pos:left_offset in
+      Array_view.common_suffix_len old_noncommon new_noncommon
     in
     let deleteCount =
       let right_offset_old = old_len - common_suffix_len in

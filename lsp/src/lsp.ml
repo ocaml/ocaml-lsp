@@ -12,3 +12,7 @@ module Uri = Uri0
 module Io = Io
 module Cli = Cli
 module Diff = Diff
+
+module Private = struct
+  module Array_view = Array_view
+end
