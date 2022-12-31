@@ -106,25 +106,21 @@ end
 
 type edit =
   | Insert of string array
-  | Replace of string array * string array
-  | Delete of string array
+  | Replace of
+      { deleted : int
+      ; added : string array
+      }
+  | Delete of { lines : int }
 
 let text_edit ~line edit =
   let deleted_lines, added_lines =
     match edit with
-    | Insert adds -> (None, Some adds)
-    | Replace (dels, adds) -> (Some dels, Some adds)
-    | Delete dels -> (Some dels, None)
+    | Insert adds -> (0, Some adds)
+    | Replace { deleted; added } -> (deleted, Some added)
+    | Delete { lines } -> (lines, None)
   in
   let start = { Position.character = 0; line } in
-  let end_ =
-    { Position.character = 0
-    ; line =
-        (match deleted_lines with
-        | None -> line
-        | Some dels -> line + Array.length dels)
-    }
-  in
+  let end_ = { Position.character = 0; line = line + deleted_lines } in
   let range = { Range.start; end_ } in
   let newText =
     match added_lines with
@@ -151,53 +147,36 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
     let formatted_lines = split_lines formatted in
     Simple_diff.get_diff orig_lines formatted_lines
     |> List.fold_left
-         ~init:(0, [||], [])
+         ~init:(0, 0, [])
          ~f:(fun (line, prev_deleted_lines, edits_rev) edit ->
            match (edit : Simple_diff.diff) with
            | Deleted deleted_lines ->
-             let new_prev_deleted_lines =
-               Array.make
-                 (Array.length prev_deleted_lines
-                 + Array_view.length deleted_lines)
-                 ""
-             in
-             Array.blit
-               ~src:prev_deleted_lines
-               ~src_pos:0
-               ~dst:new_prev_deleted_lines
-               ~dst_pos:0
-               ~len:(Array.length prev_deleted_lines);
-             Array_view.blit
-               deleted_lines
-               new_prev_deleted_lines
-               ~pos:(Array.length prev_deleted_lines);
-             (line, new_prev_deleted_lines, edits_rev)
+             ( line
+             , Array_view.length deleted_lines + prev_deleted_lines
+             , edits_rev )
            | Added added_lines ->
              let added_lines = Array_view.copy added_lines in
              let edit =
                text_edit
                  ~line
-                 (if Array.length prev_deleted_lines > 0 then
-                  Replace (prev_deleted_lines, added_lines)
+                 (if prev_deleted_lines > 0 then
+                  Replace { deleted = prev_deleted_lines; added = added_lines }
                  else Insert added_lines)
              in
-             let line = line + Array.length prev_deleted_lines in
-             (line, [||], edit :: edits_rev)
+             (line + prev_deleted_lines, 0, edit :: edits_rev)
            | Equal equal_lines ->
              let edits_rev =
-               if Array.length prev_deleted_lines > 0 then
-                 text_edit ~line (Delete prev_deleted_lines) :: edits_rev
+               if prev_deleted_lines > 0 then
+                 text_edit ~line (Delete { lines = prev_deleted_lines })
+                 :: edits_rev
                else edits_rev
              in
-             let line =
-               line
-               + Array.length prev_deleted_lines
-               + Array_view.length equal_lines
-             in
-             (line, [||], edits_rev))
+             ( line + prev_deleted_lines + Array_view.length equal_lines
+             , 0
+             , edits_rev ))
   in
   List.rev
   @@
-  if Array.length prev_deleted_lines > 0 then
-    text_edit ~line (Delete prev_deleted_lines) :: edits_rev
+  if prev_deleted_lines > 0 then
+    text_edit ~line (Delete { lines = prev_deleted_lines }) :: edits_rev
   else edits_rev
