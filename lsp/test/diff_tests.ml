@@ -135,3 +135,81 @@ let%expect_test "delete empty line" =
         }
       }
     ] |}]
+
+let%expect_test "regerssion test 1" =
+  Printexc.record_backtrace false;
+  test
+    ~from:
+      {|
+            yyyyyyyyyyyyyyyyy
+          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+              yyyyyyyyyyyyy
+              yyy
+            yyyyyyyyyyyyyyyy
+          in
+|}
+    ~to_:
+      {|
+          in
+          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+|};
+  [%expect
+    {|
+    [
+      {
+        "newText": "          in\n",
+        "range": {
+          "end": { "character": 0, "line": 2 },
+          "start": { "character": 0, "line": 1 }
+        }
+      },
+      {
+        "newText": "",
+        "range": {
+          "end": { "character": 0, "line": 8 },
+          "start": { "character": 0, "line": 4 }
+        }
+      }
+    ] |}]
+
+let%expect_test "regerssion test 2" =
+  Printexc.record_backtrace false;
+  test
+    ~from:
+      {|
+          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+              yyyyyyyyyyyyy
+              yyy
+            yyyyyyyyyyyyyyyy
+          in
+|}
+    ~to_:
+      {|
+          in
+          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+|};
+  [%expect
+    {|
+    [
+      {
+        "newText": "          in\n",
+        "range": {
+          "end": { "character": 0, "line": 1 },
+          "start": { "character": 0, "line": 1 }
+        }
+      },
+      {
+        "newText": "",
+        "range": {
+          "end": { "character": 0, "line": 7 },
+          "start": { "character": 0, "line": 3 }
+        }
+      }
+    ]
+    [FAILURE]
+    result: "\n          in\n          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n          in\n"
+    expected: "\n          in\n          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n" |}]
