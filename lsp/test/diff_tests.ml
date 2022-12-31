@@ -28,7 +28,7 @@ let test ~from ~to_ =
     |> Text_document.text
   in
   if not @@ String.equal to_ to_' then
-    printfn "[FAILURE]\nresult: %S\nexpected: %S" to_' to_
+    printfn "[FAILURE]\nresult:   %S\nexpected: %S" to_' to_
 
 let%expect_test "empty strings" =
   test ~from:"" ~to_:"";
@@ -211,5 +211,5 @@ let%expect_test "regerssion test 2" =
       }
     ]
     [FAILURE]
-    result: "\n          in\n          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n          in\n"
+    result:   "\n          in\n          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n          in\n"
     expected: "\n          in\n          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n" |}]
