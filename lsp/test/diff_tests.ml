@@ -175,41 +175,25 @@ let%expect_test "regerssion test 1" =
     ] |}]
 
 let%expect_test "regerssion test 2" =
-  Printexc.record_backtrace false;
-  test
-    ~from:
-      {|
-          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-              yyyyyyyyyyyyy
-              yyy
-            yyyyyyyyyyyyyyyy
-          in
-|}
-    ~to_:
-      {|
-          in
-          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-|};
+  test ~from:"1\nz\n2" ~to_:"2\n1\n";
   [%expect
     {|
     [
       {
-        "newText": "          in\n",
+        "newText": "2\n",
         "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 1 }
+          "end": { "character": 0, "line": 0 },
+          "start": { "character": 0, "line": 0 }
         }
       },
       {
         "newText": "",
         "range": {
-          "end": { "character": 0, "line": 7 },
-          "start": { "character": 0, "line": 3 }
+          "end": { "character": 0, "line": 3 },
+          "start": { "character": 0, "line": 1 }
         }
       }
     ]
     [FAILURE]
-    result:   "\n          in\n          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n          in\n"
-    expected: "\n          in\n          yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n              yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n" |}]
+    result:   "2\n2"
+    expected: "2\n1\n" |}]
