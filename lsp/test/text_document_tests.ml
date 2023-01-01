@@ -1,17 +1,17 @@
 open Lsp
 open Lsp.Types
+module List = ListLabels
 
 let tuple_range start end_ =
-  Some
-    { Range.start =
-        (let line, character = start in
-         { Position.line; character })
-    ; end_ =
-        (let line, character = end_ in
-         { Position.line; character })
-    }
+  { Range.start =
+      (let line, character = start in
+       { Position.line; character })
+  ; end_ =
+      (let line, character = end_ in
+       { Position.line; character })
+  }
 
-let test text range ~change =
+let test_general text changes =
   let test position_encoding =
     let td =
       let uri = DocumentUri.of_path "" in
@@ -25,7 +25,8 @@ let test text range ~change =
     let td =
       Text_document.apply_content_changes
         td
-        [ TextDocumentContentChangeEvent.create ?range ~text:change () ]
+        (ListLabels.map changes ~f:(fun (range, text) ->
+             TextDocumentContentChangeEvent.create ?range ~text ()))
     in
     Text_document.text td
   in
@@ -37,6 +38,13 @@ let test text range ~change =
     print_endline "[FAILURE] utf16 and utf8 disagree";
     printf "utf16: %s\n" (String.escaped utf16);
     printf "utf8:  %s\n" (String.escaped utf8))
+
+let test text range ~change = test_general text [ (Some range, change) ]
+
+let test_multiple text changes =
+  test_general
+    text
+    (List.map changes ~f:(fun (range, text) -> (Some range, text)))
 
 let%expect_test "first line insert" =
   let range = tuple_range (0, 1) (0, 3) in
@@ -50,8 +58,7 @@ let%expect_test "null edit" =
     result: foo bar |}]
 
 let%expect_test "no range" =
-  let range = None in
-  test "foo bar baz" range ~change:"XXXX";
+  test_general "foo bar baz" [ (None, "XXXX") ];
   [%expect {|
     result: XXXX |}]
 
@@ -121,3 +128,22 @@ let%expect_test "remove text" =
   test "a---b" (tuple_range (0, 1) (0, 4)) ~change:"";
   [%expect {|
     result: ab |}]
+
+let%expect_test "remove newline - 1" =
+  test "\n" (tuple_range (0, 0) (0, 1)) ~change:"";
+  [%expect {| result: \n |}]
+
+let%expect_test "remove newlines - 2" =
+  test_multiple "\nXXX\n" [ (tuple_range (0, 0) (0, 1), "") ];
+  [%expect {|
+    result: \nXXX\n |}]
+
+let%expect_test "remove newlines - 3" =
+  test_multiple
+    "\nXXX\n\n"
+    [ (tuple_range (0, 0) (0, 1), ""); (tuple_range (0, 1) (0, 2), "") ];
+  [%expect
+    {|
+    [FAILURE] utf16 and utf8 disagree
+    utf16: XX\n\n
+    utf8:  \nXXX\n\n |}]
