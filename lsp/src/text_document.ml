@@ -131,34 +131,31 @@ let version (t : t) = t.document.version
 
 let languageId (t : t) = t.document.languageId
 
-let apply_change (t : t) (change : TextDocumentContentChangeEvent.t) =
-  let document =
-    match change.range with
-    | None -> { t.document with text = change.text }
-    | Some range ->
-      let start_offset, end_offset =
-        let utf8 = t.document.text in
-        match t.position_encoding with
-        | `UTF16 -> find_offset_16 ~utf8 ~utf16_range:range
-        | `UTF8 -> find_offset_8 ~utf8 ~utf8_range:range
-      in
-      let text =
-        String.concat
-          ~sep:""
-          [ String.sub t.document.text ~pos:0 ~len:start_offset
-          ; change.text
-          ; String.sub
-              t.document.text
-              ~pos:end_offset
-              ~len:(String.length t.document.text - end_offset)
-          ]
-      in
-      { t.document with text }
-  in
-  { t with document }
+let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
+  match change.range with
+  | None -> change.text
+  | Some range ->
+    let start_offset, end_offset =
+      let utf8 = text in
+      match encoding with
+      | `UTF16 -> find_offset_16 ~utf8 ~utf16_range:range
+      | `UTF8 -> find_offset_8 ~utf8 ~utf8_range:range
+    in
+    String.concat
+      ~sep:""
+      [ String.sub text ~pos:0 ~len:start_offset
+      ; change.text
+      ; String.sub text ~pos:end_offset ~len:(String.length text - end_offset)
+      ]
 
 let apply_content_changes ?version t changes =
-  let t = List.fold_left apply_change t changes in
-  match version with
-  | None -> t
-  | Some version -> { t with document = { t.document with version } }
+  let text =
+    List.fold_left (apply_change t.position_encoding) t.document.text changes
+  in
+  let document = { t.document with text } in
+  let document =
+    match version with
+    | None -> document
+    | Some version -> { document with version }
+  in
+  { t with document }
