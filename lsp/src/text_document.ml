@@ -1,11 +1,19 @@
-open Types
-module String = StringLabels
-module List = ListLabels
-module Map = MoreLabels.Map
+open Import
+
+include struct
+  open Types
+  module DidOpenTextDocumentParams = DidOpenTextDocumentParams
+  module Range = Range
+  module TextDocumentItem = TextDocumentItem
+  module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
+  module TextEdit = TextEdit
+end
+
+exception Outside
 
 exception Invalid_utf8
 
-exception Outside
+let newline = Uchar.of_char '\n'
 
 let find_nth_nl =
   let rec find_nth_nl str nth pos len =
@@ -19,8 +27,6 @@ let find_nth_nl =
     match find_nth_nl s nth start len with
     | n -> n
     | exception Outside -> len
-
-let newline = Uchar.of_char '\n'
 
 let find_utf8_pos =
   let rec find_pos newline char dec =
@@ -133,31 +139,19 @@ let version (t : t) = t.document.version
 
 let languageId (t : t) = t.document.languageId
 
-let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
+let apply_change encoding sz (change : TextDocumentContentChangeEvent.t) =
   match change.range with
-  | None -> change.text
+  | None -> String_zipper.of_string change.text
   | Some range ->
-    let start_offset, end_offset =
-      let utf8 = text in
-      match encoding with
-      | `UTF16 -> find_offset_16 ~utf8 range
-      | `UTF8 -> find_offset_8 ~utf8 range
-    in
-    [| Substring.of_slice text ~pos:0 ~len:start_offset
-     ; Substring.of_slice change.text ~pos:0 ~len:(String.length change.text)
-     ; Substring.of_slice
-         text
-         ~pos:end_offset
-         ~len:(String.length text - end_offset)
-    |]
-    |> Array_view.make ~pos:0 |> Substring.concat
+    String_zipper.apply_change sz range encoding ~replacement:change.text
 
 let apply_content_changes ?version t changes =
   let text =
     List.fold_left
       ~f:(apply_change t.position_encoding)
-      ~init:t.document.text
+      ~init:(String_zipper.of_string t.document.text)
       changes
+    |> String_zipper.to_string
   in
   let document = { t.document with text } in
   let document =

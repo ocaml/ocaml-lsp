@@ -1,6 +1,8 @@
 module List = Stdlib.ListLabels
 module Option = Stdlib.Option
 module Array = Stdlib.ArrayLabels
+module Bytes = Stdlib.BytesLabels
+module Map = Stdlib.MoreLabels.Map
 
 module Result = struct
   include Stdlib.Result
