@@ -15,4 +15,5 @@ module Diff = Diff
 
 module Private = struct
   module Array_view = Array_view
+  module Substring = Substring
 end
