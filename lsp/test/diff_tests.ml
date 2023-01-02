@@ -188,3 +188,77 @@ let%expect_test "regerssion test 2" =
     [FAILURE]
     result:   "2\n2"
     expected: "2\n1\n" |}]
+
+let%expect_test "regression test 3" =
+  (* the diff given here is wierd *)
+  test ~from:"\n\n\nXXX\n" ~to_:"\n\nXXX";
+  [%expect
+    {|
+    [
+      {
+        "newText": "",
+        "range": {
+          "end": { "character": 0, "line": 1 },
+          "start": { "character": 0, "line": 0 }
+        }
+      },
+      {
+        "newText": "XXX",
+        "range": {
+          "end": { "character": 0, "line": 4 },
+          "start": { "character": 0, "line": 3 }
+        }
+      }
+    ]
+    [FAILURE]
+    result:   "\n\nXXX\nXXX"
+    expected: "\n\nXXX" |}]
+
+let%expect_test "regression test 4" =
+  (* the diff given here is wierd *)
+  test ~from:"a\n\nb\n\nc\n" ~to_:"a\nb\nc\n";
+  [%expect
+    {|
+    [
+      {
+        "newText": "",
+        "range": {
+          "end": { "character": 0, "line": 2 },
+          "start": { "character": 0, "line": 1 }
+        }
+      },
+      {
+        "newText": "",
+        "range": {
+          "end": { "character": 0, "line": 4 },
+          "start": { "character": 0, "line": 3 }
+        }
+      }
+    ]
+    [FAILURE]
+    result:   "a\nb\n\n"
+    expected: "a\nb\nc\n" |}]
+
+let%expect_test "regression test 5" =
+  test ~from:"\nXXX\n\n" ~to_:"XXX\n";
+  [%expect
+    {|
+    [
+      {
+        "newText": "",
+        "range": {
+          "end": { "character": 0, "line": 1 },
+          "start": { "character": 0, "line": 0 }
+        }
+      },
+      {
+        "newText": "",
+        "range": {
+          "end": { "character": 0, "line": 3 },
+          "start": { "character": 0, "line": 2 }
+        }
+      }
+    ]
+    [FAILURE]
+    result:   "XXX\n\n"
+    expected: "XXX\n" |}]
