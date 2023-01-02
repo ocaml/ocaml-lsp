@@ -1,9 +1,13 @@
 open Stdune
-module TextEdit = Lsp.Types.TextEdit
-module Text_document = Lsp.Text_document
-module TextDocumentContentChangeEvent = Lsp.Types.TextDocumentContentChangeEvent
-module TextDocumentItem = Lsp.Types.TextDocumentItem
-module DidOpenTextDocumentParams = Lsp.Types.DidOpenTextDocumentParams
+
+include struct
+  open Lsp.Types
+  module Text_document = Lsp.Text_document
+  module TextEdit = TextEdit
+  module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
+  module TextDocumentItem = TextDocumentItem
+  module DidOpenTextDocumentParams = DidOpenTextDocumentParams
+end
 
 let test ~from ~to_ =
   let edits = Lsp.Diff.edit ~from ~to_ in
@@ -18,13 +22,8 @@ let test ~from ~to_ =
       ~position_encoding:`UTF8
       (DidOpenTextDocumentParams.create ~textDocument)
   in
-
-  let changes =
-    List.map edits ~f:(fun { TextEdit.range; newText = text } ->
-        TextDocumentContentChangeEvent.create ~range ~text ())
-  in
   let to_' =
-    Text_document.apply_content_changes text_document changes
+    Text_document.apply_text_document_edits text_document edits
     |> Text_document.text
   in
   if not @@ String.equal to_ to_' then
@@ -184,10 +183,7 @@ let%expect_test "regerssion test 2" =
           "start": { "character": 0, "line": 1 }
         }
       }
-    ]
-    [FAILURE]
-    result:   "2\n2"
-    expected: "2\n1\n" |}]
+    ] |}]
 
 let%expect_test "regression test 3" =
   (* the diff given here is wierd *)
@@ -209,10 +205,7 @@ let%expect_test "regression test 3" =
           "start": { "character": 0, "line": 3 }
         }
       }
-    ]
-    [FAILURE]
-    result:   "\n\nXXX\nXXX"
-    expected: "\n\nXXX" |}]
+    ] |}]
 
 let%expect_test "regression test 4" =
   (* the diff given here is wierd *)
@@ -234,10 +227,7 @@ let%expect_test "regression test 4" =
           "start": { "character": 0, "line": 3 }
         }
       }
-    ]
-    [FAILURE]
-    result:   "a\nb\n\n"
-    expected: "a\nb\nc\n" |}]
+    ] |}]
 
 let%expect_test "regression test 5" =
   test ~from:"\nXXX\n\n" ~to_:"XXX\n";
@@ -258,7 +248,4 @@ let%expect_test "regression test 5" =
           "start": { "character": 0, "line": 2 }
         }
       }
-    ]
-    [FAILURE]
-    result:   "XXX\n\n"
-    expected: "XXX\n" |}]
+    ] |}]

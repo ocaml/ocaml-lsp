@@ -1,5 +1,7 @@
 open Types
 module String = StringLabels
+module List = ListLabels
+module Map = MoreLabels.Map
 
 exception Invalid_utf8
 
@@ -41,7 +43,7 @@ let find_utf8_pos =
     assert (Uutf.decoder_line dec = 1);
     find_pos newline character dec + start
 
-let find_offset_8 ~utf8 ~utf8_range:range =
+let find_offset_8 ~utf8 range =
   let { Range.start; end_ } = range in
   let start_line_offset = find_nth_nl utf8 ~nth:start.line ~start:0 in
   let end_line_offset =
@@ -62,7 +64,7 @@ let find_offset_8 ~utf8 ~utf8_range:range =
   in
   (start_offset, end_offset)
 
-let find_offset_16 ~utf8 ~utf16_range:range =
+let find_offset_16 ~utf8 range =
   let dec =
     Uutf.decoder ~nln:(`ASCII newline) ~encoding:`UTF_8 (`String utf8)
   in
@@ -138,8 +140,8 @@ let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
     let start_offset, end_offset =
       let utf8 = text in
       match encoding with
-      | `UTF16 -> find_offset_16 ~utf8 ~utf16_range:range
-      | `UTF8 -> find_offset_8 ~utf8 ~utf8_range:range
+      | `UTF16 -> find_offset_16 ~utf8 range
+      | `UTF8 -> find_offset_8 ~utf8 range
     in
     String.concat
       ~sep:""
@@ -150,7 +152,10 @@ let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
 
 let apply_content_changes ?version t changes =
   let text =
-    List.fold_left (apply_change t.position_encoding) t.document.text changes
+    List.fold_left
+      ~f:(apply_change t.position_encoding)
+      ~init:t.document.text
+      changes
   in
   let document = { t.document with text } in
   let document =
@@ -158,4 +163,60 @@ let apply_content_changes ?version t changes =
     | None -> document
     | Some version -> { document with version }
   in
+  { t with document }
+
+type change =
+  { start : int
+  ; stop : int
+  ; replacement : string
+  }
+
+module Edit_map = Map.Make (struct
+  type t = int
+
+  let compare = Int.compare
+end)
+
+let add_edit map change =
+  (* TODO check non overlapping property *)
+  Edit_map.update map ~key:change.start ~f:(function
+      | None -> Some [ change ]
+      | Some changes -> Some (change :: changes))
+
+let rec simplify_changes acc text find_position (changes : TextEdit.t list) =
+  match changes with
+  | [] -> acc
+  | { range; newText = replacement } :: changes ->
+    let start, stop = find_position ~utf8:text range in
+    let change = { start; stop; replacement } in
+    let acc = add_edit acc change in
+    simplify_changes acc text find_position changes
+
+let apply_changes text encoding changes =
+  let find_position =
+    match encoding with
+    | `UTF8 -> find_offset_8
+    | `UTF16 -> find_offset_16
+  in
+  let simplified = simplify_changes Edit_map.empty text find_position changes in
+  let pos = ref 0 in
+  let b = Buffer.create (String.length text) in
+  Edit_map.iter simplified ~f:(fun ~key:start ~data ->
+      (* guaranteed by the non overlapping property we aren't yet checking *)
+      assert (start >= !pos);
+      Buffer.add_substring b text !pos (start - !pos);
+      List.rev data
+      |> List.iter ~f:(fun { start = start'; stop; replacement } ->
+             assert (start = start');
+             Buffer.add_string b replacement;
+             (* if this is an insert, it's allowed to increase the position *)
+             pos := max !pos stop));
+  Buffer.add_substring b text !pos (String.length text - !pos);
+  Buffer.contents b
+
+let set_version t ~version = { t with document = { t.document with version } }
+
+let apply_text_document_edits t (edits : TextEdit.t list) =
+  let text = apply_changes t.document.text t.position_encoding edits in
+  let document = { t.document with text } in
   { t with document }
