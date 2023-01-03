@@ -30,3 +30,5 @@ val sub : 'a t -> pos:int -> len:int -> 'a t
 val blit : 'a t -> 'a array -> pos:int -> unit
 
 val copy : 'a t -> 'a array
+
+val backing_array_pos : _ t -> int -> int

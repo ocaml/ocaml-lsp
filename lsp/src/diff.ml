@@ -14,9 +14,9 @@ module Simple_diff = struct
     | Added of item Array_view.t
     | Equal of item Array_view.t
 
-  let longest_subsequence old_lines new_lines =
-    let _, old_index_map =
-      Array_view.fold_left
+  let line_map old_lines new_lines =
+    let _, map =
+      Array.fold_left
         old_lines
         ~init:(0, String.Map.empty)
         ~f:(fun (i, m) line ->
@@ -25,35 +25,45 @@ module Simple_diff = struct
                 | None -> Some [ i ]
                 | Some xs -> Some (i :: xs)) ))
     in
+    Array.map new_lines ~f:(fun x ->
+        String.Map.find_opt x map |> Option.value ~default:[])
+
+  let longest_subsequence (map : int list array) old_lines new_lines =
     let overlap = ref Int.Map.empty in
 
     let sub_start_old = ref 0 in
     let sub_start_new = ref 0 in
     let sub_length = ref 0 in
 
-    Array_view.iteri new_lines ~f:(fun inew v ->
+    let old_lines_pos = Array_view.backing_array_pos old_lines 0 in
+    let old_len = Array_view.length old_lines in
+    Array_view.iteri new_lines ~f:(fun inew _v ->
         let overlap' = ref Int.Map.empty in
         (* where does the new line appear in the old text *)
-        let old_indices =
-          String.Map.find_opt v old_index_map |> Option.value ~default:[]
-        in
+        let old_indices = map.(Array_view.backing_array_pos new_lines inew) in
         List.iter old_indices ~f:(fun iold ->
-            let o =
-              1
-              + (Int.Map.find_opt (iold - 1) !overlap |> Option.value ~default:0)
-            in
-            overlap' := Int.Map.add !overlap' ~key:iold ~data:o;
+            let iold = iold - old_lines_pos in
+            if iold >= 0 && iold < old_len then (
+              let o =
+                1
+                + (Int.Map.find_opt (iold - 1) !overlap
+                  |> Option.value ~default:0)
+              in
+              overlap' := Int.Map.add !overlap' ~key:iold ~data:o;
 
-            if o > !sub_length then (
-              sub_length := o;
-              sub_start_old := iold - o + 1;
-              sub_start_new := inew - o + 1));
+              if o > !sub_length then (
+                sub_length := o;
+                sub_start_old := iold - o + 1;
+                sub_start_new := inew - o + 1)));
 
         overlap := !overlap');
 
     (!sub_start_new, !sub_start_old, !sub_length)
 
   let get_diff old_lines new_lines =
+    let old_lines = Array.of_list old_lines in
+    let new_lines = Array.of_list new_lines in
+    let map = line_map old_lines new_lines in
     let rec get_diff' old_lines new_lines =
       match (Array_view.is_empty old_lines, Array_view.is_empty new_lines) with
       | true, true -> []
@@ -61,7 +71,7 @@ module Simple_diff = struct
       | true, false -> [ Added new_lines ]
       | false, false ->
         let sub_start_new, sub_start_old, sub_length =
-          longest_subsequence old_lines new_lines
+          longest_subsequence map old_lines new_lines
         in
         if sub_length = 0 then [ Deleted old_lines; Added new_lines ]
         else
@@ -90,7 +100,7 @@ module Simple_diff = struct
             ; get_diff' old_lines_postsubseq new_lines_postsubseq
             ]
     in
-    let make list = Array_view.make ~pos:0 (Array.of_list list) in
+    let make a = Array_view.make ~pos:0 a in
     get_diff' (make old_lines) (make new_lines)
 end
 
