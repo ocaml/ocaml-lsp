@@ -143,12 +143,14 @@ let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
       | `UTF16 -> find_offset_16 ~utf8 range
       | `UTF8 -> find_offset_8 ~utf8 range
     in
-    String.concat
-      ~sep:""
-      [ String.sub text ~pos:0 ~len:start_offset
-      ; change.text
-      ; String.sub text ~pos:end_offset ~len:(String.length text - end_offset)
-      ]
+    [| Substring.of_slice text ~pos:0 ~len:start_offset
+     ; Substring.of_slice change.text ~pos:0 ~len:(String.length change.text)
+     ; Substring.of_slice
+         text
+         ~pos:end_offset
+         ~len:(String.length text - end_offset)
+    |]
+    |> Array_view.make ~pos:0 |> Substring.concat
 
 let apply_content_changes ?version t changes =
   let text =
