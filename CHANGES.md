@@ -2,26 +2,36 @@
 
 ## Features
 
+- Enable [semantic highlighting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens)
+  support by default (#933)
+
 - Support connecting over pipes and socket. Pipes on Windows aren't yet
   supported (#946)
 
-- Semantic highlighting support is enabled by default (#933)
+  [More](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#implementationConsiderations)
+  about communication channels in LSP specification.
 
-- Re-enable `ocamlformat-rpc` for formatting code snippets (but not files) (#920, #939)
+- Re-enable `ocamlformat-rpc` for formatting code snippets (but not files and
+  not on Windows) (#920, #939)
 
-  One needs to have either `ocamlformat` version > 0.21.0 or, otherwise,
-  `ocamlformat-rpc` package installed.
+  One needs to have installed either `ocamlformat` package version > 0.21.0 or,
+  otherwise, `ocamlformat-rpc` package. Note that previously `ocamlformat-rpc`
+  came in a standalone OPAM package, but since `ocamlformat` version > 0.21.0,
+  it comes within `ocamlformat` package.
 
-- Add custom ocamllsp/hoverExtended request (#561)
+- Add custom
+  [`ocamllsp/hoverExtended`](https://github.com/ocaml/ocaml-lsp/blob/e165f6a3962c356adc7364b9ca71788e93489dd0/ocaml-lsp-server/docs/ocamllsp/hoverExtended-spec.md#L1)
+  request (#561)
 
 - Support utf-8 position encoding clients (#919)
 
-- Upgrade to merlin 4.7 and use merlin's `verbosity=smart` by default, which
-  allows unwrapping module alias types (#942)
+  [More](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#position) about position encoding in LSP specification.
+
+- Show unwrapped module alias types on hovering over module names. This is due
+  to upgrading to merlin 4.7 and using merlin's `verbosity=smart` by default
+  (#942)
 
 ## Fixes
-
-- Fix document syncing for ranges that span an entire line (#927)
 
 - Respect the client's completion item resolve and preSelect capabilities
   (#925, #936)
@@ -30,8 +40,10 @@
 
 - Fix semantic highlighting of "long identifiers," e.g., `Foo.Bar.x` (#932)
 
-- Fix syncing of document contents. Previously, whole line edits would
-  incorrectly eat the newline characters. (#971)
+- Fix syncing of document contents:
+
+  - For ranges that span an entire line (#927)
+  - Previously, whole line edits would incorrectly eat the newline characters (#971)
 
 # 1.14.2
 
