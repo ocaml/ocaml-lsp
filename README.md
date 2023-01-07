@@ -162,7 +162,7 @@ Note that degrees of support for each LSP request are varying.
 
 ### Semantic highlighting
 
-> since OCaml-LSP 1.15.0 (unreleased for OCaml 4, released for OCaml 5 as `1.15.0~5.0preview1`)
+> since OCaml-LSP 1.15.0 (since version `1.15.0-4.14` for OCaml 4, `1.15.0-5.0` for OCaml 5)
 
 Semantic highlighting support is enabled by default.
 
