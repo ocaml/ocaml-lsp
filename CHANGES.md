@@ -1,6 +1,8 @@
-# Unreleased
+# 1.15.0-5.0
 
 ## Features
+
+- Add support for OCaml 5.0
 
 - Enable [semantic highlighting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens)
   support by default (#933)
