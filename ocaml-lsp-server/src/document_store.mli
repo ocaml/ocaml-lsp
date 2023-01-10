@@ -30,6 +30,6 @@ val close_document : t -> Uri.t -> unit Fiber.t
 
 val fold : t -> init:'acc -> f:(Document.t -> 'acc -> 'acc) -> 'acc
 
-val change_all : t -> f:(Document.t -> Document.t Fiber.t) -> unit Fiber.t
+val parallel_iter : t -> f:(Document.t -> unit Fiber.t) -> unit Fiber.t
 
 val close_all : t -> unit Fiber.t
