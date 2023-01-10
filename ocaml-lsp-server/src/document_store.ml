@@ -37,7 +37,7 @@ type doc =
   }
 
 type t =
-  { db : (Uri.t, doc) Table.t
+  { db : (Uri.t, doc ref) Table.t
   ; server : server
   ; (* The pool is needed to run subscribe/unsubscribe requests. To prevent
        deadlocks with synchronous responses to lsp. In the future, these
@@ -102,14 +102,15 @@ let open_document t doc =
     Table.set
       t.db
       key
-      { document = Some doc; promotions = 0; semantic_tokens_cache = None };
+      (ref
+         { document = Some doc; promotions = 0; semantic_tokens_cache = None });
     Fiber.return ()
   | Some d ->
-    assert (d.document = None);
-    Table.set t.db key { d with document = Some doc };
+    assert (!d.document = None);
+    d := { !d with document = Some doc };
     unregister_request t [ key ]
 
-let get_opt t uri = Table.find t.db uri |> Option.bind ~f:(fun d -> d.document)
+let get_opt t uri = Table.find t.db uri |> Option.bind ~f:(fun d -> !d.document)
 
 let no_document_found uri = function
   | Some s -> s
@@ -125,13 +126,12 @@ let no_document_found uri = function
 
 let get' t uri = Table.find t.db uri |> no_document_found uri
 
-let get t uri = (get' t uri).document |> no_document_found uri
+let get t uri = !(get' t uri).document |> no_document_found uri
 
 let change_document t uri ~f =
   let doc = get' t uri in
-  let document = f (no_document_found uri doc.document) in
-  let doc = { doc with document = Some document } in
-  Table.set t.db uri doc;
+  let document = f (no_document_found uri !doc.document) in
+  doc := { !doc with document = Some document };
   document
 
 let maybe_close_doc (doc : doc) =
@@ -144,13 +144,14 @@ let close_document t uri =
       match Table.find t.db uri with
       | None -> Fiber.return ()
       | Some doc ->
-        let* () = maybe_close_doc doc in
-        if doc.promotions = 0 then (
+        let close_doc () = maybe_close_doc !doc in
+        if !doc.promotions = 0 then (
           Table.remove t.db uri;
-          Fiber.return ())
+          close_doc ())
         else (
-          Table.set t.db uri { doc with document = None };
-          register_request t [ uri ]))
+          doc := { !doc with document = None };
+          Fiber.fork_and_join_unit close_doc (fun () ->
+              register_request t [ uri ])))
 
 let unregister_promotions t uris =
   let* () = Fiber.return () in
@@ -158,53 +159,53 @@ let unregister_promotions t uris =
       match Table.find t.db uri with
       | None -> false
       | Some doc ->
-        let doc = { doc with promotions = doc.promotions - 1 } in
-        let unsubscribe = doc.promotions = 0 in
-        if unsubscribe && doc.document = None then Table.remove t.db uri
-        else Table.set t.db uri doc;
+        doc := { !doc with promotions = !doc.promotions - 1 };
+        let unsubscribe = !doc.promotions = 0 in
+        if unsubscribe && !doc.document = None then Table.remove t.db uri;
         unsubscribe)
   |> unregister_request t
 
 let register_promotions t uris =
   let* () = Fiber.return () in
   List.filter uris ~f:(fun uri ->
-      let doc, subscribe =
-        match Table.find t.db uri with
-        | None ->
-          ( { document = None; promotions = 0; semantic_tokens_cache = None }
-          , true )
-        | Some doc -> ({ doc with promotions = doc.promotions + 1 }, false)
-      in
-      Table.set t.db uri doc;
-      subscribe)
+      match Table.find t.db uri with
+      | None ->
+        let doc =
+          ref { document = None; promotions = 0; semantic_tokens_cache = None }
+        in
+        Table.set t.db uri doc;
+        true
+      | Some doc ->
+        doc := { !doc with promotions = !doc.promotions + 1 };
+        false)
   |> register_request t
 
 let update_semantic_tokens_cache :
     t -> Uri.t -> resultId:string -> tokens:int array -> unit =
  fun t uri ~resultId ~tokens ->
   let doc = get' t uri in
-  doc.semantic_tokens_cache <- Some { resultId; tokens }
+  !doc.semantic_tokens_cache <- Some { resultId; tokens }
 
 let get_semantic_tokens_cache : t -> Uri.t -> semantic_tokens_cache option =
  fun t uri ->
   let doc = get' t uri in
-  doc.semantic_tokens_cache
+  !doc.semantic_tokens_cache
 
 let parallel_iter t ~f =
   let all = Table.fold ~init:[] t.db ~f:(fun doc acc -> doc :: acc) in
   Fiber.parallel_iter all ~f:(fun doc ->
-      match doc.document with
+      match !doc.document with
       | None -> Fiber.return ()
       | Some document -> f document)
 
 let fold t ~init ~f =
   Table.fold t.db ~init ~f:(fun doc acc ->
-      match doc.document with
+      match !doc.document with
       | None -> acc
       | Some x -> f x acc)
 
 let close_all t =
   Fiber.of_thunk (fun () ->
-      let docs = Table.fold t.db ~init:[] ~f:(fun doc acc -> doc :: acc) in
+      let docs = Table.fold t.db ~init:[] ~f:(fun doc acc -> !doc :: acc) in
       Table.clear t.db;
       Fiber.parallel_iter docs ~f:maybe_close_doc)
