@@ -13,7 +13,11 @@ val version : t -> int
 
 val text : t -> string
 
-exception Invalid_utf8
+type invalid_utf =
+  | Malformed of string
+  | Insufficient_input
+
+exception Invalid_utf of invalid_utf
 
 val apply_content_changes :
   ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t

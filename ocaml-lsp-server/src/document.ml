@@ -222,15 +222,21 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t)
 
 let update_text ?version t changes =
   match Text_document.apply_content_changes ?version (tdoc t) changes with
-  | exception Text_document.Invalid_utf8 ->
+  | exception Text_document.Invalid_utf error ->
     Log.log ~section:"warning" (fun () ->
+        let error =
+          match error with
+          | Malformed input ->
+            [ ("message", `String "malformed input"); ("input", `String input) ]
+          | Insufficient_input -> [ ("message", `String "insufficient input") ]
+        in
         Log.msg
           "dropping update due to invalid utf8"
-          [ ( "changes"
-            , Json.yojson_of_list
-                TextDocumentContentChangeEvent.yojson_of_t
-                changes )
-          ]);
+          (( "changes"
+           , Json.yojson_of_list
+               TextDocumentContentChangeEvent.yojson_of_t
+               changes )
+          :: error));
     t
   | tdoc -> (
     match t with
