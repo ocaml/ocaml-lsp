@@ -133,10 +133,24 @@ let version (t : t) = t.document.version
 
 let languageId (t : t) = t.document.languageId
 
+let debug =
+  match Sys.getenv_opt "OCAMLLSP_DEBUG_CHANGES" with
+  | None -> None
+  | Some f -> Some (open_out f)
+
+let () =
+  at_exit (fun () ->
+      match debug with
+      | None -> ()
+      | Some f -> close_out f)
+
 let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
   match change.range with
   | None -> change.text
   | Some range ->
+    (match debug with
+    | None -> ()
+    | Some out -> Printf.fprintf out "%s\n---\n" text);
     let start_offset, end_offset =
       let utf8 = text in
       match encoding with
@@ -153,12 +167,28 @@ let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
     |> Array_view.make ~pos:0 |> Substring.concat
 
 let apply_content_changes ?version t changes =
+  (match debug with
+  | None -> ()
+  | Some out ->
+    Printf.fprintf
+      out
+      "changes:\n%s\n---\n%s\n---\n"
+      (Yojson.Safe.pretty_to_string
+         ~std:false
+         (`List
+           (List.map changes ~f:TextDocumentContentChangeEvent.yojson_of_t)))
+      t.document.text);
   let text =
     List.fold_left
       ~f:(apply_change t.position_encoding)
       ~init:t.document.text
       changes
   in
+  (match debug with
+  | None -> ()
+  | Some out ->
+    Printf.fprintf out "%s\n---\n" text;
+    flush out);
   let document = { t.document with text } in
   let document =
     match version with
