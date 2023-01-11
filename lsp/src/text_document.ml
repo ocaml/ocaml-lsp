@@ -136,7 +136,10 @@ let languageId (t : t) = t.document.languageId
 let debug =
   match Sys.getenv_opt "OCAMLLSP_DEBUG_CHANGES" with
   | None -> None
-  | Some f -> Some (open_out f)
+  | Some fname ->
+    (* having a timestamp is super helpful *)
+    (* TODO: respect file extension *)
+    Some (open_out @@ fname ^ (Unix.time () |> string_of_float))
 
 let () =
   at_exit (fun () ->
@@ -144,51 +147,91 @@ let () =
       | None -> ()
       | Some f -> close_out f)
 
+let didChange_id = ref 0
+
+let changeEvent_id = ref 0
+
+let dprintf f =
+  match debug with
+  | None -> ()
+  | Some out -> f out
+
 let apply_change encoding text (change : TextDocumentContentChangeEvent.t) =
   match change.range with
   | None -> change.text
   | Some range ->
-    (match debug with
-    | None -> ()
-    | Some out -> Printf.fprintf out "%s\n---\n" text);
     let start_offset, end_offset =
       let utf8 = text in
       match encoding with
       | `UTF16 -> find_offset_16 ~utf8 range
       | `UTF8 -> find_offset_8 ~utf8 range
     in
-    [| Substring.of_slice text ~pos:0 ~len:start_offset
-     ; Substring.of_slice change.text ~pos:0 ~len:(String.length change.text)
-     ; Substring.of_slice
-         text
-         ~pos:end_offset
-         ~len:(String.length text - end_offset)
-    |]
-    |> Array_view.make ~pos:0 |> Substring.concat
+    let new_text =
+      [| Substring.of_slice text ~pos:0 ~len:start_offset
+       ; Substring.of_slice change.text ~pos:0 ~len:(String.length change.text)
+       ; Substring.of_slice
+           text
+           ~pos:end_offset
+           ~len:(String.length text - end_offset)
+      |]
+      |> Array_view.make ~pos:0 |> Substring.concat
+    in
+    dprintf (fun out ->
+        Printf.fprintf
+          out
+          {|\t--- [begin] %d-%d (after change event is applied)
+%s
+\t--- [end] %d-%d
+|}
+          !didChange_id
+          !changeEvent_id
+          new_text
+          !didChange_id
+          !changeEvent_id);
+    incr changeEvent_id;
+    new_text
 
 let apply_content_changes ?version t changes =
-  (match debug with
-  | None -> ()
-  | Some out ->
-    Printf.fprintf
-      out
-      "changes:\n%s\n---\n%s\n---\n"
-      (Yojson.Safe.pretty_to_string
-         ~std:false
-         (`List
-           (List.map changes ~f:TextDocumentContentChangeEvent.yojson_of_t)))
-      t.document.text);
+  dprintf (fun out ->
+      Printf.fprintf
+        out
+        {|--- didChange notification (id - %d)
+--- change events:
+%s
+--- original - before %d is applied
+%s
+--- applying change events:
+|}
+        !didChange_id
+        (Yojson.Safe.pretty_to_string
+           ~std:false
+           (`List
+             (List.map changes ~f:TextDocumentContentChangeEvent.yojson_of_t)))
+        !didChange_id
+        t.document.text);
   let text =
     List.fold_left
       ~f:(apply_change t.position_encoding)
       ~init:t.document.text
       changes
   in
+  changeEvent_id := 0;
   (match debug with
   | None -> ()
   | Some out ->
-    Printf.fprintf out "%s\n---\n" text;
+    Printf.fprintf
+      out
+      {|
+--- final text - after %d is applied
+%s
+--- [end] final text - %d
+
+|}
+      !didChange_id
+      text
+      !didChange_id;
     flush out);
+  incr didChange_id;
   let document = { t.document with text } in
   let document =
     match version with
