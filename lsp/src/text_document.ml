@@ -185,14 +185,14 @@ let add_edit map change =
       | None -> Some [ change ]
       | Some changes -> Some (change :: changes))
 
-let rec simplify_changes acc text find_position (changes : TextEdit.t list) =
-  match changes with
-  | [] -> acc
-  | { range; newText = replacement } :: changes ->
-    let start, stop = find_position ~utf8:text range in
-    let change = { start; stop; replacement } in
-    let acc = add_edit acc change in
-    simplify_changes acc text find_position changes
+let simplify_changes text find_position (changes : TextEdit.t list) =
+  List.fold_left
+    changes
+    ~init:Edit_map.empty
+    ~f:(fun acc { TextEdit.range; newText = replacement } ->
+      let start, stop = find_position ~utf8:text range in
+      let change = { start; stop; replacement } in
+      add_edit acc change)
 
 let apply_changes text encoding changes =
   let find_position =
@@ -200,7 +200,7 @@ let apply_changes text encoding changes =
     | `UTF8 -> find_offset_8
     | `UTF16 -> find_offset_16
   in
-  let simplified = simplify_changes Edit_map.empty text find_position changes in
+  let simplified = simplify_changes text find_position changes in
   let pos = ref 0 in
   let b = Buffer.create (String.length text) in
   Edit_map.iter simplified ~f:(fun ~key:start ~data ->
