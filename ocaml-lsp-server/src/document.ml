@@ -128,22 +128,15 @@ module Single_pipeline : sig
     -> f:(Mpipeline.t -> 'a)
     -> ('a, Exn_with_backtrace.t) result Fiber.t
 end = struct
-  type t =
-    { thread : Lev_fiber.Thread.t
-    ; mutable last : (Text_document.t * Mconfig.t * Mpipeline.t) option
-    }
+  type t = { thread : Lev_fiber.Thread.t } [@@unboxed]
 
-  let create thread = { thread; last = None }
+  let create thread = { thread }
 
   let use t ~doc ~config ~f =
     let* config = Merlin_config.config config in
     let make_pipeline =
-      match t.last with
-      | Some (doc', config', pipeline) when doc' == doc && config == config' ->
-        fun () -> pipeline
-      | _ ->
-        let source = Msource.make (Text_document.text doc) in
-        fun () -> Mpipeline.make config source
+      let source = Msource.make (Text_document.text doc) in
+      fun () -> Mpipeline.make config source
     in
     let task =
       match
@@ -152,7 +145,7 @@ end = struct
             let pipeline = make_pipeline () in
             let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
             let stop = Unix.time () in
-            (res, pipeline, start, stop))
+            (res, start, stop))
       with
       | Error `Stopped -> assert false
       | Ok task -> task
@@ -160,7 +153,7 @@ end = struct
     let* res = await task in
     match res with
     | Error exn -> Fiber.return (Error exn)
-    | Ok (res, pipeline, start, stop) ->
+    | Ok (res, start, stop) ->
       let event =
         let module Event = Chrome_trace.Event in
         let dur = Event.Timestamp.of_float_seconds (stop -. start) in
@@ -172,7 +165,6 @@ end = struct
         in
         Event.complete ~dur fields
       in
-      t.last <- Some (doc, config, pipeline);
       let+ () = Metrics.report event in
       Ok res
 end

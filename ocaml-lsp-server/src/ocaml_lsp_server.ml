@@ -758,13 +758,7 @@ let on_notification server (notification : Client_notification.t) :
       ( Log.log ~section:"on receive DidSaveTextDocument" @@ fun () ->
         Log.msg "saved document is not in the store" [] );
       Fiber.return state
-    | Some _ ->
-      let doc =
-        Document_store.change_document store uri ~f:(fun doc ->
-            (* we need [update_text] with no changes to get a new merlin
-               pipeline; otherwise the diagnostics don't get updated *)
-            Document.update_text doc [])
-      in
+    | Some doc ->
       let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
       state)
   | ChangeWorkspaceFolders change ->

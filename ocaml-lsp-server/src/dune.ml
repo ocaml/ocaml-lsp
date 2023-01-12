@@ -263,15 +263,11 @@ end = struct
                   match p with
                   | Failed | Interrupted | Success ->
                     let* () =
-                      Document_store.change_all document_store ~f:(fun doc ->
+                      Document_store.parallel_iter document_store ~f:(fun doc ->
                           match Document.kind doc with
-                          | `Other -> Fiber.return doc
+                          | `Other -> Fiber.return ()
                           | `Merlin merlin ->
-                            let doc = Document.update_text doc [] in
-                            let+ () =
-                              Diagnostics.merlin_diagnostics diagnostics merlin
-                            in
-                            doc)
+                            Diagnostics.merlin_diagnostics diagnostics merlin)
                     in
                     Diagnostics.send diagnostics `All
                   | _ -> Fiber.return ())
