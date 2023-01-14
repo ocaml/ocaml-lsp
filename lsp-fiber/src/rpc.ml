@@ -35,7 +35,7 @@ module type S = sig
   type 'state t
 
   module Handler : sig
-    type 'a session
+    type 'a session := 'a t
 
     type 'state on_request =
       { on_request :
@@ -50,7 +50,6 @@ module type S = sig
       -> unit
       -> 'state t
   end
-  with type 'a session := 'a t
 
   val state : 'a t -> 'a
 
@@ -65,9 +64,9 @@ module type S = sig
   val cancel_token : unit -> Fiber.Cancel.t option Fiber.t
 
   module Batch : sig
-    type t
+    type 'a session := 'a t
 
-    type _ session
+    type t
 
     val create : _ session -> t
 
@@ -81,7 +80,6 @@ module type S = sig
 
     val submit : t -> unit Fiber.t
   end
-  with type 'a session := 'a t
 end
 
 module type Request_intf = sig
