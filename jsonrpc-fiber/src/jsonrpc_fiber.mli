@@ -29,9 +29,9 @@ end) : sig
   type 'state t
 
   module Context : sig
-    type ('state, 'message) t
+    type 'a session := 'a t
 
-    type 'a session
+    type ('state, 'message) t
 
     val message : (_, 'message) t -> 'message
 
@@ -39,7 +39,6 @@ end) : sig
 
     val session : ('a, _) t -> 'a session
   end
-  with type 'a session := 'a t
 
   val create :
        ?on_request:
