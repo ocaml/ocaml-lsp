@@ -53,7 +53,7 @@ module Merlin : sig
 
   val timer : t -> Lev_fiber.Timer.Wheel.task
 
-  val with_pipeline_exn : t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
+  val with_pipeline_exn : ?name:string -> t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
   val dispatch :
     t -> 'a Query_protocol.t -> ('a, Exn_with_backtrace.t) result Fiber.t

@@ -305,7 +305,10 @@ let compute (state : State.t) (params : FoldingRangeParams.t) =
       | `Other -> Fiber.return None
       | `Merlin m ->
         let+ ranges =
-          Document.Merlin.with_pipeline_exn m (fun pipeline ->
+          Document.Merlin.with_pipeline_exn
+            ~name:"folding range"
+            m
+            (fun pipeline ->
               let parsetree = Mpipeline.reader_parsetree pipeline in
               fold_over_parsetree parsetree)
         in

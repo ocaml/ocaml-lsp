@@ -122,7 +122,8 @@ module Single_pipeline : sig
   val create : Lev_fiber.Thread.t -> t
 
   val use :
-       t
+       ?name:string
+    -> t
     -> doc:Text_document.t
     -> config:Merlin_config.t
     -> f:(Mpipeline.t -> 'a)
@@ -132,7 +133,7 @@ end = struct
 
   let create thread = { thread }
 
-  let use t ~doc ~config ~f =
+  let use ?name t ~doc ~config ~f =
     let* config = Merlin_config.config config in
     let make_pipeline =
       let source = Msource.make (Text_document.text doc) in
@@ -158,9 +159,11 @@ end = struct
         let module Event = Chrome_trace.Event in
         let dur = Event.Timestamp.of_float_seconds (stop -. start) in
         let fields =
+          let name = Option.value name ~default:"unknown" in
           Event.common_fields
+            ~cat:[ "merlin" ]
             ~ts:(Event.Timestamp.of_float_seconds start)
-            ~name:"merlin"
+            ~name
             ()
         in
         Event.complete ~dur fields
@@ -245,13 +248,13 @@ module Merlin = struct
 
   let kind t = Kind.of_fname (Uri.to_path (uri (Merlin t)))
 
-  let with_pipeline (t : t) f =
-    Single_pipeline.use t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
+  let with_pipeline ?name (t : t) f =
+    Single_pipeline.use ?name t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
 
   let mconfig (t : t) = Merlin_config.config t.merlin_config
 
-  let with_pipeline_exn doc f =
-    let+ res = with_pipeline doc f in
+  let with_pipeline_exn ?name doc f =
+    let+ res = with_pipeline ?name doc f in
     match res with
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
