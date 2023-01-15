@@ -15,8 +15,6 @@ let sprintf = Printf.sprintf
 module String = struct
   include StringLabels
 
-  let print () s = Printf.sprintf "%S" s
-
   let index = index_opt
 
   let is_empty s = length s = 0
