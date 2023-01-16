@@ -284,7 +284,10 @@ let merlin_diagnostics diagnostics merlin =
     let command =
       Query_protocol.Errors { lexing = true; parsing = true; typing = true }
     in
-    Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+    Document.Merlin.with_pipeline_exn
+      ~name:"diagnostics"
+      merlin
+      (fun pipeline ->
         match Query_commands.dispatch pipeline command with
         | exception Merlin_extend.Extend_main.Handshake.Error error ->
           let message =

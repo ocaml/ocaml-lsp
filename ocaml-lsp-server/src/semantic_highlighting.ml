@@ -857,8 +857,10 @@ let gen_new_id =
 
 let compute_tokens doc =
   let+ parsetree, source =
-    Document.Merlin.with_pipeline_exn doc (fun p ->
-        (Mpipeline.reader_parsetree p, Mpipeline.raw_source p))
+    Document.Merlin.with_pipeline_exn
+      ~name:"semantic highlighting"
+      doc
+      (fun p -> (Mpipeline.reader_parsetree p, Mpipeline.raw_source p))
   in
   let module Fold = Parsetree_fold (struct
     let source = Msource.text source

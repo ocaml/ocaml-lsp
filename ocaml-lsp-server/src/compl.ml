@@ -204,7 +204,10 @@ module Complete_by_prefix = struct
   let complete doc prefix pos ~deprecated ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
-      Document.Merlin.with_pipeline_exn doc (dispatch_cmd ~prefix logical_pos)
+      Document.Merlin.with_pipeline_exn
+        ~name:"completion-prefix"
+        doc
+        (dispatch_cmd ~prefix logical_pos)
     in
     process_dispatch_resp ~deprecated ~resolve doc pos completion
 end
@@ -315,7 +318,10 @@ let complete (state : State.t)
                   { ci with CompletionItem.preselect = Some true } :: rest)
             in
             let+ construct_cmd_resp, compl_by_prefix_resp =
-              Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+              Document.Merlin.with_pipeline_exn
+                ~name:"completion"
+                merlin
+                (fun pipeline ->
                   let construct_cmd_resp =
                     Complete_with_construct.dispatch_cmd position pipeline
                   in
