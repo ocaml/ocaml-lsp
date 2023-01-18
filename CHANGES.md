@@ -5,7 +5,7 @@
 - Fix race condition when a document was being edited and dune in watch mode
   was running (#1004, fixes #941, #1003)
 
-# 1.15.0-4.14
+# 1.15.0
 
 ## Features
 
