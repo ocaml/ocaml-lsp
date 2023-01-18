@@ -1,9 +1,11 @@
-# Unreleased
+# 1.15.1
 
 ## Fixes
 
-- Fix race condition when a document was being edited and dune in watch mode
-  was running (#1005, fixes #941, #1003)
+- Fix race condition when a document was being edited and dune in watch mode was
+  running ([#1005](https://github.com/ocaml/ocaml-lsp/pull/1005), fixes
+  [#941](https://github.com/ocaml/ocaml-lsp/issues/941),
+  [#1003](https://github.com/ocaml/ocaml-lsp/issues/1003))
 
 # 1.15.0
 
