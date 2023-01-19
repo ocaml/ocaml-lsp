@@ -9,16 +9,15 @@ include struct
   module TextEdit = TextEdit
 end
 
-exception Outside
-
 exception Invalid_utf8
 
 let newline = Uchar.of_char '\n'
 
 let find_nth_nl =
+  let exception Outside in
   let rec find_nth_nl str nth pos len =
     if nth = 0 then pos
-    else if pos >= len then raise Outside
+    else if pos >= len then raise_notrace Outside
     else if str.[pos] = '\n' then find_nth_nl str (nth - 1) (pos + 1) len
     else find_nth_nl str nth (pos + 1) len
   in
