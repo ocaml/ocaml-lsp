@@ -1,6 +1,8 @@
 module Substring = Lsp.Private.Substring
 module List = ListLabels
 
+let () = Printexc.record_backtrace false
+
 let printf = Printf.printf
 
 let make_sub pre sub post =
@@ -118,3 +120,88 @@ let%expect_test "move_right" =
   [%expect {|
     [definitive]
     newlines = 1 consumed = 2 |}]
+
+let%expect_test "rindex_from" =
+  let test sub pos =
+    let char = '\n' in
+    let f sub =
+      match Substring.rindex_from sub ~pos char with
+      | s -> Ok s
+      | exception exn -> Error exn
+    in
+    let res = f (Substring.of_string sub) in
+    let print = function
+      | Ok None -> print_endline "not found"
+      | Ok (Some i) -> printf "%i\n" i
+      | Error exn -> printf "exception: %s\n" (Printexc.to_string exn)
+    in
+    print_endline "[definitive]";
+    print res;
+    let variations = common_variations sub in
+    List.iter variations ~f:(fun (name, sub) ->
+        let res' = f sub in
+        if res <> res' then (
+          printf "[FAIL] %s:\n" name;
+          print res'))
+  in
+  test "foo" 0;
+  [%expect {|
+  [definitive]
+  not found |}];
+  test "foo" 1;
+  [%expect {|
+  [definitive]
+  not found |}];
+  test "\nfoo" 1;
+  [%expect
+    {|
+    [definitive]
+    0
+    [FAIL] ("foo", "\nfoo", ""):
+    3
+    [FAIL] ("a", "\nfoo", "b"):
+    1
+    [FAIL] ("\n", "\nfoo", ""):
+    1 |}];
+  test "\nfoo" 2;
+  [%expect
+    {|
+    [definitive]
+    0
+    [FAIL] ("foo", "\nfoo", ""):
+    3
+    [FAIL] ("a", "\nfoo", "b"):
+    1
+    [FAIL] ("\n", "\nfoo", ""):
+    1 |}];
+  test "\nfoo" 4;
+  [%expect
+    {|
+    [definitive]
+    0
+    [FAIL] ("foo", "\nfoo", ""):
+    3
+    [FAIL] ("a", "\nfoo", "b"):
+    1
+    [FAIL] ("\n", "\nfoo", ""):
+    1 |}];
+  test "\nfoo" 5;
+  [%expect
+    {|
+    [definitive]
+    exception: Invalid_argument("index out of bounds")
+    [FAIL] ("", "\nfoo", "baz"):
+    0
+    [FAIL] ("a", "\nfoo", "b"):
+    1
+    [FAIL] ("", "\nfoo", "\n"):
+    4 |}];
+  test "" 0;
+  [%expect {|
+    [definitive]
+    not found |}];
+  test "" 1;
+  [%expect
+    {|
+    [definitive]
+    exception: Invalid_argument("index out of bounds") |}]
