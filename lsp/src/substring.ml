@@ -75,6 +75,8 @@ let index_from =
     else loop s (pos + 1) len c
   in
   fun t ~pos c ->
+    if pos < 0 || pos >= t.len then
+      invalid_arg "Substring.index_from: out of bounds";
     match loop t.base (t.pos + pos) (t.pos + t.len) c with
     | None -> None
     | Some pos -> Some (pos - t.pos)
@@ -86,6 +88,8 @@ let rindex_from =
     else loop s (pos - 1) outside c
   in
   fun t ~pos c ->
+    if pos < 0 || pos > t.len then
+      invalid_arg "Substring.rindex_from: out of bounds";
     match loop t.base (t.pos + pos - 1) (t.pos - 1) c with
     | None -> None
     | Some c -> Some (c - t.pos)

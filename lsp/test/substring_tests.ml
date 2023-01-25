@@ -168,13 +168,7 @@ let%expect_test "rindex_from" =
   [%expect
     {|
     [definitive]
-    exception: Invalid_argument("index out of bounds")
-    [FAIL] ("", "\nfoo", "baz"):
-    0
-    [FAIL] ("a", "\nfoo", "b"):
-    0
-    [FAIL] ("", "\nfoo", "\n"):
-    4 |}];
+    exception: Invalid_argument("Substring.rindex_from: out of bounds") |}];
   test "" 0;
   [%expect {|
     [definitive]
@@ -183,4 +177,4 @@ let%expect_test "rindex_from" =
   [%expect
     {|
     [definitive]
-    exception: Invalid_argument("index out of bounds") |}]
+    exception: Invalid_argument("Substring.rindex_from: out of bounds") |}]
