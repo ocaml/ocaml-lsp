@@ -85,7 +85,10 @@ let rindex_from =
     else if s.[pos] = c then Some pos
     else loop s (pos - 1) outside c
   in
-  fun t ~pos c -> loop t.base (t.pos + pos - 1) (t.pos - 1) c
+  fun t ~pos c ->
+    match loop t.base (t.pos + pos - 1) (t.pos - 1) c with
+    | None -> None
+    | Some c -> Some (c - t.pos)
 
 let get_exn t i =
   if i < t.len then t.base.[t.pos + i]
