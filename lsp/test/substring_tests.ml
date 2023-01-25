@@ -153,38 +153,17 @@ let%expect_test "rindex_from" =
   [definitive]
   not found |}];
   test "\nfoo" 1;
-  [%expect
-    {|
+  [%expect {|
     [definitive]
-    0
-    [FAIL] ("foo", "\nfoo", ""):
-    3
-    [FAIL] ("a", "\nfoo", "b"):
-    1
-    [FAIL] ("\n", "\nfoo", ""):
-    1 |}];
+    0 |}];
   test "\nfoo" 2;
-  [%expect
-    {|
+  [%expect {|
     [definitive]
-    0
-    [FAIL] ("foo", "\nfoo", ""):
-    3
-    [FAIL] ("a", "\nfoo", "b"):
-    1
-    [FAIL] ("\n", "\nfoo", ""):
-    1 |}];
+    0 |}];
   test "\nfoo" 4;
-  [%expect
-    {|
+  [%expect {|
     [definitive]
-    0
-    [FAIL] ("foo", "\nfoo", ""):
-    3
-    [FAIL] ("a", "\nfoo", "b"):
-    1
-    [FAIL] ("\n", "\nfoo", ""):
-    1 |}];
+    0 |}];
   test "\nfoo" 5;
   [%expect
     {|
@@ -193,7 +172,7 @@ let%expect_test "rindex_from" =
     [FAIL] ("", "\nfoo", "baz"):
     0
     [FAIL] ("a", "\nfoo", "b"):
-    1
+    0
     [FAIL] ("", "\nfoo", "\n"):
     4 |}];
   test "" 0;
