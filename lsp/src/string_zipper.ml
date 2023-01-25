@@ -16,7 +16,8 @@ let () =
 module T = struct
   type t =
     { left : Substring.t list
-    ; rel_pos : int  (** the cursor's position *)
+    ; rel_pos : int  (** the cursor's position inside [current] *)
+    ; abs_pos : int  (** the total length of strings in [left] *)
     ; current : Substring.t
           (** [current] needed to prevent fragmentation of the substring. E.g.
               so that moving inside the substring doesn't create unnecessary
@@ -32,6 +33,7 @@ include T
 let of_string s =
   { left = []
   ; rel_pos = 0
+  ; abs_pos = 0
   ; current = Substring.of_string s
   ; right = []
   ; line = 0
@@ -39,7 +41,7 @@ let of_string s =
 
 let length =
   let f acc sub = acc + Substring.length sub in
-  fun { current; left; right; rel_pos = _; line = _ } ->
+  fun { abs_pos = _; current; left; right; rel_pos = _; line = _ } ->
     let init = Substring.length current in
     let init = List.fold_left ~init ~f left in
     List.fold_left ~init ~f right
@@ -64,7 +66,7 @@ let to_string t =
 let squash t =
   let str, rel_pos, line = to_string_and_pos t in
   let current = Substring.of_string str in
-  ({ left = []; right = []; rel_pos; line; current }, str)
+  ({ abs_pos = 0; left = []; right = []; rel_pos; line; current }, str)
 
 let empty = of_string ""
 
@@ -95,14 +97,20 @@ let insert t (x : string) =
   if String.length x = 0 then t
   else
     let current = Substring.of_string x in
-    let rel_pos = 0 in
-    if t.rel_pos = 0 then
-      { t with current; rel_pos; right = cons t.current t.right }
+    if t.rel_pos = 0 then { t with current; right = cons t.current t.right }
     else if t.rel_pos = Substring.length t.current then
-      { t with current; rel_pos; left = cons t.current t.left }
+      let abs_pos = t.rel_pos + Substring.length t.current in
+      { t with current; rel_pos = 0; left = cons t.current t.left; abs_pos }
     else
       let l, r = Substring.split_at t.current t.rel_pos in
-      { t with current; rel_pos; left = l :: t.left; right = r :: t.right }
+      let abs_pos = t.abs_pos + Substring.length l in
+      { t with
+        current
+      ; rel_pos = 0
+      ; left = l :: t.left
+      ; right = r :: t.right
+      ; abs_pos
+      }
 
 let advance_char t =
   if is_end t then t
@@ -118,7 +126,13 @@ let advance_char t =
       match t.right with
       | [] -> { t with rel_pos; line }
       | current :: right ->
-        { left = t.current :: t.left; current; line; right; rel_pos = 0 }
+        { abs_pos = t.abs_pos + Substring.length t.current
+        ; left = t.current :: t.left
+        ; current
+        ; line
+        ; right
+        ; rel_pos = 0
+        }
 
 let rec find_next_nl t =
   if is_end t then t
@@ -129,7 +143,14 @@ let rec find_next_nl t =
       match t.right with
       | [] -> { t with rel_pos = Substring.length t.current }
       | current :: right ->
-        { t with left = t.current :: t.left; current; right; rel_pos = 0 }
+        let abs_pos = t.abs_pos + Substring.length t.current in
+        { t with
+          current
+        ; left = t.current :: t.left
+        ; right
+        ; rel_pos = 0
+        ; abs_pos
+        }
         |> find_next_nl)
 
 let rec goto_line_forward t n =
@@ -155,6 +176,7 @@ let rec prev_newline t =
             current
           ; left
           ; rel_pos = Substring.length current
+          ; abs_pos = t.abs_pos + Substring.length t.current
           ; right = t.current :: t.right
           })
 
@@ -190,7 +212,14 @@ end = struct
       match t.right with
       | [] -> { t with rel_pos }
       | current :: right ->
-        { t with current; left = t.current :: t.left; right; rel_pos = 0 })
+        let abs_pos = t.abs_pos + Substring.length t.current in
+        { t with
+          current
+        ; left = t.current :: t.left
+        ; right
+        ; abs_pos
+        ; rel_pos = 0
+        })
 
   let rec loop dec (t : t) byte_count_ex_this_chunk (remaining : int) : t =
     if remaining = 0 then
@@ -213,7 +242,14 @@ end = struct
     | [] -> { t with rel_pos = Substring.length t.current }
     | current :: right ->
       let t =
-        { t with left = t.current :: t.left; current; right; rel_pos = 0 }
+        let abs_pos = t.abs_pos + Substring.length t.current in
+        { t with
+          left = t.current :: t.left
+        ; current
+        ; abs_pos
+        ; right
+        ; rel_pos = 0
+        }
       in
       feed_current_chunk dec t;
       loop dec t (Uutf.decoder_byte_count dec) remaining
@@ -246,12 +282,48 @@ let drop_until from until =
     let right = cons (Substring.drop until.current until.rel_pos) until.right in
     let left = cons (Substring.take from.current from.rel_pos) from.left in
     match right with
-    | current :: right -> { from with left; right; current; rel_pos = 0 }
+    | current :: right ->
+      let abs_pos = from.abs_pos + Substring.length from.current in
+      { from with right; left; abs_pos; current; rel_pos = 0 }
     | [] -> (
       match left with
       | [] -> empty
       | current :: left ->
-        { from with left; right; current; rel_pos = Substring.length current })
+        let rel_pos = Substring.length current in
+        let abs_pos = from.rel_pos + rel_pos in
+        { from with right; left; current; rel_pos; abs_pos })
+
+let add_buffer_between b start stop =
+  let rec loop bufs = function
+    | 0 -> ()
+    | remaining -> (
+      match bufs with
+      | [] ->
+        invalid_arg
+          (sprintf "add_buffer_between: not enough remaining (%d)" remaining)
+      | current :: bufs ->
+        let to_read = min remaining (Substring.length current) in
+        let current = Substring.take current to_read in
+        Substring.add_buffer current b;
+        loop bufs (remaining - Substring.length current))
+  in
+  let remaining =
+    stop.abs_pos + stop.rel_pos - (start.abs_pos + start.rel_pos)
+  in
+  let bufs = cons (Substring.drop start.current start.rel_pos) start.right in
+  loop bufs remaining
+
+let rec goto_end t =
+  if is_end t then t else find_next_nl t |> advance_char |> goto_end
+
+let goto_position t (position : Position.t) encoding =
+  let advance =
+    match encoding with
+    | `UTF8 -> advance_utf8
+    | `UTF16 -> advance_utf16
+  in
+  let t = goto_line t position.line in
+  advance t ~code_units:position.character
 
 let apply_change t (range : Range.t) encoding ~replacement =
   let advance =
