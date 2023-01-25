@@ -3,6 +3,7 @@ open Import
 include struct
   open Types
   module DidOpenTextDocumentParams = DidOpenTextDocumentParams
+  module DocumentUri = DocumentUri
   module Range = Range
   module TextDocumentItem = TextDocumentItem
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
@@ -128,22 +129,26 @@ let find_offset_16 ~utf8 range =
    analysis. *)
 
 type t =
-  { document : TextDocumentItem.t
-  ; zipper : String_zipper.t
+  { languageId : string
+  ; mutable text : string option
+  ; uri : DocumentUri.t
+  ; version : int
+  ; mutable zipper : String_zipper.t
   ; position_encoding : [ `UTF8 | `UTF16 ]
   }
 
-let text (t : t) = t.document.text
+let make ~position_encoding
+    { DidOpenTextDocumentParams.textDocument =
+        { TextDocumentItem.languageId; text; uri; version }
+    } =
+  let zipper = String_zipper.of_string text in
+  { text = Some text; position_encoding; zipper; uri; version; languageId }
 
-let make ~position_encoding (t : DidOpenTextDocumentParams.t) =
-  let zipper = String_zipper.of_string t.textDocument.text in
-  { document = t.textDocument; position_encoding; zipper }
+let documentUri (t : t) = t.uri
 
-let documentUri (t : t) = t.document.uri
+let version (t : t) = t.version
 
-let version (t : t) = t.document.version
-
-let languageId (t : t) = t.document.languageId
+let languageId (t : t) = t.languageId
 
 let apply_change encoding sz (change : TextDocumentContentChangeEvent.t) =
   match change.range with
@@ -155,14 +160,21 @@ let apply_content_changes ?version t changes =
   let zipper =
     List.fold_left ~f:(apply_change t.position_encoding) ~init:t.zipper changes
   in
-  let zipper, text = String_zipper.squash zipper in
-  let document = { t.document with text } in
-  let document =
+  let version =
     match version with
-    | None -> document
-    | Some version -> { document with version }
+    | None -> t.version
+    | Some version -> version
   in
-  { t with document; zipper }
+  { t with zipper; text = None; version }
+
+let text t =
+  match t.text with
+  | Some text -> text
+  | None ->
+    let zipper, text = String_zipper.squash t.zipper in
+    t.text <- Some text;
+    t.zipper <- zipper;
+    text
 
 type change =
   { start : int
@@ -213,9 +225,10 @@ let apply_changes text encoding changes =
   Buffer.add_substring b text !pos (String.length text - !pos);
   Buffer.contents b
 
-let set_version t ~version = { t with document = { t.document with version } }
+let set_version t ~version = { t with version }
 
 let apply_text_document_edits t (edits : TextEdit.t list) =
-  let text = apply_changes t.document.text t.position_encoding edits in
-  let document = { t.document with text } in
-  { t with document }
+  let text = text t in
+  let text = apply_changes text t.position_encoding edits in
+  let zipper = String_zipper.of_string text in
+  { t with text = Some text; zipper }
