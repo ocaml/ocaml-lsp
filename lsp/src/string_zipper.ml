@@ -44,7 +44,7 @@ let length =
     let init = List.fold_left ~init ~f left in
     List.fold_left ~init ~f right
 
-let to_string t =
+let to_string_and_pos t =
   let dst = Bytes.make (length t) '\000' in
   let dst_pos = ref 0 in
   let f sub =
@@ -52,9 +52,19 @@ let to_string t =
     dst_pos := !dst_pos + Substring.length sub
   in
   List.iter (List.rev t.left) ~f;
+  let final_pos = t.rel_pos + !dst_pos in
   f t.current;
   List.iter t.right ~f;
-  Bytes.unsafe_to_string dst
+  (Bytes.unsafe_to_string dst, final_pos, t.line)
+
+let to_string t =
+  let s, _, _ = to_string_and_pos t in
+  s
+
+let squash t =
+  let str, rel_pos, line = to_string_and_pos t in
+  let current = Substring.of_string str in
+  ({ left = []; right = []; rel_pos; line; current }, str)
 
 let empty = of_string ""
 

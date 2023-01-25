@@ -140,3 +140,13 @@ let%expect_test "drop_until" =
   let t = String_zipper.drop_until t t in
   printfn "%S" (String_zipper.to_string_debug t);
   [%expect {| "123\n|" |}]
+
+let%expect_test "squashing" =
+  let str = "foo\nbar" in
+  let t = String_zipper.of_string str in
+  let t = String_zipper.goto_line t 1 in
+  let t, str' = String_zipper.squash t in
+  assert (String.equal str str');
+  printfn "squashing: %S" (String_zipper.to_string_debug t);
+  [%expect {|
+    squashing: "foo\n|bar" |}]

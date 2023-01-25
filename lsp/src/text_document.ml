@@ -129,13 +129,15 @@ let find_offset_16 ~utf8 range =
 
 type t =
   { document : TextDocumentItem.t
+  ; zipper : String_zipper.t
   ; position_encoding : [ `UTF8 | `UTF16 ]
   }
 
 let text (t : t) = t.document.text
 
 let make ~position_encoding (t : DidOpenTextDocumentParams.t) =
-  { document = t.textDocument; position_encoding }
+  let zipper = String_zipper.of_string t.textDocument.text in
+  { document = t.textDocument; position_encoding; zipper }
 
 let documentUri (t : t) = t.document.uri
 
@@ -150,20 +152,17 @@ let apply_change encoding sz (change : TextDocumentContentChangeEvent.t) =
     String_zipper.apply_change sz range encoding ~replacement:change.text
 
 let apply_content_changes ?version t changes =
-  let text =
-    List.fold_left
-      ~f:(apply_change t.position_encoding)
-      ~init:(String_zipper.of_string t.document.text)
-      changes
-    |> String_zipper.to_string
+  let zipper =
+    List.fold_left ~f:(apply_change t.position_encoding) ~init:t.zipper changes
   in
+  let zipper, text = String_zipper.squash zipper in
   let document = { t.document with text } in
   let document =
     match version with
     | None -> document
     | Some version -> { document with version }
   in
-  { t with document }
+  { t with document; zipper }
 
 type change =
   { start : int
