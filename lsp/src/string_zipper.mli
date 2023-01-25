@@ -8,6 +8,8 @@ exception Invalid_utf of invalid_utf
 
 val of_string : string -> t
 
+val squash : t -> t * string
+
 val to_string : t -> string
 
 val to_string_debug : t -> string
