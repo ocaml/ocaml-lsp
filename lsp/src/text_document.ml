@@ -9,7 +9,11 @@ include struct
   module TextEdit = TextEdit
 end
 
-exception Invalid_utf8
+type invalid_utf = String_zipper.invalid_utf =
+  | Malformed of string
+  | Insufficient_input
+
+exception Invalid_utf = String_zipper.Invalid_utf
 
 let newline = Uchar.of_char '\n'
 
@@ -32,8 +36,9 @@ let find_utf8_pos =
     if char = 0 then Uutf.decoder_byte_count dec
     else
       match Uutf.decode dec with
-      | `Malformed _ | `Await -> raise Invalid_utf8
-      | `End -> assert false
+      | `Malformed m -> raise (Invalid_utf (Malformed m))
+      | `Await -> raise (Invalid_utf Insufficient_input)
+      | `End -> raise (Invalid_utf Insufficient_input)
       | `Uchar u ->
         if Uchar.equal u newline then Uutf.decoder_byte_count dec - 1
         else find_pos newline (char - 1) dec
@@ -80,10 +85,9 @@ let find_offset_16 ~utf8 range =
     if char = 0 then Uutf.decoder_byte_count dec
     else
       match Uutf.decode dec with
-      | `Await -> raise Invalid_utf8
+      | `Await -> raise (Invalid_utf Insufficient_input)
       | `End -> Uutf.decoder_byte_count dec
-      | `Malformed _ ->
-        invalid_arg "Text_document.find_offset: utf8 string is malformed"
+      | `Malformed m -> raise (Invalid_utf (Malformed m))
       | `Uchar c as u ->
         if Uchar.equal newline c then Uutf.decoder_byte_count dec - 1
         else (
@@ -105,7 +109,8 @@ let find_offset_16 ~utf8 range =
     else
       match Uutf.decode dec with
       | `Uchar _ -> find_pos pos
-      | `Malformed _ | `Await -> raise Invalid_utf8
+      | `Malformed m -> raise (Invalid_utf (Malformed m))
+      | `Await -> raise (Invalid_utf Insufficient_input)
       | `End -> Uutf.decoder_byte_count dec
   in
   let { Range.start; end_ } = range in

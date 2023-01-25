@@ -1,5 +1,11 @@
 type t
 
+type invalid_utf =
+  | Malformed of string
+  | Insufficient_input
+
+exception Invalid_utf of invalid_utf
+
 val of_string : string -> t
 
 val to_string : t -> string

@@ -1,6 +1,18 @@
 open! Import
 module Range = Types.Range
 
+type invalid_utf =
+  | Malformed of string
+  | Insufficient_input
+
+exception Invalid_utf of invalid_utf
+
+let () =
+  Printexc.register_printer (function
+      | Invalid_utf (Malformed s) -> Some (sprintf "malformed %S" s)
+      | Invalid_utf Insufficient_input -> Some "insufficient input"
+      | _ -> None)
+
 module T = struct
   type t =
     { left : Substring.t list
@@ -175,7 +187,7 @@ end = struct
       finish_chunk t (Uutf.decoder_byte_count dec - byte_count_ex_this_chunk)
     else
       match Uutf.decode dec with
-      | `Malformed _ -> assert false
+      | `Malformed e -> raise (Invalid_utf (Malformed e))
       | `End | `Await -> next_chunk dec t remaining
       | `Uchar u ->
         if Uchar.equal u newline then
