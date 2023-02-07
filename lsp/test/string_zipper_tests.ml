@@ -2,13 +2,15 @@ open Stdune
 module String_zipper = Lsp.Private.String_zipper
 module Substring = Lsp.Private.Substring
 
-let to_dyn { String_zipper.Private.left; rel_pos; current; right; line } =
+let to_dyn
+    { String_zipper.Private.left; rel_pos; current; right; line; abs_pos } =
   let open Dyn in
   let sub x = string (Substring.to_string x) in
   let subs = list sub in
   record
     [ ("left", subs left)
     ; ("rel_pos", int rel_pos)
+    ; ("abs_pos", int abs_pos)
     ; ("current", sub current)
     ; ("right", subs right)
     ; ("line", int line)
@@ -150,3 +152,13 @@ let%expect_test "squashing" =
   printfn "squashing: %S" (String_zipper.to_string_debug t);
   [%expect {|
     squashing: "foo\n|bar" |}]
+
+let%expect_test "add buffer between" =
+  let str = "foo\nbar" in
+  let t = String_zipper.of_string str in
+  let t' = String_zipper.goto_line t 1 in
+  let b = Buffer.create 0 in
+  String_zipper.add_buffer_between b t t';
+  printfn "result: %S" (Buffer.contents b);
+  [%expect {|
+    result: "foo\n" |}]
