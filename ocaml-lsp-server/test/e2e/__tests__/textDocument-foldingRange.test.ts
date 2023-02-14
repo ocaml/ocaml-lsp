@@ -758,6 +758,13 @@ describe("textDocument/foldingRange", () => {
           "startLine": 0,
         },
         Object {
+          "endCharacter": 6,
+          "endLine": 10,
+          "kind": "region",
+          "startCharacter": 5,
+          "startLine": 1,
+        },
+        Object {
           "endCharacter": 29,
           "endLine": 4,
           "kind": "region",
@@ -1481,6 +1488,20 @@ describe("textDocument/foldingRange", () => {
     let result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
       Array [
+        Object {
+          "endCharacter": 54,
+          "endLine": 3,
+          "kind": "region",
+          "startCharacter": 3,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 42,
+          "endLine": 2,
+          "kind": "region",
+          "startCharacter": 5,
+          "startLine": 1,
+        },
         Object {
           "endCharacter": 6,
           "endLine": 8,
