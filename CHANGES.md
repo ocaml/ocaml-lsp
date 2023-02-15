@@ -6,6 +6,8 @@
   called `duneDiganostics` and it may be set to `{ enable: false }` to disable
   diagnostics. (#1221)
 
+- Support folding of `ifthenelse` expressions (#1031)
+
 # 1.17.0
 
 ## Fixes
