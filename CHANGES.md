@@ -4,6 +4,8 @@
 
 - Fix a document syncing issue when utf-16 is the position encoding (#1004)
 
+- Disable root discovery in release build (#1035, fix #1029)
+
 # 1.15.1
 
 ## Fixes

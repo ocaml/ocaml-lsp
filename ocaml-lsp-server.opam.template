@@ -7,5 +7,7 @@ build: [
     jobs
     "ocaml-lsp-server.install"
     "--release"
+    "--root"
+    "."
   ]
 ]
