@@ -478,6 +478,76 @@ let f (x : t) = x
     `);
   });
 
+  it("does not type-annotate already annotated argument", async () => {
+    openDocument(
+      outdent`
+let f (x : int) = 1
+`,
+      "file:///test.ml",
+    );
+    let start = Types.Position.create(1, 7);
+    let end = Types.Position.create(1, 8);
+    let actions = await codeAction("file:///test.ml", start, end);
+    expect(actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "command": Object {
+            "arguments": Array [
+              "file:///test.mli",
+            ],
+            "command": "ocamllsp/open-related-source",
+            "title": "Create test.mli",
+          },
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "kind": "create",
+                "uri": "file:///test.mli",
+              },
+            ],
+          },
+          "kind": "switch",
+          "title": "Create test.mli",
+        },
+      ]
+    `);
+  });
+
+  it("does not type-annotate already annotated value", async () => {
+    openDocument(
+      outdent`
+let f x = (1 : int)
+`,
+      "file:///test.ml",
+    );
+    let start = Types.Position.create(1, 11);
+    let end = Types.Position.create(1, 12);
+    let actions = await codeAction("file:///test.ml", start, end);
+    expect(actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "command": Object {
+            "arguments": Array [
+              "file:///test.mli",
+            ],
+            "command": "ocamllsp/open-related-source",
+            "title": "Create test.mli",
+          },
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "kind": "create",
+                "uri": "file:///test.mli",
+              },
+            ],
+          },
+          "kind": "switch",
+          "title": "Create test.mli",
+        },
+      ]
+    `);
+  });
+
   it("does not type-annotate in a non expression context", async () => {
     openDocument(
       outdent`
