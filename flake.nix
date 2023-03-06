@@ -62,11 +62,49 @@
             in
             scope.overrideScope' overlay
           );
+        opam2nixPackages = nixpkgs.lib.filterAttrs (name: value: builtins.hasAttr name localPackages) scope;
       in
       {
         packages =
-          (nixpkgs.lib.filterAttrs (name: value: builtins.hasAttr name localPackages) scope) //
-          { default = self.packages.${system}.${package}; };
+          opam2nixPackages //
+          {
+            # we have a package without opam2nix for easy consumption for nix users
+            default = pkgs.ocamlPackages.buildDunePackage {
+              pname = package;
+              version = "n/a";
+              src = ./.;
+              duneVersion = "3";
+              buildInputs = with pkgs.ocamlPackages; [
+                ocamlc-loc
+                omd
+                octavius
+                dune-build-info
+                re
+                dune-rpc
+                chrome-trace
+                dyn
+                fiber
+                xdg
+                ordering
+                spawn
+                pp
+                csexp
+                ocamlformat-rpc-lib
+                stdune
+                yojson
+                ppx_yojson_conv_lib
+                uutf
+                lsp
+              ];
+              propagatedBuildInputs = [ ];
+              doCheck = false;
+              buildPhase = ''
+                runHook preBuild
+                dune build ${package}.install --release ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
+                runHook postBuild
+              '';
+            };
+          };
 
         devShell =
           pkgs.mkShell {
@@ -77,8 +115,7 @@
                 yarn
                 dune-release
               ]) ++ packagesFromNames devPackages;
-            inputsFrom = [ self.packages.${system}.default ]
-              ++ packagesFromNames localPackages;
+            inputsFrom = packagesFromNames opam2nixPackages;
           };
       });
 }
