@@ -140,3 +140,16 @@ let f x = (1 : int)
   in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
+
+let%expect_test "does not type-annotate already annotated and coerced \
+                 expression" =
+  let source = {ocaml|
+let f x = (1 : int :> int)
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:11 in
+    let end_ = Position.create ~line:1 ~character:12 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect {| No code actions |}]

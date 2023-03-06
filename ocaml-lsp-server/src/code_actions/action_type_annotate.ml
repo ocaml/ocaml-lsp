@@ -9,6 +9,7 @@ let check_typeable_context pipeline pos_start =
   let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
   let is_exp_constrained = function
     | Typedtree.Texp_constraint _, _, _ -> true
+    | Typedtree.Texp_coerce (Some _, _), _, _ -> true
     | _ -> false
   in
   let is_pat_constrained = function
