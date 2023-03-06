@@ -38,9 +38,11 @@ let get_source_text doc (loc : Loc.t) =
 
 let code_action_of_type_enclosing uri doc (loc, constr_loc) =
   let open Option.O in
-  let+ my_text = get_source_text doc loc in
+  let+ src_text = get_source_text doc loc in
   let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = Range.of_loc (Loc.union loc constr_loc); newText = my_text } in
+    let textedit : TextEdit.t =
+      { range = Range.of_loc (Loc.union loc constr_loc); newText = src_text }
+    in
     let version = Document.version doc in
     let textDocument =
       OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
@@ -61,14 +63,14 @@ let code_action_of_type_enclosing uri doc (loc, constr_loc) =
 let code_action doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | `Other -> Fiber.return None
-  | `Merlin merlin -> (
+  | `Merlin merlin ->
     let pos_start = Position.logical params.range.start in
-      Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-          let context = check_typeable_context pipeline pos_start in
-          match context with
-          | `Invalid -> None
-          | `Valid (loc1, loc2) -> code_action_of_type_enclosing params.textDocument.uri doc (loc1, loc2))
-    )
+    Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+        let context = check_typeable_context pipeline pos_start in
+        match context with
+        | `Invalid -> None
+        | `Valid (loc1, loc2) ->
+          code_action_of_type_enclosing params.textDocument.uri doc (loc1, loc2))
 
 let t =
   { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }

@@ -84,6 +84,7 @@ let compute server (params : CodeActionParams.t) =
             [ Action_destruct.t state
             ; Action_inferred_intf.t state
             ; Action_type_annotate.t
+            ; Action_remove_type_annotation.t
             ; Action_construct.t
             ; Action_refactor_open.unqualify
             ; Action_refactor_open.qualify
