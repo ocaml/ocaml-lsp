@@ -35,6 +35,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
       :: List.map
            ~f:(fun (c : Code_action.t) -> c.kind)
            [ Action_type_annotate.t
+           ; Action_remove_type_annotation.t
            ; Action_construct.t
            ; Action_refactor_open.unqualify
            ; Action_refactor_open.qualify
