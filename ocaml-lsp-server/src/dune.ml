@@ -643,7 +643,10 @@ let poll active last_error =
       | `Skip -> Fiber.return ()
       | `Print ->
         let message =
-          sprintf "failed to poll dune registry. %s" (Printexc.to_string exn)
+          sprintf
+            "failed to poll dune registry. %s \n\
+             Maybe you are not running dune in watch mode?"
+            (Printexc.to_string exn)
         in
         active.config.log ~type_:MessageType.Warning ~message
     in
