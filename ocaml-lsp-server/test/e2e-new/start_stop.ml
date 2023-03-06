@@ -48,7 +48,8 @@ let%expect_test "start/stop" =
             "codeActionKinds": [
               "quickfix", "refactor.inline", "construct", "destruct",
               "inferred_intf", "put module name in identifiers",
-              "remove module name from identifiers", "type-annotate"
+              "remove module name from identifiers", "remove type annotation",
+              "type-annotate"
             ]
           },
           "codeLensProvider": { "resolveProvider": false },
