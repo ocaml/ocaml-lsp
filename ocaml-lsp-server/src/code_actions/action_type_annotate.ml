@@ -7,8 +7,24 @@ let check_typeable_context pipeline pos_start =
   let pos_start = Mpipeline.get_lexing_pos pipeline pos_start in
   let typer = Mpipeline.typer_result pipeline in
   let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
+  let is_exp_constrained = function
+    | Typedtree.Texp_constraint _, _, _ -> true
+    | Typedtree.Texp_coerce (Some _, _), _, _ -> true
+    | _ -> false
+  in
+  let is_pat_constrained = function
+    | Typedtree.Tpat_constraint _, _, _ -> true
+    | _ -> false
+  in
+  let is_valid p extras =
+    if List.exists ~f:p extras then `Invalid else `Valid
+  in
   match Mbrowse.enclosing pos_start [ browse ] with
-  | (_, (Expression _ | Pattern _)) :: _ -> `Valid
+  | (_, Expression e) :: _ -> is_valid is_exp_constrained e.exp_extra
+  | (_, Pattern { pat_desc = Typedtree.Tpat_any; _ })
+    :: (_, Pattern { pat_desc = Typedtree.Tpat_alias _; pat_extra; _ })
+    :: _ -> is_valid is_pat_constrained pat_extra
+  | (_, Pattern p) :: _ -> is_valid is_pat_constrained p.pat_extra
   | _ :: _ | [] -> `Invalid
 
 let get_source_text doc (loc : Loc.t) =
