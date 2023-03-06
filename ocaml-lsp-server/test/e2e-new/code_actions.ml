@@ -47,18 +47,28 @@ let iter_code_actions ?(path = "foo.ml") ~source range k =
   Fiber.fork_and_join_unit run_client (fun () ->
       run >>> Fiber.Ivar.read diagnostics >>> Client.stop client)
 
-let print_code_actions ?(path = "foo.ml") source range =
+let print_code_actions ?(path = "foo.ml") ?(filter = fun _ -> true) source range
+    =
   iter_code_actions ~path ~source range (function
-      | None -> print_endline "no code actions"
-      | Some code_actions ->
-        print_endline "Code actions:";
-        List.iter code_actions ~f:(fun ca ->
-            let json =
-              match ca with
-              | `Command command -> Command.yojson_of_t command
-              | `CodeAction ca -> CodeAction.yojson_of_t ca
-            in
-            Yojson.Safe.pretty_to_string ~std:false json |> print_endline))
+      | None -> print_endline "No code actions"
+      | Some code_actions -> (
+        code_actions |> List.filter ~f:filter |> function
+        | [] -> print_endline "No code actions"
+        | actions ->
+          print_endline "Code actions:";
+          List.iter actions ~f:(fun ca ->
+              let json =
+                match ca with
+                | `Command command -> Command.yojson_of_t command
+                | `CodeAction ca -> CodeAction.yojson_of_t ca
+              in
+              Yojson.Safe.pretty_to_string ~std:false json |> print_endline)))
+
+let find_annotate_action =
+  let open CodeAction in
+  function
+  | `CodeAction { kind = Some (Other "type-annotate"); _ } -> true
+  | _ -> false
 
 let%expect_test "code actions" =
   let source = {ocaml|
@@ -116,43 +126,8 @@ let f (x : int) = 1
     let end_ = Position.create ~line:1 ~character:8 in
     Range.create ~start ~end_
   in
-  print_code_actions source range;
-  [%expect
-    {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "((0 as x) : int) | ((_ as x) : int)",
-                "range": {
-                  "end": { "character": 8, "line": 1 },
-                  "start": { "character": 7, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "destruct",
-      "title": "Destruct"
-    }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    } |}]
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect {| No code actions |}]
 
 let%expect_test "does not type-annotate already annotated expression" =
   let source = {ocaml|
@@ -163,40 +138,5 @@ let f x = (1 : int)
     let end_ = Position.create ~line:1 ~character:12 in
     Range.create ~start ~end_
   in
-  print_code_actions source range;
-  [%expect
-    {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "match (1 : int) with 0 -> _ | _ -> _\n",
-                "range": {
-                  "end": { "character": 12, "line": 1 },
-                  "start": { "character": 11, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "destruct",
-      "title": "Destruct"
-    }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    } |}]
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect {| No code actions |}]
