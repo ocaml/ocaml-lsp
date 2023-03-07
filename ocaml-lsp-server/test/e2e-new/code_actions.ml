@@ -274,7 +274,7 @@ let f (x : int) = x + 1
       "title": "Remove type annotation"
     } |}]
 
-let%expect_test "can remove type annotation from a toplevel value" =
+let%expect_test "can remove type annotation from a coerced expression" =
   let source = {ocaml|
 let x = (7 : int :> int)
 |ocaml} in
