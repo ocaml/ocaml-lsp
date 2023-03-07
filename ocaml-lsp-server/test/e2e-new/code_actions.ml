@@ -117,6 +117,185 @@ let foo = 123
       "title": "Create foo.mli"
     } |}]
 
+let%expect_test "can type-annotate a function argument" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f x = Foo x
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:2 ~character:6 in
+    let end_ = Position.create ~line:2 ~character:7 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(x : int)",
+                "range": {
+                  "end": { "character": 7, "line": 2 },
+                  "start": { "character": 6, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
+let%expect_test "can type-annotate a toplevel value" =
+  let source = {ocaml|
+let iiii = 3 + 4
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:4 in
+    let end_ = Position.create ~line:1 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(iiii : int)",
+                "range": {
+                  "end": { "character": 8, "line": 1 },
+                  "start": { "character": 4, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    }
+    {
+      "command": {
+        "arguments": [ "file:///foo.mli" ],
+        "command": "ocamllsp/open-related-source",
+        "title": "Create foo.mli"
+      },
+      "edit": {
+        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
+      },
+      "kind": "switch",
+      "title": "Create foo.mli"
+    }
+     |}]
+
+let%expect_test "can type-annotate an argument in a function call" =
+  let source =
+    {ocaml|
+let f x = x + 1
+let () =
+  let i = 8 in
+  print_int (f i)
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:7 in
+    let end_ = Position.create ~line:1 ~character:8 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(x : int)",
+                "range": {
+                  "end": { "character": 7, "line": 1 },
+                  "start": { "character": 6, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
+let%expect_test "can type-annotate a variant with its name only" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+
+let f (x : t) = x
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:3 ~character:16 in
+    let end_ = Position.create ~line:3 ~character:17 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(x : t)",
+                "range": {
+                  "end": { "character": 17, "line": 3 },
+                  "start": { "character": 16, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
+let%expect_test "does not type-annotate in a non expression context" =
+  let source = {ocaml|
+type x =
+   | Foo of int
+   | Baz of string
+|ocaml} in
+  let range =
+    let start = Position.create ~line:3 ~character:5 in
+    let end_ = Position.create ~line:3 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect {| No code actions |}]
+
 let%expect_test "does not type-annotate already annotated argument" =
   let source = {ocaml|
 let f (x : int) = 1
