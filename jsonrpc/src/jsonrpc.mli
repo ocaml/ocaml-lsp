@@ -93,6 +93,7 @@ module Response : sig
         | ServerCancelled
         | ContentModified
         | RequestCancelled
+        | Other of int
     end
 
     type t =

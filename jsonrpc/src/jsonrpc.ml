@@ -114,6 +114,8 @@ module Response = struct
         | ServerCancelled
         | ContentModified
         | RequestCancelled
+        (* all other codes are custom *)
+        | Other of int
 
       let of_int = function
         | -32700 -> Some ParseError
@@ -129,7 +131,7 @@ module Response = struct
         | -32801 -> Some ContentModified
         | -32802 -> Some ServerCancelled
         | -32803 -> Some RequestFailed
-        | _ -> None
+        | code -> Some (Other code)
 
       let to_int = function
         | ParseError -> -32700
@@ -145,6 +147,7 @@ module Response = struct
         | ContentModified -> -32801
         | ServerCancelled -> -32802
         | RequestFailed -> -32803
+        | Other code -> code
 
       let t_of_yojson json =
         match json with
