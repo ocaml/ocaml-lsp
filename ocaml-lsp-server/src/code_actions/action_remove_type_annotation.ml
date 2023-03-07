@@ -16,6 +16,8 @@ let check_typeable_context pipeline pos_start =
     | _ -> None
   in
   let is_valid loc p extras =
+    (* Constrains are listed from the farthest to the closest. We search
+       reversed list to find the closest type annotation to remove. *)
     match extras |> List.rev |> List.find_map ~f:p with
     | Some x -> `Valid (loc, x)
     | None -> `Invalid
