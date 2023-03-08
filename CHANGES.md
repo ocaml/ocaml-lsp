@@ -7,6 +7,9 @@
   ([#1037](https://github.com/ocaml/ocaml-lsp/pull/1037)), fixes
   [#1036](https://github.com/ocaml/ocaml-lsp/issues/1036)
 
+## Features
+- Add "Remove type annotation" code action. (#1039)
+
 # 1.15.1
 
 ## Fixes

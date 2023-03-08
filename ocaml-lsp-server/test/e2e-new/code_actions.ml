@@ -70,6 +70,12 @@ let find_annotate_action =
   | `CodeAction { kind = Some (Other "type-annotate"); _ } -> true
   | _ -> false
 
+let find_remove_annotation_action =
+  let open CodeAction in
+  function
+  | `CodeAction { kind = Some (Other "remove type annotation"); _ } -> true
+  | _ -> false
+
 let%expect_test "code actions" =
   let source = {ocaml|
 let foo = 123
@@ -332,3 +338,152 @@ let f x = (1 : int :> int)
   in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
+
+let%expect_test "can remove type annotation from a function argument" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) = Foo x
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:2 ~character:7 in
+    let end_ = Position.create ~line:2 ~character:8 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "x",
+                "range": {
+                  "end": { "character": 13, "line": 2 },
+                  "start": { "character": 6, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from a toplevel value" =
+  let source = {ocaml|
+let (iiii : int) = 3 + 4
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "iiii",
+                "range": {
+                  "end": { "character": 16, "line": 1 },
+                  "start": { "character": 4, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from an argument in a function call"
+    =
+  let source =
+    {ocaml|
+let f (x : int) = x + 1
+ let () =
+   let i = 8 in
+   print_int (f i)
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:7 in
+    let end_ = Position.create ~line:1 ~character:8 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "x",
+                "range": {
+                  "end": { "character": 15, "line": 1 },
+                  "start": { "character": 6, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from a coerced expression" =
+  let source = {ocaml|
+let x = (7 : int :> int)
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:9 in
+    let end_ = Position.create ~line:1 ~character:10 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "7",
+                "range": {
+                  "end": { "character": 16, "line": 1 },
+                  "start": { "character": 9, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
