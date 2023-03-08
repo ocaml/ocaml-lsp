@@ -16,7 +16,20 @@ let%expect_test "start/stop" =
           in
           WindowClientCapabilities.create ~showDocument ()
         in
-        ClientCapabilities.create ~window ()
+        let textDocument =
+          let codeAction =
+            let codeActionLiteralSupport =
+              let codeActionKind =
+                CodeActionClientCapabilities.create_codeActionKind ~valueSet:[]
+              in
+              CodeActionClientCapabilities.create_codeActionLiteralSupport
+                ~codeActionKind
+            in
+            CodeActionClientCapabilities.create ~codeActionLiteralSupport ()
+          in
+          TextDocumentClientCapabilities.create ~codeAction ()
+        in
+        ClientCapabilities.create ~window ~textDocument ()
       in
       Client.start client (InitializeParams.create ~capabilities ())
     in
