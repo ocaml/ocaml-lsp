@@ -114,22 +114,24 @@ module Response = struct
         | ServerCancelled
         | ContentModified
         | RequestCancelled
+        (* all other codes are custom *)
+        | Other of int
 
       let of_int = function
-        | -32700 -> Some ParseError
-        | -32600 -> Some InvalidRequest
-        | -32601 -> Some MethodNotFound
-        | -32602 -> Some InvalidParams
-        | -32603 -> Some InternalError
-        | -32099 -> Some ServerErrorStart
-        | -32000 -> Some ServerErrorEnd
-        | -32002 -> Some ServerNotInitialized
-        | -32001 -> Some UnknownErrorCode
-        | -32800 -> Some RequestCancelled
-        | -32801 -> Some ContentModified
-        | -32802 -> Some ServerCancelled
-        | -32803 -> Some RequestFailed
-        | _ -> None
+        | -32700 -> ParseError
+        | -32600 -> InvalidRequest
+        | -32601 -> MethodNotFound
+        | -32602 -> InvalidParams
+        | -32603 -> InternalError
+        | -32099 -> ServerErrorStart
+        | -32000 -> ServerErrorEnd
+        | -32002 -> ServerNotInitialized
+        | -32001 -> UnknownErrorCode
+        | -32800 -> RequestCancelled
+        | -32801 -> ContentModified
+        | -32802 -> ServerCancelled
+        | -32803 -> RequestFailed
+        | code -> Other code
 
       let to_int = function
         | ParseError -> -32700
@@ -145,13 +147,11 @@ module Response = struct
         | ContentModified -> -32801
         | ServerCancelled -> -32802
         | RequestFailed -> -32803
+        | Other code -> code
 
       let t_of_yojson json =
         match json with
-        | `Int i -> (
-          match of_int i with
-          | None -> Json.error "unknown code" json
-          | Some i -> i)
+        | `Int i -> of_int i
         | _ -> Json.error "invalid code" json
 
       let yojson_of_t t = `Int (to_int t)
