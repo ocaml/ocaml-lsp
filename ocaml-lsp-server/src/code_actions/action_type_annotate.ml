@@ -20,10 +20,50 @@ let check_typeable_context pipeline pos_start =
   let is_valid p extras =
     if List.exists ~f:p extras then `Invalid else `Valid
   in
+  let rec trav_cases (i : int) = function
+    | { c_rhs =
+          { exp_desc =
+              Texp_function
+                { cases =
+                    [ { c_lhs = { pat_desc = Tpat_var _; _ }
+                      ; c_rhs = { exp_desc = Texp_function {cases; _}; _ }
+                      ; _
+                      }
+                    ]
+                ; _
+                }
+          ; _
+          }
+      ; _
+      }
+      :: _ -> trav_cases (i + 1) cases
+    | { c_rhs =
+          { exp_desc =
+              Texp_function
+                { cases =
+                    [ { c_lhs = { pat_desc = _; pat_loc; _ }
+                      ; c_rhs = { exp_extra; _ }
+                      ; _
+                      }
+                    ]
+                ; _
+                }
+          ; exp_loc
+          ; _
+          }
+      ; _
+      }
+      :: _ ->
+      if List.exists ~f:is_exp_constrained exp_extra then `Invalid
+      else `Valid_fun (i, pat_loc, exp_loc)
+    | _ :: _ | [] -> `Invalid
+  in
   match Mbrowse.enclosing pos_start [ browse ] with
-  | (_, Pattern { pat_desc = Tpat_var _; _})
-    :: (_, Value_binding { vb_expr = { exp_desc = Texp_function _; _} ; _ })
-    :: _ -> `Invalid (* TODO: traverse function arguments *)
+  | (_, Pattern { pat_desc = Tpat_var _; _ })
+    :: ( _
+       , Value_binding
+           { vb_expr = { exp_desc = Texp_function { cases; _ }; _ }; _ } )
+    :: _ -> trav_cases 2 cases
   | (_, Expression e) :: _ -> is_valid is_exp_constrained e.exp_extra
   | (_, Pattern { pat_desc = Tpat_any; _ })
     :: (_, Pattern { pat_desc = Tpat_alias _; pat_extra; _ })
@@ -63,6 +103,35 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
     ~isPreferred:false
     ()
 
+let code_action_of_type_enclosing' uri doc (loc, arg_len, typ) =
+  let open Option.O in
+  let+ original_text = get_source_text doc loc in
+  let arrow = " -> " in
+  let typ' =
+    Str.split (Str.regexp arrow) typ
+    |> List.to_seq |> Seq.drop arg_len |> List.of_seq
+    |> String.concat ~sep:arrow
+  in
+  let newText = Printf.sprintf "%s : %s" original_text typ' in
+  let edit : WorkspaceEdit.t =
+    let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
+    let version = Document.version doc in
+    let textDocument =
+      OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+    in
+    let edit =
+      TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ]
+    in
+    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
+  in
+  let title = String.capitalize_ascii action_kind in
+  CodeAction.create
+    ~title
+    ~kind:(CodeActionKind.Other action_kind)
+    ~edit
+    ~isPreferred:false
+    ()
+
 let code_action doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | `Other -> Fiber.return None
@@ -72,7 +141,17 @@ let code_action doc (params : CodeActionParams.t) =
       Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
           let context = check_typeable_context pipeline pos_start in
           match context with
-          | `Invalid -> None
+          | `Invalid -> `None
+          | `Valid_fun (i, pat_loc, _ ) ->
+            let command =
+              Query_protocol.Type_enclosing (None, pos_start (*`Logical (exp_loc.loc_end.pos_lnum, exp_loc.loc_end.pos_cnum)*), None)
+            in
+            let config = Mpipeline.final_config pipeline in
+            let config =
+              { config with query = { config.query with verbosity = Lvl 0 } }
+            in
+            let pipeline = Mpipeline.make config (Document.source doc) in
+            `Some_fun (Query_commands.dispatch pipeline command, pat_loc, i)
           | `Valid ->
             let command =
               Query_protocol.Type_enclosing (None, pos_start, None)
@@ -82,13 +161,15 @@ let code_action doc (params : CodeActionParams.t) =
               { config with query = { config.query with verbosity = Lvl 0 } }
             in
             let pipeline = Mpipeline.make config (Document.source doc) in
-            Some (Query_commands.dispatch pipeline command))
+            `Some (Query_commands.dispatch pipeline command))
     in
     match res with
-    | None | Some [] | Some ((_, `Index _, _) :: _) -> None
-    | Some ((location, `String value, _) :: _) ->
+    | `None | `Some [] | `Some ((_, `Index _, _) :: _) -> None
+    | `Some ((location, `String value, _) :: _) ->
       code_action_of_type_enclosing params.textDocument.uri doc (location, value)
-    )
+    | `Some_fun ((_, `String value, _) :: _, loc, i) ->
+      code_action_of_type_enclosing' params.textDocument.uri doc (loc, i, value)
+    | _ -> None)
 
 let t =
   { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }
