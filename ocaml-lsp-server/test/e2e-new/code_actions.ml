@@ -209,6 +209,41 @@ let iiii = 3 + 4
     }
      |}]
 
+let%expect_test "can type-annotate a function" =
+  let source = {ocaml|
+let my_fun x y = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "y : int",
+                "range": {
+                  "end": { "character": 14, "line": 1 },
+                  "start": { "character": 13, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
 let%expect_test "can type-annotate an argument in a function call" =
   let source =
     {ocaml|

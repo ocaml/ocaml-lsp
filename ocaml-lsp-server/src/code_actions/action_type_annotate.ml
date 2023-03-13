@@ -26,7 +26,7 @@ let check_typeable_context pipeline pos_start =
               Texp_function
                 { cases =
                     [ { c_lhs = { pat_desc = Tpat_var _; _ }
-                      ; c_rhs = { exp_desc = Texp_function {cases; _}; _ }
+                      ; c_rhs = { exp_desc = Texp_function { cases; _ }; _ }
                       ; _
                       }
                     ]
@@ -142,9 +142,9 @@ let code_action doc (params : CodeActionParams.t) =
           let context = check_typeable_context pipeline pos_start in
           match context with
           | `Invalid -> `None
-          | `Valid_fun (i, pat_loc, _ ) ->
+          | `Valid_fun (i, pat_loc, _) ->
             let command =
-              Query_protocol.Type_enclosing (None, pos_start (*`Logical (exp_loc.loc_end.pos_lnum, exp_loc.loc_end.pos_cnum)*), None)
+              Query_protocol.Type_enclosing (None, pos_start, None)
             in
             let config = Mpipeline.final_config pipeline in
             let config =
