@@ -17,53 +17,44 @@ let check_typeable_context pipeline pos_start =
     | Tpat_constraint _, _, _ -> true
     | _ -> false
   in
+  let pat_constraint_loc = function
+    | Typedtree.Tpat_constraint _, loc, _ -> Some loc
+    | _ -> None
+  in
   let is_valid p extras =
     if List.exists ~f:p extras then `Invalid else `Valid
   in
   let rec trav_cases (i : int) = function
-    | { c_rhs =
-          { exp_desc =
-              Texp_function
-                { cases =
-                    [ { c_lhs = { pat_desc = Tpat_var _; _ }
-                      ; c_rhs = { exp_desc = Texp_function { cases; _ }; _ }
-                      ; _
-                      }
-                    ]
-                ; _
-                }
-          ; _
-          }
+    | { c_lhs = { pat_desc = Tpat_var _; _ }
+      ; c_rhs = { exp_desc = Texp_function { cases; _ }; _ }
       ; _
       }
       :: _ -> trav_cases (i + 1) cases
-    | { c_rhs =
-          { exp_desc =
-              Texp_function
-                { cases =
-                    [ { c_lhs = { pat_desc = _; pat_loc; _ }
-                      ; c_rhs = { exp_extra; _ }
-                      ; _
-                      }
-                    ]
-                ; _
-                }
-          ; exp_loc
-          ; _
-          }
+    | { c_lhs = { pat_desc = Tpat_var _; pat_loc; _ }
+      ; c_rhs = { exp_extra; exp_loc; _ }
       ; _
       }
       :: _ ->
       if List.exists ~f:is_exp_constrained exp_extra then `Invalid
       else `Valid_fun (i, pat_loc, exp_loc)
-    | _ :: _ | [] -> `Invalid
+    | { c_lhs = { pat_desc = Tpat_alias _; pat_loc; pat_extra; _ }
+      ; c_rhs = { exp_extra; exp_loc; _ }
+      ; _
+      }
+      :: _ -> (
+      if List.exists ~f:is_exp_constrained exp_extra then `Invalid
+      else
+        match pat_extra |> List.rev |> List.find_map ~f:pat_constraint_loc with
+        | Some loc -> `Valid_fun (i, Loc.union pat_loc loc, exp_loc)
+        | None -> `Valid_fun (i, pat_loc, exp_loc))
+    | _ -> `Invalid
   in
   match Mbrowse.enclosing pos_start [ browse ] with
   | (_, Pattern { pat_desc = Tpat_var _; _ })
     :: ( _
        , Value_binding
            { vb_expr = { exp_desc = Texp_function { cases; _ }; _ }; _ } )
-    :: _ -> trav_cases 2 cases
+    :: _ -> trav_cases 1 cases
   | (_, Expression e) :: _ -> is_valid is_exp_constrained e.exp_extra
   | (_, Pattern { pat_desc = Tpat_any; _ })
     :: (_, Pattern { pat_desc = Tpat_alias _; pat_extra; _ })
@@ -108,7 +99,7 @@ let code_action_of_type_enclosing' uri doc (loc, arg_len, typ) =
   let+ original_text = get_source_text doc loc in
   let arrow = " -> " in
   let typ' =
-    Str.split (Str.regexp arrow) typ
+    Re.split (Re.compile (Re.str arrow)) typ
     |> List.to_seq |> Seq.drop arg_len |> List.of_seq
     |> String.concat ~sep:arrow
   in
