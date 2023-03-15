@@ -517,6 +517,113 @@ let (iiii : int) = 3 + 4
       "title": "Remove type annotation"
     } |}]
 
+let%expect_test "can remove type annotation from a function with single arg" =
+  let source = {ocaml|
+let f x : int = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:4 in
+    let end_ = Position.create ~line:1 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "x",
+                "range": {
+                  "end": { "character": 13, "line": 1 },
+                  "start": { "character": 6, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from a function with multiple args"
+    =
+  let source = {ocaml|
+let f v w x y z : int = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:4 in
+    let end_ = Position.create ~line:1 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "z",
+                "range": {
+                  "end": { "character": 21, "line": 1 },
+                  "start": { "character": 14, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from a function with annotated arg"
+    =
+  let source = {ocaml|
+let f x y (z : int) : int = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:4 in
+    let end_ = Position.create ~line:1 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(z : int)",
+                "range": {
+                  "end": { "character": 25, "line": 1 },
+                  "start": { "character": 10, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
 let%expect_test "can remove type annotation from an argument in a function call"
     =
   let source =
