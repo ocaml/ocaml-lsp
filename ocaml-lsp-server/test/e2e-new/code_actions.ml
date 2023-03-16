@@ -314,6 +314,43 @@ let my_fun x (y: int) = (fun a -> x + 1)
       "title": "Type-annotate"
     } |}]
 
+let%expect_test "can type-annotate a higher-order function" =
+  let source =
+    {ocaml|
+let my_fun x (y: int -> int -> int) = (fun a -> x + 1)
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(y: int -> int -> int) : 'a -> int",
+                "range": {
+                  "end": { "character": 35, "line": 1 },
+                  "start": { "character": 13, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
 let%expect_test "can type-annotate an argument in a function call" =
   let source =
     {ocaml|

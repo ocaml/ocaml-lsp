@@ -24,29 +24,30 @@ let check_typeable_context pipeline pos_start =
   let is_valid p extras =
     if List.exists ~f:p extras then `Invalid else `Valid
   in
-  let rec trav_cases (i : int) = function
+  let rec trav_cases = function
     | { c_lhs = { pat_desc = Tpat_var _; _ }
       ; c_rhs = { exp_desc = Texp_function { cases; _ }; _ }
       ; _
       }
-      :: _ -> trav_cases (i + 1) cases
+      :: _ -> trav_cases cases
     | { c_lhs = { pat_desc = Tpat_var _; pat_loc; _ }
-      ; c_rhs = { exp_extra; exp_loc; _ }
+      ; c_rhs = { exp_extra; exp_loc; exp_type; exp_env; _ }
       ; _
       }
       :: _ ->
       if List.exists ~f:is_exp_constrained exp_extra then `Invalid
-      else `Valid_fun (i, pat_loc, exp_loc)
+      else `Valid_fun (exp_env, exp_type, pat_loc, exp_loc)
     | { c_lhs = { pat_desc = Tpat_alias _; pat_loc; pat_extra; _ }
-      ; c_rhs = { exp_extra; exp_loc; _ }
+      ; c_rhs = { exp_extra; exp_loc; exp_type; exp_env; _ }
       ; _
       }
       :: _ -> (
       if List.exists ~f:is_exp_constrained exp_extra then `Invalid
       else
         match pat_extra |> List.rev |> List.find_map ~f:pat_constraint_loc with
-        | Some loc -> `Valid_fun (i, Loc.union pat_loc loc, exp_loc)
-        | None -> `Valid_fun (i, pat_loc, exp_loc))
+        | Some loc ->
+          `Valid_fun (exp_env, exp_type, Loc.union pat_loc loc, exp_loc)
+        | None -> `Valid_fun (exp_env, exp_type, pat_loc, exp_loc))
     | _ -> `Invalid
   in
   match Mbrowse.enclosing pos_start [ browse ] with
@@ -54,7 +55,7 @@ let check_typeable_context pipeline pos_start =
     :: ( _
        , Value_binding
            { vb_expr = { exp_desc = Texp_function { cases; _ }; _ }; _ } )
-    :: _ -> trav_cases 1 cases
+    :: _ -> trav_cases cases
   | (_, Expression e) :: _ -> is_valid is_exp_constrained e.exp_extra
   | (_, Pattern { pat_desc = Tpat_any; _ })
     :: (_, Pattern { pat_desc = Tpat_alias _; pat_extra; _ })
@@ -94,16 +95,16 @@ let code_action_of_type_enclosing uri doc (loc, typ) =
     ~isPreferred:false
     ()
 
-let code_action_of_type_enclosing' uri doc (loc, arg_len, typ) =
+let code_action_of_type_enclosing' uri doc (loc, env, typ) =
   let open Option.O in
   let+ original_text = get_source_text doc loc in
-  let arrow = " -> " in
-  let typ' =
-    Re.split (Re.compile (Re.str arrow)) typ
-    |> List.to_seq |> Seq.drop arg_len |> List.of_seq
-    |> String.concat ~sep:arrow
+  let buffer = Buffer.create 16 in
+  let ppf = Format.formatter_of_buffer buffer in
+  let typ_str =
+    Format.fprintf ppf "%a%!" (Signature_help.pp_type env) typ;
+    Buffer.contents buffer
   in
-  let newText = Printf.sprintf "%s : %s" original_text typ' in
+  let newText = Printf.sprintf "%s : %s" original_text typ_str in
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
     let version = Document.version doc in
@@ -133,16 +134,7 @@ let code_action doc (params : CodeActionParams.t) =
           let context = check_typeable_context pipeline pos_start in
           match context with
           | `Invalid -> `None
-          | `Valid_fun (i, pat_loc, _) ->
-            let command =
-              Query_protocol.Type_enclosing (None, pos_start, None)
-            in
-            let config = Mpipeline.final_config pipeline in
-            let config =
-              { config with query = { config.query with verbosity = Lvl 0 } }
-            in
-            let pipeline = Mpipeline.make config (Document.source doc) in
-            `Some_fun (Query_commands.dispatch pipeline command, pat_loc, i)
+          | `Valid_fun (env, typ, pat_loc, _) -> `Some_fun (pat_loc, env, typ)
           | `Valid ->
             let command =
               Query_protocol.Type_enclosing (None, pos_start, None)
@@ -158,8 +150,8 @@ let code_action doc (params : CodeActionParams.t) =
     | `None | `Some [] | `Some ((_, `Index _, _) :: _) -> None
     | `Some ((location, `String value, _) :: _) ->
       code_action_of_type_enclosing params.textDocument.uri doc (location, value)
-    | `Some_fun ((_, `String value, _) :: _, loc, i) ->
-      code_action_of_type_enclosing' params.textDocument.uri doc (loc, i, value)
+    | `Some_fun (loc, env, typ) ->
+      code_action_of_type_enclosing' params.textDocument.uri doc (loc, env, typ)
     | _ -> None)
 
 let t =
