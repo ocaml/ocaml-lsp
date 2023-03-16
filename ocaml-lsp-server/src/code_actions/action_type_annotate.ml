@@ -78,8 +78,14 @@ let code_action_of_type_enclosing uri doc str_fmt (loc, env, typ) =
   let+ original_text = get_source_text doc loc in
   let buffer = Buffer.create 16 in
   let ppf = Format.formatter_of_buffer buffer in
+  let pp_type env ppf ty =
+    let open Merlin_analysis in
+    let module Printtyp = Type_utils.Printtyp in
+    Printtyp.wrap_printing_env env ~verbosity:(Lvl 0) (fun () ->
+        Printtyp.shared_type_scheme ppf ty)
+  in
   let typ_str =
-    Format.fprintf ppf "%a%!" (Signature_help.pp_type env) typ;
+    Format.fprintf ppf "%a%!" (pp_type env) typ;
     Buffer.contents buffer
   in
   let newText = Printf.sprintf str_fmt original_text typ_str in
