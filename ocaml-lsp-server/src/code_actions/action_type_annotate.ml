@@ -1,5 +1,4 @@
 open Import
-open Fiber.O
 
 let action_kind = "type-annotate"
 
@@ -21,8 +20,8 @@ let check_typeable_context pipeline pos_start =
     | Typedtree.Tpat_constraint _, loc, _ -> Some loc
     | _ -> None
   in
-  let is_valid p extras =
-    if List.exists ~f:p extras then `Invalid else `Valid
+  let is_valid env typ loc p extras =
+    if List.exists ~f:p extras then `Invalid else `Valid (env, typ, loc)
   in
   let rec trav_cases = function
     | { c_lhs = { pat_desc = Tpat_var _; _ }
@@ -56,11 +55,13 @@ let check_typeable_context pipeline pos_start =
        , Value_binding
            { vb_expr = { exp_desc = Texp_function { cases; _ }; _ }; _ } )
     :: _ -> trav_cases cases
-  | (_, Expression e) :: _ -> is_valid is_exp_constrained e.exp_extra
-  | (_, Pattern { pat_desc = Tpat_any; _ })
+  | (_, Expression e) :: _ ->
+    is_valid e.exp_env e.exp_type e.exp_loc is_exp_constrained e.exp_extra
+  | (_, Pattern { pat_desc = Tpat_any; pat_loc; pat_env; pat_type; _ })
     :: (_, Pattern { pat_desc = Tpat_alias _; pat_extra; _ })
-    :: _ -> is_valid is_pat_constrained pat_extra
-  | (_, Pattern p) :: _ -> is_valid is_pat_constrained p.pat_extra
+    :: _ -> is_valid pat_env pat_type pat_loc is_pat_constrained pat_extra
+  | (_, Pattern p) :: _ ->
+    is_valid p.pat_env p.pat_type p.pat_loc is_pat_constrained p.pat_extra
   | _ :: _ | [] -> `Invalid
 
 let get_source_text doc (loc : Loc.t) =
@@ -72,30 +73,7 @@ let get_source_text doc (loc : Loc.t) =
   let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
   String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
 
-let code_action_of_type_enclosing uri doc (loc, typ) =
-  let open Option.O in
-  let+ original_text = get_source_text doc loc in
-  let newText = Printf.sprintf "(%s : %s)" original_text typ in
-  let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
-    let version = Document.version doc in
-    let textDocument =
-      OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
-    in
-    let edit =
-      TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ]
-    in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-  in
-  let title = String.capitalize_ascii action_kind in
-  CodeAction.create
-    ~title
-    ~kind:(CodeActionKind.Other action_kind)
-    ~edit
-    ~isPreferred:false
-    ()
-
-let code_action_of_type_enclosing' uri doc (loc, env, typ) =
+let code_action_of_type_enclosing uri doc str_fmt (loc, env, typ) =
   let open Option.O in
   let+ original_text = get_source_text doc loc in
   let buffer = Buffer.create 16 in
@@ -104,7 +82,7 @@ let code_action_of_type_enclosing' uri doc (loc, env, typ) =
     Format.fprintf ppf "%a%!" (Signature_help.pp_type env) typ;
     Buffer.contents buffer
   in
-  let newText = Printf.sprintf "%s : %s" original_text typ_str in
+  let newText = Printf.sprintf str_fmt original_text typ_str in
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
     let version = Document.version doc in
@@ -127,32 +105,23 @@ let code_action_of_type_enclosing' uri doc (loc, env, typ) =
 let code_action doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | `Other -> Fiber.return None
-  | `Merlin merlin -> (
+  | `Merlin merlin ->
     let pos_start = Position.logical params.range.start in
-    let+ res =
-      Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-          let context = check_typeable_context pipeline pos_start in
-          match context with
-          | `Invalid -> `None
-          | `Valid_fun (env, typ, pat_loc, _) -> `Some_fun (pat_loc, env, typ)
-          | `Valid ->
-            let command =
-              Query_protocol.Type_enclosing (None, pos_start, None)
-            in
-            let config = Mpipeline.final_config pipeline in
-            let config =
-              { config with query = { config.query with verbosity = Lvl 0 } }
-            in
-            let pipeline = Mpipeline.make config (Document.source doc) in
-            `Some (Query_commands.dispatch pipeline command))
-    in
-    match res with
-    | `None | `Some [] | `Some ((_, `Index _, _) :: _) -> None
-    | `Some ((location, `String value, _) :: _) ->
-      code_action_of_type_enclosing params.textDocument.uri doc (location, value)
-    | `Some_fun (loc, env, typ) ->
-      code_action_of_type_enclosing' params.textDocument.uri doc (loc, env, typ)
-    | _ -> None)
+    Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+        match check_typeable_context pipeline pos_start with
+        | `Invalid -> None
+        | `Valid_fun (env, typ, pat_loc, _) ->
+          code_action_of_type_enclosing
+            params.textDocument.uri
+            doc
+            "%s : %s"
+            (pat_loc, env, typ)
+        | `Valid (env, typ, loc) ->
+          code_action_of_type_enclosing
+            params.textDocument.uri
+            doc
+            "(%s : %s)"
+            (loc, env, typ))
 
 let t =
   { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }
