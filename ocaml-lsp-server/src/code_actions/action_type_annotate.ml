@@ -82,7 +82,7 @@ let code_action uri doc str_fmt (env, typ, loc) =
       let open Merlin_analysis in
       let module Printtyp = Type_utils.Printtyp in
       Printtyp.wrap_printing_env env ~verbosity:(Lvl 0) (fun () ->
-          Printtyp.shared_type_scheme ppf ty)
+          Printtyp.type_expr ppf ty)
     in
     Format.fprintf ppf "%a%!" (pp_type env) typ;
     Buffer.contents buffer
