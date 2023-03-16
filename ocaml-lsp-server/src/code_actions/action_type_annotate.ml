@@ -30,23 +30,22 @@ let check_typeable_context pipeline pos_start =
       }
       :: _ -> trav_cases cases
     | { c_lhs = { pat_desc = Tpat_var _; pat_loc; _ }
-      ; c_rhs = { exp_extra; exp_loc; exp_type; exp_env; _ }
+      ; c_rhs = { exp_extra; exp_type; exp_env; _ }
       ; _
       }
       :: _ ->
       if List.exists ~f:is_exp_constrained exp_extra then `Invalid
-      else `Valid_fun (exp_env, exp_type, pat_loc, exp_loc)
+      else `Valid_fun (exp_env, exp_type, pat_loc)
     | { c_lhs = { pat_desc = Tpat_alias _; pat_loc; pat_extra; _ }
-      ; c_rhs = { exp_extra; exp_loc; exp_type; exp_env; _ }
+      ; c_rhs = { exp_extra; exp_type; exp_env; _ }
       ; _
       }
       :: _ -> (
       if List.exists ~f:is_exp_constrained exp_extra then `Invalid
       else
         match pat_extra |> List.rev |> List.find_map ~f:pat_constraint_loc with
-        | Some loc ->
-          `Valid_fun (exp_env, exp_type, Loc.union pat_loc loc, exp_loc)
-        | None -> `Valid_fun (exp_env, exp_type, pat_loc, exp_loc))
+        | Some loc -> `Valid_fun (exp_env, exp_type, Loc.union pat_loc loc)
+        | None -> `Valid_fun (exp_env, exp_type, pat_loc))
     | _ -> `Invalid
   in
   match Mbrowse.enclosing pos_start [ browse ] with
@@ -73,18 +72,18 @@ let get_source_text doc (loc : Loc.t) =
   let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
   String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
 
-let code_action_of_type_enclosing uri doc str_fmt (loc, env, typ) =
+let code_action uri doc str_fmt (env, typ, loc) =
   let open Option.O in
   let+ original_text = get_source_text doc loc in
-  let buffer = Buffer.create 16 in
-  let ppf = Format.formatter_of_buffer buffer in
-  let pp_type env ppf ty =
-    let open Merlin_analysis in
-    let module Printtyp = Type_utils.Printtyp in
-    Printtyp.wrap_printing_env env ~verbosity:(Lvl 0) (fun () ->
-        Printtyp.shared_type_scheme ppf ty)
-  in
   let typ_str =
+    let buffer = Buffer.create 16 in
+    let ppf = Format.formatter_of_buffer buffer in
+    let pp_type env ppf ty =
+      let open Merlin_analysis in
+      let module Printtyp = Type_utils.Printtyp in
+      Printtyp.wrap_printing_env env ~verbosity:(Lvl 0) (fun () ->
+          Printtyp.shared_type_scheme ppf ty)
+    in
     Format.fprintf ppf "%a%!" (pp_type env) typ;
     Buffer.contents buffer
   in
@@ -113,21 +112,14 @@ let code_action doc (params : CodeActionParams.t) =
   | `Other -> Fiber.return None
   | `Merlin merlin ->
     let pos_start = Position.logical params.range.start in
+    let action fmt_str data =
+      code_action params.textDocument.uri doc fmt_str data
+    in
     Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
         match check_typeable_context pipeline pos_start with
         | `Invalid -> None
-        | `Valid_fun (env, typ, pat_loc, _) ->
-          code_action_of_type_enclosing
-            params.textDocument.uri
-            doc
-            "%s : %s"
-            (pat_loc, env, typ)
-        | `Valid (env, typ, loc) ->
-          code_action_of_type_enclosing
-            params.textDocument.uri
-            doc
-            "(%s : %s)"
-            (loc, env, typ))
+        | `Valid_fun x -> action "%s : %s" x
+        | `Valid x -> action "(%s : %s)" x)
 
 let t =
   { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }
