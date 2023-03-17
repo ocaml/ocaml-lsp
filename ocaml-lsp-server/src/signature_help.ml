@@ -20,8 +20,8 @@ type application_signature =
   ; active_param : int option
   }
 
-(* extract a properly properly parenthesized identifier from (expression_desc
-   (Texp_ident (Longident))) *)
+(* extract a properly parenthesized identifier from (expression_desc (Texp_ident
+   (Longident))) *)
 let extract_ident (exp_desc : Typedtree.expression_desc) =
   let rec longident ppf : Longident.t -> unit = function
     | Lident s -> fprintf ppf "%s" (Misc_utils.parenthesize_name s)
