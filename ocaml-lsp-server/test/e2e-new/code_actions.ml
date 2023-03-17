@@ -209,6 +209,18 @@ let iiii = 3 + 4
     }
      |}]
 
+let%expect_test "does not type-annotate function" =
+  let source = {ocaml|
+let my_fun x y = 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect {| No code actions |}]
+
 let%expect_test "can type-annotate an argument in a function call" =
   let source =
     {ocaml|
@@ -487,3 +499,15 @@ let x = (7 : int :> int)
       "kind": "remove type annotation",
       "title": "Remove type annotation"
     } |}]
+
+let%expect_test "does not remove type annotation from function" =
+  let source = {ocaml|
+let my_fun x y : int = 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect {| No code actions |}]

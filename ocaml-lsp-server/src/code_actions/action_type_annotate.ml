@@ -20,6 +20,9 @@ let check_typeable_context pipeline pos_start =
     if List.exists ~f:p extras then `Invalid else `Valid
   in
   match Mbrowse.enclosing pos_start [ browse ] with
+  | (_, Pattern { pat_desc = Tpat_var _; _ })
+    :: (_, Value_binding { vb_expr = { exp_desc = Texp_function _; _ }; _ })
+    :: _ -> `Invalid
   | (_, Expression e) :: _ -> is_valid is_exp_constrained e.exp_extra
   | (_, Pattern { pat_desc = Typedtree.Tpat_any; _ })
     :: (_, Pattern { pat_desc = Typedtree.Tpat_alias _; pat_extra; _ })
