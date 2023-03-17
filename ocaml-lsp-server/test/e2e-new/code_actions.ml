@@ -209,6 +209,148 @@ let iiii = 3 + 4
     }
      |}]
 
+let%expect_test "can type-annotate a single arg function" =
+  let source = {ocaml|
+let my_fun x = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "x : int",
+                "range": {
+                  "end": { "character": 12, "line": 1 },
+                  "start": { "character": 11, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
+let%expect_test "can type-annotate a multi arg function" =
+  let source = {ocaml|
+let my_fun a b c d e (f : int) = f + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(f : int) : int",
+                "range": {
+                  "end": { "character": 30, "line": 1 },
+                  "start": { "character": 21, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
+let%expect_test "can type-annotate a function that returns function" =
+  let source = {ocaml|
+let my_fun x (y: int) = (fun a -> x + 1)
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(y: int) : 'a -> int",
+                "range": {
+                  "end": { "character": 21, "line": 1 },
+                  "start": { "character": 13, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
+let%expect_test "can type-annotate a higher-order function" =
+  let source =
+    {ocaml|
+let my_fun x (y: int -> int -> int) = (fun a -> x + 1)
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:5 in
+    let end_ = Position.create ~line:1 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_annotate_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(y: int -> int -> int) : 'a -> int",
+                "range": {
+                  "end": { "character": 35, "line": 1 },
+                  "start": { "character": 13, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "type-annotate",
+      "title": "Type-annotate"
+    } |}]
+
 let%expect_test "can type-annotate an argument in a function call" =
   let source =
     {ocaml|
@@ -400,6 +542,113 @@ let (iiii : int) = 3 + 4
                 "range": {
                   "end": { "character": 16, "line": 1 },
                   "start": { "character": 4, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from a function with single arg" =
+  let source = {ocaml|
+let f x : int = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:4 in
+    let end_ = Position.create ~line:1 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "x",
+                "range": {
+                  "end": { "character": 13, "line": 1 },
+                  "start": { "character": 6, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from a function with multiple args"
+    =
+  let source = {ocaml|
+let f v w x y z : int = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:4 in
+    let end_ = Position.create ~line:1 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "z",
+                "range": {
+                  "end": { "character": 21, "line": 1 },
+                  "start": { "character": 14, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "remove type annotation",
+      "title": "Remove type annotation"
+    } |}]
+
+let%expect_test "can remove type annotation from a function with annotated arg"
+    =
+  let source = {ocaml|
+let f x y (z : int) : int = x + 1
+|ocaml} in
+  let range =
+    let start = Position.create ~line:1 ~character:4 in
+    let end_ = Position.create ~line:1 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_remove_annotation_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(z : int)",
+                "range": {
+                  "end": { "character": 25, "line": 1 },
+                  "start": { "character": 10, "line": 1 }
                 }
               }
             ],

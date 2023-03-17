@@ -3,16 +3,17 @@ open Import
 let action_kind = "remove type annotation"
 
 let check_typeable_context pipeline pos_start =
+  let open Typedtree in
   let pos_start = Mpipeline.get_lexing_pos pipeline pos_start in
   let typer = Mpipeline.typer_result pipeline in
   let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
   let is_exp_constrained = function
-    | Typedtree.Texp_constraint _, loc, _ -> Some loc
-    | Typedtree.Texp_coerce (Some { ctyp_loc; _ }, _), _, _ -> Some ctyp_loc
+    | Texp_constraint { ctyp_loc; _ }, _, _ -> Some ctyp_loc
+    | Texp_coerce (Some { ctyp_loc; _ }, _), _, _ -> Some ctyp_loc
     | _ -> None
   in
   let is_pat_constrained = function
-    | Typedtree.Tpat_constraint _, loc, _ -> Some loc
+    | Tpat_constraint _, loc, _ -> Some loc
     | _ -> None
   in
   let is_valid loc p extras =
@@ -22,7 +23,34 @@ let check_typeable_context pipeline pos_start =
     | Some x -> `Valid (loc, x)
     | None -> `Invalid
   in
+  let rec trav_cases = function
+    | { c_lhs = { pat_desc = Tpat_var _; _ }
+      ; c_rhs = { exp_desc = Texp_function { cases; _ }; _ }
+      ; _
+      }
+      :: _ -> trav_cases cases
+    | { c_lhs = { pat_desc = Tpat_var _; pat_loc; _ }
+      ; c_rhs = { exp_extra; _ }
+      ; _
+      }
+      :: _ -> is_valid pat_loc is_exp_constrained exp_extra
+    | { c_lhs = { pat_desc = Tpat_alias _; pat_loc; pat_extra; _ }
+      ; c_rhs = { exp_extra; _ }
+      ; _
+      }
+      :: _ -> (
+      match is_valid pat_loc is_pat_constrained pat_extra with
+      | `Valid (_, loc) ->
+        is_valid (Loc.union pat_loc loc) is_exp_constrained exp_extra
+      | `Invalid -> is_valid pat_loc is_exp_constrained exp_extra)
+    | _ -> `Invalid
+  in
   match Mbrowse.enclosing pos_start [ browse ] with
+  | (_, Pattern { pat_desc = Tpat_var _; _ })
+    :: ( _
+       , Value_binding
+           { vb_expr = { exp_desc = Texp_function { cases; _ }; _ }; _ } )
+    :: _ -> trav_cases cases
   | (_, Expression e) :: _ -> is_valid e.exp_loc is_exp_constrained e.exp_extra
   | (_, Pattern { pat_desc = Typedtree.Tpat_any; pat_loc; _ })
     :: (_, Pattern { pat_desc = Typedtree.Tpat_alias _; pat_extra; _ })
