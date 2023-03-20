@@ -23,6 +23,9 @@ let check_typeable_context pipeline pos_start =
     | None -> `Invalid
   in
   match Mbrowse.enclosing pos_start [ browse ] with
+  | (_, Pattern { pat_desc = Tpat_var _; _ })
+    :: (_, Value_binding { vb_expr = { exp_desc = Texp_function _; _ }; _ })
+    :: _ -> `Invalid
   | (_, Expression e) :: _ -> is_valid e.exp_loc is_exp_constrained e.exp_extra
   | (_, Pattern { pat_desc = Typedtree.Tpat_any; pat_loc; _ })
     :: (_, Pattern { pat_desc = Typedtree.Tpat_alias _; pat_extra; _ })

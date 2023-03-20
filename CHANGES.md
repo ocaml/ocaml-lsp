@@ -2,6 +2,8 @@
 
 ## Fixes
 
+- Disable type annotation for functions (#1054)
+
 - Respect codeActionLiteralSupport capability (#1046)
 
 - Fix a document syncing issue when utf-16 is the position encoding (#1004)
