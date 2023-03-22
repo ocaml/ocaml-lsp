@@ -188,17 +188,19 @@ end = struct
   let append_token : t -> Loc.t -> Token_type.t -> Token_modifiers_set.t -> unit
       =
    fun t loc token_type token_modifiers ->
-    let range = Range.of_loc_opt loc in
-    Option.iter range ~f:(fun ({ start; end_ } : Range.t) ->
-        (* TODO: we currently don't handle multi-line range; could handle if
-           client supports it - see client's capabilities on initialization *)
-        if Int.equal start.line end_.line then (
-          let new_token : token =
-            let length = end_.character - start.character in
-            { start; length; token_type; token_modifiers }
-          in
-          t.tokens <- new_token :: t.tokens;
-          t.count <- t.count + 1))
+    if loc.loc_ghost then ()
+    else
+      let range = Range.of_loc_opt loc in
+      Option.iter range ~f:(fun ({ start; end_ } : Range.t) ->
+          (* TODO: we currently don't handle multi-line range; could handle if
+             client supports it - see client's capabilities on initialization *)
+          if Int.equal start.line end_.line then (
+            let new_token : token =
+              let length = end_.character - start.character in
+              { start; length; token_type; token_modifiers }
+            in
+            t.tokens <- new_token :: t.tokens;
+            t.count <- t.count + 1))
 
   let append_token' :
          t
@@ -294,48 +296,50 @@ end = struct
      https://v2.ocaml.org/manual/names.html#sss:refer-named *)
   let lident ({ loc; _ } : Longident.t Loc.loc) rightmost_name
       ?(modifiers = Token_modifiers_set.empty) () =
-    let start = Position.of_lexical_position loc.loc_start in
-    match start with
-    | None -> ()
-    | Some start ->
-      let lid = source_excerpt loc in
+    if loc.loc_ghost then ()
+    else
+      let start = Position.of_lexical_position loc.loc_start in
+      match start with
+      | None -> ()
+      | Some start ->
+        let lid = source_excerpt loc in
 
-      let i = ref 0 in
-      let line = ref start.line in
-      let character = ref start.character in
+        let i = ref 0 in
+        let line = ref start.line in
+        let character = ref start.character in
 
-      let parse_word () : Position.t * [ `Length of int ] =
-        let left_pos = { Position.line = !line; character = !character } in
-        while
-          !i < String.length lid
-          &&
+        let parse_word () : Position.t * [ `Length of int ] =
+          let left_pos = { Position.line = !line; character = !character } in
+          while
+            !i < String.length lid
+            &&
+            match lid.[!i] with
+            | '\n' | ' ' | '.' -> false
+            | _ -> true
+          do
+            incr character;
+            incr i
+          done;
+          (left_pos, `Length (!character - left_pos.character))
+        in
+
+        while !i < String.length lid do
           match lid.[!i] with
-          | '\n' | ' ' | '.' -> false
-          | _ -> true
-        do
-          incr character;
-          incr i
-        done;
-        (left_pos, `Length (!character - left_pos.character))
-      in
-
-      while !i < String.length lid do
-        match lid.[!i] with
-        | '\n' ->
-          incr line;
-          character := 0;
-          incr i
-        | ' ' | '.' ->
-          incr character;
-          incr i
-        | _ ->
-          let pos, `Length length = parse_word () in
-          let token_type, mods =
-            if !i = String.length lid then (rightmost_name, modifiers)
-            else (Token_type.module_, Token_modifiers_set.empty)
-          in
-          add_token' pos ~length token_type mods
-      done
+          | '\n' ->
+            incr line;
+            character := 0;
+            incr i
+          | ' ' | '.' ->
+            incr character;
+            incr i
+          | _ ->
+            let pos, `Length length = parse_word () in
+            let token_type, mods =
+              if !i = String.length lid then (rightmost_name, modifiers)
+              else (Token_type.module_, Token_modifiers_set.empty)
+            in
+            add_token' pos ~length token_type mods
+        done
 
   let constructor_arguments (self : Ast_iterator.iterator)
       (ca : Parsetree.constructor_arguments) =
