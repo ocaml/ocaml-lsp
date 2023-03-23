@@ -12,6 +12,10 @@
   ([#1037](https://github.com/ocaml/ocaml-lsp/pull/1037)), fixes
   [#1036](https://github.com/ocaml/ocaml-lsp/issues/1036)
 
+- Fix semantic highlighting of long identifiers when using preprocessors
+  ([#1049](https://github.com/ocaml/ocaml-lsp/pull/1049), fixes
+  [#1034](https://github.com/ocaml/ocaml-lsp/issues/1034))
+
 ## Features
 - Add "Remove type annotation" code action. (#1039)
 
