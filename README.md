@@ -1,7 +1,13 @@
 # OCaml-LSP <!-- omit from toc -->
 <!-- TOC is updated automatically by "Markdown All in One" vscode extension -->
 
-[![Build](https://github.com/ocaml/ocaml-lsp/workflows/Build%20and%20Test/badge.svg)](https://github.com/ocaml/ocaml-lsp/actions)
+[![Build][build-badge]][build]
+[![Coverage Status][coverall-badge]][coverall]
+
+[build-badge]: https://github.com/ocaml/ocaml-lsp/workflows/Build%20and%20Test/badge.svg
+[build]: https://github.com/ocaml/ocaml-lsp/actions
+[coverall-badge]: https://coveralls.io/repos/github/ocaml/ocaml-lsp/badge.svg?branch=master
+[coverall]: https://coveralls.io/github/ocaml/ocaml-lsp?branch=master
 
 OCaml-LSP is a language server for OCaml that implements [Language Server
 Protocol](https://microsoft.github.io/language-server-protocol/) (LSP).
@@ -27,6 +33,7 @@ Protocol](https://microsoft.github.io/language-server-protocol/) (LSP).
   - [Unusual features](#unusual-features)
 - [Debugging](#debugging)
 - [Contributing to project](#contributing-to-project)
+  - [Changelog](#changelog)
 - [Tests](#tests)
 - [Relationship to Other Tools](#relationship-to-other-tools)
 - [History](#history)

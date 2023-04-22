@@ -1,3 +1,5 @@
 (library
  (name jsonrpc_fiber)
- (libraries fiber dyn jsonrpc ppx_yojson_conv_lib stdune yojson))
+ (libraries fiber dyn jsonrpc ppx_yojson_conv_lib stdune yojson)
+ (instrumentation
+  (backend bisect_ppx)))
