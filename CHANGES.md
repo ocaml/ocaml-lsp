@@ -2,6 +2,9 @@
 
 ## Fixes
 
+- Allow opening documents that were already open. This is a workaround for
+  neovim's lsp client (#1067)
+
 - Disable type annotation for functions (#1054)
 
 - Respect codeActionLiteralSupport capability (#1046)
