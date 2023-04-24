@@ -24,11 +24,88 @@
         dune-release = prev.dune-release.overrideAttrs (_: {
           doCheck = false;
         });
+        ocamlPackages = prev.ocamlPackages.overrideScope' (oself: osuper:
+          let
+            fixPreBuild = o: {
+              propagatedBuildInputs = o.propagatedBuildInputs ++ [ oself.pp ];
+              preBuild = ''
+                rm -r vendor/csexp vendor/pp
+              '';
+            };
+          in
+          {
+            dyn = osuper.dyn.overrideAttrs fixPreBuild;
+            dune-private-libs = osuper.dune-private-libs.overrideAttrs fixPreBuild;
+            dune-glob = osuper.dune-glob.overrideAttrs fixPreBuild;
+            dune-action-plugin = osuper.dune-action-plugin.overrideAttrs fixPreBuild;
+            dune-rpc = osuper.dune-rpc.overrideAttrs fixPreBuild;
+            stdune = osuper.stdune.overrideAttrs fixPreBuild;
+          });
       };
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { overlays = [ overlay ]; inherit system; };
+        inherit (pkgs.ocamlPackages) buildDunePackage;
+        fast = rec {
+
+          # these packages do not use opam2nix
+          jsonrpc = buildDunePackage {
+            pname = "jsonrpc";
+            version = "n/a";
+            src = ./.;
+            duneVersion = "3";
+            propagatedBuildInputs = with pkgs.ocamlPackages; [ ];
+            doCheck = false;
+          };
+
+          lsp = buildDunePackage {
+            pname = "lsp";
+            version = "n/a";
+            src = ./.;
+            duneVersion = "3";
+            propagatedBuildInputs = with pkgs.ocamlPackages; [
+              jsonrpc
+              yojson
+              stdune
+              ppx_yojson_conv_lib
+              uutf
+            ];
+            checkInputs = with pkgs.ocamlPackages; [ cinaps ppx_expect ];
+            doCheck = false;
+          };
+
+          ocaml-lsp = buildDunePackage {
+            pname = "ocaml-lsp";
+            version = "n/a";
+            src = ./.;
+            duneVersion = "3";
+            checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
+            propagatedBuildInputs = with pkgs.ocamlPackages; [
+              ocamlc-loc
+              octavius
+              dune-build-info
+              re
+              dune-rpc
+              chrome-trace
+              dyn
+              fiber
+              xdg
+              ordering
+              spawn
+              pp
+              csexp
+              ocamlformat-rpc-lib
+              stdune
+              yojson
+              ppx_yojson_conv_lib
+              uutf
+              lsp
+              odoc-parser
+            ];
+            doCheck = false;
+          };
+        };
         on = opam-nix.lib.${system};
         localPackages = {
           jsonrpc = "*";
@@ -67,7 +144,7 @@
       {
         packages =
           opam2nixPackages //
-          {
+          rec {
             # we have a package without opam2nix for easy consumption for nix users
             default = pkgs.ocamlPackages.buildDunePackage {
               pname = package;
@@ -77,7 +154,6 @@
               buildInputs = with pkgs.ocamlPackages; [
                 ocamlc-loc
                 odoc-parser
-                cmarkit
                 dune-build-info
                 re
                 dune-rpc
@@ -104,10 +180,12 @@
                 runHook postBuild
               '';
             };
+
+            ocaml-lsp = fast.ocaml-lsp;
           };
 
-        devShell =
-          pkgs.mkShell {
+        devShells = {
+          opam2nix = pkgs.mkShell {
             buildInputs = (with pkgs;
               [
                 # dev tools
@@ -117,5 +195,22 @@
               ]) ++ packagesFromNames devPackages;
             inputsFrom = packagesFromNames opam2nixPackages;
           };
+
+          default = pkgs.mkShell {
+            buildInputs = (with pkgs;
+              [
+                # dev tools
+                ocamlformat_0_24_1
+                yarn
+                dune-release
+
+                ocamlPackages.ppx_expect
+                ocamlPackages.utop
+                ocamlPackages.cinaps
+                ocamlPackages.ppx_yojson_conv
+              ]);
+            inputsFrom = [ fast.ocaml-lsp fast.jsonrpc fast.lsp ];
+          };
+        };
       });
 }
