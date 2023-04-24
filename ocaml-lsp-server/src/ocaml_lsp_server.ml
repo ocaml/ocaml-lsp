@@ -683,7 +683,6 @@ let on_notification server (notification : Client_notification.t) :
         state.merlin
         params
     in
-    assert (Document_store.get_opt store params.textDocument.uri = None);
     let* () = Document_store.open_document store doc in
     let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
     state

@@ -1,13 +1,24 @@
 open Test.Import
 
 let%expect_test "it should allow double opening the same document" =
-  let diagnostics = Fiber.Ivar.create () in
+  let diagnostics = Fiber.Mvar.create () in
+  let drain_diagnostics () = Fiber.Mvar.read diagnostics in
   let handler =
+    let on_request (type resp state) (client : state Client.t)
+        (req : resp Lsp.Server_request.t) :
+        (resp Lsp_fiber.Rpc.Reply.t * state) Fiber.t =
+      match req with
+      | Lsp.Server_request.ClientUnregisterCapability _ ->
+        let state = Client.state client in
+        Fiber.return (Lsp_fiber.Rpc.Reply.now (), state)
+      | _ -> assert false
+    in
     Client.Handler.make
       ~on_notification:
         (fun _ -> function
-          | PublishDiagnostics _ -> Fiber.Ivar.fill diagnostics ()
+          | PublishDiagnostics _ -> Fiber.Mvar.write diagnostics ()
           | _ -> Fiber.return ())
+      ~on_request:{ Client.Handler.on_request }
       ()
   in
   ( Test.run ~handler @@ fun client ->
@@ -35,36 +46,10 @@ let%expect_test "it should allow double opening the same document" =
           (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
       in
       let* () = open_ "text 1" in
+      let* () = drain_diagnostics () in
       let+ () = open_ "text 2" in
       ()
     in
     Fiber.fork_and_join_unit run_client (fun () ->
-        run >>> Fiber.Ivar.read diagnostics >>> Client.stop client) );
-  [%expect
-    {|
-    (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-       This is strongly discouraged as backtraces are fragile.
-       Please change this test to not include a backtrace. *)
-
-    Uncaught error when handling notification:
-    {
-      "params": {
-        "textDocument": {
-          "languageId": "ocaml",
-          "text": "text 2",
-          "uri": "file:///foo.ml",
-          "version": 0
-        }
-      },
-      "method": "textDocument/didOpen",
-      "jsonrpc": "2.0"
-    }
-    Error:
-    [ { exn =
-          "File \"ocaml-lsp-server/src/ocaml_lsp_server.ml\", line 686, characters 4-10: Assertion failed"
-      ; backtrace =
-          "Raised at Ocaml_lsp_server.on_notification in file \"ocaml-lsp-server/src/ocaml_lsp_server.ml\", line 686, characters 4-72\n\
-           Called from Fiber__Scheduler.exec in file \"fiber/src/scheduler.ml\", line 73, characters 8-11\n\
-           "
-      }
-    ] |}]
+        run >>> drain_diagnostics () >>> Client.stop client) );
+  [%expect {| |}]

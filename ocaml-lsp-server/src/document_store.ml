@@ -106,9 +106,13 @@ let open_document t doc =
          { document = Some doc; promotions = 0; semantic_tokens_cache = None });
     Fiber.return ()
   | Some d ->
-    assert (!d.document = None);
+    (* if there's no document, then we just opened it to track promotions.
+
+       if there's a document already, we're doing a double open and there's no
+       need to unregister. *)
+    let unregister = !d.document = None in
     d := { !d with document = Some doc };
-    unregister_request t [ key ]
+    if unregister then unregister_request t [ key ] else Fiber.return ()
 
 let get_opt t uri = Table.find t.db uri |> Option.bind ~f:(fun d -> !d.document)
 
