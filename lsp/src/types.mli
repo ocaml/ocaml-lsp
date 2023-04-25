@@ -839,7 +839,7 @@ module DocumentFilter : sig
 end
 
 module DocumentSelector : sig
-  type t = [ `String of string | `DocumentFilter of DocumentFilter.t ] list
+  type t = DocumentFilter.t list
 
   include Json.Jsonable.S with type t := t
 end
