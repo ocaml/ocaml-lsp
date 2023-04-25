@@ -4878,85 +4878,19 @@ module DocumentFilter = struct
 end
 
 module DocumentSelector = struct
-  type t = [ `String of string | `DocumentFilter of DocumentFilter.t ] list
-  [@@deriving_inline yojson]
+  type t = DocumentFilter.t list [@@deriving_inline yojson]
 
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
     (let _tp_loc = "lsp/src/types.ml.DocumentSelector.t" in
-     fun t ->
-       list_of_yojson
-         (fun yojson ->
-           try
-             match yojson with
-             | `List [ `String atom ] as _yojson -> (
-               match atom with
-               | "String" ->
-                 Ppx_yojson_conv_lib.Yojson_conv_error.ptag_takes_args
-                   _tp_loc
-                   _yojson
-               | "DocumentFilter" ->
-                 Ppx_yojson_conv_lib.Yojson_conv_error.ptag_takes_args
-                   _tp_loc
-                   _yojson
-               | _ -> Ppx_yojson_conv_lib.Yojson_conv_error.no_variant_match ())
-             | `List (`String atom :: yojson_args) as _yojson -> (
-               match atom with
-               | "String" as _tag -> (
-                 match yojson_args with
-                 | [ v0 ] ->
-                   let v0 = string_of_yojson v0 in
-                   `String v0
-                 | _ ->
-                   Ppx_yojson_conv_lib.Yojson_conv_error.ptag_incorrect_n_args
-                     _tp_loc
-                     _tag
-                     _yojson)
-               | "DocumentFilter" as _tag -> (
-                 match yojson_args with
-                 | [ v0 ] ->
-                   let v0 = DocumentFilter.t_of_yojson v0 in
-                   `DocumentFilter v0
-                 | _ ->
-                   Ppx_yojson_conv_lib.Yojson_conv_error.ptag_incorrect_n_args
-                     _tp_loc
-                     _tag
-                     _yojson)
-               | _ -> Ppx_yojson_conv_lib.Yojson_conv_error.no_variant_match ())
-             | `List (`List _ :: _) as yojson ->
-               Ppx_yojson_conv_lib.Yojson_conv_error
-               .nested_list_invalid_poly_var
-                 _tp_loc
-                 yojson
-             | `List [] as yojson ->
-               Ppx_yojson_conv_lib.Yojson_conv_error.empty_list_invalid_poly_var
-                 _tp_loc
-                 yojson
-             | _ as yojson ->
-               Ppx_yojson_conv_lib.Yojson_conv_error.unexpected_stag
-                 _tp_loc
-                 yojson
-           with Ppx_yojson_conv_lib.Yojson_conv_error.No_variant_match ->
-             Ppx_yojson_conv_lib.Yojson_conv_error.no_matching_variant_found
-               _tp_loc
-               yojson)
-         t
+     fun t -> list_of_yojson DocumentFilter.t_of_yojson t
       : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
 
   let _ = t_of_yojson
 
   let yojson_of_t =
-    (fun v ->
-       yojson_of_list
-         (function
-           | `String v0 ->
-             let v0 = yojson_of_string v0 in
-             `List [ `String "String"; v0 ]
-           | `DocumentFilter v0 ->
-             let v0 = DocumentFilter.yojson_of_t v0 in
-             `List [ `String "DocumentFilter"; v0 ])
-         v
+    (fun v -> yojson_of_list DocumentFilter.yojson_of_t v
       : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
 
   let _ = yojson_of_t

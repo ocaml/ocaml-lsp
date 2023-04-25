@@ -288,9 +288,8 @@ let on_initialize server (ip : InitializeParams.t) =
                      let documentSelector =
                        [ "cram"; "dune"; "dune-project"; "dune-workspace" ]
                        |> List.map ~f:(fun language ->
-                              `DocumentFilter
-                                (`TextDocumentFilter
-                                  (TextDocumentFilter.create ~language ())))
+                              `TextDocumentFilter
+                                (TextDocumentFilter.create ~language ()))
                      in
                      TextDocumentRegistrationOptions.create ~documentSelector ()
                      |> TextDocumentRegistrationOptions.yojson_of_t

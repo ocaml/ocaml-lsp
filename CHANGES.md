@@ -16,6 +16,8 @@
   ([#1049](https://github.com/ocaml/ocaml-lsp/pull/1049), fixes
   [#1034](https://github.com/ocaml/ocaml-lsp/issues/1034))
 
+- Fix the type of DocumentSelector in cram document registration (#1068)
+
 ## Features
 - Add "Remove type annotation" code action. (#1039)
 
