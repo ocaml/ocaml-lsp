@@ -63,3 +63,34 @@ jobs:
 
       - name: Run the template integration tests
         run: opam exec -- make test-e2e
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ocaml-compiler:
+          - 4.14.x
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          opam-depext: false
+
+      - name: Set git user
+        run: |
+          git config --global user.name github-actions[bot]
+          git config --global user.email github-actions[bot]@users.noreply.github.com
+    
+      - name: Install deps on Unix
+        run: |
+          opam install . --deps-only
+          opam exec -- make coverage-deps install-test-deps
+      - run: opam exec -- make test-coverage
+        continue-on-error: true
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}

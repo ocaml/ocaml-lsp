@@ -1,2 +1,4 @@
 (library
- (public_name jsonrpc))
+ (public_name jsonrpc)
+ (instrumentation
+  (backend bisect_ppx)))

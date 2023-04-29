@@ -36,6 +36,8 @@
   ocamlformat-rpc-lib
   ocamlc-loc)
  (lint
-  (pps ppx_yojson_conv)))
+  (pps ppx_yojson_conv))
+ (instrumentation
+  (backend bisect_ppx)))
 
 (include_subdirs unqualified)
