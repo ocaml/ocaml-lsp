@@ -96,7 +96,7 @@ nix-fmt:
 
 .PHONY: coverage-deps
 coverage-deps:
-	opam install -y bisect_ppx
+	opam install -y bisect_ppx merlin
 
 .PHONY: test-coverage
 test-coverage:
