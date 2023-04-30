@@ -14,6 +14,15 @@ module Arg = struct
     ; mutable clientProcessId : int option
     }
 
+  let port t ~name ~description =
+    ( name
+    , Arg.Int
+        (fun p ->
+          match t.port with
+          | Some _ -> raise @@ Arg.Bad "port is already set once"
+          | None -> t.port <- Some p)
+    , description )
+
   let create () =
     let t =
       { pipe = None
@@ -25,7 +34,8 @@ module Arg = struct
     in
     let spec =
       [ ("--pipe", Arg.String (fun p -> t.pipe <- Some p), "set pipe path")
-      ; ("--socket", Arg.Int (fun p -> t.port <- Some p), "set port")
+      ; port t ~name:"--socket" ~description:"set the port"
+      ; port t ~name:"--port" ~description:"synonym for --socket"
       ; ("--stdio", Arg.Unit (fun () -> t.stdio <- true), "set stdio")
       ; ( "--node-ipc"
         , Arg.Unit (fun () -> raise @@ Arg.Bad "node-ipc isn't supported")
@@ -42,7 +52,7 @@ module Arg = struct
 
   let clientProcessId t = t.clientProcessId
 
-  let read { pipe; port; stdio; spec = _; clientProcessId = _ } :
+  let channel { pipe; port; stdio; spec = _; clientProcessId = _ } :
       (Channel.t, string) result =
     match (pipe, port, stdio) with
     | None, None, _ -> Ok Stdio
@@ -50,3 +60,15 @@ module Arg = struct
     | None, Some s, false -> Ok (Socket s)
     | _, _, _ -> Error "invalid arguments"
 end
+
+let args ?channel ?clientProcessId () =
+  let args =
+    match clientProcessId with
+    | None -> []
+    | Some pid -> [ "--clientPorcessId"; string_of_int pid ]
+  in
+  match (channel : Channel.t option) with
+  | None -> args
+  | Some Stdio -> "--stdio" :: args
+  | Some (Pipe pipe) -> "--pipe" :: pipe :: args
+  | Some (Socket port) -> "--socket" :: string_of_int port :: args

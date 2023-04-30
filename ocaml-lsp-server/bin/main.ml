@@ -16,7 +16,7 @@ let () =
     @ Cli.Arg.spec arg
   in
   let usage =
-    "ocamllsp [ --stdio | --socket SOCKET --port PORT | --pipe PIPE ] [ \
+    "ocamllsp [ --stdio | --socket PORT | --port PORT | --pipe PIPE ] [ \
      --clientProcessId pid ]"
   in
   Arg.parse
@@ -24,7 +24,7 @@ let () =
     (fun _ -> raise @@ Arg.Bad "anonymous arguments aren't allowed")
     usage;
   let channel =
-    match Cli.Arg.read arg with
+    match Cli.Arg.channel arg with
     | Ok c -> c
     | Error s ->
       Format.eprintf "%s@.%!" s;

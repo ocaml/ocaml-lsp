@@ -23,6 +23,8 @@
 
 - Accept the `--clientProcessId` command line argument. (#1074)
 
+- Accept `--port` as a synonym for `--socket`. (#1075)
+
 ## Features
 - Add "Remove type annotation" code action. (#1039)
 
