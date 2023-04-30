@@ -50,3 +50,15 @@ module Arg = struct
     | None, Some s, false -> Ok (Socket s)
     | _, _, _ -> Error "invalid arguments"
 end
+
+let args ?channel ?clientProcessId () =
+  let args =
+    match clientProcessId with
+    | None -> []
+    | Some pid -> ["--clientPorcessId"; string_of_int pid]
+  in
+  match channel with
+  | None -> args
+  | Some Stdio -> "--stdio" :: args
+  | Some (Pipe pipe) -> "--pipe" :: pipe :: args
+  | Some (Socket port) -> "--socket" :: socket :: args

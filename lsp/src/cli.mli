@@ -16,3 +16,6 @@ module Arg : sig
 
   val clientProcessId : t -> int option
 end
+
+(** generate command line arguments that can be used to spawn an lsp client  *)
+val args : ?channel:Channel.t -> ?clientProcessId:int -> unit -> string list
