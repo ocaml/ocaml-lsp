@@ -29,6 +29,8 @@ type t =
   ; position_encoding : [ `UTF8 | `UTF16 ]
   }
 
+let position_encoding t = t.position_encoding
+
 let make ~position_encoding
     { DidOpenTextDocumentParams.textDocument =
         { TextDocumentItem.languageId; text; uri; version }

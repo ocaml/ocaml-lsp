@@ -9,6 +9,8 @@ val languageId : t -> string
 
 val documentUri : t -> Uri0.t
 
+val position_encoding : t -> [ `UTF16 | `UTF8 ]
+
 val version : t -> int
 
 val text : t -> string
