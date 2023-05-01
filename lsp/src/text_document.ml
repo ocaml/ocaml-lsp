@@ -16,13 +16,10 @@ type invalid_utf = String_zipper.invalid_utf =
 
 exception Invalid_utf = String_zipper.Invalid_utf
 
-(* Text is received as UTF-8. However, the protocol specifies offsets should be
-   computed based on UTF-16. Therefore we reencode every file into utf16 for
-   analysis. *)
-
 type t =
   { languageId : string
-  ; mutable text : string option
+  ; (* text is stored as utf8 internally no matter what the encoding is *)
+    mutable text : string option
   ; uri : DocumentUri.t
   ; version : int
   ; mutable zipper : String_zipper.t
