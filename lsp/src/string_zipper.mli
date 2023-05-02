@@ -30,6 +30,8 @@ val drop_until : t -> t -> t
 val apply_change :
   t -> Types.Range.t -> [ `UTF16 | `UTF8 ] -> replacement:string -> t
 
+val offset : t -> int
+
 module Private : sig
   type zipper := t
 

@@ -104,3 +104,11 @@ let apply_text_document_edits t (edits : TextEdit.t list) =
   let text = apply_changes t.zipper t.position_encoding edits in
   let zipper = String_zipper.of_string text in
   { t with text = Some text; zipper }
+
+module Expert = struct
+  let goto t pos =
+    let zipper = String_zipper.goto_position t.zipper pos `UTF8 in
+    { t with zipper }
+
+  let offset t = String_zipper.offset t.zipper
+end
