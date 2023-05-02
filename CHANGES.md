@@ -21,6 +21,8 @@
 
 - Fix the type of DocumentSelector in cram document registration (#1068)
 
+- Accept the `--clientProcessId` command line argument. (#1074)
+
 ## Features
 - Add "Remove type annotation" code action. (#1039)
 

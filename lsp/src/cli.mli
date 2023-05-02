@@ -13,4 +13,6 @@ module Arg : sig
   val spec : t -> (string * Arg.spec * string) list
 
   val read : t -> (Channel.t, string) result
+
+  val clientProcessId : t -> int option
 end

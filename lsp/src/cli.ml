@@ -11,10 +11,18 @@ module Arg = struct
     ; mutable port : int option
     ; mutable stdio : bool
     ; mutable spec : (string * Arg.spec * string) list
+    ; mutable clientProcessId : int option
     }
 
   let create () =
-    let t = { pipe = None; port = None; stdio = false; spec = [] } in
+    let t =
+      { pipe = None
+      ; port = None
+      ; stdio = false
+      ; spec = []
+      ; clientProcessId = None
+      }
+    in
     let spec =
       [ ("--pipe", Arg.String (fun p -> t.pipe <- Some p), "set pipe path")
       ; ("--socket", Arg.Int (fun p -> t.port <- Some p), "set port")
@@ -22,6 +30,9 @@ module Arg = struct
       ; ( "--node-ipc"
         , Arg.Unit (fun () -> raise @@ Arg.Bad "node-ipc isn't supported")
         , "not supported" )
+      ; ( "--clientProcessId"
+        , Arg.Int (fun pid -> t.clientProcessId <- Some pid)
+        , "set the pid of the lsp client" )
       ]
     in
     t.spec <- spec;
@@ -29,7 +40,10 @@ module Arg = struct
 
   let spec t = t.spec
 
-  let read { pipe; port; stdio; spec = _ } : (Channel.t, string) result =
+  let clientProcessId t = t.clientProcessId
+
+  let read { pipe; port; stdio; spec = _; clientProcessId = _ } :
+      (Channel.t, string) result =
     match (pipe, port, stdio) with
     | None, None, _ -> Ok Stdio
     | Some p, None, false -> Ok (Pipe p)

@@ -16,7 +16,8 @@ let () =
     @ Cli.Arg.spec arg
   in
   let usage =
-    "ocamllsp [ --stdio | --socket SOCKET --port PORT | --pipe PIPE ]"
+    "ocamllsp [ --stdio | --socket SOCKET --port PORT | --pipe PIPE ] [ \
+     --clientProcessId pid ]"
   in
   Arg.parse
     spec
