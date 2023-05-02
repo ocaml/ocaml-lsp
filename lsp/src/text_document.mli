@@ -30,3 +30,15 @@ val set_version : t -> version:int -> t
     when multiple inserts are done in the same position. All the offsets are
     interpreted relative to the original document. *)
 val apply_text_document_edits : t -> TextEdit.t list -> t
+
+module Expert : sig
+  (** These functions allow one to work with the underlying zipper. This gives
+      the opportunity for better performance on chained edits. *)
+
+  (** [goto t pos] move the zipper of [t] to [pos]. [pos] must be in utf8 *)
+  val goto : t -> Position.t -> t
+
+  (** [offset t] return the global offset in the string where the zipper is
+      currently focused *)
+  val offset : t -> int
+end

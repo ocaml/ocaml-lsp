@@ -39,6 +39,8 @@ let of_string s =
   ; line = 0
   }
 
+let offset t = t.abs_pos + t.rel_pos
+
 let length =
   let f acc sub = acc + Substring.length sub in
   fun { abs_pos = _; current; left; right; rel_pos = _; line = _ } ->
