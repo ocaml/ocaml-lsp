@@ -25,7 +25,10 @@
 
 - Accept `--port` as a synonym for `--socket`. (#1075)
 
+- Fix connecting to dune rpc. (#1080)
+
 ## Features
+
 - Add "Remove type annotation" code action. (#1039)
 
 # 1.15.1
