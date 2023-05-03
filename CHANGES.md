@@ -25,7 +25,7 @@
 
 - Accept `--port` as a synonym for `--socket`. (#1075)
 
-- Fix connecting to dune rpc. (#1080)
+- Fix connecting to dune rpc on Windows. (#1080)
 
 ## Features
 
