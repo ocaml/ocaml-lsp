@@ -599,6 +599,7 @@ let uri_dune_overlap =
   in
   fun (uri : Uri.t) (dune : Registry.Dune.t) ->
     let dune_root = Registry.Dune.root dune in
+    let normalize s = if Sys.win32 then String.lowercase_ascii s else s in
     let path =
       let path = Uri.to_path uri in
       if Filename.is_relative path then Filename.concat (Lazy.force cwd) path
@@ -606,7 +607,7 @@ let uri_dune_overlap =
     in
     let rec loop xs ys =
       match (xs, ys) with
-      | x :: xs, y :: ys -> x = y && loop xs ys
+      | x :: xs, y :: ys -> normalize x = normalize y && loop xs ys
       | [], _ | _, [] -> true
     in
     loop (explode_path dune_root) (explode_path path)
