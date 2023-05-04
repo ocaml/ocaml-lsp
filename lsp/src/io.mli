@@ -23,7 +23,7 @@ end) (Chan : sig
 
   val read_exactly : input -> int -> string option Io.t
 
-  val write : output -> string -> unit Io.t
+  val write : output -> string list -> unit Io.t
 end) : sig
   val read : Chan.input -> Jsonrpc.Packet.t option Io.t
 
