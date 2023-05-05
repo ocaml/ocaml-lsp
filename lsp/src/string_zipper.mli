@@ -32,6 +32,8 @@ val apply_change :
 
 val offset : t -> int
 
+val advance_utf8 : t -> code_units:int -> t
+
 module Private : sig
   type zipper := t
 

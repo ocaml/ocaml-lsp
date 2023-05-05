@@ -38,6 +38,12 @@ module Expert : sig
   (** [goto t pos] move the zipper of [t] to [pos]. [pos] must be in utf8 *)
   val goto : t -> Position.t -> t
 
+  (** [advance t ~code_units] move [t] from the current position by
+      [code_units]. [code_units] can be negative. Trying to move past the
+      beginning of the document will keep the cursor at the beginning. Equally
+      for trying to move to the end*)
+  val advance : t -> code_units:int -> t
+
   (** [offset t] return the global offset in the string where the zipper is
       currently focused *)
   val offset : t -> int

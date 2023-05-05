@@ -110,5 +110,9 @@ module Expert = struct
     let zipper = String_zipper.goto_position t.zipper pos `UTF8 in
     { t with zipper }
 
+  let advance t ~code_units =
+    let zipper = String_zipper.advance_utf8 t.zipper ~code_units in
+    { t with zipper }
+
   let offset t = String_zipper.offset t.zipper
 end
