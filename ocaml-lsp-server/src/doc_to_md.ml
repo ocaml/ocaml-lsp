@@ -1,15 +1,9 @@
 open Import
 module Oct = Octavius
+open Omd
+open Omd.Ctor
 
-let ocaml = "ocaml"
-
-let to_inline_code code = Omd.Code (ocaml, code)
-
-let to_code_block code = Omd.Code_block (ocaml, code)
-
-let space = Omd.Text " "
-
-let new_line = Omd.NL
+let space = Omd.Ctor.txt " "
 
 (* [put_in_between elem lst] inserts [elem] between all elements of [lst] *)
 let put_in_between elem lst =
@@ -20,86 +14,117 @@ let put_in_between elem lst =
   in
   List.rev (loop [] lst)
 
-let heading_level level heading : Omd.element =
+let heading_level level heading =
   match level with
-  | 0 -> H1 heading
-  | 1 -> H2 heading
-  | 2 -> H3 heading
-  | 3 -> H4 heading
-  | 4 -> H5 heading
-  | _ -> H6 heading
+  | 0 -> h 1 heading
+  | 1 -> h 2 heading
+  | 2 -> h 3 heading
+  | 3 -> h 4 heading
+  | 4 -> h 5 heading
+  | _ -> h 6 heading
 
-let style_markdown (kind : Oct.Types.style_kind) md : Omd.element list =
-  match kind with
-  | SK_bold -> [ Bold md ]
-  | SK_italic | SK_emphasize -> [ Emph md ]
-  | SK_center | SK_left | SK_right | SK_superscript | SK_subscript | SK_custom _
-    ->
-    (* TODO: implement SK_{center, left, right, superscript, subscript, custom}
-       using html blocks *)
-    md
+let inline_with_style ?style ?(attrs = []) s =
+  match style with
+  | None -> s
+  | Some Oct.Types.SK_bold -> Strong (attrs, s)
+  | Some Oct.Types.(SK_italic | SK_emphasize) -> Emph (attrs, s)
+  | Some
+      Oct.Types.(
+        ( SK_center
+        | SK_left
+        | SK_right
+        | SK_superscript
+        | SK_subscript
+        | SK_custom _ )) -> s
 
-let rec text_to_markdown doc = List.concat_map ~f:text_element_to_markdown doc
-
-and text_element_to_markdown (doc_elem : Oct.Types.text_element) =
-  match doc_elem with
-  | Raw text -> [ Omd.Text text ]
-  | Code code -> [ to_inline_code code ]
-  | PreCode code -> [ to_code_block code ]
-  | Verbatim text -> [ Raw text ]
-  | Style (kind, text) -> style_markdown kind @@ text_to_markdown text
-  | List l -> [ Ul (text_elements_to_markdown l) ]
-  | Enum l -> [ Ol (text_elements_to_markdown l) ]
-  | Newline -> [ new_line; new_line ]
-  | Title (i, _, content) ->
-    (* TODO: along with cross-references support, add support for labels *)
-    let heading = text_to_markdown content in
-    [ heading_level i heading ]
-  | Ref (RK_link, url, descr) ->
+let rec fold_text_inline ?style elements acc =
+  match elements with
+  | Oct.Types.Raw text :: rest ->
+    fold_text_inline rest (inline_with_style ?style (txt text) :: acc)
+  | Oct.Types.Code cd :: rest ->
+    fold_text_inline rest (inline_with_style ?style (code cd) :: acc)
+  | Oct.Types.Verbatim text :: rest ->
+    fold_text_inline rest (inline_with_style ?style (txt text) :: acc)
+  | Oct.Types.Style (style, text) :: rest ->
+    let inner, _blocks = fold_text_inline ~style text [] in
+    fold_text_inline rest (inner @ acc)
+  | Oct.Types.Newline :: rest -> fold_text_inline rest [ nl; nl ]
+  | Oct.Types.Ref (RK_link, url, descr) :: rest ->
     let descr =
-      Option.map descr ~f:text_to_markdown |> Option.value ~default:[]
+      (* ISSUE: links should accept a list of inline elements *)
+      match
+        Option.map descr ~f:(fun x ->
+            let inner, _blocks = fold_text_inline ?style x [] in
+            inner)
+      with
+      | Some (el :: _rest) -> el
+      | Some [] | None -> txt ""
     in
-    let empty_title = "" in
-    [ Url (url, descr, empty_title) ]
-  | Ref (_ref_kind, reference, descr) ->
+    let link =
+      Link ([], { label = descr; destination = url; title = Some "" })
+    in
+    fold_text_inline rest (inline_with_style ?style link :: acc)
+  | Oct.Types.Ref (_ref_kind, reference, descr) :: rest ->
     (* TODO: add support for cross-references *)
-    Option.map ~f:text_to_markdown descr
-    |> Option.value ~default:[ to_inline_code reference ]
-  | Special_ref _
-  | Target (_, _) (* TODO: add support for markdown-specific blocks *) -> []
+    let x =
+      Option.map
+        ~f:(fun x ->
+          let inner, _blocks = fold_text_inline ?style x [] in
+          inner)
+        descr
+      |> Option.value ~default:[ inline_with_style ?style (code reference) ]
+    in
+    fold_text_inline rest (x @ acc)
+  | _rest -> (List.rev acc, elements)
+
+let rec fold_text elements acc =
+  match elements with
+  | Oct.Types.(Raw _ | Code _ | Verbatim _ | Style _ | Newline | Ref _) :: _rest
+    ->
+    let inlines, rest = fold_text_inline elements [] in
+    fold_text rest (p inlines :: acc)
+  | Oct.Types.Title (i, _, content) :: rest ->
+    (* TODO: along with cross-references support, add support for labels *)
+    let heading, _blocks = fold_text_inline content [] in
+    fold_text rest (h (i + 1) heading :: acc)
+  | Oct.Types.PreCode code :: rest -> fold_text rest (code_bl code :: acc)
+  | Oct.Types.List l :: rest ->
+    fold_text rest (ul (text_elements_to_markdown l) :: acc)
+  | Oct.Types.Enum l :: rest ->
+    fold_text rest (ol (text_elements_to_markdown l) :: acc)
+  | Oct.Types.Special_ref _ :: rest | Oct.Types.Target (_, _) :: rest ->
+    (* TODO: add support for markdown-specific blocks *) fold_text rest acc
+  | [] -> acc
+
+and text_to_markdown doc = fold_text doc []
 
 and text_elements_to_markdown lst = List.map ~f:text_to_markdown lst
 
 let rec tags_to_markdown (tags : Oct.Types.tag list) =
-  List.map ~f:tag_to_markdown tags
-  |> put_in_between [ new_line; new_line ]
-  |> List.concat
+  List.map ~f:tag_to_markdown tags |> put_in_between [ nl; nl ] |> List.concat
 
-and tag_to_markdown tag : Omd.element list =
-  let format_tag tag = Omd.Bold [ Emph [ Text tag ] ] in
-  let plain_tag_to_md tag descr = [ format_tag tag; space; Text descr ] in
+and tag_to_markdown tag =
+  let format_tag tag = Strong ([], Emph ([], txt tag)) in
+  let plain_tag_to_md tag descr = [ format_tag tag; space; txt descr ] in
   let tag_with_text_to_md tag text =
-    format_tag tag :: space :: text_to_markdown text
+    let inlines, _blocks = fold_text_inline text [] in
+    format_tag tag :: space :: inlines
   in
-  let marked_tag_to_md tag mark =
-    [ format_tag tag; space; to_inline_code mark ]
-  in
+  let marked_tag_to_md tag mark = [ format_tag tag; space; code mark ] in
   let marked_tag_with_text_to_md tag mark text =
-    format_tag tag :: space :: to_inline_code mark :: space
-    :: text_to_markdown text
+    let inlines, _blocks = fold_text_inline text [] in
+    format_tag tag :: space :: code mark :: space :: inlines
   in
   let see_tag_to_md (see_ref, comment) =
     let content =
       match (see_ref, comment) with
       | Oct.Types.See_url url, text ->
-        let empty_hover_title = "" in
-        let link_title = [ Omd.Text "link" ] in
-        Omd.Url (url, link_title, empty_hover_title)
-        :: space :: text_to_markdown text
+        let inlines, _blocks = fold_text_inline text [] in
+        a ~url ~title:"link" "" :: space :: inlines
       | See_file name, text | See_doc name, text ->
-        let no_prog_lang = "" in
         (* TODO: add support to reference files and documents *)
-        Code (no_prog_lang, name) :: space :: text_to_markdown text
+        let inlines, _blocks = fold_text_inline text [] in
+        code name :: space :: inlines
     in
     format_tag "@see" :: space :: content
   in
@@ -122,17 +147,16 @@ and tag_to_markdown tag : Omd.element list =
   | Raised_exception (exn, text) -> marked_tag_with_text_to_md "@raise" exn text
   | See (r, s) -> see_tag_to_md (r, s)
   | Custom (name, text) ->
-    [ Omd.Emph [ Text ("@" ^ name) ]; space ] @ text_to_markdown text
-  | Inline -> [ Emph [ Text "@inline" ] ]
+    let inlines, _blocks = fold_text_inline text [] in
+    [ Emph ([], txt ("@" ^ name)); space ] @ inlines
+  | Inline -> [ Emph ([], txt "@inline") ]
 
 let comment_to_markdown (doc, tags) =
   let text = text_to_markdown doc in
   let tags = tags_to_markdown tags in
   match tags with
   | [] -> text
-  | non_empty_tags ->
-    let separation = Omd.[ NL; Hr ] in
-    text @ separation @ non_empty_tags
+  | non_empty_tags -> text @ [ hr ] @ [ p non_empty_tags ]
 
 type t =
   | Raw of string
@@ -144,7 +168,7 @@ let translate doc : t =
     let msg = Oct.Errors.message e.error in
     Log.log ~section:"debug" (fun () ->
         Log.msg "invalid doc comments" [ ("msg", `String msg) ]);
-    Raw (Omd.to_markdown [ Raw doc ])
+    Raw (Omd.of_string doc)
   | Ok doc ->
     let doc = comment_to_markdown doc in
-    Markdown (Omd.to_markdown doc)
+    Markdown (Omd.to_string doc)
