@@ -119,11 +119,3 @@ let absolute_range t (range : Range.t) =
   in
   let stop = String_zipper.offset zipper in
   (start, stop)
-
-module Expert = struct
-  let goto t pos =
-    let zipper = String_zipper.goto_position t.zipper pos `UTF8 in
-    { t with zipper }
-
-  let offset t = String_zipper.offset t.zipper
-end
