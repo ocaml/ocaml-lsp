@@ -244,9 +244,58 @@ describe_opt("textDocument/completion", () => {
   it("can return documentation for the function being applied", async () => {
     openDocument(
       outdent`
-      (** This function has a nice documentation.
+      (** This is an example of a docstring that demonstrates various ocamldoc syntax features.
 
-          It performs division of two integer numbers.
+          {3 Sections and Labels}
+      
+          We can create sections using {3 Section title} and labels using {3:label_name Section title with label}
+      
+          {3 Links and Cross-references}
+      
+          External links: {{:https://ocaml.org/} OCaml's official website}
+      
+          {3 Inline Formatting}
+      
+          {b Bold}, {i Italic}, {e Emphasize}, {^ Superscript}, {_ Subscript}, and [inline code]
+      
+          {3 Text Alignment}
+      
+          {C Centered text}
+          {L Left-aligned text}
+          {R Right-aligned text}
+      
+          {3 Lists}
+      
+          {ol
+          {- Ordered list item 1}
+          {- Ordered list item 2}
+          }
+      
+          {ul
+          {- Unordered list item 1}
+          {- Unordered list item 2}
+          }
+
+          - Unordered list item 1
+          - Unordered list item 2
+
+          {3 Code Blocks}
+      
+          {[
+            let square x = x * x
+            let result = square 3
+          ]}
+      
+          {3 Verbatim}
+      
+          {v
+          This text will be displayed verbatim.
+          No formatting will be applied.
+          v}
+            
+          {3 Module List}
+      
+          {!modules: Array List String}
 
           @param x dividend
           @param divisor
@@ -288,10 +337,52 @@ describe_opt("textDocument/completion", () => {
           ],
           documentation: {
             kind: "markdown",
-            value: outdent`
-              This function has a nice documentation.
-
-              It performs division of two integer numbers.
+            value: outdent`This is an example of a docstring that demonstrates various ocamldoc syntax features.
+    
+              #### Sections and Labels
+              
+              We can create sections using #### Section title
+               and labels using #### Section title with label
+              
+              #### Links and Cross-references
+              
+              External links: [OCaml's official website](https://ocaml.org/)
+              
+              #### Inline Formatting
+              
+              **Bold**, *Italic*, *Emphasize*, Superscript, Subscript, and \`inline code\`
+              
+              #### Text Alignment
+              
+              Centered text
+              Left-aligned text
+              Right-aligned text
+              
+              #### Lists
+              
+              1. Ordered list item 1
+              2. Ordered list item 2
+              
+              - Unordered list item 1
+              - Unordered list item 2
+              
+              - Unordered list item 1
+              - Unordered list item 2
+              
+              #### Code Blocks
+              
+              \`\`\`ocaml
+                    let square x = x * x
+                    let result = square 3
+              \`\`\`
+              
+              #### Verbatim
+              
+                  This text will be displayed verbatim.
+                  No formatting will be applied.
+              
+              #### Module List
+              
               * * *
               ***@param*** \`x\` dividend
 
