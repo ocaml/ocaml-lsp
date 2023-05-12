@@ -44,15 +44,3 @@ val absolute_position : t -> Position.t -> int
 (* [absolute_range t range] same as [(absolute_position t range.start ,
    absolute_position t range.end_)] but possibly faster *)
 val absolute_range : t -> Range.t -> int * int
-
-module Expert : sig
-  (** These functions allow one to work with the underlying zipper. This gives
-      the opportunity for better performance on chained edits. *)
-
-  (** [goto t pos] move the zipper of [t] to [pos]. [pos] must be in utf8 *)
-  val goto : t -> Position.t -> t
-
-  (** [offset t] return the global offset in the string where the zipper is
-      currently focused *)
-  val offset : t -> int
-end
