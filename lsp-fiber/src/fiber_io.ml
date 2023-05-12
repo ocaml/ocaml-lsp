@@ -28,9 +28,9 @@ module Io =
         | Ok s -> Some s
         | Error (`Partial_eof _) -> None
 
-      let write oc s =
+      let write oc strings =
         Fiber.of_thunk (fun () ->
-            Lio.Writer.add_string oc s;
+            List.iter strings ~f:(Lio.Writer.add_string oc);
             Fiber.return ())
     end)
 

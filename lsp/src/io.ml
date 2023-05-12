@@ -50,7 +50,7 @@ end) (Chan : sig
 
   val read_exactly : input -> int -> string option Io.t
 
-  val write : output -> string -> unit Io.t
+  val write : output -> string list -> unit Io.t
 end) =
 struct
   open Io.O
@@ -112,6 +112,5 @@ struct
     let data = Json.to_string json in
     let content_length = String.length data in
     let header = Header.create ~content_length () in
-    let* () = Chan.write chan (Header.to_string header) in
-    Chan.write chan data
+    Chan.write chan [ Header.to_string header; data ]
 end
