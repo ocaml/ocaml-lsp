@@ -3,6 +3,8 @@ open Lsp.Types
 module List = ListLabels
 module String = StringLabels
 
+let printf = Printf.printf
+
 let tuple_range start end_ =
   { Range.start =
       (let line, character = start in
@@ -11,6 +13,19 @@ let tuple_range start end_ =
       (let line, character = end_ in
        { Position.line; character })
   }
+
+let make_document ?(position_encoding = `UTF8) uri ~text =
+  let td =
+    let version = 1 in
+    let languageId = "fake language" in
+    let textDocument = { TextDocumentItem.uri; version; languageId; text } in
+    Text_document.make
+      ~position_encoding
+      { DidOpenTextDocumentParams.textDocument }
+  in
+  Text_document.apply_content_changes
+    td
+    [ TextDocumentContentChangeEvent.create ~text () ]
 
 let test_general text changes =
   let test position_encoding =
@@ -33,7 +48,6 @@ let test_general text changes =
   in
   let utf8 = test `UTF8 in
   let utf16 = test `UTF16 in
-  let printf = Printf.printf in
   if String.equal utf16 utf8 then printf "result: %s\n" (String.escaped utf8)
   else (
     print_endline "[FAILURE] utf16 and utf8 disagree";
@@ -204,3 +218,25 @@ let%expect_test "update when inserting a line at the end of the doc" =
     [ (tuple_range (1, 9) (1, 9), "l"); (tuple_range (1, 9) (1, 10), "") ];
   [%expect {|
     result: 1\n2l\n3\n |}]
+
+let%expect_test "absolute_position" =
+  let text = "foo|bar\nbaz.x" in
+  let td = make_document (Uri.of_path "foo.ml") ~text in
+  let test (line, character) =
+    let offset =
+      Text_document.absolute_position td (Position.create ~line ~character)
+    in
+    printf "position: %d/%d\n" offset (String.length text)
+  in
+  test (0, 0);
+  [%expect {| position: 0/13 |}];
+  test (3, 0);
+  [%expect {| position: 13/13 |}];
+  test (1, 0);
+  [%expect {| position: 8/13 |}];
+  test (1, 100);
+  [%expect {| position: 13/13 |}];
+  test (0, 100);
+  [%expect {| position: 7/13 |}];
+  test (100, 0);
+  [%expect {| position: 13/13 |}]

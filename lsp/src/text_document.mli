@@ -2,14 +2,18 @@ open Types
 
 type t
 
-val make :
-  position_encoding:[ `UTF8 | `UTF16 ] -> DidOpenTextDocumentParams.t -> t
+type encoding :=
+  [ `UTF8
+  | `UTF16
+  ]
+
+val make : position_encoding:encoding -> DidOpenTextDocumentParams.t -> t
 
 val languageId : t -> string
 
 val documentUri : t -> Uri0.t
 
-val position_encoding : t -> [ `UTF16 | `UTF8 ]
+val position_encoding : t -> encoding
 
 val version : t -> int
 
@@ -30,6 +34,16 @@ val set_version : t -> version:int -> t
     when multiple inserts are done in the same position. All the offsets are
     interpreted relative to the original document. *)
 val apply_text_document_edits : t -> TextEdit.t list -> t
+
+(** [absolute_position t pos] returns the absolute position of [pos] inside
+    [text t]. If the position is outside the bounds of the document, the offset
+    returned will be the length of the document. [pos] is interpreted with
+    [position_encoding t] *)
+val absolute_position : t -> Position.t -> int
+
+(* [absolute_range t range] same as [(absolute_position t range.start ,
+   absolute_position t range.end_)] but possibly faster *)
+val absolute_range : t -> Range.t -> int * int
 
 module Expert : sig
   (** These functions allow one to work with the underlying zipper. This gives
