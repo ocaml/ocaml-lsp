@@ -339,25 +339,25 @@ describe_opt("textDocument/completion", () => {
             kind: "markdown",
             value: outdent`This is an example of a docstring that demonstrates various ocamldoc syntax features.
               
-              ### Sections and Labels
+              #### Sections and Labels
               
               We can create sections using 
               
-              ### Section title
+              #### Section title
               
               and labels using 
               
-              ### Section title with label
+              #### Section title with label
               
-              ### Links and Cross-references
+              #### Links and Cross-references
               
               External links: [OCaml's official website](https://ocaml.org/)
               
-              ### Inline Formatting
+              #### Inline Formatting
               
               **Bold**, *Italic*, *Emphasize*, Superscript, Subscript, and \`inline code\`
               
-              ### Text Alignment
+              #### Text Alignment
           
               Centered text
               
@@ -365,32 +365,32 @@ describe_opt("textDocument/completion", () => {
               
               Right-aligned text
               
-              ### Lists
+              #### Lists
               
               1.Ordered list item 1
               2.Ordered list item 2
           
-              *Unordered list item 1
-              *Unordered list item 2
+              -Unordered list item 1
+              -Unordered list item 2
 
-              *Unordered list item 1
-              *Unordered list item 2
+              -Unordered list item 1
+              -Unordered list item 2
               
-              ### Code Blocks
+              #### Code Blocks
               
-              \`\`\`
+              \`\`\`ocaml
               let square x = x * x
               let result = square 3
               \`\`\`
               
-              ### Verbatim
+              #### Verbatim
               
               \`\`\`verb
                   This text will be displayed verbatim.
                   No formatting will be applied.
               \`\`\`
               
-              ### Module List
+              #### Module List
               
               *Array
               *List

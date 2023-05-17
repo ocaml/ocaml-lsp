@@ -88,7 +88,7 @@ let rec nestable_block_element_to_block
   | Odoc_parser.Loc.{ value = `List (kind, style, xs); location } ->
     let type' =
       match kind with
-      | `Unordered -> `Unordered '*'
+      | `Unordered -> `Unordered '-'
       | `Ordered -> `Ordered (1, '*')
     in
     let tight =
@@ -124,12 +124,12 @@ let rec nestable_block_element_to_block
     let meta = loc_to_meta location in
     Block.List (l, meta)
   | Odoc_parser.Loc.
-      { value = `Code_block (metadata, { value = code; location = _code_loc })
+      { value = `Code_block (metadata, { value = code; location = code_loc })
       ; location
       } ->
     let info_string =
       match metadata with
-      | None -> None
+      | None -> Some ("ocaml", loc_to_meta code_loc)
       | Some ({ value = lang; location = lang_log }, _env) ->
         Some (lang, loc_to_meta lang_log)
     in
@@ -252,7 +252,7 @@ let rec block_element_to_block
   match block_element with
   | Odoc_parser.Loc.{ value = `Heading (level, _, content); location } ->
     let text = inline_element_list_to_inlines content in
-    let heading = Block.Heading.make ~level text in
+    let heading = Block.Heading.make ~level:(level+1) text in
     let meta = loc_to_meta location in
     Block.Heading (heading, meta)
   | Odoc_parser.Loc.{ value = `Tag t; location } ->
