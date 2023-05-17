@@ -24,8 +24,8 @@
   merlin-lib.ocaml_utils
   merlin-lib.utils
   merlin-lib.extend
-  octavius
-  omd
+  cmarkit
+  odoc-parser
   ppx_yojson_conv_lib
   re
   stdune
