@@ -252,7 +252,7 @@ let rec block_element_to_block
   match block_element with
   | Odoc_parser.Loc.{ value = `Heading (level, _, content); location } ->
     let text = inline_element_list_to_inlines content in
-    let heading = Block.Heading.make ~level:(level+1) text in
+    let heading = Block.Heading.make ~level:(level + 1) text in
     let meta = loc_to_meta location in
     Block.Heading (heading, meta)
   | Odoc_parser.Loc.{ value = `Tag t; location } ->
