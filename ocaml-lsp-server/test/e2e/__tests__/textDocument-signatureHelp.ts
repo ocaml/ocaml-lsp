@@ -285,6 +285,11 @@ describe_opt("textDocument/completion", () => {
             let square x = x * x
             let result = square 3
           ]}
+
+          {@python[
+          def f():
+            return 0
+          ]}
       
           {3 Verbatim}
       
@@ -382,7 +387,12 @@ describe_opt("textDocument/completion", () => {
               let square x = x * x
               let result = square 3
               \`\`\`
-              
+
+              \`\`\`python
+              def f():
+                return 0
+              \`\`\`
+
               #### Verbatim
               
               \`\`\`verb
