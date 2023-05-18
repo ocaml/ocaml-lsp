@@ -372,14 +372,14 @@ describe_opt("textDocument/completion", () => {
               
               #### Lists
               
-              1.Ordered list item 1
-              2.Ordered list item 2
+              1. Ordered list item 1
+              2. Ordered list item 2
           
-              -Unordered list item 1
-              -Unordered list item 2
+              - Unordered list item 1
+              - Unordered list item 2
 
-              -Unordered list item 1
-              -Unordered list item 2
+              - Unordered list item 1
+              - Unordered list item 2
               
               #### Code Blocks
               

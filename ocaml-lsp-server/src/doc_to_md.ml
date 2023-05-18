@@ -100,7 +100,7 @@ let rec nestable_block_element_to_block
       List.map
         ~f:(fun n ->
           let block = nestable_block_element_list_to_block n in
-          (Block.List_item.make block, Meta.none))
+          (Block.List_item.make ~after_marker:1 block, Meta.none))
         xs
     in
     let l = Block.List'.make ~tight type' list_items in
