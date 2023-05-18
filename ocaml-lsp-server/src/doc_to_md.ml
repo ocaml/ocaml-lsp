@@ -4,7 +4,7 @@ open Cmarkit
 (** TODO:
 
     - Add support for references
-    - Broken lists
+    - Broken module lists
     - Labels in headers
     - Align text with HTML
     - Verbatim is indented in tests
