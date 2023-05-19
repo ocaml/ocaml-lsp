@@ -402,9 +402,9 @@ describe_opt("textDocument/completion", () => {
               
               #### Module List
               
-              *Array
-              *List
-              *String
+              * Array
+              * List
+              * String
 
               ***@param*** \`x\`
               dividend

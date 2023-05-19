@@ -117,7 +117,7 @@ let rec nestable_block_element_to_block
           let block = Block.Paragraph (paragraph, Meta.none) in
           let meta = loc_to_meta location in
           let marker = Layout.string "!modules:" in
-          (Block.List_item.make ~marker block, meta))
+          (Block.List_item.make ~after_marker:1 ~marker block, meta))
         modules
     in
     let l = Block.List'.make ~tight type' list_items in
