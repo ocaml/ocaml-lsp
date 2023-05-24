@@ -2,7 +2,7 @@ open Import
 open Import.Json.Conv
 
 module Lens = struct
-  type t = { enable : bool Json.Nullable_option.t [@default Some true] }
+  type t = { enable : bool [@default true] }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
@@ -20,9 +20,7 @@ module Lens = struct
            | "enable" -> (
              match Ppx_yojson_conv_lib.( ! ) enable_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue =
-                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
-               in
+               let fvalue = bool_of_yojson _field_yojson in
                enable_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -48,7 +46,7 @@ module Lens = struct
            let enable_value = Ppx_yojson_conv_lib.( ! ) enable_field in
            { enable =
                (match enable_value with
-               | Ppx_yojson_conv_lib.Option.None -> Some true
+               | Ppx_yojson_conv_lib.Option.None -> true
                | Ppx_yojson_conv_lib.Option.Some v -> v)
            }))
      | _ as yojson ->
@@ -64,7 +62,7 @@ module Lens = struct
      | { enable = v_enable } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         let arg = Json.Nullable_option.yojson_of_t yojson_of_bool v_enable in
+         let arg = yojson_of_bool v_enable in
          ("enable", arg) :: bnds
        in
        `Assoc bnds
@@ -76,7 +74,7 @@ module Lens = struct
 end
 
 module ExtendedHover = struct
-  type t = { enable : bool Json.Nullable_option.t [@default Some false] }
+  type t = { enable : bool [@default false] }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
@@ -94,9 +92,7 @@ module ExtendedHover = struct
            | "enable" -> (
              match Ppx_yojson_conv_lib.( ! ) enable_field with
              | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue =
-                 Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
-               in
+               let fvalue = bool_of_yojson _field_yojson in
                enable_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -122,7 +118,7 @@ module ExtendedHover = struct
            let enable_value = Ppx_yojson_conv_lib.( ! ) enable_field in
            { enable =
                (match enable_value with
-               | Ppx_yojson_conv_lib.Option.None -> Some false
+               | Ppx_yojson_conv_lib.Option.None -> false
                | Ppx_yojson_conv_lib.Option.Some v -> v)
            }))
      | _ as yojson ->
@@ -138,7 +134,7 @@ module ExtendedHover = struct
      | { enable = v_enable } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         let arg = Json.Nullable_option.yojson_of_t yojson_of_bool v_enable in
+         let arg = yojson_of_bool v_enable in
          ("enable", arg) :: bnds
        in
        `Assoc bnds
@@ -153,7 +149,7 @@ type t =
   { codelens : Lens.t Json.Nullable_option.t
         [@default None] [@yojson_drop_default ( = )]
   ; extended_hover : ExtendedHover.t Json.Nullable_option.t
-        [@default None] [@key "extendedHover"] [@yojson_drop_default ( = )]
+        [@key "extendedHover"] [@default None] [@yojson_drop_default ( = )]
   }
 [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -259,3 +255,8 @@ let yojson_of_t =
 let _ = yojson_of_t
 
 [@@@end]
+
+let default =
+  { codelens = Some { enable = true }
+  ; extended_hover = Some { enable = false }
+  }

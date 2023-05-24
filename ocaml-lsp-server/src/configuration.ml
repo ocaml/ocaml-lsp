@@ -17,12 +17,7 @@ let default () =
     in
     Lev_fiber.Timer.Wheel.create ~delay
   in
-  let data =
-    Config_data.
-      { codelens = Some { enable = Some true }
-      ; extended_hover = Some { enable = Some false }
-      }
-  in
+  let data = Config_data.default in
   { wheel; data }
 
 let update t { DidChangeConfigurationParams.settings } =

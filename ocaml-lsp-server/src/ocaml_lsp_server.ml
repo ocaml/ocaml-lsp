@@ -600,7 +600,7 @@ let on_request :
   | TextDocumentHover req ->
     let mode =
       match state.configuration.data.extended_hover with
-      | Some { enable = Some true } -> Hover_req.Extended_variable
+      | Some { enable = true } -> Hover_req.Extended_variable
       | Some _ | None -> Hover_req.Default
     in
     later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ()
@@ -608,8 +608,8 @@ let on_request :
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> (
     match state.configuration.data.codelens with
-    | Some { enable = Some true } -> later text_document_lens req
-    | None | Some _ -> now [])
+    | Some { enable = true } | None -> later text_document_lens req
+    | Some _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
