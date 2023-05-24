@@ -163,6 +163,7 @@ The server supports the following LSP requests (inexhaustive list):
 - [x] `textDocument/prepareRename`
 - [x] `textDocument/foldingRange`
 - [x] `textDocument/selectionRange`
+- [x] `workspace/didChangeConfiguration`
 - [x] `workspace/symbol`
 
 Note that degrees of support for each LSP request are varying.
@@ -336,8 +337,8 @@ make all
 
 ### Changelog
 
-User-visible changes should come with an entry in the changelog under the appropriate part of 
-the **unreleased** section. PR that doesn't provide an entry will fail CI check. This behavior 
+User-visible changes should come with an entry in the changelog under the appropriate part of
+the **unreleased** section. PR that doesn't provide an entry will fail CI check. This behavior
 can be overridden by using the "no changelog" label, which is used for changes that are not user-visible.
 
 ## Tests
