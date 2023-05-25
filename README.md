@@ -168,6 +168,10 @@ The server supports the following LSP requests (inexhaustive list):
 
 Note that degrees of support for each LSP request are varying.
 
+## Configuration
+
+[Read more about configurations supported by ocamllsp](./ocaml-lsp-server/docs/ocamllsp/config.md)
+
 ### Semantic highlighting
 
 > since OCaml-LSP 1.15.0 (since version `1.15.0-4.14` for OCaml 4, `1.15.0-5.0` for OCaml 5)
