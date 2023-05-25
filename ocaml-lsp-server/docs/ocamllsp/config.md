@@ -5,14 +5,14 @@ The ocamllsp support the folowing configuration. These configurations are sent t
 ```ts
 interface config {
   /**
-  * Enable Extended Hover
+  * Enable/Disabe Extended Hover
   * @default false
   * @since 1.16
   */
   extendedHover: { enable : boolean }
 
   /**
-  * Disable CodeLens
+  * Enable/Disable CodeLens
   * @default true
   * @since 1.16
   */
