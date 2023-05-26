@@ -729,7 +729,6 @@ let on_notification server (notification : Client_notification.t) :
   | DidCreateFiles _
   | DidDeleteFiles _
   | DidRenameFiles _
-  | LogTrace _
   | WillSaveTextDocument _
   | Initialized
   | WorkDoneProgressCancel _

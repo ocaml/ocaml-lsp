@@ -26,6 +26,7 @@ type t =
   | PublishDiagnostics of PublishDiagnosticsParams.t
   | ShowMessage of ShowMessageParams.t
   | LogMessage of LogMessageParams.t
+  | LogTrace of LogTraceParams.t
   | TelemetryNotification of Json.t
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgress of Progress.t ProgressParams.t
@@ -35,6 +36,7 @@ let method_ = function
   | ShowMessage _ -> "window/showMessage"
   | PublishDiagnostics _ -> "textDocument/publishDiagnostics"
   | LogMessage _ -> "window/logMessage"
+  | LogTrace _ -> "$/logTrace"
   | TelemetryNotification _ -> "telemetry/event"
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgress _ -> "$/progress"
@@ -42,6 +44,7 @@ let method_ = function
 
 let yojson_of_t = function
   | LogMessage params -> Some (LogMessageParams.yojson_of_t params)
+  | LogTrace params -> Some (LogTraceParams.yojson_of_t params)
   | ShowMessage params -> Some (ShowMessageParams.yojson_of_t params)
   | PublishDiagnostics params ->
     Some (PublishDiagnosticsParams.yojson_of_t params)

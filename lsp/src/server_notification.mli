@@ -12,6 +12,7 @@ type t =
   | PublishDiagnostics of PublishDiagnosticsParams.t
   | ShowMessage of ShowMessageParams.t
   | LogMessage of LogMessageParams.t
+  | LogTrace of LogTraceParams.t
   | TelemetryNotification of Json.t
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgress of Progress.t ProgressParams.t
