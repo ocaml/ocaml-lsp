@@ -1,13 +1,6 @@
 open Import
 open Types
 
-module Progress : sig
-  type t =
-    | Begin of WorkDoneProgressBegin.t
-    | Report of WorkDoneProgressReport.t
-    | End of WorkDoneProgressEnd.t
-end
-
 type t =
   | PublishDiagnostics of PublishDiagnosticsParams.t
   | ShowMessage of ShowMessageParams.t
