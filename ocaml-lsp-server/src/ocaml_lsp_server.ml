@@ -700,9 +700,7 @@ let on_notification server (notification : Client_notification.t) :
     in
     let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
     state
-  | CancelRequest _ ->
-    Log.log ~section:"debug" (fun () -> Log.msg "ignoring cancellation" []);
-    Fiber.return state
+  | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
     (* TODO this is wrong and we should just fetch the config from the client
        after receiving this notification *)
