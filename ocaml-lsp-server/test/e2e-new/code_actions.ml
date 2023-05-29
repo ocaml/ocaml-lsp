@@ -76,6 +76,12 @@ let find_remove_annotation_action =
   | `CodeAction { kind = Some (Other "remove type annotation"); _ } -> true
   | _ -> false
 
+let find_destruct_action =
+  let open CodeAction in
+  function
+  | `CodeAction { kind = Some (Other "destruct"); _ } -> true
+  | _ -> false
+
 let%expect_test "code actions" =
   let source = {ocaml|
 let foo = 123
@@ -511,3 +517,40 @@ let my_fun x y : int = 1
   in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect {| No code actions |}]
+
+let%expect_test "can destruct sum types" =
+  let source = {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) = x
+|ocaml} in
+  let range =
+    let start = Position.create ~line:2 ~character:16 in
+    let end_ = Position.create ~line:2 ~character:17 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:find_destruct_action;
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match x with Foo _ -> _ | Bar _ -> _\n",
+                "range": {
+                  "end": { "character": 17, "line": 2 },
+                  "start": { "character": 16, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct",
+      "title": "Destruct"
+    } |}]
+
