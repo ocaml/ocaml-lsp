@@ -1,12 +1,12 @@
 open Import
 open Fiber.O
+module Progress = Lsp.Progress
 
 type enabled =
   { (* TODO this needs to be mutexed *)
     mutable token : ProgressToken.t option
   ; mutable build_counter : int
-  ; report_progress :
-      Server_notification.Progress.t ProgressParams.t -> unit Fiber.t
+  ; report_progress : Progress.t ProgressParams.t -> unit Fiber.t
   ; create_task : WorkDoneProgressCreateParams.t -> unit Fiber.t
   }
 
@@ -30,9 +30,7 @@ let end_build (t : enabled) ~message =
         t.report_progress
           (ProgressParams.create
              ~token
-             ~value:
-               (Server_notification.Progress.End
-                  (WorkDoneProgressEnd.create ~message ()))))
+             ~value:(Progress.End (WorkDoneProgressEnd.create ~message ()))))
 
 let end_build_if_running = function
   | Disabled -> Fiber.return ()
@@ -50,7 +48,7 @@ let start_build (t : enabled) =
       (ProgressParams.create
          ~token
          ~value:
-           (Server_notification.Progress.Begin
+           (Progress.Begin
               (WorkDoneProgressBegin.create
                  ~title:"Build"
                  ~message:"started"
@@ -88,7 +86,7 @@ let build_progress t (progress : Drpc.Progress.t) =
             (ProgressParams.create
                ~token
                ~value:
-                 (Server_notification.Progress.Report
+                 (Progress.Report
                     (let message = sprintf "Building [%d/%d]" complete total in
                      WorkDoneProgressReport.create ~percentage ~message ())))))
 

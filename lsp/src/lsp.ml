@@ -1,3 +1,4 @@
+module Progress = Progress
 module Client_notification = Client_notification
 module Client_request = Client_request
 module Extension = Extension

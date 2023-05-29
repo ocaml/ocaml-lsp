@@ -1,27 +1,6 @@
 open! Import
 open Types
 
-module Progress = struct
-  type t =
-    | Begin of WorkDoneProgressBegin.t
-    | Report of WorkDoneProgressReport.t
-    | End of WorkDoneProgressEnd.t
-
-  let yojson_of_t = function
-    | Begin b -> WorkDoneProgressBegin.yojson_of_t b
-    | Report r -> WorkDoneProgressReport.yojson_of_t r
-    | End e -> WorkDoneProgressEnd.yojson_of_t e
-
-  let t_of_yojson json =
-    Json.Of.untagged_union
-      "Progress"
-      [ (fun j -> Begin (WorkDoneProgressBegin.t_of_yojson j))
-      ; (fun j -> Report (WorkDoneProgressReport.t_of_yojson j))
-      ; (fun j -> End (WorkDoneProgressEnd.t_of_yojson j))
-      ]
-      json
-end
-
 type t =
   | PublishDiagnostics of PublishDiagnosticsParams.t
   | ShowMessage of ShowMessageParams.t
@@ -39,7 +18,7 @@ let method_ = function
   | LogTrace _ -> "$/logTrace"
   | TelemetryNotification _ -> "telemetry/event"
   | CancelRequest _ -> Cancel_request.meth_
-  | WorkDoneProgress _ -> "$/progress"
+  | WorkDoneProgress _ -> Progress.method_
   | UnknownNotification n -> n.method_
 
 let yojson_of_t = function
@@ -81,7 +60,7 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
   | "telemetry/event" ->
     let+ params = Json.message_params params (fun x -> x) in
     TelemetryNotification params
-  | "$/progress" ->
+  | m when m = Progress.method_ ->
     let+ params =
       Json.message_params
         params

@@ -18,6 +18,7 @@ type t =
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | SetTrace of SetTraceParams.t
+  | WorkDoneProgress of Progress.t ProgressParams.t
   | UnknownNotification of Jsonrpc.Notification.t
 
 let method_ = function
@@ -37,6 +38,7 @@ let method_ = function
   | SetTrace _ -> "$/setTrace"
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
+  | WorkDoneProgress _ -> Progress.method_
   | UnknownNotification n -> n.method_
 
 let yojson_of_t = function
@@ -65,6 +67,8 @@ let yojson_of_t = function
   | WorkDoneProgressCancel params ->
     Some (WorkDoneProgressCancelParams.yojson_of_t params)
   | SetTrace params -> Some (SetTraceParams.yojson_of_t params)
+  | WorkDoneProgress params ->
+    Some ((ProgressParams.yojson_of_t Progress.yojson_of_t) params)
   | UnknownNotification n -> (n.params :> Json.t option)
 
 let of_jsonrpc (r : Jsonrpc.Notification.t) =
@@ -133,6 +137,13 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
   | "$/setTrace" ->
     let+ params = Json.message_params params SetTraceParams.t_of_yojson in
     SetTrace params
+  | m when m = Progress.method_ ->
+    let+ params =
+      Json.message_params
+        params
+        (ProgressParams.t_of_yojson Progress.t_of_yojson)
+    in
+    WorkDoneProgress params
   | _ -> Ok (UnknownNotification r)
 
 let to_jsonrpc t =
