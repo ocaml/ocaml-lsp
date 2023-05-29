@@ -135,7 +135,6 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
       }
     } |}]
 
-
 let%expect_test "hover extended" =
   let source =
     {ocaml|
@@ -313,7 +312,8 @@ let foo_value : foo = Some 1
       }
     } |}]
 
-let%expect_test "hover extended returns type inferred under cursor in a formatted way" =
+let%expect_test "hover extended returns type inferred under cursor in a \
+                 formatted way" =
   let source =
     {ocaml|
 let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
