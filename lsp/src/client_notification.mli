@@ -17,7 +17,6 @@ type t =
   | Exit
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
-  | LogTrace of LogTraceParams.t
   | SetTrace of SetTraceParams.t
   | UnknownNotification of Jsonrpc.Notification.t
 
