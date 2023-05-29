@@ -1,12 +1,25 @@
 open Test.Import
 
-let iter_code_actions ?(path = "foo.ml") ~source range k =
+let openDocument ~client ~uri ~source =
+  let textDocument =
+    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+  in
+  Client.notification
+    client
+    (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+
+let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
+    ~source range k =
   let diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
       ~on_notification:
         (fun _ -> function
-          | PublishDiagnostics _ -> Fiber.Ivar.fill diagnostics ()
+          | PublishDiagnostics _ -> (
+            let* diag = Fiber.Ivar.peek diagnostics in
+            match diag with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill diagnostics ())
           | _ -> Fiber.return ())
       ()
   in
@@ -26,14 +39,8 @@ let iter_code_actions ?(path = "foo.ml") ~source range k =
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let uri = DocumentUri.of_path path in
-    let* () =
-      let textDocument =
-        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
-      in
-      Client.notification
-        client
-        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-    in
+    let* () = prep client in
+    let* () = openDocument ~client ~uri ~source in
     let+ resp =
       let context = CodeActionContext.create ~diagnostics:[] () in
       let request =
@@ -47,9 +54,9 @@ let iter_code_actions ?(path = "foo.ml") ~source range k =
   Fiber.fork_and_join_unit run_client (fun () ->
       run >>> Fiber.Ivar.read diagnostics >>> Client.stop client)
 
-let print_code_actions ?(path = "foo.ml") ?(filter = fun _ -> true) source range
-    =
-  iter_code_actions ~path ~source range (function
+let print_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
+    ?(filter = fun _ -> true) source range =
+  iter_code_actions ~prep ~path ~source range (function
       | None -> print_endline "No code actions"
       | Some code_actions -> (
         code_actions |> List.filter ~f:filter |> function
@@ -64,17 +71,14 @@ let print_code_actions ?(path = "foo.ml") ?(filter = fun _ -> true) source range
               in
               Yojson.Safe.pretty_to_string ~std:false json |> print_endline)))
 
-let find_annotate_action =
-  let open CodeAction in
-  function
-  | `CodeAction { kind = Some (Other "type-annotate"); _ } -> true
+let find_action action_name action =
+  match action with
+  | `CodeAction { CodeAction.kind = Some (Other name); _ } -> name = action_name
   | _ -> false
 
-let find_remove_annotation_action =
-  let open CodeAction in
-  function
-  | `CodeAction { kind = Some (Other "remove type annotation"); _ } -> true
-  | _ -> false
+let find_annotate_action = find_action "type-annotate"
+
+let find_remove_annotation_action = find_action "remove type annotation"
 
 let%expect_test "code actions" =
   let source = {ocaml|
@@ -511,3 +515,87 @@ let my_fun x y : int = 1
   in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect {| No code actions |}]
+
+let%expect_test "can destruct sum types" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) = x
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:2 ~character:16 in
+    let end_ = Position.create ~line:2 ~character:17 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "destruct");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match x with Foo _ -> _ | Bar _ -> _\n",
+                "range": {
+                  "end": { "character": 17, "line": 2 },
+                  "start": { "character": 16, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct",
+      "title": "Destruct"
+    } |}]
+
+let%expect_test "can infer module interfaces" =
+  let impl_source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) = x
+|ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = openDocument ~client ~uri ~source:impl_source in
+  let intf_source = "" in
+  let range =
+    let start = Position.create ~line:0 ~character:0 in
+    let end_ = Position.create ~line:0 ~character:0 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "inferred_intf");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "type t = Foo of int | Bar of bool\n\nval f : t -> t\n",
+                "range": {
+                  "end": { "character": 0, "line": 0 },
+                  "start": { "character": 0, "line": 0 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "inferred_intf",
+      "title": "Insert inferred interface"
+    } |}]

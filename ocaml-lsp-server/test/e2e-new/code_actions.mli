@@ -1,7 +1,8 @@
 open Test.Import
 
 val iter_code_actions :
-     ?path:string
+     ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
+  -> ?path:string
   -> source:string
   -> Range.t
   -> (CodeActionResult.t -> unit)

@@ -109,6 +109,32 @@ let foo_value : foo = Some 1
       }
     } |}]
 
+let%expect_test "hover returns type inferred under cursor in a formatted way" =
+  let source =
+    {ocaml|
+let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
+|ocaml}
+  in
+  let position = Position.create ~line:1 ~character:4 in
+  let req client =
+    let* resp = hover client position in
+    let () = print_hover resp in
+    Fiber.return ()
+  in
+  test source req;
+  [%expect
+    {|
+    {
+      "contents": {
+        "kind": "plaintext",
+        "value": "int ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint"
+      },
+      "range": {
+        "end": { "character": 5, "line": 1 },
+        "start": { "character": 4, "line": 1 }
+      }
+    } |}]
+
 let%expect_test "hover extended" =
   let source =
     {ocaml|
@@ -283,5 +309,32 @@ let foo_value : foo = Some 1
       "range": {
         "end": { "character": 13, "line": 3 },
         "start": { "character": 4, "line": 3 }
+      }
+    } |}]
+
+let%expect_test "hover extended returns type inferred under cursor in a \
+                 formatted way" =
+  let source =
+    {ocaml|
+let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
+|ocaml}
+  in
+  let position = Position.create ~line:1 ~character:4 in
+  let req client =
+    let* resp = hover_extended client position None in
+    let () = print_hover_extended resp in
+    Fiber.return ()
+  in
+  test source req;
+  [%expect
+    {|
+    {
+      "contents": {
+        "kind": "plaintext",
+        "value": "int ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint ->\nint"
+      },
+      "range": {
+        "end": { "character": 5, "line": 1 },
+        "start": { "character": 4, "line": 1 }
       }
     } |}]
