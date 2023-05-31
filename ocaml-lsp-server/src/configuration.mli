@@ -1,6 +1,9 @@
 open Import
 
-type t
+type t =
+  { wheel : Lev_fiber.Timer.Wheel.t
+  ; data : Config_data.t
+  }
 
 val default : unit -> t Fiber.t
 

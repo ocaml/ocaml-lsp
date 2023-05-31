@@ -598,12 +598,18 @@ let on_request :
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
-    later
-      (fun (_ : State.t) () -> Hover_req.handle rpc req Hover_req.Default)
-      ()
+    let mode =
+      match state.configuration.data.extended_hover with
+      | Some { enable = true } -> Hover_req.Extended_variable
+      | Some _ | None -> Hover_req.Default
+    in
+    later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ()
   | TextDocumentReferences req -> later references req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
-  | TextDocumentCodeLens req -> later text_document_lens req
+  | TextDocumentCodeLens req -> (
+    match state.configuration.data.codelens with
+    | Some { enable = true } | None -> later text_document_lens req
+    | Some _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
@@ -702,8 +708,6 @@ let on_notification server (notification : Client_notification.t) :
     state
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
-    (* TODO this is wrong and we should just fetch the config from the client
-       after receiving this notification *)
     let+ configuration = Configuration.update state.configuration req in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
