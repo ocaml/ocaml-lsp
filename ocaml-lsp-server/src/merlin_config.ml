@@ -226,8 +226,6 @@ module Dot_protocol_io =
       let write t x = write t [ x ]
     end)
 
-let should_read_dot_merlin = ref false
-
 type db =
   { running : (string, entry) Table.t
   ; pool : Fiber.Pool.t
@@ -420,12 +418,8 @@ let config (t : t) : Mconfig.t Fiber.t =
           use_entry entry
     in
     let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
-
-    if !should_read_dot_merlin && dot = Config.empty then
-      Mconfig.get_external_config t.path t.initial
-    else
-      let merlin = Config.merge dot t.initial.merlin failures config_path in
-      Mconfig.normalize { t.initial with merlin }
+    let merlin = Config.merge dot t.initial.merlin failures config_path in
+    Mconfig.normalize { t.initial with merlin }
 
 module DB = struct
   type t = db

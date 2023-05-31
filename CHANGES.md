@@ -1,5 +1,10 @@
 # Unreleased
 
+## Breaking Change
+
+- Remove the `--fallback-read-dot-merlin` flag to `ocamllsp`, dropping support
+  for reading `.merlin`. (#1113)
+
 ## Fixes
 
 - Allow opening documents that were already open. This is a workaround for

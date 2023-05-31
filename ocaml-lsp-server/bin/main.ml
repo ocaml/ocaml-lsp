@@ -4,16 +4,9 @@ module Cli = Lsp.Cli
 let () =
   Printexc.record_backtrace true;
   let version = ref false in
-  let read_dot_merlin = ref false in
   let arg = Lsp.Cli.Arg.create () in
   let spec =
-    [ ("--version", Arg.Set version, "print version")
-    ; ( "--fallback-read-dot-merlin"
-      , Arg.Set read_dot_merlin
-      , "read Merlin config from .merlin files. The `dot-merlin-reader` \
-         package must be installed" )
-    ]
-    @ Cli.Arg.spec arg
+    ("--version", Arg.Set version, "print version") :: Cli.Arg.spec arg
   in
   let usage =
     "ocamllsp [ --stdio | --socket PORT | --port PORT | --pipe PIPE ] [ \
@@ -37,10 +30,7 @@ let () =
     print_endline version
   else
     let module Exn_with_backtrace = Stdune.Exn_with_backtrace in
-    match
-      Exn_with_backtrace.try_with
-        (Ocaml_lsp_server.run channel ~read_dot_merlin:!read_dot_merlin)
-    with
+    match Exn_with_backtrace.try_with (Ocaml_lsp_server.run channel) with
     | Ok () -> ()
     | Error exn ->
       Format.eprintf "%a@." Exn_with_backtrace.pp_uncaught exn;

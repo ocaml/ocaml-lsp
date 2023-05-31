@@ -865,9 +865,8 @@ let stream_of_channel : Lsp.Cli.Channel.t -> _ = function
     let sockaddr = Unix.ADDR_INET (Unix.inet_addr_loopback, port) in
     socket sockaddr
 
-let run channel ~read_dot_merlin () =
+let run channel () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
-  Merlin_config.should_read_dot_merlin := read_dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->
       let* input, output = stream_of_channel channel in

@@ -4,8 +4,6 @@ open Import
 
 type t
 
-val should_read_dot_merlin : bool ref
-
 val config : t -> Mconfig.t Fiber.t
 
 val destroy : t -> unit Fiber.t
