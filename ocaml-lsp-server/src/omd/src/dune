@@ -1,0 +1,16 @@
+(library
+ (name omd)
+ (wrapped false)
+ (modules :standard \ omd_main)
+ (flags
+  (:standard -w -50-6-27-32-39-33-35))
+ (public_name omd)
+ (libraries
+   bigarray
+   bytes))
+
+(executable
+ (name omd_main)
+ (public_name omd)
+ (modules omd_main)
+ (libraries omd))
