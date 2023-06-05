@@ -5601,8 +5601,8 @@
 				{
 					"name": "target",
 					"type": {
-						"kind": "base",
-						"name": "string"
+						"kind": "reference",
+						"name": "URI"
 					},
 					"optional": true,
 					"documentation": "The uri this link points to. If missing a resolve request is sent later."
