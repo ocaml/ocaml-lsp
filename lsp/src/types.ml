@@ -29394,7 +29394,7 @@ module DocumentLink = struct
   type t =
     { data : Json.t option [@yojson.option]
     ; range : Range.t
-    ; target : string Json.Nullable_option.t
+    ; target : DocumentUri.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; tooltip : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -29434,7 +29434,9 @@ module DocumentLink = struct
              match Ppx_yojson_conv_lib.( ! ) target_field with
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue =
-                 Json.Nullable_option.t_of_yojson string_of_yojson _field_yojson
+                 Json.Nullable_option.t_of_yojson
+                   DocumentUri.t_of_yojson
+                   _field_yojson
                in
                target_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
@@ -29526,7 +29528,7 @@ module DocumentLink = struct
          if None = v_target then bnds
          else
            let arg =
-             (Json.Nullable_option.yojson_of_t yojson_of_string) v_target
+             (Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t) v_target
            in
            let bnd = ("target", arg) in
            bnd :: bnds
@@ -29551,7 +29553,8 @@ module DocumentLink = struct
   [@@@end]
 
   let create ?(data : Json.t option) ~(range : Range.t)
-      ?(target : string option) ?(tooltip : string option) (() : unit) : t =
+      ?(target : DocumentUri.t option) ?(tooltip : string option) (() : unit) :
+      t =
     { data; range; target; tooltip }
 end
 

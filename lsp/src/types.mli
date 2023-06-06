@@ -3167,14 +3167,14 @@ module DocumentLink : sig
   type t =
     { data : Json.t option
     ; range : Range.t
-    ; target : string option
+    ; target : DocumentUri.t option
     ; tooltip : string option
     }
 
   val create :
        ?data:Json.t
     -> range:Range.t
-    -> ?target:string
+    -> ?target:DocumentUri.t
     -> ?tooltip:string
     -> unit
     -> t
