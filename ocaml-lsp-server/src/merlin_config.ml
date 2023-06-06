@@ -321,8 +321,9 @@ let get_config (p : Process.t) ~workdir path_abs =
       ] )
 
 let file_exists fname =
-  (* XXX stat? *)
-  Sys.file_exists fname && not (Sys.is_directory fname)
+  match Unix.stat fname with
+  | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
+  | s -> s.st_kind <> S_DIR
 
 let find_project_context start_dir =
   (* The workdir is the first directory we find which contains a [dune] file. We
