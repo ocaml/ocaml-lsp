@@ -442,6 +442,6 @@ module DB = struct
     let* () = Fiber.return () in
     Table.iter t.running ~f:(fun running ->
         let pid = Pid.to_int running.process.pid in
-        Unix.kill pid Sys.sigkill);
+        Unix.kill pid Sys.sigterm);
     Fiber.Pool.stop t.pool
 end
