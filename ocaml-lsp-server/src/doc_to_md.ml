@@ -1,5 +1,15 @@
 open Import
-open Cmarkit
+
+open struct
+  open Cmarkit
+  module Inline = Inline
+  module Meta = Meta
+  module Block_line = Block_line
+  module Link_definition = Link_definition
+  module Block = Block
+  module Layout = Layout
+  module Doc = Doc
+end
 
 (** TODO:
 
@@ -30,32 +40,31 @@ let rec inline_element_to_inline
     (inline : Odoc_parser.Ast.inline_element Odoc_parser.Loc.with_location) :
     Inline.t =
   match inline with
-  | Odoc_parser.Loc.{ value = `Space _; location } ->
+  | { value = `Space _; location } ->
     let meta = loc_to_meta location in
     Inline.Text (" ", meta)
-  | Odoc_parser.Loc.{ value = `Word w; location } ->
+  | { value = `Word w; location } ->
     let meta = loc_to_meta location in
     Inline.Text (w, meta)
-  | Odoc_parser.Loc.{ value = `Code_span c; location } ->
+  | { value = `Code_span c; location } ->
     let meta = loc_to_meta location in
     Inline.Code_span (Inline.Code_span.of_string c, meta)
   | Odoc_parser.Loc.{ value = `Raw_markup (Some "html", text); location } ->
     let meta = loc_to_meta location in
     Inline.Raw_html (Block_line.tight_list_of_string text, meta)
-  | Odoc_parser.Loc.{ value = `Raw_markup (_, text); location } ->
+  | { value = `Raw_markup (_, text); location } ->
     (* Cmarkit doesn't have constructors for backend other than HTML for inline
        raw markups, only for blocks. *)
     let meta = loc_to_meta location in
     Inline.Text (text, meta)
-  | Odoc_parser.Loc.{ value = `Styled (style, inlines); location } ->
+  | { value = `Styled (style, inlines); location } ->
     let text = inline_element_list_to_inlines inlines in
     let meta = loc_to_meta location in
     style_inline ~meta style text
-  | Odoc_parser.Loc.
-      { value = `Reference (_kind, _ref, _inlines); location = _location } ->
+  | { value = `Reference (_kind, _ref, _inlines); location = _location } ->
     (* TODO: add support for references *)
     Inline.Break (Inline.Break.make `Hard, Meta.none)
-  | Odoc_parser.Loc.{ value = `Link (link, inlines); location } ->
+  | { value = `Link (link, inlines); location } ->
     let text = inline_element_list_to_inlines inlines in
     let ref =
       `Inline (Link_definition.make ~dest:(link, Meta.none) (), Meta.none)
@@ -63,7 +72,7 @@ let rec inline_element_to_inline
     let link = Inline.Link.make text ref in
     let meta = loc_to_meta location in
     Inline.Link (link, meta)
-  | Odoc_parser.Loc.{ value = `Math_span text; location } ->
+  | { value = `Math_span text; location } ->
     let meta = loc_to_meta location in
     Inline.Ext_math_span
       ( Inline.Math_span.make
@@ -79,12 +88,12 @@ let rec nestable_block_element_to_block
     (nestable :
       Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location) =
   match nestable with
-  | Odoc_parser.Loc.{ value = `Paragraph text; location } ->
+  | { value = `Paragraph text; location } ->
     let inline = inline_element_list_to_inlines text in
     let paragraph = Block.Paragraph.make inline in
     let meta = loc_to_meta location in
     Block.Paragraph (paragraph, meta)
-  | Odoc_parser.Loc.{ value = `List (kind, style, xs); location } ->
+  | { value = `List (kind, style, xs); location } ->
     let type' =
       match kind with
       | `Unordered -> `Unordered '-'
@@ -96,36 +105,31 @@ let rec nestable_block_element_to_block
       | `Light -> true
     in
     let list_items =
-      List.map
-        ~f:(fun n ->
+      List.map xs ~f:(fun n ->
           let block = nestable_block_element_list_to_block n in
           (Block.List_item.make ~after_marker:1 block, Meta.none))
-        xs
     in
     let l = Block.List'.make ~tight type' list_items in
     let meta = loc_to_meta location in
     Block.List (l, meta)
-  | Odoc_parser.Loc.{ value = `Modules modules; location } ->
+  | { value = `Modules modules; location } ->
     let type' = `Unordered '*' in
     let tight = false in
     let list_items =
-      List.map
-        ~f:(fun Odoc_parser.Loc.{ value = m; location } ->
+      List.map modules ~f:(fun Odoc_parser.Loc.{ value = m; location } ->
           let inline = Inline.Text (m, Meta.none) in
           let paragraph = Block.Paragraph.make inline in
           let block = Block.Paragraph (paragraph, Meta.none) in
           let meta = loc_to_meta location in
           let marker = Layout.string "!modules:" in
           (Block.List_item.make ~after_marker:1 ~marker block, meta))
-        modules
     in
     let l = Block.List'.make ~tight type' list_items in
     let meta = loc_to_meta location in
     Block.List (l, meta)
-  | Odoc_parser.Loc.
-      { value = `Code_block (metadata, { value = code; location = code_loc })
-      ; location
-      } ->
+  | { value = `Code_block (metadata, { value = code; location = code_loc })
+    ; location
+    } ->
     let info_string =
       match metadata with
       | None -> Some ("ocaml", loc_to_meta code_loc)
@@ -136,13 +140,13 @@ let rec nestable_block_element_to_block
     let code_block = Block.Code_block.make ?info_string block_line in
     let meta = loc_to_meta location in
     Block.Code_block (code_block, meta)
-  | Odoc_parser.Loc.{ value = `Verbatim code; location } ->
+  | { value = `Verbatim code; location } ->
     let info_string = Some ("verb", Meta.none) in
     let block_line = Block_line.list_of_string code in
     let code_block = Block.Code_block.make ?info_string block_line in
     let meta = loc_to_meta location in
     Block.Code_block (code_block, meta)
-  | Odoc_parser.Loc.{ value = `Math_block code; location } ->
+  | { value = `Math_block code; location } ->
     let block_line = Block_line.list_of_string code in
     let code_block = Block.Code_block.make block_line in
     let meta = loc_to_meta location in
@@ -249,24 +253,23 @@ let rec block_element_to_block
     (block_element :
       Odoc_parser.Ast.block_element Odoc_parser.Loc.with_location) =
   match block_element with
-  | Odoc_parser.Loc.{ value = `Heading (level, _, content); location } ->
+  | { value = `Heading (level, _, content); location } ->
     let text = inline_element_list_to_inlines content in
     let heading = Block.Heading.make ~level:(level + 1) text in
     let meta = loc_to_meta location in
     Block.Heading (heading, meta)
-  | Odoc_parser.Loc.{ value = `Tag t; location } ->
+  | { value = `Tag t; location } ->
     let meta = loc_to_meta location in
     tag_to_block ~meta t
-  | Odoc_parser.Loc.
-      { value =
-          ( `Paragraph _
-          | `List _
-          | `Modules _
-          | `Code_block _
-          | `Verbatim _
-          | `Math_block _ )
-      ; location = _
-      } as nestable -> nestable_block_element_to_block nestable
+  | { value =
+        ( `Paragraph _
+        | `List _
+        | `Modules _
+        | `Code_block _
+        | `Verbatim _
+        | `Math_block _ )
+    ; location = _
+    } as nestable -> nestable_block_element_to_block nestable
 
 and block_element_list_to_block l =
   let rec aux acc rest =
