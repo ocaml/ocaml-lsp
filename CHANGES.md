@@ -2,6 +2,15 @@
 
 ## Fixes
 
+- Refactor comment parsing to use `odoc-parser` and `cmarkit` instead of
+  `octavius` and `omd` (#1088)
+
+  This allows users who migrated to omd 2.X to install ocaml-lsp-server in the
+  same opam switch.
+
+  We also slightly improved markdown generation support and fixed a couple in
+  the generation of inline heading and module types.
+
 - Allow opening documents that were already open. This is a workaround for
   neovim's lsp client (#1067)
 

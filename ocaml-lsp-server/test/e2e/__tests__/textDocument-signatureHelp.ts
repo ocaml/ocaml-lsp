@@ -285,6 +285,11 @@ describe_opt("textDocument/completion", () => {
             let square x = x * x
             let result = square 3
           ]}
+
+          {@python[
+          def f():
+            return 0
+          ]}
       
           {3 Verbatim}
       
@@ -296,7 +301,7 @@ describe_opt("textDocument/completion", () => {
           {3 Module List}
       
           {!modules: Array List String}
-
+        
           @param x dividend
           @param divisor
 
@@ -338,11 +343,16 @@ describe_opt("textDocument/completion", () => {
           documentation: {
             kind: "markdown",
             value: outdent`This is an example of a docstring that demonstrates various ocamldoc syntax features.
-    
+              
               #### Sections and Labels
               
-              We can create sections using #### Section title
-               and labels using #### Section title with label
+              We can create sections using 
+              
+              #### Section title
+              
+              and labels using 
+              
+              #### Section title with label
               
               #### Links and Cross-references
               
@@ -353,57 +363,75 @@ describe_opt("textDocument/completion", () => {
               **Bold**, *Italic*, *Emphasize*, Superscript, Subscript, and \`inline code\`
               
               #### Text Alignment
-              
+          
               Centered text
+              
               Left-aligned text
+              
               Right-aligned text
               
               #### Lists
               
               1. Ordered list item 1
               2. Ordered list item 2
-              
+          
               - Unordered list item 1
               - Unordered list item 2
-              
+
               - Unordered list item 1
               - Unordered list item 2
               
               #### Code Blocks
               
               \`\`\`ocaml
-                    let square x = x * x
-                    let result = square 3
+              let square x = x * x
+              let result = square 3
               \`\`\`
-              
+
+              \`\`\`python
+              def f():
+                return 0
+              \`\`\`
+
               #### Verbatim
               
+              \`\`\`verb
                   This text will be displayed verbatim.
                   No formatting will be applied.
+              \`\`\`
               
               #### Module List
               
-              * * *
-              ***@param*** \`x\` dividend
+              * Array
+              * List
+              * String
 
+              ***@param*** \`x\`
+              dividend
+    
               ***@param*** divisor
-
-              ***@return*** *quotient*, i.e. result of division
-
-              ***@raise*** \`Division_by_zero\` raised when divided by zero
-
-              ***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_(%C3%B7,_or_/)) article
-
-              ***@see*** \`arithmetic.ml\` for more context
-
+    
+              ***@return***
+              *quotient*, i.e. result of division
+    
+              ***@raise*** \`Division_by_zero\`
+              raised when divided by zero
+    
+              ***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\(%C3%B7,_or_/\\))
+              article
+    
+              ***@see*** \`arithmetic.ml\`
+              for more context
+    
               ***@since*** \`4.0.0\`
-
+    
               ***@before*** \`4.4.0\`
-
-              ***@deprecated*** use \`(/)\`
-
+    
+              ***@deprecated***
+              use \`(/)\`
+    
               ***@version*** \`1.0.0\`
-
+    
               ***@author*** John Doe
               `,
           },

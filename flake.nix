@@ -76,8 +76,8 @@
               duneVersion = "3";
               buildInputs = with pkgs.ocamlPackages; [
                 ocamlc-loc
-                omd
-                octavius
+                odoc-parser
+                cmarkit
                 dune-build-info
                 re
                 dune-rpc
