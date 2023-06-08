@@ -56,7 +56,6 @@ possible and does not make any assumptions about IO.
   ordering
   dune-build-info
   spawn
-  (cmarkit (>= 0.2.0))
   (odoc-parser (>= 2.0.0))
   (ppx_expect (and (>= v0.15.0) :with-test))
   (ocamlformat (and :with-test (= 0.24.1)))
