@@ -146,6 +146,7 @@ module Mpipeline = Merlin_kernel.Mpipeline
 module Mreader = Merlin_kernel.Mreader
 module Mtyper = Merlin_kernel.Mtyper
 module Browse_raw = Merlin_specific.Browse_raw
+module Format = Merlin_utils.Std.Format
 
 (* All modules from [Lsp_fiber] should be in the struct below. The modules are
    listed alphabetically. Try to keep the order. *)
