@@ -1,9 +1,14 @@
-open Merlin_utils.Std
-open Merlin_specific.Browse_raw
-open Merlin_kernel
-open Merlin_analysis
-open Ocaml_parsing
-open Ocaml_typing
+open Import
+module List = Merlin_utils.Std.List
+module String = Merlin_utils.Std.String
+module Misc_utils = Merlin_analysis.Misc_utils
+module Type_utils = Merlin_analysis.Type_utils
+
+open struct
+  open Ocaml_typing
+  module Predef = Predef
+  module Btype = Btype
+end
 
 type parameter_info =
   { label : Asttypes.arg_label
@@ -24,10 +29,10 @@ type application_signature =
    (Longident))) *)
 let extract_ident (exp_desc : Typedtree.expression_desc) =
   let rec longident ppf : Longident.t -> unit = function
-    | Lident s -> fprintf ppf "%s" (Misc_utils.parenthesize_name s)
+    | Lident s -> Format.fprintf ppf "%s" (Misc_utils.parenthesize_name s)
     | Ldot (p, s) ->
-      fprintf ppf "%a.%s" longident p (Misc_utils.parenthesize_name s)
-    | Lapply (p1, p2) -> fprintf ppf "%a(%a)" longident p1 longident p2
+      Format.fprintf ppf "%a.%s" longident p (Misc_utils.parenthesize_name s)
+    | Lapply (p1, p2) -> Format.fprintf ppf "%a(%a)" longident p1 longident p2
   in
   match exp_desc with
   | Texp_ident (_, { txt = li; _ }, _) ->
@@ -53,11 +58,10 @@ let pp_parameter_type env ppf ty =
 
 (* print parameter labels and types *)
 let pp_parameter env label ppf ty =
-  match label with
-  | Asttypes.Nolabel -> pp_parameter_type env ppf ty
-  | Asttypes.Labelled l ->
-    Format.fprintf ppf "%s:%a" l (pp_parameter_type env) ty
-  | Asttypes.Optional l ->
+  match (label : Asttypes.arg_label) with
+  | Nolabel -> pp_parameter_type env ppf ty
+  | Labelled l -> Format.fprintf ppf "%s:%a" l (pp_parameter_type env) ty
+  | Optional l ->
     (* unwrap option for optional labels the same way as
        [Raw_compat.labels_of_application] *)
     let unwrap_option ty =
@@ -139,7 +143,7 @@ let is_arrow t =
 
 let application_signature ~prefix = function
   (* provide signature information for applied functions *)
-  | (_, Expression arg)
+  | (_, Browse_raw.Expression arg)
     :: ( _
        , Expression { exp_desc = Texp_apply (({ exp_type; _ } as e), args); _ }
        )
@@ -160,8 +164,6 @@ let application_signature ~prefix = function
     let active_param = active_parameter_by_prefix ~prefix result.parameters in
     Some { result with active_param }
   | _ -> None
-
-open Import
 
 let format_doc ~markdown ~doc =
   `MarkupContent
