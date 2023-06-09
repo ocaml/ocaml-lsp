@@ -20,6 +20,7 @@ type _ t =
          option
          t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
+  | InlayHint : InlayHintParams.t -> InlayHint.t list option t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareCallHierarchy :
       CallHierarchyPrepareParams.t

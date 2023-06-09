@@ -595,6 +595,7 @@ let on_request :
             Compl.resolve doc ci resolve Document.Merlin.doc_comment ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
+  | InlayHint _ -> now None
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->

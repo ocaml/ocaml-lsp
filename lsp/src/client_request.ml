@@ -20,6 +20,7 @@ type _ t =
          option
          t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
+  | InlayHint : InlayHintParams.t -> InlayHint.t list option t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareCallHierarchy :
       CallHierarchyPrepareParams.t
@@ -201,6 +202,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | WillRenameFiles _, result ->
     Json.Option.yojson_of_t WorkspaceEdit.yojson_of_t result
   | ExecuteCommand _, result -> result
+  | InlayHint _, result ->
+    Json.Option.yojson_of_t (Json.To.list InlayHint.yojson_of_t) result
   | UnknownRequest _, resp -> resp
 
 type packed = E : 'r t -> packed
@@ -240,6 +243,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/codeLens" ->
     let+ params = parse CodeLensParams.t_of_yojson in
     E (TextDocumentCodeLens params)
+  | "textDocument/inlayHint" ->
+    let+ params = parse InlayHintParams.t_of_yojson in
+    E (InlayHint params)
   | "textDocument/prepareCallHierarchy" ->
     let+ params = parse CallHierarchyPrepareParams.t_of_yojson in
     E (TextDocumentPrepareCallHierarchy params)
@@ -387,6 +393,7 @@ let method_ (type a) (t : a t) =
   | WillRenameFiles _ -> "workspace/willRenameFiles"
   | TextDocumentMoniker _ -> "textDocument/moniker"
   | WillSaveWaitUntilTextDocument _ -> "textDocument/willSaveWaitUntil"
+  | InlayHint _ -> "textDocument/inlayHint"
   | UnknownRequest { meth; _ } -> meth
 
 let params =
@@ -455,6 +462,7 @@ let params =
     | TextDocumentCodeLensResolve params -> ret (CodeLens.yojson_of_t params)
     | WillSaveWaitUntilTextDocument params ->
       ret (WillSaveTextDocumentParams.yojson_of_t params)
+    | InlayHint params -> ret (InlayHintParams.yojson_of_t params)
     | UnknownRequest { params; _ } -> params
 
 let to_jsonrpc_request t ~id =
@@ -549,6 +557,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | WillCreateFiles _ -> option_of_yojson WorkspaceEdit.t_of_yojson json
   | WillDeleteFiles _ -> option_of_yojson WorkspaceEdit.t_of_yojson json
   | WillRenameFiles _ -> option_of_yojson WorkspaceEdit.t_of_yojson json
+  | InlayHint _ -> option_of_yojson (list_of_yojson InlayHint.t_of_yojson) json
   | UnknownRequest _ -> json
 
 let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
@@ -592,6 +601,7 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | SemanticTokensDelta r -> Some r.textDocument
   | SemanticTokensRange r -> Some r.textDocument
   | LinkedEditingRange r -> Some r.textDocument
+  | InlayHint r -> Some r.textDocument
   | CallHierarchyIncomingCalls _ -> None
   | CallHierarchyOutgoingCalls _ -> None
   | WillCreateFiles _ -> None
