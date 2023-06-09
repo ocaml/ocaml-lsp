@@ -132,19 +132,31 @@ module Loc = struct
   end)
 end
 
-module Longident = Ocaml_parsing.Longident
-module Parsetree = Ocaml_parsing.Parsetree
-module Path = Ocaml_typing.Path
-module Pprintast = Ocaml_parsing.Pprintast
-module Typedtree = Ocaml_typing.Typedtree
-module Types = Ocaml_typing.Types
+include struct
+  open Ocaml_parsing
+  module Longident = Longident
+  module Parsetree = Parsetree
+  module Pprintast = Pprintast
+end
+
+include struct
+  open Ocaml_typing
+  module Path = Path
+  module Typedtree = Typedtree
+  module Types = Types
+end
+
+include struct
+  open Merlin_kernel
+  module Mconfig = Mconfig
+  module Msource = Msource
+  module Mbrowse = Mbrowse
+  module Mpipeline = Mpipeline
+  module Mreader = Mreader
+  module Mtyper = Mtyper
+end
+
 module Warnings = Ocaml_utils.Warnings
-module Mconfig = Merlin_kernel.Mconfig
-module Msource = Merlin_kernel.Msource
-module Mbrowse = Merlin_kernel.Mbrowse
-module Mpipeline = Merlin_kernel.Mpipeline
-module Mreader = Merlin_kernel.Mreader
-module Mtyper = Merlin_kernel.Mtyper
 module Browse_raw = Merlin_specific.Browse_raw
 module Format = Merlin_utils.Std.Format
 
