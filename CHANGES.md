@@ -2,6 +2,9 @@
 
 ## Fixes
 
+- Kill unnecessary `$ dune ocaml-merlin` with SIGTERM rather than SIGKILL
+  (#1124)
+
 - Refactor comment parsing to use `odoc-parser` and `cmarkit` instead of
   `octavius` and `omd` (#1088)
 
