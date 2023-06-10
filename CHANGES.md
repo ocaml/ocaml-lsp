@@ -2,6 +2,9 @@
 
 ## Fixes
 
+- Disable code lens by default. The support can be re-enabled by explicitly
+  setting it in the configuration. (#1134)
+
 - Fix initilization of `ocamlformat-rpc` in some edge cases when ocamlformat is
   initialized concurrently (#1132)
 

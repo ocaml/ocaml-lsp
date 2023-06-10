@@ -609,8 +609,8 @@ let on_request :
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> (
     match state.configuration.data.codelens with
-    | Some { enable = true } | None -> later text_document_lens req
-    | Some _ -> now [])
+    | Some { enable = true } -> later text_document_lens req
+    | _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->

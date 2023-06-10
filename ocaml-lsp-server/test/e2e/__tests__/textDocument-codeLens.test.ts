@@ -28,6 +28,11 @@ describe("textDocument/references", () => {
 
   beforeEach(async () => {
     languageServer = await LanguageServer.startAndInitialize();
+    languageServer.sendNotification("workspace/didChangeConfiguration", {
+      settings: {
+        codelens: { enable: true },
+      },
+    });
   });
 
   afterEach(async () => {
