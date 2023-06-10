@@ -2,6 +2,9 @@
 
 ## Fixes
 
+- Fix initilization of `ocamlformat-rpc` in some edge cases when ocamlformat is
+  initialized concurrently (#1132)
+
 - Kill unnecessary `$ dune ocaml-merlin` with SIGTERM rather than SIGKILL
   (#1124)
 

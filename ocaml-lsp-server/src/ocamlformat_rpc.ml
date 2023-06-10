@@ -136,12 +136,18 @@ type state =
 
 type t = state ref
 
+let maybe_fill ivar x =
+  let* v = Fiber.Ivar.peek ivar in
+  match v with
+  | Some _ -> Fiber.return ()
+  | None -> Fiber.Ivar.fill ivar x
+
 let get_process t =
   match !t with
   | Running p -> Fiber.return @@ Ok p
   | Disabled | Stopped -> Fiber.return @@ Error `No_process
   | Waiting_for_init { ask_init; wait_init } -> (
-    let* () = Fiber.Ivar.fill ask_init () in
+    let* () = maybe_fill ask_init () in
     let+ () = Fiber.Ivar.read wait_init in
     match !t with
     | Running p -> Ok p
@@ -188,12 +194,6 @@ let create_state () =
     { ask_init = Fiber.Ivar.create (); wait_init = Fiber.Ivar.create () }
 
 let create () = ref (if Sys.win32 then Disabled else create_state ())
-
-let maybe_fill ivar x =
-  let* v = Fiber.Ivar.peek ivar in
-  match v with
-  | Some _ -> Fiber.return ()
-  | None -> Fiber.Ivar.fill ivar x
 
 let stop t =
   match !t with
