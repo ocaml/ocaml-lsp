@@ -7,3 +7,5 @@ val iter_code_actions :
   -> Range.t
   -> (CodeActionResult.t -> unit)
   -> unit
+
+val code_action_test : title:string -> source:string -> unit

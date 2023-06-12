@@ -314,13 +314,15 @@ module Merlin = struct
     with_pipeline_exn doc (fun pipeline -> doc_comment pipeline pos)
 end
 
-let edit t text_edit =
+let edit t text_edits =
   let version = version t in
   let textDocument =
     OptionalVersionedTextDocumentIdentifier.create ~uri:(uri t) ~version ()
   in
   let edit =
-    TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit text_edit ]
+    TextDocumentEdit.create
+      ~textDocument
+      ~edits:(List.map text_edits ~f:(fun text_edit -> `TextEdit text_edit))
   in
   WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
 
@@ -379,3 +381,9 @@ let get_impl_intf_counterparts uri =
     | to_switch_to -> to_switch_to
   in
   List.map ~f:Uri.of_path files_to_switch_to
+
+let substring doc range =
+  let start, end_ = Text_document.absolute_range (tdoc doc) range in
+  let text = text doc in
+  if start < 0 || start > end_ || end_ > String.length text then None
+  else Some (String.sub text ~pos:start ~len:(end_ - start))
