@@ -128,3 +128,41 @@ let f y =
 
     let f y =
       fun_name y |}]
+
+let%expect_test "extract higher order function" =
+  extract_function_test {|
+let f y =
+  $List.map y (fun y -> y + 1)$
+|};
+  [%expect
+    {|
+    let fun_name y = List.map y (fun y -> y + 1)
+
+    let f y =
+      fun_name y |}]
+
+let%expect_test "extract inside let binding" =
+  extract_function_test {|
+let f y =
+  let y = y + 1 in
+  $y + 2$
+|};
+  [%expect
+    {|
+    let fun_name y = y + 2
+
+    let f y =
+      let y = y + 1 in
+      fun_name y |}]
+
+let%expect_test "extract free variable" =
+  extract_function_test {|
+let f () =
+  $z + 1$
+|};
+  [%expect
+    {|
+    let fun_name () = z + 1
+
+    let f () =
+      fun_name () |}]

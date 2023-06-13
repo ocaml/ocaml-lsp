@@ -111,8 +111,8 @@ let free (expr : Typedtree.expression) =
     | _ ->
       I.default_iterator.expr iter expr;
 
-      (* Remove any bound variables. Must do this for each env, since the same
-         variable name can be bound multiple times. *)
+      (* if a variable was bound but is no longer, it must be associated with a
+         binder inside the expression *)
       idents :=
         List.filter !idents ~f:(fun (ident, path) ->
             match Env.find_value_by_name ident expr.exp_env with
@@ -126,7 +126,9 @@ let free (expr : Typedtree.expression) =
 let must_pass expr env =
   List.filter (free expr) ~f:(fun (ident, path) ->
       match Env.find_value_by_name ident env with
-      | path', _ -> not (Path.same path path')
+      | path', _ ->
+        (* new environment binds ident to a different path than the old one *)
+        not (Path.same path path')
       | exception Not_found -> true)
   |> List.map ~f:fst
 
