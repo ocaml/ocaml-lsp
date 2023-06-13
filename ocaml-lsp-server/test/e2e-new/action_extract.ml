@@ -160,8 +160,7 @@ let%expect_test "extract free variable" =
 let f () =
   $z + 1$
 |};
-  [%expect
-    {|
+  [%expect {|
     let fun_name () = z + 1
 
     let f () =
