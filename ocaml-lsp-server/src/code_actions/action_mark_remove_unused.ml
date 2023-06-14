@@ -6,6 +6,48 @@ let slice doc (range : Range.t) =
   and (`Offset end_) = Msource.get_offset src @@ Position.logical range.end_ in
   String.sub (Msource.text src) ~pos:start ~len:(end_ - start)
 
+let diagnostic_regex, diagnostic_regex_marks =
+  let msgs =
+    ( Re.mark
+        (Re.alt
+           [ Re.str "Error (warning 26)"
+           ; Re.str "Error (warning 27)"
+           ; Re.str "unused value"
+           ])
+    , `Value )
+    :: ([ ("unused open", `Open)
+        ; ("unused open!", `Open_bang)
+        ; ("unused type", `Type)
+        ; ("unused constructor", `Constructor)
+        ; ("unused extension constructor", `Extension)
+        ; ("this match case is unused", `Case)
+        ; ("unused for-loop index", `For_loop_index)
+        ; ("unused rec flag", `Rec)
+        ; ("unused module", `Module)
+        ]
+       |> List.map ~f:(fun (msg, kind) -> (Re.mark (Re.str msg), kind)))
+  in
+  let regex =
+    Re.compile
+      (Re.seq [ Re.bol; Re.alt (List.map ~f:(fun ((_, r), _) -> r) msgs) ])
+  in
+  let marks = List.map ~f:(fun ((m, _), k) -> (m, k)) msgs in
+  (regex, marks)
+
+let find_unused_diagnostic pos ds =
+  let open Option.O in
+  List.filter ds ~f:(fun (d : Diagnostic.t) ->
+      match Position.compare_inclusion pos d.range with
+      | `Outside _ -> false
+      | `Inside -> true)
+  |> List.find_map ~f:(fun (d : Diagnostic.t) ->
+         let* group = Re.exec_opt diagnostic_regex d.message in
+         let+ kind =
+           List.find_map diagnostic_regex_marks ~f:(fun (m, k) ->
+               if Re.Mark.test group m then Some k else None)
+         in
+         (kind, d))
+
 (* Return contexts enclosing `pos` in order from most specific to most
    general. *)
 let enclosing_pos pipeline pos =
@@ -75,8 +117,7 @@ let code_action_mark_value_unused doc (diagnostic : Diagnostic.t) =
       let var_name = slice doc diagnostic.range in
       let pos = diagnostic.range.start in
       let+ text_edit =
-        enclosing_pos pipeline pos
-        |> List.rev_map ~f:(fun (_, x) -> x)
+        enclosing_pos pipeline pos |> List.rev_map ~f:snd
         |> mark_value_unused_edit var_name
       in
       let edit = Document.edit doc text_edit in
@@ -113,11 +154,12 @@ let enclosing_value_binding_range name =
       | _ -> None)
 
 (* Create a code action that removes [range] and refers to [diagnostic]. *)
-let code_action_remove_range doc (diagnostic : Diagnostic.t) range =
+let code_action_remove_range ?(title = "Remove unused") doc
+    (diagnostic : Diagnostic.t) range =
   let edit = Document.edit doc { range; newText = "" } in
   CodeAction.create
     ~diagnostics:[ diagnostic ]
-    ~title:"Remove unused"
+    ~title
     ~kind:CodeActionKind.QuickFix
     ~edit
     ~isPreferred:false
@@ -132,27 +174,139 @@ let code_action_remove_value doc pos (diagnostic : Diagnostic.t) =
       |> Option.map ~f:(fun range ->
              code_action_remove_range doc diagnostic range))
 
-let find_unused_diagnostic pos (ds : Diagnostic.t list) =
-  List.find ds ~f:(fun d ->
-      let in_range =
-        match Position.compare_inclusion pos d.range with
-        | `Outside _ -> false
-        | `Inside -> true
-      in
-      in_range && Diagnostic_util.is_unused_var_warning d.message)
+let action_mark_type doc pos (d : Diagnostic.t) =
+  let open Option.O in
+  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
+      enclosing_pos pipeline pos
+      |> List.find_map ~f:(fun (_, node) ->
+             match node with
+             | Browse_raw.Type_declaration { typ_name = { loc; _ }; _ } ->
+               let+ start = Position.of_lexical_position loc.loc_start in
+               let edit =
+                 Document.edit
+                   doc
+                   { range = Range.create ~start ~end_:start; newText = "_" }
+               in
+               CodeAction.create
+                 ~diagnostics:[ d ]
+                 ~title:"Mark type as unused"
+                 ~kind:CodeActionKind.QuickFix
+                 ~edit
+                 ~isPreferred:true
+                 ()
+             | _ -> None))
 
-let code_action_mark doc (params : CodeActionParams.t) =
-  let pos = params.range.start in
-  match find_unused_diagnostic pos params.context.diagnostics with
-  | None -> Fiber.return None
-  | Some d -> code_action_mark_value_unused doc d
+let action_mark_open doc (d : Diagnostic.t) =
+  let edit =
+    let pos = { d.range.start with character = d.range.start.character + 4 } in
+    let range = Range.create ~start:pos ~end_:pos in
+    Document.edit doc { range; newText = "!" }
+  in
+  CodeAction.create
+    ~diagnostics:[ d ]
+    ~title:"Replace with open!"
+    ~kind:CodeActionKind.QuickFix
+    ~edit
+    ~isPreferred:true
+    ()
 
-let code_action_remove doc (params : CodeActionParams.t) =
-  let pos = params.range.start in
-  match find_unused_diagnostic pos params.context.diagnostics with
-  | None -> Fiber.return None
-  | Some d -> code_action_remove_value doc pos d
+let rec_regex =
+  Re.compile
+    (Re.seq
+       [ Re.bos
+       ; Re.rep Re.any
+       ; Re.group (Re.str "rec")
+       ; Re.rep Re.space
+       ; Re.stop
+       ])
 
-let mark = { Code_action.kind = QuickFix; run = code_action_mark }
+let find_preceding doc pos regex =
+  let open Option.O in
+  let src = Document.source doc in
+  let (`Offset end_) = Msource.get_offset src @@ Position.logical pos in
+  let* groups = Re.exec_opt ~len:end_ regex (Msource.text src) in
+  let match_start, match_end = Re.Group.offset groups 1 in
+  let filename = Uri.to_path (Document.uri doc) in
+  let* start =
+    Msource.get_lexing_pos ~filename src (`Offset match_start)
+    |> Position.of_lexical_position
+  in
+  let+ end_ =
+    Msource.get_lexing_pos ~filename src (`Offset match_end)
+    |> Position.of_lexical_position
+  in
+  Range.create ~start ~end_
 
-let remove = { Code_action.kind = QuickFix; run = code_action_remove }
+let action_remove_rec doc (d : Diagnostic.t) =
+  let open Option.O in
+  let+ rec_range = find_preceding doc d.range.start rec_regex in
+  code_action_remove_range ~title:"Remove unused rec" doc d rec_range
+
+let action_remove_case doc (d : Diagnostic.t) =
+  let open Option.O in
+  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
+      enclosing_pos pipeline d.range.start
+      |> List.find_map ~f:(fun (_, node) ->
+             match node with
+             | Browse_raw.Case
+                 { c_lhs = { pat_loc = { loc_start; _ }; _ }
+                 ; c_rhs = { exp_loc = { loc_end; _ }; _ }
+                 ; _
+                 } ->
+               let* start = Position.of_lexical_position loc_start in
+               let+ end_ = Position.of_lexical_position loc_end in
+               let edit =
+                 Document.edit
+                   doc
+                   { range = Range.create ~start ~end_; newText = "" }
+               in
+               CodeAction.create
+                 ~diagnostics:[ d ]
+                 ~title:"Remove unused case"
+                 ~kind:CodeActionKind.QuickFix
+                 ~edit
+                 ~isPreferred:true
+                 ()
+             | _ -> None))
+
+let action_remove_simple kind doc (d : Diagnostic.t) =
+  code_action_remove_range ~title:("Remove unused " ^ kind) doc d d.range
+
+let mark =
+  let run doc (params : CodeActionParams.t) =
+    let pos = params.range.start in
+    match find_unused_diagnostic pos params.context.diagnostics with
+    | Some (`Value, d) -> code_action_mark_value_unused doc d
+    | Some (`Open, d) -> Fiber.return (Some (action_mark_open doc d))
+    | Some (`Type, d) -> action_mark_type doc pos d
+    | Some ((`For_loop_index | `Module), _) ->
+      (* todo *)
+      Fiber.return None
+    | Some ((`Open_bang | `Constructor | `Extension | `Case | `Rec), _) | None
+      ->
+      (* these diagnostics don't have a reasonable "mark as unused" action *)
+      Fiber.return None
+  in
+  { Code_action.kind = QuickFix; run }
+
+let remove =
+  let run doc (params : CodeActionParams.t) =
+    let pos = params.range.start in
+    match find_unused_diagnostic pos params.context.diagnostics with
+    | Some (`Value, d) -> code_action_remove_value doc pos d
+    | Some (`Open, d) -> Fiber.return (Some (action_remove_simple "open" doc d))
+    | Some (`Open_bang, d) ->
+      Fiber.return (Some (action_remove_simple "open!" doc d))
+    | Some (`Type, d) -> Fiber.return (Some (action_remove_simple "type" doc d))
+    | Some (`Module, d) ->
+      Fiber.return (Some (action_remove_simple "module" doc d))
+    | Some (`Case, d) -> action_remove_case doc d
+    | Some (`Rec, d) -> Fiber.return (action_remove_rec doc d)
+    | Some ((`Constructor | `Extension), _) ->
+      (* todo *)
+      Fiber.return None
+    | Some (`For_loop_index, _) | None ->
+      (* these diagnostics don't have a reasonable "remove unused" action *)
+      Fiber.return None
+  in
+  { Code_action.kind = QuickFix; run }
