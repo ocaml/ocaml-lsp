@@ -207,16 +207,10 @@ let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
   let diagnostics =
-    let workspace_root =
-      lazy
-        (let state = Server.state server in
-         State.workspace_root state)
-    in
     Diagnostics.create
       (let open Option.O in
       let* td = ip.capabilities.textDocument in
       td.publishDiagnostics)
-      ~workspace_root
       (function
         | [] -> Fiber.return ()
         | diagnostics ->
