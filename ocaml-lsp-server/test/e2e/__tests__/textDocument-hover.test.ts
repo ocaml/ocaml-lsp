@@ -109,6 +109,8 @@ describe("textDocument/hover", () => {
           \`\`\`ocaml
           'a -> 'a
           \`\`\`
+          ---
+          This function has a nice documentation
           `,
       },
     });

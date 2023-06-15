@@ -59,6 +59,7 @@ module Config = struct
     ; stdlib : string option
     ; reader : string list
     ; exclude_query_dir : bool
+    ; use_ppx_cache : bool
     }
 
   let empty =
@@ -72,6 +73,7 @@ module Config = struct
     ; stdlib = None
     ; reader = []
     ; exclude_query_dir = false
+    ; use_ppx_cache = false
     }
 
   (* Parses suffixes pairs that were supplied as whitespace separated pairs
@@ -110,6 +112,7 @@ module Config = struct
       | `STDLIB path -> ({ config with stdlib = Some path }, errors)
       | `READER reader -> ({ config with reader }, errors)
       | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
+      | `USE_PPX_CACHE -> ({ config with use_ppx_cache = true }, errors)
       | `UNKNOWN_TAG _ ->
         (* For easier forward compatibility we ignore unknown configuration tags
            when they are provided by dune *)
@@ -129,6 +132,7 @@ module Config = struct
       ; stdlib = config.stdlib
       ; reader = config.reader
       ; exclude_query_dir = config.exclude_query_dir
+      ; use_ppx_cache = config.use_ppx_cache
       }
 
   let merge t (merlin : Mconfig.merlin) failures config_path =
@@ -222,6 +226,17 @@ module Dot_protocol_io =
     (Fiber)
     (struct
       include Lev_fiber_csexp.Session
+
+      type in_chan = t
+
+      type out_chan = t
+
+      let read t =
+        let open Fiber.O in
+        let+ opt = read t in
+        match opt with
+        | Some r -> Result.return r
+        | None -> Error "Read error"
 
       let write t x = write t [ x ]
     end)

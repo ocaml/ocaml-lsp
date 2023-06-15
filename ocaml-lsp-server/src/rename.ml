@@ -8,7 +8,7 @@ let rename (state : State.t)
   | `Other -> Fiber.return (WorkspaceEdit.create ())
   | `Merlin merlin ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
     in
     let+ locs = Document.Merlin.dispatch_exn merlin command in
     let version = Document.version doc in

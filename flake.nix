@@ -102,6 +102,7 @@
               uutf
               lsp
               odoc-parser
+              merlin-lib
             ];
             doCheck = false;
           };
@@ -171,6 +172,7 @@
                 ppx_yojson_conv_lib
                 uutf
                 lsp
+                merlin-lib
               ];
               propagatedBuildInputs = [ ];
               doCheck = false;
