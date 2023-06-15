@@ -3,6 +3,8 @@ name: Build and Test
 on:
   pull_request:
   push:
+    branches:
+      -master
   schedule:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
