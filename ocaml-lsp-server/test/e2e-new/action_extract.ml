@@ -1,8 +1,7 @@
-let extract_local_test src =
-  Code_actions.code_action_test ~title:"Extract local" ~source:src
+let extract_local_test = Code_actions.code_action_test ~title:"Extract local"
 
-let extract_function_test src =
-  Code_actions.code_action_test ~title:"Extract function" ~source:src
+let extract_function_test =
+  Code_actions.code_action_test ~title:"Extract function"
 
 let%expect_test "extract local constant" =
   extract_local_test {|
