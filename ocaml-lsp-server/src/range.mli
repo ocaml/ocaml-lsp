@@ -6,6 +6,9 @@ include module type of Lsp.Types.Range with type t = Lsp.Types.Range.t
     positions. *)
 val compare : t -> t -> Ordering.t
 
+(** [contains r1 r2] returns true if [r1] contains [r2]. *)
+val contains : t -> t -> bool
+
 val to_dyn : t -> Dyn.t
 
 val compare_size : t -> t -> Ordering.t

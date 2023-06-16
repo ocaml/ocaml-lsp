@@ -10,6 +10,12 @@ let to_dyn { start; end_ } =
   Dyn.record
     [ ("start", Position.to_dyn start); ("end_", Position.to_dyn end_) ]
 
+let contains (x : t) (y : t) =
+  let open Ordering in
+  match (Position.compare x.start y.start, Position.compare x.end_ y.end_) with
+  | (Lt | Eq), (Gt | Eq) -> true
+  | _ -> false
+
 (* Compares ranges by their lengths*)
 let compare_size (x : t) (y : t) =
   let dx = Position.(x.end_ - x.start) in
