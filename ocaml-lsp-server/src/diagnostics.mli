@@ -8,13 +8,10 @@ type t
 
 val create :
      PublishDiagnosticsClientCapabilities.t option
-  -> workspace_root:Uri.t Lazy.t
   -> (PublishDiagnosticsParams.t list -> unit Fiber.t)
   -> t
 
 val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
-
-val workspace_root : t -> Uri.t
 
 module Dune : sig
   type t

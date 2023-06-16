@@ -82,7 +82,6 @@ let equal_message =
 type t =
   { dune :
       (Dune.t, (Drpc.Diagnostic.Id.t, Uri.t * Diagnostic.t) Table.t) Table.t
-  ; workspace_root : Uri.t Lazy.t
   ; merlin : (Uri.t, Diagnostic.t list) Table.t
   ; send : PublishDiagnosticsParams.t list -> unit Fiber.t
   ; mutable dirty_uris : Uri_set.t
@@ -90,10 +89,7 @@ type t =
   ; tags : DiagnosticTag.t list
   }
 
-let workspace_root t = Lazy.force t.workspace_root
-
-let create (capabilities : PublishDiagnosticsClientCapabilities.t option)
-    ~workspace_root send =
+let create (capabilities : PublishDiagnosticsClientCapabilities.t option) send =
   let related_information, tags =
     match capabilities with
     | None -> (false, [])
@@ -107,7 +103,6 @@ let create (capabilities : PublishDiagnosticsClientCapabilities.t option)
   ; merlin = Table.create (module Uri) 32
   ; dirty_uris = Uri_set.empty
   ; send
-  ; workspace_root
   ; related_information
   ; tags
   }

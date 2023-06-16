@@ -178,6 +178,95 @@ let x = _
           "title": "Construct an expression",
         },
         Object {
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "edits": Array [
+                  Object {
+                    "newText": "let var_name = _ in
+      ",
+                    "range": Object {
+                      "end": Object {
+                        "character": 8,
+                        "line": 0,
+                      },
+                      "start": Object {
+                        "character": 8,
+                        "line": 0,
+                      },
+                    },
+                  },
+                  Object {
+                    "newText": "var_name",
+                    "range": Object {
+                      "end": Object {
+                        "character": 9,
+                        "line": 0,
+                      },
+                      "start": Object {
+                        "character": 8,
+                        "line": 0,
+                      },
+                    },
+                  },
+                ],
+                "textDocument": Object {
+                  "uri": "file:///test.ml",
+                  "version": 0,
+                },
+              },
+            ],
+          },
+          "isPreferred": false,
+          "kind": "refactor.extract",
+          "title": "Extract local",
+        },
+        Object {
+          "edit": Object {
+            "documentChanges": Array [
+              Object {
+                "edits": Array [
+                  Object {
+                    "newText": "let fun_name () = _
+
+      ",
+                    "range": Object {
+                      "end": Object {
+                        "character": 0,
+                        "line": 0,
+                      },
+                      "start": Object {
+                        "character": 0,
+                        "line": 0,
+                      },
+                    },
+                  },
+                  Object {
+                    "newText": "fun_name ()",
+                    "range": Object {
+                      "end": Object {
+                        "character": 9,
+                        "line": 0,
+                      },
+                      "start": Object {
+                        "character": 8,
+                        "line": 0,
+                      },
+                    },
+                  },
+                ],
+                "textDocument": Object {
+                  "uri": "file:///test.ml",
+                  "version": 0,
+                },
+              },
+            ],
+          },
+          "isPreferred": false,
+          "kind": "refactor.extract",
+          "title": "Extract function",
+        },
+        Object {
           "command": Object {
             "arguments": Array [
               "file:///test.mli",

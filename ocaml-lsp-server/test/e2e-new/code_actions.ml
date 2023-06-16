@@ -599,3 +599,98 @@ let f (x : t) = x
       "kind": "inferred_intf",
       "title": "Insert inferred interface"
     } |}]
+
+let position_of_offset src x =
+  assert (0 <= x && x < String.length src);
+  let cnum = ref 0
+  and lnum = ref 0 in
+  for i = 0 to x - 1 do
+    if src.[i] = '\n' then (
+      incr lnum;
+      cnum := 0)
+    else incr cnum
+  done;
+  Position.create ~character:!cnum ~line:!lnum
+
+let parse_selection src =
+  let start_pos =
+    match String.index src '$' with
+    | Some x -> x
+    | None -> failwith "expected a selection opening mark"
+  in
+  let end_pos =
+    match String.index_from src (start_pos + 1) '$' with
+    | Some x ->
+      if Option.is_some (String.index_from src (x + 1) '$') then
+        failwith "unexpected third selection mark";
+      x - 1 (* account for opening mark *)
+    | None -> start_pos
+  in
+  let start = position_of_offset src start_pos in
+  let end_ = position_of_offset src end_pos in
+  let src' =
+    String.filter_map src ~f:(function
+        | '$' -> None
+        | c -> Some c)
+  in
+  (src', Range.create ~start ~end_)
+
+let offset_of_position src (pos : Position.t) =
+  let line_offset =
+    String.split_lines src |> List.take pos.line
+    |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
+  in
+  line_offset + pos.line (* account for line endings *) + pos.character
+
+let apply_edits src edits =
+  let rec apply src = function
+    | [] -> src
+    | (new_text, start, end_) :: edits ->
+      (* apply edit *)
+      let src' = String.take src start ^ new_text ^ String.drop src end_ in
+
+      (* calculate amount of text added (or removed) *)
+      let diff_len = String.length new_text - (end_ - start) in
+
+      (* offset positions of remaining edits *)
+      let edits' =
+        List.map edits ~f:(fun (new_text, start, end_) ->
+            (new_text, start + diff_len, end_ + diff_len))
+      in
+      apply src' edits'
+  in
+  let edits =
+    List.map edits ~f:(fun (e : TextEdit.t) ->
+        ( e.newText
+        , offset_of_position src e.range.start
+        , offset_of_position src e.range.end_ ))
+  in
+  apply src edits
+
+let apply_code_action title source range =
+  let open Option.O in
+  (* collect code action results *)
+  let code_actions = ref None in
+  iter_code_actions ~source range (fun ca -> code_actions := Some ca);
+  let* m_code_actions = !code_actions in
+  let* code_actions = m_code_actions in
+
+  let* edit =
+    List.find_map code_actions ~f:(function
+        | `CodeAction { title = t; edit = Some edit; _ } when t = title ->
+          Some edit
+        | _ -> None)
+  in
+  let+ changes = edit.documentChanges in
+  List.concat_map changes ~f:(function
+      | `TextDocumentEdit x ->
+        List.map x.edits ~f:(function
+            | `AnnotatedTextEdit (a : AnnotatedTextEdit.t) ->
+              TextEdit.create ~newText:a.newText ~range:a.range
+            | `TextEdit e -> e)
+      | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
+  |> apply_edits source
+
+let code_action_test ~title ~source =
+  let src, range = parse_selection source in
+  Option.iter (apply_code_action title src range) ~f:print_string

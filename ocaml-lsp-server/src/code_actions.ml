@@ -92,6 +92,8 @@ let compute server (params : CodeActionParams.t) =
             ; Action_mark_remove_unused.mark
             ; Action_mark_remove_unused.remove
             ; Action_inline.t
+            ; Action_extract.local
+            ; Action_extract.function_
             ]
         in
         List.concat

@@ -1,11 +1,5 @@
 open Import
 
-let slice doc (range : Range.t) =
-  let src = Document.source doc in
-  let (`Offset start) = Msource.get_offset src @@ Position.logical range.start
-  and (`Offset end_) = Msource.get_offset src @@ Position.logical range.end_ in
-  String.sub (Msource.text src) ~pos:start ~len:(end_ - start)
-
 let diagnostic_regex, diagnostic_regex_marks =
   let msgs =
     ( Re.mark
@@ -113,13 +107,13 @@ let rec mark_value_unused_edit name contexts =
 let code_action_mark_value_unused doc (diagnostic : Diagnostic.t) =
   let open Option.O in
   Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      let var_name = slice doc diagnostic.range in
+      let* var_name = Document.substring doc diagnostic.range in
       let pos = diagnostic.range.start in
       let+ text_edit =
         enclosing_pos pipeline pos |> List.rev_map ~f:snd
         |> mark_value_unused_edit var_name
       in
-      let edit = Document.edit doc text_edit in
+      let edit = Document.edit doc [ text_edit ] in
       CodeAction.create
         ~diagnostics:[ diagnostic ]
         ~title:"Mark as unused"
@@ -155,7 +149,7 @@ let enclosing_value_binding_range name =
 (* Create a code action that removes [range] and refers to [diagnostic]. *)
 let code_action_remove_range ?(title = "Remove unused") doc
     (diagnostic : Diagnostic.t) range =
-  let edit = Document.edit doc { range; newText = "" } in
+  let edit = Document.edit doc [ { range; newText = "" } ] in
   CodeAction.create
     ~diagnostics:[ diagnostic ]
     ~title
@@ -166,8 +160,9 @@ let code_action_remove_range ?(title = "Remove unused") doc
 
 (* Create a code action that removes the value mentioned in [diagnostic]. *)
 let code_action_remove_value doc pos (diagnostic : Diagnostic.t) =
+  let open Option.O in
   Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      let var_name = slice doc diagnostic.range in
+      let* var_name = Document.substring doc diagnostic.range in
       enclosing_pos pipeline pos |> List.map ~f:snd
       |> enclosing_value_binding_range var_name
       |> Option.map ~f:(fun range ->
@@ -179,7 +174,7 @@ let create_mark_action ~title doc pos d =
   let edit =
     Document.edit
       doc
-      { range = Range.create ~start:pos ~end_:pos; newText = "_" }
+      [ { range = Range.create ~start:pos ~end_:pos; newText = "_" } ]
   in
   CodeAction.create
     ~diagnostics:[ d ]
@@ -244,7 +239,7 @@ let action_mark_open doc (d : Diagnostic.t) =
   let edit =
     let pos = { d.range.start with character = d.range.start.character + 4 } in
     let range = Range.create ~start:pos ~end_:pos in
-    Document.edit doc { range; newText = "!" }
+    Document.edit doc [ { range; newText = "!" } ]
   in
   CodeAction.create
     ~diagnostics:[ d ]
@@ -316,9 +311,10 @@ let action_remove_case doc (d : Diagnostic.t) =
          let edit =
            Document.edit
              doc
-             { range = Range.create ~start:preceding_bar.start ~end_
-             ; newText = ""
-             }
+             [ { range = Range.create ~start:preceding_bar.start ~end_
+               ; newText = ""
+               }
+             ]
          in
          CodeAction.create
            ~diagnostics:[ d ]
