@@ -72,8 +72,8 @@ module T : sig
   val run :
        ?extra_env:string list
     -> ?handler:unit Client.Handler.t
-    -> (unit Client.t -> unit Fiber.t)
-    -> unit
+    -> (unit Client.t -> 'a Fiber.t)
+    -> 'a
 end = struct
   let _PATH =
     Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
@@ -143,8 +143,12 @@ end = struct
     in
     Lev_fiber.run (fun () ->
         let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in
-        Fiber.all_concurrently_unit
-          [ init; waitpid wheel; Lev_fiber.Timer.Wheel.run wheel ])
+        let+ res = init
+        and+ () =
+          Fiber.all_concurrently_unit
+            [ waitpid wheel; Lev_fiber.Timer.Wheel.run wheel ]
+        in
+        res)
     |> Lev_fiber.Error.ok_exn
 end
 

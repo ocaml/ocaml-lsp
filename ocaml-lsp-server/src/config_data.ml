@@ -257,6 +257,6 @@ let _ = yojson_of_t
 [@@@end]
 
 let default =
-  { codelens = Some { enable = true }
+  { codelens = Some { enable = false }
   ; extended_hover = Some { enable = false }
   }

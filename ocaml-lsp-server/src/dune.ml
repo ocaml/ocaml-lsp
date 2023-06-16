@@ -274,7 +274,7 @@ end = struct
             in
             Some ())
 
-  let diagnostic_loop client config (running : running) diagnostics =
+  let diagnostic_loop ~dune_root client config (running : running) diagnostics =
     let* res = Client.poll client Drpc.Sub.diagnostic in
     let send_diagnostics evs =
       let promotions, add, remove =
@@ -335,7 +335,7 @@ end = struct
               in
               let uri : Uri.t =
                 match Drpc.Diagnostic.loc d with
-                | None -> Diagnostics.workspace_root diagnostics
+                | None -> dune_root
                 | Some loc ->
                   let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
                   Uri.of_path pos_fname
@@ -527,7 +527,10 @@ end = struct
                  progress_loop client diagnostics document_store progress
                in
                let diagnostics =
-                 diagnostic_loop client config running diagnostics
+                 let dune_root =
+                   DocumentUri.of_path (Registry.Dune.root source)
+                 in
+                 diagnostic_loop ~dune_root client config running diagnostics
                in
                Fiber.all_concurrently_unit
                  [ progress; diagnostics; Fiber.Ivar.read finish ]))

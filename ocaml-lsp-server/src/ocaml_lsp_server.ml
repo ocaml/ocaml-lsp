@@ -207,16 +207,10 @@ let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
   let diagnostics =
-    let workspace_root =
-      lazy
-        (let state = Server.state server in
-         State.workspace_root state)
-    in
     Diagnostics.create
       (let open Option.O in
       let* td = ip.capabilities.textDocument in
       td.publishDiagnostics)
-      ~workspace_root
       (function
         | [] -> Fiber.return ()
         | diagnostics ->
@@ -444,7 +438,7 @@ let references (state : State.t)
   | `Other -> Fiber.return None
   | `Merlin doc ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
     in
     let+ locs = Document.Merlin.dispatch_exn doc command in
     Some
@@ -461,7 +455,7 @@ let highlight (state : State.t)
   | `Other -> Fiber.return None
   | `Merlin m ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
     in
     let+ locs = Document.Merlin.dispatch_exn m command in
     let lsp_locs =
@@ -609,8 +603,8 @@ let on_request :
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req -> (
     match state.configuration.data.codelens with
-    | Some { enable = true } | None -> later text_document_lens req
-    | Some _ -> now [])
+    | Some { enable = true } -> later text_document_lens req
+    | _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
@@ -636,7 +630,8 @@ let on_request :
         | `Other -> Fiber.return None
         | `Merlin doc ->
           let command =
-            Query_protocol.Occurrences (`Ident_at (Position.logical position))
+            Query_protocol.Occurrences
+              (`Ident_at (Position.logical position), `Buffer)
           in
           let+ locs = Document.Merlin.dispatch_exn doc command in
           let loc =
@@ -866,8 +861,65 @@ let stream_of_channel : Lsp.Cli.Channel.t -> _ = function
     let sockaddr = Unix.ADDR_INET (Unix.inet_addr_loopback, port) in
     socket sockaddr
 
+(* Merlin uses [Sys.command] to run preprocessors and ppxes. We provide an
+   alternative version using the Spawn library for unixes.
+
+   TODO: Currently PPX config is passed to Merlin in the form of a quoted shell
+   command. The [prog_is_quoted] argument in Merlin's API is meant to allow
+   supporting a way to launch ppx executables without using the shell.
+
+   This will require additionnal changes of the API so there is no need to deal
+   with the [prog_is_quoted] argument until this happen. *)
+let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr
+    () =
+  (* Currently we assume that [prog] is always quoted and might contain
+     arguments such as [-as-ppx]. This is due to the way Merlin gets its
+     configuration. Thus we cannot rely on [Filename.quote_command]. *)
+  let args = String.concat ~sep:" " @@ List.map ~f:Filename.quote args in
+  let cmd = Format.sprintf "%s %s" prog args in
+
+  let prog = "/bin/sh" in
+  let argv = [ "sh"; "-c"; cmd ] in
+  let stdin =
+    match stdin with
+    | Some file -> Unix.openfile file [ Unix.O_WRONLY ] 0x664
+    | None -> Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0x777
+  in
+  let stdout, should_close_stdout =
+    match stdout with
+    | Some file -> (Unix.openfile file [ Unix.O_WRONLY ] 0x664, true)
+    | None ->
+      (* Runned programs should never output to stdout since it is the channel
+         used by LSP to communicate with the editor *)
+      (Unix.stderr, false)
+  in
+  let stderr =
+    Option.map stderr ~f:(fun file ->
+        Unix.openfile file [ Unix.O_WRONLY ] 0x664)
+  in
+  let pid =
+    let cwd : Spawn.Working_dir.t = Path cwd in
+    Spawn.spawn ~cwd ~prog ~argv ~stdin ~stdout ?stderr ()
+  in
+  let _, status = Unix.waitpid [] pid in
+  let res =
+    match (status : Unix.process_status) with
+    | WEXITED n -> n
+    | WSIGNALED _ -> -1
+    | WSTOPPED _ -> -1
+  in
+  Unix.close stdin;
+  if should_close_stdout then Unix.close stdout;
+  `Finished res
+
+let run_in_directory =
+  (* Merlin has specific stubs for Windows, we reuse them *)
+  let for_windows = !Merlin_utils.Std.System.run_in_directory in
+  fun () -> if Sys.win32 then for_windows else run_in_directory
+
 let run channel ~read_dot_merlin () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
+  Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
   Merlin_config.should_read_dot_merlin := read_dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->

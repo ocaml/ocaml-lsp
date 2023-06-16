@@ -1,11 +1,15 @@
 # Configuration
 
-The ocamllsp support the folowing configuration. These configurations are sent through the [`didChangeConfiguration`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didChangeConfiguration) notification.
+The ocamllsp support the folowing configurations.
+
+These configurations are sent through the
+[`didChangeConfiguration`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didChangeConfiguration)
+notification.
 
 ```ts
 interface config {
   /**
-  * Enable/Disabe Extended Hover
+  * Enable/Disable Extended Hover
   * @default false
   * @since 1.16
   */
@@ -13,7 +17,7 @@ interface config {
 
   /**
   * Enable/Disable CodeLens
-  * @default true
+  * @default false
   * @since 1.16
   */
   codelens: { enable : boolean }

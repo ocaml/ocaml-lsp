@@ -11,6 +11,7 @@
    (= %{os_type} Unix))
   (deps
    %{bin:ocamlformat-rpc}
+   for_ppx.ml
    (package ocaml-lsp-server)))
  (libraries
   stdune
