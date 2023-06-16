@@ -667,11 +667,12 @@ let apply_edits src edits =
   in
   apply src edits
 
-let apply_code_action title source range =
+let apply_code_action ?diagnostics title source range =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
-  iter_code_actions ~source range (fun ca -> code_actions := Some ca);
+  iter_code_actions ?diagnostics ~source range (fun ca ->
+      code_actions := Some ca);
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
 
@@ -691,6 +692,6 @@ let apply_code_action title source range =
       | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
   |> apply_edits source
 
-let code_action_test ~title ~source =
+let code_action_test ?diagnostics ~title source =
   let src, range = parse_selection source in
-  Option.iter (apply_code_action title src range) ~f:print_string
+  Option.iter (apply_code_action ?diagnostics title src range) ~f:print_string

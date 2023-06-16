@@ -8,4 +8,7 @@ val iter_code_actions :
   -> (CodeActionResult.t -> unit)
   -> unit
 
-val code_action_test : title:string -> source:string -> unit
+(** [code_action_test ~diagnostics title source] runs the code action with title
+    [title] and prints the resulting source. *)
+val code_action_test :
+  ?diagnostics:Diagnostic.t list -> title:string -> string -> unit
