@@ -5,6 +5,7 @@ on:
   push:
     branches:
       -master
+  - workflow_dispatch
   schedule:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
