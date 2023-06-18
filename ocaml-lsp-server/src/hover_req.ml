@@ -6,12 +6,6 @@ type mode =
   | Extended_fixed of int
   | Extended_variable
 
-(* possibly overwrite the default mode using an environment variable *)
-let environment_mode =
-  match Env_vars._IS_HOVER_EXTENDED () with
-  | Some true -> Extended_variable
-  | Some false | None -> Default
-
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -49,11 +43,6 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
       | `Other -> Fiber.return None
       | `Merlin merlin -> (
         let verbosity =
-          let mode =
-            match (mode, environment_mode) with
-            | Default, Extended_variable -> Extended_variable
-            | x, _ -> x
-          in
           match mode with
           | Default -> 0
           | Extended_fixed v ->

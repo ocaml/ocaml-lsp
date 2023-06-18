@@ -74,7 +74,10 @@ module Lens = struct
 end
 
 module ExtendedHover = struct
-  type t = { enable : bool [@default false] }
+  type t =
+    { enable : bool [@default false]
+    ; verbosity : int Json.Nullable_option.t [@default None]
+    }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
@@ -84,6 +87,7 @@ module ExtendedHover = struct
      function
      | `Assoc field_yojsons as yojson -> (
        let enable_field = ref Ppx_yojson_conv_lib.Option.None
+       and verbosity_field = ref Ppx_yojson_conv_lib.Option.None
        and duplicates = ref []
        and extra = ref [] in
        let rec iter = function
@@ -94,6 +98,15 @@ module ExtendedHover = struct
              | Ppx_yojson_conv_lib.Option.None ->
                let fvalue = bool_of_yojson _field_yojson in
                enable_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | "verbosity" -> (
+             match Ppx_yojson_conv_lib.( ! ) verbosity_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson int_of_yojson _field_yojson
+               in
+               verbosity_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
            | _ -> ());
@@ -115,10 +128,17 @@ module ExtendedHover = struct
              (Ppx_yojson_conv_lib.( ! ) extra)
              yojson
          | [] ->
-           let enable_value = Ppx_yojson_conv_lib.( ! ) enable_field in
+           let enable_value, verbosity_value =
+             ( Ppx_yojson_conv_lib.( ! ) enable_field
+             , Ppx_yojson_conv_lib.( ! ) verbosity_field )
+           in
            { enable =
                (match enable_value with
                | Ppx_yojson_conv_lib.Option.None -> false
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           ; verbosity =
+               (match verbosity_value with
+               | Ppx_yojson_conv_lib.Option.None -> None
                | Ppx_yojson_conv_lib.Option.Some v -> v)
            }))
      | _ as yojson ->
@@ -131,8 +151,12 @@ module ExtendedHover = struct
 
   let yojson_of_t =
     (function
-     | { enable = v_enable } ->
+     | { enable = v_enable; verbosity = v_verbosity } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         let arg = Json.Nullable_option.yojson_of_t yojson_of_int v_verbosity in
+         ("verbosity", arg) :: bnds
+       in
        let bnds =
          let arg = yojson_of_bool v_enable in
          ("enable", arg) :: bnds
@@ -258,5 +282,5 @@ let _ = yojson_of_t
 
 let default =
   { codelens = Some { enable = false }
-  ; extended_hover = Some { enable = false }
+  ; extended_hover = Some { enable = false; verbosity = None }
   }

@@ -94,7 +94,6 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
               ; Req_typed_holes.capability
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
-              ; Req_hover_extended.capability
               ] )
         ]
     in
@@ -500,8 +499,6 @@ let on_request :
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
       ; ( Semantic_highlighting.Debug.meth_request_full
         , Semantic_highlighting.Debug.on_request_full )
-      ; ( Req_hover_extended.meth
-        , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
       ]
       |> List.assoc_opt meth
     with
@@ -591,7 +588,10 @@ let on_request :
   | TextDocumentHover req ->
     let mode =
       match state.configuration.data.extended_hover with
-      | Some { enable = true } -> Hover_req.Extended_variable
+      | Some { enable = true; verbosity } -> (
+        match verbosity with
+        | None -> Hover_req.Extended_variable
+        | Some verbosity -> Hover_req.Extended_fixed verbosity)
       | Some _ | None -> Hover_req.Default
     in
     later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ()

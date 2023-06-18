@@ -3,7 +3,7 @@ import * as LanguageServer from "./../src/LanguageServer";
 
 import * as Types from "vscode-languageserver-types";
 
-describe("ocamllsp/hoverExtended", () => {
+describe("Extended Hover", () => {
   let languageServer: LanguageServer.LanguageServer;
 
   afterEach(async () => {
@@ -21,10 +21,9 @@ describe("ocamllsp/hoverExtended", () => {
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(0, 4),
-      verbosity: 0,
+      position: Types.Position.create(0, 4)
     });
 
     expect(result).toMatchObject({
@@ -57,10 +56,9 @@ describe("ocamllsp/hoverExtended", () => {
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(0, 4),
-      verbosity: 0,
+      position: Types.Position.create(0, 4)
     });
 
     expect(result).toMatchObject({
@@ -98,10 +96,9 @@ describe("ocamllsp/hoverExtended", () => {
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(3, 9),
-      verbosity: 0,
+      position: Types.Position.create(3, 9)
     });
 
     expect(result).toMatchObject({
@@ -164,10 +161,9 @@ describe("ocamllsp/hoverExtended", () => {
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(23, 10),
-      verbosity: 0,
+      position: Types.Position.create(23, 10)
     });
 
     expect(result).toMatchObject({
@@ -240,10 +236,9 @@ describe("ocamllsp/hoverExtended", () => {
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(3, 13),
-      verbosity: 0,
+      position: Types.Position.create(3, 13)
     });
 
     expect(result).toMatchObject({
@@ -283,10 +278,9 @@ describe("ocamllsp/hoverExtended", () => {
       ),
     });
 
-    let hover1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let hover1 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(1, 4),
-      verbosity: 0,
+      position: Types.Position.create(1, 4)
     });
 
     expect(hover1).toMatchInlineSnapshot(`
@@ -310,10 +304,9 @@ describe("ocamllsp/hoverExtended", () => {
       }
     `);
 
-    let hover2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let hover2 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(2, 9),
-      verbosity: 0,
+      position: Types.Position.create(2, 9)
     });
 
     expect(hover2).toMatchInlineSnapshot(`
@@ -353,10 +346,9 @@ let x : foo = 1
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(2, 4),
-      verbosity: 0,
+      position: Types.Position.create(2, 4)
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -431,11 +423,10 @@ let x : foo = 1
 
     // here we see that all is ok
     let hoverOverK = await languageServer.sendRequest(
-      "ocamllsp/hoverExtended",
+      "textDocument/hover",
       {
         textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-        position: Types.Position.create(24, 4),
-        verbosity: 0,
+        position: Types.Position.create(24, 4)
       },
     );
 
@@ -462,20 +453,18 @@ let x : foo = 1
 
     // we trigger the bug
     let autocompleteForListm = await languageServer.sendRequest(
-      "ocamllsp/hoverExtended",
+      "textDocument/hover",
       {
         textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-        position: Types.Position.create(25, 15),
-        verbosity: 0,
+        position: Types.Position.create(25, 15)
       },
     );
 
     let buggedHoverOverK = await languageServer.sendRequest(
-      "ocamllsp/hoverExtended",
+      "textDocument/hover",
       {
         textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-        position: Types.Position.create(24, 4),
-        verbosity: 0,
+        position: Types.Position.create(24, 4)
       },
     );
 
@@ -504,6 +493,13 @@ let x : foo = 1
 
   it("supports explicity verbosity", async () => {
     languageServer = await LanguageServer.startAndInitialize();
+
+    await languageServer.sendNotification("workspace/didChangeConfiguration", {
+      settings: {
+        extendedHover: { enable: true },
+      },
+    });
+
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
@@ -517,10 +513,9 @@ let x : foo = Some 1
       ),
     });
 
-    let result0 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result0 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(2, 4),
-      verbosity: 0,
+      position: Types.Position.create(2, 4)
     });
 
     expect(result0).toMatchInlineSnapshot(`
@@ -542,10 +537,9 @@ let x : foo = Some 1
       }
     `);
 
-    let result1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result1 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(2, 4),
-      verbosity: 1,
+      position: Types.Position.create(2, 4)
     });
 
     expect(result1).toMatchInlineSnapshot(`
@@ -567,10 +561,9 @@ let x : foo = Some 1
       }
     `);
 
-    let result2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result2 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(2, 4),
-      verbosity: 2,
+      position: Types.Position.create(2, 4)
     });
 
     expect(result2).toMatchInlineSnapshot(`
@@ -595,6 +588,13 @@ let x : foo = Some 1
 
   it("supports implicit verbosity", async () => {
     languageServer = await LanguageServer.startAndInitialize();
+
+    await languageServer.sendNotification("workspace/didChangeConfiguration", {
+      settings: {
+        extendedHover: { enable: true },
+      },
+    });
+
     await languageServer.sendNotification("textDocument/didOpen", {
       textDocument: Types.TextDocumentItem.create(
         "file:///test.ml",
@@ -608,9 +608,9 @@ let x : foo = Some 1
       ),
     });
 
-    let result0 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result0 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(2, 4),
+      position: Types.Position.create(2, 4)
     });
 
     expect(result0).toMatchInlineSnapshot(`
@@ -632,9 +632,9 @@ let x : foo = Some 1
       }
     `);
 
-    let result1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result1 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
-      position: Types.Position.create(2, 4),
+      position: Types.Position.create(2, 4)
     });
 
     expect(result1).toMatchInlineSnapshot(`
@@ -656,7 +656,7 @@ let x : foo = Some 1
       }
     `);
 
-    let result2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    let result2 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
     });

@@ -52,28 +52,20 @@ let hover client position =
        ; workDoneToken = None
        })
 
-let print_hover_extended resp =
-  resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+let change_config_hover client verbosity =
+  let required = [ ("enable", `Bool true) ] in
 
-let hover_extended client position verbosity =
   let params =
-    let required =
-      [ ( "textDocument"
-        , TextDocumentIdentifier.yojson_of_t
-            (TextDocumentIdentifier.create ~uri) )
-      ; ("position", Position.yojson_of_t position)
-      ]
-    in
-    let params =
-      match verbosity with
-      | None -> required
-      | Some v -> ("verbosity", `Int v) :: required
-    in
-    Some (Jsonrpc.Structured.t_of_yojson (`Assoc params))
+    match verbosity with
+    | None -> required
+    | Some verbosity -> ("verbosity", `Int verbosity) :: required
   in
-  Client.request
+
+  let settings = `Assoc [ ("extendedHover", `Assoc params) ] in
+
+  Client.notification
     client
-    (UnknownRequest { meth = "ocamllsp/hoverExtended"; params })
+    (ChangeConfiguration (DidChangeConfigurationParams.create ~settings))
 
 let%expect_test "hover reference" =
   let source =
@@ -145,13 +137,14 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
+    let* () = change_config_hover client None in
     let* resp = hover client position in
     let () = print_hover resp in
     let* resp = hover client position in
     let () = print_hover resp in
     Fiber.return ()
   in
-  test ~extra_env:[ "OCAMLLSP_HOVER_IS_EXTENDED=true" ] source req;
+  test source req;
   [%expect
     {|
     {
@@ -179,8 +172,9 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = hover_extended client position None in
-    let () = print_hover_extended resp in
+    let* () = change_config_hover client None in
+    let* resp = hover client position in
+    let () = print_hover resp in
     Fiber.return ()
   in
   test source req;
@@ -204,8 +198,9 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = hover_extended client position (Some 0) in
-    let () = print_hover_extended resp in
+    let* () = change_config_hover client (Some 0) in
+    let* resp = hover client position in
+    let () = print_hover resp in
     Fiber.return ()
   in
   test source req;
@@ -229,8 +224,9 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = hover_extended client position (Some 1) in
-    let () = print_hover_extended resp in
+    let* () = change_config_hover client (Some 1) in
+    let* resp = hover client position in
+    let () = print_hover resp in
     Fiber.return ()
   in
   test source req;
@@ -254,8 +250,9 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = hover_extended client position (Some 2) in
-    let () = print_hover_extended resp in
+    let* () = change_config_hover client (Some 2) in
+    let* resp = hover client position in
+    let () = print_hover resp in
     Fiber.return ()
   in
   test source req;
@@ -279,12 +276,13 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = hover_extended client position None in
-    let () = print_hover_extended resp in
-    let* resp = hover_extended client position None in
-    let () = print_hover_extended resp in
-    let* resp = hover_extended client position None in
-    let () = print_hover_extended resp in
+    let* () = change_config_hover client None in
+    let* resp = hover client position in
+    let () = print_hover resp in
+    let* resp = hover client position in
+    let () = print_hover resp in
+    let* resp = hover client position in
+    let () = print_hover resp in
     Fiber.return ()
   in
   test source req;
@@ -321,8 +319,9 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
   in
   let position = Position.create ~line:1 ~character:4 in
   let req client =
-    let* resp = hover_extended client position None in
-    let () = print_hover_extended resp in
+    let* () = change_config_hover client None in
+    let* resp = hover client position in
+    let () = print_hover resp in
     Fiber.return ()
   in
   test source req;

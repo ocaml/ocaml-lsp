@@ -89,8 +89,7 @@ let%expect_test "start/stop" =
               "handleInferIntf": true,
               "handleTypedHoles": true,
               "handleWrappingAstNode": true,
-              "diagnostic_promotions": true,
-              "handleHoverExtended": true
+              "diagnostic_promotions": true
             }
           },
           "foldingRangeProvider": true,
