@@ -52,6 +52,10 @@
 - Add "Extract local" and "Extract function" code actions. (#870)
 - Depend directly on `merlin-lib` 4.9 (#1070)
 
+## Breaking Change
+
+- Remove the custom LSP request `ocamllsp/hoverExtended`. (#1145)
+
 # 1.15.1
 
 ## Fixes
