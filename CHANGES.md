@@ -1,4 +1,4 @@
-# Unreleased
+# 1.16.0
 
 ## Fixes
 
@@ -48,8 +48,11 @@
 ## Features
 
 - Add "Remove type annotation" code action. (#1039)
+
 - Support settings through `didChangeConfiguration` notification (#1103)
+
 - Add "Extract local" and "Extract function" code actions. (#870)
+
 - Depend directly on `merlin-lib` 4.9 (#1070)
 
 # 1.15.1
