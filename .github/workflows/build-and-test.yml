@@ -29,6 +29,10 @@ jobs:
             ocaml-compiler: 5.0.x
           - os: windows-latest
             ocaml-compiler: ocaml-variants.5.1.0+trunk
+          - os: macos-latest
+            ocaml-compiler: 5.0.x
+          - os: macos-latest
+            ocaml-compiler: ocaml-variants.5.1.0+trunk
 
     runs-on: ${{ matrix.os }}
 
@@ -70,17 +74,26 @@ jobs:
       - name: Install opam packages
         run: opam install .
 
-      # the makefile explains why we don't use test dependencies
+      # the makefile explains why we don't use --with-test
+      # ppx expect is not yet compatible with 5.1 and test output vary from one
+      # compiler to another. We only test on 4.14.
       - name: Install test dependencies
+        if: matrix.ocaml-compiler == '4.14.x'
         run: opam exec -- make install-test-deps
 
-      - name: Run build
+      - name: Run build @install
+        run: opam exec -- dune build @install
+
+      - name: Run build @all
+        if: matrix.ocaml-compiler == '4.14.x'
         run: opam exec -- make all
 
       - name: Run the unit tests
+        if: matrix.ocaml-compiler == '4.14.x'
         run: opam exec -- make test-ocaml
 
       - name: Run the template integration tests
+        if: matrix.ocaml-compiler == '4.14.x'
         run: opam exec -- make test-e2e
 
   coverage:
