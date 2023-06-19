@@ -23,7 +23,7 @@ jobs:
         ocaml-compiler:
           - 4.14.x
           - 5.0.x
-          - 5.1.x
+          - ocaml-variants.5.1.0+trunk
 
     runs-on: ${{ matrix.os }}
 
