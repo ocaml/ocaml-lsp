@@ -37,7 +37,7 @@ possible and does not make any assumptions about IO.
   (ppx_expect (and (>= v0.15.0) :with-test))
   (uutf (>= 1.0.2))
   (odoc :with-doc)
-  (ocaml (>= 4.12))))
+  (ocaml (>= 4.14))))
 
 (package
  (name ocaml-lsp-server)
