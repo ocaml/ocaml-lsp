@@ -24,6 +24,11 @@ jobs:
           - 4.14.x
           - 5.0.x
           - ocaml-variants.5.1.0+trunk
+        exclude:
+          - os: windows-latest
+            ocaml-compiler: 5.0.x
+          - os: windows-latest
+            ocaml-compiler: ocaml-variants.5.1.0+trunk
 
     runs-on: ${{ matrix.os }}
 
@@ -55,7 +60,7 @@ jobs:
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }} (Win)
         uses: ocaml/setup-ocaml@v2
-        if: matrix.os == 'windows-latest' && matrix.ocaml-compiler == '4.14.x'
+        if: matrix.os == 'windows-latest'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-repositories: |
