@@ -69,10 +69,9 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         let range = Range.of_loc module_expr.pmod_loc in
         push range;
         Ast_iterator.default_iterator.module_expr self module_expr
-      | Parsetree.Pmod_ident _
-      | Parsetree.Pmod_apply (_, _)
-      | Parsetree.Pmod_constraint (_, _)
-      | Parsetree.Pmod_unpack _ | Parsetree.Pmod_extension _ ->
+      | _ ->
+        (* We rely on the wildcard pattern to improve compatibility with
+           multiple OCaml's parsetree versions *)
         Ast_iterator.default_iterator.module_expr self module_expr
     in
 
