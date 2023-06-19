@@ -71,7 +71,7 @@ jobs:
             opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
             default: https://github.com/ocaml/opam-repository.git
 
-      - name: Install opam packages
+      - name: Build and install opam packages
         run: opam install .
 
       # the makefile explains why we don't use --with-test
@@ -80,9 +80,6 @@ jobs:
       - name: Install test dependencies
         if: matrix.ocaml-compiler == '4.14.x'
         run: opam exec -- make install-test-deps
-
-      - name: Run build @install
-        run: opam exec -- dune build @install
 
       - name: Run build @all
         if: matrix.ocaml-compiler == '4.14.x'
