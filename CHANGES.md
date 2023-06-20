@@ -1,10 +1,8 @@
-# Unreleased
+# 1.16.1
 
 ## Fixes
 
-## Features
-
--  Support building with OCaml 5.0 and 5.1 (#1150)
+- Support building with OCaml 5.0 and 5.1 (#1150)
 
 # 1.16.0
 
