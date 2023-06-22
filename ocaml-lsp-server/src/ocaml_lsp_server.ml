@@ -878,12 +878,13 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr
   let argv = [ "sh"; "-c"; cmd ] in
   let stdin =
     match stdin with
-    | Some file -> Unix.openfile file [ Unix.O_WRONLY ] 0x664
-    | None -> Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0x777
+    | Some file -> Unix.openfile file [ Unix.O_RDONLY ] 0o664
+    | None -> Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0o777
   in
   let stdout, should_close_stdout =
     match stdout with
-    | Some file -> (Unix.openfile file [ Unix.O_WRONLY ] 0x664, true)
+    | Some file ->
+      (Unix.openfile file [ Unix.O_WRONLY; Unix.O_CREAT ] 0o664, true)
     | None ->
       (* Runned programs should never output to stdout since it is the channel
          used by LSP to communicate with the editor *)
@@ -891,7 +892,7 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr
   in
   let stderr =
     Option.map stderr ~f:(fun file ->
-        Unix.openfile file [ Unix.O_WRONLY ] 0x664)
+        Unix.openfile file [ Unix.O_WRONLY; Unix.O_CREAT ] 0o664)
   in
   let pid =
     let cwd : Spawn.Working_dir.t = Path cwd in
