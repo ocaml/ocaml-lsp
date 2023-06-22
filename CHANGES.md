@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Fix file permissions used when specifying output files of pp and ppx. (#1153)
+
 # 1.16.1
 
 ## Fixes
