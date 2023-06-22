@@ -878,7 +878,7 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr
   let argv = [ "sh"; "-c"; cmd ] in
   let stdin =
     match stdin with
-    | Some file -> Unix.openfile file [ Unix.O_WRONLY ] 0o664
+    | Some file -> Unix.openfile file [ Unix.O_RDONLY ] 0o664
     | None -> Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0o777
   in
   let stdout, should_close_stdout =
