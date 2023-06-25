@@ -181,6 +181,9 @@
                 dune build ${package}.install --release ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
                 runHook postBuild
               '';
+              meta = {
+                mainProgram = "ocamllsp";
+              };
             };
 
             ocaml-lsp = fast.ocaml-lsp;
