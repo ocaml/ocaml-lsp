@@ -345,10 +345,7 @@ let action_remove_constructor doc (d : Diagnostic.t) =
          let edit =
            Document.edit
              doc
-             [ { range = Range.create ~start ~end_
-               ; newText = ""
-               }
-             ]
+             [ { range = Range.create ~start ~end_; newText = "" } ]
          in
          CodeAction.create
            ~diagnostics:[ d ]
@@ -369,8 +366,8 @@ let mark =
     | Some (`Open, d) -> Fiber.return (Some (action_mark_open doc d))
     | Some (`Type, d) -> action_mark_type doc pos d
     | Some (`For_loop_index, d) -> action_mark_for_loop_index doc pos d
-    | Some ((`Open_bang | `Constructor | `Extension | `Case | `Rec | `Module), _) | None
-      ->
+    | Some ((`Open_bang | `Constructor | `Extension | `Case | `Rec | `Module), _)
+    | None ->
       (* these diagnostics don't have a reasonable "mark as unused" action *)
       Fiber.return None
   in
@@ -389,9 +386,9 @@ let remove =
       Fiber.return (Some (action_remove_simple "module" doc d))
     | Some (`Case, d) -> action_remove_case doc d
     | Some (`Rec, d) -> Fiber.return (action_remove_rec doc d)
-    | Some ((`Constructor), d) ->
-       action_remove_constructor doc d
-    | Some (`Extension, _) -> (* todo *)
+    | Some (`Constructor, d) -> action_remove_constructor doc d
+    | Some (`Extension, _) ->
+      (* todo *)
       Fiber.return None
     | Some (`For_loop_index, _) | None ->
       (* these diagnostics don't have a reasonable "remove unused" action *)
