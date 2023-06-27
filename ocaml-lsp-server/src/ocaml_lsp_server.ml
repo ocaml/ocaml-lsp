@@ -150,6 +150,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
       ~semanticTokensProvider
       ~experimental
       ~renameProvider
+      ~inlayHintProvider:(`Bool true)
       ~workspace
       ~executeCommandProvider
       ?positionEncoding
@@ -585,7 +586,8 @@ let on_request :
             Compl.resolve doc ci resolve Document.Merlin.doc_comment ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
-  | InlayHint _ -> now None
+  | InlayHint params ->
+    later (fun state () -> Inlay_hints.compute state params) ()
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
