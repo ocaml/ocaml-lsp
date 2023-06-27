@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Add inlay hints for types on let bindings (#1159)
+
 # 1.16.2
 
 ## Fixes
