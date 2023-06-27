@@ -37,7 +37,7 @@ possible and does not make any assumptions about IO.
   (ppx_expect (and (>= v0.15.0) :with-test))
   (uutf (>= 1.0.2))
   (odoc :with-doc)
-  (ocaml (>= 4.12))))
+  (ocaml (>= 4.14))))
 
 (package
  (name ocaml-lsp-server)
@@ -51,7 +51,7 @@ possible and does not make any assumptions about IO.
   (chrome-trace (>= 3.3.0))
   dyn
   stdune
-  (fiber (>= 3.1.1))
+  (fiber (and (>= 3.1.1) (< 4.0.0)))
   xdg
   ordering
   dune-build-info
@@ -59,13 +59,13 @@ possible and does not make any assumptions about IO.
   (odoc-parser (>= 2.0.0))
   (ppx_expect (and (>= v0.15.0) :with-test))
   (ocamlformat (and :with-test (= 0.24.1)))
-  (ocamlc-loc (and (>= 3.5.0) (< 3.7.0)))
+  (ocamlc-loc (>= 3.7.0))
   (uutf (>= 1.0.2))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  ocaml
+  (ocaml (and (>= 4.14) (< 5.2)))
   (merlin-lib (and (>= 4.9) (< 5.0)))))
 
 (package

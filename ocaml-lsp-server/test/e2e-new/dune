@@ -12,6 +12,7 @@
   (deps
    %{bin:ocamlformat-rpc}
    for_ppx.ml
+   for_pp.ml
    (package ocaml-lsp-server)))
  (libraries
   stdune
@@ -32,4 +33,23 @@
   ppx_expect.config_types
   ppx_inline_test.config)
  (preprocess
-  (pps ppx_expect)))
+  (per_module
+   ((action
+     (run %{dep:for_pp.sh} %{input-file}))
+    for_pp)
+   ((pps ppx_expect)
+    action_extract
+    action_inline
+    code_actions
+    document_flow
+    for_ppx
+    hover_extended
+    metrics
+    semantic_hl_data
+    semantic_hl_helpers
+    semantic_hl_tests
+    start_stop
+    test
+    with_pp
+    with_ppx
+    workspace_change_config))))

@@ -366,20 +366,15 @@ let text_document_lens (state : State.t)
   | `Other -> Fiber.return []
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return []
   | `Merlin doc ->
-    let+ outline =
-      let command = Query_protocol.Outline in
-      Document.Merlin.dispatch_exn doc command
-    in
-    let rec symbol_info_of_outline_item item =
+    let+ outline = Document.Merlin.dispatch_exn doc Outline in
+    let rec symbol_info_of_outline_item (item : Query_protocol.item) =
       let children =
-        List.concat_map
-          item.Query_protocol.children
-          ~f:symbol_info_of_outline_item
+        List.concat_map item.children ~f:symbol_info_of_outline_item
       in
-      match item.Query_protocol.outline_type with
+      match item.outline_type with
       | None -> children
       | Some typ ->
-        let loc = item.Query_protocol.location in
+        let loc = item.location in
         let info =
           let range = Range.of_loc loc in
           let command = Command.create ~title:typ ~command:"" () in
@@ -397,12 +392,12 @@ let selection_range (state : State.t)
   | `Merlin merlin ->
     let selection_range_of_shapes (cursor_position : Position.t)
         (shapes : Query_protocol.shape list) : SelectionRange.t option =
-      let rec ranges_of_shape parent s =
+      let rec ranges_of_shape parent (s : Query_protocol.shape) =
         let selectionRange =
-          let range = Range.of_loc s.Query_protocol.shape_loc in
+          let range = Range.of_loc s.shape_loc in
           { SelectionRange.range; parent }
         in
-        match s.Query_protocol.shape_sub with
+        match s.shape_sub with
         | [] -> [ selectionRange ]
         | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
       in
@@ -424,8 +419,7 @@ let selection_range (state : State.t)
     let+ ranges =
       Fiber.sequential_map positions ~f:(fun x ->
           let+ shapes =
-            let command = Query_protocol.Shape (Position.logical x) in
-            Document.Merlin.dispatch_exn merlin command
+            Document.Merlin.dispatch_exn merlin (Shape (Position.logical x))
           in
           selection_range_of_shapes x shapes)
     in
@@ -437,10 +431,11 @@ let references (state : State.t)
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc ->
-    let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
+    let+ locs =
+      Document.Merlin.dispatch_exn
+        doc
+        (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
-    let+ locs = Document.Merlin.dispatch_exn doc command in
     Some
       (List.map locs ~f:(fun loc ->
            let range = Range.of_loc loc in
@@ -454,10 +449,11 @@ let highlight (state : State.t)
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m ->
-    let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
+    let+ locs =
+      Document.Merlin.dispatch_exn
+        m
+        (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
-    let+ locs = Document.Merlin.dispatch_exn m command in
     let lsp_locs =
       List.map locs ~f:(fun loc ->
           let range = Range.of_loc loc in
@@ -629,11 +625,11 @@ let on_request :
         match Document.kind doc with
         | `Other -> Fiber.return None
         | `Merlin doc ->
-          let command =
-            Query_protocol.Occurrences
-              (`Ident_at (Position.logical position), `Buffer)
+          let+ locs =
+            Document.Merlin.dispatch_exn
+              doc
+              (Occurrences (`Ident_at (Position.logical position), `Buffer))
           in
-          let+ locs = Document.Merlin.dispatch_exn doc command in
           let loc =
             List.find_opt locs ~f:(fun loc ->
                 let range = Range.of_loc loc in
@@ -882,12 +878,13 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr
   let argv = [ "sh"; "-c"; cmd ] in
   let stdin =
     match stdin with
-    | Some file -> Unix.openfile file [ Unix.O_WRONLY ] 0x664
-    | None -> Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0x777
+    | Some file -> Unix.openfile file [ Unix.O_RDONLY ] 0o664
+    | None -> Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0o777
   in
   let stdout, should_close_stdout =
     match stdout with
-    | Some file -> (Unix.openfile file [ Unix.O_WRONLY ] 0x664, true)
+    | Some file ->
+      (Unix.openfile file [ Unix.O_WRONLY; Unix.O_CREAT ] 0o664, true)
     | None ->
       (* Runned programs should never output to stdout since it is the channel
          used by LSP to communicate with the editor *)
@@ -895,7 +892,7 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr
   in
   let stderr =
     Option.map stderr ~f:(fun file ->
-        Unix.openfile file [ Unix.O_WRONLY ] 0x664)
+        Unix.openfile file [ Unix.O_WRONLY; Unix.O_CREAT ] 0o664)
   in
   let pid =
     let cwd : Spawn.Working_dir.t = Path cwd in
