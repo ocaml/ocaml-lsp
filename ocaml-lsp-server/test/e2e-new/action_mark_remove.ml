@@ -23,6 +23,8 @@ let remove_test = function
   | `Case ->
     run_test ~title:"Remove unused case" ~message:"this match case is unused"
   | `Rec -> run_test ~title:"Remove unused rec" ~message:"unused rec flag"
+  | `Constructor ->
+    run_test ~title:"Remove unused constructor" ~message:"unused constructor"
 
 let%expect_test "mark value in let" =
   mark_test `Value {|
@@ -76,7 +78,8 @@ $open M$
 |};
   [%expect {| open! M |}]
 
-let%expect_test "remove open" = remove_test `Open {|
+let%expect_test "remove open" =
+  remove_test `Open {|
 open A
 $open B$
 |};
@@ -111,7 +114,46 @@ let f = function
     let f = function
      | 0 -> 0 |}]
 
-let%expect_test "remove rec flag" = remove_test `Rec {|
+let%expect_test "remove rec flag" =
+  remove_test `Rec {|
 let rec $f$ = 0
 |};
   [%expect {| let  f = 0 |}]
+
+let%expect_test "remove constructor" =
+  remove_test `Constructor {|
+type t = A $| B$
+|};
+  [%expect {| type t = A |}]
+
+let%expect_test "remove constructor" =
+  remove_test `Constructor {|
+type t =
+  | A
+ $| B$
+|};
+  [%expect {|
+    type t =
+      | A |}]
+
+let%expect_test "remove constructor" =
+  remove_test `Constructor {|
+type t =
+ $| A$
+ | B
+|};
+  [%expect {|
+    type t =
+
+     | B |}]
+
+let%expect_test "remove constructor" =
+  remove_test `Constructor {|
+type t =
+ $A$
+ | B
+|};
+  [%expect {|
+    type t =
+
+     | B |}]

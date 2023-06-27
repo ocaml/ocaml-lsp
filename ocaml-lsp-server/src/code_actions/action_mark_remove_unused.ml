@@ -1,5 +1,9 @@
 open Import
 
+(* type t = *)
+(*   A *)
+(*   | B *)
+
 let diagnostic_regex, diagnostic_regex_marks =
   let msgs =
     ( Re.mark
@@ -324,6 +328,36 @@ let action_remove_case doc (d : Diagnostic.t) =
            ~isPreferred:true
            ())
 
+let action_remove_constructor doc (d : Diagnostic.t) =
+  let open Option.O in
+  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
+      enclosing_pos pipeline d.range.start
+      |> List.find_map ~f:(fun (_, node) ->
+             match node with
+             | Browse_raw.Constructor_declaration
+                 { cd_loc = { loc_start; loc_end; _ }; _ } ->
+               Some (loc_start, loc_end)
+             | _ -> None))
+  |> Fiber.map ~f:(fun case_range ->
+         let* case_start, case_end = case_range in
+         let* start = Position.of_lexical_position case_start in
+         let+ end_ = Position.of_lexical_position case_end in
+         let edit =
+           Document.edit
+             doc
+             [ { range = Range.create ~start ~end_
+               ; newText = ""
+               }
+             ]
+         in
+         CodeAction.create
+           ~diagnostics:[ d ]
+           ~title:"Remove unused constructor"
+           ~kind:CodeActionKind.QuickFix
+           ~edit
+           ~isPreferred:true
+           ())
+
 let action_remove_simple kind doc (d : Diagnostic.t) =
   code_action_remove_range ~title:("Remove unused " ^ kind) doc d d.range
 
@@ -335,10 +369,7 @@ let mark =
     | Some (`Open, d) -> Fiber.return (Some (action_mark_open doc d))
     | Some (`Type, d) -> action_mark_type doc pos d
     | Some (`For_loop_index, d) -> action_mark_for_loop_index doc pos d
-    | Some (`Module, _) ->
-      (* todo *)
-      Fiber.return None
-    | Some ((`Open_bang | `Constructor | `Extension | `Case | `Rec), _) | None
+    | Some ((`Open_bang | `Constructor | `Extension | `Case | `Rec | `Module), _) | None
       ->
       (* these diagnostics don't have a reasonable "mark as unused" action *)
       Fiber.return None
@@ -358,8 +389,9 @@ let remove =
       Fiber.return (Some (action_remove_simple "module" doc d))
     | Some (`Case, d) -> action_remove_case doc d
     | Some (`Rec, d) -> Fiber.return (action_remove_rec doc d)
-    | Some ((`Constructor | `Extension), _) ->
-      (* todo *)
+    | Some ((`Constructor), d) ->
+       action_remove_constructor doc d
+    | Some (`Extension, _) -> (* todo *)
       Fiber.return None
     | Some (`For_loop_index, _) | None ->
       (* these diagnostics don't have a reasonable "remove unused" action *)
