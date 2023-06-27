@@ -1,4 +1,5 @@
 open Import
+open Option.O
 
 (* Return contexts enclosing `pos` in order from most specific to most
    general. *)
@@ -16,7 +17,6 @@ let enclosing_pos pipeline pos =
 
    Returns an edit that silences the 'unused value' warning. *)
 let rec mark_value_unused_edit name contexts =
-  let open Option.O in
   match contexts with
   | Browse_raw.Pattern { pat_desc = Tpat_record (pats, _); _ } :: cs -> (
     let m_field_edit =
@@ -63,29 +63,26 @@ let rec mark_value_unused_edit name contexts =
   | _ :: cs -> mark_value_unused_edit name cs
   | _ -> None
 
-let code_action_mark_value_unused doc (diagnostic : Diagnostic.t) =
-  let open Option.O in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      let* var_name = Document.substring doc diagnostic.range in
-      let pos = diagnostic.range.start in
-      let+ text_edit =
-        enclosing_pos pipeline pos
-        |> List.rev_map ~f:(fun (_, x) -> x)
-        |> mark_value_unused_edit var_name
-      in
-      let edit = Document.edit doc [ text_edit ] in
-      CodeAction.create
-        ~diagnostics:[ diagnostic ]
-        ~title:"Mark as unused"
-        ~kind:CodeActionKind.QuickFix
-        ~edit
-        ~isPreferred:true
-        ())
+let code_action_mark_value_unused pipeline doc (diagnostic : Diagnostic.t) =
+  let* var_name = Document.substring doc diagnostic.range in
+  let pos = diagnostic.range.start in
+  let+ text_edit =
+    enclosing_pos pipeline pos
+    |> List.rev_map ~f:(fun (_, x) -> x)
+    |> mark_value_unused_edit var_name
+  in
+  let edit = Document.edit doc [ text_edit ] in
+  CodeAction.create
+    ~diagnostics:[ diagnostic ]
+    ~title:"Mark as unused"
+    ~kind:CodeActionKind.QuickFix
+    ~edit
+    ~isPreferred:true
+    ()
 
 (* Takes a list of contexts enclosing a binding of `name`. Returns the range of
    the most specific binding. *)
 let enclosing_value_binding_range name =
-  let open Option.O in
   List.find_map ~f:(function
       | Browse_raw.Expression
           { exp_desc =
@@ -118,14 +115,11 @@ let code_action_remove_range doc (diagnostic : Diagnostic.t) range =
     ()
 
 (* Create a code action that removes the value mentioned in [diagnostic]. *)
-let code_action_remove_value doc pos (diagnostic : Diagnostic.t) =
-  let open Option.O in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      let* var_name = Document.substring doc diagnostic.range in
-      enclosing_pos pipeline pos |> List.map ~f:snd
-      |> enclosing_value_binding_range var_name
-      |> Option.map ~f:(fun range ->
-             code_action_remove_range doc diagnostic range))
+let code_action_remove_value pipeline doc pos (diagnostic : Diagnostic.t) =
+  let* var_name = Document.substring doc diagnostic.range in
+  enclosing_pos pipeline pos |> List.map ~f:snd
+  |> enclosing_value_binding_range var_name
+  |> Option.map ~f:(fun range -> code_action_remove_range doc diagnostic range)
 
 let find_unused_diagnostic pos (ds : Diagnostic.t list) =
   List.find ds ~f:(fun d ->
@@ -136,18 +130,16 @@ let find_unused_diagnostic pos (ds : Diagnostic.t list) =
       in
       in_range && Diagnostic_util.is_unused_var_warning d.message)
 
-let code_action_mark doc (params : CodeActionParams.t) =
+let code_action_mark pipeline doc (params : CodeActionParams.t) =
   let pos = params.range.start in
-  match find_unused_diagnostic pos params.context.diagnostics with
-  | None -> Fiber.return None
-  | Some d -> code_action_mark_value_unused doc d
+  let* d = find_unused_diagnostic pos params.context.diagnostics in
+  code_action_mark_value_unused pipeline doc d
 
-let code_action_remove doc (params : CodeActionParams.t) =
+let code_action_remove pipeline doc (params : CodeActionParams.t) =
   let pos = params.range.start in
-  match find_unused_diagnostic pos params.context.diagnostics with
-  | None -> Fiber.return None
-  | Some d -> code_action_remove_value doc pos d
+  let* d = find_unused_diagnostic pos params.context.diagnostics in
+  code_action_remove_value pipeline doc pos d
 
-let mark = { Code_action.kind = QuickFix; run = code_action_mark }
+let mark = Code_action.batchable QuickFix code_action_mark
 
-let remove = { Code_action.kind = QuickFix; run = code_action_remove }
+let remove = Code_action.batchable QuickFix code_action_remove
