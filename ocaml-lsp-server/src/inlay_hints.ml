@@ -1,6 +1,15 @@
 open Import
 open Fiber.O
 
+module Config = struct
+  type t =
+    { hint_let_function : bool
+    ; hint_letop_module : bool
+    }
+
+  let default = { hint_let_function = false; hint_letop_module = true }
+end
+
 let overlaps (x : Range.t) (y : Range.t) =
   let open Ordering in
   match (Position.compare x.start y.end_, Position.compare x.end_ y.start) with
@@ -22,24 +31,51 @@ let outline_type ~env typ =
         typ);
   Some (sprintf ": %s" (to_string ()))
 
-let hint_pattern_iter typedtree range k =
+let hint_binding_iter (config : Config.t) typedtree range k =
   let module I = Ocaml_typing.Tast_iterator in
   let expr iter (e : Typedtree.expression) =
-    if range_overlaps_loc range e.exp_loc then I.default_iterator.expr iter e;
-    match e.exp_desc with
-    | Texp_let (_, vbs, _) ->
-      List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
-          if range_overlaps_loc range vb.vb_loc then k vb.vb_pat)
-    | Texp_letop { body; _ } ->
-      if range_overlaps_loc range body.c_lhs.pat_loc then k body.c_lhs
-    | _ -> ()
+    if range_overlaps_loc range e.exp_loc then
+      match e.exp_desc with
+      | Texp_let (_, vbs, body) ->
+        if config.hint_let_function then I.default_iterator.expr iter e
+        else (
+          List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
+              match vb.vb_expr.exp_desc with
+              | Texp_function _ -> iter.expr iter vb.vb_expr
+              | _ -> iter.value_binding iter vb);
+          iter.expr iter body)
+      | _ -> I.default_iterator.expr iter e
   in
 
   let structure_item iter (item : Typedtree.structure_item) =
     if range_overlaps_loc range item.str_loc then
-      I.default_iterator.structure_item iter item
+      if config.hint_let_function then
+        I.default_iterator.structure_item iter item
+      else
+        match item.str_desc with
+        | Tstr_value (_, vbs) ->
+          List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
+              match vb.vb_expr.exp_desc with
+              | Texp_function _ -> iter.expr iter vb.vb_expr
+              | _ -> iter.value_binding iter vb)
+        | _ -> I.default_iterator.structure_item iter item
   in
-  let iterator = { I.default_iterator with expr; structure_item } in
+  let pat (type k) iter (pat : k Typedtree.general_pattern) =
+    if range_overlaps_loc range pat.pat_loc then
+      let has_constraint =
+        List.exists pat.pat_extra ~f:(fun (extra, _, _) ->
+            match extra with
+            | Typedtree.Tpat_constraint _ -> true
+            | _ -> false)
+      in
+      if not has_constraint then (
+        I.default_iterator.pat iter pat;
+        match pat.pat_desc with
+        | Tpat_var _ when not pat.pat_loc.loc_ghost ->
+          k pat.pat_env pat.pat_type pat.pat_loc
+        | _ -> ())
+  in
+  let iterator = { I.default_iterator with expr; structure_item; pat } in
   iterator.structure iterator typedtree
 
 let compute (state : State.t)
@@ -56,19 +92,21 @@ let compute (state : State.t)
           match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
           | `Interface _ -> ()
           | `Implementation typedtree ->
-            hint_pattern_iter typedtree range (fun pat ->
+            hint_binding_iter
+              Config.default
+              typedtree
+              range
+              (fun env type_ loc ->
                 let open Option.O in
                 let hint =
-                  let* label = outline_type ~env:pat.pat_env pat.pat_type in
-                  let+ position =
-                    Position.of_lexical_position pat.pat_loc.loc_end
-                  in
+                  let* label = outline_type ~env type_ in
+                  let+ position = Position.of_lexical_position loc.loc_end in
                   InlayHint.create
                     ~kind:Type
                     ~position
                     ~label:(`String label)
-                    ~paddingLeft:true
-                    ~paddingRight:true
+                    ~paddingLeft:false
+                    ~paddingRight:false
                     ()
                 in
                 Option.iter hint ~f:(fun hint -> hints := hint :: !hints)))
