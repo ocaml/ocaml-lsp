@@ -44,6 +44,18 @@ let hint_binding_iter (config : Config.t) typedtree range k =
               | Texp_function _ -> iter.expr iter vb.vb_expr
               | _ -> iter.value_binding iter vb);
           iter.expr iter body)
+      | Texp_function
+          { arg_label = Optional _
+          ; cases =
+              [ { c_rhs =
+                    { exp_desc = Texp_let (_, [ { vb_pat; _ } ], body); _ }
+                ; _
+                }
+              ]
+          ; _
+          } ->
+        iter.pat iter vb_pat;
+        iter.expr iter body
       | _ -> I.default_iterator.expr iter e
   in
 
