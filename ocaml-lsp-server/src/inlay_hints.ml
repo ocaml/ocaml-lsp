@@ -1,15 +1,6 @@
 open Import
 open Fiber.O
 
-module Config = struct
-  type t =
-    { hint_let_function : bool
-    ; hint_letop_module : bool
-    }
-
-  let default = { hint_let_function = false; hint_letop_module = true }
-end
-
 let overlaps (x : Range.t) (y : Range.t) =
   let open Ordering in
   match (Position.compare x.start y.end_, Position.compare x.end_ y.start) with
@@ -31,19 +22,17 @@ let outline_type ~env typ =
         typ);
   Some (sprintf ": %s" (to_string ()))
 
-let hint_binding_iter (config : Config.t) typedtree range k =
+let hint_binding_iter typedtree range k =
   let module I = Ocaml_typing.Tast_iterator in
-  let expr iter (e : Typedtree.expression) =
+  let expr (iter : I.iterator) (e : Typedtree.expression) =
     if range_overlaps_loc range e.exp_loc then
       match e.exp_desc with
       | Texp_let (_, vbs, body) ->
-        if config.hint_let_function then I.default_iterator.expr iter e
-        else (
-          List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
-              match vb.vb_expr.exp_desc with
-              | Texp_function _ -> iter.expr iter vb.vb_expr
-              | _ -> iter.value_binding iter vb);
-          iter.expr iter body)
+        List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
+            match vb.vb_expr.exp_desc with
+            | Texp_function _ -> iter.expr iter vb.vb_expr
+            | _ -> iter.value_binding iter vb);
+        iter.expr iter body
       | Texp_function
           { arg_label = Optional _
           ; cases =
@@ -59,18 +48,15 @@ let hint_binding_iter (config : Config.t) typedtree range k =
       | _ -> I.default_iterator.expr iter e
   in
 
-  let structure_item iter (item : Typedtree.structure_item) =
+  let structure_item (iter : I.iterator) (item : Typedtree.structure_item) =
     if range_overlaps_loc range item.str_loc then
-      if config.hint_let_function then
-        I.default_iterator.structure_item iter item
-      else
-        match item.str_desc with
-        | Tstr_value (_, vbs) ->
-          List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
-              match vb.vb_expr.exp_desc with
-              | Texp_function _ -> iter.expr iter vb.vb_expr
-              | _ -> iter.value_binding iter vb)
-        | _ -> I.default_iterator.structure_item iter item
+      match item.str_desc with
+      | Tstr_value (_, vbs) ->
+        List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
+            match vb.vb_expr.exp_desc with
+            | Texp_function _ -> iter.expr iter vb.vb_expr
+            | _ -> iter.value_binding iter vb)
+      | _ -> I.default_iterator.structure_item iter item
   in
   let pat (type k) iter (pat : k Typedtree.general_pattern) =
     if range_overlaps_loc range pat.pat_loc then
@@ -104,11 +90,7 @@ let compute (state : State.t)
           match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
           | `Interface _ -> ()
           | `Implementation typedtree ->
-            hint_binding_iter
-              Config.default
-              typedtree
-              range
-              (fun env type_ loc ->
+            hint_binding_iter typedtree range (fun env type_ loc ->
                 let open Option.O in
                 let hint =
                   let* label = outline_type ~env type_ in
