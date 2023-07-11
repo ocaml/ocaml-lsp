@@ -66,17 +66,14 @@ let code_action_of_type_enclosing uri doc (loc, constr_loc) =
     ~isPreferred:false
     ()
 
-let code_action doc (params : CodeActionParams.t) =
-  match Document.kind doc with
-  | `Other -> Fiber.return None
-  | `Merlin merlin ->
-    let pos_start = Position.logical params.range.start in
-    Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-        let context = check_typeable_context pipeline pos_start in
-        match context with
-        | `Invalid -> None
-        | `Valid (loc1, loc2) ->
-          code_action_of_type_enclosing params.textDocument.uri doc (loc1, loc2))
+let code_action pipeline doc (params : CodeActionParams.t) =
+  let pos_start = Position.logical params.range.start in
+  let context = check_typeable_context pipeline pos_start in
+  match context with
+  | `Invalid -> None
+  | `Valid (loc1, loc2) ->
+    code_action_of_type_enclosing params.textDocument.uri doc (loc1, loc2)
 
-let t =
-  { Code_action.kind = CodeActionKind.Other action_kind; run = code_action }
+let kind = CodeActionKind.Other action_kind
+
+let t = Code_action.batchable kind code_action

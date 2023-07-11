@@ -81,4 +81,4 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
         } -> Fiber.return None
     | Error exn -> Exn_with_backtrace.reraise exn)
 
-let t state = { Code_action.kind; run = code_action state }
+let t state = { Code_action.kind; run = `Non_batchable (code_action state) }

@@ -45,4 +45,4 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
 
 let kind = CodeActionKind.Other action_kind
 
-let t state = { Code_action.kind; run = code_action state }
+let t state = { Code_action.kind; run = `Non_batchable (code_action state) }

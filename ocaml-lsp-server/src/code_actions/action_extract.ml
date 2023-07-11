@@ -1,4 +1,5 @@
 open Import
+open Option.O
 module H = Ocaml_parsing.Ast_helper
 
 let range_contains_loc range loc =
@@ -133,7 +134,6 @@ let must_pass expr env =
   |> List.map ~f:fst
 
 let extract_local doc typedtree range =
-  let open Option.O in
   let* to_extract = largest_enclosed_expression typedtree range in
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
   let* edit_pos = tightest_enclosing_binder_position typedtree range in
@@ -147,7 +147,6 @@ let extract_local doc typedtree range =
     ]
 
 let extract_function doc typedtree range =
-  let open Option.O in
   let* to_extract = largest_enclosed_expression typedtree range in
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
   let* parent_item = enclosing_structure_item typedtree range in
@@ -173,45 +172,36 @@ let extract_function doc typedtree range =
     ; TextEdit.create ~newText:new_call ~range:extract_range
     ]
 
-let run_extract_local doc (params : CodeActionParams.t) =
-  let open Option.O in
-  Document.Merlin.with_pipeline_exn
-    (Document.merlin_exn doc)
-    Mpipeline.typer_result
-  |> Fiber.map ~f:(fun typer ->
-         let* typedtree =
-           match Mtyper.get_typedtree typer with
-           | `Interface _ -> None
-           | `Implementation x -> Some x
-         in
-         let+ edits = extract_local doc typedtree params.range in
-         CodeAction.create
-           ~title:"Extract local"
-           ~kind:CodeActionKind.RefactorExtract
-           ~edit:(Document.edit doc edits)
-           ~isPreferred:false
-           ())
+let run_extract_local pipeline doc (params : CodeActionParams.t) =
+  let typer = Mpipeline.typer_result pipeline in
+  let* typedtree =
+    match Mtyper.get_typedtree typer with
+    | `Interface _ -> None
+    | `Implementation x -> Some x
+  in
+  let+ edits = extract_local doc typedtree params.range in
+  CodeAction.create
+    ~title:"Extract local"
+    ~kind:CodeActionKind.RefactorExtract
+    ~edit:(Document.edit doc edits)
+    ~isPreferred:false
+    ()
 
-let run_extract_function doc (params : CodeActionParams.t) =
-  let open Option.O in
-  Document.Merlin.with_pipeline_exn
-    (Document.merlin_exn doc)
-    Mpipeline.typer_result
-  |> Fiber.map ~f:(fun typer ->
-         let* typedtree =
-           match Mtyper.get_typedtree typer with
-           | `Interface _ -> None
-           | `Implementation x -> Some x
-         in
-         let+ edits = extract_function doc typedtree params.range in
-         CodeAction.create
-           ~title:"Extract function"
-           ~kind:CodeActionKind.RefactorExtract
-           ~edit:(Document.edit doc edits)
-           ~isPreferred:false
-           ())
+let run_extract_function pipeline doc (params : CodeActionParams.t) =
+  let typer = Mpipeline.typer_result pipeline in
+  let* typedtree =
+    match Mtyper.get_typedtree typer with
+    | `Interface _ -> None
+    | `Implementation x -> Some x
+  in
+  let+ edits = extract_function doc typedtree params.range in
+  CodeAction.create
+    ~title:"Extract function"
+    ~kind:CodeActionKind.RefactorExtract
+    ~edit:(Document.edit doc edits)
+    ~isPreferred:false
+    ()
 
-let local = { Code_action.kind = RefactorExtract; run = run_extract_local }
+let local = Code_action.batchable RefactorExtract run_extract_local
 
-let function_ =
-  { Code_action.kind = RefactorExtract; run = run_extract_function }
+let function_ = Code_action.batchable RefactorExtract run_extract_function
