@@ -8,6 +8,10 @@ type t =
       | `Non_batchable of
         Document.t -> CodeActionParams.t -> CodeAction.t option Fiber.t
       ]
+        (** A code action is either "batchable" or "non-batchable". Batchable
+            actions do not use fibers internally, so they can be safely run
+            inside a [with_pipeline] context. Non-batchable actions can use
+            fibers. *)
   }
 
 val batchable :

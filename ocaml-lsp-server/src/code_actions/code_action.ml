@@ -1,5 +1,10 @@
 open Import
 
+(* TODO:
+
+   - split the "needs merlin" part of the action out so that all actions can be
+   batched *)
+
 type t =
   { kind : CodeActionKind.t
   ; run :
