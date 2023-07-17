@@ -1,15 +1,9 @@
 open Import
 open Fiber.O
 
-let overlaps (x : Range.t) (y : Range.t) =
-  let open Ordering in
-  match (Position.compare x.start y.end_, Position.compare x.end_ y.start) with
-  | (Lt | Eq), (Gt | Eq) | (Gt | Eq), (Lt | Eq) -> true
-  | _ -> false
-
 let range_overlaps_loc range loc =
   match Range.of_loc_opt loc with
-  | Some range' -> overlaps range range'
+  | Some range' -> Range.overlaps range range'
   | None -> false
 
 let outline_type ~env typ =
