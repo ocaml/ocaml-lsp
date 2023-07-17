@@ -7,14 +7,12 @@ let range_overlaps_loc range loc =
   | None -> false
 
 let outline_type ~env typ =
-  let ppf, to_string = Format.to_string () in
   Ocaml_typing.Printtyp.wrap_printing_env env (fun () ->
-      Merlin_analysis.Type_utils.print_type_with_decl
-        ~verbosity:(Mconfig.Verbosity.Lvl 0)
-        env
-        ppf
-        typ);
-  Some (sprintf ": %s" (to_string ()))
+      Format.asprintf "@[<h>: %a@]" Ocaml_typing.Printtyp.type_scheme typ)
+  |> String.extract_words ~is_word_char:(function
+         | ' ' | '\t' | '\n' -> false
+         | _ -> true)
+  |> String.concat ~sep:" "
 
 let hint_binding_iter typedtree range k =
   let module I = Ocaml_typing.Tast_iterator in
@@ -83,7 +81,7 @@ let compute (state : State.t)
             hint_binding_iter typedtree range (fun env type_ loc ->
                 let open Option.O in
                 let hint =
-                  let* label = outline_type ~env type_ in
+                  let label = outline_type ~env type_ in
                   let+ position = Position.of_lexical_position loc.loc_end in
                   InlayHint.create
                     ~kind:Type
