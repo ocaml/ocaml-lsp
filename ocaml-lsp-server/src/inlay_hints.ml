@@ -27,12 +27,6 @@ let hint_binding_iter typedtree range k =
   let expr (iter : I.iterator) (e : Typedtree.expression) =
     if range_overlaps_loc range e.exp_loc then
       match e.exp_desc with
-      | Texp_let (_, vbs, body) ->
-        List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
-            match vb.vb_expr.exp_desc with
-            | Texp_function _ -> iter.expr iter vb.vb_expr
-            | _ -> iter.value_binding iter vb);
-        iter.expr iter body
       | Texp_function
           { arg_label = Optional _
           ; cases =
@@ -50,13 +44,13 @@ let hint_binding_iter typedtree range k =
 
   let structure_item (iter : I.iterator) (item : Typedtree.structure_item) =
     if range_overlaps_loc range item.str_loc then
-      match item.str_desc with
-      | Tstr_value (_, vbs) ->
-        List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
-            match vb.vb_expr.exp_desc with
-            | Texp_function _ -> iter.expr iter vb.vb_expr
-            | _ -> iter.value_binding iter vb)
-      | _ -> I.default_iterator.structure_item iter item
+      I.default_iterator.structure_item iter item
+  in
+  let value_binding (iter : I.iterator) (vb : Typedtree.value_binding) =
+    if range_overlaps_loc range vb.vb_loc then
+      match vb.vb_expr.exp_desc with
+      | Texp_function _ -> iter.expr iter vb.vb_expr
+      | _ -> I.default_iterator.value_binding iter vb
   in
   let pat (type k) iter (pat : k Typedtree.general_pattern) =
     if range_overlaps_loc range pat.pat_loc then
@@ -73,7 +67,9 @@ let hint_binding_iter typedtree range k =
           k pat.pat_env pat.pat_type pat.pat_loc
         | _ -> ())
   in
-  let iterator = { I.default_iterator with expr; structure_item; pat } in
+  let iterator =
+    { I.default_iterator with expr; structure_item; pat; value_binding }
+  in
   iterator.structure iterator typedtree
 
 let compute (state : State.t)
