@@ -61,9 +61,13 @@ let rec inline_element_to_inline
     let text = inline_element_list_to_inlines inlines in
     let meta = loc_to_meta location in
     style_inline ~meta style text
-  | { value = `Reference (_kind, _ref, _inlines); location = _location } ->
+  | { value = `Reference (kind, ref, inlines); location } ->
     (* TODO: add support for references *)
-    Inline.Break (Inline.Break.make `Hard, Meta.none)
+    let meta = loc_to_meta location in
+    begin match kind with
+      | `Simple -> Inline.Code_span (Inline.Code_span.of_string ref.value, meta)
+      | `With_text -> inline_element_list_to_inlines inlines
+    end
   | { value = `Link (link, inlines); location } ->
     let text = inline_element_list_to_inlines inlines in
     let ref =
@@ -86,7 +90,7 @@ and inline_element_list_to_inlines inlines =
 
 let rec nestable_block_element_to_block
     (nestable :
-      Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location) =
+       Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location) =
   match nestable with
   | { value = `Paragraph text; location } ->
     let inline = inline_element_list_to_inlines text in
