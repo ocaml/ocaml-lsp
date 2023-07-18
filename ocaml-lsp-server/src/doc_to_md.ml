@@ -90,7 +90,7 @@ and inline_element_list_to_inlines inlines =
 
 let rec nestable_block_element_to_block
     (nestable :
-       Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location) =
+      Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location) =
   match nestable with
   | { value = `Paragraph text; location } ->
     let inline = inline_element_list_to_inlines text in
