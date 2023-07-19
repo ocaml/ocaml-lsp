@@ -61,13 +61,12 @@ let rec inline_element_to_inline
     let text = inline_element_list_to_inlines inlines in
     let meta = loc_to_meta location in
     style_inline ~meta style text
-  | { value = `Reference (kind, ref, inlines); location } ->
+  | { value = `Reference (kind, ref, inlines); location } -> (
     (* TODO: add support for references *)
     let meta = loc_to_meta location in
-    begin match kind with
-      | `Simple -> Inline.Code_span (Inline.Code_span.of_string ref.value, meta)
-      | `With_text -> inline_element_list_to_inlines inlines
-    end
+    match kind with
+    | `Simple -> Inline.Code_span (Inline.Code_span.of_string ref.value, meta)
+    | `With_text -> inline_element_list_to_inlines inlines)
   | { value = `Link (link, inlines); location } ->
     let text = inline_element_list_to_inlines inlines in
     let ref =
