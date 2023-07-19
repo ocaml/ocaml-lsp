@@ -11,71 +11,69 @@ module InlayHints = struct
 
   let _ = fun (_ : t) -> ()
 
-  
-let t_of_yojson =
-  (let _tp_loc = "ocaml-lsp-server/src/config_data.ml.InlayHints.t" in
-   function
-   | `Assoc field_yojsons as yojson ->
+  let t_of_yojson =
+    (let _tp_loc = "ocaml-lsp-server/src/config_data.ml.InlayHints.t" in
+     function
+     | `Assoc field_yojsons as yojson -> (
        let hint_pattern_variables_field = ref Ppx_yojson_conv_lib.Option.None
        and hint_let_bindings_field = ref Ppx_yojson_conv_lib.Option.None
        and duplicates = ref []
        and extra = ref [] in
-       let rec iter =
-         function
-         | (field_name, _field_yojson)::tail ->
-             ((match field_name with
-               | "hintPatternVariables" ->
-                   (match Ppx_yojson_conv_lib.(!)
-                            hint_pattern_variables_field
-                    with
-                    | Ppx_yojson_conv_lib.Option.None ->
-                        let fvalue = bool_of_yojson _field_yojson in
-                        hint_pattern_variables_field :=
-                          (Ppx_yojson_conv_lib.Option.Some fvalue)
-                    | Ppx_yojson_conv_lib.Option.Some _ ->
-                        duplicates := (field_name ::
-                          (Ppx_yojson_conv_lib.(!) duplicates)))
-               | "hintLetBindings" ->
-                   (match Ppx_yojson_conv_lib.(!) hint_let_bindings_field
-                    with
-                    | Ppx_yojson_conv_lib.Option.None ->
-                        let fvalue = bool_of_yojson _field_yojson in
-                        hint_let_bindings_field :=
-                          (Ppx_yojson_conv_lib.Option.Some fvalue)
-                    | Ppx_yojson_conv_lib.Option.Some _ ->
-                        duplicates := (field_name ::
-                          (Ppx_yojson_conv_lib.(!) duplicates)))
-               | _ -> ());
-              iter tail)
-         | [] -> () in
-       (iter field_yojsons;
-        (match Ppx_yojson_conv_lib.(!) duplicates with
-         | _::_ ->
-             Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
-               _tp_loc (Ppx_yojson_conv_lib.(!) duplicates) yojson
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "hintPatternVariables" -> (
+             match Ppx_yojson_conv_lib.( ! ) hint_pattern_variables_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue = bool_of_yojson _field_yojson in
+               hint_pattern_variables_field :=
+                 Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | "hintLetBindings" -> (
+             match Ppx_yojson_conv_lib.( ! ) hint_let_bindings_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue = bool_of_yojson _field_yojson in
+               hint_let_bindings_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+           _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+             _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
          | [] ->
-             (match Ppx_yojson_conv_lib.(!) extra with
-              | _::_ ->
-                  Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
-                    _tp_loc (Ppx_yojson_conv_lib.(!) extra) yojson
-              | [] ->
-                  let (hint_pattern_variables_value, hint_let_bindings_value)
-                    =
-                    ((Ppx_yojson_conv_lib.(!) hint_pattern_variables_field),
-                      (Ppx_yojson_conv_lib.(!) hint_let_bindings_field)) in
-                  {
-                    hint_pattern_variables =
-                      ((match hint_pattern_variables_value with
-                        | Ppx_yojson_conv_lib.Option.None -> false
-                        | Ppx_yojson_conv_lib.Option.Some v -> v));
-                    hint_let_bindings =
-                      ((match hint_let_bindings_value with
-                        | Ppx_yojson_conv_lib.Option.None -> false
-                        | Ppx_yojson_conv_lib.Option.Some v -> v))
-                  })))
-   | _ as yojson ->
-       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
-         yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+           let hint_pattern_variables_value, hint_let_bindings_value =
+             ( Ppx_yojson_conv_lib.( ! ) hint_pattern_variables_field
+             , Ppx_yojson_conv_lib.( ! ) hint_let_bindings_field )
+           in
+           { hint_pattern_variables =
+               (match hint_pattern_variables_value with
+               | Ppx_yojson_conv_lib.Option.None -> false
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           ; hint_let_bindings =
+               (match hint_let_bindings_value with
+               | Ppx_yojson_conv_lib.Option.None -> false
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom
+         _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
 
   let _ = t_of_yojson
 
