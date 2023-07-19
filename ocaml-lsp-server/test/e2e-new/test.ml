@@ -153,3 +153,81 @@ end = struct
 end
 
 include T
+
+let run_request ?(prep = fun _ -> Fiber.return ()) request =
+  let diagnostics = Fiber.Ivar.create () in
+  let handler =
+    Client.Handler.make
+      ~on_notification:
+        (fun _ -> function
+          | PublishDiagnostics _ -> (
+            let* diag = Fiber.Ivar.peek diagnostics in
+            match diag with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill diagnostics ())
+          | _ -> Fiber.return ())
+      ()
+  in
+  run ~handler @@ fun client ->
+  let run_client () =
+    let capabilities =
+      let window =
+        let showDocument =
+          ShowDocumentClientCapabilities.create ~support:true
+        in
+        WindowClientCapabilities.create ~showDocument ()
+      in
+      ClientCapabilities.create ~window ()
+    in
+    Client.start client (InitializeParams.create ~capabilities ())
+  in
+  let run =
+    let* (_ : InitializeResult.t) = Client.initialized client in
+    let* () = prep client in
+    Client.request client request
+  in
+  Fiber.fork_and_join_unit run_client (fun () ->
+      let* ret = run in
+      let* () = Fiber.Ivar.read diagnostics in
+      let+ () = Client.stop client in
+      ret)
+
+let openDocument ~client ~uri ~source =
+  let textDocument =
+    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+  in
+  Client.notification
+    client
+    (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+
+let offset_of_position src (pos : Position.t) =
+  let line_offset =
+    String.split_lines src |> List.take pos.line
+    |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
+  in
+  line_offset + pos.line (* account for line endings *) + pos.character
+
+let apply_edits src edits =
+  let rec apply src = function
+    | [] -> src
+    | (new_text, start, end_) :: edits ->
+      (* apply edit *)
+      let src' = String.take src start ^ new_text ^ String.drop src end_ in
+
+      (* calculate amount of text added (or removed) *)
+      let diff_len = String.length new_text - (end_ - start) in
+
+      (* offset positions of remaining edits *)
+      let edits' =
+        List.map edits ~f:(fun (new_text, start, end_) ->
+            (new_text, start + diff_len, end_ + diff_len))
+      in
+      apply src' edits'
+  in
+  let edits =
+    List.map edits ~f:(fun (e : TextEdit.t) ->
+        ( e.newText
+        , offset_of_position src e.range.start
+        , offset_of_position src e.range.end_ ))
+  in
+  apply src edits

@@ -1,58 +1,17 @@
 open Test.Import
 
-let openDocument ~client ~uri ~source =
-  let textDocument =
-    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
-  in
-  Client.notification
-    client
-    (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-
 let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ~source range k =
-  let diagnostics = Fiber.Ivar.create () in
-  let handler =
-    Client.Handler.make
-      ~on_notification:
-        (fun _ -> function
-          | PublishDiagnostics _ -> (
-            let* diag = Fiber.Ivar.peek diagnostics in
-            match diag with
-            | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill diagnostics ())
-          | _ -> Fiber.return ())
-      ()
+  let uri = DocumentUri.of_path path in
+  let context = CodeActionContext.create ~diagnostics:[] () in
+  let request =
+    let textDocument = TextDocumentIdentifier.create ~uri in
+    CodeActionParams.create ~textDocument ~range ~context ()
   in
-  Test.run ~handler @@ fun client ->
-  let run_client () =
-    let capabilities =
-      let window =
-        let showDocument =
-          ShowDocumentClientCapabilities.create ~support:true
-        in
-        WindowClientCapabilities.create ~showDocument ()
-      in
-      ClientCapabilities.create ~window ()
-    in
-    Client.start client (InitializeParams.create ~capabilities ())
-  in
-  let run =
-    let* (_ : InitializeResult.t) = Client.initialized client in
-    let uri = DocumentUri.of_path path in
-    let* () = prep client in
-    let* () = openDocument ~client ~uri ~source in
-    let+ resp =
-      let context = CodeActionContext.create ~diagnostics:[] () in
-      let request =
-        let textDocument = TextDocumentIdentifier.create ~uri in
-        CodeActionParams.create ~textDocument ~range ~context ()
-      in
-      Client.request client (CodeAction request)
-    in
-    k resp
-  in
-  Fiber.fork_and_join_unit run_client (fun () ->
-      run >>> Fiber.Ivar.read diagnostics >>> Client.stop client)
+  Test.run_request
+    ~prep:(fun client -> prep client >>> Test.openDocument ~client ~uri ~source)
+    (CodeAction request)
+  |> k
 
 let print_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ?(filter = fun _ -> true) source range =
@@ -562,7 +521,7 @@ let f (x : t) = x
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
   let intf_source = "" in
   let range =
     let start = Position.create ~line:0 ~character:0 in
@@ -635,38 +594,6 @@ let parse_selection src =
   in
   (src', Range.create ~start ~end_)
 
-let offset_of_position src (pos : Position.t) =
-  let line_offset =
-    String.split_lines src |> List.take pos.line
-    |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
-  in
-  line_offset + pos.line (* account for line endings *) + pos.character
-
-let apply_edits src edits =
-  let rec apply src = function
-    | [] -> src
-    | (new_text, start, end_) :: edits ->
-      (* apply edit *)
-      let src' = String.take src start ^ new_text ^ String.drop src end_ in
-
-      (* calculate amount of text added (or removed) *)
-      let diff_len = String.length new_text - (end_ - start) in
-
-      (* offset positions of remaining edits *)
-      let edits' =
-        List.map edits ~f:(fun (new_text, start, end_) ->
-            (new_text, start + diff_len, end_ + diff_len))
-      in
-      apply src' edits'
-  in
-  let edits =
-    List.map edits ~f:(fun (e : TextEdit.t) ->
-        ( e.newText
-        , offset_of_position src e.range.start
-        , offset_of_position src e.range.end_ ))
-  in
-  apply src edits
-
 let apply_code_action title source range =
   let open Option.O in
   (* collect code action results *)
@@ -689,7 +616,7 @@ let apply_code_action title source range =
               TextEdit.create ~newText:a.newText ~range:a.range
             | `TextEdit e -> e)
       | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
-  |> apply_edits source
+  |> Test.apply_edits source
 
 let code_action_test ~title ~source =
   let src, range = parse_selection source in
