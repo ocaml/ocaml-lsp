@@ -93,11 +93,11 @@ let create (capabilities : PublishDiagnosticsClientCapabilities.t option) send =
   let related_information, tags =
     match capabilities with
     | None -> (false, [])
-    | Some c -> (
+    | Some c ->
       ( Option.value ~default:false c.relatedInformation
       , match c.tagSupport with
         | None -> []
-        | Some { valueSet } -> valueSet ))
+        | Some { valueSet } -> valueSet )
   in
   { dune = Table.create (module Dune) 32
   ; merlin = Table.create (module Uri) 32

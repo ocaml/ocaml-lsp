@@ -144,49 +144,48 @@ module Type : sig
 
       ['env] is a custom value threaded through the path. Parent nodes can use
       this to give child nodes context *)
-  class virtual ['env, 'm] mapreduce :
-    object ('self)
-      method virtual empty : 'm
+  class virtual ['env, 'm] mapreduce : object ('self)
+    method virtual empty : 'm
 
-      method virtual plus : 'm -> 'm -> 'm
+    method virtual plus : 'm -> 'm -> 'm
 
-      (** doesn't really to be here, but putting it here avoids passing [empty]
-          and [plus] to a general purpose [fold_left_map]*)
-      method private fold_left_map :
-        'a. f:('a -> 'a * 'm) -> 'a list -> 'a list * 'm
+    (** doesn't really to be here, but putting it here avoids passing [empty]
+        and [plus] to a general purpose [fold_left_map]*)
+    method private fold_left_map :
+      'a. f:('a -> 'a * 'm) -> 'a list -> 'a list * 'm
 
-      method alias : 'env -> t -> decl * 'm
+    method alias : 'env -> t -> decl * 'm
 
-      method app : 'env -> t -> t list -> t * 'm
+    method app : 'env -> t -> t list -> t * 'm
 
-      method assoc : 'env -> t -> t -> t * 'm
+    method assoc : 'env -> t -> t -> t * 'm
 
-      method constr : 'env -> constr -> constr * 'm
+    method constr : 'env -> constr -> constr * 'm
 
-      method field : 'env -> field -> field * 'm
+    method field : 'env -> field -> field * 'm
 
-      method list : 'env -> t -> t * 'm
+    method list : 'env -> t -> t * 'm
 
-      method path : 'env -> Path.t -> t * 'm
+    method path : 'env -> Path.t -> t * 'm
 
-      method optional : 'env -> t -> t * 'm
+    method optional : 'env -> t -> t * 'm
 
-      method poly_variant : 'env -> constr list -> t * 'm
+    method poly_variant : 'env -> constr list -> t * 'm
 
-      method prim : 'env -> prim -> t * 'm
+    method prim : 'env -> prim -> t * 'm
 
-      method record : 'env -> field list -> decl * 'm
+    method record : 'env -> field list -> decl * 'm
 
-      method t : 'env -> t -> t * 'm
+    method t : 'env -> t -> t * 'm
 
-      method decl : 'env -> decl -> decl * 'm
+    method decl : 'env -> decl -> decl * 'm
 
-      method tuple : 'env -> t list -> t * 'm
+    method tuple : 'env -> t list -> t * 'm
 
-      method var : 'env -> string -> t * 'm
+    method var : 'env -> string -> t * 'm
 
-      method variant : 'env -> constr list -> decl * 'm
-    end
+    method variant : 'env -> constr list -> decl * 'm
+  end
 end
 
 module Expr : sig

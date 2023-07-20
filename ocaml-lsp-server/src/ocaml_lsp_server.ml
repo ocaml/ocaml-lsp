@@ -103,8 +103,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
         if
           Action_open_related.available
             (let open Option.O in
-            let* window = client_capabilities.window in
-            window.showDocument)
+             let* window = client_capabilities.window in
+             window.showDocument)
         then
           view_metrics_command_name :: Action_open_related.command_name
           :: Document_text_command.command_name
@@ -209,8 +209,8 @@ let on_initialize server (ip : InitializeParams.t) =
   let diagnostics =
     Diagnostics.create
       (let open Option.O in
-      let* td = ip.capabilities.textDocument in
-      td.publishDiagnostics)
+       let* td = ip.capabilities.textDocument in
+       td.publishDiagnostics)
       (function
         | [] -> Fiber.return ()
         | diagnostics ->

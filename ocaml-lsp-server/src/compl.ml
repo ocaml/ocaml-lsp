@@ -293,8 +293,8 @@ let complete (state : State.t)
             Option.value
               ~default:false
               (let open Option.O in
-              let* item = completion_item_capability in
-              item.deprecatedSupport)
+               let* item = completion_item_capability in
+               item.deprecatedSupport)
           in
           if not (Typed_hole.can_be_hole prefix) then
             Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated

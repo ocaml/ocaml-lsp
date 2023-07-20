@@ -13,14 +13,13 @@ let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
   let diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
-      ~on_notification:
-        (fun _ -> function
-          | PublishDiagnostics _ -> (
-            let* diag = Fiber.Ivar.peek diagnostics in
-            match diag with
-            | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill diagnostics ())
-          | _ -> Fiber.return ())
+      ~on_notification:(fun _ -> function
+        | PublishDiagnostics _ -> (
+          let* diag = Fiber.Ivar.peek diagnostics in
+          match diag with
+          | Some _ -> Fiber.return ()
+          | None -> Fiber.Ivar.fill diagnostics ())
+        | _ -> Fiber.return ())
       ()
   in
   Test.run ~handler @@ fun client ->

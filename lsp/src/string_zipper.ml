@@ -83,11 +83,11 @@ let cons sub list = if Substring.length sub = 0 then list else sub :: list
 let is_end t =
   let res = Substring.length t.current = t.rel_pos in
   (if res then
-   match t.right with
-   | [] -> ()
-   | _ :: _ ->
-     invalid_arg
-       (sprintf "invalid state: current = %S" (Substring.to_string t.current)));
+     match t.right with
+     | [] -> ()
+     | _ :: _ ->
+       invalid_arg
+         (sprintf "invalid state: current = %S" (Substring.to_string t.current)));
   res
 
 let is_begin t =
