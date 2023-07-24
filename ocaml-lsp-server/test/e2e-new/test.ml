@@ -154,7 +154,7 @@ end
 
 include T
 
-let run_request ?(prep = fun _ -> Fiber.return ()) request =
+let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
   let diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
@@ -184,6 +184,12 @@ let run_request ?(prep = fun _ -> Fiber.return ()) request =
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let* () = prep client in
+    let* () =
+      match settings with
+      | Some settings ->
+        Client.notification client (ChangeConfiguration { settings })
+      | None -> Fiber.return ()
+    in
     Client.request client request
   in
   Fiber.fork_and_join_unit run_client (fun () ->
