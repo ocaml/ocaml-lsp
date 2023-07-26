@@ -64,6 +64,7 @@ module Import = struct
   module Client = Lsp_fiber.Client
   include Lsp.Types
   module Uri = Lsp.Uri
+  module Position = Ocaml_lsp_server.Position
 end
 
 open Import
@@ -214,26 +215,33 @@ let offset_of_position src (pos : Position.t) =
   line_offset + pos.line (* account for line endings *) + pos.character
 
 let apply_edits src edits =
-  let rec apply src = function
-    | [] -> src
-    | (new_text, start, end_) :: edits ->
-      (* apply edit *)
-      let src' = String.take src start ^ new_text ^ String.drop src end_ in
-
-      (* calculate amount of text added (or removed) *)
-      let diff_len = String.length new_text - (end_ - start) in
-
-      (* offset positions of remaining edits *)
-      let edits' =
-        List.map edits ~f:(fun (new_text, start, end_) ->
-            (new_text, start + diff_len, end_ + diff_len))
-      in
-      apply src' edits'
-  in
   let edits =
+    List.sort edits ~compare:(fun (e : TextEdit.t) (e' : TextEdit.t) ->
+        Position.compare e.range.start e'.range.start)
+  in
+
+  (* check that edits are non-overlapping *)
+  let rec overlaps : TextEdit.t list -> _ = function
+    | [] | [ _ ] -> false
+    | e :: e' :: es -> (
+      match Position.compare e.range.end_ e'.range.start with
+      | Gt -> true
+      | Lt | Eq -> overlaps (e' :: es))
+  in
+  if overlaps edits then failwith "overlapping edits";
+
+  let _, edits =
+    (* compute start and end character offsets for each edit *)
     List.map edits ~f:(fun (e : TextEdit.t) ->
         ( e.newText
         , offset_of_position src e.range.start
         , offset_of_position src e.range.end_ ))
+    (* update the offsets to account for preceding edits *)
+    |> List.fold_left_map ~init:0 ~f:(fun offset (new_text, start, end_) ->
+           if end_ < start then failwith "invalid edit: end before start";
+           ( offset + (String.length new_text - (end_ - start))
+           , (new_text, start + offset, end_ + offset) ))
   in
-  apply src edits
+  (* apply edits *)
+  List.fold_left edits ~init:src ~f:(fun src (new_text, start, end_) ->
+      String.take src start ^ new_text ^ String.drop src end_)

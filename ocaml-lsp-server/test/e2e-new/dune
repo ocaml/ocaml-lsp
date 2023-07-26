@@ -21,6 +21,7 @@
   ppx_yojson_conv_lib
   lev_fiber
   lev
+  ocaml_lsp_server
   spawn
   jsonrpc
   lsp
