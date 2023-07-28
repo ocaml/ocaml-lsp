@@ -62,12 +62,10 @@ let%expect_test "with-pp" =
   print_endline output;
   [%expect
     {|
-    /nix/store/xfb3ykw9r5hpayd05sr0cizwadzq1d8q-bash-5.2-p15/bin/sh: ocaml-lsp-server/test/e2e-new/for_pp.sh: No such file or directory
-    /nix/store/xfb3ykw9r5hpayd05sr0cizwadzq1d8q-bash-5.2-p15/bin/sh: ocaml-lsp-server/test/e2e-new/for_pp.sh: No such file or directory
     {
-      "contents": { "kind": "plaintext", "value": "type world" },
+      "contents": { "kind": "plaintext", "value": "type universe" },
       "range": {
-        "end": { "character": 10, "line": 0 },
+        "end": { "character": 13, "line": 0 },
         "start": { "character": 0, "line": 0 }
       }
     }|}]
