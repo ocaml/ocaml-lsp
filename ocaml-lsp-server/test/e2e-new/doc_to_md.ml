@@ -8,8 +8,7 @@ let%expect_test "superscript" =
   let doc = {| 2{^30} |} in
 
   translate doc |> print_doc;
-  [%expect
-    {| 2^{30} |}]
+  [%expect {| 2^{30} |}]
 
 let%expect_test "subscript" =
   let doc = {| a{_b} |} in
