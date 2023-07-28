@@ -4,6 +4,10 @@
 
 - Fix missing super & subscripts in markdown documentation. (#1170)
 
+## Features
+
+- Display text of references in doc strings (#1166)
+
 # 1.16.2
 
 ## Fixes
