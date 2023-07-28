@@ -360,7 +360,7 @@ describe_opt("textDocument/completion", () => {
               
               #### Inline Formatting
               
-              **Bold**, *Italic*, *Emphasize*, Superscript, Subscript, and \`inline code\`
+              **Bold**, *Italic*, *Emphasize*, ^{Superscript}, \\_{Subscript}, and \`inline code\`
               
               #### Text Alignment
           
