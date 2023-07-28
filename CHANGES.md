@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Display text of references in doc strings (#1166)
+
 # 1.16.2
 
 ## Fixes
