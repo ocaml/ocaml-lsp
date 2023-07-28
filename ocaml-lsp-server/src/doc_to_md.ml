@@ -57,6 +57,16 @@ let rec inline_element_to_inline
        raw markups, only for blocks. *)
     let meta = loc_to_meta location in
     Inline.Text (text, meta)
+  | { value = `Styled (`Superscript, inlines); location } ->
+    let text = inline_element_list_to_inlines inlines in
+    let meta = loc_to_meta location in
+    Inline.Inlines
+      ([ Inline.Text ("^{", meta); text; Inline.Text ("}", meta) ], meta)
+  | { value = `Styled (`Subscript, inlines); location } ->
+    let text = inline_element_list_to_inlines inlines in
+    let meta = loc_to_meta location in
+    Inline.Inlines
+      ([ Inline.Text ("_{", meta); text; Inline.Text ("}", meta) ], meta)
   | { value = `Styled (style, inlines); location } ->
     let text = inline_element_list_to_inlines inlines in
     let meta = loc_to_meta location in

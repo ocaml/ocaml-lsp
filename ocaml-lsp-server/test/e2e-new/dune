@@ -25,6 +25,7 @@
   jsonrpc
   lsp
   lsp_fiber
+  ocaml_lsp_server
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
   base
@@ -41,6 +42,7 @@
     action_extract
     action_inline
     code_actions
+    doc_to_md
     document_flow
     for_ppx
     hover_extended
