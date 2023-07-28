@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Fix missing super & subscripts in markdown documentation. (#1170)
+
 # 1.16.2
 
 ## Fixes
