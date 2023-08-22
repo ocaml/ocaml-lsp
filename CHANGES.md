@@ -3,6 +3,7 @@
 ## Fixes
 
 - Fix missing super & subscripts in markdown documentation. (#1170)
+- Do not invoke dune at all if `--fallback-read-dot-merlin` flag is on. (#1173)
 
 ## Features
 
