@@ -124,7 +124,8 @@ There are various interesting features and caveats:
 ### Merlin configuration (advanced)
 
 If you would like OCaml-LSP to respect your `.merlin` files, OCaml-LSP needs to
-be invoked with `--fallback-read-dot-merlin` argument passed to it.
+be invoked with `--fallback-read-dot-merlin` argument passed to it and you must
+have the `dot-merlin-reader` package installed.
 
 ## Features
 
