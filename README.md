@@ -103,7 +103,7 @@ running it in "watch" mode to always have correctly functioning OCaml-LSP, e.g.,
 
 > since OCaml-LSP 1.11.0
 
-OCaml-LSP can communicate wit Dune's RPC system to offer some interesting
+OCaml-LSP can communicate with Dune's RPC system to offer some interesting
 features. User can launch Dune's RPC system by running Dune in watch mode.
 OCaml-LSP will *not* launch Dune's RPC for you. But OCaml-LSP will see if there
 is an RPC running and will communicate with it automatically.
