@@ -1,7 +1,8 @@
 open Test.Import
 
 let apply_inlay_hints ?(path = "foo.ml") ?range
-    ?(hint_pattern_variables = false) ?(hint_let_bindings = false) ~source () =
+    ?(hint_pattern_variables = false) ?(hint_let_bindings = false)
+    ?(hint_lambda_params = false) ~source () =
   let range =
     match range with
     | Some r -> r
@@ -30,6 +31,7 @@ let apply_inlay_hints ?(path = "foo.ml") ?range
             , `Assoc
                 [ ("hintPatternVariables", `Bool hint_pattern_variables)
                 ; ("hintLetbindings", `Bool hint_let_bindings)
+                ; ("hintLambdaParams", `Bool hint_lambda_params)
                 ] )
           ])
       (InlayHint request)
