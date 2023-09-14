@@ -210,34 +210,34 @@ let contains loc pos =
 
 let action_mark_for_loop_index doc pos (d : Diagnostic.t) =
   let open Option.O in
-  let module I = Ocaml_typing.Tast_iterator in
+  let module I = Ocaml_parsing.Ast_iterator in
   let exception Found of Warnings.loc in
   let iterator =
-    let expr iter (e : Typedtree.expression) =
-      if contains e.exp_loc pos then
-        match e.exp_desc with
-        | Texp_for (_, { ppat_loc; _ }, _, _, _, _) when contains ppat_loc pos
-          -> raise_notrace (Found ppat_loc)
+    let expr iter (e : Parsetree.expression) =
+      if contains e.pexp_loc pos then
+        match e.pexp_desc with
+        | Pexp_for ({ ppat_loc; _ }, _, _, _, _) when contains ppat_loc pos ->
+          raise_notrace (Found ppat_loc)
         | _ -> I.default_iterator.expr iter e
     in
-    let structure_item iter (item : Typedtree.structure_item) =
-      if contains item.str_loc pos then
+    let structure_item iter (item : Parsetree.structure_item) =
+      if contains item.pstr_loc pos then
         I.default_iterator.structure_item iter item
     in
     { I.default_iterator with expr; structure_item }
   in
   Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      match Mpipeline.typer_result pipeline |> Mtyper.get_typedtree with
-      | `Implementation typedtree -> (
+      match Mpipeline.reader_parsetree pipeline with
+      | `Implementation parsetree -> (
         try
-          iterator.structure iterator typedtree;
+          iterator.structure iterator parsetree;
           None
         with Found task -> Some task)
       | `Interface _ -> None)
   |> Fiber.map ~f:(fun m_index_loc ->
          let* (index_loc : Warnings.loc) = m_index_loc in
          let+ start = Position.of_lexical_position index_loc.loc_start in
-         create_mark_action ~title:"Mark for loop index as unused" doc start d)
+         create_mark_action ~title:"Mark for-loop index as unused" doc start d)
 
 let action_mark_open doc (d : Diagnostic.t) =
   let edit =

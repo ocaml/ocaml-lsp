@@ -13,6 +13,10 @@ let run_test ~title ~message source =
 let mark_test = function
   | `Value -> run_test ~title:"Mark as unused" ~message:"unused value"
   | `Open -> run_test ~title:"Replace with open!" ~message:"unused open"
+  | `For_loop_index ->
+    run_test
+      ~title:"Mark for-loop index as unused"
+      ~message:"unused for-loop index"
 
 let remove_test = function
   | `Value -> run_test ~title:"Remove unused" ~message:"unused value"
@@ -77,6 +81,19 @@ let%expect_test "mark open" =
 $open M$
 |};
   [%expect {| open! M |}]
+
+let%expect_test "mark for loop index" =
+  mark_test `For_loop_index {|
+let () =
+  for $i$ = 0 to 10 do
+    ()
+  done
+|};
+  [%expect {|
+    let () =
+      for _i = 0 to 10 do
+        ()
+      done |}]
 
 let%expect_test "remove open" =
   remove_test `Open {|
