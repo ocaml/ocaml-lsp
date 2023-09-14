@@ -1,9 +1,5 @@
 open Import
 
-(* type t = *)
-(*   A *)
-(*   | B *)
-
 let diagnostic_regex, diagnostic_regex_marks =
   let msgs =
     ( Re.mark
