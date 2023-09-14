@@ -1,4 +1,5 @@
 open Import
+open Option.O
 
 let diagnostic_regex, diagnostic_regex_marks =
   let msgs =
@@ -57,7 +58,6 @@ let enclosing_pos pipeline pos =
    unused definition of `name`, in order from most general to most specific.
    Returns an edit that silences the 'unused value' warning. *)
 let rec mark_value_unused_edit name contexts =
-  let open Option.O in
   match contexts with
   | Browse_raw.Pattern { pat_desc = Tpat_record (pats, _); _ } :: cs -> (
     let m_field_edit =
@@ -104,28 +104,26 @@ let rec mark_value_unused_edit name contexts =
   | _ :: cs -> mark_value_unused_edit name cs
   | _ -> None
 
-let code_action_mark_value_unused doc (diagnostic : Diagnostic.t) =
+let code_action_mark_value_unused pipeline doc (diagnostic : Diagnostic.t) =
   let open Option.O in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      let* var_name = Document.substring doc diagnostic.range in
-      let pos = diagnostic.range.start in
-      let+ text_edit =
-        enclosing_pos pipeline pos |> List.rev_map ~f:snd
-        |> mark_value_unused_edit var_name
-      in
-      let edit = Document.edit doc [ text_edit ] in
-      CodeAction.create
-        ~diagnostics:[ diagnostic ]
-        ~title:"Mark as unused"
-        ~kind:CodeActionKind.QuickFix
-        ~edit
-        ~isPreferred:true
-        ())
+  let* var_name = Document.substring doc diagnostic.range in
+  let pos = diagnostic.range.start in
+  let+ text_edit =
+    enclosing_pos pipeline pos |> List.rev_map ~f:snd
+    |> mark_value_unused_edit var_name
+  in
+  let edit = Document.edit doc [ text_edit ] in
+  CodeAction.create
+    ~diagnostics:[ diagnostic ]
+    ~title:"Mark as unused"
+    ~kind:CodeActionKind.QuickFix
+    ~edit
+    ~isPreferred:true
+    ()
 
 (* Takes a list of contexts enclosing a binding of `name`. Returns the range of
    the most specific binding. *)
 let enclosing_value_binding_range name =
-  let open Option.O in
   List.find_map ~f:(function
       | Browse_raw.Expression
           { exp_desc =
@@ -159,14 +157,11 @@ let code_action_remove_range ?(title = "Remove unused") doc
     ()
 
 (* Create a code action that removes the value mentioned in [diagnostic]. *)
-let code_action_remove_value doc pos (diagnostic : Diagnostic.t) =
-  let open Option.O in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      let* var_name = Document.substring doc diagnostic.range in
-      enclosing_pos pipeline pos |> List.map ~f:snd
-      |> enclosing_value_binding_range var_name
-      |> Option.map ~f:(fun range ->
-             code_action_remove_range doc diagnostic range))
+let code_action_remove_value pipeline doc pos (diagnostic : Diagnostic.t) =
+  let* var_name = Document.substring doc diagnostic.range in
+  enclosing_pos pipeline pos |> List.map ~f:snd
+  |> enclosing_value_binding_range var_name
+  |> Option.map ~f:(fun range -> code_action_remove_range doc diagnostic range)
 
 (** [create_mark_action ~title doc pos d] creates a code action that resolves
     the diagnostic [d] by inserting an underscore at [pos] in [doc]. *)
@@ -184,27 +179,26 @@ let create_mark_action ~title doc pos d =
     ~isPreferred:true
     ()
 
-let action_mark_type doc pos (d : Diagnostic.t) =
+let action_mark_type pipeline doc pos (d : Diagnostic.t) =
   let open Option.O in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      enclosing_pos pipeline pos
-      |> List.find_map ~f:(fun (_, node) ->
-             match node with
-             | Browse_raw.Type_declaration
-                 { typ_name = { loc = { loc_start; _ }; _ }; _ } ->
-               Some loc_start
-             | _ -> None))
-  |> Fiber.map ~f:(fun m_name_loc_start ->
-         let* name_loc_start = m_name_loc_start in
-         let+ start = Position.of_lexical_position name_loc_start in
-         create_mark_action ~title:"Mark type as unused" doc start d)
+  let m_name_loc_start =
+    enclosing_pos pipeline pos
+    |> List.find_map ~f:(fun (_, node) ->
+           match node with
+           | Browse_raw.Type_declaration
+               { typ_name = { loc = { loc_start; _ }; _ }; _ } -> Some loc_start
+           | _ -> None)
+  in
+  let* name_loc_start = m_name_loc_start in
+  let+ start = Position.of_lexical_position name_loc_start in
+  create_mark_action ~title:"Mark type as unused" doc start d
 
 let contains loc pos =
   match Position.compare_inclusion pos (Range.of_loc loc) with
   | `Outside _ -> false
   | `Inside -> true
 
-let action_mark_for_loop_index doc pos (d : Diagnostic.t) =
+let action_mark_for_loop_index pipeline doc pos (d : Diagnostic.t) =
   let open Option.O in
   let module I = Ocaml_parsing.Ast_iterator in
   let exception Found of Warnings.loc in
@@ -222,18 +216,18 @@ let action_mark_for_loop_index doc pos (d : Diagnostic.t) =
     in
     { I.default_iterator with expr; structure_item }
   in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      match Mpipeline.reader_parsetree pipeline with
-      | `Implementation parsetree -> (
-        try
-          iterator.structure iterator parsetree;
-          None
-        with Found task -> Some task)
-      | `Interface _ -> None)
-  |> Fiber.map ~f:(fun m_index_loc ->
-         let* (index_loc : Warnings.loc) = m_index_loc in
-         let+ start = Position.of_lexical_position index_loc.loc_start in
-         create_mark_action ~title:"Mark for-loop index as unused" doc start d)
+  let m_index_loc =
+    match Mpipeline.reader_parsetree pipeline with
+    | `Implementation parsetree -> (
+      try
+        iterator.structure iterator parsetree;
+        None
+      with Found task -> Some task)
+    | `Interface _ -> None
+  in
+  let* (index_loc : Warnings.loc) = m_index_loc in
+  let+ start = Position.of_lexical_position index_loc.loc_start in
+  create_mark_action ~title:"Mark for-loop index as unused" doc start d
 
 let action_mark_open doc (d : Diagnostic.t) =
   let edit =
@@ -291,103 +285,100 @@ let bar_regex =
        ; Re.stop
        ])
 
-let action_remove_case doc (d : Diagnostic.t) =
+let action_remove_case pipeline doc (d : Diagnostic.t) =
   let open Option.O in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      enclosing_pos pipeline d.range.start
-      |> List.find_map ~f:(fun (_, node) ->
-             match node with
-             | Browse_raw.Case
-                 { c_lhs = { pat_loc = { loc_start; _ }; _ }
-                 ; c_rhs = { exp_loc = { loc_end; _ }; _ }
-                 ; _
-                 } -> Some (loc_start, loc_end)
-             | _ -> None))
-  |> Fiber.map ~f:(fun case_range ->
-         let* case_start, case_end = case_range in
-         let* start = Position.of_lexical_position case_start in
-         let* end_ = Position.of_lexical_position case_end in
-         let+ preceding_bar = find_preceding doc start bar_regex in
-         let edit =
-           Document.edit
-             doc
-             [ { range = Range.create ~start:preceding_bar.start ~end_
-               ; newText = ""
-               }
-             ]
-         in
-         CodeAction.create
-           ~diagnostics:[ d ]
-           ~title:"Remove unused case"
-           ~kind:CodeActionKind.QuickFix
-           ~edit
-           ~isPreferred:true
-           ())
+  let case_range =
+    enclosing_pos pipeline d.range.start
+    |> List.find_map ~f:(fun (_, node) ->
+           match node with
+           | Browse_raw.Case
+               { c_lhs = { pat_loc = { loc_start; _ }; _ }
+               ; c_rhs = { exp_loc = { loc_end; _ }; _ }
+               ; _
+               } -> Some (loc_start, loc_end)
+           | _ -> None)
+  in
+  let* case_start, case_end = case_range in
+  let* start = Position.of_lexical_position case_start in
+  let* end_ = Position.of_lexical_position case_end in
+  let+ preceding_bar = find_preceding doc start bar_regex in
+  let edit =
+    Document.edit
+      doc
+      [ { range = Range.create ~start:preceding_bar.start ~end_; newText = "" }
+      ]
+  in
+  CodeAction.create
+    ~diagnostics:[ d ]
+    ~title:"Remove unused case"
+    ~kind:CodeActionKind.QuickFix
+    ~edit
+    ~isPreferred:true
+    ()
 
-let action_remove_constructor doc (d : Diagnostic.t) =
+let action_remove_constructor pipeline doc (d : Diagnostic.t) =
   let open Option.O in
-  Document.Merlin.with_pipeline_exn (Document.merlin_exn doc) (fun pipeline ->
-      enclosing_pos pipeline d.range.start
-      |> List.find_map ~f:(fun (_, node) ->
-             match node with
-             | Browse_raw.Constructor_declaration
-                 { cd_loc = { loc_start; loc_end; _ }; _ } ->
-               Some (loc_start, loc_end)
-             | _ -> None))
-  |> Fiber.map ~f:(fun case_range ->
-         let* case_start, case_end = case_range in
-         let* start = Position.of_lexical_position case_start in
-         let+ end_ = Position.of_lexical_position case_end in
-         let edit =
-           Document.edit
-             doc
-             [ { range = Range.create ~start ~end_; newText = "" } ]
-         in
-         CodeAction.create
-           ~diagnostics:[ d ]
-           ~title:"Remove unused constructor"
-           ~kind:CodeActionKind.QuickFix
-           ~edit
-           ~isPreferred:true
-           ())
+  let case_range =
+    enclosing_pos pipeline d.range.start
+    |> List.find_map ~f:(fun (_, node) ->
+           match node with
+           | Browse_raw.Constructor_declaration
+               { cd_loc = { loc_start; loc_end; _ }; _ } ->
+             Some (loc_start, loc_end)
+           | _ -> None)
+  in
+  let* case_start, case_end = case_range in
+  let* start = Position.of_lexical_position case_start in
+  let+ end_ = Position.of_lexical_position case_end in
+  let edit =
+    Document.edit doc [ { range = Range.create ~start ~end_; newText = "" } ]
+  in
+  CodeAction.create
+    ~diagnostics:[ d ]
+    ~title:"Remove unused constructor"
+    ~kind:CodeActionKind.QuickFix
+    ~edit
+    ~isPreferred:true
+    ()
 
 let action_remove_simple kind doc (d : Diagnostic.t) =
   code_action_remove_range ~title:("Remove unused " ^ kind) doc d d.range
 
 let mark =
-  let run doc (params : CodeActionParams.t) =
+  let run pipeline doc (params : CodeActionParams.t) =
+    let open Option.O in
     let pos = params.range.start in
-    match find_unused_diagnostic pos params.context.diagnostics with
-    | Some (`Value, d) -> code_action_mark_value_unused doc d
-    | Some (`Open, d) -> Fiber.return (Some (action_mark_open doc d))
-    | Some (`Type, d) -> action_mark_type doc pos d
-    | Some (`For_loop_index, d) -> action_mark_for_loop_index doc pos d
-    | Some ((`Open_bang | `Constructor | `Extension | `Case | `Rec | `Module), _)
-    | None ->
+    let* diagnostic = find_unused_diagnostic pos params.context.diagnostics in
+    match diagnostic with
+    | `Value, d -> code_action_mark_value_unused pipeline doc d
+    | `Open, d -> Some (action_mark_open doc d)
+    | `Type, d -> action_mark_type pipeline doc pos d
+    | `For_loop_index, d -> action_mark_for_loop_index pipeline doc pos d
+    | (`Open_bang | `Constructor | `Extension | `Case | `Rec | `Module), _ ->
       (* these diagnostics don't have a reasonable "mark as unused" action *)
-      Fiber.return None
+      None
   in
-  { Code_action.kind = QuickFix; run }
+  Code_action.batchable QuickFix run
 
 let remove =
-  let run doc (params : CodeActionParams.t) =
+  let run pipeline doc (params : CodeActionParams.t) =
+    let open Option.O in
     let pos = params.range.start in
-    match find_unused_diagnostic pos params.context.diagnostics with
-    | Some (`Value, d) -> code_action_remove_value doc pos d
-    | Some (`Open, d) -> Fiber.return (Some (action_remove_simple "open" doc d))
-    | Some (`Open_bang, d) ->
-      Fiber.return (Some (action_remove_simple "open!" doc d))
-    | Some (`Type, d) -> Fiber.return (Some (action_remove_simple "type" doc d))
-    | Some (`Module, d) ->
-      Fiber.return (Some (action_remove_simple "module" doc d))
-    | Some (`Case, d) -> action_remove_case doc d
-    | Some (`Rec, d) -> Fiber.return (action_remove_rec doc d)
-    | Some (`Constructor, d) -> action_remove_constructor doc d
-    | Some (`Extension, _) ->
+    let* diagnostic = find_unused_diagnostic pos params.context.diagnostics in
+    match diagnostic with
+    | `Value, d -> code_action_remove_value pipeline doc pos d
+    | `Open, d -> Some (action_remove_simple "open" doc d)
+    | `Open_bang, d -> Some (action_remove_simple "open!" doc d)
+    | `Type, d -> Some (action_remove_simple "type" doc d)
+    | `Module, d -> Some (action_remove_simple "module" doc d)
+    | `Case, d -> action_remove_case pipeline doc d
+    | `Rec, d -> action_remove_rec doc d
+    | `Constructor, d -> action_remove_constructor pipeline doc d
+    | `Extension, _ ->
       (* todo *)
-      Fiber.return None
-    | Some (`For_loop_index, _) | None ->
+      None
+    | `For_loop_index, _ ->
       (* these diagnostics don't have a reasonable "remove unused" action *)
-      Fiber.return None
+      None
   in
-  { Code_action.kind = QuickFix; run }
+  Code_action.batchable QuickFix run

@@ -254,6 +254,8 @@ describe_opt("textDocument/completion", () => {
       
           External links: {{:https://ocaml.org/} OCaml's official website}
       
+          Cross-references: {!List.length} {{!List.length} Replacement text}
+      
           {3 Inline Formatting}
       
           {b Bold}, {i Italic}, {e Emphasize}, {^ Superscript}, {_ Subscript}, and [inline code]
@@ -358,9 +360,11 @@ describe_opt("textDocument/completion", () => {
               
               External links: [OCaml's official website](https://ocaml.org/)
               
+              Cross-references: \`List.length\` Replacement text
+              
               #### Inline Formatting
               
-              **Bold**, *Italic*, *Emphasize*, Superscript, Subscript, and \`inline code\`
+              **Bold**, *Italic*, *Emphasize*, ^{Superscript}, \\_{Subscript}, and \`inline code\`
               
               #### Text Alignment
           

@@ -418,28 +418,30 @@ let config (t : t) : Mconfig.t Fiber.t =
     t.entry <- Some entry
   in
   let* () = Fiber.return () in
-  match find_project_context t.directory with
-  | None ->
-    let+ () = destroy t in
-    t.initial
-  | Some (ctx, config_path) ->
-    let* entry = get_process t.db ~dir:ctx.process_dir in
-    let* () =
-      match t.entry with
-      | None ->
-        use_entry entry;
-        Fiber.return ()
-      | Some entry' ->
-        if Entry.equal entry entry' then Fiber.return ()
-        else
-          let+ () = destroy t in
-          use_entry entry
-    in
-    let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
+  if !should_read_dot_merlin then
+    Fiber.return (Mconfig.get_external_config t.path t.initial)
+  else
+    match find_project_context t.directory with
+    | None ->
+      let+ () = destroy t in
+      t.initial
+    | Some (ctx, config_path) ->
+      let* entry = get_process t.db ~dir:ctx.process_dir in
+      let* () =
+        match t.entry with
+        | None ->
+          use_entry entry;
+          Fiber.return ()
+        | Some entry' ->
+          if Entry.equal entry entry' then Fiber.return ()
+          else
+            let+ () = destroy t in
+            use_entry entry
+      in
+      let+ dot, failures =
+        get_config entry.process ~workdir:ctx.workdir t.path
+      in
 
-    if !should_read_dot_merlin && dot = Config.empty then
-      Mconfig.get_external_config t.path t.initial
-    else
       let merlin = Config.merge dot t.initial.merlin failures config_path in
       Mconfig.normalize { t.initial with merlin }
 

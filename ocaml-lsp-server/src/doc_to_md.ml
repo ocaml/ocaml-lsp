@@ -57,13 +57,26 @@ let rec inline_element_to_inline
        raw markups, only for blocks. *)
     let meta = loc_to_meta location in
     Inline.Text (text, meta)
+  | { value = `Styled (`Superscript, inlines); location } ->
+    let text = inline_element_list_to_inlines inlines in
+    let meta = loc_to_meta location in
+    Inline.Inlines
+      ([ Inline.Text ("^{", meta); text; Inline.Text ("}", meta) ], meta)
+  | { value = `Styled (`Subscript, inlines); location } ->
+    let text = inline_element_list_to_inlines inlines in
+    let meta = loc_to_meta location in
+    Inline.Inlines
+      ([ Inline.Text ("_{", meta); text; Inline.Text ("}", meta) ], meta)
   | { value = `Styled (style, inlines); location } ->
     let text = inline_element_list_to_inlines inlines in
     let meta = loc_to_meta location in
     style_inline ~meta style text
-  | { value = `Reference (_kind, _ref, _inlines); location = _location } ->
+  | { value = `Reference (kind, ref, inlines); location } -> (
     (* TODO: add support for references *)
-    Inline.Break (Inline.Break.make `Hard, Meta.none)
+    let meta = loc_to_meta location in
+    match kind with
+    | `Simple -> Inline.Code_span (Inline.Code_span.of_string ref.value, meta)
+    | `With_text -> inline_element_list_to_inlines inlines)
   | { value = `Link (link, inlines); location } ->
     let text = inline_element_list_to_inlines inlines in
     let ref =
