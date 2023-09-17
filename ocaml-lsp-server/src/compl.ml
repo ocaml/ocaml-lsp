@@ -26,8 +26,16 @@ let completion_kind kind : CompletionItemKind.t option =
   | `Constructor -> Some Constructor
   | `Type -> Some TypeParameter
 
-(** @see <https://ocaml.org/manual/lex.html> reference *)
-let prefix_of_position ~short_path source position =
+(* I should just rewrite all of this so that it uses a nice for loop. This
+   current soluction is a nice try but overall crap we need to be able to look
+   ahead and behind
+
+   Split it into name and infix name is obvious infix can be either a dot, a
+   label or an I could possibly do a regex based parser.
+
+   Name regex: ((\w)|\w.)*$ *)
+
+let prefix_of_position_old ~short_path source position =
   match Msource.text source with
   | "" -> ""
   | text ->
@@ -92,6 +100,80 @@ let prefix_of_position ~short_path source position =
     then
       match String.lsplit2 reconstructed_prefix ~on:':' with
       | Some (_, s) -> s
+      | None -> reconstructed_prefix
+    else reconstructed_prefix
+
+let prefix_of_position_parser ~short_path source position =
+  let open Prefix_parser in
+  match Msource.text source with
+  | "" -> ""
+  | text ->
+    let end_of_prefix =
+      let (`Offset index) = Msource.get_offset source position in
+      min (String.length text - 1) (index - 1)
+    in
+    (*TODO this is a mess and could be a lot faster*)
+    let prefix_text =
+      String.sub text ~pos:0 ~len:(end_of_prefix + 1)
+      |> String.to_seq |> List.of_seq |> List.rev
+    in
+
+    (*Printf.printf "trying to parse text `%s`\n"
+      (prefix_text|>String.of_list);*)
+    let prefix_length =
+      match prefix_text with
+      | c :: next_char :: _ when c |> is_name_char ~next_char ->
+        (*Printf.printf "trying to parse as name or label";*)
+        prefix_text |> try_parse [ name_prefix ]
+      | x ->
+        (*Printf.printf "trying to parse as infix";*)
+        x |> try_parse [ infix_prefix ]
+    in
+
+    let len =
+      match prefix_length with
+      | None -> 0
+      | Some len -> len
+    in
+    let pos = end_of_prefix - len + 1 in
+    let reconstructed_prefix = String.sub text ~pos ~len in
+    if short_path then
+      match String.split_on_char reconstructed_prefix ~sep:'.'|> List.last with
+      | Some (s) -> s
+      | None -> reconstructed_prefix
+    else reconstructed_prefix
+
+let prefix_of_position ~short_path source position =
+
+  let open Prefix_parser in
+  match Msource.text source with
+  | "" -> ""
+  | text ->
+    let end_of_prefix =
+      let (`Offset index) = Msource.get_offset source position in
+      min (String.length text - 1) (index - 1)
+    in
+    let prefix_text =
+      (*We do prevent completion from working across multiple lines here. But
+        this is probably an okay aproximation. We could add the the regex or
+        parser the fact that whitespace doesn't really matter in certain cases
+        like "List. map"*)
+      let pos =
+        text
+        |> String.rfindi ~from:end_of_prefix ~f:(( = ) '\n')
+        |> Option.value ~default:0
+      in
+      String.sub text ~pos ~len:(end_of_prefix + 1 - pos)
+    in
+
+    (*Printf.printf "trying to parse text `%s`\n"
+      (prefix_text|>String.of_list);*)
+    let reconstructed_prefix =
+      try_parse_regex prefix_text |> Option.value ~default:""
+    in
+    if short_path then
+      match String.split_on_char reconstructed_prefix ~sep:'.'|> List.last with
+      | Some (s) -> s
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
@@ -260,8 +342,12 @@ module Complete_with_construct = struct
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
 
+let logCompletion log =
+  Log.log ~section:"resolveCompletion" (fun () -> Log.msg log [])
+
 let complete (state : State.t)
     ({ textDocument = { uri }; position = pos; _ } : CompletionParams.t) =
+  logCompletion "ho1";
   Fiber.of_thunk (fun () ->
       let doc = Document_store.get state.store uri in
       match Document.kind doc with
@@ -296,6 +382,12 @@ let complete (state : State.t)
               let* item = completion_item_capability in
               item.deprecatedSupport)
           in
+          logCompletion
+            (Printf.sprintf
+               "prefix: %s; position %i:%i"
+               prefix
+               pos.line
+               pos.character);
           if not (Typed_hole.can_be_hole prefix) then
             Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
           else
@@ -365,10 +457,12 @@ let format_doc ~markdown doc =
 
 let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
     ~markdown =
+  logCompletion "Starting  completion";
   Fiber.of_thunk (fun () ->
       (* Due to merlin's API, we create a version of the given document with the
          applied completion item and pass it to merlin to get the docs for the
          [compl.label] *)
+      logCompletion "Starting  completion";
       let position : Position.t = resolve.position in
       let logical_position = Position.logical position in
       let doc =
@@ -380,6 +474,7 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
                 (Document.Merlin.source doc)
                 logical_position
             in
+            logCompletion @@ "completion prefix is:" ^ prefix;
             { position with
               character = position.character - String.length prefix
             }
@@ -392,7 +487,9 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
               character = position.character + String.length suffix
             }
           in
+
           let range = Range.create ~start ~end_ in
+
           TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
         in
         Document.update_text (Document.Merlin.to_doc doc) [ complete ]

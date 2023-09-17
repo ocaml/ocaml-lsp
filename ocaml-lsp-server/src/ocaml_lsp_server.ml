@@ -3,6 +3,7 @@ module Version = Version
 module Diagnostics = Diagnostics
 module Doc_to_md = Doc_to_md
 module Diff = Diff
+module Testing=Testing
 open Fiber.O
 
 let make_error = Jsonrpc.Response.Error.make

@@ -34,6 +34,10 @@ val resolve :
       [List.m<cursor>] returns ["m"] when [short_path] is set vs ["List.m"] when
       not.
     @return prefix of [position] in [source] and its length *)
+val prefix_of_position_parser :
+  short_path:bool -> Msource.t -> [< Msource.position ] -> string
+val prefix_of_position_old :
+  short_path:bool -> Msource.t -> [< Msource.position ] -> string
 val prefix_of_position :
   short_path:bool -> Msource.t -> [< Msource.position ] -> string
 

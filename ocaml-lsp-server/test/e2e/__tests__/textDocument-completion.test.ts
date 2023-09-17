@@ -91,7 +91,215 @@ describe_opt("textDocument/completion", () => {
     expect(items).toMatchObject([{ label: "StringLabels" }]);
   });
 
-  it("can complete symbol passed as a named argument", async () => {
+  it("can start completion after operator with space", async () => {
+    openDocument(outdent`
+[1;2] |> List.ma
+    `);
+
+    let items = await queryCompletion(Types.Position.create(0, 16));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "map",
+          "textEdit": Object {
+            "newText": "map",
+            "range": Object {
+              "end": Object {
+                "character": 16,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "mapi",
+          "textEdit": Object {
+            "newText": "mapi",
+            "range": Object {
+              "end": Object {
+                "character": 16,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "map2",
+          "textEdit": Object {
+            "newText": "map2",
+            "range": Object {
+              "end": Object {
+                "character": 16,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 0,
+              },
+            },
+          },
+        },
+      ]
+      `);
+  });
+  it("can start completion after operator without space", async () => {
+    openDocument(outdent`
+[1;2]|>List.ma
+    `);
+
+    let items = await queryCompletion(Types.Position.create(0, 14));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "map",
+          "textEdit": Object {
+            "newText": "map",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "mapi",
+          "textEdit": Object {
+            "newText": "mapi",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "map2",
+          "textEdit": Object {
+            "newText": "map2",
+            "range": Object {
+              "end": Object {
+                "character": 14,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 12,
+                "line": 0,
+              },
+            },
+          },
+        },
+      ]
+      `);
+
+  });
+
+  it("can start completion after operator with space", async () => {
+    openDocument(outdent`
+[1;2] |> List.ma
+    `);
+
+    let items = await queryCompletion(Types.Position.create(0, 16));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "map",
+          "textEdit": Object {
+            "newText": "map",
+            "range": Object {
+              "end": Object {
+                "character": 16,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "mapi",
+          "textEdit": Object {
+            "newText": "mapi",
+            "range": Object {
+              "end": Object {
+                "character": 16,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "map2",
+          "textEdit": Object {
+            "newText": "map2",
+            "range": Object {
+              "end": Object {
+                "character": 16,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 14,
+                "line": 0,
+              },
+            },
+          },
+        },
+      ]
+      `);
+  });
+  it("can start completion after  dereference", async () => {
+    openDocument(outdent`
+let apple=ref 10 in
+!ap
+    `);
+
+    let items = await queryCompletion(Types.Position.create(1, 3));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "apple",
+          "textEdit": Object {
+            "newText": "apple",
+            "range": Object {
+              "end": Object {
+                "character": 3,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 1,
+                "line": 1,
+              },
+            },
+          },
+        },
+      ]
+      `);
+
+  });
+   it("can complete symbol passed as a named argument", async () => {
     openDocument(outdent`
 let g ~f = f 0 in
 g ~f:ig
