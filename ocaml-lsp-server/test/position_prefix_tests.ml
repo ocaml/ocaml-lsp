@@ -101,3 +101,17 @@ let%expect_test "short path prefix" =
   print_endline prefix;
   [%expect "ma"]
 
+let%expect_test "Space in dot chain" =
+  let document = "[1;2] |> Core. List. ma\n" |> Testing.Merlin_kernel.Msource.make in
+  let position = `Logical (1, 23) in
+  let prefix = Compl.prefix_of_position ~short_path:false document position in
+  print_endline prefix;
+  [%expect "Core.List.ma"]
+
+let%expect_test "newline in dot chain" =
+  let document = "[1;2] |> Core.\nList.\nma\n" |> Testing.Merlin_kernel.Msource.make in
+  let position = `Logical (3, 2) in
+  let prefix = Compl.prefix_of_position ~short_path:false document position in
+  print_endline prefix;
+  [%expect "Core.List.ma"]
+

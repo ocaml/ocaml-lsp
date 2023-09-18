@@ -270,6 +270,187 @@ describe_opt("textDocument/completion", () => {
       ]
       `);
   });
+
+
+  it("can start completion in dot chain with newline", async () => {
+    openDocument(outdent`
+[1;2] |> List.
+ma
+    `);
+
+    let items = await queryCompletion(Types.Position.create(1, 2));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "map",
+          "textEdit": Object {
+            "newText": "map",
+            "range": Object {
+              "end": Object {
+                "character": 2,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 0,
+                "line": 1,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "mapi",
+          "textEdit": Object {
+            "newText": "mapi",
+            "range": Object {
+              "end": Object {
+                "character": 2,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 0,
+                "line": 1,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "map2",
+          "textEdit": Object {
+            "newText": "map2",
+            "range": Object {
+              "end": Object {
+                "character": 2,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 0,
+                "line": 1,
+              },
+            },
+          },
+        },
+      ]
+      `);
+  });
+  it("can start completion in dot chain with tab", async () => {
+    openDocument(outdent`
+[1;2] |> List.	ma
+    `);
+
+    let items = await queryCompletion(Types.Position.create(0, 17));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "map",
+          "textEdit": Object {
+            "newText": "map",
+            "range": Object {
+              "end": Object {
+                "character": 17,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 15,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "mapi",
+          "textEdit": Object {
+            "newText": "mapi",
+            "range": Object {
+              "end": Object {
+                "character": 17,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 15,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "map2",
+          "textEdit": Object {
+            "newText": "map2",
+            "range": Object {
+              "end": Object {
+                "character": 17,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 15,
+                "line": 0,
+              },
+            },
+          },
+        },
+      ]
+      `);
+  });
+  it("can start completion in dot chain with space", async () => {
+    openDocument(outdent`
+[1;2] |> List. ma
+    `);
+
+    let items = await queryCompletion(Types.Position.create(0, 17));
+    expect(items).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "label": "map",
+          "textEdit": Object {
+            "newText": "map",
+            "range": Object {
+              "end": Object {
+                "character": 17,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 15,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "mapi",
+          "textEdit": Object {
+            "newText": "mapi",
+            "range": Object {
+              "end": Object {
+                "character": 17,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 15,
+                "line": 0,
+              },
+            },
+          },
+        },
+        Object {
+          "label": "map2",
+          "textEdit": Object {
+            "newText": "map2",
+            "range": Object {
+              "end": Object {
+                "character": 17,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 15,
+                "line": 0,
+              },
+            },
+          },
+        },
+      ]
+      `);
+  });
+
   it("can start completion after  dereference", async () => {
     openDocument(outdent`
 let apple=ref 10 in
@@ -299,7 +480,7 @@ let apple=ref 10 in
       `);
 
   });
-   it("can complete symbol passed as a named argument", async () => {
+  it("can complete symbol passed as a named argument", async () => {
     openDocument(outdent`
 let g ~f = f 0 in
 g ~f:ig

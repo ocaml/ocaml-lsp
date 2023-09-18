@@ -138,13 +138,12 @@ let prefix_of_position_parser ~short_path source position =
     let pos = end_of_prefix - len + 1 in
     let reconstructed_prefix = String.sub text ~pos ~len in
     if short_path then
-      match String.split_on_char reconstructed_prefix ~sep:'.'|> List.last with
-      | Some (s) -> s
+      match String.split_on_char reconstructed_prefix ~sep:'.' |> List.last with
+      | Some s -> s
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
 let prefix_of_position ~short_path source position =
-
   let open Prefix_parser in
   match Msource.text source with
   | "" -> ""
@@ -159,21 +158,25 @@ let prefix_of_position ~short_path source position =
         parser the fact that whitespace doesn't really matter in certain cases
         like "List. map"*)
       let pos =
-        text
-        |> String.rfindi ~from:end_of_prefix ~f:(( = ) '\n')
-        |> Option.value ~default:0
+        (* text |> String.rfindi ~from:end_of_prefix ~f:(( = ) '\n') |>
+           Option.value ~default:0 *)
+
+        (*clamp the length of a line to process at 500 chars*)
+        max 0 (end_of_prefix - 500)
       in
       String.sub text ~pos ~len:(end_of_prefix + 1 - pos)
+      |> String.map ~f:(fun x -> if x = '\n'||x='\t' then ' ' else x)
     in
 
     (*Printf.printf "trying to parse text `%s`\n"
       (prefix_text|>String.of_list);*)
     let reconstructed_prefix =
-      try_parse_regex prefix_text |> Option.value ~default:""
+      try_parse_regex prefix_text |> Option.value ~default:"" |>String.filter_map ~f:(fun x-> if x=' ' then None else Some x )
+
     in
     if short_path then
-      match String.split_on_char reconstructed_prefix ~sep:'.'|> List.last with
-      | Some (s) -> s
+      match String.split_on_char reconstructed_prefix ~sep:'.' |> List.last with
+      | Some s -> s
       | None -> reconstructed_prefix
     else reconstructed_prefix
 

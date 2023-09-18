@@ -86,14 +86,16 @@ let rec try_parse parsers str =
     | Some l -> Some l
     | None -> str |> try_parse tail)
   | [] -> None
+
 open Re
 
 (*Regex based parser*)
 
 let name_or_label_regex =
-   Re.compile @@ Re.Posix.re {|([~?`])?([a-zA-Z0-9_']|[a-zA-Z0-9_']\.)+$|}
+  Re.compile @@ Re.
+  Posix. re {|([~?`])?([a-zA-Z0-9_']|[a-zA-Z0-9_']\.( )*)+$|}
 
-let infixRegex =Re.compile @@ Re.Posix.re {|[~?:!$&*+\-\/=><@^|%<.#]+$|}
+let infixRegex = Re.compile @@ Re.Posix.re {|[~?:!$&*+\-\/=><@^|%<.#]+$|}
 
 open Import
 
@@ -107,9 +109,8 @@ module Option = struct
 end
 
 let try_parse_regex text =
-
   let matched =
     Re.exec_opt name_or_label_regex text
     |> Option.none_bind (fun () -> Re.exec_opt infixRegex text)
   in
-  matched |>Option.map ~f:(fun x->Group.get x 0)
+  matched |> Option.map ~f:(fun x -> Group.get x 0)
