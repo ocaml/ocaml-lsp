@@ -103,45 +103,17 @@ let prefix_of_position_old ~short_path source position =
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
-let prefix_of_position_parser ~short_path source position =
-  let open Prefix_parser in
-  match Msource.text source with
-  | "" -> ""
-  | text ->
-    let end_of_prefix =
-      let (`Offset index) = Msource.get_offset source position in
-      min (String.length text - 1) (index - 1)
-    in
-    (*TODO this is a mess and could be a lot faster*)
-    let prefix_text =
-      String.sub text ~pos:0 ~len:(end_of_prefix + 1)
-      |> String.to_seq |> List.of_seq |> List.rev
-    in
+module String = struct
+  include String
 
-    (*Printf.printf "trying to parse text `%s`\n"
-      (prefix_text|>String.of_list);*)
-    let prefix_length =
-      match prefix_text with
-      | c :: next_char :: _ when c |> is_name_char ~next_char ->
-        (*Printf.printf "trying to parse as name or label";*)
-        prefix_text |> try_parse [ name_prefix ]
-      | x ->
-        (*Printf.printf "trying to parse as infix";*)
-        x |> try_parse [ infix_prefix ]
-    in
-
-    let len =
-      match prefix_length with
-      | None -> 0
-      | Some len -> len
-    in
-    let pos = end_of_prefix - len + 1 in
-    let reconstructed_prefix = String.sub text ~pos ~len in
-    if short_path then
-      match String.split_on_char reconstructed_prefix ~sep:'.' |> List.last with
-      | Some s -> s
-      | None -> reconstructed_prefix
-    else reconstructed_prefix
+  (**Filters a string keeping any chars for which f returns true and discarding
+     those for which it returns false*)
+  let filter str ~f =
+    let buffer = Buffer.create (str |> String.length) in
+    String.iter ~f:(fun s -> if f s then Buffer.add_char buffer s else ()) str;
+    let s : string = Buffer.contents buffer in
+    s
+end
 
 let prefix_of_position ~short_path source position =
   let open Prefix_parser in
@@ -153,35 +125,29 @@ let prefix_of_position ~short_path source position =
       min (String.length text - 1) (index - 1)
     in
     let prefix_text =
-      (*We do prevent completion from working across multiple lines here. But
-        this is probably an okay aproximation. We could add the the regex or
-        parser the fact that whitespace doesn't really matter in certain cases
-        like "List. map"*)
       let pos =
-        (* text |> String.rfindi ~from:end_of_prefix ~f:(( = ) '\n') |>
-           Option.value ~default:0 *)
-
-        (*clamp the length of a line to process at 500 chars*)
+        (*clamp the length of a line to process at 500 chars, this is just a
+          reasonable limit for regex performance*)
         max 0 (end_of_prefix - 500)
       in
       String.sub text ~pos ~len:(end_of_prefix + 1 - pos)
-      |> String.map ~f:(fun x -> if x = '\n'||x='\t' then ' ' else x)
+      (*because all whitespace is semantically the same we convert it all to
+        spaces for easier regex matching*)
+      |> String.map ~f:(fun x -> if x = '\n' || x = '\t' then ' ' else x)
     in
 
-    (*Printf.printf "trying to parse text `%s`\n"
-      (prefix_text|>String.of_list);*)
     let reconstructed_prefix =
-      try_parse_regex prefix_text |> Option.value ~default:"" |>String.filter_map ~f:(fun x-> if x=' ' then None else Some x )
-
+      try_parse_regex prefix_text
+      |> Option.value ~default:""
+      |> String.filter ~f:(fun x -> x <> ' ')
     in
+
     if short_path then
       match String.split_on_char reconstructed_prefix ~sep:'.' |> List.last with
       | Some s -> s
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
-(** [suffix_of_position source position] computes the suffix of the identifier
-    after [position]. *)
 let suffix_of_position source position =
   match Msource.text source with
   | "" -> ""

@@ -858,6 +858,7 @@ g ?f:M.ig
   it("completes labels", async () => {
     openDocument("let f = ListLabels.map ~");
 
+
     let items = (await queryCompletion(Types.Position.create(0, 24))) ?? [];
     let items_top5 = items.slice(0, 10);
     expect(items_top5).toMatchInlineSnapshot(`

@@ -2,111 +2,81 @@ open Ocaml_lsp_server
 open Testing
 open! Import
 
+(** An extensive set of tests to validation that the prefix_op_position function
+    correctly returns prefixes merlin is happy with for all the odd ocaml syntax
+    that exists *)
+
+let prefix_test ?(short_path = false) document position =
+  let document_source = Testing.Merlin_kernel.Msource.make document in
+  let prefix = Compl.prefix_of_position ~short_path document_source position in
+  Printf.printf "%s " prefix
+
 let%expect_test "varible in labelled pararm" =
-  let document =
+  prefix_test
     "let map = ListLabels.map\n\nlet _ = map ~f:Int.abs\n"
-    |> Testing.Merlin_kernel.Msource.make
-  in
-
-  let position = `Logical (3, 22) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-
-  print_endline prefix;
+    (`Logical (3, 22));
   [%expect "Int.abs"]
 
 let%expect_test "labelled pararm" =
-  let document =
-    "let mem = ListLabels.mem\n\nlet _ = mem ~se"
-    |> Testing.Merlin_kernel.Msource.make
-  in
+  prefix_test "let mem = ListLabels.mem\n\nlet _ = mem ~se" (`Logical (3, 15));
+  [%expect "~se"]
 
-  let position = `Logical (3, 15) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
+let%expect_test "completion of enum" =
+  prefix_test "match kind with\n| `Va" (`Logical (2, 21));
+  [%expect "`Va"]
 
-  Printf.printf "prefix:'%s' " prefix;
-  [%expect "prefix:'~se'"]
+let%expect_test "labelled pararm" =
+  prefix_test "let mem = ListLabels.mem\n\nlet _ = mem ~" (`Logical (3, 13));
+  [%expect "~"]
 
 let%expect_test "correctly handle typed hole for code action" =
-  let document = "let x = _" |> Testing.Merlin_kernel.Msource.make in
-  let position = `Logical (1, 9) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-
-  Printf.printf "prefix:'%s' " prefix;
-  [%expect "prefix:'_'"]
+  prefix_test "let x = _" (`Logical (1, 9));
+  [%expect "_"]
 
 let%expect_test "complete at infix" =
-  let document = "let x = 1|>." |> Testing.Merlin_kernel.Msource.make in
-  let position = `Logical (1, 11) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-
-  Printf.printf "prefix:'%s' " prefix;
-  [%expect "prefix:'|>'"]
+  prefix_test "let x = 1|>." (`Logical (1, 11));
+  [%expect "|>"]
 
 let%expect_test "complete at arbitrary position" =
-  let document = "Strin.func" |> Testing.Merlin_kernel.Msource.make in
-  let position = `Logical (1, 5) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-
-  (*let prefix_old = Compl.prefix_of_position_old ~short_path:false document
-    position in*)
-  Printf.printf "prefix:'%s' " prefix;
-  (*Printf.printf "prefix_old:'%s' " prefix_old;*)
-  [%expect "prefix:'Strin'"]
+  prefix_test "Strin.func" (`Logical (1, 5));
+  [%expect "Strin"]
 
 let%expect_test "completion prefix multiple dots test" =
-  let document =
-    "[1;2]|>Core.List.ma\n" |> Testing.Merlin_kernel.Msource.make
-  in
-  let position = `Logical (1, 19) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-  print_endline prefix;
+  prefix_test "[1;2]|>Core.List.ma\n" (`Logical (1, 19));
   [%expect "Core.List.ma"]
 
 let%expect_test "completion prefix touching infix test" =
-  let document = "[1;2]|>List.ma\n" |> Testing.Merlin_kernel.Msource.make in
-  let position = `Logical (1, 14) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-  print_endline prefix;
+  prefix_test "[1;2]|>List.ma\n" (`Logical (1, 14));
   [%expect "List.ma"]
 
 let%expect_test "completion prefix dot infix test" =
-  let document = "[1;2]|>.List.ma\n" |> Testing.Merlin_kernel.Msource.make in
-  let position = `Logical (1, 15) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-  print_endline prefix;
+  prefix_test "[1;2]|>.List.ma\n" (`Logical (1, 15));
+  [%expect "List.ma"]
+
+let%expect_test "completion against bracket" =
+  prefix_test "(List.ma)\n" (`Logical (1, 8));
   [%expect "List.ma"]
 
 let%expect_test "completion prefix with space test" =
-  let document = "[1;2] |> List.ma\n" |> Testing.Merlin_kernel.Msource.make in
-  let position = `Logical (1, 16) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-  print_endline prefix;
+  prefix_test "[1;2] |> List.ma\n" (`Logical (1, 16));
   [%expect "List.ma"]
 
 let%expect_test "short path prefix" =
-  let document =
-    "[1;2] |> Core.List.ma\n" |> Testing.Merlin_kernel.Msource.make
-  in
-  let position = `Logical (1, 22) in
-  let prefix = Compl.prefix_of_position ~short_path:true document position in
-  print_endline prefix;
+  prefix_test ~short_path:true "[1;2] |> Core.List.ma\n" (`Logical (1, 22));
   [%expect "ma"]
 
 let%expect_test "Space in dot chain" =
-  let document =
-    "[1;2] |> Other. Thing.Core .List . ma\n"
-    |> Testing.Merlin_kernel.Msource.make
-  in
-  let position = `Logical (1, 37) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-  print_endline prefix;
+  prefix_test "[1;2] |> Other. Thing.Core .List . ma\n" (`Logical (1, 37));
   [%expect "Other.Thing.Core.List.ma"]
 
 let%expect_test "newline in dot chain" =
-  let document =
-    "[1;2] |> Core.\nList.\nma\n" |> Testing.Merlin_kernel.Msource.make
-  in
-  let position = `Logical (3, 2) in
-  let prefix = Compl.prefix_of_position ~short_path:false document position in
-  print_endline prefix;
+  prefix_test "[1;2] |> Core.\nList.\nma\n" (`Logical (3, 2));
   [%expect "Core.List.ma"]
+
+let%expect_test "let%lwt thing" =
+  prefix_test "let%lwt" (`Logical (1, 7));
+  [%expect "let%lwt"]
+
+let%expect_test "let+ thing" =
+  prefix_test "let+" (`Logical (1, 4));
+  [%expect "let+"]
