@@ -3,7 +3,7 @@ open Re
 (*Regex based parser*)
 
 let name_or_label_regex =
-  Re.compile @@ Re.Posix.re {|[~?`]$|([~?`]|let%|and%)?([a-zA-Z0-9_']|[a-zA-Z0-9_'] *\. *)+$|}
+  Re.compile @@ Re.Posix.re {|([~?`]|let%|and%)?([a-zA-Z0-9_']|[a-zA-Z0-9_'] *\. *)+$|}
 
 (** matches let%lwt and let* style expressions. See here:https://v2.ocaml.org/manual/bindingops.html *)
 let monadic_bind =
