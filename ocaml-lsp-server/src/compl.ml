@@ -106,13 +106,25 @@ let prefix_of_position_old ~short_path source position =
 module String = struct
   include String
 
-  (**Filters a string keeping any chars for which f returns true and discarding
-     those for which it returns false*)
-  let filter str ~f =
+  (**reverses and Filters a string keeping any chars for which f returns true
+     and discarding those for which it returns false*)
+  let rev_filter str ~f =
     let buffer = Buffer.create (str |> String.length) in
-    String.iter ~f:(fun s -> if f s then Buffer.add_char buffer s else ()) str;
+    let len = str |> String.length in
+
+    for i = 0 to len - 1 do
+      let s = String.unsafe_get str (len -1 - i) in
+      if f s then Buffer.add_char buffer s else ()
+    done;
     let s : string = Buffer.contents buffer in
     s
+
+  (**reverses a stirng and maps over the content at the same time*)
+  let rev_map str ~f =
+    let string = Bytes.unsafe_of_string str in
+    let len = Bytes.length string in
+    Bytes.init len (fun i -> f (Bytes.unsafe_get string (len - 1 - i)))
+    |> Bytes.unsafe_to_string
 end
 
 let prefix_of_position ~short_path source position =
@@ -133,13 +145,13 @@ let prefix_of_position ~short_path source position =
       String.sub text ~pos ~len:(end_of_prefix + 1 - pos)
       (*because all whitespace is semantically the same we convert it all to
         spaces for easier regex matching*)
-      |> String.map ~f:(fun x -> if x = '\n' || x = '\t' then ' ' else x)
+      |> String.rev_map ~f:(fun x -> if x = '\n' || x = '\t' then ' ' else x)
     in
 
     let reconstructed_prefix =
       try_parse_regex prefix_text
       |> Option.value ~default:""
-      |> String.filter ~f:(fun x -> x <> ' ')
+      |> String.rev_filter ~f:(fun x -> x <> ' ')
     in
 
     if short_path then
