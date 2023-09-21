@@ -1,5 +1,4 @@
 open Ocaml_lsp_server
-open! Import
 
 (** An extensive set of tests to validation that the prefix_op_position function
     correctly returns prefixes merlin is happy with for all the odd ocaml syntax
@@ -7,7 +6,9 @@ open! Import
 
 let prefix_test ?(short_path = false) document position =
   let document_source = Testing.Merlin_kernel.Msource.make document in
-  let prefix = Testing.Compl.prefix_of_position ~short_path document_source position in
+  let prefix =
+    Testing.Compl.prefix_of_position ~short_path document_source position
+  in
   Printf.printf "%s " prefix
 
 let%expect_test "varible in labelled pararm" =
