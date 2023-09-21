@@ -103,30 +103,6 @@ let prefix_of_position_old ~short_path source position =
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
-module String = struct
-  include String
-
-  (**reverses and Filters a string keeping any chars for which f returns true
-     and discarding those for which it returns false*)
-  let rev_filter str ~f =
-    let buffer = Buffer.create (str |> String.length) in
-    let len = str |> String.length in
-
-    for i = 0 to len - 1 do
-      let s = String.unsafe_get str (len -1 - i) in
-      if f s then Buffer.add_char buffer s else ()
-    done;
-    let s : string = Buffer.contents buffer in
-    s
-
-  (**reverses a stirng and maps over the content at the same time*)
-  let rev_map str ~f =
-    let string = Bytes.unsafe_of_string str in
-    let len = Bytes.length string in
-    Bytes.init len (fun i -> f (Bytes.unsafe_get string (len - 1 - i)))
-    |> Bytes.unsafe_to_string
-end
-
 let prefix_of_position ~short_path source position =
   let open Prefix_parser in
   match Msource.text source with
@@ -323,12 +299,8 @@ module Complete_with_construct = struct
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
 end
 
-let logCompletion log =
-  Log.log ~section:"resolveCompletion" (fun () -> Log.msg log [])
-
 let complete (state : State.t)
     ({ textDocument = { uri }; position = pos; _ } : CompletionParams.t) =
-  logCompletion "ho1";
   Fiber.of_thunk (fun () ->
       let doc = Document_store.get state.store uri in
       match Document.kind doc with
@@ -363,12 +335,6 @@ let complete (state : State.t)
               let* item = completion_item_capability in
               item.deprecatedSupport)
           in
-          logCompletion
-            (Printf.sprintf
-               "prefix: %s; position %i:%i"
-               prefix
-               pos.line
-               pos.character);
           if not (Typed_hole.can_be_hole prefix) then
             Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
           else
@@ -438,12 +404,10 @@ let format_doc ~markdown doc =
 
 let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
     ~markdown =
-  logCompletion "Starting  completion";
   Fiber.of_thunk (fun () ->
       (* Due to merlin's API, we create a version of the given document with the
          applied completion item and pass it to merlin to get the docs for the
          [compl.label] *)
-      logCompletion "Starting  completion";
       let position : Position.t = resolve.position in
       let logical_position = Position.logical position in
       let doc =
@@ -455,7 +419,6 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
                 (Document.Merlin.source doc)
                 logical_position
             in
-            logCompletion @@ "completion prefix is:" ^ prefix;
             { position with
               character = position.character - String.length prefix
             }
@@ -468,9 +431,7 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc
               character = position.character + String.length suffix
             }
           in
-
           let range = Range.create ~start ~end_ in
-
           TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
         in
         Document.update_text (Document.Merlin.to_doc doc) [ complete ]

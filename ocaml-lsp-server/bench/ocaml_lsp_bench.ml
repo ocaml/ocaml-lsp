@@ -1,6 +1,6 @@
 open Core
 open Core_bench
-open Ocaml_lsp_server.Testing
+open Ocaml_lsp_server
 
 let () =
   let document =
@@ -24,21 +24,33 @@ let () =
   Command_unix.run
     (Bench.make_command
        [ Bench.Test.create ~name:"regex" (fun _ ->
-             Compl.prefix_of_position ~short_path:false document position
+             Testing.Compl.prefix_of_position
+               ~short_path:false
+               document
+               position
              |> ignore)
        ; Bench.Test.create ~name:"regex_long" (fun _ ->
-             Compl.prefix_of_position ~short_path:false long_document position
+             Testing.Compl.prefix_of_position
+               ~short_path:false
+               long_document
+               position
              |> ignore)
        ; Bench.Test.create ~name:"regex_only" (fun _ ->
-             Prefix_parser.try_parse_regex
+             Testing.Prefix_parser.try_parse_regex
                (document |> Merlin_kernel.Msource.text)
              |> ignore)
        ; Bench.Test.create ~name:"regex_only_long" (fun _ ->
-             Prefix_parser.try_parse_regex long_document_text |> ignore)
+             Testing.Prefix_parser.try_parse_regex long_document_text |> ignore)
        ; Bench.Test.create ~name:"old" (fun _ ->
-             Compl.prefix_of_position_old ~short_path:false document position
+             Testing.Compl.prefix_of_position_old
+               ~short_path:false
+               document
+               position
              |> ignore)
        ; Bench.Test.create ~name:"old_long" (fun _ ->
-             Compl.prefix_of_position_old ~short_path:false document position
+             Testing.Compl.prefix_of_position_old
+               ~short_path:false
+               document
+               position
              |> ignore)
        ])

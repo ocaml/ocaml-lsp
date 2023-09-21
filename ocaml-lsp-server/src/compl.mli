@@ -27,9 +27,10 @@ val resolve :
   -> CompletionItem.t Fiber.t
 
 (** [prefix_of_position ~short_path source position] computes prefix before
-    given [position]. 
-    A prefix is essentially a piece of code that refers to one thing eg a single infix operator "|>", a single reference to a function or variable: "List.map" a keyword "let" etc 
-    If there is semantically irrelivent whitespace it is removed eg "List. map"->"List.map"
+    given [position]. A prefix is essentially a piece of code that refers to one
+    thing eg a single infix operator "|>", a single reference to a function or
+    variable: "List.map" a keyword "let" etc If there is semantically irrelivent
+    whitespace it is removed eg "List. map"->"List.map"
 
     @param short_path
       determines whether we want full prefix or cut at ["."], e.g.
@@ -38,6 +39,7 @@ val resolve :
     @return prefix of [position] in [source] and its length *)
 val prefix_of_position :
   short_path:bool -> Msource.t -> [< Msource.position ] -> string
+
 val prefix_of_position_old :
   short_path:bool -> Msource.t -> [< Msource.position ] -> string
 

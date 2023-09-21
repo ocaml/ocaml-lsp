@@ -3,7 +3,7 @@ open Re
 (*Regex based parser*)
 
 let name_or_label_regex =
-  Re.compile @@ Re.Posix.re {|([~?`]|let%|and%)?([a-zA-Z0-9_']|[a-zA-Z0-9_'] *\. *)+$|}
+   {|([~?`]|let%|and%)?([a-zA-Z0-9_']|[a-zA-Z0-9_'] *\. *)+$|}
 
 let name_or_label_regex_rev =
   Re.compile @@ Re.Posix.re {|^([a-zA-Z0-9_']| *\. *[a-zA-Z0-9_'])+([~?`]|%tel|%dna)?|}
@@ -21,7 +21,6 @@ open Import
 
 module Option = struct
   include Option
-
   let none_bind func option =
     match option with
     | None -> func ()
