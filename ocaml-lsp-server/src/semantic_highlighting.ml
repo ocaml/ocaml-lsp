@@ -520,7 +520,12 @@ end = struct
                 after the first argument *)
              Loc.compare lid.loc fst_arg.pexp_loc > 0 ->
         self.expr self fst_arg;
-        lident lid (Token_type.of_builtin Function) ();
+        (* [lident] parses the identifier to find module names, which we don't
+           need to do for infix operators. *)
+        add_token
+          lid.loc
+          (Token_type.of_builtin Function)
+          Token_modifiers_set.empty;
         List.iter rest ~f:(fun (_, e) -> self.expr self e)
       | _ ->
         lident lid (Token_type.of_builtin Function) ();

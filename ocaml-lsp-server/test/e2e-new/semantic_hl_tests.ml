@@ -733,3 +733,16 @@ let x = { M . foo = 0 ; bar = "bar"}
     module <namespace|definition-0>M</0> = struct type <struct|definition-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
 
     let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>} |}]
+
+let%expect_test "operators" =
+  test_semantic_tokens_full
+  @@ String.trim {|
+let x = 1.0 *. 2.0
+let y = 1 * 2
+let z = 0 >>= 1
+      |};
+  [%expect
+    {|
+    let <variable|-0>x</0> = <number|-1>1.0</1> <function|-2>*.</2> <number|-3>2.0</3>
+    let <variable|-4>y</4> = <number|-5>1</5> <function|-6>*</6> <number|-7>2</7>
+    let <variable|-8>z</8> = <number|-9>0</9> <function|-10>>>=</10> <number|-11>1</11> |}]
