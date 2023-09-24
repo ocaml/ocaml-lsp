@@ -4,6 +4,7 @@
 
 - Fix missing super & subscripts in markdown documentation. (#1170)
 - Do not invoke dune at all if `--fallback-read-dot-merlin` flag is on. (#1173)
+- Fix semantic highlighting of infix operators that contain '.'. (#1186)
 
 ## Features
 
