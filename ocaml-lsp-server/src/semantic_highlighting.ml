@@ -552,6 +552,7 @@ end = struct
              Pexp_tuple(...))] *)
           Option.iter vo ~f:(fun v -> self.expr self v)
         | Lident "[]" -> () (* TDOO: is this correct? *)
+        | Lident "()" -> ()
         | _ ->
           lident c (Token_type.of_builtin EnumMember) ();
           Option.iter vo ~f:(fun v -> self.expr self v));
@@ -688,6 +689,7 @@ end = struct
         (match c.txt with
         | Lident "::" -> process_args ()
         | Lident "[]" -> ()
+        | Lident "()" -> ()
         | _ ->
           lident c (Token_type.of_builtin EnumMember) ();
           process_args ());
