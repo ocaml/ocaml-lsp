@@ -40,9 +40,6 @@ val resolve :
 val prefix_of_position :
   short_path:bool -> Msource.t -> [< Msource.position ] -> string
 
-val prefix_of_position_old :
-  short_path:bool -> Msource.t -> [< Msource.position ] -> string
-
 (** [reconstruct_ident source position] returns the identifier at [position].
     Note: [position] can be in the middle of the identifier.
 
