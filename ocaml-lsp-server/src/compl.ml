@@ -125,7 +125,7 @@ let prefix_of_position ~short_path source position =
     in
 
     let reconstructed_prefix =
-      try_parse_regex prefix_text
+      try_parse_with_regex prefix_text
       |> Option.value ~default:""
       |> String.rev_filter ~f:(fun x -> x <> ' ')
     in

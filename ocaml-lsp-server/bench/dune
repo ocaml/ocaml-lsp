@@ -1,16 +1,11 @@
-
 (executables
  (names ocaml_lsp_bench)
-
-  (libraries
+ (libraries
   ocaml_lsp_server
- core_unix.command_unix
+  core_unix.command_unix
   merlin-lib.kernel
-
   base
   core
-  core_bench
-  )
-
- (preprocess(pps ppx_jane ppx_bench))
-  )
+  core_bench)
+ (preprocess
+  (pps ppx_bench)))

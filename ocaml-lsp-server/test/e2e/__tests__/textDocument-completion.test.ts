@@ -208,7 +208,6 @@ describe_opt("textDocument/completion", () => {
         },
       ]
       `);
-
   });
 
   it("can start completion after operator with space", async () => {
@@ -270,7 +269,6 @@ describe_opt("textDocument/completion", () => {
       ]
       `);
   });
-
 
   it("can start completion in dot chain with newline", async () => {
     openDocument(outdent`
@@ -478,7 +476,6 @@ let apple=ref 10 in
         },
       ]
       `);
-
   });
   it("can complete symbol passed as a named argument", async () => {
     openDocument(outdent`
@@ -857,7 +854,6 @@ g ?f:M.ig
 
   it("completes labels", async () => {
     openDocument("let f = ListLabels.map ~");
-
 
     let items = (await queryCompletion(Types.Position.create(0, 24))) ?? [];
     let items_top5 = items.slice(0, 10);

@@ -118,6 +118,8 @@
           ppx_yojson_conv = "*";
           cinaps = "*";
           ppx_expect = "*";
+          core_bench="*";
+          ppx_bench = "*";
           ocamlfind = "1.9.2";
         };
         packagesFromNames = set:
@@ -213,6 +215,9 @@
                 ocamlPackages.utop
                 ocamlPackages.cinaps
                 ocamlPackages.ppx_yojson_conv
+                #benchmarking
+                ocamlPackages.ppx_bench
+                ocamlPackages.core_bench
               ]);
             inputsFrom = [ fast.ocaml-lsp fast.jsonrpc fast.lsp ];
           };

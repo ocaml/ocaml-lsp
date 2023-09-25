@@ -80,3 +80,7 @@ let%expect_test "let%lwt thing" =
 let%expect_test "let+ thing" =
   prefix_test "let+" (`Logical (1, 4));
   [%expect "let+"]
+
+let%expect_test "let+$% thing" =
+  prefix_test "let+$%" (`Logical (1, 6));
+  [%expect "let+$%"]

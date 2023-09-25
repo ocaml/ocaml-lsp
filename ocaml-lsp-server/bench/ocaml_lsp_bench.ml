@@ -36,11 +36,12 @@ let () =
                position
              |> ignore)
        ; Bench.Test.create ~name:"regex_only" (fun _ ->
-             Testing.Prefix_parser.try_parse_regex
+             Testing.Prefix_parser.try_parse_with_regex
                (document |> Merlin_kernel.Msource.text)
              |> ignore)
        ; Bench.Test.create ~name:"regex_only_long" (fun _ ->
-             Testing.Prefix_parser.try_parse_regex long_document_text |> ignore)
+             Testing.Prefix_parser.try_parse_with_regex long_document_text
+             |> ignore)
        ; Bench.Test.create ~name:"old" (fun _ ->
              Testing.Compl.prefix_of_position_old
                ~short_path:false
