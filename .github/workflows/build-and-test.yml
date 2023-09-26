@@ -23,16 +23,16 @@ jobs:
         ocaml-compiler:
           - 4.14.x
           - 5.0.x
-          - ocaml-variants.5.1.0+trunk
+          - 5.1.x
         exclude:
           - os: windows-latest
             ocaml-compiler: 5.0.x
           - os: windows-latest
-            ocaml-compiler: ocaml-variants.5.1.0+trunk
+            ocaml-compiler: 5.1.x
           - os: macos-latest
             ocaml-compiler: 5.0.x
           - os: macos-latest
-            ocaml-compiler: ocaml-variants.5.1.0+trunk
+            ocaml-compiler: 5.1.x
 
     runs-on: ${{ matrix.os }}
 
