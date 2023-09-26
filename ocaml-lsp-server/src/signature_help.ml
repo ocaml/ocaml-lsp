@@ -168,13 +168,13 @@ let application_signature ~prefix = function
 let format_doc ~markdown ~doc =
   `MarkupContent
     (if markdown then
-     let value =
-       match Doc_to_md.translate doc with
-       | Raw d -> sprintf "(** %s *)" d
-       | Markdown d -> d
-     in
-     { MarkupContent.value; kind = MarkupKind.Markdown }
-    else { MarkupContent.value = doc; kind = MarkupKind.PlainText })
+       let value =
+         match Doc_to_md.translate doc with
+         | Raw d -> sprintf "(** %s *)" d
+         | Markdown d -> d
+       in
+       { MarkupContent.value; kind = MarkupKind.Markdown }
+     else { MarkupContent.value = doc; kind = MarkupKind.PlainText })
 
 let run (state : State.t)
     { SignatureHelpParams.textDocument = { uri }; position; _ } =

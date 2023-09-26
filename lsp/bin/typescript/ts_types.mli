@@ -62,31 +62,29 @@ module type S = sig
 
   val dyn_of_field : field -> Dyn.t
 
-  class map :
-    object
-      method enum_anon : Enum.t -> Enum.t
+  class map : object
+    method enum_anon : Enum.t -> Enum.t
 
-      method field : field -> field
+    method field : field -> field
 
-      method interface : interface -> interface
+    method interface : interface -> interface
 
-      method sum : typ list -> typ
+    method sum : typ list -> typ
 
-      method t : t -> t
+    method t : t -> t
 
-      method typ : typ -> typ
-    end
+    method typ : typ -> typ
+  end
 
-  class ['a] fold :
-    object
-      method field : field -> init:'a -> 'a
+  class ['a] fold : object
+    method field : field -> init:'a -> 'a
 
-      method ident : ident -> init:'a -> 'a
+    method ident : ident -> init:'a -> 'a
 
-      method t : t -> init:'a -> 'a
+    method t : t -> init:'a -> 'a
 
-      method typ : typ -> init:'a -> 'a
-    end
+    method typ : typ -> init:'a -> 'a
+  end
 end
 
 module Unresolved : sig

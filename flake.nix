@@ -152,7 +152,7 @@
             buildInputs = (with pkgs;
               [
                 # dev tools
-                ocamlformat_0_24_1
+                ocamlformat_0_26_1
                 yarn
 
                 ocamlPackages.ppx_expect

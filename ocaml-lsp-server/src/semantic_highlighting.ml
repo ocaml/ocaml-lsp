@@ -469,9 +469,9 @@ end = struct
     List.iter
       ptype_params
       ~f:(fun
-           ((core_type, _) :
-             Parsetree.core_type * (Asttypes.variance * Asttypes.injectivity))
-         ->
+          ((core_type, _) :
+            Parsetree.core_type * (Asttypes.variance * Asttypes.injectivity))
+        ->
         add_token
           core_type.ptyp_loc
           (Token_type.of_builtin TypeParameter)

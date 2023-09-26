@@ -13,14 +13,13 @@ let iter_lsp_response ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
   let got_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
-      ~on_notification:
-        (fun _ -> function
-          | PublishDiagnostics _ -> (
-            let* diag = Fiber.Ivar.peek got_diagnostics in
-            match diag with
-            | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill got_diagnostics ())
-          | _ -> Fiber.return ())
+      ~on_notification:(fun _ -> function
+        | PublishDiagnostics _ -> (
+          let* diag = Fiber.Ivar.peek got_diagnostics in
+          match diag with
+          | Some _ -> Fiber.return ()
+          | None -> Fiber.Ivar.fill got_diagnostics ())
+        | _ -> Fiber.return ())
       ()
   in
   Test.run ~handler @@ fun client ->

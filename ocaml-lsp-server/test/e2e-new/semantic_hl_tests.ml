@@ -84,16 +84,15 @@ let test :
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
-      ~on_notification:
-        (fun client -> function
-          | Lsp.Server_notification.PublishDiagnostics _ ->
-            (* we don't want to close the connection from client-side before we
-               process diagnostics arrived on the channel. TODO: would a better
-               solution be to simply flush on closing the connection because now
-               semantic tokens tests is coupled to diagnostics *)
-            let+ () = Fiber.Ivar.fill wait_for_diagnostics () in
-            Client.state client
-          | _ -> Fiber.return ())
+      ~on_notification:(fun client -> function
+        | Lsp.Server_notification.PublishDiagnostics _ ->
+          (* we don't want to close the connection from client-side before we
+             process diagnostics arrived on the channel. TODO: would a better
+             solution be to simply flush on closing the connection because now
+             semantic tokens tests is coupled to diagnostics *)
+          let+ () = Fiber.Ivar.fill wait_for_diagnostics () in
+          Client.state client
+        | _ -> Fiber.return ())
       ()
   in
   Test.run ~handler (fun client ->
