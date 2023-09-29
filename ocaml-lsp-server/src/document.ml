@@ -289,7 +289,7 @@ module Merlin = struct
 
   let type_enclosing doc pos verbosity =
     with_pipeline_exn doc (fun pipeline ->
-        let command = Query_protocol.Type_enclosing (None, pos, None) in
+        let command = Query_protocol.Type_enclosing (None, pos, Some 0) in
         let pipeline =
           match verbosity with
           | 0 -> pipeline

@@ -520,7 +520,12 @@ end = struct
                 after the first argument *)
              Loc.compare lid.loc fst_arg.pexp_loc > 0 ->
         self.expr self fst_arg;
-        lident lid (Token_type.of_builtin Function) ();
+        (* [lident] parses the identifier to find module names, which we don't
+           need to do for infix operators. *)
+        add_token
+          lid.loc
+          (Token_type.of_builtin Function)
+          Token_modifiers_set.empty;
         List.iter rest ~f:(fun (_, e) -> self.expr self e)
       | _ ->
         lident lid (Token_type.of_builtin Function) ();
@@ -547,6 +552,7 @@ end = struct
              Pexp_tuple(...))] *)
           Option.iter vo ~f:(fun v -> self.expr self v)
         | Lident "[]" -> () (* TDOO: is this correct? *)
+        | Lident "()" -> ()
         | _ ->
           lident c (Token_type.of_builtin EnumMember) ();
           Option.iter vo ~f:(fun v -> self.expr self v));
@@ -683,6 +689,7 @@ end = struct
         (match c.txt with
         | Lident "::" -> process_args ()
         | Lident "[]" -> ()
+        | Lident "()" -> ()
         | _ ->
           lident c (Token_type.of_builtin EnumMember) ();
           process_args ());

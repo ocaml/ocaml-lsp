@@ -177,38 +177,38 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         | <enumMember|definition-16>Foo</16> of <type|-17>string</17>
         | <enumMember|definition-18>Bar</18> of [ `Int of <type|-19>int</19> | `String of <type|-20>string</20> ]
 
-      let <variable|-21>u</21> = <enumMember|-22>()</22>
+      let <variable|-21>u</21> = ()
 
-      let <function|definition-23>f</23> <enumMember|-24>()</24> = <number|-25>0</25>
+      let <function|definition-22>f</22> () = <number|-23>0</23>
     end
 
-    module type <interface|-26>Bar</26> = sig
-      type <struct|definition-27>t</27> =
-        { <property|-28>foo</28> : <namespace|-29>Moo</29>.<type|-30>t</30>
-        ; <property|-31>bar</31> : <type|-32>int</32>
+    module type <interface|-24>Bar</24> = sig
+      type <struct|definition-25>t</25> =
+        { <property|-26>foo</26> : <namespace|-27>Moo</27>.<type|-28>t</28>
+        ; <property|-29>bar</29> : <type|-30>int</30>
         }
     end
 
-    type <enum|definition-33>t</33> = <namespace|-34>Moo</34>.<type|-35>koo</35> =
-      | <enumMember|definition-36>Foo</36> of <type|-37>string</37>
-      | <enumMember|definition-38>Bar</38> of [ `BarInt of <type|-39>int</39> | `BarString of <type|-40>string</40> ]
+    type <enum|definition-31>t</31> = <namespace|-32>Moo</32>.<type|-33>koo</33> =
+      | <enumMember|definition-34>Foo</34> of <type|-35>string</35>
+      | <enumMember|definition-36>Bar</36> of [ `BarInt of <type|-37>int</37> | `BarString of <type|-38>string</38> ]
 
-    let <function|definition-41>f</41> (<variable|-42>foo</42> : <type|-43>t</43>) =
-      match <variable|-44>foo</44> with
-      | <namespace|-45>Moo</45>.<enumMember|-46>Foo</46> <variable|-47>s</47> -> <variable|-48>s</48> <function|-49>^</49> <function|-50>string_of_int</50> <number|-51>0</51>
-      | <namespace|-52>Moo</52>.<enumMember|-53>Bar</53> (`BarInt <variable|-54>i</54>) -> <function|-55>string_of_int</55> <variable|-56>i</56>
-      | <namespace|-57>Moo</57>.<enumMember|-58>Bar</58> (`BarString <variable|-59>s</59>) -> <variable|-60>s</60>
+    let <function|definition-39>f</39> (<variable|-40>foo</40> : <type|-41>t</41>) =
+      match <variable|-42>foo</42> with
+      | <namespace|-43>Moo</43>.<enumMember|-44>Foo</44> <variable|-45>s</45> -> <variable|-46>s</46> <function|-47>^</47> <function|-48>string_of_int</48> <number|-49>0</49>
+      | <namespace|-50>Moo</50>.<enumMember|-51>Bar</51> (`BarInt <variable|-52>i</52>) -> <function|-53>string_of_int</53> <variable|-54>i</54>
+      | <namespace|-55>Moo</55>.<enumMember|-56>Bar</56> (`BarString <variable|-57>s</57>) -> <variable|-58>s</58>
 
-    module <namespace|definition-61>Foo</61> (<namespace|-62>Arg</62> : <interface|-63>Bar</63>) = struct
-      module <namespace|definition-64>Inner_foo</64> = struct
-        type <type|definition-65>t</65> = <type|-66>string</66>
+    module <namespace|definition-59>Foo</59> (<namespace|-60>Arg</60> : <interface|-61>Bar</61>) = struct
+      module <namespace|definition-62>Inner_foo</62> = struct
+        type <type|definition-63>t</63> = <type|-64>string</64>
       end
     end
 
-    module <namespace|definition-67>Foo_inst</67> = <namespace|-68>Foo</68> (struct
-      type <struct|definition-69>t</69> =
-        { <property|-70>foo</70> : <namespace|-71>Moo</71>.<type|-72>t</72>
-        ; <property|-73>bar</73> : <type|-74>int</74>
+    module <namespace|definition-65>Foo_inst</65> = <namespace|-66>Foo</66> (struct
+      type <struct|definition-67>t</67> =
+        { <property|-68>foo</68> : <namespace|-69>Moo</69>.<type|-70>t</70>
+        ; <property|-71>bar</71> : <type|-72>int</72>
         }
     end) |}]
 
@@ -366,22 +366,10 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "modifiers": []
       },
       {
-        "start_pos": { "character": 10, "line": 18 },
-        "length": 2,
-        "type": "enumMember",
-        "modifiers": []
-      },
-      {
         "start_pos": { "character": 6, "line": 20 },
         "length": 1,
         "type": "function",
         "modifiers": [ "definition" ]
-      },
-      {
-        "start_pos": { "character": 8, "line": 20 },
-        "length": 2,
-        "type": "enumMember",
-        "modifiers": []
       },
       {
         "start_pos": { "character": 13, "line": 20 },
@@ -733,3 +721,30 @@ let x = { M . foo = 0 ; bar = "bar"}
     module <namespace|definition-0>M</0> = struct type <struct|definition-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
 
     let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>} |}]
+
+let%expect_test "operators" =
+  test_semantic_tokens_full
+  @@ String.trim {|
+let x = 1.0 *. 2.0
+let y = 1 * 2
+let z = 0 >>= 1
+      |};
+  [%expect
+    {|
+    let <variable|-0>x</0> = <number|-1>1.0</1> <function|-2>*.</2> <number|-3>2.0</3>
+    let <variable|-4>y</4> = <number|-5>1</5> <function|-6>*</6> <number|-7>2</7>
+    let <variable|-8>z</8> = <number|-9>0</9> <function|-10>>>=</10> <number|-11>1</11> |}]
+
+let%expect_test "comment in unit" =
+  test_semantic_tokens_full
+  @@ String.trim
+       {|
+let y = (* comment *) 0
+let x = ((* comment *))
+let ((*comment*)) = ()
+      |};
+  [%expect
+    {|
+    let <variable|-0>y</0> = (* comment *) <number|-1>0</1>
+    let <variable|-2>x</2> = ((* comment *))
+    let ((*comment*)) = () |}]

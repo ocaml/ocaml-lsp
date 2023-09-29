@@ -1,5 +1,4 @@
-let inline_test src =
-  Code_actions.code_action_test ~title:"Inline into uses" ~source:src
+let inline_test = Code_actions.code_action_test ~title:"Inline into uses"
 
 let%expect_test "" =
   inline_test {|

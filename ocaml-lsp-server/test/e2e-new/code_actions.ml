@@ -1,17 +1,50 @@
 open Test.Import
 
 let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
-    ~source range k =
-  let uri = DocumentUri.of_path path in
-  let context = CodeActionContext.create ~diagnostics:[] () in
-  let request =
-    let textDocument = TextDocumentIdentifier.create ~uri in
-    CodeActionParams.create ~textDocument ~range ~context ()
+    ?(diagnostics = []) ~source range k =
+  let got_diagnostics = Fiber.Ivar.create () in
+  let handler =
+    Client.Handler.make
+      ~on_notification:
+        (fun _ -> function
+          | PublishDiagnostics _ -> (
+            let* diag = Fiber.Ivar.peek got_diagnostics in
+            match diag with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill got_diagnostics ())
+          | _ -> Fiber.return ())
+      ()
   in
-  Test.run_request
-    ~prep:(fun client -> prep client >>> Test.openDocument ~client ~uri ~source)
-    (CodeAction request)
-  |> k
+  Test.run ~handler @@ fun client ->
+  let run_client () =
+    let capabilities =
+      let window =
+        let showDocument =
+          ShowDocumentClientCapabilities.create ~support:true
+        in
+        WindowClientCapabilities.create ~showDocument ()
+      in
+      ClientCapabilities.create ~window ()
+    in
+    Client.start client (InitializeParams.create ~capabilities ())
+  in
+  let run =
+    let* (_ : InitializeResult.t) = Client.initialized client in
+    let uri = DocumentUri.of_path path in
+    let* () = prep client in
+    let* () = openDocument ~client ~uri ~source in
+    let+ resp =
+      let context = CodeActionContext.create ~diagnostics () in
+      let request =
+        let textDocument = TextDocumentIdentifier.create ~uri in
+        CodeActionParams.create ~textDocument ~range ~context ()
+      in
+      Client.request client (CodeAction request)
+    in
+    k resp
+  in
+  Fiber.fork_and_join_unit run_client (fun () ->
+      run >>> Fiber.Ivar.read got_diagnostics >>> Client.stop client)
 
 let print_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ?(filter = fun _ -> true) source range =
@@ -598,7 +631,8 @@ let apply_code_action title source range =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
-  iter_code_actions ~source range (fun ca -> code_actions := Some ca);
+  iter_code_actions ?diagnostics ~source range (fun ca ->
+      code_actions := Some ca);
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
 
@@ -618,6 +652,6 @@ let apply_code_action title source range =
       | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
   |> Test.apply_edits source
 
-let code_action_test ~title ~source =
+let code_action_test ~title source =
   let src, range = parse_selection source in
   Option.iter (apply_code_action title src range) ~f:print_string

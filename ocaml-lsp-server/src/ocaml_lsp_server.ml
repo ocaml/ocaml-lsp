@@ -2,6 +2,7 @@ open Import
 module Version = Version
 module Diagnostics = Diagnostics
 module Position = Position
+module Doc_to_md = Doc_to_md
 module Diff = Diff
 open Fiber.O
 

@@ -1,7 +1,19 @@
 # Unreleased
 
+## Fixes
+
+- Fix missing super & subscripts in markdown documentation. (#1170)
+- Do not invoke dune at all if `--fallback-read-dot-merlin` flag is on. (#1173)
+- Fix semantic highlighting of infix operators that contain '.'. (#1186)
+- Disable highlighting unit as an enum member to fix comment highlighting bug. (#1185)
+- Improve type-on-hover efficiency by only formatting the type of the first
+  enclosing. (#1191)
+
 ## Features
 
+- Display text of references in doc strings (#1166)
+- Add mark/remove unused actions for open, types, for loop indexes, modules,
+  match cases, rec, and constructors (#1141)
 - Add inlay hints for types on let bindings (#1159)
 
 # 1.16.2

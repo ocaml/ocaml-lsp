@@ -36,12 +36,14 @@
  (preprocess
   (per_module
    ((action
-     (run %{dep:for_pp.sh} %{input-file}))
+     (run sh %{dep:for_pp.sh} %{input-file}))
     for_pp)
    ((pps ppx_expect)
     action_extract
     action_inline
+    action_mark_remove
     code_actions
+    doc_to_md
     document_flow
     for_ppx
     hover_extended
