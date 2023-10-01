@@ -37,19 +37,12 @@ let infix_operator = compile (seq [ start; infix |> rep1 ])
 
 open Import
 
-module Option = struct
-  include Option
-
-  let none_bind func option =
-    match option with
-    | None -> func ()
-    | Some x -> Some x
-end
-
 let try_parse_with_regex text =
+  (*Attempt to match each of our possible prefix types, the order is important
+    because there is some overlap between the regexs*)
   let matched =
-    Re.exec_opt name_or_label text
-    |> Option.none_bind (fun () -> Re.exec_opt monadic_bind text)
-    |> Option.none_bind (fun () -> Re.exec_opt infix_operator text)
+    List.find_map
+      [ name_or_label; monadic_bind; infix_operator ]
+      ~f:(fun regex -> Re.exec_opt regex text)
   in
   matched |> Option.map ~f:(fun x -> Group.get x 0)
