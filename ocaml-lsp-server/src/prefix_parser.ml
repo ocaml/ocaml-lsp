@@ -1,12 +1,13 @@
 open Re
 
 (*Regex based parser*)
+let whiteSpace = set "\n\t "
 
 let name_char =
   Re.alt [ rg 'a' 'z'; rg 'A' 'Z'; rg '0' '9'; char '_'; char '\'' ]
 
 let name_with_dot =
-  Re.seq [ char ' ' |> rep; char '.'; char ' ' |> rep; name_char ]
+  Re.seq [ whiteSpace |> rep; char '.'; whiteSpace |> rep; name_char ]
 
 let core_operator_str = {|$&*+-/=>@^||}
 
@@ -14,7 +15,7 @@ let operator = core_operator_str ^ {|~!?%<:.|}
 
 let infix = set (operator ^ "#")
 
-let name_or_label_regex_rev_2 =
+let name_or_label =
   compile
     (seq
        [ start
@@ -24,7 +25,7 @@ let name_or_label_regex_rev_2 =
 
 (** matches let%lwt and let* style expressions. See
     here:https://v2.ocaml.org/manual/bindingops.html *)
-let monadic_bind_rev_2 =
+let monadic_bind =
   compile
     (seq
        [ start
@@ -32,7 +33,7 @@ let monadic_bind_rev_2 =
        ; alt [ str "tel"; str "dna" ]
        ])
 
-let infix_regex_rev_2 = compile (seq [ start; infix |> rep1 ])
+let infix_operator = compile (seq [ start; infix |> rep1 ])
 
 open Import
 
@@ -47,8 +48,8 @@ end
 
 let try_parse_with_regex text =
   let matched =
-    Re.exec_opt name_or_label_regex_rev_2 text
-    |> Option.none_bind (fun () -> Re.exec_opt monadic_bind_rev_2 text)
-    |> Option.none_bind (fun () -> Re.exec_opt infix_regex_rev_2 text)
+    Re.exec_opt name_or_label text
+    |> Option.none_bind (fun () -> Re.exec_opt monadic_bind text)
+    |> Option.none_bind (fun () -> Re.exec_opt infix_operator text)
   in
   matched |> Option.map ~f:(fun x -> Group.get x 0)
