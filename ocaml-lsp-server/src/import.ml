@@ -47,7 +47,7 @@ include struct
       let s : string = Buffer.contents buffer in
       s
 
-    (**reverses a stirng and maps over the content at the same time*)
+    (**reverses a string and maps over the content at the same time*)
     let rev_map str ~f =
       let string = Bytes.unsafe_of_string str in
       let len = Bytes.length string in
