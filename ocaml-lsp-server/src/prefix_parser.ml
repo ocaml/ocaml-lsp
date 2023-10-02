@@ -7,7 +7,7 @@ let name_char =
   Re.alt [ rg 'a' 'z'; rg 'A' 'Z'; rg '0' '9'; char '_'; char '\'' ]
 
 let name_with_dot =
-  Re.seq [ whiteSpace |> rep; char '.'; whiteSpace |> rep; name_char ]
+  Re.seq [   name_char;whiteSpace |> rep;char '.' ;whiteSpace |> rep;]
 
 let core_operator_str = {|$&*+-/=>@^||}
 
@@ -18,9 +18,10 @@ let infix = set (operator ^ "#")
 let name_or_label =
   compile
     (seq
-       [ start
+       [ 
+        alt [ set "~?``"; str "let%"; str "and%" ] |> opt
        ; alt [ name_char; name_with_dot ] |> rep1
-       ; alt [ set "~?``"; str "%tel"; str "%dna" ] |> opt
+      ; stop
        ])
 
 (** matches let%lwt and let* style expressions. See
@@ -28,21 +29,22 @@ let name_or_label =
 let monadic_bind =
   compile
     (seq
-       [ start
+       [ 
+        alt [ str "let"; str "and" ]
        ; alt [ infix |> rep1; seq [ name_char |> rep1; char '%' ] ]
-       ; alt [ str "tel"; str "dna" ]
+  ;stop
        ])
 
-let infix_operator = compile (seq [ start; infix |> rep1 ])
+let infix_operator = compile (seq [ infix |> rep1 ;stop])
 
 open Import
 
-let try_parse_with_regex text =
+let try_parse_with_regex ?pos ?len text =
   (*Attempt to match each of our possible prefix types, the order is important
     because there is some overlap between the regexs*)
   let matched =
     List.find_map
       [ name_or_label; monadic_bind; infix_operator ]
-      ~f:(fun regex -> Re.exec_opt regex text)
+      ~f:(fun regex -> Re.exec_opt ?pos ?len regex text)
   in
   matched |> Option.map ~f:(fun x -> Group.get x 0)

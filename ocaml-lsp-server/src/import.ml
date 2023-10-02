@@ -34,25 +34,12 @@ include struct
   module String = struct
     include String
 
-    (**reverses and Filters a string keeping any chars for which f returns true
+    (**Filters a string keeping any chars for which f returns true
        and discarding those for which it returns false*)
-    let rev_filter str ~f =
-      let buffer = Buffer.create (str |> String.length) in
-      let len = str |> String.length in
-
-      for i = 0 to len - 1 do
-        let s = String.unsafe_get str (len - 1 - i) in
-        if f s then Buffer.add_char buffer s else ()
-      done;
-      let s : string = Buffer.contents buffer in
-      s
-
-    (**reverses a string and maps over the content at the same time*)
-    let rev_map str ~f =
-      let string = Bytes.unsafe_of_string str in
-      let len = Bytes.length string in
-      Bytes.init len ~f:(fun i -> f (Bytes.unsafe_get string (len - 1 - i)))
-      |> Bytes.unsafe_to_string
+    let filter f s =
+      let buf = Buffer.create (String.length s) in
+      iter ~f:(fun c -> if f c then Buffer.add_char buf c) s;
+      Buffer.contents buf
 
     let findi =
       let rec loop s len ~f i =

@@ -1,4 +1,4 @@
-(**Try's the parse the incoming string for a prefix. The string should be a
-   reversed copy of the line, starting at the position where the prefix ends and
-   continuing backwards from there. Does not handle whitespace other than spaces *)
-val try_parse_with_regex : string -> string option
+(**Try's the parse the incoming string for a prefix. The string should be the source code
+   ending at the prefix position.
+   pos and len set the range for the regex to operate on*)
+val try_parse_with_regex : ?pos:int -> ?len:int -> string -> string option 

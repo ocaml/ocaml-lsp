@@ -1,6 +1,7 @@
 open Import
 open Fiber.O
 
+
 module Resolve = struct
   type t = CompletionParams.t
 
@@ -35,22 +36,17 @@ let prefix_of_position ~short_path source position =
       let (`Offset index) = Msource.get_offset source position in
       min (String.length text - 1) (index - 1)
     in
-    let prefix_text =
       let pos =
         (*clamp the length of a line to process at 500 chars, this is just a
           reasonable limit for regex performance*)
         max 0 (end_of_prefix - 500)
       in
-      String.sub text ~pos ~len:(end_of_prefix + 1 - pos)
-      (*because all whitespace is semantically the same we convert it all to
-        spaces for easier regex matching*)
-      |> String.rev_map ~f:(fun x -> if x = '\n' || x = '\t' then ' ' else x)
-    in
-
+      
     let reconstructed_prefix =
-      try_parse_with_regex prefix_text
+      try_parse_with_regex ~pos ~len:(end_of_prefix + 1 - pos) text
       |> Option.value ~default:""
-      |> String.rev_filter ~f:(fun x -> x <> ' ')
+      (*We remove the whitespace because merlin expects no whitespace and it's semantically meaningless*)
+      |> String.filter (fun x -> not(x = ' '||x= '\n' ||x = '\t'))
     in
 
     if short_path then
