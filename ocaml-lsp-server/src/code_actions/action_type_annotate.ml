@@ -68,7 +68,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
     match context with
     | `Invalid -> None
     | `Valid ->
-      let command = Query_protocol.Type_enclosing (None, pos_start, None) in
+      let command = Query_protocol.Type_enclosing (None, pos_start, Some 0) in
       let config = Mpipeline.final_config pipeline in
       let config =
         { config with query = { config.query with verbosity = Lvl 0 } }

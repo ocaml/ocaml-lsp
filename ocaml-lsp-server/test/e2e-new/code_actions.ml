@@ -9,17 +9,17 @@ let openDocument ~client ~uri ~source =
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
 
 let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
-    ~source range k =
-  let diagnostics = Fiber.Ivar.create () in
+    ?(diagnostics = []) ~source range k =
+  let got_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
       ~on_notification:
         (fun _ -> function
           | PublishDiagnostics _ -> (
-            let* diag = Fiber.Ivar.peek diagnostics in
+            let* diag = Fiber.Ivar.peek got_diagnostics in
             match diag with
             | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill diagnostics ())
+            | None -> Fiber.Ivar.fill got_diagnostics ())
           | _ -> Fiber.return ())
       ()
   in
@@ -42,7 +42,7 @@ let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     let* () = prep client in
     let* () = openDocument ~client ~uri ~source in
     let+ resp =
-      let context = CodeActionContext.create ~diagnostics:[] () in
+      let context = CodeActionContext.create ~diagnostics () in
       let request =
         let textDocument = TextDocumentIdentifier.create ~uri in
         CodeActionParams.create ~textDocument ~range ~context ()
@@ -52,7 +52,7 @@ let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     k resp
   in
   Fiber.fork_and_join_unit run_client (fun () ->
-      run >>> Fiber.Ivar.read diagnostics >>> Client.stop client)
+      run >>> Fiber.Ivar.read got_diagnostics >>> Client.stop client)
 
 let print_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ?(filter = fun _ -> true) source range =
@@ -667,11 +667,12 @@ let apply_edits src edits =
   in
   apply src edits
 
-let apply_code_action title source range =
+let apply_code_action ?diagnostics title source range =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
-  iter_code_actions ~source range (fun ca -> code_actions := Some ca);
+  iter_code_actions ?diagnostics ~source range (fun ca ->
+      code_actions := Some ca);
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
 
@@ -691,6 +692,6 @@ let apply_code_action title source range =
       | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
   |> apply_edits source
 
-let code_action_test ~title ~source =
+let code_action_test ~title source =
   let src, range = parse_selection source in
   Option.iter (apply_code_action title src range) ~f:print_string

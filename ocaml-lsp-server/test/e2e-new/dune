@@ -41,6 +41,7 @@
    ((pps ppx_expect)
     action_extract
     action_inline
+    action_mark_remove
     code_actions
     doc_to_md
     document_flow
