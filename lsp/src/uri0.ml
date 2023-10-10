@@ -96,7 +96,8 @@ let to_string { scheme; authority; path } =
     Buffer.add_string buff scheme;
     Buffer.add_char buff ':');
 
-  if authority = "file" || scheme = "file" then Buffer.add_string buff "//";
+  if (not (String.is_empty authority)) || scheme = "file" then
+    Buffer.add_string buff "//";
 
   (*TODO: implement full logic:
     https://github.com/microsoft/vscode-uri/blob/96acdc0be5f9d5f2640e1c1f6733bbf51ec95177/src/uri.ts#L605 *)
