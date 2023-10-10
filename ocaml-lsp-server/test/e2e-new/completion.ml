@@ -318,7 +318,8 @@ let%expect_test "can start completion in dot chain with space" =
   let source = {ocaml|[1;2] |> List. ma|ocaml} in
   let position = Position.create ~line:0 ~character:17 in
   print_completions source position;
-  [%expect {|
+  [%expect
+    {|
       Completions:
       {
         "detail": "('a -> 'b) -> 'a list -> 'b list",
@@ -434,12 +435,10 @@ g ~f:M.ig|ocaml}
   |}]
 
 let%expect_test "can complete symbol passed as an optional argument" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 let g ?f = f in
 g ?f:ig
-    |ocaml}
-  in
+    |ocaml} in
   let position = Position.create ~line:2 ~character:7 in
   print_completions source position;
   [%expect
@@ -459,6 +458,7 @@ g ?f:ig
     }
   }
   |}]
+
 let%expect_test "can complete symbol passed as an optional argument - 2" =
   let source =
     {ocaml|module M = struct let igfoo _x = () end

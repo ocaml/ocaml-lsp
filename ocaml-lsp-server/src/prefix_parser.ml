@@ -7,7 +7,7 @@ let name_char =
   Re.alt [ rg 'a' 'z'; rg 'A' 'Z'; rg '0' '9'; char '_'; char '\'' ]
 
 let name_with_dot =
-  Re.seq [   name_char;whiteSpace |> rep;char '.' ;whiteSpace |> rep;]
+  Re.seq [ name_char; whiteSpace |> rep; char '.'; whiteSpace |> rep ]
 
 let core_operator_str = {|$&*+-/=>@^||}
 
@@ -18,10 +18,9 @@ let infix = set (operator ^ "#")
 let name_or_label =
   compile
     (seq
-       [ 
-        alt [ set "~?``"; str "let%"; str "and%" ] |> opt
+       [ alt [ set "~?``"; str "let%"; str "and%" ] |> opt
        ; alt [ name_char; name_with_dot ] |> rep1
-      ; stop
+       ; stop
        ])
 
 (** matches let%lwt and let* style expressions. See
@@ -29,13 +28,12 @@ let name_or_label =
 let monadic_bind =
   compile
     (seq
-       [ 
-        alt [ str "let"; str "and" ]
+       [ alt [ str "let"; str "and" ]
        ; alt [ infix |> rep1; seq [ name_char |> rep1; char '%' ] ]
-  ;stop
+       ; stop
        ])
 
-let infix_operator = compile (seq [ infix |> rep1 ;stop])
+let infix_operator = compile (seq [ infix |> rep1; stop ])
 
 open Import
 

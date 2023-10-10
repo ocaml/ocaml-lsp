@@ -1,6 +1,7 @@
 open Test.Import
 
-(**Opens a document with the language server. This must be done before trying to access it*)
+(**Opens a document with the language server. This must be done before trying to
+   access it*)
 let openDocument ~client ~uri ~source =
   let textDocument =
     TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
@@ -9,20 +10,21 @@ let openDocument ~client ~uri ~source =
     client
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
 
-(**Performs the request you return from the makeRequest function and then gives it the the handler function
-   you provide*)
+(**Performs the request you return from the makeRequest function and then gives
+   it the the handler function you provide*)
 let iter_LspResponse ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ~makeRequest ~source k =
   let got_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
-      ~on_notification:(fun _ -> function
-        | PublishDiagnostics _ -> (
-          let* diag = Fiber.Ivar.peek got_diagnostics in
-          match diag with
-          | Some _ -> Fiber.return ()
-          | None -> Fiber.Ivar.fill got_diagnostics ())
-        | _ -> Fiber.return ())
+      ~on_notification:
+        (fun _ -> function
+          | PublishDiagnostics _ -> (
+            let* diag = Fiber.Ivar.peek got_diagnostics in
+            match diag with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill got_diagnostics ())
+          | _ -> Fiber.return ())
       ()
   in
   Test.run ~handler @@ fun client ->

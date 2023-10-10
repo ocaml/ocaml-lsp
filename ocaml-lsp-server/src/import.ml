@@ -34,8 +34,8 @@ include struct
   module String = struct
     include String
 
-    (**Filters a string keeping any chars for which f returns true
-       and discarding those for which it returns false*)
+    (**Filters a string keeping any chars for which f returns true and
+       discarding those for which it returns false*)
     let filter f s =
       let buf = Buffer.create (String.length s) in
       iter ~f:(fun c -> if f c then Buffer.add_char buf c) s;

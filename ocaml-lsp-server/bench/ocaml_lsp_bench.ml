@@ -1,7 +1,4 @@
 open Ocaml_lsp_server
-
-
-
 open Core
 open Core_bench
 
