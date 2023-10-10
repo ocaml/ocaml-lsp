@@ -33,30 +33,141 @@ let print_completions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
                  |> print_endline);
           if originalLength > limit then print_endline "............."))
 
-let%expect_test "completions" =
-  let source = {ocaml|
-let testNum=11 in
-test
-|ocaml} in
-  let position = Position.create ~line:2 ~character:4 in
+let%expect_test "can start completion at arbitrary position (before the dot)" =
+  let source = {ocaml|Strin.func|ocaml} in
+  let position = Position.create ~line:0 ~character:5 in
   print_completions source position;
   [%expect
-    {| 
-Completions:
-{
-  "detail": "int",
-  "kind": 12,
-  "label": "testNum",
-  "sortText": "0000",
-  "textEdit": {
-    "newText": "testNum",
-    "range": {
-      "end": { "character": 4, "line": 2 },
-      "start": { "character": 0, "line": 2 }
-    }
-  }
-}
-|}]
+    {|
+      Completions:
+      {
+        "detail": "",
+        "kind": 9,
+        "label": "String",
+        "sortText": "0000",
+        "textEdit": {
+          "newText": "String",
+          "range": {
+            "end": { "character": 5, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          }
+        }
+      }
+      {
+        "detail": "",
+        "kind": 9,
+        "label": "StringLabels",
+        "sortText": "0001",
+        "textEdit": {
+          "newText": "StringLabels",
+          "range": {
+            "end": { "character": 5, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          }
+        }
+      } |}]
+
+let%expect_test "can start completion at arbitrary position" =
+  let source = {ocaml|StringLabels|ocaml} in
+  let position = Position.create ~line:0 ~character:6 in
+  print_completions source position;
+  [%expect
+    {|
+      Completions:
+      {
+        "detail": "",
+        "kind": 9,
+        "label": "String",
+        "sortText": "0000",
+        "textEdit": {
+          "newText": "String",
+          "range": {
+            "end": { "character": 6, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          }
+        }
+      }
+      {
+        "detail": "",
+        "kind": 9,
+        "label": "StringLabels",
+        "sortText": "0001",
+        "textEdit": {
+          "newText": "StringLabels",
+          "range": {
+            "end": { "character": 6, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          }
+        }
+      } |}]
+
+let%expect_test "can start completion at arbitrary position 2" =
+  let source = {ocaml|StringLabels|ocaml} in
+  let position = Position.create ~line:0 ~character:7 in
+  print_completions source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "",
+      "kind": 9,
+      "label": "StringLabels",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "StringLabels",
+        "range": {
+          "end": { "character": 7, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        }
+      }
+    } |}]
+
+let%expect_test "can start completion after operator without space" =
+  let source = {ocaml|[1;2]|>List.ma|ocaml} in
+  let position = Position.create ~line:0 ~character:14 in
+  print_completions source position;
+  [%expect
+    {|
+      Completions:
+      {
+        "detail": "('a -> 'b) -> 'a list -> 'b list",
+        "kind": 12,
+        "label": "map",
+        "sortText": "0000",
+        "textEdit": {
+          "newText": "map",
+          "range": {
+            "end": { "character": 14, "line": 0 },
+            "start": { "character": 12, "line": 0 }
+          }
+        }
+      }
+      {
+        "detail": "(int -> 'a -> 'b) -> 'a list -> 'b list",
+        "kind": 12,
+        "label": "mapi",
+        "sortText": "0001",
+        "textEdit": {
+          "newText": "mapi",
+          "range": {
+            "end": { "character": 14, "line": 0 },
+            "start": { "character": 12, "line": 0 }
+          }
+        }
+      }
+      {
+        "detail": "('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list",
+        "kind": 12,
+        "label": "map2",
+        "sortText": "0002",
+        "textEdit": {
+          "newText": "map2",
+          "range": {
+            "end": { "character": 14, "line": 0 },
+            "start": { "character": 12, "line": 0 }
+          }
+        }
+      } |}]
 
 let%expect_test "can start completion after operator with space" =
   let source = {ocaml|[1;2] |> List.ma|ocaml} in
@@ -106,53 +217,52 @@ let%expect_test "can start completion after operator with space" =
   }
   |}]
 
-let%expect_test "can start completion in dot chain with newline" =
-  let source = {ocaml|[1;2] |> List.
-ma|ocaml} in
-  let position = Position.create ~line:1 ~character:2 in
+let%expect_test "can start completion in dot chain with tab" =
+  let source = {ocaml|[1;2] |> List.	ma|ocaml} in
+  let position = Position.create ~line:0 ~character:17 in
   print_completions source position;
   [%expect
     {|
-  Completions:
-  {
-    "detail": "('a -> 'b) -> 'a list -> 'b list",
-    "kind": 12,
-    "label": "map",
-    "sortText": "0000",
-    "textEdit": {
-      "newText": "map",
-      "range": {
-        "end": { "character": 2, "line": 1 },
-        "start": { "character": 0, "line": 1 }
+      Completions:
+      {
+        "detail": "('a -> 'b) -> 'a list -> 'b list",
+        "kind": 12,
+        "label": "map",
+        "sortText": "0000",
+        "textEdit": {
+          "newText": "map",
+          "range": {
+            "end": { "character": 17, "line": 0 },
+            "start": { "character": 15, "line": 0 }
+          }
+        }
       }
-    }
-  }
-  {
-    "detail": "(int -> 'a -> 'b) -> 'a list -> 'b list",
-    "kind": 12,
-    "label": "mapi",
-    "sortText": "0001",
-    "textEdit": {
-      "newText": "mapi",
-      "range": {
-        "end": { "character": 2, "line": 1 },
-        "start": { "character": 0, "line": 1 }
+      {
+        "detail": "(int -> 'a -> 'b) -> 'a list -> 'b list",
+        "kind": 12,
+        "label": "mapi",
+        "sortText": "0001",
+        "textEdit": {
+          "newText": "mapi",
+          "range": {
+            "end": { "character": 17, "line": 0 },
+            "start": { "character": 15, "line": 0 }
+          }
+        }
       }
-    }
-  }
-  {
-    "detail": "('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list",
-    "kind": 12,
-    "label": "map2",
-    "sortText": "0002",
-    "textEdit": {
-      "newText": "map2",
-      "range": {
-        "end": { "character": 2, "line": 1 },
-        "start": { "character": 0, "line": 1 }
+      {
+        "detail": "('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list",
+        "kind": 12,
+        "label": "map2",
+        "sortText": "0002",
+        "textEdit": {
+          "newText": "map2",
+          "range": {
+            "end": { "character": 17, "line": 0 },
+            "start": { "character": 15, "line": 0 }
+          }
+        }
       }
-    }
-  }
   |}]
 
 let%expect_test "can start completion in dot chain with newline" =
@@ -202,6 +312,53 @@ ma|ocaml} in
       }
     }
   }
+  |}]
+
+let%expect_test "can start completion in dot chain with space" =
+  let source = {ocaml|[1;2] |> List. ma|ocaml} in
+  let position = Position.create ~line:0 ~character:17 in
+  print_completions source position;
+  [%expect {|
+      Completions:
+      {
+        "detail": "('a -> 'b) -> 'a list -> 'b list",
+        "kind": 12,
+        "label": "map",
+        "sortText": "0000",
+        "textEdit": {
+          "newText": "map",
+          "range": {
+            "end": { "character": 17, "line": 0 },
+            "start": { "character": 15, "line": 0 }
+          }
+        }
+      }
+      {
+        "detail": "(int -> 'a -> 'b) -> 'a list -> 'b list",
+        "kind": 12,
+        "label": "mapi",
+        "sortText": "0001",
+        "textEdit": {
+          "newText": "mapi",
+          "range": {
+            "end": { "character": 17, "line": 0 },
+            "start": { "character": 15, "line": 0 }
+          }
+        }
+      }
+      {
+        "detail": "('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list",
+        "kind": 12,
+        "label": "map2",
+        "sortText": "0002",
+        "textEdit": {
+          "newText": "map2",
+          "range": {
+            "end": { "character": 17, "line": 0 },
+            "start": { "character": 15, "line": 0 }
+          }
+        }
+      }
   |}]
 
 let%expect_test "can start completion after dereference" =
@@ -276,6 +433,32 @@ g ~f:M.ig|ocaml}
   }
   |}]
 
+let%expect_test "can complete symbol passed as an optional argument" =
+  let source =
+    {ocaml|
+let g ?f = f in
+g ?f:ig
+    |ocaml}
+  in
+  let position = Position.create ~line:2 ~character:7 in
+  print_completions source position;
+  [%expect
+    {|
+  Completions:
+  {
+    "detail": "'a -> unit",
+    "kind": 12,
+    "label": "ignore",
+    "sortText": "0000",
+    "textEdit": {
+      "newText": "ignore",
+      "range": {
+        "end": { "character": 7, "line": 2 },
+        "start": { "character": 5, "line": 2 }
+      }
+    }
+  }
+  |}]
 let%expect_test "can complete symbol passed as an optional argument - 2" =
   let source =
     {ocaml|module M = struct let igfoo _x = () end
