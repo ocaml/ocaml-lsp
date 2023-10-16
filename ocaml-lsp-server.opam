@@ -32,7 +32,7 @@ depends: [
   "ordering"
   "dune-build-info"
   "spawn"
-  "odoc-parser" {>= "2.0.0"}
+  "odoc-parser" {>= "2.0.0" & < "2.3.0"}
   "ppx_expect" {>= "v0.15.0" & with-test}
   "ocamlformat" {with-test & = "0.24.1"}
   "ocamlc-loc" {>= "3.7.0"}
