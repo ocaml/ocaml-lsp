@@ -66,7 +66,7 @@ let build_progress t (progress : Drpc.Progress.t) =
         | Failed -> end_build t ~message:"Build failed"
         | Interrupted -> end_build t ~message:"Build interrupted"
         | Waiting -> end_build t ~message:"Waiting for changes"
-        | In_progress { complete; remaining } ->
+        | In_progress progress ->
           let* token =
             match token with
             | Some token -> Fiber.return token
@@ -75,11 +75,13 @@ let build_progress t (progress : Drpc.Progress.t) =
                  build. *)
               start_build t
           in
-          let total = complete + remaining in
+          let total = progress.complete + progress.remaining in
           (* The percentage is useless as it isn't monotinically increasing as
              the spec requires, but it's the best we can do. *)
           let percentage =
-            let fraction = float_of_int complete /. float_of_int total in
+            let fraction =
+              float_of_int progress.complete /. float_of_int total
+            in
             int_of_float (fraction *. 100.)
           in
           report_progress
@@ -87,7 +89,9 @@ let build_progress t (progress : Drpc.Progress.t) =
                ~token
                ~value:
                  (Progress.Report
-                    (let message = sprintf "Building [%d/%d]" complete total in
+                    (let message =
+                       sprintf "Building [%d/%d]" progress.complete total
+                     in
                      WorkDoneProgressReport.create ~percentage ~message ())))))
 
 let should_report_build_progress = function
