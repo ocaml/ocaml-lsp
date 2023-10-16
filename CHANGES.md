@@ -16,6 +16,7 @@
 ## Features
 
 - Display text of references in doc strings (#1166)
+
 - Add mark/remove unused actions for open, types, for loop indexes, modules,
   match cases, rec, and constructors (#1141)
 
