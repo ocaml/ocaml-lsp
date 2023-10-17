@@ -92,7 +92,8 @@
               ppx_yojson_conv_lib
               uutf
               lsp
-              odoc-parser
+              astring
+              camlp-streams
               merlin-lib
             ];
             doCheck = false;
@@ -110,7 +111,8 @@
               duneVersion = "3";
               buildInputs = with pkgs.ocamlPackages; [
                 ocamlc-loc
-                odoc-parser
+                astring
+                camlp-streams
                 dune-build-info
                 re
                 dune-rpc
