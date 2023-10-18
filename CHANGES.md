@@ -13,6 +13,8 @@
 - Improve type-on-hover and type-annotate efficiency by only formatting the type
   of the first enclosing. (#1191, #1196)
 
+- Fix the encoding of URI's to match how vscode does it (#1197)
+
 ## Features
 
 - Display text of references in doc strings (#1166)
