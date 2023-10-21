@@ -216,6 +216,7 @@ let%expect_test "of_string -> to_string" =
     ; ""
     ; "file://LöC%2FAL/host:8080/projects/"
     ; "file:///pro%2Fjects/"
+    ; "vscode://mount/test.ml"
     ];
   [%expect
     {|
@@ -230,6 +231,7 @@ let%expect_test "of_string -> to_string" =
      -> file:///
     file://LöC%2FAL/host:8080/projects/ -> file://l%C3%B6c%2Fal/host%3A8080/projects/
     file:///pro%2Fjects/ -> file:///pro/jects/
+    vscode://mount/test.ml -> vscode://mount/test.ml
     Windows:
     file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
     file://sh%c3%a4res/path -> file://sh%C3%A4res/path
@@ -241,6 +243,7 @@ let%expect_test "of_string -> to_string" =
      -> file:///
     file://LöC%2FAL/host:8080/projects/ -> file://l%C3%B6c%2Fal/host%3A8080/projects/
     file:///pro%2Fjects/ -> file:///pro/jects/
+    vscode://mount/test.ml -> vscode://mount/test.ml
     |}]
 
 let%expect_test "of_string -> to_path" =

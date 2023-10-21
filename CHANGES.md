@@ -3,15 +3,22 @@
 ## Fixes
 
 - Fix missing super & subscripts in markdown documentation. (#1170)
+
 - Do not invoke dune at all if `--fallback-read-dot-merlin` flag is on. (#1173)
+
 - Fix semantic highlighting of infix operators that contain '.'. (#1186)
+
 - Disable highlighting unit as an enum member to fix comment highlighting bug. (#1185)
+
 - Improve type-on-hover and type-annotate efficiency by only formatting the type
   of the first enclosing. (#1191, #1196)
+
+- Fix the encoding of URI's to match how vscode does it (#1197)
 
 ## Features
 
 - Display text of references in doc strings (#1166)
+
 - Add mark/remove unused actions for open, types, for loop indexes, modules,
   match cases, rec, and constructors (#1141)
 
