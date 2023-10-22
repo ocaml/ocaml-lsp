@@ -17,6 +17,9 @@
 
 ## Features
 
+- Compatibility with Odoc 2.3.0, with support for the introduced syntax: tables,
+  and "codeblock output" (#1184)
+
 - Display text of references in doc strings (#1166)
 
 - Add mark/remove unused actions for open, types, for loop indexes, modules,
