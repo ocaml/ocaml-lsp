@@ -59,6 +59,7 @@ possible and does not make any assumptions about IO.
   (odoc-parser (and (>= 2.0.0) (< 2.3.0)))
   (ppx_expect (and (>= v0.15.0) :with-test))
   (ocamlformat (and :with-test (= 0.24.1)))
+  (ppx_bench (and :with-test (>= 0.16.0)))
   (ocamlc-loc (>= 3.7.0))
   (uutf (>= 1.0.2))
   (pp (>= 1.1.2))
