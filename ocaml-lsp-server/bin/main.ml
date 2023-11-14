@@ -5,6 +5,7 @@ let () =
   Printexc.record_backtrace true;
   let version = ref false in
   let read_dot_merlin = ref false in
+  let cache_period = ref None in
   let arg = Lsp.Cli.Arg.create () in
   let spec =
     [ ("--version", Arg.Set version, "print version")
@@ -12,6 +13,8 @@ let () =
       , Arg.Set read_dot_merlin
       , "read Merlin config from .merlin files. The `dot-merlin-reader` \
          package must be installed" )
+    ; ( "--cache-period", Arg.Int (fun period -> cache_period := Some period)
+      , "set the Merlin file cache period")
     ]
     @ Cli.Arg.spec arg
   in
@@ -39,7 +42,8 @@ let () =
     let module Exn_with_backtrace = Stdune.Exn_with_backtrace in
     match
       Exn_with_backtrace.try_with
-        (Ocaml_lsp_server.run channel ~read_dot_merlin:!read_dot_merlin)
+        (Ocaml_lsp_server.run channel ~read_dot_merlin:!read_dot_merlin
+           ~cache_period:!cache_period)
     with
     | Ok () -> ()
     | Error exn ->

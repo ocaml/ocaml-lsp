@@ -12,6 +12,7 @@ module Arg = struct
     ; mutable stdio : bool
     ; mutable spec : (string * Arg.spec * string) list
     ; mutable clientProcessId : int option
+    ; mutable cachePeriod : int option
     }
 
   let port t ~name ~description =
@@ -30,6 +31,7 @@ module Arg = struct
       ; stdio = false
       ; spec = []
       ; clientProcessId = None
+      ; cachePeriod = None
       }
     in
     let spec =
@@ -52,7 +54,7 @@ module Arg = struct
 
   let clientProcessId t = t.clientProcessId
 
-  let channel { pipe; port; stdio; spec = _; clientProcessId = _ } :
+  let channel { pipe; port; stdio; spec = _; clientProcessId = _; cachePeriod = _ } :
       (Channel.t, string) result =
     match (pipe, port, stdio) with
     | None, None, _ -> Ok Stdio
