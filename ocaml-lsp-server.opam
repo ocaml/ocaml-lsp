@@ -44,6 +44,10 @@ depends: [
   "ocaml"
   "merlin-lib" {>= "4.9" & < "5.0"}
 ]
+# Temporary pin until merlin gets released
+pin-depends: [
+  "merlin-lib.4.12" "git+https://github.com/ocaml/merlin.git#master"
+]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
   ["dune" "subst"] {dev}
