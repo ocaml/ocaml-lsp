@@ -6,7 +6,7 @@ type t
 
 val should_read_dot_merlin : bool ref
 
-val cache_period : int option ref
+val cache_lifespan : int option ref
 
 val config : t -> Mconfig.t Fiber.t
 

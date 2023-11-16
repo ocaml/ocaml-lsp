@@ -917,11 +917,11 @@ let run_in_directory =
   let for_windows = !Merlin_utils.Std.System.run_in_directory in
   fun () -> if Sys.win32 then for_windows else run_in_directory
 
-let run channel ~read_dot_merlin ~cache_period () =
+let run channel ~read_dot_merlin ~cache_lifespan () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
   Merlin_config.should_read_dot_merlin := read_dot_merlin;
-  Merlin_config.cache_period := cache_period;
+  Merlin_config.cache_lifespan := cache_lifespan;
 
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->
