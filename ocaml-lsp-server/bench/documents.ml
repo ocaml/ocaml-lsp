@@ -3,6 +3,7 @@ let document =
 
 let long_document_text =
   {|let prefix_of_position ~short_path source position =
+  let open Prefix_parser in
   match Msource.text source with
   | "" -> ""
   | text ->
@@ -23,7 +24,7 @@ let long_document_text =
     in
 
     let reconstructed_prefix =
-      Prefix_parser.parse prefix_text
+      try_parse_with_regex prefix_text
       |> Option.value ~default:""
       |> String.rev_filter ~f:(fun x -> x <> ' ')
     in
