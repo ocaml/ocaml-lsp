@@ -4,7 +4,7 @@ open Test.Import
     to access it *)
 val openDocument :
      client:'a Client.t
-  -> uri:Lsp__Types.DocumentUri.t
+  -> uri:Lsp.Types.DocumentUri.t
   -> source:string
   -> unit Fiber.t
 
