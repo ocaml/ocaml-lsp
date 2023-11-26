@@ -1,6 +1,6 @@
 open Test.Import
 
-let openDocument ~client ~uri ~source =
+let open_document ~client ~uri ~source =
   let textDocument =
     TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
   in
@@ -8,7 +8,7 @@ let openDocument ~client ~uri ~source =
     client
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
 
-let iter_LspResponse ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
+let iter_lsp_response ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ~makeRequest ~source k =
   let got_diagnostics = Fiber.Ivar.create () in
   let handler =
@@ -40,7 +40,7 @@ let iter_LspResponse ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     let* (_ : InitializeResult.t) = Client.initialized client in
     let uri = DocumentUri.of_path path in
     let* () = prep client in
-    let* () = openDocument ~client ~uri ~source in
+    let* () = open_document ~client ~uri ~source in
     let+ resp =
       let request =
         let textDocument = TextDocumentIdentifier.create ~uri in

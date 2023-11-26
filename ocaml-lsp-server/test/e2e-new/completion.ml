@@ -7,7 +7,7 @@ let iter_completions ?prep ?path ?(triggerCharacter = "")
     Lsp.Client_request.TextDocumentCompletion
       (CompletionParams.create ~textDocument ~position ~context ())
   in
-  Lsp_helpers.iter_LspResponse ?prep ?path ~makeRequest
+  Lsp_helpers.iter_lsp_response ?prep ?path ~makeRequest
 
 let print_completions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ?(limit = 10) ?(pre_print = fun x -> x) source position =

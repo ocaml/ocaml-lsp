@@ -7,7 +7,7 @@ let iter_code_actions ?prep ?path ?(diagnostics = []) ~source range =
     Lsp.Client_request.CodeAction
       (CodeActionParams.create ~textDocument ~range ~context ())
   in
-  iter_LspResponse ?prep ?path ~makeRequest ~source
+  iter_lsp_response ?prep ?path ~makeRequest ~source
 
 let print_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ?(filter = fun _ -> true) source range =
@@ -517,7 +517,7 @@ let f (x : t) = x
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = openDocument ~client ~uri ~source:impl_source in
+  let prep client = open_document ~client ~uri ~source:impl_source in
   let intf_source = "" in
   let range =
     let start = Position.create ~line:0 ~character:0 in
