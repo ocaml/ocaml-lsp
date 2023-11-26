@@ -1,13 +1,13 @@
 open Re
 
 (*Regex based parser*)
-let whiteSpace = set "\n\t "
+let white_space = set "\n\t "
 
 let name_char =
   Re.alt [ rg 'a' 'z'; rg 'A' 'Z'; rg '0' '9'; char '_'; char '\'' ]
 
 let name_with_dot =
-  Re.seq [ name_char; whiteSpace |> rep; char '.'; whiteSpace |> rep ]
+  Re.seq [ name_char; white_space |> rep; char '.'; white_space |> rep ]
 
 let core_operator_str = {|$&*+-/=>@^||}
 
