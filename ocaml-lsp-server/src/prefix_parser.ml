@@ -37,12 +37,12 @@ let infix_operator = compile (seq [ infix |> rep1; stop ])
 
 open Import
 
-let try_parse_with_regex ?pos ?len text =
+let try_parse_with_regex ~pos ~len text =
   (*Attempt to match each of our possible prefix types, the order is important
     because there is some overlap between the regexs*)
   let matched =
     List.find_map
       [ name_or_label; monadic_bind; infix_operator ]
-      ~f:(fun regex -> Re.exec_opt ?pos ?len regex text)
+      ~f:(fun regex -> Re.exec_opt ~pos ~len regex text)
   in
   matched |> Option.map ~f:(fun x -> Group.get x 0)
