@@ -8,8 +8,8 @@ val openDocument :
   -> source:string
   -> unit Fiber.t
 
-(** Performs the request you return from the makeRequest function and then
-    gives it the the handler function you provide *)
+(** Performs the request you return from the makeRequest function and then gives
+    it the the handler function you provide *)
 val iter_LspResponse :
      ?prep:(unit Client.t -> unit Fiber.t)
   -> ?path:string
