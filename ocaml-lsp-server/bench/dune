@@ -1,5 +1,6 @@
 (executables
  (names ocaml_lsp_bench)
+ (enabled_if (= %{profile} bench))
  (libraries
   ocaml_lsp_server
   core_unix.command_unix

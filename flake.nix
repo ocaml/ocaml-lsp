@@ -158,9 +158,6 @@
                 ocamlPackages.utop
                 ocamlPackages.cinaps
                 ocamlPackages.ppx_yojson_conv
-                #benchmarking
-                ocamlPackages.ppx_bench
-                ocamlPackages.core_bench
               ]);
             inputsFrom = [ fast.ocaml-lsp fast.jsonrpc fast.lsp ];
           };

@@ -36,9 +36,9 @@ lock: ## Generate the lock files
 	opam lock -y .
 
 .PHONY: bench
-bench: ## 
-	dune exec ocaml-lsp-server/bench/ocaml_lsp_bench.exe --profile release
-	
+bench: ##
+	dune exec ocaml-lsp-server/bench/ocaml_lsp_bench.exe --profile bench
+
 
 .PHONY: test-ocaml
 test-ocaml: ## Run the unit tests
