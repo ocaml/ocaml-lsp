@@ -39,7 +39,7 @@ include struct
   let infix_operator = compile (seq [ infix |> rep1; stop ])
 end
 
-let try_parse_with_regex ~pos ~len text =
+let parse ~pos ~len text =
   (*Attempt to match each of our possible prefix types, the order is important
     because there is some overlap between the regexs*)
   let matched =

@@ -27,7 +27,6 @@ let completion_kind kind : CompletionItemKind.t option =
   | `Type -> Some TypeParameter
 
 let prefix_of_position ~short_path source position =
-  let open Prefix_parser in
   match Msource.text source with
   | "" -> ""
   | text ->
@@ -42,10 +41,10 @@ let prefix_of_position ~short_path source position =
     in
 
     let reconstructed_prefix =
-      try_parse_with_regex ~pos ~len:(end_of_prefix + 1 - pos) text
+      Prefix_parser.parse ~pos ~len:(end_of_prefix + 1 - pos) text
       |> Option.value ~default:""
-      (*We remove the whitespace because merlin expects no whitespace and it's
-        semantically meaningless*)
+      (* We remove the whitespace because merlin expects no whitespace and it's
+         semantically meaningless *)
       |> String.filter (fun x -> not (x = ' ' || x = '\n' || x = '\t'))
     in
 
