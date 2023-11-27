@@ -154,7 +154,6 @@
                 # dev tools
                 ocamlformat_0_24_1
                 yarn
-                dune-release
 
                 ocamlPackages.ppx_expect
                 ocamlPackages.utop
@@ -162,6 +161,10 @@
                 ocamlPackages.ppx_yojson_conv
               ]);
             inputsFrom = [ fast.ocaml-lsp fast.jsonrpc fast.lsp ];
+          };
+
+          release = pkgs.mkShell {
+            buildInputs = [ pkgs.dune-release ];
           };
         };
       });
