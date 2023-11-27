@@ -3,3 +3,7 @@
 # add ocamlformat config `wrap-fun-args=false`
 
 75504946eaa6f817550b649df508d61dde12bbda
+# Upgrade to OCamlformat 0.26.0
+ab49baa5873e7f0b9181dbed3ad89681f1e4bcee
+# Upgrade to OCamlformat 0.26.1
+1a6419bac3ce012deb9c6891e6b25e2486c33388

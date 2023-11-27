@@ -79,31 +79,29 @@ module type S = sig
 
   val dyn_of_field : field -> Dyn.t
 
-  class map :
-    object
-      method typ : typ -> typ
+  class map : object
+    method typ : typ -> typ
 
-      method sum : typ list -> typ
+    method sum : typ list -> typ
 
-      method interface : interface -> interface
+    method interface : interface -> interface
 
-      method enum_anon : Enum.t -> Enum.t
+    method enum_anon : Enum.t -> Enum.t
 
-      method field : field -> field
+    method field : field -> field
 
-      method t : t -> t
-    end
+    method t : t -> t
+  end
 
-  class ['a] fold :
-    object
-      method field : field -> init:'a -> 'a
+  class ['a] fold : object
+    method field : field -> init:'a -> 'a
 
-      method ident : ident -> init:'a -> 'a
+    method ident : ident -> init:'a -> 'a
 
-      method t : t -> init:'a -> 'a
+    method t : t -> init:'a -> 'a
 
-      method typ : typ -> init:'a -> 'a
-    end
+    method typ : typ -> init:'a -> 'a
+  end
 end
 
 module Make (Ident : sig

@@ -137,25 +137,24 @@ module Path : sig
     | Property of property * t
 end
 
-class map :
-  object
-    method literal : Path.t -> literalType -> literalType
+class map : object
+  method literal : Path.t -> literalType -> literalType
 
-    method property : Path.t -> property -> property
+  method property : Path.t -> property -> property
 
-    method or_ : Path.t -> type_ list -> type_
+  method or_ : Path.t -> type_ list -> type_
 
-    method type_ : Path.t -> type_ -> type_
+  method type_ : Path.t -> type_ -> type_
 
-    method t : t -> t
+  method t : t -> t
 
-    method request : request -> request
+  method request : request -> request
 
-    method structure : structure -> structure
+  method structure : structure -> structure
 
-    method notification : notification -> notification
+  method notification : notification -> notification
 
-    method typeAlias : typeAlias -> typeAlias
+  method typeAlias : typeAlias -> typeAlias
 
-    method enumeration : enumeration -> enumeration
-  end
+  method enumeration : enumeration -> enumeration
+end

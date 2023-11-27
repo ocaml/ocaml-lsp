@@ -106,13 +106,14 @@ end
 
 module Table = Stdlib.Hashtbl.Make (Jsonrpc.Id)
 
-module Make (Initialize : sig
-  type t
-end)
-(Out_request : Request_intf)
-(Out_notification : Notification_intf)
-(In_request : Request_intf)
-(In_notification : Notification_intf) =
+module Make
+    (Initialize : sig
+      type t
+    end)
+    (Out_request : Request_intf)
+    (Out_notification : Notification_intf)
+    (In_request : Request_intf)
+    (In_notification : Notification_intf) =
 struct
   type 'a out_request = 'a Out_request.t
 

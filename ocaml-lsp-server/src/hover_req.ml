@@ -17,26 +17,26 @@ let format_contents ~syntax ~markdown ~typ ~doc =
      for all editors *)
   `MarkupContent
     (if markdown then
-     let value =
-       let markdown_name = Document.Syntax.markdown_name syntax in
-       match doc with
-       | None -> sprintf "```%s\n%s\n```" markdown_name typ
-       | Some s ->
-         let doc =
-           match Doc_to_md.translate s with
-           | Raw d -> sprintf "(** %s *)" d
-           | Markdown d -> d
-         in
-         sprintf "```%s\n%s\n```\n---\n%s" markdown_name typ doc
-     in
-     { MarkupContent.value; kind = MarkupKind.Markdown }
-    else
-      let value =
-        match doc with
-        | None -> sprintf "%s" typ
-        | Some d -> sprintf "%s\n%s" typ d
-      in
-      { MarkupContent.value; kind = MarkupKind.PlainText })
+       let value =
+         let markdown_name = Document.Syntax.markdown_name syntax in
+         match doc with
+         | None -> sprintf "```%s\n%s\n```" markdown_name typ
+         | Some s ->
+           let doc =
+             match Doc_to_md.translate s with
+             | Raw d -> sprintf "(** %s *)" d
+             | Markdown d -> d
+           in
+           sprintf "```%s\n%s\n```\n---\n%s" markdown_name typ doc
+       in
+       { MarkupContent.value; kind = MarkupKind.Markdown }
+     else
+       let value =
+         match doc with
+         | None -> sprintf "%s" typ
+         | Some d -> sprintf "%s\n%s" typ d
+       in
+       { MarkupContent.value; kind = MarkupKind.PlainText })
 
 let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
   Fiber.of_thunk (fun () ->

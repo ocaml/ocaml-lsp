@@ -153,8 +153,9 @@ let edit ~from:orig ~to_:formatted : TextEdit.t list =
                text_edit
                  ~line
                  (if prev_deleted_lines > 0 then
-                  Replace { deleted = prev_deleted_lines; added = added_lines }
-                 else Insert added_lines)
+                    Replace
+                      { deleted = prev_deleted_lines; added = added_lines }
+                  else Insert added_lines)
              in
              (line + prev_deleted_lines, 0, edit :: edits_rev)
            | Equal { lines } ->

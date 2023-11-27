@@ -52,8 +52,9 @@ let annotate_src_with_tokens ~(legend : SemanticTokensLegend.t)
         "<%s%s-%d>"
         token_types.(!token.type_)
         (if annot_mods then
-         "|" ^ String.concat ~sep:"," (modifiers ~legend:token_mods !token.mods)
-        else "")
+           "|"
+           ^ String.concat ~sep:"," (modifiers ~legend:token_mods !token.mods)
+         else "")
         !token_id;
       Buffer.add_substring b src !src_ix !token.len;
       src_ix := !src_ix + !token.len;

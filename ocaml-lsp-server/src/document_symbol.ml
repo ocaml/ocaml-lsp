@@ -57,9 +57,9 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
          Option.value
            ~default:false
            (let open Option.O in
-           let* textDocument = client_capabilities.textDocument in
-           let* ds = textDocument.documentSymbol in
-           ds.hierarchicalDocumentSymbolSupport)
+            let* textDocument = client_capabilities.textDocument in
+            let* ds = textDocument.documentSymbol in
+            ds.hierarchicalDocumentSymbolSupport)
        with
       | true -> `DocumentSymbol (List.map outline ~f:symbol)
       | false -> `SymbolInformation (symbols_of_outline uri outline))
