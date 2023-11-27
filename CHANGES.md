@@ -15,6 +15,8 @@
 
 - Fix the encoding of URI's to match how vscode does it (#1197)
 
+- Fix parsing of completion prefixes (#1181)
+
 ## Features
 
 - Compatibility with Odoc 2.3.0, with support for the introduced syntax: tables,

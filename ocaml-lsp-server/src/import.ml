@@ -34,6 +34,13 @@ include struct
   module String = struct
     include String
 
+    (**Filters a string keeping any chars for which f returns true and
+       discarding those for which it returns false*)
+    let filter f s =
+      let buf = Buffer.create (String.length s) in
+      iter ~f:(fun c -> if f c then Buffer.add_char buf c) s;
+      Buffer.contents buf
+
     let findi =
       let rec loop s len ~f i =
         if i >= len then None

@@ -26,77 +26,34 @@ let completion_kind kind : CompletionItemKind.t option =
   | `Constructor -> Some Constructor
   | `Type -> Some TypeParameter
 
-(** @see <https://ocaml.org/manual/lex.html> reference *)
 let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
   | text ->
-    let from =
+    let end_of_prefix =
       let (`Offset index) = Msource.get_offset source position in
       min (String.length text - 1) (index - 1)
     in
     let pos =
-      let should_terminate = ref false in
-      let has_seen_dot = ref false in
-      let is_prefix_char c =
-        if !should_terminate then false
-        else
-          match c with
-          | 'a' .. 'z'
-          | 'A' .. 'Z'
-          | '0' .. '9'
-          | '\''
-          | '_'
-          (* Infix function characters *)
-          | '$'
-          | '&'
-          | '*'
-          | '+'
-          | '-'
-          | '/'
-          | '='
-          | '>'
-          | '@'
-          | '^'
-          | '!'
-          | '?'
-          | '%'
-          | '<'
-          | ':'
-          | '~'
-          | '#' -> true
-          | '`' ->
-            if !has_seen_dot then false
-            else (
-              should_terminate := true;
-              true)
-          | '.' ->
-            has_seen_dot := true;
-            not short_path
-          | _ -> false
-      in
-      String.rfindi text ~from ~f:(fun c -> not (is_prefix_char c))
+      (*clamp the length of a line to process at 500 chars, this is just a
+        reasonable limit for regex performance*)
+      max 0 (end_of_prefix - 500)
     in
-    let pos =
-      match pos with
-      | None -> 0
-      | Some pos -> pos + 1
+
+    let reconstructed_prefix =
+      Prefix_parser.parse ~pos ~len:(end_of_prefix + 1 - pos) text
+      |> Option.value ~default:""
+      (* We remove the whitespace because merlin expects no whitespace and it's
+         semantically meaningless *)
+      |> String.filter (fun x -> not (x = ' ' || x = '\n' || x = '\t'))
     in
-    let len = from - pos + 1 in
-    let reconstructed_prefix = String.sub text ~pos ~len in
-    (* if we reconstructed [~f:ignore] or [?f:ignore], we should take only
-       [ignore], so: *)
-    if
-      String.is_prefix reconstructed_prefix ~prefix:"~"
-      || String.is_prefix reconstructed_prefix ~prefix:"?"
-    then
-      match String.lsplit2 reconstructed_prefix ~on:':' with
-      | Some (_, s) -> s
+
+    if short_path then
+      match String.split_on_char reconstructed_prefix ~sep:'.' |> List.last with
+      | Some s -> s
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
-(** [suffix_of_position source position] computes the suffix of the identifier
-    after [position]. *)
 let suffix_of_position source position =
   match Msource.text source with
   | "" -> ""

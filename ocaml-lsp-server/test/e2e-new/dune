@@ -47,6 +47,7 @@
     action_inline
     action_mark_remove
     code_actions
+    completion
     doc_to_md
     document_flow
     for_ppx
