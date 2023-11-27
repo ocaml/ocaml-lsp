@@ -11,20 +11,46 @@ let run_with_modes f =
 let test_uri_parsing =
   let test s =
     let uri = Uri.t_of_yojson (`String s) in
-    Printf.printf "%s -> %s\n" s (Uri.to_path uri)
+    Printf.printf "%s -> %s\n" s (Uri.to_path uri);
+    match Uri.query uri with
+    | None -> ()
+    | Some q -> Printf.printf "query: %s\n" q
   in
   fun uris -> run_with_modes (fun () -> List.iter test uris)
 
 let%expect_test "test uri parsing" =
-  test_uri_parsing [ "file:///Users/foo"; "file:///c:/Users/foo" ];
+  test_uri_parsing
+    [ "file:///Users/foo"
+    ; "file:///c:/Users/foo"
+    ; "file:///foo?x=y"
+    ; "http://xyz?foo#"
+    ; "http://xxx?"
+    ; "http://xyz?ab%3D1%23"
+    ];
   [%expect
     {|
     Unix:
     file:///Users/foo -> /Users/foo
     file:///c:/Users/foo -> c:/Users/foo
+    file:///foo?x=y -> /foo?x=y
+    query: x=y
+    http://xyz?foo# -> /?foo
+    query: foo
+    http://xxx? -> /?
+    query:
+    http://xyz?ab%3D1%23 -> /?ab=1#
+    query: ab=1#
     Windows:
     file:///Users/foo -> \Users\foo
-    file:///c:/Users/foo -> c:\Users\foo |}]
+    file:///c:/Users/foo -> c:\Users\foo
+    file:///foo?x=y -> \foo?x=y
+    query: x=y
+    http://xyz?foo# -> \?foo
+    query: foo
+    http://xxx? -> \?
+    query:
+    http://xyz?ab%3D1%23 -> \?ab=1#
+    query: ab=1# |}]
 
 let uri_of_path =
   let test path =

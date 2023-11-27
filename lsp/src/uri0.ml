@@ -13,7 +13,10 @@ type t = Uri_lexer.t =
   { scheme : string
   ; authority : string
   ; path : string
+  ; query : string option
   }
+
+let query t = t.query
 
 let backslash_to_slash =
   String.map ~f:(function
@@ -29,7 +32,7 @@ let of_path path =
   let path = if !Private.win32 then backslash_to_slash path else path in
   Uri_lexer.of_path path
 
-let to_path { path; authority; scheme } =
+let to_path { path; authority; scheme; query } =
   let path =
     let len = String.length path in
     if len = 0 then "/"
@@ -52,6 +55,11 @@ let to_path { path; authority; scheme } =
           Buffer.add_char buff (Char.lowercase_ascii c1);
           Buffer.add_substring buff path 2 (String.length path - 2))
         else Buffer.add_string buff path);
+      (match query with
+      | None -> ()
+      | Some query ->
+        Buffer.add_char buff '?';
+        Buffer.add_string buff query);
       Buffer.contents buff
   in
   if !Private.win32 then slash_to_backslash path else path
@@ -89,7 +97,7 @@ let encode ?(allow_slash = false) s =
   scan 0 0;
   Buffer.contents buf
 
-let to_string { scheme; authority; path } =
+let to_string { scheme; authority; path; query } =
   let buff = Buffer.create 64 in
 
   if not (String.is_empty scheme) then (
@@ -125,7 +133,11 @@ let to_string { scheme; authority; path } =
        let s = String.sub path ~pos:2 ~len:(len - 2) in
        Buffer.add_string buff (encode s)))
    else Buffer.add_string buff (encode path));
-
+  (match query with
+  | None -> ()
+  | Some q ->
+    Buffer.add_char buff '?';
+    Buffer.add_string buff (encode q));
   Buffer.contents buff
 
 let yojson_of_t t = `String (to_string t)

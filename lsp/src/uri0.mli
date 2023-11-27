@@ -16,6 +16,8 @@ val of_path : string -> t
 
 val to_string : t -> string
 
+val query : t -> string option
+
 module Private : sig
   val win32 : bool ref
 end
