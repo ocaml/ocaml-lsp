@@ -158,6 +158,23 @@ module Complete_by_prefix = struct
       completion_entries
       ~f:(completionItem_of_completion_entry ~deprecated ~range ~compl_params)
 
+  let complete_keywords completion_position prefix =
+    match prefix with
+    | "" | "i" | "in" ->
+      let ci_for_in =
+        CompletionItem.create
+          ~label:"in"
+          ~textEdit:
+            (`TextEdit
+              (TextEdit.create
+                 ~newText:""
+                 ~range:(range_prefix completion_position prefix)))
+          ~kind:CompletionItemKind.Keyword
+          ()
+      in
+      [ ci_for_in ]
+    | _ -> []
+
   let complete doc prefix pos ~deprecated ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
@@ -166,7 +183,9 @@ module Complete_by_prefix = struct
         doc
         (dispatch_cmd ~prefix logical_pos)
     in
-    process_dispatch_resp ~deprecated ~resolve doc pos completion
+    let keyword_completionItems = complete_keywords pos prefix in
+    keyword_completionItems
+    @ process_dispatch_resp ~deprecated ~resolve doc pos completion
 end
 
 module Complete_with_construct = struct

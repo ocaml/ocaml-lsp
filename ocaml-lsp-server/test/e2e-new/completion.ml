@@ -596,6 +596,17 @@ let plus_42 (x:int) (y:int) =
     {|
   Completions:
   {
+    "kind": 14,
+    "label": "in",
+    "textEdit": {
+      "newText": "",
+      "range": {
+        "end": { "character": 12, "line": 5 },
+        "start": { "character": 12, "line": 5 }
+      }
+    }
+  }
+  {
     "detail": "int",
     "kind": 12,
     "label": "somenum",
@@ -706,19 +717,6 @@ let plus_42 (x:int) (y:int) =
     "sortText": "0008",
     "textEdit": {
       "newText": "input_byte",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "char -> int",
-    "kind": 12,
-    "label": "int_of_char",
-    "sortText": "0009",
-    "textEdit": {
-      "newText": "int_of_char",
       "range": {
         "end": { "character": 12, "line": 5 },
         "start": { "character": 12, "line": 5 }
@@ -1162,3 +1160,149 @@ let%expect_test "completion doesn't autocomplete record fields" =
 
   (* We expect 0 completions*)
   [%expect {| No completions |}]
+
+let%expect_test "completion for `in` keyword - no prefix" =
+  let source = {ocaml|
+let foo param1 =
+  let bar = param1 |ocaml} in
+  let position = Position.create ~line:2 ~character:19 in
+  print_completions ~limit:3 source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "",
+        "range": {
+          "end": { "character": 19, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    {
+      "detail": "'a -> 'b",
+      "kind": 12,
+      "label": "param1",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "param1",
+        "range": {
+          "end": { "character": 19, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    {
+      "detail": "'a ref -> 'a",
+      "kind": 12,
+      "label": "!",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "!",
+        "range": {
+          "end": { "character": 19, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    ............. |}]
+
+let%expect_test "completion for `in` keyword - prefix i" =
+  let source = {ocaml|
+let foo param1 =
+  let bar = param1 i
+|ocaml} in
+  let position = Position.create ~line:2 ~character:20 in
+  print_completions ~limit:3 source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "",
+        "range": {
+          "end": { "character": 20, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    {
+      "detail": "'a -> unit",
+      "kind": 12,
+      "label": "ignore",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "ignore",
+        "range": {
+          "end": { "character": 20, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    {
+      "detail": "in_channel -> int",
+      "kind": 12,
+      "label": "in_channel_length",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "in_channel_length",
+        "range": {
+          "end": { "character": 20, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    ............. |}]
+
+let%expect_test "completion for `in` keyword - prefix in" =
+  let source = {ocaml|
+let foo param1 =
+  let bar = param1 in
+|ocaml} in
+  let position = Position.create ~line:2 ~character:21 in
+  print_completions ~limit:3 source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "",
+        "range": {
+          "end": { "character": 21, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    {
+      "detail": "in_channel -> int",
+      "kind": 12,
+      "label": "in_channel_length",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "in_channel_length",
+        "range": {
+          "end": { "character": 21, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    {
+      "detail": "int ref -> unit",
+      "kind": 12,
+      "label": "incr",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "incr",
+        "range": {
+          "end": { "character": 21, "line": 2 },
+          "start": { "character": 19, "line": 2 }
+        }
+      }
+    }
+    ............. |}]
