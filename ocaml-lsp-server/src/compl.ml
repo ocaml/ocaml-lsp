@@ -167,7 +167,7 @@ module Complete_by_prefix = struct
           ~textEdit:
             (`TextEdit
               (TextEdit.create
-                 ~newText:""
+                 ~newText:"in"
                  ~range:(range_prefix completion_position prefix)))
           ~kind:CompletionItemKind.Keyword
           ()

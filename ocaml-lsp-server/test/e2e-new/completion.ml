@@ -599,7 +599,7 @@ let plus_42 (x:int) (y:int) =
     "kind": 14,
     "label": "in",
     "textEdit": {
-      "newText": "",
+      "newText": "in",
       "range": {
         "end": { "character": 12, "line": 5 },
         "start": { "character": 12, "line": 5 }
@@ -1174,7 +1174,7 @@ let foo param1 =
       "kind": 14,
       "label": "in",
       "textEdit": {
-        "newText": "",
+        "newText": "in",
         "range": {
           "end": { "character": 19, "line": 2 },
           "start": { "character": 19, "line": 2 }
@@ -1223,7 +1223,7 @@ let foo param1 =
       "kind": 14,
       "label": "in",
       "textEdit": {
-        "newText": "",
+        "newText": "in",
         "range": {
           "end": { "character": 20, "line": 2 },
           "start": { "character": 19, "line": 2 }
@@ -1272,7 +1272,7 @@ let foo param1 =
       "kind": 14,
       "label": "in",
       "textEdit": {
-        "newText": "",
+        "newText": "in",
         "range": {
           "end": { "character": 21, "line": 2 },
           "start": { "character": 19, "line": 2 }
