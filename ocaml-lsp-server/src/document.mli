@@ -63,16 +63,21 @@ module Merlin : sig
   val doc_comment :
     t -> Msource.position -> (* doc string *) string option Fiber.t
 
+  val syntax_doc :
+    Mpipeline.t -> Msource.position -> Query_protocol.syntax_doc_result option
+
   type type_enclosing =
     { loc : Loc.t
     ; typ : string
     ; doc : string option
+    ; syntax_doc : Query_protocol.syntax_doc_result option
     }
 
   val type_enclosing :
        t
     -> Msource.position
     -> (* verbosity *) int
+    -> with_syntax_doc:bool
     -> type_enclosing option Fiber.t
 
   val kind : t -> Kind.t
