@@ -183,7 +183,12 @@ module Complete_by_prefix = struct
         doc
         (dispatch_cmd ~prefix logical_pos)
     in
-    let keyword_completionItems = complete_keywords pos prefix in
+    let keyword_completionItems =
+      (* we complete only keyword 'in' for now *)
+      match Document.Merlin.kind doc with
+      | Intf -> []
+      | Impl -> complete_keywords pos prefix
+    in
     keyword_completionItems
     @ process_dispatch_resp ~deprecated ~resolve doc pos completion
 end
