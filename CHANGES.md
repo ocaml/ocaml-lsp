@@ -27,6 +27,8 @@
 - Add mark/remove unused actions for open, types, for loop indexes, modules,
   match cases, rec, and constructors (#1141)
 
+- Offer auto-completion for the keyword `in` (#1217)
+
 # 1.16.2
 
 ## Fixes
