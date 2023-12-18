@@ -107,6 +107,8 @@
   [#941](https://github.com/ocaml/ocaml-lsp/issues/941),
   [#1003](https://github.com/ocaml/ocaml-lsp/issues/1003))
 
+# 1.15.0
+
 ## Features
 
 - Enable [semantic highlighting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens)
