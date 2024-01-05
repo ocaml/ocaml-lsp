@@ -1,3 +1,11 @@
+# Unreleased
+
+## Features
+
+- Introduce a configuration option to control dune diagnostics. The option is
+  called `duneDiganostics` and it may be set to `{ enable: false }` to disable
+  diagnostics. (#1221)
+
 # 1.17.0
 
 ## Fixes
