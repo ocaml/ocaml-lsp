@@ -47,3 +47,8 @@ let update t { DidChangeConfigurationParams.settings } =
   in
   let data = Config_data.t_of_yojson settings in
   Fiber.return { wheel; data }
+
+let report_dune_diagnostics t =
+  match t.data.dune_diagnostics with
+  | Some { enable = true } | None -> true
+  | Some { enable = false } -> false
