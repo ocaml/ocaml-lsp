@@ -209,6 +209,11 @@ let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
   let diagnostics =
+    let report_dune_diagnostics =
+      match state.configuration.data.dune_diagnostics with
+      | Some { enable = true } | None -> true
+      | Some { enable = false } -> false
+    in
     Diagnostics.create
       (let open Option.O in
        let* td = ip.capabilities.textDocument in
@@ -222,6 +227,7 @@ let on_initialize server (ip : InitializeParams.t) =
               List.iter diagnostics ~f:(fun d ->
                   Server.Batch.notification batch (PublishDiagnostics d));
               Server.Batch.submit batch))
+      ~report_dune_diagnostics
   in
   let+ dune =
     let progress =
@@ -702,7 +708,17 @@ let on_notification server (notification : Client_notification.t) :
     state
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
-    let+ configuration = Configuration.update state.configuration req in
+    let* configuration = Configuration.update state.configuration req in
+    let+ () =
+      let report_dune_diagnostics =
+        match configuration.data.dune_diagnostics with
+        | Some { enable = true } | None -> true
+        | Some { enable = false } -> false
+      in
+      Diagnostics.set_report_dune_diagnostics
+        (State.diagnostics state)
+        ~report_dune_diagnostics
+    in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
     let state = Server.state server in

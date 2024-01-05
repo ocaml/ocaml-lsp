@@ -21,5 +21,12 @@ interface config {
   * @since 1.16
   */
   codelens: { enable : boolean }
+
+  /**
+  * Enable/Disable Dune diagnostics
+  * @default true
+  * @since 1.18
+  */
+  duneDiagnostics: { enable : boolean }
 }
 ```
