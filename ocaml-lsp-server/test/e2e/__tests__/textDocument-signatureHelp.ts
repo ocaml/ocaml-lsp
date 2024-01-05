@@ -71,7 +71,7 @@ describe_opt("textDocument/completion", () => {
           label: "map : f:('a -> 'b) -> 'a list -> 'b list",
           parameters: [
             {
-              label: [6, 18],
+              label: [7, 18],
             },
             {
               label: [22, 29],
