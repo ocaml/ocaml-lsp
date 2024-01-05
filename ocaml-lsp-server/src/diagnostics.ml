@@ -365,6 +365,8 @@ let merlin_diagnostics diagnostics merlin =
   set diagnostics (`Merlin (uri, all_diagnostics))
 
 let set_report_dune_diagnostics t ~report_dune_diagnostics =
+  let open Fiber.O in
+  let* () = Fiber.return () in
   t.report_dune_diagnostics <- report_dune_diagnostics;
   Table.iter t.dune ~f:(fun per_dune ->
       Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
