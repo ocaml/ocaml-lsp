@@ -367,8 +367,10 @@ let merlin_diagnostics diagnostics merlin =
 let set_report_dune_diagnostics t ~report_dune_diagnostics =
   let open Fiber.O in
   let* () = Fiber.return () in
-  t.report_dune_diagnostics <- report_dune_diagnostics;
-  Table.iter t.dune ~f:(fun per_dune ->
-      Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
-          t.dirty_uris <- Uri_set.add t.dirty_uris uri));
-  send t `All
+  if t.report_dune_diagnostics = report_dune_diagnostics then Fiber.return ()
+  else (
+    t.report_dune_diagnostics <- report_dune_diagnostics;
+    Table.iter t.dune ~f:(fun per_dune ->
+        Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
+            t.dirty_uris <- Uri_set.add t.dirty_uris uri));
+    send t `All)
