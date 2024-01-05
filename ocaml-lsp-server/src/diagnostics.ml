@@ -87,9 +87,11 @@ type t =
   ; mutable dirty_uris : Uri_set.t
   ; related_information : bool
   ; tags : DiagnosticTag.t list
+  ; mutable report_dune_diagnostics : bool
   }
 
-let create (capabilities : PublishDiagnosticsClientCapabilities.t option) send =
+let create (capabilities : PublishDiagnosticsClientCapabilities.t option) send
+    ~report_dune_diagnostics =
   let related_information, tags =
     match capabilities with
     | None -> (false, [])
@@ -105,6 +107,7 @@ let create (capabilities : PublishDiagnosticsClientCapabilities.t option) send =
   ; send
   ; related_information
   ; tags
+  ; report_dune_diagnostics
   }
 
 let send =
@@ -157,11 +160,12 @@ let send =
             { d with source }
           else fun _pid x -> x
         in
-        Table.foldi ~init:() t.dune ~f:(fun dune per_dune () ->
-            Table.iter per_dune ~f:(fun (uri, diagnostic) ->
-                if Uri_set.mem dirty_uris uri then
-                  let diagnostic = set_dune_source dune.pid diagnostic in
-                  add_dune_diagnostic pending uri diagnostic));
+        if t.report_dune_diagnostics then
+          Table.foldi ~init:() t.dune ~f:(fun dune per_dune () ->
+              Table.iter per_dune ~f:(fun (uri, diagnostic) ->
+                  if Uri_set.mem dirty_uris uri then
+                    let diagnostic = set_dune_source dune.pid diagnostic in
+                    add_dune_diagnostic pending uri diagnostic));
         t.dirty_uris <-
           (match which with
           | `All -> Uri_set.empty
@@ -359,3 +363,14 @@ let merlin_diagnostics diagnostics merlin =
                  Range.compare d1.range d2.range))
   in
   set diagnostics (`Merlin (uri, all_diagnostics))
+
+let set_report_dune_diagnostics t ~report_dune_diagnostics =
+  let open Fiber.O in
+  let* () = Fiber.return () in
+  if t.report_dune_diagnostics = report_dune_diagnostics then Fiber.return ()
+  else (
+    t.report_dune_diagnostics <- report_dune_diagnostics;
+    Table.iter t.dune ~f:(fun per_dune ->
+        Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
+            t.dirty_uris <- Uri_set.add t.dirty_uris uri));
+    send t `All)

@@ -9,6 +9,7 @@ type t
 val create :
      PublishDiagnosticsClientCapabilities.t option
   -> (PublishDiagnosticsParams.t list -> unit Fiber.t)
+  -> report_dune_diagnostics:bool
   -> t
 
 val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
@@ -35,6 +36,9 @@ val tags_of_message :
   t -> src:[< `Dune | `Merlin ] -> string -> DiagnosticTag.t list option
 
 val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
+
+val set_report_dune_diagnostics :
+  t -> report_dune_diagnostics:bool -> unit Fiber.t
 
 (** Exposed for testing *)
 

@@ -209,7 +209,11 @@ let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
   let diagnostics =
+    let report_dune_diagnostics =
+      Configuration.report_dune_diagnostics state.configuration
+    in
     Diagnostics.create
+      ~report_dune_diagnostics
       (let open Option.O in
        let* td = ip.capabilities.textDocument in
        td.publishDiagnostics)
@@ -702,7 +706,15 @@ let on_notification server (notification : Client_notification.t) :
     state
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
-    let+ configuration = Configuration.update state.configuration req in
+    let* configuration = Configuration.update state.configuration req in
+    let+ () =
+      let report_dune_diagnostics =
+        Configuration.report_dune_diagnostics configuration
+      in
+      Diagnostics.set_report_dune_diagnostics
+        ~report_dune_diagnostics
+        (State.diagnostics state)
+    in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
     let state = Server.state server in
