@@ -46,11 +46,13 @@ let hint_binding_iter
     then (
       match e.exp_desc with
       | Texp_function
-          { arg_label = Optional _
-          ; cases =
-              [ { c_rhs = { exp_desc = Texp_let (_, [ { vb_pat; _ } ], body); _ }; _ } ]
-          ; _
-          } ->
+          ( _
+          , Tfunction_cases
+              { cases =
+                  [ { c_rhs = { exp_desc = Texp_let (_, [ { vb_pat; _ } ], body); _ }; _ }
+                  ]
+              ; _
+              } ) ->
         iter.pat iter vb_pat;
         iter.expr iter body
       | Texp_let (_, vbs, body) ->

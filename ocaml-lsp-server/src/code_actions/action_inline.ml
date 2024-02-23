@@ -66,7 +66,7 @@ let find_inline_task typedtree pos =
       match expr.exp_desc with
       | Texp_let
           ( Nonrecursive
-          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }, _); _ }
               ; vb_expr = inlined_expr
               ; _
               }
@@ -81,7 +81,7 @@ let find_inline_task typedtree pos =
       match item.str_desc with
       | Tstr_value
           ( Nonrecursive
-          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }, _); _ }
               ; vb_expr = inlined_expr
               ; _
               }
@@ -192,8 +192,8 @@ end = struct
     in
     let pat_iter (type k) (iter : I.iterator) (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
-      | Tpat_var (id, { loc; _ }) -> paths := Loc.Map.set !paths loc (Pident id)
-      | Tpat_alias (pat, id, { loc; _ }) ->
+      | Tpat_var (id, { loc; _ }, _) -> paths := Loc.Map.set !paths loc (Pident id)
+      | Tpat_alias (pat, id, { loc; _ }, _) ->
         paths := Loc.Map.set !paths loc (Pident id);
         I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
@@ -279,20 +279,9 @@ let rec beta_reduce (uses : Uses.t) (paths : Paths.t) (app : Parsetree.expressio
     | _ -> default ()
   in
   let apply func args = if List.is_empty args then func else H.Exp.apply func args in
+  ignore (apply, beta_reduce_arg, find_map_remove);
   match app.pexp_desc with
-  | Pexp_apply
-      ({ pexp_desc = Pexp_fun (Nolabel, None, pat, body); _ }, (Nolabel, arg) :: args') ->
-    beta_reduce_arg pat (apply body args') arg
-  | Pexp_apply ({ pexp_desc = Pexp_fun ((Labelled l as lbl), None, pat, body); _ }, args)
-    ->
-    let m_matching_arg, args' =
-      find_map_remove args ~f:(function
-        | Asttypes.Labelled l', e when String.equal l l' -> Some e
-        | _ -> None)
-    in
-    (match m_matching_arg with
-     | Some arg -> beta_reduce_arg pat (apply body args') arg
-     | None -> H.Exp.fun_ lbl None pat (beta_reduce uses paths (apply body args)))
+  (* TODO: restore beta_reduction *)
   | _ -> app
 ;;
 

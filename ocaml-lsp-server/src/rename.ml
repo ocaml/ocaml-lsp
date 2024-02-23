@@ -14,7 +14,7 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let version = Document.version doc in
     let source = Document.source doc in
     let edits =
-      List.map locs ~f:(fun (loc : Warnings.loc) ->
+      List.map (fst locs) ~f:(fun (loc : Warnings.loc) ->
         let range = Range.of_loc loc in
         let make_edit () = TextEdit.create ~range ~newText:newName in
         match
