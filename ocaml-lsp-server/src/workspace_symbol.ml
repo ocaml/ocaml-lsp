@@ -66,7 +66,7 @@ end = struct
   open Browse_tree
 
   let id_of_patt = function
-    | { pat_desc = Tpat_var (id, _); _ } -> Some id
+    | { pat_desc = Tpat_var (id, _, _); _ } -> Some id
     | _ -> None
 
   let mk ?(children = []) ~location ~deprecated outline_kind id =

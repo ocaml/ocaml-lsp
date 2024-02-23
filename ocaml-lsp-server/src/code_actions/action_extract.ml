@@ -69,7 +69,8 @@ let tightest_enclosing_binder_position typedtree range =
       | Texp_letexception (_, body)
       | Texp_open (_, body) -> found_if_expr_contains body
       | Texp_letop { body; _ } -> found_if_case_contains [ body ]
-      | Texp_function { cases; _ } -> found_if_case_contains cases
+      | Texp_function (_, Tfunction_cases { cases; _ }) ->
+        found_if_case_contains cases
       | Texp_match (_, cases, _) -> found_if_case_contains cases
       | Texp_try (_, cases) -> found_if_case_contains cases
       | _ -> ())
