@@ -159,14 +159,13 @@ let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
   let diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
-      ~on_notification:
-        (fun _ -> function
-          | PublishDiagnostics _ -> (
-            let* diag = Fiber.Ivar.peek diagnostics in
-            match diag with
-            | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill diagnostics ())
-          | _ -> Fiber.return ())
+      ~on_notification:(fun _ -> function
+        | PublishDiagnostics _ -> (
+          let* diag = Fiber.Ivar.peek diagnostics in
+          match diag with
+          | Some _ -> Fiber.return ()
+          | None -> Fiber.Ivar.fill diagnostics ())
+        | _ -> Fiber.return ())
       ()
   in
   run ~handler @@ fun client ->

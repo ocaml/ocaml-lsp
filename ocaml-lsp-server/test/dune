@@ -1,7 +1,7 @@
 (dirs :standard \ e2e)
 
 (library
- (modules ocaml_lsp_tests)
+ (modules ocaml_lsp_tests position_prefix_tests)
  (name ocaml_lsp_tests)
  (enabled_if
   (>= %{ocaml_version} 4.08))
@@ -9,6 +9,7 @@
  (libraries
   stdune
   ocaml_lsp_server
+  merlin-lib.kernel
   lsp
   yojson
   ;; This is because of the (implicit_transitive_deps false)

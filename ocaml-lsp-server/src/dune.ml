@@ -787,9 +787,9 @@ let create workspaces (client_capabilities : ClientCapabilities.t) diagnostics
   let config =
     let include_promotions =
       (let open Option.O in
-      let* td = client_capabilities.textDocument in
-      let* diagnostics = td.publishDiagnostics in
-      diagnostics.dataSupport)
+       let* td = client_capabilities.textDocument in
+       let* diagnostics = td.publishDiagnostics in
+       diagnostics.dataSupport)
       |> Option.value ~default:false
       &&
       match client_capabilities.experimental with

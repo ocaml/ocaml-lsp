@@ -12,8 +12,8 @@ let get () = Fiber.Var.get_exn t_var
 let report (event : Chrome_trace.Event.t) : unit Fiber.t =
   let+ t = get () in
   (if Queue.length t.events >= max_len then
-   let (_ : Chrome_trace.Event.t) = Queue.pop_exn t.events in
-   ());
+     let (_ : Chrome_trace.Event.t) = Queue.pop_exn t.events in
+     ());
   Queue.push t.events event
 
 let dump () =

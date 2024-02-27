@@ -4,6 +4,7 @@ module Diagnostics = Diagnostics
 module Position = Position
 module Doc_to_md = Doc_to_md
 module Diff = Diff
+module Testing = Testing
 open Fiber.O
 
 let make_error = Jsonrpc.Response.Error.make
@@ -105,8 +106,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
         if
           Action_open_related.available
             (let open Option.O in
-            let* window = client_capabilities.window in
-            window.showDocument)
+             let* window = client_capabilities.window in
+             window.showDocument)
         then
           view_metrics_command_name :: Action_open_related.command_name
           :: Document_text_command.command_name
@@ -210,10 +211,14 @@ let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
   let diagnostics =
+    let report_dune_diagnostics =
+      Configuration.report_dune_diagnostics state.configuration
+    in
     Diagnostics.create
+      ~report_dune_diagnostics
       (let open Option.O in
-      let* td = ip.capabilities.textDocument in
-      td.publishDiagnostics)
+       let* td = ip.capabilities.textDocument in
+       td.publishDiagnostics)
       (function
         | [] -> Fiber.return ()
         | diagnostics ->
@@ -704,7 +709,15 @@ let on_notification server (notification : Client_notification.t) :
     state
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
-    let+ configuration = Configuration.update state.configuration req in
+    let* configuration = Configuration.update state.configuration req in
+    let+ () =
+      let report_dune_diagnostics =
+        Configuration.report_dune_diagnostics configuration
+      in
+      Diagnostics.set_report_dune_diagnostics
+        ~report_dune_diagnostics
+        (State.diagnostics state)
+    in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
     let state = Server.state server in

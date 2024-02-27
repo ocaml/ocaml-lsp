@@ -1,0 +1,13 @@
+(executables
+ (names ocaml_lsp_bench)
+ (enabled_if
+  (= %{profile} bench))
+ (libraries
+  ocaml_lsp_server
+  core_unix.command_unix
+  merlin-lib.kernel
+  base
+  core
+  core_bench)
+ (preprocess
+  (pps ppx_bench)))

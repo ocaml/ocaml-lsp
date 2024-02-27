@@ -26,77 +26,34 @@ let completion_kind kind : CompletionItemKind.t option =
   | `Constructor -> Some Constructor
   | `Type -> Some TypeParameter
 
-(** @see <https://ocaml.org/manual/lex.html> reference *)
 let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
   | text ->
-    let from =
+    let end_of_prefix =
       let (`Offset index) = Msource.get_offset source position in
       min (String.length text - 1) (index - 1)
     in
     let pos =
-      let should_terminate = ref false in
-      let has_seen_dot = ref false in
-      let is_prefix_char c =
-        if !should_terminate then false
-        else
-          match c with
-          | 'a' .. 'z'
-          | 'A' .. 'Z'
-          | '0' .. '9'
-          | '\''
-          | '_'
-          (* Infix function characters *)
-          | '$'
-          | '&'
-          | '*'
-          | '+'
-          | '-'
-          | '/'
-          | '='
-          | '>'
-          | '@'
-          | '^'
-          | '!'
-          | '?'
-          | '%'
-          | '<'
-          | ':'
-          | '~'
-          | '#' -> true
-          | '`' ->
-            if !has_seen_dot then false
-            else (
-              should_terminate := true;
-              true)
-          | '.' ->
-            has_seen_dot := true;
-            not short_path
-          | _ -> false
-      in
-      String.rfindi text ~from ~f:(fun c -> not (is_prefix_char c))
+      (*clamp the length of a line to process at 500 chars, this is just a
+        reasonable limit for regex performance*)
+      max 0 (end_of_prefix - 500)
     in
-    let pos =
-      match pos with
-      | None -> 0
-      | Some pos -> pos + 1
+
+    let reconstructed_prefix =
+      Prefix_parser.parse ~pos ~len:(end_of_prefix + 1 - pos) text
+      |> Option.value ~default:""
+      (* We remove the whitespace because merlin expects no whitespace and it's
+         semantically meaningless *)
+      |> String.filter (fun x -> not (x = ' ' || x = '\n' || x = '\t'))
     in
-    let len = from - pos + 1 in
-    let reconstructed_prefix = String.sub text ~pos ~len in
-    (* if we reconstructed [~f:ignore] or [?f:ignore], we should take only
-       [ignore], so: *)
-    if
-      String.is_prefix reconstructed_prefix ~prefix:"~"
-      || String.is_prefix reconstructed_prefix ~prefix:"?"
-    then
-      match String.lsplit2 reconstructed_prefix ~on:':' with
-      | Some (_, s) -> s
+
+    if short_path then
+      match String.split_on_char reconstructed_prefix ~sep:'.' |> List.last with
+      | Some s -> s
       | None -> reconstructed_prefix
     else reconstructed_prefix
 
-(** [suffix_of_position source position] computes the suffix of the identifier
-    after [position]. *)
 let suffix_of_position source position =
   match Msource.text source with
   | "" -> ""
@@ -201,6 +158,23 @@ module Complete_by_prefix = struct
       completion_entries
       ~f:(completionItem_of_completion_entry ~deprecated ~range ~compl_params)
 
+  let complete_keywords completion_position prefix =
+    match prefix with
+    | "" | "i" | "in" ->
+      let ci_for_in =
+        CompletionItem.create
+          ~label:"in"
+          ~textEdit:
+            (`TextEdit
+              (TextEdit.create
+                 ~newText:"in"
+                 ~range:(range_prefix completion_position prefix)))
+          ~kind:CompletionItemKind.Keyword
+          ()
+      in
+      [ ci_for_in ]
+    | _ -> []
+
   let complete doc prefix pos ~deprecated ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
@@ -209,7 +183,14 @@ module Complete_by_prefix = struct
         doc
         (dispatch_cmd ~prefix logical_pos)
     in
-    process_dispatch_resp ~deprecated ~resolve doc pos completion
+    let keyword_completionItems =
+      (* we complete only keyword 'in' for now *)
+      match Document.Merlin.kind doc with
+      | Intf -> []
+      | Impl -> complete_keywords pos prefix
+    in
+    keyword_completionItems
+    @ process_dispatch_resp ~deprecated ~resolve doc pos completion
 end
 
 module Complete_with_construct = struct
@@ -293,8 +274,8 @@ let complete (state : State.t)
             Option.value
               ~default:false
               (let open Option.O in
-              let* item = completion_item_capability in
-              item.deprecatedSupport)
+               let* item = completion_item_capability in
+               item.deprecatedSupport)
           in
           if not (Typed_hole.can_be_hole prefix) then
             Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated

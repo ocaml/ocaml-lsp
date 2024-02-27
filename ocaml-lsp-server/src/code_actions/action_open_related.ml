@@ -19,8 +19,8 @@ let command_run server (params : ExecuteCommandParams.t) =
     Server.request server (Server_request.ShowDocumentRequest req)
   in
   (if not success then
-   let uri = Uri.to_string uri in
-   Format.eprintf "failed to open %s@." uri);
+     let uri = Uri.to_string uri in
+     Format.eprintf "failed to open %s@." uri);
   `Null
 
 let available (capabilities : ShowDocumentClientCapabilities.t option) =

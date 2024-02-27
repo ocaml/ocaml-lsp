@@ -14,10 +14,9 @@ let%expect_test "it should allow double opening the same document" =
       | _ -> assert false
     in
     Client.Handler.make
-      ~on_notification:
-        (fun _ -> function
-          | PublishDiagnostics _ -> Fiber.Mvar.write diagnostics ()
-          | _ -> Fiber.return ())
+      ~on_notification:(fun _ -> function
+        | PublishDiagnostics _ -> Fiber.Mvar.write diagnostics ()
+        | _ -> Fiber.return ())
       ~on_request:{ Client.Handler.on_request }
       ()
   in

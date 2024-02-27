@@ -758,6 +758,13 @@ describe("textDocument/foldingRange", () => {
           "startLine": 0,
         },
         Object {
+          "endCharacter": 6,
+          "endLine": 10,
+          "kind": "region",
+          "startCharacter": 5,
+          "startLine": 1,
+        },
+        Object {
           "endCharacter": 29,
           "endLine": 4,
           "kind": "region",
@@ -1453,6 +1460,61 @@ describe("textDocument/foldingRange", () => {
           "kind": "region",
           "startCharacter": 6,
           "startLine": 3,
+        },
+      ]
+    `);
+  });
+
+  it("returns folding ranges for Pexp_ifthenelse", async () => {
+    openDocument(outdent`
+    if tool_name = "ocamldep" then
+      if is_self_reference ~input_name ~loc lid then
+        {type_decl with ptype_manifest = None}
+      else {type_decl with ptype_manifest = Some manifest}
+    else
+      let x =
+        let () = Stdlib.print_endline "one" in
+        let () = Stdlib.print_endline "two" in
+        ()
+      in
+      let y =
+        let () = Stdlib.print_endline "one" in
+        let () = Stdlib.print_endline "two" in
+        ()
+      in
+      ()
+    `);
+
+    let result = await foldingRange();
+    expect(result).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "endCharacter": 54,
+          "endLine": 3,
+          "kind": "region",
+          "startCharacter": 3,
+          "startLine": 0,
+        },
+        Object {
+          "endCharacter": 42,
+          "endLine": 2,
+          "kind": "region",
+          "startCharacter": 5,
+          "startLine": 1,
+        },
+        Object {
+          "endCharacter": 6,
+          "endLine": 8,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 5,
+        },
+        Object {
+          "endCharacter": 6,
+          "endLine": 13,
+          "kind": "region",
+          "startCharacter": 2,
+          "startLine": 10,
         },
       ]
     `);

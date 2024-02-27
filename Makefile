@@ -35,6 +35,11 @@ install: ## Install the packages on the system
 lock: ## Generate the lock files
 	opam lock -y .
 
+.PHONY: bench
+bench: ##
+	dune exec ocaml-lsp-server/bench/ocaml_lsp_bench.exe --profile bench
+
+
 .PHONY: test-ocaml
 test-ocaml: ## Run the unit tests
 	dune build @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
