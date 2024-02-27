@@ -6,7 +6,6 @@ module InlayHints = struct
     { hint_pattern_variables : bool
           [@key "hintPatternVariables"] [@default false]
     ; hint_let_bindings : bool [@key "hintLetBindings"] [@default false]
-    ; hint_lambda_params : bool [@key "hintLambdaParams"] [@default false]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -391,5 +390,5 @@ let default =
   { codelens = Some { enable = false }
   ; extended_hover = Some { enable = false }
   ; inlay_hints =
-      Some { hint_pattern_variables = true; hint_let_bindings = true }
+      Some { hint_pattern_variables = false; hint_let_bindings = false }
   }

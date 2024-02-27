@@ -1,5 +1,13 @@
 open Test.Import
 
+let openDocument ~client ~uri ~source =
+  let textDocument =
+    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+  in
+  Client.notification
+    client
+    (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+
 let iter_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
     ?(diagnostics = []) ~source range k =
   let got_diagnostics = Fiber.Ivar.create () in
@@ -627,7 +635,7 @@ let parse_selection src =
   in
   (src', Range.create ~start ~end_)
 
-let apply_code_action title source range =
+let apply_code_action ?diagnostics title source range =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in

@@ -1,8 +1,7 @@
 open Test.Import
 
 let apply_inlay_hints ?(path = "foo.ml") ?range
-    ?(hint_pattern_variables = false) ?(hint_let_bindings = false)
-    ?(hint_lambda_params = false) ~source () =
+    ?(hint_pattern_variables = false) ?(hint_let_bindings = false) ~source () =
   let range =
     match range with
     | Some r -> r
@@ -30,8 +29,7 @@ let apply_inlay_hints ?(path = "foo.ml") ?range
           [ ( "inlayHints"
             , `Assoc
                 [ ("hintPatternVariables", `Bool hint_pattern_variables)
-                ; ("hintLetbindings", `Bool hint_let_bindings)
-                ; ("hintLambdaParams", `Bool hint_lambda_params)
+                ; ("hintLetBindings", `Bool hint_let_bindings)
                 ] )
           ])
       (InlayHint request)
@@ -63,10 +61,6 @@ let apply_inlay_hints ?(path = "foo.ml") ?range
     Test.apply_edits source text_edits |> print_endline
   | None -> print_endline "No hints found"
 
-let%expect_test "simple" =
-  apply_inlay_hints ~source:"let x = 1 + 2" ();
-  [%expect {| let x$: int$ = 1 + 2 |}]
-
 let%expect_test "optional argument" =
   apply_inlay_hints ~source:"let f ?x () = x" ();
   [%expect {| let f ?x$: 'a option$ () = x |}]
@@ -79,6 +73,10 @@ let%expect_test "labeled argument" =
   apply_inlay_hints ~source:"let f ~x = x + 1" ();
   [%expect {| let f ~x$: int$ = x + 1 |}]
 
+let%expect_test "case argument" =
+  apply_inlay_hints ~source:"let f (Some x) = x + 1" ();
+  [%expect {| let f (Some x$: int$) = x + 1 |}]
+
 let%expect_test "pattern variables" =
   let source = "let f x = match x with Some x -> x | None -> 0" in
   apply_inlay_hints ~source ();
@@ -86,15 +84,7 @@ let%expect_test "pattern variables" =
 
   apply_inlay_hints ~hint_pattern_variables:true ~source ();
   [%expect
-    {| let f x$: int option$ = match x with Some x$: int$ -> x | None -> 0 |}];
-
-  let source = "let f = function Some x -> x | None -> 0" in
-  apply_inlay_hints ~source ();
-  [%expect {| let f$: int option -> int$ = function Some x -> x | None -> 0 |}];
-
-  apply_inlay_hints ~hint_pattern_variables:true ~source ();
-  [%expect
-    {| let f$: int option -> int$ = function Some x$: int$ -> x | None -> 0 |}]
+    {| let f x$: int option$ = match x with Some x$: int$ -> x | None -> 0 |}]
 
 let%expect_test "let bindings" =
   let source = "let f () = let y = 0 in y" in

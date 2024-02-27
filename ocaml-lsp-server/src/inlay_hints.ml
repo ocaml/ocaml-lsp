@@ -61,7 +61,11 @@ let hint_binding_iter ?(hint_let_bindings = false)
 
   let structure_item (iter : I.iterator) (item : Typedtree.structure_item) =
     if range_overlaps_loc range item.str_loc then
-      I.default_iterator.structure_item iter item
+      match item.str_desc with
+      | Typedtree.Tstr_value (_, vbs) ->
+        List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
+            expr iter vb.vb_expr)
+      | _ -> I.default_iterator.structure_item iter item
   in
   let pat (type k) iter (pat : k Typedtree.general_pattern) =
     if range_overlaps_loc range pat.pat_loc then
