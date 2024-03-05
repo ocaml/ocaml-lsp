@@ -36,6 +36,7 @@
 
 - Add mark/remove unused actions for open, types, for loop indexes, modules,
   match cases, rec, and constructors (#1141)
+- Add inlay hints for types on let bindings (#1159)
 
 - Offer auto-completion for the keyword `in` (#1217)
 

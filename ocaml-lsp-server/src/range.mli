@@ -26,3 +26,6 @@ val of_loc : Loc.t -> t
     less characters than [edit.range], the new range is shrunk to fit
     [edit.newText] only. *)
 val resize_for_edit : TextEdit.t -> t
+
+(** [overlaps r1 r2] is true if [r1] and [r2] overlap. *)
+val overlaps : t -> t -> bool

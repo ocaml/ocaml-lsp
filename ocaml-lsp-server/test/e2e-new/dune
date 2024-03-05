@@ -21,11 +21,11 @@
   ppx_yojson_conv_lib
   lev_fiber
   lev
+  ocaml_lsp_server
   spawn
   jsonrpc
   lsp
   lsp_fiber
-  ocaml_lsp_server
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
   base
@@ -52,6 +52,7 @@
     document_flow
     for_ppx
     hover_extended
+    inlay_hints
     metrics
     semantic_hl_data
     semantic_hl_helpers

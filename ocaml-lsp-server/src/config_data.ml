@@ -1,6 +1,104 @@
 open Import
 open Import.Json.Conv
 
+module InlayHints = struct
+  type t =
+    { hint_pattern_variables : bool
+          [@key "hintPatternVariables"] [@default false]
+    ; hint_let_bindings : bool [@key "hintLetBindings"] [@default false]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    (let _tp_loc = "ocaml-lsp-server/src/config_data.ml.InlayHints.t" in
+     function
+     | `Assoc field_yojsons as yojson -> (
+       let hint_pattern_variables_field = ref Ppx_yojson_conv_lib.Option.None
+       and hint_let_bindings_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "hintPatternVariables" -> (
+             match Ppx_yojson_conv_lib.( ! ) hint_pattern_variables_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue = bool_of_yojson _field_yojson in
+               hint_pattern_variables_field :=
+                 Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | "hintLetBindings" -> (
+             match Ppx_yojson_conv_lib.( ! ) hint_let_bindings_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue = bool_of_yojson _field_yojson in
+               hint_let_bindings_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+           _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+             _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
+         | [] ->
+           let hint_pattern_variables_value, hint_let_bindings_value =
+             ( Ppx_yojson_conv_lib.( ! ) hint_pattern_variables_field
+             , Ppx_yojson_conv_lib.( ! ) hint_let_bindings_field )
+           in
+           { hint_pattern_variables =
+               (match hint_pattern_variables_value with
+               | Ppx_yojson_conv_lib.Option.None -> false
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           ; hint_let_bindings =
+               (match hint_let_bindings_value with
+               | Ppx_yojson_conv_lib.Option.None -> false
+               | Ppx_yojson_conv_lib.Option.Some v -> v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom
+         _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    (function
+     | { hint_pattern_variables = v_hint_pattern_variables
+       ; hint_let_bindings = v_hint_let_bindings
+       } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         let arg = yojson_of_bool v_hint_let_bindings in
+         ("hintLetBindings", arg) :: bnds
+       in
+       let bnds =
+         let arg = yojson_of_bool v_hint_pattern_variables in
+         ("hintPatternVariables", arg) :: bnds
+       in
+       `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
 module Lens = struct
   type t = { enable : bool [@default true] }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -222,6 +320,8 @@ type t =
         [@default None] [@yojson_drop_default ( = )]
   ; extended_hover : ExtendedHover.t Json.Nullable_option.t
         [@key "extendedHover"] [@default None] [@yojson_drop_default ( = )]
+  ; inlay_hints : InlayHints.t Json.Nullable_option.t
+        [@key "inlayHints"] [@default None] [@yojson_drop_default ( = )]
   ; dune_diagnostics : DuneDiagnostics.t Json.Nullable_option.t
         [@key "duneDiagnostics"] [@default None] [@yojson_drop_default ( = )]
   }
@@ -235,6 +335,7 @@ let t_of_yojson =
    | `Assoc field_yojsons as yojson -> (
      let codelens_field = ref Ppx_yojson_conv_lib.Option.None
      and extended_hover_field = ref Ppx_yojson_conv_lib.Option.None
+     and inlay_hints_field = ref Ppx_yojson_conv_lib.Option.None
      and dune_diagnostics_field = ref Ppx_yojson_conv_lib.Option.None
      and duplicates = ref []
      and extra = ref [] in
@@ -259,6 +360,17 @@ let t_of_yojson =
                  _field_yojson
              in
              extended_hover_field := Ppx_yojson_conv_lib.Option.Some fvalue
+           | Ppx_yojson_conv_lib.Option.Some _ ->
+             duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+         | "inlayHints" -> (
+           match Ppx_yojson_conv_lib.( ! ) inlay_hints_field with
+           | Ppx_yojson_conv_lib.Option.None ->
+             let fvalue =
+               Json.Nullable_option.t_of_yojson
+                 InlayHints.t_of_yojson
+                 _field_yojson
+             in
+             inlay_hints_field := Ppx_yojson_conv_lib.Option.Some fvalue
            | Ppx_yojson_conv_lib.Option.Some _ ->
              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
          | "duneDiagnostics" -> (
@@ -291,9 +403,13 @@ let t_of_yojson =
            (Ppx_yojson_conv_lib.( ! ) extra)
            yojson
        | [] ->
-         let codelens_value, extended_hover_value, dune_diagnostics_value =
+         let ( codelens_value
+             , extended_hover_value
+             , inlay_hints_value
+             , dune_diagnostics_value ) =
            ( Ppx_yojson_conv_lib.( ! ) codelens_field
            , Ppx_yojson_conv_lib.( ! ) extended_hover_field
+           , Ppx_yojson_conv_lib.( ! ) inlay_hints_field
            , Ppx_yojson_conv_lib.( ! ) dune_diagnostics_field )
          in
          { codelens =
@@ -302,6 +418,10 @@ let t_of_yojson =
              | Ppx_yojson_conv_lib.Option.Some v -> v)
          ; extended_hover =
              (match extended_hover_value with
+             | Ppx_yojson_conv_lib.Option.None -> None
+             | Ppx_yojson_conv_lib.Option.Some v -> v)
+         ; inlay_hints =
+             (match inlay_hints_value with
              | Ppx_yojson_conv_lib.Option.None -> None
              | Ppx_yojson_conv_lib.Option.Some v -> v)
          ; dune_diagnostics =
@@ -321,6 +441,7 @@ let yojson_of_t =
   (function
    | { codelens = v_codelens
      ; extended_hover = v_extended_hover
+     ; inlay_hints = v_inlay_hints
      ; dune_diagnostics = v_dune_diagnostics
      } ->
      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
@@ -332,6 +453,16 @@ let yojson_of_t =
              v_dune_diagnostics
          in
          let bnd = ("duneDiagnostics", arg) in
+         bnd :: bnds
+     in
+     let bnds =
+       if None = v_inlay_hints then bnds
+       else
+         let arg =
+           (Json.Nullable_option.yojson_of_t InlayHints.yojson_of_t)
+             v_inlay_hints
+         in
+         let bnd = ("inlayHints", arg) in
          bnd :: bnds
      in
      let bnds =
@@ -363,5 +494,7 @@ let _ = yojson_of_t
 let default =
   { codelens = Some { enable = false }
   ; extended_hover = Some { enable = false }
+  ; inlay_hints =
+      Some { hint_pattern_variables = false; hint_let_bindings = false }
   ; dune_diagnostics = Some { enable = true }
   }

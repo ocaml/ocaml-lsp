@@ -234,6 +234,9 @@ include struct
   module FoldingRangeParams = FoldingRangeParams
   module Hover = Hover
   module HoverParams = HoverParams
+  module InlayHint = InlayHint
+  module InlayHintKind = InlayHintKind
+  module InlayHintParams = InlayHintParams
   module InitializeParams = InitializeParams
   module InitializeResult = InitializeResult
   module Location = Location

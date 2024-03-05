@@ -57,3 +57,9 @@ let resize_for_edit { TextEdit.range; newText } =
       { Position.line; character }
     in
     { range with end_ }
+
+let overlaps x y =
+  let open Ordering in
+  match (Position.compare x.start y.end_, Position.compare x.end_ y.start) with
+  | (Lt | Eq), (Gt | Eq) | (Gt | Eq), (Lt | Eq) -> true
+  | _ -> false

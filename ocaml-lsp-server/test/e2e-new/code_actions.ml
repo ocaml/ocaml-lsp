@@ -517,7 +517,7 @@ let f (x : t) = x
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = open_document ~client ~uri ~source:impl_source in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
   let intf_source = "" in
   let range =
     let start = Position.create ~line:0 ~character:0 in
@@ -590,38 +590,6 @@ let parse_selection src =
   in
   (src', Range.create ~start ~end_)
 
-let offset_of_position src (pos : Position.t) =
-  let line_offset =
-    String.split_lines src |> List.take pos.line
-    |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
-  in
-  line_offset + pos.line (* account for line endings *) + pos.character
-
-let apply_edits src edits =
-  let rec apply src = function
-    | [] -> src
-    | (new_text, start, end_) :: edits ->
-      (* apply edit *)
-      let src' = String.take src start ^ new_text ^ String.drop src end_ in
-
-      (* calculate amount of text added (or removed) *)
-      let diff_len = String.length new_text - (end_ - start) in
-
-      (* offset positions of remaining edits *)
-      let edits' =
-        List.map edits ~f:(fun (new_text, start, end_) ->
-            (new_text, start + diff_len, end_ + diff_len))
-      in
-      apply src' edits'
-  in
-  let edits =
-    List.map edits ~f:(fun (e : TextEdit.t) ->
-        ( e.newText
-        , offset_of_position src e.range.start
-        , offset_of_position src e.range.end_ ))
-  in
-  apply src edits
-
 let apply_code_action ?diagnostics title source range =
   let open Option.O in
   (* collect code action results *)
@@ -645,7 +613,7 @@ let apply_code_action ?diagnostics title source range =
               TextEdit.create ~newText:a.newText ~range:a.range
             | `TextEdit e -> e)
       | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
-  |> apply_edits source
+  |> Test.apply_edits source
 
 let code_action_test ~title source =
   let src, range = parse_selection source in

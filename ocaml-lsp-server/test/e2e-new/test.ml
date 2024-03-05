@@ -64,6 +64,7 @@ module Import = struct
   module Client = Lsp_fiber.Client
   include Lsp.Types
   module Uri = Lsp.Uri
+  module Position = Ocaml_lsp_server.Position
 end
 
 open Import
@@ -153,3 +154,93 @@ end = struct
 end
 
 include T
+
+let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
+  let diagnostics = Fiber.Ivar.create () in
+  let handler =
+    Client.Handler.make
+      ~on_notification:(fun _ -> function
+        | PublishDiagnostics _ -> (
+          let* diag = Fiber.Ivar.peek diagnostics in
+          match diag with
+          | Some _ -> Fiber.return ()
+          | None -> Fiber.Ivar.fill diagnostics ())
+        | _ -> Fiber.return ())
+      ()
+  in
+  run ~handler @@ fun client ->
+  let run_client () =
+    let capabilities =
+      let window =
+        let showDocument =
+          ShowDocumentClientCapabilities.create ~support:true
+        in
+        WindowClientCapabilities.create ~showDocument ()
+      in
+      ClientCapabilities.create ~window ()
+    in
+    Client.start client (InitializeParams.create ~capabilities ())
+  in
+  let run =
+    let* (_ : InitializeResult.t) = Client.initialized client in
+    let* () = prep client in
+    let* () =
+      match settings with
+      | Some settings ->
+        Client.notification client (ChangeConfiguration { settings })
+      | None -> Fiber.return ()
+    in
+    Client.request client request
+  in
+  Fiber.fork_and_join_unit run_client (fun () ->
+      let* ret = run in
+      let* () = Fiber.Ivar.read diagnostics in
+      let+ () = Client.stop client in
+      ret)
+
+let openDocument ~client ~uri ~source =
+  let textDocument =
+    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+  in
+  Client.notification
+    client
+    (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+
+let offset_of_position src (pos : Position.t) =
+  let line_offset =
+    String.split_lines src |> List.take pos.line
+    |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
+  in
+  line_offset + pos.line (* account for line endings *) + pos.character
+
+let apply_edits src edits =
+  let edits =
+    List.sort edits ~compare:(fun (e : TextEdit.t) (e' : TextEdit.t) ->
+        Position.compare e.range.start e'.range.start)
+  in
+
+  (* check that edits are non-overlapping *)
+  let rec overlaps : TextEdit.t list -> _ = function
+    | [] | [ _ ] -> false
+    | e :: e' :: es -> (
+      match Position.compare e.range.end_ e'.range.start with
+      | Gt -> true
+      | Lt | Eq -> overlaps (e' :: es))
+  in
+  if overlaps edits then failwith "overlapping edits";
+
+  let _, edits =
+    (* compute start and end character offsets for each edit *)
+    List.map edits ~f:(fun (e : TextEdit.t) ->
+        ( e.newText
+        , offset_of_position src e.range.start
+        , offset_of_position src e.range.end_ ))
+    (* update the offsets to account for preceding edits *)
+    |> List.fold_left_map ~init:0 ~f:(fun offset (new_text, start, end_) ->
+           if end_ < start then failwith "invalid edit: end before start";
+           ( offset + (String.length new_text - (end_ - start))
+           , (new_text, start + offset, end_ + offset) ))
+  in
+  (* apply edits *)
+  List.fold_left edits ~init:src ~f:(fun src (new_text, start, end_) ->
+      String.take src start ^ new_text ^ String.drop src end_)
