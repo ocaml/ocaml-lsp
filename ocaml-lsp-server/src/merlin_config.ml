@@ -47,6 +47,8 @@ module List = struct
   let filter_dup lst = filter_dup' ~equiv:(fun x -> x) lst
 end
 
+let cache_lifespan = ref None
+
 module Config = struct
   type t =
     { build_path : string list
@@ -60,6 +62,7 @@ module Config = struct
     ; reader : string list
     ; exclude_query_dir : bool
     ; use_ppx_cache : bool
+    ; cache_lifespan : int option
     }
 
   let empty =
@@ -74,6 +77,7 @@ module Config = struct
     ; reader = []
     ; exclude_query_dir = false
     ; use_ppx_cache = false
+    ; cache_lifespan = None
     }
 
   (* Parses suffixes pairs that were supplied as whitespace separated pairs
@@ -133,6 +137,7 @@ module Config = struct
       ; reader = config.reader
       ; exclude_query_dir = config.exclude_query_dir
       ; use_ppx_cache = config.use_ppx_cache
+      ; cache_lifespan = config.cache_lifespan
       }
 
   let merge t (merlin : Mconfig.merlin) failures config_path =
@@ -149,6 +154,7 @@ module Config = struct
     ; flags_to_apply = t.flags @ merlin.flags_to_apply
     ; failures = failures @ merlin.failures
     ; config_path = Some config_path
+    ; cache_lifespan = Option.value !cache_lifespan ~default:merlin.cache_lifespan
     }
 end
 
