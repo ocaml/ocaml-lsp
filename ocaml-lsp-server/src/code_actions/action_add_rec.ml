@@ -6,7 +6,7 @@ let action_title = "Add missing `rec` keyword"
 let let_bound_vars bindings =
   List.filter_map bindings ~f:(fun vb ->
       match vb.Typedtree.vb_pat.pat_desc with
-      | Typedtree.Tpat_var (id, loc) -> Some (id, loc)
+      | Typedtree.Tpat_var (id, loc, _) -> Some (id, loc)
       | _ -> None)
 
 (** If the cursor position is inside a let binding which should have a ret tag

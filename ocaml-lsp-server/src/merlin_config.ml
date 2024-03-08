@@ -50,6 +50,7 @@ end
 module Config = struct
   type t =
     { build_path : string list
+    ; hidden_path : string list
     ; source_path : string list
     ; cmi_path : string list
     ; cmt_path : string list
@@ -64,6 +65,7 @@ module Config = struct
 
   let empty =
     { build_path = []
+    ; hidden_path = []
     ; source_path = []
     ; cmi_path = []
     ; cmt_path = []
@@ -97,6 +99,8 @@ module Config = struct
       function
       | `B path ->
         ({ config with build_path = path :: config.build_path }, errors)
+      | `H path ->
+        ({ config with hidden_path = path :: config.hidden_path }, errors)
       | `S path ->
         ({ config with source_path = path :: config.source_path }, errors)
       | `CMI path -> ({ config with cmi_path = path :: config.cmi_path }, errors)
@@ -123,6 +127,7 @@ module Config = struct
     let clean list = List.rev (List.filter_dup list) in
     fun config ->
       { build_path = clean config.build_path
+      ; hidden_path = clean config.hidden_path
       ; source_path = clean config.source_path
       ; cmi_path = clean config.cmi_path
       ; cmt_path = clean config.cmt_path
@@ -138,6 +143,7 @@ module Config = struct
   let merge t (merlin : Mconfig.merlin) failures config_path =
     { merlin with
       build_path = t.build_path @ merlin.build_path
+    ; hidden_path = t.hidden_path @ merlin.hidden_path
     ; source_path = t.source_path @ merlin.source_path
     ; cmi_path = t.cmi_path @ merlin.cmi_path
     ; cmt_path = t.cmt_path @ merlin.cmt_path
