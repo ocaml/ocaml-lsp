@@ -8,6 +8,10 @@
 
 - Support folding of `ifthenelse` expressions (#1031)
 
+- Includes a new optional/configurable option to toggle syntax documentation. If
+  toggled on, allows display of sytax documentation on hover tooltips. Can be
+  controlled via environment variables and by GUI for VS code. (#1218)
+
 # 1.17.0
 
 ## Fixes

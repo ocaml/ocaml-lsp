@@ -304,6 +304,36 @@ of the value needs to be non-polymorphic to construct a meaningful value.
 Tip (for VS Code OCaml Platform users): You can construct a value using a keybinding
 <kbd>Alt</kbd>+<kbd>C</kbd> or on MacOS <kbd>Option</kbd>+<kbd>C</kbd>
 
+#### Syntax Documentation
+
+> since OCaml-LSP 1.18.0
+
+OCaml-LSP can display documentation about the node under the cursor when
+the user hovers over some OCaml code. For example, hovering over the code
+snippet below will display some information about what the syntax
+is:
+
+```ocaml
+type point = {x: int; y: int}
+```
+Hovering over the above will
+display:
+```
+ocaml type point = { x : int; y : int } 
+syntax Record type:
+Allows you to define variants with a fixed set of fields, and all of the
+constructors for a record variant type must have the same fields. See
+Manual
+```
+The documentation is gotten from the Merlin engine which receives
+the nodes under the cursor and infers what the syntax may be about, and
+displays the required information along with links to the manual for further
+reading. 
+
+Syntax Documentation is an optional feature and can be activated by
+using the LSP config system with the key called `syntaxDocumentation` and can
+be enabled via setting it to `{ enable: true }`.
+
 ## Debugging
 
 If you use Visual Studio Code, please see OCaml Platform extension
