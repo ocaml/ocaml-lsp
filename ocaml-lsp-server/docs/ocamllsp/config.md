@@ -1,6 +1,6 @@
 # Configuration
 
-The ocamllsp support the folowing configurations.
+The ocamllsp support the following configurations.
 
 These configurations are sent through the
 [`didChangeConfiguration`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didChangeConfiguration)
@@ -28,5 +28,12 @@ interface config {
   * @since 1.18
   */
   duneDiagnostics: { enable : boolean }
+
+  /**
+  * Enable/Disable Inlay Hints
+  * @default false
+  * @since 1.18
+  */
+  inlayHints: { enable : boolean }
 }
 ```
