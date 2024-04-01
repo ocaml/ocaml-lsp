@@ -28,11 +28,17 @@ let available (capabilities : ShowDocumentClientCapabilities.t option) =
   | None | Some { support = false } -> false
   | Some { support = true } -> true
 
-let for_uri (capabilities : ShowDocumentClientCapabilities.t option) uri =
+let for_uri (capabilities : ShowDocumentClientCapabilities.t option) doc =
+  let uri = Document.uri doc in
+  let merlin_doc =
+    match Document.kind doc with
+    | `Merlin doc -> Some doc
+    | `Other -> None
+  in
   match available capabilities with
   | false -> []
   | true ->
-    Document.get_impl_intf_counterparts uri
+    Document.get_impl_intf_counterparts merlin_doc uri
     |> List.map ~f:(fun uri ->
            let path = Uri.to_path uri in
            let exists = Sys.file_exists path in

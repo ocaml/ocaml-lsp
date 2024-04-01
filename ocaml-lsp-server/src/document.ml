@@ -6,17 +6,20 @@ module Kind = struct
     | Intf
     | Impl
 
-  let of_fname p =
+  let of_fname_opt p =
     match Filename.extension p with
-    | ".ml" | ".eliom" | ".re" -> Impl
-    | ".mli" | ".eliomi" | ".rei" -> Intf
-    | ext ->
-      Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make
-           ~code:InvalidRequest
-           ~message:"unsupported file extension"
-           ~data:(`Assoc [ ("extension", `String ext) ])
-           ())
+    | ".ml" | ".eliom" | ".re" -> Some Impl
+    | ".mli" | ".eliomi" | ".rei" -> Some Intf
+    | _ -> None
+
+  let unsupported uri =
+    let p = Uri.to_path uri in
+    Jsonrpc.Response.Error.raise
+      (Jsonrpc.Response.Error.make
+         ~code:InvalidRequest
+         ~message:"unsupported file extension"
+         ~data:(`Assoc [ ("extension", `String (Filename.extension p)) ])
+         ())
 end
 
 module Syntax = struct
@@ -178,6 +181,7 @@ type merlin =
   ; timer : Lev_fiber.Timer.Wheel.task
   ; merlin_config : Merlin_config.t
   ; syntax : Syntax.t
+  ; kind : Kind.t option
   }
 
 type t =
@@ -204,12 +208,24 @@ let source t = Msource.make (text t)
 let version t = Text_document.version (tdoc t)
 
 let make_merlin wheel merlin_db pipeline tdoc syntax =
-  let+ timer = Lev_fiber.Timer.Wheel.task wheel in
-  let merlin_config =
-    let uri = Text_document.documentUri tdoc in
-    Merlin_config.DB.get merlin_db uri
+  let* timer = Lev_fiber.Timer.Wheel.task wheel in
+  let uri = Text_document.documentUri tdoc in
+  let path = Uri.to_path uri in
+  let merlin_config = Merlin_config.DB.get merlin_db uri in
+  let* mconfig = Merlin_config.config merlin_config in
+  let kind =
+    let ext = Filename.extension path in
+    List.find_map mconfig.merlin.suffixes ~f:(fun (impl, intf) ->
+        if String.equal ext intf then Some Kind.Intf
+        else if String.equal ext impl then Some Kind.Impl
+        else None)
   in
-  Merlin { merlin_config; tdoc; pipeline; timer; syntax }
+  let kind =
+    match kind with
+    | Some _ as k -> k
+    | None -> Kind.of_fname_opt path
+  in
+  Fiber.return (Merlin { merlin_config; tdoc; pipeline; timer; syntax; kind })
 
 let make wheel config pipeline (doc : DidOpenTextDocumentParams.t)
     ~position_encoding =
@@ -252,7 +268,10 @@ module Merlin = struct
 
   let timer (t : t) = t.timer
 
-  let kind t = Kind.of_fname (Uri.to_path (uri (Merlin t)))
+  let kind t =
+    match t.kind with
+    | Some k -> k
+    | None -> Kind.unsupported (Text_document.documentUri t.tdoc)
 
   let with_pipeline ?name (t : t) f =
     Single_pipeline.use ?name t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
@@ -346,21 +365,30 @@ let close t =
       (fun () -> Merlin_config.destroy t.merlin_config)
       (fun () -> Lev_fiber.Timer.Wheel.cancel t.timer)
 
-let get_impl_intf_counterparts uri =
+let get_impl_intf_counterparts m uri =
   let fpath = Uri.to_path uri in
   let fname = Filename.basename fpath in
   let ml, mli, eliom, eliomi, re, rei, mll, mly =
     ("ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly")
   in
   let exts_to_switch_to =
+    let kind =
+      match m with
+      | Some m -> Merlin.kind m
+      | None -> (
+        (* still try to guess the kind *)
+        match Kind.of_fname_opt fpath with
+        | Some k -> k
+        | None -> Kind.unsupported uri)
+    in
     match Syntax.of_fname fname with
     | Dune | Cram -> []
     | Ocaml -> (
-      match Kind.of_fname fname with
+      match kind with
       | Intf -> [ ml; mly; mll; eliom; re ]
       | Impl -> [ mli; mly; mll; eliomi; rei ])
     | Reason -> (
-      match Kind.of_fname fname with
+      match kind with
       | Intf -> [ re; ml ]
       | Impl -> [ rei; mli ])
     | Ocamllex -> [ mli; rei ]
