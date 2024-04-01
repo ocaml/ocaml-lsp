@@ -445,6 +445,16 @@ let config (t : t) : Mconfig.t Fiber.t =
       let merlin = Config.merge dot t.initial.merlin failures config_path in
       Mconfig.normalize { t.initial with merlin }
 
+let dune_contexts (t : t) : (string list, Merlin_dot_protocol.read_error) result Fiber.t =
+  match find_project_context t.directory with
+  | None ->
+    let+ () = destroy t in
+    (* todo: should an error be raised? *)
+    Ok []
+  | Some (ctx, _config_path) ->
+    let* entry = get_process t.db ~dir:ctx.process_dir in
+    Dot_protocol_io.Commands.read_contexts entry.process.session
+
 module DB = struct
   type t = db
 

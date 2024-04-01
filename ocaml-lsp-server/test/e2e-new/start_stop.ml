@@ -90,7 +90,8 @@ let%expect_test "start/stop" =
               "handleTypedHoles": true,
               "handleWrappingAstNode": true,
               "diagnostic_promotions": true,
-              "handleHoverExtended": true
+              "handleHoverExtended": true,
+              "handleDuneContexts": true
             }
           },
           "foldingRangeProvider": true,
