@@ -455,6 +455,15 @@ let dune_contexts (t : t) : (string list, Merlin_dot_protocol.read_error) result
     let* entry = get_process t.db ~dir:ctx.process_dir in
     Dot_protocol_io.Commands.read_contexts entry.process.session
 
+let set_dune_context (t : t) ~context : unit Fiber.t =
+  match find_project_context t.directory with
+  | None ->
+    (* todo: should an error be raised? *)
+    destroy t
+  | Some (ctx, _config_path) ->
+    let* entry = get_process t.db ~dir:ctx.process_dir in
+    Dot_protocol_io.Commands.set_context entry.process.session context
+
 module DB = struct
   type t = db
 

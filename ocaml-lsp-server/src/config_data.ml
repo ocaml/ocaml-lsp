@@ -315,6 +315,85 @@ module DuneDiagnostics = struct
   [@@@end]
 end
 
+module DuneContext = struct
+  type selected =
+    | Default
+    | Custom of string
+
+  type t = { value : selected [@default Default] }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let t_of_yojson =
+    (let _tp_loc = "ocaml-lsp-server/src/config_data.ml.DuneContext.t" in
+     function
+     | `Assoc field_yojsons as yojson -> (
+       let value_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+           | "value" -> (
+             match Ppx_yojson_conv_lib.( ! ) value_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue = string_of_yojson _field_yojson in
+               value_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+           | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       match Ppx_yojson_conv_lib.( ! ) duplicates with
+       | _ :: _ ->
+         Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+           _tp_loc
+           (Ppx_yojson_conv_lib.( ! ) duplicates)
+           yojson
+       | [] -> (
+         match Ppx_yojson_conv_lib.( ! ) extra with
+         | _ :: _ ->
+           Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+             _tp_loc
+             (Ppx_yojson_conv_lib.( ! ) extra)
+             yojson
+         | [] ->
+           let value_value = Ppx_yojson_conv_lib.( ! ) value_field in
+           { value =
+               (match value_value with
+               | Ppx_yojson_conv_lib.Option.None
+               | Ppx_yojson_conv_lib.Option.Some "default" -> Default
+               | Ppx_yojson_conv_lib.Option.Some v -> Custom v)
+           }))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom
+         _tp_loc
+         yojson
+      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    (function
+     | { value = v_value } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         let arg =
+           match v_value with
+           | Default -> "default"
+           | Custom ctxt -> ctxt
+         in
+         ("value", yojson_of_string arg) :: bnds
+       in
+       `Assoc bnds
+      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
 type t =
   { codelens : Lens.t Json.Nullable_option.t
         [@default None] [@yojson_drop_default ( = )]
@@ -324,6 +403,8 @@ type t =
         [@key "inlayHints"] [@default None] [@yojson_drop_default ( = )]
   ; dune_diagnostics : DuneDiagnostics.t Json.Nullable_option.t
         [@key "duneDiagnostics"] [@default None] [@yojson_drop_default ( = )]
+  ; dune_context : DuneContext.t Json.Nullable_option.t
+        [@key "duneContext"] [@default None] [@yojson_drop_default ( = )]
   }
 [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -337,6 +418,7 @@ let t_of_yojson =
      and extended_hover_field = ref Ppx_yojson_conv_lib.Option.None
      and inlay_hints_field = ref Ppx_yojson_conv_lib.Option.None
      and dune_diagnostics_field = ref Ppx_yojson_conv_lib.Option.None
+     and dune_context_field = ref Ppx_yojson_conv_lib.Option.None
      and duplicates = ref []
      and extra = ref [] in
      let rec iter = function
@@ -384,6 +466,17 @@ let t_of_yojson =
              dune_diagnostics_field := Ppx_yojson_conv_lib.Option.Some fvalue
            | Ppx_yojson_conv_lib.Option.Some _ ->
              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+         | "duneContext" -> (
+           match Ppx_yojson_conv_lib.( ! ) dune_context_field with
+           | Ppx_yojson_conv_lib.Option.None ->
+             let fvalue =
+               Json.Nullable_option.t_of_yojson
+                 DuneContext.t_of_yojson
+                 _field_yojson
+             in
+             dune_context_field := Ppx_yojson_conv_lib.Option.Some fvalue
+           | Ppx_yojson_conv_lib.Option.Some _ ->
+             duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
          | _ -> ());
          iter tail
        | [] -> ()
@@ -406,11 +499,13 @@ let t_of_yojson =
          let ( codelens_value
              , extended_hover_value
              , inlay_hints_value
-             , dune_diagnostics_value ) =
+             , dune_diagnostics_value
+             , dune_context_value ) =
            ( Ppx_yojson_conv_lib.( ! ) codelens_field
            , Ppx_yojson_conv_lib.( ! ) extended_hover_field
            , Ppx_yojson_conv_lib.( ! ) inlay_hints_field
-           , Ppx_yojson_conv_lib.( ! ) dune_diagnostics_field )
+           , Ppx_yojson_conv_lib.( ! ) dune_diagnostics_field
+           , Ppx_yojson_conv_lib.( ! ) dune_context_field )
          in
          { codelens =
              (match codelens_value with
@@ -428,6 +523,10 @@ let t_of_yojson =
              (match dune_diagnostics_value with
              | Ppx_yojson_conv_lib.Option.None -> None
              | Ppx_yojson_conv_lib.Option.Some v -> v)
+         ; dune_context =
+             (match dune_context_value with
+             | Ppx_yojson_conv_lib.Option.None -> None
+             | Ppx_yojson_conv_lib.Option.Some v -> v)
          }))
    | _ as yojson ->
      Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom
@@ -443,6 +542,7 @@ let yojson_of_t =
      ; extended_hover = v_extended_hover
      ; inlay_hints = v_inlay_hints
      ; dune_diagnostics = v_dune_diagnostics
+     ; dune_context = v_dune_context
      } ->
      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
      let bnds =
@@ -484,6 +584,16 @@ let yojson_of_t =
          let bnd = ("codelens", arg) in
          bnd :: bnds
      in
+     let bnds =
+       if None = v_dune_context then bnds
+       else
+         let arg =
+           (Json.Nullable_option.yojson_of_t DuneContext.yojson_of_t)
+             v_dune_context
+         in
+         let bnd = ("duneContext", arg) in
+         bnd :: bnds
+     in
      `Assoc bnds
     : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
 
@@ -497,4 +607,5 @@ let default =
   ; inlay_hints =
       Some { hint_pattern_variables = false; hint_let_bindings = false }
   ; dune_diagnostics = Some { enable = true }
+  ; dune_context = Some { value = Default }
   }

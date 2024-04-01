@@ -511,7 +511,7 @@ let on_request :
         , Semantic_highlighting.Debug.on_request_full )
       ; ( Req_hover_extended.meth
         , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
-      ; ( Req_dune_contexts.meth, Req_dune_contexts.on_request )
+      ; (Req_dune_contexts.meth, Req_dune_contexts.on_request)
       ]
       |> List.assoc_opt meth
     with
@@ -712,13 +712,22 @@ let on_notification server (notification : Client_notification.t) :
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
     let* configuration = Configuration.update state.configuration req in
-    let+ () =
+    let* () =
       let report_dune_diagnostics =
         Configuration.report_dune_diagnostics configuration
       in
       Diagnostics.set_report_dune_diagnostics
         ~report_dune_diagnostics
         (State.diagnostics state)
+    in
+    let+ () =
+      let context = Configuration.dune_context configuration in
+      Merlin_config.set_dune_context
+        (Merlin_config.DB.get state.merlin_config (State.workspace_root state))
+        ~context:
+          (match context with
+          | Default -> "default"
+          | Custom ctxt -> ctxt)
     in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (

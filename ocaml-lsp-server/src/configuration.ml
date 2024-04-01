@@ -52,3 +52,8 @@ let report_dune_diagnostics t =
   match t.data.dune_diagnostics with
   | Some { enable = true } | None -> true
   | Some { enable = false } -> false
+
+let dune_context t =
+  match t.data.dune_context with
+  | Some { value = v } -> v
+  | None -> Default
