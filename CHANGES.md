@@ -8,6 +8,13 @@
 
 - Support folding of `ifthenelse` expressions (#1031)
 
+## Fixes
+
+- Detect document kind by looking at merlin's `suffixes` config.
+
+  This enables more lsp features for non-.ml/.mli files. Though it still
+  depends on merlin's support. (#1237)
+
 # 1.17.0
 
 ## Fixes
