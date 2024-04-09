@@ -1,5 +1,4 @@
 open Import
-open Fiber.O
 
 let capability = ("handleDuneContexts", `Bool true)
 
@@ -25,36 +24,44 @@ module Request_params = struct
         ()
 end
 
-let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
-  Fiber.of_thunk (fun () ->
-      let () = Request_params.parse_exn params in
-      let+ res =
-        Merlin_config.dune_contexts
-          (Merlin_config.DB.get
-             state.merlin_config
-             (State.workspace_root state))
-      in
-      match res with
-      | Error (Unexpected_output msg) ->
-        Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make
-             ~code:Jsonrpc.Response.Error.Code.RequestFailed
-             ~message:(sprintf "Unexpected output when reading dune contexts")
-             ~data:
-               (`String
-                 (sprintf
-                    "'GetContexts' query to ocaml-merlin returned error: %s"
-                    msg))
-             ())
-      | Error (Csexp_parse_error msg) ->
-        Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make
-             ~code:Jsonrpc.Response.Error.Code.RequestFailed
-             ~message:(sprintf "Parse error when reading dune contexts")
-             ~data:
-               (`String
-                 (sprintf
-                    "'GetContexts' query to ocaml-merlin returned error: %s"
-                    msg))
-             ())
-      | Ok contexts -> Json.yojson_of_list (fun ctxt -> `String ctxt) contexts)
+let on_request ~(params : Jsonrpc.Structured.t option) : Json.t =
+  let () = Request_params.parse_exn params in
+  match Bin.which "dune" with
+  | None ->
+    Jsonrpc.Response.Error.raise
+      (Jsonrpc.Response.Error.make
+         ~code:InternalError
+         ~message:"dune binary not found"
+         ())
+  | Some dune -> (
+    let describe = Fpath.to_string dune ^ " describe contexts" in
+    let temp_file = Filename.temp_file "req_dune_contexts" ".txt" in
+    let command = Printf.sprintf "%s > %s" describe temp_file in
+    let error ~data =
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make
+           ~code:InternalError
+           ~message:"Execution of `dune describe contexts` failed"
+           ~data
+           ())
+    in
+
+    try
+      let exit_status = Sys.command command in
+      if exit_status = 0 then (
+        let ic = open_in temp_file in
+        let rec read_lines acc =
+          try
+            let line = input_line ic in
+            read_lines (line :: acc)
+          with End_of_file -> List.rev acc
+        in
+        let lines = read_lines [] in
+        close_in ic;
+        Sys.remove temp_file;
+        Json.yojson_of_list (fun line -> `String line) lines)
+      else error ~data:(`Assoc [ ("exitStatus", `Int exit_status) ])
+    with
+    | Sys_error msg -> error ~data:(`Assoc [ ("systemError", `String msg) ])
+    | Failure msg -> error ~data:(`Assoc [ ("Failure", `String msg) ])
+    | _ -> error ~data:(`String "Unknown error"))

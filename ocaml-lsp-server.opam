@@ -57,6 +57,3 @@ build: [
     "--release"
   ]
 ]
-pin-depends: [
-  ["merlin-lib.4.9+contexts" "https://github.com/ocaml/merlin/archive/67e29f95d62bafbdc46dac1a79adacab0d654b23.tar.gz"]
-]

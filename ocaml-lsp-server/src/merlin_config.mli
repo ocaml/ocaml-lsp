@@ -8,10 +8,7 @@ val should_read_dot_merlin : bool ref
 
 val config : t -> Mconfig.t Fiber.t
 
-val dune_contexts :
-  t -> (string list, Merlin_dot_protocol.read_error) result Fiber.t
-
-val set_dune_context : t -> context:string -> unit Fiber.t
+val set_dune_context : t -> context:Config_data.DuneContext.selected -> unit
 
 val destroy : t -> unit Fiber.t
 

@@ -323,6 +323,18 @@ module DuneContext = struct
   type t = { value : selected [@default Default] }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
+  let to_string = function
+    | Default -> "default"
+    | Custom str -> str
+
+  let to_dyn t = Dyn.string (to_string t)
+
+  let equal a b =
+    match (a, b) with
+    | Default, Default -> true
+    | Custom str1, Custom str2 when String.equal str1 str2 -> true
+    | Default, Custom _ | Custom _, Default | Custom _, Custom _ -> false
+
   let t_of_yojson =
     (let _tp_loc = "ocaml-lsp-server/src/config_data.ml.DuneContext.t" in
      function

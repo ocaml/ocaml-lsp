@@ -47,6 +47,28 @@ module List = struct
   let filter_dup lst = filter_dup' ~equiv:(fun x -> x) lst
 end
 
+module Table_id = struct
+  type t =
+    { dune_context : Config_data.DuneContext.selected
+    ; dir : string
+    }
+
+  let make ~dune_context ~dir = { dune_context; dir }
+
+  let equal a b =
+    Config_data.DuneContext.equal a.dune_context b.dune_context
+    && String.equal a.dir b.dir
+
+  let hash = Hashtbl.hash
+
+  let to_dyn t =
+    let open Dyn in
+    record
+      [ ("dune_context", Config_data.DuneContext.to_dyn t.dune_context)
+      ; ("dir", string t.dir)
+      ]
+end
+
 module Config = struct
   type t =
     { build_path : string list
@@ -244,7 +266,7 @@ module Dot_protocol_io =
 let should_read_dot_merlin = ref false
 
 type db =
-  { running : (string, entry) Table.t
+  { running : (Table_id.t, entry) Table.t
   ; pool : Fiber.Pool.t
   }
 
@@ -263,25 +285,27 @@ module Entry = struct
 
   let incr t = t.ref_count <- t.ref_count + 1
 
-  let destroy (t : t) =
+  let destroy ~dune_context (t : t) =
     assert (t.ref_count > 0);
     t.ref_count <- t.ref_count - 1;
     if t.ref_count > 0 then Fiber.return ()
-    else (
-      Table.remove t.db.running t.process.initial_cwd;
+    else
+      let key = Table_id.make ~dune_context ~dir:t.process.initial_cwd in
+      Table.remove t.db.running key;
       Format.eprintf
         "halting dune merlin process@.%s@."
         (Dyn.to_string (Process.to_dyn t.process));
-      Dot_protocol_io.Commands.halt t.process.session)
+      Dot_protocol_io.Commands.halt t.process.session
 end
 
-let get_process t ~dir =
-  match Table.find t.running dir with
+let get_process t ~dune_context ~dir =
+  let key = Table_id.make ~dune_context ~dir in
+  match Table.find t.running key with
   | Some p -> Fiber.return p
   | None ->
     let* process = Process.start ~dir in
     let entry = Entry.create t process in
-    Table.add_exn t.running dir entry;
+    Table.add_exn t.running key entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
     entry
 
@@ -380,6 +404,7 @@ type nonrec t =
   ; directory : string
   ; initial : Mconfig.t
   ; mutable entry : Entry.t option
+  ; mutable selected_context : Config_data.DuneContext.selected
   ; db : db
   }
 
@@ -389,7 +414,7 @@ let destroy t =
   | None -> Fiber.return ()
   | Some entry ->
     t.entry <- None;
-    Entry.destroy entry
+    Entry.destroy ~dune_context:t.selected_context entry
 
 let create db path =
   let path =
@@ -410,7 +435,13 @@ let create db path =
         }
     }
   in
-  { path; directory; initial; db; entry = None }
+  { path
+  ; directory
+  ; initial
+  ; db
+  ; entry = None
+  ; selected_context = Config_data.DuneContext.Default
+  }
 
 let config (t : t) : Mconfig.t Fiber.t =
   let use_entry entry =
@@ -418,6 +449,7 @@ let config (t : t) : Mconfig.t Fiber.t =
     t.entry <- Some entry
   in
   let* () = Fiber.return () in
+  let dune_context = t.selected_context in
   if !should_read_dot_merlin then
     Fiber.return (Mconfig.get_external_config t.path t.initial)
   else
@@ -426,7 +458,7 @@ let config (t : t) : Mconfig.t Fiber.t =
       let+ () = destroy t in
       t.initial
     | Some (ctx, config_path) ->
-      let* entry = get_process t.db ~dir:ctx.process_dir in
+      let* entry = get_process ~dune_context t.db ~dir:ctx.process_dir in
       let* () =
         match t.entry with
         | None ->
@@ -445,24 +477,8 @@ let config (t : t) : Mconfig.t Fiber.t =
       let merlin = Config.merge dot t.initial.merlin failures config_path in
       Mconfig.normalize { t.initial with merlin }
 
-let dune_contexts (t : t) : (string list, Merlin_dot_protocol.read_error) result Fiber.t =
-  match find_project_context t.directory with
-  | None ->
-    let+ () = destroy t in
-    (* todo: should an error be raised? *)
-    Ok []
-  | Some (ctx, _config_path) ->
-    let* entry = get_process t.db ~dir:ctx.process_dir in
-    Dot_protocol_io.Commands.read_contexts entry.process.session
-
-let set_dune_context (t : t) ~context : unit Fiber.t =
-  match find_project_context t.directory with
-  | None ->
-    (* todo: should an error be raised? *)
-    destroy t
-  | Some (ctx, _config_path) ->
-    let* entry = get_process t.db ~dir:ctx.process_dir in
-    Dot_protocol_io.Commands.set_context entry.process.session context
+let set_dune_context (t : t) ~context:dune_context =
+  t.selected_context <- dune_context
 
 module DB = struct
   type t = db
@@ -470,7 +486,7 @@ module DB = struct
   let get t uri = create t uri
 
   let create () =
-    { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
+    { running = Table.create (module Table_id) 0; pool = Fiber.Pool.create () }
 
   let run t = Fiber.Pool.run t.pool
 
