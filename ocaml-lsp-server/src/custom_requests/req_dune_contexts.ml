@@ -15,7 +15,7 @@ module Request_params = struct
            ()
     in
     match params with
-    | None -> ()
+    | None | Some (`List [] | `Assoc []) -> ()
     | Some params ->
       let error_json = `Assoc [ ("params_received", (params :> Json.t)) ] in
       raise_invalid_params
