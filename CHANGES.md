@@ -8,6 +8,9 @@
 
 - Support folding of `ifthenelse` expressions (#1031)
 
+- Add `getDuneContexts` method and spawn a new `ocaml-merlin` process per
+  Dune context (#1238)
+
 ## Fixes
 
 - Detect document kind by looking at merlin's `suffixes` config.
