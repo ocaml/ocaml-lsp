@@ -688,6 +688,7 @@ let on_notification server (notification : Client_notification.t) :
     let* doc =
       let position_encoding = State.position_encoding state in
       Document.make
+        ~dune_context:(State.dune_context state)
         ~position_encoding
         (State.wheel state)
         state.merlin_config
@@ -723,11 +724,9 @@ let on_notification server (notification : Client_notification.t) :
         ~report_dune_diagnostics
         (State.diagnostics state)
     in
-    let () =
-      let context = Configuration.dune_context configuration in
-      Merlin_config.set_dune_context
-        (Merlin_config.DB.get state.merlin_config (State.workspace_root state))
-        ~context
+    let state =
+      let dune_context = Configuration.dune_context configuration in
+      State.set_dune_context state ~dune_context
     in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (

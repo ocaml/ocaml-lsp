@@ -25,6 +25,7 @@ type t =
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
+  ; selected_context : Config_data.DuneContext.selected
   }
 
 let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
@@ -40,7 +41,10 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
   ; symbols_thread
   ; wheel
   ; hover_extended = { history = None }
+  ; selected_context = Default
   }
+
+let dune_context t = t.selected_context
 
 let wheel t = t.wheel
 
@@ -102,6 +106,9 @@ let modify_workspaces t ~f =
       Initialized { init with workspaces = f init.workspaces }
   in
   { t with init }
+
+let set_dune_context (t : t) ~dune_context =
+  { t with selected_context = dune_context }
 
 let client_capabilities t = (initialize_params t).capabilities
 

@@ -207,11 +207,11 @@ let source t = Msource.make (text t)
 
 let version t = Text_document.version (tdoc t)
 
-let make_merlin wheel merlin_db pipeline tdoc syntax =
+let make_merlin ~dune_context wheel merlin_db pipeline tdoc syntax =
   let* timer = Lev_fiber.Timer.Wheel.task wheel in
   let uri = Text_document.documentUri tdoc in
   let path = Uri.to_path uri in
-  let merlin_config = Merlin_config.DB.get merlin_db uri in
+  let merlin_config = Merlin_config.DB.get ~dune_context merlin_db uri in
   let* mconfig = Merlin_config.config merlin_config in
   let kind =
     let ext = Filename.extension path in
@@ -227,13 +227,14 @@ let make_merlin wheel merlin_db pipeline tdoc syntax =
   in
   Fiber.return (Merlin { merlin_config; tdoc; pipeline; timer; syntax; kind })
 
-let make wheel config pipeline (doc : DidOpenTextDocumentParams.t)
+let make ~dune_context wheel config pipeline (doc : DidOpenTextDocumentParams.t)
     ~position_encoding =
   Fiber.of_thunk (fun () ->
       let tdoc = Text_document.make ~position_encoding doc in
       let syntax = Syntax.of_text_document tdoc in
       match syntax with
-      | Ocaml | Reason -> make_merlin wheel config pipeline tdoc syntax
+      | Ocaml | Reason ->
+        make_merlin ~dune_context wheel config pipeline tdoc syntax
       | Ocamllex | Menhir | Cram | Dune -> Fiber.return (Other { tdoc; syntax }))
 
 let update_text ?version t changes =

@@ -404,7 +404,7 @@ type nonrec t =
   ; directory : string
   ; initial : Mconfig.t
   ; mutable entry : Entry.t option
-  ; mutable selected_context : Config_data.DuneContext.selected
+  ; selected_context : Config_data.DuneContext.selected
   ; db : db
   }
 
@@ -416,7 +416,7 @@ let destroy t =
     t.entry <- None;
     Entry.destroy ~dune_context:t.selected_context entry
 
-let create db path =
+let create ~dune_context db path =
   let path =
     let path = Uri.to_path path in
     Misc.canonicalize_filename path
@@ -440,7 +440,7 @@ let create db path =
   ; initial
   ; db
   ; entry = None
-  ; selected_context = Config_data.DuneContext.Default
+  ; selected_context = dune_context
   }
 
 let config (t : t) : Mconfig.t Fiber.t =
@@ -477,13 +477,10 @@ let config (t : t) : Mconfig.t Fiber.t =
       let merlin = Config.merge dot t.initial.merlin failures config_path in
       Mconfig.normalize { t.initial with merlin }
 
-let set_dune_context (t : t) ~context:dune_context =
-  t.selected_context <- dune_context
-
 module DB = struct
   type t = db
 
-  let get t uri = create t uri
+  let get ~dune_context t uri = create ~dune_context t uri
 
   let create () =
     { running = Table.create (module Table_id) 0; pool = Fiber.Pool.create () }
