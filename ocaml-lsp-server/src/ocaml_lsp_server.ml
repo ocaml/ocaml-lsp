@@ -501,9 +501,9 @@ let on_request :
   | Client_request.UnknownRequest { meth; params } -> (
     match
       [ ( Req_switch_impl_intf.meth
-        , fun ~params _ ->
+        , fun ~params state ->
             Fiber.of_thunk (fun () ->
-                Fiber.return (Req_switch_impl_intf.on_request ~params)) )
+                Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
       ; (Req_typed_holes.meth, Req_typed_holes.on_request)
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)

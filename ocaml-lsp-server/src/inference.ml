@@ -69,11 +69,11 @@ let infer_intf (state : State.t) doc =
     Code_error.raise "the provided document is not a merlin source." []
   | `Merlin m when Document.Merlin.kind m = Impl ->
     Code_error.raise "the provided document is not an interface." []
-  | `Merlin _ ->
+  | `Merlin m ->
     Fiber.of_thunk (fun () ->
         let intf_uri = Document.uri doc in
         let impl_uri =
-          Document.get_impl_intf_counterparts intf_uri |> List.hd
+          Document.get_impl_intf_counterparts (Some m) intf_uri |> List.hd
         in
         let* impl =
           match Document_store.get_opt state.store impl_uri with
