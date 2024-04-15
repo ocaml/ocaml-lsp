@@ -200,7 +200,7 @@ module Process = struct
     Lev_fiber.Io.close t.stdin;
     Lev_fiber.Io.close t.stdout
 
-  let start ~dir =
+  let start ~dir ~dune_context =
     match Bin.which "dune" with
     | None ->
       Jsonrpc.Response.Error.raise
@@ -214,7 +214,16 @@ module Process = struct
       let stdout_r, stdout_w = Unix.pipe () in
       Unix.set_close_on_exec stdin_w;
       let pid =
-        let argv = [ prog; "ocaml-merlin"; "--no-print-directory" ] in
+        let argv =
+          [ prog
+          ; "ocaml-merlin"
+          ; "--no-print-directory"
+            (* todo (jchavarri): we should try first with context, and again
+               without if it fails *)
+          ; "--context"
+          ; Config_data.DuneContext.to_string dune_context
+          ]
+        in
         Pid.of_int
           (Spawn.spawn
              ~cwd:(Path dir)
@@ -303,7 +312,7 @@ let get_process t ~dune_context ~dir =
   match Table.find t.running key with
   | Some p -> Fiber.return p
   | None ->
-    let* process = Process.start ~dir in
+    let* process = Process.start ~dir ~dune_context in
     let entry = Entry.create t process in
     Table.add_exn t.running key entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
