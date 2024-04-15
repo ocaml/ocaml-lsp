@@ -512,9 +512,9 @@ let on_request :
       ; ( Req_hover_extended.meth
         , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
       ; ( Req_dune_contexts.meth
-        , fun ~params _ ->
+        , fun ~params:_ _ ->
             Fiber.of_thunk (fun () ->
-                Fiber.return (Req_dune_contexts.on_request ~params)) )
+                Fiber.return (Req_dune_contexts.on_request ())) )
       ]
       |> List.assoc_opt meth
     with

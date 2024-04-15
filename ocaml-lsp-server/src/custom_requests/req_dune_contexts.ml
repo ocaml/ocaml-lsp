@@ -4,28 +4,7 @@ let capability = ("handleDuneContexts", `Bool true)
 
 let meth = "ocamllsp/duneContexts"
 
-module Request_params = struct
-  let parse_exn (params : Jsonrpc.Structured.t option) : unit =
-    let raise_invalid_params ?data ~message () =
-      Jsonrpc.Response.Error.raise
-      @@ Jsonrpc.Response.Error.make
-           ?data
-           ~code:Jsonrpc.Response.Error.Code.InvalidParams
-           ~message
-           ()
-    in
-    match params with
-    | None | Some (`List [] | `Assoc []) -> ()
-    | Some params ->
-      let error_json = `Assoc [ ("params_received", (params :> Json.t)) ] in
-      raise_invalid_params
-        ~message:"Parameters not expected, but received some:"
-        ~data:error_json
-        ()
-end
-
-let on_request ~(params : Jsonrpc.Structured.t option) : Json.t =
-  let () = Request_params.parse_exn params in
+let on_request () =
   match Bin.which "dune" with
   | None ->
     Jsonrpc.Response.Error.raise
