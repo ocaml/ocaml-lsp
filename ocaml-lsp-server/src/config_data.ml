@@ -327,6 +327,10 @@ module DuneContext = struct
     | Default -> "default"
     | Custom str -> str
 
+  let of_string = function
+    | "default" -> Default
+    | str -> Custom str
+
   let to_dyn t = Dyn.string (to_string t)
 
   let equal a b =

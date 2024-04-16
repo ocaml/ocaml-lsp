@@ -6,6 +6,8 @@ type t
 
 val should_read_dot_merlin : bool ref
 
+val dune_context : Config_data.DuneContext.selected option ref
+
 val config : t -> Mconfig.t Fiber.t
 
 val destroy : t -> unit Fiber.t
@@ -21,6 +23,5 @@ module DB : sig
 
   val run : t -> unit Fiber.t
 
-  val get :
-    dune_context:Config_data.DuneContext.selected -> t -> Uri.t -> config
+  val get : t -> Uri.t -> config
 end

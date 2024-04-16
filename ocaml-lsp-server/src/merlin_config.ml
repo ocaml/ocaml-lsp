@@ -30,6 +30,8 @@ open Fiber.O
 module Std = Merlin_utils.Std
 module Misc = Merlin_utils.Misc
 
+let dune_context = ref None
+
 module List = struct
   include List
 
@@ -45,28 +47,6 @@ module List = struct
     rev (fold_left ~f ~init:[] lst)
 
   let filter_dup lst = filter_dup' ~equiv:(fun x -> x) lst
-end
-
-module Table_id = struct
-  type t =
-    { dune_context : Config_data.DuneContext.selected
-    ; dir : string
-    }
-
-  let make ~dune_context ~dir = { dune_context; dir }
-
-  let equal a b =
-    Config_data.DuneContext.equal a.dune_context b.dune_context
-    && String.equal a.dir b.dir
-
-  let hash = Hashtbl.hash
-
-  let to_dyn t =
-    let open Dyn in
-    record
-      [ ("dune_context", Config_data.DuneContext.to_dyn t.dune_context)
-      ; ("dir", string t.dir)
-      ]
 end
 
 module Config = struct
@@ -200,7 +180,7 @@ module Process = struct
     Lev_fiber.Io.close t.stdin;
     Lev_fiber.Io.close t.stdout
 
-  let start ~dir ~dune_context =
+  let start ~dir =
     match Bin.which "dune" with
     | None ->
       Jsonrpc.Response.Error.raise
@@ -231,12 +211,15 @@ module Process = struct
         let output_code =
           let argv =
             with_argv
-              [ (* Dune 3.16+ supports a --context flag, but previous versions
-                   still have to be supported, so try to run it with the flag
-                   first, then fall back to usage without it *)
-                "--context"
-              ; Config_data.DuneContext.to_string dune_context
-              ]
+              (match !dune_context with
+              | None -> []
+              | Some dune_context ->
+                [ (* Dune 3.16+ supports a --context flag, but previous versions
+                     still have to be supported, so try to run it with the flag
+                     first, then fall back to usage without it *)
+                  "--context"
+                ; Config_data.DuneContext.to_string dune_context
+                ])
           in
           spawn argv
         in
@@ -288,7 +271,7 @@ module Dot_protocol_io =
 let should_read_dot_merlin = ref false
 
 type db =
-  { running : (Table_id.t, entry) Table.t
+  { running : (String.t, entry) Table.t
   ; pool : Fiber.Pool.t
   }
 
@@ -307,27 +290,25 @@ module Entry = struct
 
   let incr t = t.ref_count <- t.ref_count + 1
 
-  let destroy ~dune_context (t : t) =
+  let destroy (t : t) =
     assert (t.ref_count > 0);
     t.ref_count <- t.ref_count - 1;
     if t.ref_count > 0 then Fiber.return ()
-    else
-      let key = Table_id.make ~dune_context ~dir:t.process.initial_cwd in
-      Table.remove t.db.running key;
+    else (
+      Table.remove t.db.running t.process.initial_cwd;
       Format.eprintf
         "halting dune merlin process@.%s@."
         (Dyn.to_string (Process.to_dyn t.process));
-      Dot_protocol_io.Commands.halt t.process.session
+      Dot_protocol_io.Commands.halt t.process.session)
 end
 
-let get_process t ~dune_context ~dir =
-  let key = Table_id.make ~dune_context ~dir in
-  match Table.find t.running key with
+let get_process t ~dir =
+  match Table.find t.running dir with
   | Some p -> Fiber.return p
   | None ->
-    let* process = Process.start ~dir ~dune_context in
+    let* process = Process.start ~dir in
     let entry = Entry.create t process in
-    Table.add_exn t.running key entry;
+    Table.add_exn t.running dir entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
     entry
 
@@ -426,7 +407,6 @@ type nonrec t =
   ; directory : string
   ; initial : Mconfig.t
   ; mutable entry : Entry.t option
-  ; selected_context : Config_data.DuneContext.selected
   ; db : db
   }
 
@@ -436,9 +416,9 @@ let destroy t =
   | None -> Fiber.return ()
   | Some entry ->
     t.entry <- None;
-    Entry.destroy ~dune_context:t.selected_context entry
+    Entry.destroy entry
 
-let create ~dune_context db path =
+let create db path =
   let path =
     let path = Uri.to_path path in
     Misc.canonicalize_filename path
@@ -457,13 +437,7 @@ let create ~dune_context db path =
         }
     }
   in
-  { path
-  ; directory
-  ; initial
-  ; db
-  ; entry = None
-  ; selected_context = dune_context
-  }
+  { path; directory; initial; db; entry = None }
 
 let config (t : t) : Mconfig.t Fiber.t =
   let use_entry entry =
@@ -471,7 +445,6 @@ let config (t : t) : Mconfig.t Fiber.t =
     t.entry <- Some entry
   in
   let* () = Fiber.return () in
-  let dune_context = t.selected_context in
   if !should_read_dot_merlin then
     Fiber.return (Mconfig.get_external_config t.path t.initial)
   else
@@ -480,7 +453,7 @@ let config (t : t) : Mconfig.t Fiber.t =
       let+ () = destroy t in
       t.initial
     | Some (ctx, config_path) ->
-      let* entry = get_process ~dune_context t.db ~dir:ctx.process_dir in
+      let* entry = get_process t.db ~dir:ctx.process_dir in
       let* () =
         match t.entry with
         | None ->
@@ -502,10 +475,10 @@ let config (t : t) : Mconfig.t Fiber.t =
 module DB = struct
   type t = db
 
-  let get ~dune_context t uri = create ~dune_context t uri
+  let get t uri = create t uri
 
   let create () =
-    { running = Table.create (module Table_id) 0; pool = Fiber.Pool.create () }
+    { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
 
   let run t = Fiber.Pool.run t.pool
 

@@ -688,7 +688,6 @@ let on_notification server (notification : Client_notification.t) :
     let* doc =
       let position_encoding = State.position_encoding state in
       Document.make
-        ~dune_context:(State.dune_context state)
         ~position_encoding
         (State.wheel state)
         state.merlin_config
@@ -941,10 +940,12 @@ let run_in_directory =
   let for_windows = !Merlin_utils.Std.System.run_in_directory in
   fun () -> if Sys.win32 then for_windows else run_in_directory
 
-let run channel ~read_dot_merlin () =
+let run channel ~dune_context ~read_dot_merlin () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
   Merlin_config.should_read_dot_merlin := read_dot_merlin;
+  Merlin_config.dune_context :=
+    Option.map dune_context ~f:Config_data.DuneContext.of_string;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->
       let* input, output = stream_of_channel channel in

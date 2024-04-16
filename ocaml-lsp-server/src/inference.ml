@@ -55,7 +55,6 @@ let open_document_from_file (state : State.t) uri =
         let+ doc =
           let position_encoding = State.position_encoding state in
           Document.make
-            ~dune_context:(State.dune_context state)
             ~position_encoding
             (State.wheel state)
             state.merlin_config

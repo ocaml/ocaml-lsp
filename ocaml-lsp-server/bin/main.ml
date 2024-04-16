@@ -5,6 +5,7 @@ let () =
   Printexc.record_backtrace true;
   let version = ref false in
   let read_dot_merlin = ref false in
+  let dune_context = ref None in
   let arg = Lsp.Cli.Arg.create () in
   let spec =
     [ ("--version", Arg.Set version, "print version")
@@ -12,6 +13,7 @@ let () =
       , Arg.Set read_dot_merlin
       , "read Merlin config from .merlin files. The `dot-merlin-reader` \
          package must be installed" )
+    ; ("--context", Arg.String (fun p -> dune_context := Some p), "set Dune context")
     ]
     @ Cli.Arg.spec arg
   in
@@ -39,7 +41,10 @@ let () =
     let module Exn_with_backtrace = Stdune.Exn_with_backtrace in
     match
       Exn_with_backtrace.try_with
-        (Ocaml_lsp_server.run channel ~read_dot_merlin:!read_dot_merlin)
+        (Ocaml_lsp_server.run
+           channel
+           ~dune_context:!dune_context
+           ~read_dot_merlin:!read_dot_merlin)
     with
     | Ok () -> ()
     | Error exn ->

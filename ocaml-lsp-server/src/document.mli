@@ -31,8 +31,7 @@ module Single_pipeline : sig
 end
 
 val make :
-     dune_context:Config_data.DuneContext.selected
-  -> Lev_fiber.Timer.Wheel.t
+     Lev_fiber.Timer.Wheel.t
   -> Merlin_config.DB.t
   -> Single_pipeline.t
   -> DidOpenTextDocumentParams.t
