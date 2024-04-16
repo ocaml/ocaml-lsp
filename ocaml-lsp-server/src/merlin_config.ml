@@ -212,29 +212,42 @@ module Process = struct
       let prog = Fpath.to_string prog in
       let stdin_r, stdin_w = Unix.pipe () in
       let stdout_r, stdout_w = Unix.pipe () in
-      Unix.set_close_on_exec stdin_w;
+      let stderr_r, stderr_w = Unix.pipe () in
       let pid =
-        let argv =
-          [ prog
-          ; "ocaml-merlin"
-          ; "--no-print-directory"
-            (* todo (jchavarri): we should try first with context, and again
-               without if it fails *)
-          ; "--context"
-          ; Config_data.DuneContext.to_string dune_context
-          ]
+        Unix.set_close_on_exec stdin_w;
+        let with_argv list =
+          prog :: "ocaml-merlin" :: "--no-print-directory" :: list
         in
-        Pid.of_int
-          (Spawn.spawn
-             ~cwd:(Path dir)
-             ~prog
-             ~argv
-             ~stdin:stdin_r
-             ~stdout:stdout_w
-             ())
+        let spawn argv =
+          Spawn.spawn
+            ~cwd:(Path dir)
+            ~prog
+            ~argv
+            ~stdin:stdin_r
+            ~stdout:stdout_w
+            ~stderr:stderr_w
+            ()
+        in
+        let output_code =
+          let argv =
+            with_argv
+              [ (* Dune 3.16+ supports a --context flag, but previous versions
+                   still have to be supported, so try to run it with the flag
+                   first, then fall back to usage without it *)
+                "--context"
+              ; Config_data.DuneContext.to_string dune_context
+              ]
+          in
+          spawn argv
+        in
+        match output_code with
+        | 0 -> Pid.of_int output_code
+        | _n -> Pid.of_int (spawn (with_argv []))
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
+      Unix.close stderr_r;
+      Unix.close stderr_w;
       let blockity =
         if Sys.win32 then `Blocking
         else (
