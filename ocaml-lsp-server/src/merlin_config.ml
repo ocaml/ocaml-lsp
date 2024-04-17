@@ -192,47 +192,27 @@ module Process = struct
       let prog = Fpath.to_string prog in
       let stdin_r, stdin_w = Unix.pipe () in
       let stdout_r, stdout_w = Unix.pipe () in
+      Unix.set_close_on_exec stdin_w;
       let pid =
-        Unix.set_close_on_exec stdin_w;
-        let with_argv list =
-          prog :: "ocaml-merlin" :: "--no-print-directory" :: list
+        let argv =
+          match !dune_context with
+          | None -> [ prog; "ocaml-merlin"; "--no-print-directory" ]
+          | Some dune_context ->
+            [ prog
+            ; "ocaml-merlin"
+            ; "--no-print-directory"
+            ; "--context"
+            ; Config_data.DuneContext.to_string dune_context
+            ]
         in
-        let spawn argv =
-          Spawn.spawn
-            ~cwd:(Path dir)
-            ~prog
-            ~argv
-            ~stdin:stdin_r
-            ~stdout:stdout_w
-            ()
-        in
-        let output_code =
-          let argv =
-            with_argv
-              (match !dune_context with
-              | None ->
-                Format.eprintf "output_code is NONE";
-                []
-              | Some dune_context ->
-                Format.eprintf
-                  "output_code is Some, ctxt: %s"
-                  (Config_data.DuneContext.to_string dune_context);
-                [ (* Dune 3.16+ supports a --context flag, but previous versions
-                     still have to be supported, so try to run it with the flag
-                     first, then fall back to usage without it *)
-                  "--context"
-                ; Config_data.DuneContext.to_string dune_context
-                ])
-          in
-          spawn argv
-        in
-        match output_code with
-        | 0 ->
-            Format.eprintf "code is ZERO\n";
-            Pid.of_int output_code
-        | n ->
-            Format.eprintf "code is NOT ZERO %d\n" n;
-            Pid.of_int (spawn (with_argv []))
+        Pid.of_int
+          (Spawn.spawn
+             ~cwd:(Path dir)
+             ~prog
+             ~argv
+             ~stdin:stdin_r
+             ~stdout:stdout_w
+             ())
       in
       Unix.close stdin_r;
       Unix.close stdout_w;

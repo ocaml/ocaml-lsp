@@ -70,8 +70,7 @@ let foo_value : foo = Some 1
         client
         (DidChangeConfigurationParams.create
            ~settings:
-             (`Assoc
-               [ ("duneContext", `Assoc [ ("value", `String "alt") ]) ]))
+             (`Assoc [ ("duneContext", `Assoc [ ("value", `String "alt") ]) ]))
     in
     let* resp = hover client position in
     let () = print_hover resp in
