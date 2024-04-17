@@ -13,7 +13,10 @@ let on_request () =
          ~message:"dune binary not found"
          ())
   | Some dune -> (
-    let describe = Fpath.to_string dune ^ " describe contexts" in
+    let describe =
+      "DUNE_CONFIG__GLOBAL_LOCK=disabled " ^ Fpath.to_string dune
+      ^ " describe contexts"
+    in
     let temp_file = Filename.temp_file "req_dune_contexts" ".txt" in
     let command = Printf.sprintf "%s > %s" describe temp_file in
     let error ~data =
