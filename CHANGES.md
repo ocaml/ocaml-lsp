@@ -15,6 +15,8 @@
   This enables more lsp features for non-.ml/.mli files. Though it still
   depends on merlin's support. (#1237)
 
+- Stop server when exit notification is received (#1239)
+
 # 1.17.0
 
 ## Fixes
