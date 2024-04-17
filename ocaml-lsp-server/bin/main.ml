@@ -14,10 +14,7 @@ let () =
       , "read Merlin config from .merlin files. The `dot-merlin-reader` \
          package must be installed" )
     ; ( "--context"
-      , Arg.String
-          (fun p ->
-            Format.eprintf "setting dune_context to SOME";
-            dune_context := Some p)
+      , Arg.String (fun p -> dune_context := Some p)
       , "set Dune context" )
     ]
     @ Cli.Arg.spec arg
@@ -44,12 +41,6 @@ let () =
     print_endline version
   else
     let module Exn_with_backtrace = Stdune.Exn_with_backtrace in
-    let () =
-      match !dune_context with
-      | Some c -> Format.eprintf "dune_context is %s" c
-      | None -> Format.eprintf "dune_context is NONE"
-    in
-
     match
       Exn_with_backtrace.try_with
         (Ocaml_lsp_server.run
