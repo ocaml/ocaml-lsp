@@ -752,8 +752,8 @@ let on_notification server (notification : Client_notification.t) :
   | WillSaveTextDocument _
   | Initialized
   | WorkDoneProgressCancel _
-  | WorkDoneProgress _ -> Fiber.return state
-  | Exit -> exit 0
+  | WorkDoneProgress _
+  | Exit -> Fiber.return state
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | UnknownNotification req ->
     let+ () =
