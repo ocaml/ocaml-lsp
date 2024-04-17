@@ -13,6 +13,10 @@ type init =
 
 type hover_extended = { mutable history : (Uri.t * Position.t * int) option }
 
+type shutdown_status =
+  | Shutdown_received
+  | Shutdown_not_received
+
 type t =
   { store : Document_store.t
   ; merlin : Document.Single_pipeline.t
@@ -25,6 +29,7 @@ type t =
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
+  ; shutdown_status : shutdown_status
   }
 
 let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
@@ -40,6 +45,7 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc
   ; symbols_thread
   ; wheel
   ; hover_extended = { history = None }
+  ; shutdown_status = Shutdown_not_received
   }
 
 let wheel t = t.wheel

@@ -534,7 +534,9 @@ let on_request :
     | None -> now None
     | Some doc -> now (Some (Msource.text (Document.source doc))))
   | DebugEcho params -> now params
-  | Shutdown -> Fiber.return (Reply.now (), state)
+  | Shutdown ->
+    let state = { state with shutdown_status = Shutdown_received } in
+    Fiber.return (Reply.now (), state)
   | WorkspaceSymbol req ->
     later (fun state () -> Workspace_symbol.run server state req) ()
   | CodeActionResolve ca -> now ca
@@ -743,8 +745,15 @@ let on_notification server (notification : Client_notification.t) :
   | WillSaveTextDocument _
   | Initialized
   | WorkDoneProgressCancel _
-  | WorkDoneProgress _
-  | Exit -> Fiber.return state
+  | WorkDoneProgress _ -> Fiber.return state
+  | Exit ->
+    let exit_code =
+      (* https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#exit *)
+      match state.shutdown_status with
+      | Shutdown_received -> 0
+      | Shutdown_not_received -> 1
+    in
+    exit exit_code
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | UnknownNotification req ->
     let+ () =

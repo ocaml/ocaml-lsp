@@ -19,6 +19,10 @@ type hover_extended =
             is not specific by the client. *)
   }
 
+type shutdown_status =
+  | Shutdown_received
+  | Shutdown_not_received
+
 type t =
   { store : Document_store.t
   ; merlin : Document.Single_pipeline.t
@@ -31,6 +35,7 @@ type t =
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
+  ; shutdown_status : shutdown_status
   }
 
 val create :
