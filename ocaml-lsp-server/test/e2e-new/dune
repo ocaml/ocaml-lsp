@@ -50,6 +50,7 @@
     completion
     doc_to_md
     document_flow
+    exit_notification
     for_ppx
     hover_extended
     inlay_hints
