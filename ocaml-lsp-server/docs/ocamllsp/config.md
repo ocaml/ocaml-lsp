@@ -35,12 +35,5 @@ interface config {
   * @since 1.18
   */
   inlayHints: { enable : boolean }
-
-  /**
-  * Set the current Dune context for Merlin
-  * @default "default"
-  * @since 1.18
-  */
-  duneContext: { value : string }
 }
 ```

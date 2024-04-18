@@ -202,7 +202,7 @@ module Process = struct
             ; "ocaml-merlin"
             ; "--no-print-directory"
             ; "--context"
-            ; Config_data.DuneContext.to_string dune_context
+            ; dune_context
             ]
         in
         Pid.of_int

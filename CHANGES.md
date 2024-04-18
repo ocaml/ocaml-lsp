@@ -8,8 +8,7 @@
 
 - Support folding of `ifthenelse` expressions (#1031)
 
-- Add `getDuneContexts` method and spawn a new `ocaml-merlin` process per
-  Dune context (#1238)
+- Add `getDuneContexts` method and `--context` flag (#1238)
 
 ## Fixes
 

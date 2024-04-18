@@ -31,7 +31,6 @@ type t =
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
-  ; selected_context : Config_data.DuneContext.selected
   }
 
 val create :
@@ -66,10 +65,6 @@ val workspaces : t -> Workspaces.t
 val dune : t -> Dune.t
 
 val modify_workspaces : t -> f:(Workspaces.t -> Workspaces.t) -> t
-
-val dune_context : t -> Config_data.DuneContext.selected
-
-val set_dune_context : t -> dune_context:Config_data.DuneContext.selected -> t
 
 (** @return
       client capabilities passed from the client in [InitializeParams]; use

@@ -723,10 +723,6 @@ let on_notification server (notification : Client_notification.t) :
         ~report_dune_diagnostics
         (State.diagnostics state)
     in
-    let state =
-      let dune_context = Configuration.dune_context configuration in
-      State.set_dune_context state ~dune_context
-    in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } -> (
     let state = Server.state server in
@@ -944,8 +940,7 @@ let run channel ~dune_context ~read_dot_merlin () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
   Merlin_config.should_read_dot_merlin := read_dot_merlin;
-  Merlin_config.dune_context :=
-    Option.map dune_context ~f:Config_data.DuneContext.of_string;
+  Merlin_config.dune_context := Option.map dune_context ~f:Fun.id;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->
       let* input, output = stream_of_channel channel in

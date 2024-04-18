@@ -6,7 +6,7 @@ type t
 
 val should_read_dot_merlin : bool ref
 
-val dune_context : Config_data.DuneContext.selected option ref
+val dune_context : string option ref
 
 val config : t -> Mconfig.t Fiber.t
 
