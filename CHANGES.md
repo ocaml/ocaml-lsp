@@ -15,6 +15,8 @@
   This enables more lsp features for non-.ml/.mli files. Though it still
   depends on merlin's support. (#1237)
 
+- Correctly accept the `--clientProcessId` flag. (#1242)
+
 # 1.17.0
 
 ## Fixes
