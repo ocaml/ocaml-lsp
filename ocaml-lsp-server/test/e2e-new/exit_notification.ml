@@ -33,8 +33,7 @@ let%expect_test "ocamllsp process exits with code 0 after Shutdown and Exit \
     Client.notification client Exit
   in
   test run;
-  [%expect
-    {|
+  [%expect {|
     ocamllsp finished with code = 0  |}]
 
 let%expect_test "ocamllsp does not exit if only Shutdown notification is sent" =
@@ -43,8 +42,7 @@ let%expect_test "ocamllsp does not exit if only Shutdown notification is sent" =
     Client.request client Shutdown
   in
   test run;
-  [%expect
-    {|
+  [%expect {|
     ocamllsp killed with signal = -7  |}]
 
 let%expect_test "ocamllsp process exits with code 0 after Exit notification is \
@@ -54,6 +52,5 @@ let%expect_test "ocamllsp process exits with code 0 after Exit notification is \
     Client.notification client Exit
   in
   test run;
-  [%expect
-    {|
+  [%expect {|
     ocamllsp finished with code = 0  |}]
