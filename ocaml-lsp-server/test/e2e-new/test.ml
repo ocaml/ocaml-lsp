@@ -70,19 +70,29 @@ end
 open Import
 
 module T : sig
+  val run_with_status :
+       ?extra_env:string list
+    -> ?handler:unit Client.Handler.t
+    -> (unit Client.t -> 'a Fiber.t)
+    -> Unix.process_status * 'a
+
   val run :
        ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
+  type server_exit_status =
+    | Timed_out
+    | Exitted of Unix.process_status
+
   let _PATH =
     Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
 
   let bin =
     Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
 
-  let run ?(extra_env = []) ?handler f =
+  let run_with_status ?(extra_env = []) ?handler f =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
@@ -138,19 +148,38 @@ end = struct
             cancelled := true
           | `Cancelled -> ())
         (fun () ->
-          let* (_ : Unix.process_status) = Lev_fiber.waitpid ~pid in
-          if !cancelled then Fiber.return ()
-          else Lev_fiber.Timer.Wheel.cancel timeout)
+          let* (server_exit_status : Unix.process_status) =
+            Lev_fiber.waitpid ~pid
+          in
+          let* () =
+            if !cancelled then Fiber.return ()
+            else Lev_fiber.Timer.Wheel.cancel timeout
+          in
+          Fiber.return server_exit_status)
     in
     Lev_fiber.run (fun () ->
         let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in
         let+ res = init
-        and+ () =
-          Fiber.all_concurrently_unit
-            [ waitpid wheel; Lev_fiber.Timer.Wheel.run wheel ]
+        and+ statuses =
+          Fiber.all_concurrently
+            [ (let* status = waitpid wheel in
+               Fiber.return (Exitted status))
+            ; (let* () = Lev_fiber.Timer.Wheel.run wheel in
+               Fiber.return Timed_out)
+            ]
         in
-        res)
+        let status =
+          match List.nth statuses 0 with
+          | None ->
+            raise (Failure "unexpected empty list of fibers in Test.run")
+          | Some Timed_out ->
+            raise (Failure "unexpected value Timed_out from server waitpid")
+          | Some (Exitted f) -> f
+        in
+        (status, res))
     |> Lev_fiber.Error.ok_exn
+
+  let run ?extra_env ?handler f = snd @@ run_with_status ?extra_env ?handler f
 end
 
 include T
