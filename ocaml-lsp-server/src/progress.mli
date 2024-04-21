@@ -11,5 +11,3 @@ val create :
 val end_build_if_running : t -> unit Fiber.t
 
 val build_progress : t -> Drpc.Progress.t -> unit Fiber.t
-
-val should_report_build_progress : t -> bool
