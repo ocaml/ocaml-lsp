@@ -82,10 +82,6 @@ module T : sig
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
-  type server_exit_status =
-    | Timed_out
-    | Exitted of Unix.process_status
-
   let _PATH =
     Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
 
@@ -141,40 +137,28 @@ end = struct
       let cancelled = ref false in
       Fiber.fork_and_join_unit
         (fun () ->
-          let+ timeout = Lev_fiber.Timer.Wheel.await timeout in
-          match timeout with
+          Lev_fiber.Timer.Wheel.await timeout >>| function
+          | `Cancelled -> ()
           | `Ok ->
             Unix.kill pid Sys.sigkill;
-            cancelled := true
-          | `Cancelled -> ())
+            cancelled := true)
         (fun () ->
           let* (server_exit_status : Unix.process_status) =
             Lev_fiber.waitpid ~pid
           in
-          let* () =
+          let+ () =
             if !cancelled then Fiber.return ()
             else Lev_fiber.Timer.Wheel.cancel timeout
           in
-          Fiber.return server_exit_status)
+          server_exit_status)
     in
     Lev_fiber.run (fun () ->
         let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in
         let+ res = init
-        and+ statuses =
-          Fiber.all_concurrently
-            [ (let* status = waitpid wheel in
-               Fiber.return (Exitted status))
-            ; (let* () = Lev_fiber.Timer.Wheel.run wheel in
-               Fiber.return Timed_out)
-            ]
-        in
-        let status =
-          match List.nth statuses 0 with
-          | None ->
-            raise (Failure "unexpected empty list of fibers in Test.run")
-          | Some Timed_out ->
-            raise (Failure "unexpected value Timed_out from server waitpid")
-          | Some (Exitted f) -> f
+        and+ status =
+          Fiber.fork_and_join_unit
+            (fun () -> Lev_fiber.Timer.Wheel.run wheel)
+            (fun () -> waitpid wheel)
         in
         (status, res))
     |> Lev_fiber.Error.ok_exn
