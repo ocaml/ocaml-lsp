@@ -17,7 +17,7 @@ property type: `boolean`
 
 ## Request
 
-- method: `ocamllsp/getDuneContexts`
+- method: `ocamllsp/duneContexts`
 - params: none
 
 ## Response

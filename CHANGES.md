@@ -8,7 +8,7 @@
 
 - Support folding of `ifthenelse` expressions (#1031)
 
-- Add `getDuneContexts` method and `--context` flag (#1238)
+- Add `duneContexts` method and `--context` flag (#1238)
 
 ## Fixes
 
