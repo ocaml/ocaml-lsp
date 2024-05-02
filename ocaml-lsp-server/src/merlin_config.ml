@@ -463,7 +463,6 @@ module DB = struct
   let get t uri = create t uri
 
   let create () =
-    Log.log ~section:"server" (fun () -> Log.msg "creating DB" []);
     { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
 
   let run t = Fiber.Pool.run t.pool
