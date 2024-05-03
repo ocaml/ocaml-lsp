@@ -98,7 +98,6 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
               ; Req_hover_extended.capability
-              ; Req_dune_contexts.capability
               ] )
         ]
     in
@@ -511,10 +510,6 @@ let on_request :
         , Semantic_highlighting.Debug.on_request_full )
       ; ( Req_hover_extended.meth
         , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
-      ; ( Req_dune_contexts.meth
-        , fun ~params:_ _ ->
-            Fiber.of_thunk (fun () ->
-                Fiber.return (Req_dune_contexts.on_request ())) )
       ]
       |> List.assoc_opt meth
     with
