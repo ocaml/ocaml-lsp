@@ -195,9 +195,10 @@ module Process = struct
       Unix.set_close_on_exec stdin_w;
       let pid =
         let argv =
+          let shared = [ prog; "ocaml-merlin"; "--no-print-directory" ] in
           match !dune_context with
-          | None -> argv
-          | Some dune_context -> argv @ [ "--context"; dune_context ]
+          | None -> shared
+          | Some dune_context -> shared @ [ "--context"; dune_context ]
         in
         Pid.of_int
           (Spawn.spawn
@@ -250,7 +251,7 @@ module Dot_protocol_io =
 let should_read_dot_merlin = ref false
 
 type db =
-  { running : (String.t, entry) Table.t
+  { running : (string, entry) Table.t
   ; pool : Fiber.Pool.t
   }
 
