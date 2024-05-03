@@ -196,14 +196,8 @@ module Process = struct
       let pid =
         let argv =
           match !dune_context with
-          | None -> [ prog; "ocaml-merlin"; "--no-print-directory" ]
-          | Some dune_context ->
-            [ prog
-            ; "ocaml-merlin"
-            ; "--no-print-directory"
-            ; "--context"
-            ; dune_context
-            ]
+          | None -> argv
+          | Some dune_context -> argv @ [ "--context"; dune_context ]
         in
         Pid.of_int
           (Spawn.spawn
