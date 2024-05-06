@@ -197,11 +197,17 @@ let run (state : State.t)
     Fiber.return help
   | `Merlin merlin -> (
     let* application_signature =
-      Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-          let typer = Mpipeline.typer_result pipeline in
-          let pos = Mpipeline.get_lexing_pos pipeline pos in
-          let node = Mtyper.node_at typer pos in
-          application_signature node ~prefix)
+      let* inside_comment =
+        Check_for_comments.position_in_comment ~position ~merlin
+      in
+      match inside_comment with
+      | true -> Fiber.return None
+      | false ->
+        Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+            let typer = Mpipeline.typer_result pipeline in
+            let pos = Mpipeline.get_lexing_pos pipeline pos in
+            let node = Mtyper.node_at typer pos in
+            application_signature node ~prefix)
     in
     match application_signature with
     | None ->
