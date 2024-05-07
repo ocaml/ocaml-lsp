@@ -205,6 +205,38 @@ end
 
 exception Cancelled
 
+let outline_kind kind : SymbolKind.t =
+  match kind with
+  | `Value -> Function
+  | `Constructor -> Constructor
+  | `Label -> Property
+  | `Module -> Module
+  | `Modtype -> Module
+  | `Type -> String
+  | `Exn -> Constructor
+  | `Class -> Class
+  | `Method -> Method
+
+let rec symbol_info ?containerName uri (item : Query_protocol.item) =
+  let info =
+    let kind = outline_kind item.outline_kind in
+    let location = { Location.uri; range = Range.of_loc item.location } in
+    SymbolInformation.create
+      ~name:item.outline_name
+      ~kind
+      ~deprecated:false
+      ~location
+      ?containerName
+      ()
+  in
+  let children =
+    List.concat_map item.children ~f:(symbol_info uri ~containerName:info.name)
+  in
+  info :: children
+
+let symbols_of_outline uri outline =
+  List.concat_map ~f:(symbol_info uri) outline
+
 let symbols_from_cm_file ~filter root_uri (cancel : Fiber.Cancel.t option)
     cm_file =
   let cmt =
@@ -231,7 +263,7 @@ let symbols_from_cm_file ~filter root_uri (cancel : Fiber.Cancel.t option)
         let loc = Mbrowse.node_loc browse in
         let fname = loc.loc_start.pos_fname in
         let uri = Uri.of_path (Filename.concat root_uri fname) in
-        filter (Document_symbol.symbols_of_outline uri outline))
+        filter (symbols_of_outline uri outline))
     | _ -> [])
 
 let find_cm_files dir =
