@@ -93,7 +93,3 @@ let build_progress t (progress : Drpc.Progress.t) =
                        sprintf "Building [%d/%d]" progress.complete total
                      in
                      WorkDoneProgressReport.create ~percentage ~message ())))))
-
-let should_report_build_progress = function
-  | Disabled -> false
-  | Enabled _ -> true
