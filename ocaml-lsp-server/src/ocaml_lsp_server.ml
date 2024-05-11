@@ -465,13 +465,17 @@ let highlight (state : State.t)
     let lsp_locs =
       List.filter_map locs ~f:(fun loc ->
           let range = Range.of_loc loc in
-          (* filter out multi-line ranges, since those are very noisy and happen a lot
-             with certain PPXs *)
+          (* filter out multi-line ranges, since those are very noisy and happen
+             a lot with certain PPXs *)
           match range.start.line = range.end_.line with
           | true ->
-            (* using the default kind as we are lacking info to make a difference
-               between assignment and usage. *)
-            Some (DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
+            (* using the default kind as we are lacking info to make a
+               difference between assignment and usage. *)
+            Some
+              (DocumentHighlight.create
+                 ~range
+                 ~kind:DocumentHighlightKind.Text
+                 ())
           | false -> None)
     in
     Some lsp_locs
