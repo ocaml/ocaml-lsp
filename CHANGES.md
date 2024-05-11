@@ -26,6 +26,8 @@
 
 - Correctly accept the `--clientProcessId` flag. (#1242)
 
+- Disable automatic completion and signature help inside comments (#1246)
+
 # 1.17.0
 
 ## Fixes
