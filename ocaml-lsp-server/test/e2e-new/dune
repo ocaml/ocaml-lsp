@@ -16,6 +16,7 @@
    for_pp.sh
    (package ocaml-lsp-server)))
  (libraries
+  unix
   stdune
   fiber
   yojson
