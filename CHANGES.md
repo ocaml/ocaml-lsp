@@ -1,5 +1,7 @@
 # Unreleased
 
+- Remove `flake-utils` Nix Flake dependency
+
 ## Features
 
 - Introduce a configuration option to control dune diagnostics. The option is
