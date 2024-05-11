@@ -7,6 +7,11 @@
   outputs = { self, flake-utils, nixpkgs, ... }@inputs:
     let
       package = "ocaml-lsp-server";
+      basePackage = {
+        duneVersion = "3";
+        version = "n/a";
+        src = ./.;
+      };
       overlay = final: prev: {
         ${package} = prev.${package}.overrideAttrs (_: {
           # Do not add share/nix-support, so that dependencies from
@@ -36,11 +41,8 @@
       };
       lspPackage = pkgs:
         with pkgs.ocamlPackages;
-        buildDunePackage {
+        buildDunePackage (basePackage // {
           pname = package;
-          version = "n/a";
-          src = ./.;
-          duneVersion = "3";
           buildInputs = [
             ocamlc-loc
             astring
@@ -73,7 +75,7 @@
           meta = {
             mainProgram = "ocamllsp";
           };
-        };
+        });
     in
     {
       overlays.default = (final: prev: {
@@ -91,20 +93,14 @@
         inherit (pkgs.ocamlPackages) buildDunePackage;
         fast = rec {
 
-          jsonrpc = buildDunePackage {
+          jsonrpc = buildDunePackage (basePackage // {
             pname = "jsonrpc";
-            version = "n/a";
-            src = ./.;
-            duneVersion = "3";
             propagatedBuildInputs = with pkgs.ocamlPackages; [ ];
             doCheck = false;
-          };
+          });
 
-          lsp = buildDunePackage {
+          lsp = buildDunePackage (basePackage // {
             pname = "lsp";
-            version = "n/a";
-            src = ./.;
-            duneVersion = "3";
             propagatedBuildInputs = with pkgs.ocamlPackages; [
               jsonrpc
               yojson
@@ -114,13 +110,10 @@
             ];
             checkInputs = with pkgs.ocamlPackages; [ cinaps ppx_expect ];
             doCheck = false;
-          };
+          });
 
-          ocaml-lsp = buildDunePackage {
+          ocaml-lsp = buildDunePackage (basePackage // {
             pname = "ocaml-lsp";
-            version = "n/a";
-            src = ./.;
-            duneVersion = "3";
             checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
             propagatedBuildInputs = with pkgs.ocamlPackages; [
               ocamlc-loc
@@ -147,7 +140,7 @@
               merlin-lib
             ];
             doCheck = false;
-          };
+          });
         };
       in
       {
