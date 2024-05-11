@@ -13,6 +13,7 @@
    %{bin:ocamlformat-rpc}
    for_ppx.ml
    for_pp.ml
+   for_pp.sh
    (package ocaml-lsp-server)))
  (libraries
   stdune
