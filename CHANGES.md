@@ -8,6 +8,15 @@
 
 - Support folding of `ifthenelse` expressions (#1031)
 
+- Improve hover behavior (#1245)
+
+  Hovers are no longer displaye on useless parsetree nodes such as keywords,
+  comments, etc.
+
+  Multiline hovers are now filtered away.
+
+  Display expanded ppx's in the hover window.
+
 ## Fixes
 
 - Detect document kind by looking at merlin's `suffixes` config.
