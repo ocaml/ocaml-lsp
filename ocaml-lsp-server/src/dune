@@ -3,6 +3,7 @@
  (libraries
   dyn
   xdg
+  unix
   dune-build-info
   fiber
   chrome-trace
