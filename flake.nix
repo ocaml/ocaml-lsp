@@ -54,7 +54,6 @@
             xdg
             ordering
             spawn
-            pp
             csexp
             ocamlformat-rpc-lib
             stdune
@@ -134,7 +133,6 @@
               xdg
               ordering
               spawn
-              pp
               csexp
               ocamlformat-rpc-lib
               stdune
