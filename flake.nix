@@ -114,7 +114,6 @@
             checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
             propagatedBuildInputs = with pkgs.ocamlPackages; [
               ocamlc-loc
-              octavius
               dune-build-info
               re
               dune-rpc
