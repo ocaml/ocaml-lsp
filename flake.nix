@@ -2,6 +2,14 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    merlin4_14 = {
+      url = "github:ocaml/merlin/v4.14-414";
+      flake = false;
+    };
+    merlin5_1 = {
+      url = "github:ocaml/merlin/v4.14-501";
+      flake = false;
+    };
   };
 
   outputs = { self, flake-utils, nixpkgs, ... }@inputs:
@@ -12,7 +20,7 @@
         version = "n/a";
         src = ./.;
       };
-      overlay = final: prev: {
+      overlay = merlin: final: prev: {
         ocaml-lsp = prev.ocaml-lsp.overrideAttrs (_: {
           # Do not add share/nix-support, so that dependencies from
           # the scope don't leak into dependent derivations
@@ -37,57 +45,14 @@
               osuper.dune-action-plugin.overrideAttrs fixPreBuild;
             dune-rpc = osuper.dune-rpc.overrideAttrs fixPreBuild;
             stdune = osuper.stdune.overrideAttrs fixPreBuild;
+            merlin-lib = osuper.merlin-lib.overrideAttrs (o: { src = merlin; });
           });
       };
-      makeOcamlLsp = pkgs:
-        with pkgs.ocamlPackages;
-        buildDunePackage (basePackage // {
-          pname = package;
-          checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
-          buildInputs = [
-            ocamlc-loc
-            astring
-            camlp-streams
-            dune-build-info
-            re
-            dune-rpc
-            chrome-trace
-            dyn
-            fiber
-            xdg
-            ordering
-            spawn
-            csexp
-            ocamlformat-rpc-lib
-            stdune
-            yojson
-            ppx_yojson_conv_lib
-            uutf
-            merlin-lib
-          ];
-          propagatedBuildInputs = [ ];
-          doCheck = false;
-          buildPhase = ''
-            runHook preBuild
-            dune build ${package}.install --release ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
-            runHook postBuild
-          '';
-          meta = { mainProgram = "ocamllsp"; };
-        });
-    in {
-      overlays.default = (final: prev: {
-        ocamlPackages = prev.ocamlPackages.overrideScope
-          (oself: osuper: with oself; { ocaml-lsp = makeLspPackage final; });
-      });
-    } // (flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          overlays = [ overlay ];
-          inherit system;
-        };
-        inherit (pkgs.ocamlPackages) buildDunePackage;
-        fast = rec {
-
+      ocamlVersionOverlay =
+        (ocaml: self: super: { ocamlPackages = ocaml super.ocaml-ng; });
+      makePackages = pkgs:
+        let buildDunePackage = pkgs.ocamlPackages.buildDunePackage;
+        in rec {
           jsonrpc = buildDunePackage (basePackage // {
             pname = "jsonrpc";
             propagatedBuildInputs = with pkgs.ocamlPackages; [ ];
@@ -106,19 +71,64 @@
             doCheck = false;
           });
 
-          ocaml-lsp = makeOcamlLsp pkgs;
+          ocaml-lsp = with pkgs.ocamlPackages;
+            buildDunePackage (basePackage // {
+              pname = package;
+              checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
+              buildInputs = [
+                jsonrpc
+                lsp
+                ocamlc-loc
+                astring
+                camlp-streams
+                dune-build-info
+                re
+                dune-rpc
+                chrome-trace
+                dyn
+                fiber
+                xdg
+                ordering
+                spawn
+                csexp
+                ocamlformat-rpc-lib
+                stdune
+                yojson
+                ppx_yojson_conv_lib
+                uutf
+                merlin-lib
+              ];
+              propagatedBuildInputs = [ ];
+              doCheck = false;
+              buildPhase = ''
+                runHook preBuild
+                dune build ${package}.install --release ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
+                runHook postBuild
+              '';
+              meta = { mainProgram = "ocamllsp"; };
+            });
         };
-      in {
-        packages = rec {
-          # we have a package without opam2nix for easy consumption for nix users
-          default = makeOcamlLsp pkgs;
-
-          ocaml-lsp = fast.ocaml-lsp;
-        };
-
-        devShells = {
-          default = pkgs.mkShell {
-            buildInputs = (with pkgs; [
+    in {
+      overlays.default = (final: prev: {
+        ocamlPackages = prev.ocamlPackages.overrideScope
+          (oself: osuper: with oself; makePackages final);
+      });
+    } // (flake-utils.lib.eachDefaultSystem (system:
+      let
+        makeNixpkgs = ocaml: merlin:
+          import nixpkgs {
+            overlays = [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
+            inherit system;
+          };
+        pkgs_4_14 =
+          makeNixpkgs (ocaml: ocaml.ocamlPackages_4_14) inputs.merlin4_14;
+        pkgs_5_1 =
+          makeNixpkgs (ocaml: ocaml.ocamlPackages_5_1) inputs.merlin5_1;
+        packages_4_14 = makePackages pkgs_4_14;
+        packages_5_1 = makePackages pkgs_5_1;
+        mkShell = packages: nixpkgs:
+          nixpkgs.mkShell {
+            buildInputs = (with nixpkgs; [
               # dev tools
               ocamlformat_0_26_1
               yarn
@@ -128,10 +138,18 @@
               ocamlPackages.cinaps
               ocamlPackages.ppx_yojson_conv
             ]);
-            inputsFrom = [ fast.ocaml-lsp fast.jsonrpc fast.lsp ];
+            inputsFrom = with packages; [ ocaml-lsp jsonrpc lsp ];
           };
+      in {
+        packages = (packages_4_14 // { default = packages_4_14.ocaml-lsp; });
 
-          release = pkgs.mkShell { buildInputs = [ pkgs.dune-release ]; };
+        devShells = {
+          default = mkShell packages_4_14 pkgs_4_14;
+
+          ocaml5_1 = mkShell packages_5_1 pkgs_5_1;
+
+          release =
+            packages_4_14.mkShell { buildInputs = [ pkgs_4_14.dune-release ]; };
         };
       }));
 }
