@@ -39,10 +39,11 @@
             stdune = osuper.stdune.overrideAttrs fixPreBuild;
           });
       };
-      lspPackage = pkgs:
+      makeOcamlLsp = pkgs:
         with pkgs.ocamlPackages;
         buildDunePackage (basePackage // {
           pname = package;
+          checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
           buildInputs = [
             ocamlc-loc
             astring
@@ -75,12 +76,8 @@
         });
     in {
       overlays.default = (final: prev: {
-        ocamlPackages = prev.ocamlPackages.overrideScope (oself: osuper:
-          with oself;
-
-          {
-            ocaml-lsp = lspPackage final;
-          });
+        ocamlPackages = prev.ocamlPackages.overrideScope
+          (oself: osuper: with oself; { ocaml-lsp = makeLspPackage final; });
       });
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
@@ -109,38 +106,12 @@
             doCheck = false;
           });
 
-          ocaml-lsp = buildDunePackage (basePackage // {
-            pname = package;
-            checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
-            propagatedBuildInputs = with pkgs.ocamlPackages; [
-              ocamlc-loc
-              dune-build-info
-              re
-              dune-rpc
-              chrome-trace
-              dyn
-              fiber
-              xdg
-              ordering
-              spawn
-              csexp
-              ocamlformat-rpc-lib
-              stdune
-              yojson
-              ppx_yojson_conv_lib
-              uutf
-              lsp
-              astring
-              camlp-streams
-              merlin-lib
-            ];
-            doCheck = false;
-          });
+          ocaml-lsp = makeOcamlLsp pkgs;
         };
       in {
         packages = rec {
           # we have a package without opam2nix for easy consumption for nix users
-          default = lspPackage pkgs;
+          default = makeOcamlLsp pkgs;
 
           ocaml-lsp = fast.ocaml-lsp;
         };
