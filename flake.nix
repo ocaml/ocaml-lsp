@@ -108,7 +108,6 @@
             propagatedBuildInputs = with pkgs.ocamlPackages; [
               jsonrpc
               yojson
-              stdune
               ppx_yojson_conv_lib
               uutf
             ];
