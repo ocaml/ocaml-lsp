@@ -1,7 +1,5 @@
 (** Helpers to generate OCaml code. Consider merging with ML *)
 
-open Import
-
 type t = unit Pp.t
 
 type w = t
