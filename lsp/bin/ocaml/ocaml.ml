@@ -342,7 +342,7 @@ end = struct
   let remove_null cs =
     let is_null x =
       match x with
-      | Resolved.Ident Prim.Null -> Left x
+      | Resolved.Ident Prim.Null -> Either.Left x
       | _ -> Right x
     in
     let nulls, non_nulls = List.partition_map ~f:is_null cs in
@@ -436,7 +436,7 @@ end = struct
       let key = make_typ db { Named.name = field.name; data = pat } in
       let data = make_typ db { Named.name = field.name; data = typ } in
       let typ = Type.assoc_list ~key ~data in
-      Left (Ml.Type.field typ ~name:field.name)
+      Either.Left (Ml.Type.field typ ~name:field.name)
     | Single { typ = Literal s; optional = false } ->
       let literal_value =
         match s with

@@ -1,7 +1,5 @@
 (** Representation of OCaml code used for generation *)
 
-open Import
-
 val is_kw : string -> bool
 
 module Kind : sig
