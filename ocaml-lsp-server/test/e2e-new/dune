@@ -13,7 +13,6 @@
    %{bin:ocamlformat-rpc}
    for_ppx.ml
    for_pp.ml
-   for_pp.sh
    (package ocaml-lsp-server)))
  (libraries
   unix
@@ -35,14 +34,10 @@
   ppx_expect.config
   ppx_expect.config_types
   ppx_inline_test.config)
- (preprocessor_deps for_pp.sh)
  (preprocess
   (per_module
    ((action
-     (run
-      sh ;; we don't rely on the shebang line for windoze
-      %{project_root}/ocaml-lsp-server/test/e2e-new/for_pp.sh
-      %{input-file}))
+     (run sed "s/world/universe/g" %{input-file}))
     for_pp)
    ((pps ppx_expect)
     action_extract
