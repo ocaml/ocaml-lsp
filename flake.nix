@@ -110,7 +110,7 @@
           });
 
           ocaml-lsp = buildDunePackage (basePackage // {
-            pname = "ocaml-lsp";
+            pname = package;
             checkInputs = with pkgs.ocamlPackages; [ ppx_expect ];
             propagatedBuildInputs = with pkgs.ocamlPackages; [
               ocamlc-loc
