@@ -18,9 +18,8 @@
           # the scope don't leak into dependent derivations
           doNixSupport = false;
         });
-        dune-release = prev.dune-release.overrideAttrs (_: {
-          doCheck = false;
-        });
+        dune-release =
+          prev.dune-release.overrideAttrs (_: { doCheck = false; });
         ocamlPackages = prev.ocamlPackages.overrideScope' (oself: osuper:
           let
             fixPreBuild = o: {
@@ -29,12 +28,13 @@
                 rm -r vendor/csexp vendor/pp
               '';
             };
-          in
-          {
+          in {
             dyn = osuper.dyn.overrideAttrs fixPreBuild;
-            dune-private-libs = osuper.dune-private-libs.overrideAttrs fixPreBuild;
+            dune-private-libs =
+              osuper.dune-private-libs.overrideAttrs fixPreBuild;
             dune-glob = osuper.dune-glob.overrideAttrs fixPreBuild;
-            dune-action-plugin = osuper.dune-action-plugin.overrideAttrs fixPreBuild;
+            dune-action-plugin =
+              osuper.dune-action-plugin.overrideAttrs fixPreBuild;
             dune-rpc = osuper.dune-rpc.overrideAttrs fixPreBuild;
             stdune = osuper.stdune.overrideAttrs fixPreBuild;
           });
@@ -71,24 +71,23 @@
             dune build ${package}.install --release ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
             runHook postBuild
           '';
-          meta = {
-            mainProgram = "ocamllsp";
-          };
+          meta = { mainProgram = "ocamllsp"; };
         });
-    in
-    {
+    in {
       overlays.default = (final: prev: {
         ocamlPackages = prev.ocamlPackages.overrideScope (oself: osuper:
           with oself;
 
           {
             ocaml-lsp = lspPackage final;
-          }
-        );
+          });
       });
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { overlays = [ overlay ]; inherit system; };
+        pkgs = import nixpkgs {
+          overlays = [ overlay ];
+          inherit system;
+        };
         inherit (pkgs.ocamlPackages) buildDunePackage;
         fast = rec {
 
@@ -139,35 +138,30 @@
             doCheck = false;
           });
         };
-      in
-      {
-        packages =
-          rec {
-            # we have a package without opam2nix for easy consumption for nix users
-            default = lspPackage pkgs;
+      in {
+        packages = rec {
+          # we have a package without opam2nix for easy consumption for nix users
+          default = lspPackage pkgs;
 
-            ocaml-lsp = fast.ocaml-lsp;
-          };
+          ocaml-lsp = fast.ocaml-lsp;
+        };
 
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = (with pkgs;
-              [
-                # dev tools
-                ocamlformat_0_26_1
-                yarn
+            buildInputs = (with pkgs; [
+              # dev tools
+              ocamlformat_0_26_1
+              yarn
 
-                ocamlPackages.ppx_expect
-                ocamlPackages.utop
-                ocamlPackages.cinaps
-                ocamlPackages.ppx_yojson_conv
-              ]);
+              ocamlPackages.ppx_expect
+              ocamlPackages.utop
+              ocamlPackages.cinaps
+              ocamlPackages.ppx_yojson_conv
+            ]);
             inputsFrom = [ fast.ocaml-lsp fast.jsonrpc fast.lsp ];
           };
 
-          release = pkgs.mkShell {
-            buildInputs = [ pkgs.dune-release ];
-          };
+          release = pkgs.mkShell { buildInputs = [ pkgs.dune-release ]; };
         };
       }));
 }
