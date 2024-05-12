@@ -25,7 +25,6 @@ include struct
   module Map = Map
   module Monoid = Monoid
   module Option = Option
-  module Ordering = Ordering
   module Pid = Pid
   module Poly = Poly
   module Result = Result
