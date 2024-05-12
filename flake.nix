@@ -13,7 +13,7 @@
         src = ./.;
       };
       overlay = final: prev: {
-        ${package} = prev.${package}.overrideAttrs (_: {
+        ocaml-lsp = prev.ocaml-lsp.overrideAttrs (_: {
           # Do not add share/nix-support, so that dependencies from
           # the scope don't leak into dependent derivations
           doNixSupport = false;
