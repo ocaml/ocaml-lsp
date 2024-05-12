@@ -1,4 +1,4 @@
-open Import
+open! Import
 
 include module type of Lsp.Types.Position with type t = Lsp.Types.Position.t
 
