@@ -1276,6 +1276,7 @@ let run (type a) ?(sigpipe = `Inherit)
     List.iter t.thread_workers ~f:(fun (Worker w) ->
         Worker.complete_tasks_and_stop w;
         Worker.join w);
-    Lev.Async.destroy async
+    Lev.Async.destroy async;
+    Lev.Loop.destroy lev_loop
   in
   res
