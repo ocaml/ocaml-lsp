@@ -95,7 +95,6 @@
                 stdune
                 yojson
                 ppx_yojson_conv_lib
-                uutf
                 merlin-lib
               ];
               propagatedBuildInputs = [ ];
