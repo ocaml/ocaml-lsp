@@ -65,7 +65,7 @@ let args ?channel ?clientProcessId () =
   let args =
     match clientProcessId with
     | None -> []
-    | Some pid -> [ "--clientPorcessId"; string_of_int pid ]
+    | Some pid -> [ "--clientProcessId"; string_of_int pid ]
   in
   match (channel : Channel.t option) with
   | None -> args

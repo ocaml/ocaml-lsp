@@ -70,6 +70,12 @@ end
 open Import
 
 module T : sig
+  val run_with_status :
+       ?extra_env:string list
+    -> ?handler:unit Client.Handler.t
+    -> (unit Client.t -> 'a Fiber.t)
+    -> Unix.process_status * 'a
+
   val run :
        ?extra_env:string list
     -> ?handler:unit Client.Handler.t
@@ -82,7 +88,7 @@ end = struct
   let bin =
     Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
 
-  let run ?(extra_env = []) ?handler f =
+  let run_with_status ?(extra_env = []) ?handler f =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
@@ -131,26 +137,33 @@ end = struct
       let cancelled = ref false in
       Fiber.fork_and_join_unit
         (fun () ->
-          let+ timeout = Lev_fiber.Timer.Wheel.await timeout in
-          match timeout with
+          Lev_fiber.Timer.Wheel.await timeout >>| function
+          | `Cancelled -> ()
           | `Ok ->
             Unix.kill pid Sys.sigkill;
-            cancelled := true
-          | `Cancelled -> ())
+            cancelled := true)
         (fun () ->
-          let* (_ : Unix.process_status) = Lev_fiber.waitpid ~pid in
-          if !cancelled then Fiber.return ()
-          else Lev_fiber.Timer.Wheel.cancel timeout)
+          let* (server_exit_status : Unix.process_status) =
+            Lev_fiber.waitpid ~pid
+          in
+          let+ () =
+            if !cancelled then Fiber.return ()
+            else Lev_fiber.Timer.Wheel.cancel timeout
+          in
+          server_exit_status)
     in
     Lev_fiber.run (fun () ->
         let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in
         let+ res = init
-        and+ () =
-          Fiber.all_concurrently_unit
-            [ waitpid wheel; Lev_fiber.Timer.Wheel.run wheel ]
+        and+ status =
+          Fiber.fork_and_join_unit
+            (fun () -> Lev_fiber.Timer.Wheel.run wheel)
+            (fun () -> waitpid wheel)
         in
-        res)
+        (status, res))
     |> Lev_fiber.Error.ok_exn
+
+  let run ?extra_env ?handler f = snd @@ run_with_status ?extra_env ?handler f
 end
 
 include T

@@ -113,7 +113,7 @@ let compute server (params : CodeActionParams.t) =
         let* window = (State.client_capabilities state).window in
         window.showDocument
       in
-      Action_open_related.for_uri capabilities uri
+      Action_open_related.for_uri capabilities doc
     in
     match Document.syntax doc with
     | Ocamllex | Menhir | Cram | Dune ->

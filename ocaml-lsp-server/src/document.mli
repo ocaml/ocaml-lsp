@@ -102,7 +102,7 @@ val close : t -> unit Fiber.t
     counterparts for the URI [uri].
 
     For instance, the counterparts of the file [/file.ml] are [/file.mli]. *)
-val get_impl_intf_counterparts : Uri.t -> Uri.t list
+val get_impl_intf_counterparts : Merlin.t option -> Uri.t -> Uri.t list
 
 (** [edits t edits] creates a [WorkspaceEdit.t] that applies edits [edits] to
     the document [t]. *)

@@ -463,11 +463,20 @@ let highlight (state : State.t)
         (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
     let lsp_locs =
-      List.map locs ~f:(fun loc ->
+      List.filter_map locs ~f:(fun loc ->
           let range = Range.of_loc loc in
-          (* using the default kind as we are lacking info to make a difference
-             between assignment and usage. *)
-          DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
+          (* filter out multi-line ranges, since those are very noisy and happen
+             a lot with certain PPXs *)
+          match range.start.line = range.end_.line with
+          | true ->
+            (* using the default kind as we are lacking info to make a
+               difference between assignment and usage. *)
+            Some
+              (DocumentHighlight.create
+                 ~range
+                 ~kind:DocumentHighlightKind.Text
+                 ())
+          | false -> None)
     in
     Some lsp_locs
 
@@ -500,9 +509,9 @@ let on_request :
   | Client_request.UnknownRequest { meth; params } -> (
     match
       [ ( Req_switch_impl_intf.meth
-        , fun ~params _ ->
+        , fun ~params state ->
             Fiber.of_thunk (fun () ->
-                Fiber.return (Req_switch_impl_intf.on_request ~params)) )
+                Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
       ; (Req_typed_holes.meth, Req_typed_holes.on_request)
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)

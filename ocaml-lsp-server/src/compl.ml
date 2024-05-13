@@ -242,12 +242,13 @@ module Complete_with_construct = struct
 end
 
 let complete (state : State.t)
-    ({ textDocument = { uri }; position = pos; _ } : CompletionParams.t) =
+    ({ textDocument = { uri }; position = pos; context; _ } :
+      CompletionParams.t) =
   Fiber.of_thunk (fun () ->
       let doc = Document_store.get state.store uri in
       match Document.kind doc with
       | `Other -> Fiber.return None
-      | `Merlin merlin ->
+      | `Merlin merlin -> (
         let completion_item_capability =
           let open Option.O in
           let capabilities = State.client_capabilities state in
@@ -265,75 +266,98 @@ let complete (state : State.t)
           | Some { properties } ->
             List.mem properties ~equal:String.equal "documentation"
         in
-        let+ items =
-          let position = Position.logical pos in
-          let prefix =
-            prefix_of_position ~short_path:false (Document.source doc) position
-          in
-          let deprecated =
-            Option.value
-              ~default:false
-              (let open Option.O in
-               let* item = completion_item_capability in
-               item.deprecatedSupport)
-          in
-          if not (Typed_hole.can_be_hole prefix) then
-            Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
-          else
-            let reindex_sortText completion_items =
-              List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
-                  let sortText = Some (sortText_of_index idx) in
-                  { ci with sortText })
-            in
-            let preselect_first =
-              match
-                let open Option.O in
-                let* item = completion_item_capability in
-                item.preselectSupport
-              with
-              | None | Some false -> fun x -> x
-              | Some true -> (
-                function
-                | [] -> []
-                | ci :: rest ->
-                  { ci with CompletionItem.preselect = Some true } :: rest)
-            in
-            let+ construct_cmd_resp, compl_by_prefix_resp =
-              Document.Merlin.with_pipeline_exn
-                ~name:"completion"
-                merlin
-                (fun pipeline ->
-                  let construct_cmd_resp =
-                    Complete_with_construct.dispatch_cmd position pipeline
-                  in
-                  let compl_by_prefix_resp =
-                    Complete_by_prefix.dispatch_cmd ~prefix position pipeline
-                  in
-                  (construct_cmd_resp, compl_by_prefix_resp))
-            in
-            let construct_completionItems =
-              let supportsJumpToNextHole =
-                State.experimental_client_capabilities state
-                |> Client.Experimental_capabilities.supportsJumpToNextHole
+        let* should_provide_completions =
+          match context with
+          | Some context -> (
+            match context.triggerKind with
+            | TriggerCharacter -> (
+              let+ inside_comment =
+                Check_for_comments.position_in_comment ~position:pos ~merlin
               in
-              Complete_with_construct.process_dispatch_resp
-                ~supportsJumpToNextHole
-                construct_cmd_resp
-            in
-            let compl_by_prefix_completionItems =
-              Complete_by_prefix.process_dispatch_resp
-                ~resolve
-                ~deprecated
-                merlin
-                pos
-                compl_by_prefix_resp
-            in
-            construct_completionItems @ compl_by_prefix_completionItems
-            |> reindex_sortText |> preselect_first
+              match inside_comment with
+              | true -> `Ignore
+              | false -> `Provide_completions)
+            | Invoked | TriggerForIncompleteCompletions ->
+              Fiber.return `Provide_completions)
+          | None -> Fiber.return `Provide_completions
         in
-        Some
-          (`CompletionList
-            (CompletionList.create ~isIncomplete:false ~items ())))
+        match should_provide_completions with
+        | `Ignore -> Fiber.return None
+        | `Provide_completions ->
+          let+ items =
+            let position = Position.logical pos in
+            let prefix =
+              prefix_of_position
+                ~short_path:false
+                (Document.source doc)
+                position
+            in
+            let deprecated =
+              Option.value
+                ~default:false
+                (let open Option.O in
+                 let* item = completion_item_capability in
+                 item.deprecatedSupport)
+            in
+            if not (Typed_hole.can_be_hole prefix) then
+              Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
+            else
+              let reindex_sortText completion_items =
+                List.mapi
+                  completion_items
+                  ~f:(fun idx (ci : CompletionItem.t) ->
+                    let sortText = Some (sortText_of_index idx) in
+                    { ci with sortText })
+              in
+              let preselect_first =
+                match
+                  let open Option.O in
+                  let* item = completion_item_capability in
+                  item.preselectSupport
+                with
+                | None | Some false -> fun x -> x
+                | Some true -> (
+                  function
+                  | [] -> []
+                  | ci :: rest ->
+                    { ci with CompletionItem.preselect = Some true } :: rest)
+              in
+              let+ construct_cmd_resp, compl_by_prefix_resp =
+                Document.Merlin.with_pipeline_exn
+                  ~name:"completion"
+                  merlin
+                  (fun pipeline ->
+                    let construct_cmd_resp =
+                      Complete_with_construct.dispatch_cmd position pipeline
+                    in
+                    let compl_by_prefix_resp =
+                      Complete_by_prefix.dispatch_cmd ~prefix position pipeline
+                    in
+                    (construct_cmd_resp, compl_by_prefix_resp))
+              in
+              let construct_completionItems =
+                let supportsJumpToNextHole =
+                  State.experimental_client_capabilities state
+                  |> Client.Experimental_capabilities.supportsJumpToNextHole
+                in
+                Complete_with_construct.process_dispatch_resp
+                  ~supportsJumpToNextHole
+                  construct_cmd_resp
+              in
+              let compl_by_prefix_completionItems =
+                Complete_by_prefix.process_dispatch_resp
+                  ~resolve
+                  ~deprecated
+                  merlin
+                  pos
+                  compl_by_prefix_resp
+              in
+              construct_completionItems @ compl_by_prefix_completionItems
+              |> reindex_sortText |> preselect_first
+          in
+          Some
+            (`CompletionList
+              (CompletionList.create ~isIncomplete:false ~items ()))))
 
 let format_doc ~markdown doc =
   match markdown with

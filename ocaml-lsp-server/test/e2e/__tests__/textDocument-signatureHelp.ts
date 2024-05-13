@@ -327,7 +327,7 @@ describe_opt("textDocument/completion", () => {
     `,
     );
 
-    let items = await querySignatureHelp(Types.Position.create(23, 13));
+    let items = await querySignatureHelp(Types.Position.create(80, 13));
     expect(items).toMatchObject({
       activeSignature: 0,
       activeParameter: 0,

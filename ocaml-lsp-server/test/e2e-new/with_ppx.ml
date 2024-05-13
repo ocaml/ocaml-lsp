@@ -70,15 +70,16 @@ let%expect_test "with-ppx" =
   let (_ : string) = [%expect.output] in
   print_endline output;
   [%expect
-    {|
+    {xxx|
     Received 0 diagnostics
     {
       "contents": {
-        "kind": "plaintext",
-        "value": "Expect_test_common.File.Location.t"
+        "value": "(* ppx expect expansion *)\nExpect_test_collector.Current_file.unset ()",
+        "language": "ocaml"
       },
       "range": {
         "end": { "character": 16, "line": 2 },
-        "start": { "character": 2, "line": 2 }
+        "start": { "character": 4, "line": 2 }
       }
-    }|}]
+    }
+    |xxx}]

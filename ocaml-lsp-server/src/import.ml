@@ -25,7 +25,6 @@ include struct
   module Map = Map
   module Monoid = Monoid
   module Option = Option
-  module Ordering = Ordering
   module Pid = Pid
   module Poly = Poly
   module Result = Result
@@ -108,6 +107,7 @@ module Asttypes = Ocaml_parsing.Asttypes
 module Cmt_format = Ocaml_typing.Cmt_format
 module Ident = Ocaml_typing.Ident
 module Env = Ocaml_typing.Env
+module Merlin_parsing = Ocaml_parsing
 
 module Loc = struct
   module T = struct

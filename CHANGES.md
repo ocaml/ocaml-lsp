@@ -8,6 +8,26 @@
 
 - Support folding of `ifthenelse` expressions (#1031)
 
+- Improve hover behavior (#1245)
+
+  Hovers are no longer displaye on useless parsetree nodes such as keywords,
+  comments, etc.
+
+  Multiline hovers are now filtered away.
+
+  Display expanded ppx's in the hover window.
+
+## Fixes
+
+- Detect document kind by looking at merlin's `suffixes` config.
+
+  This enables more lsp features for non-.ml/.mli files. Though it still
+  depends on merlin's support. (#1237)
+
+- Correctly accept the `--clientProcessId` flag. (#1242)
+
+- Disable automatic completion and signature help inside comments (#1246)
+
 - Includes a new optional/configurable option to toggle syntax documentation. If
   toggled on, allows display of sytax documentation on hover tooltips. Can be
   controlled via environment variables and by GUI for VS code. (#1218)
