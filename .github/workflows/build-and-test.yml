@@ -21,10 +21,7 @@ jobs:
           - macos-latest
           - windows-latest
         ocaml-compiler:
-          - "4.14"
-        include:
-          - os: ubuntu-latest
-            ocaml-compiler: 5.1.x
+          - "5.2"
 
     runs-on: ${{ matrix.os }}
 
@@ -87,7 +84,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: "4.14"
+          ocaml-compiler: "5.2"
           allow-prerelease-opam: true
 
       - name: Set git user
