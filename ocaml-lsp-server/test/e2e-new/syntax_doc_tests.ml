@@ -116,7 +116,7 @@ let%expect_test "syntax doc should print" =
   let source = {ocaml|
 type t = ..
 |ocaml} in
-  let position = create_postion 1 9 in
+  let position = create_postion 1 5 in
   let req client =
     let* () = change_config client activate_syntax_doc in
     let* resp = hover_req client position in
