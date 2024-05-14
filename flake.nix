@@ -148,7 +148,7 @@
           ocaml5_1 = mkShell packages_5_1 pkgs_5_1;
 
           release =
-            packages_4_14.mkShell { buildInputs = [ pkgs_4_14.dune-release ]; };
+            pkgs_4_14.mkShell { buildInputs = [ pkgs_4_14.dune-release ]; };
         };
       }));
 }
