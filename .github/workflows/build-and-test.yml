@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      -master
+      - master
   schedule:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
@@ -17,22 +17,19 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-latest
           - ubuntu-latest
-          - windows-latest
         ocaml-compiler:
-          - 4.14.x
-          - 5.0.x
-          - 5.1.x
-        exclude:
-          - os: windows-latest
-            ocaml-compiler: 5.0.x
-          - os: windows-latest
-            ocaml-compiler: 5.1.x
+          - "4.14"
+          - "5.0"
+          - "5.1"
+        include:
           - os: macos-latest
-            ocaml-compiler: 5.0.x
-          - os: macos-latest
-            ocaml-compiler: 5.1.x
+            ocaml-compiler: "4.14"
+          - os: windows-latest
+            ocaml-compiler: "4.14"
+            opam-repositories: |
+              opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
+              default: https://github.com/ocaml/opam-repository.git
 
     runs-on: ${{ matrix.os }}
 
@@ -42,81 +39,70 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout tree
+        uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: Use latest LTS Node.js release
-        uses: actions/setup-node@v3
+      - name: Set-up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: lts/*
 
       - name: Install npm packages
         run: yarn --frozen-lockfile
         working-directory: ocaml-lsp-server/test/e2e
 
-      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+      - name: Set-up OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v2
-        if: matrix.os != 'windows-latest'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          allow-prerelease-opam: true
+          opam-repositories: ${{ matrix.opam-repositories }}
 
-      - name: Use OCaml ${{ matrix.ocaml-compiler }} (Win)
-        uses: ocaml/setup-ocaml@v2
-        if: matrix.os == 'windows-latest'
-        with:
-          ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          opam-repositories: |
-            opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
-            default: https://github.com/ocaml/opam-repository.git
-
-      - name: Build and install opam packages
+      - name: Build and install dependencies
         run: opam install .
 
       # the makefile explains why we don't use --with-test
       # ppx expect is not yet compatible with 5.1 and test output vary from one
       # compiler to another. We only test on 4.14.
       - name: Install test dependencies
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make install-test-deps
 
       - name: Run build @all
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make all
 
       - name: Run the unit tests
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make test-ocaml
 
       - name: Run the template integration tests
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make test-e2e
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        ocaml-compiler:
-          - 4.14.x
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout tree
+        uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+
+      - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          opam-depext: false
+          ocaml-compiler: "4.14"
+          allow-prerelease-opam: true
 
       - name: Set git user
         run: |
           git config --global user.name github-actions[bot]
           git config --global user.email github-actions[bot]@users.noreply.github.com
 
-      - name: Install deps on Unix
+      - name: Install dependencies
         run: |
           opam install . --deps-only
           opam exec -- make coverage-deps install-test-deps
