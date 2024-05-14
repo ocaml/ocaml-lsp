@@ -1,8 +1,5 @@
 open Import
 
-val symbols_of_outline :
-  Uri.t -> Query_protocol.item list -> SymbolInformation.t list
-
 val run :
      ClientCapabilities.t
   -> Document.t

@@ -17,6 +17,17 @@
 
   Display expanded ppx's in the hover window.
 
+- Improve document symbols (#1247)
+
+  Use the parse tree instead of the typed tree. This means that document
+  symbols will work even if the source code doesn't type check.
+
+  Include symbols at arbitrary depth.
+
+  Differentiate functions / types / variants / etc.
+
+  This now includes PPXs like `let%expect_test` or `let%bench` in the outline.
+
 ## Fixes
 
 - Detect document kind by looking at merlin's `suffixes` config.

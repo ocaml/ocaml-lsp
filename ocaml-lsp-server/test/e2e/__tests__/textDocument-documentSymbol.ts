@@ -47,7 +47,40 @@ describe("textDocument/documentSymbol", () => {
     expect(result).toMatchInlineSnapshot(`
       Array [
         Object {
-          "deprecated": false,
+          "kind": 13,
+          "location": Object {
+            "range": Object {
+              "end": Object {
+                "character": 12,
+                "line": 0,
+              },
+              "start": Object {
+                "character": 0,
+                "line": 0,
+              },
+            },
+            "uri": "file:///test.ml",
+          },
+          "name": "num",
+        },
+        Object {
+          "kind": 13,
+          "location": Object {
+            "range": Object {
+              "end": Object {
+                "character": 20,
+                "line": 1,
+              },
+              "start": Object {
+                "character": 0,
+                "line": 1,
+              },
+            },
+            "uri": "file:///test.ml",
+          },
+          "name": "string",
+        },
+        Object {
           "kind": 2,
           "location": Object {
             "range": Object {
@@ -66,26 +99,6 @@ describe("textDocument/documentSymbol", () => {
         },
         Object {
           "containerName": "M",
-          "deprecated": false,
-          "kind": 12,
-          "location": Object {
-            "range": Object {
-              "end": Object {
-                "character": 12,
-                "line": 5,
-              },
-              "start": Object {
-                "character": 2,
-                "line": 5,
-              },
-            },
-            "uri": "file:///test.ml",
-          },
-          "name": "n",
-        },
-        Object {
-          "containerName": "M",
-          "deprecated": false,
           "kind": 12,
           "location": Object {
             "range": Object {
@@ -103,40 +116,22 @@ describe("textDocument/documentSymbol", () => {
           "name": "m",
         },
         Object {
-          "deprecated": false,
-          "kind": 12,
-          "location": Object {
-            "range": Object {
-              "end": Object {
-                "character": 20,
-                "line": 1,
-              },
-              "start": Object {
-                "character": 0,
-                "line": 1,
-              },
-            },
-            "uri": "file:///test.ml",
-          },
-          "name": "string",
-        },
-        Object {
-          "deprecated": false,
-          "kind": 12,
+          "containerName": "M",
+          "kind": 13,
           "location": Object {
             "range": Object {
               "end": Object {
                 "character": 12,
-                "line": 0,
+                "line": 5,
               },
               "start": Object {
-                "character": 0,
-                "line": 0,
+                "character": 2,
+                "line": 5,
               },
             },
             "uri": "file:///test.ml",
           },
-          "name": "num",
+          "name": "n",
         },
       ]
     `);
@@ -168,38 +163,59 @@ describe("textDocument/documentSymbol", () => {
     expect(result).toMatchInlineSnapshot(`
       Array [
         Object {
+          "children": Array [],
+          "kind": 13,
+          "name": "num",
+          "range": Object {
+            "end": Object {
+              "character": 12,
+              "line": 0,
+            },
+            "start": Object {
+              "character": 0,
+              "line": 0,
+            },
+          },
+          "selectionRange": Object {
+            "end": Object {
+              "character": 7,
+              "line": 0,
+            },
+            "start": Object {
+              "character": 4,
+              "line": 0,
+            },
+          },
+        },
+        Object {
+          "children": Array [],
+          "kind": 13,
+          "name": "string",
+          "range": Object {
+            "end": Object {
+              "character": 20,
+              "line": 1,
+            },
+            "start": Object {
+              "character": 0,
+              "line": 1,
+            },
+          },
+          "selectionRange": Object {
+            "end": Object {
+              "character": 10,
+              "line": 1,
+            },
+            "start": Object {
+              "character": 4,
+              "line": 1,
+            },
+          },
+        },
+        Object {
           "children": Array [
             Object {
               "children": Array [],
-              "deprecated": false,
-              "detail": "int",
-              "kind": 12,
-              "name": "n",
-              "range": Object {
-                "end": Object {
-                  "character": 12,
-                  "line": 5,
-                },
-                "start": Object {
-                  "character": 2,
-                  "line": 5,
-                },
-              },
-              "selectionRange": Object {
-                "end": Object {
-                  "character": 12,
-                  "line": 5,
-                },
-                "start": Object {
-                  "character": 2,
-                  "line": 5,
-                },
-              },
-            },
-            Object {
-              "children": Array [],
-              "deprecated": false,
-              "detail": "int -> int -> int",
               "kind": 12,
               "name": "m",
               "range": Object {
@@ -214,17 +230,41 @@ describe("textDocument/documentSymbol", () => {
               },
               "selectionRange": Object {
                 "end": Object {
-                  "character": 19,
+                  "character": 7,
                   "line": 4,
                 },
                 "start": Object {
-                  "character": 2,
+                  "character": 6,
                   "line": 4,
                 },
               },
             },
+            Object {
+              "children": Array [],
+              "kind": 13,
+              "name": "n",
+              "range": Object {
+                "end": Object {
+                  "character": 12,
+                  "line": 5,
+                },
+                "start": Object {
+                  "character": 2,
+                  "line": 5,
+                },
+              },
+              "selectionRange": Object {
+                "end": Object {
+                  "character": 7,
+                  "line": 5,
+                },
+                "start": Object {
+                  "character": 6,
+                  "line": 5,
+                },
+              },
+            },
           ],
-          "deprecated": false,
           "kind": 2,
           "name": "M",
           "range": Object {
@@ -239,66 +279,12 @@ describe("textDocument/documentSymbol", () => {
           },
           "selectionRange": Object {
             "end": Object {
-              "character": 3,
-              "line": 6,
-            },
-            "start": Object {
-              "character": 0,
+              "character": 8,
               "line": 3,
             },
-          },
-        },
-        Object {
-          "children": Array [],
-          "deprecated": false,
-          "detail": "string",
-          "kind": 12,
-          "name": "string",
-          "range": Object {
-            "end": Object {
-              "character": 20,
-              "line": 1,
-            },
             "start": Object {
-              "character": 0,
-              "line": 1,
-            },
-          },
-          "selectionRange": Object {
-            "end": Object {
-              "character": 20,
-              "line": 1,
-            },
-            "start": Object {
-              "character": 0,
-              "line": 1,
-            },
-          },
-        },
-        Object {
-          "children": Array [],
-          "deprecated": false,
-          "detail": "int",
-          "kind": 12,
-          "name": "num",
-          "range": Object {
-            "end": Object {
-              "character": 12,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 0,
-              "line": 0,
-            },
-          },
-          "selectionRange": Object {
-            "end": Object {
-              "character": 12,
-              "line": 0,
-            },
-            "start": Object {
-              "character": 0,
-              "line": 0,
+              "character": 7,
+              "line": 3,
             },
           },
         },
