@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - no changelog
+  - package-ecosystem: npm
+    directory: /ocaml-lsp-server/test/e2e
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+      - no changelog
