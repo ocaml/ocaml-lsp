@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "outdent": "0.8.0",
-    "vscode-uri": "^3.0.3"
+    "vscode-uri": "^3.0.8"
   },
   "devDependencies": {
     "@types/jest": "28.1.3",
