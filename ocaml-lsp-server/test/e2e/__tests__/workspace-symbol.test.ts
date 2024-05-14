@@ -120,6 +120,7 @@ describe("workspace/symbol", () => {
         "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",
         "user 15 /workspace_symbol_A/lib/lib.ml 3:0 5:1",
         "name 7 /workspace_symbol_A/lib/lib.ml 4:2 4:14",
+        "hello 12 /workspace_symbol_A/_build/default/lib/gen.ml 0:0 0:19",
         "t 15 /workspace_symbol_A/lib/LibTypes.mli 0:0 0:15",
         "x 12 /workspace_symbol_A/vendor/vendored_lib.ml 0:0 0:9",
       ]
@@ -200,6 +201,7 @@ describe("workspace/symbol", () => {
         "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",
         "user 15 /workspace_symbol_A/lib/lib.ml 3:0 5:1",
         "name 7 /workspace_symbol_A/lib/lib.ml 4:2 4:14",
+        "hello 12 /workspace_symbol_A/_build/default/lib/gen.ml 0:0 0:19",
         "t 15 /workspace_symbol_A/lib/LibTypes.mli 0:0 0:15",
         "x 12 /workspace_symbol_A/vendor/vendored_lib.ml 0:0 0:9",
         "workspace_B 12 /workspace_symbol_B/main.ml 0:0 0:31",

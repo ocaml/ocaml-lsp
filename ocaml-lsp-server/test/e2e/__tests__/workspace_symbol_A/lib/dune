@@ -4,5 +4,11 @@
  (flags :standard -w -32-38-27-34)
  (name lib))
 
-
 (copy_files# ../vendor/*.ml{,i})
+
+(rule
+ (target gen.ml)
+ (action
+  (with-stdout-to
+   %{target}
+   (echo "let hello = \"world\""))))

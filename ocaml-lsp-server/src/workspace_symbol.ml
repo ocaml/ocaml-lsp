@@ -205,8 +205,8 @@ end
 
 exception Cancelled
 
-let symbols_from_cm_file ~filter root_uri (cancel : Fiber.Cancel.t option)
-    cm_file =
+let symbols_from_cm_file ~build_dir ~filter root_uri
+    (cancel : Fiber.Cancel.t option) cm_file =
   let cmt =
     let filename = string_of_cm cm_file in
     let cancelled =
@@ -230,7 +230,14 @@ let symbols_from_cm_file ~filter root_uri (cancel : Fiber.Cancel.t option)
         in
         let loc = Mbrowse.node_loc browse in
         let fname = loc.loc_start.pos_fname in
-        let uri = Uri.of_path (Filename.concat root_uri fname) in
+        let uri =
+          let sourcefile = Filename.concat root_uri fname in
+          let path =
+            if Fpath.exists (Fpath.of_string sourcefile) then sourcefile
+            else build_dir ^ "/" ^ fname
+          in
+          Uri.of_path path
+        in
         filter (Document_symbol.symbols_of_outline uri outline))
     | _ -> [])
 
@@ -288,7 +295,7 @@ let run ({ query; _ } : WorkspaceSymbolParams.t)
              Uri.to_path uri
            in
            List.concat_map
-             ~f:(symbols_from_cm_file ~filter path cancel)
+             ~f:(symbols_from_cm_file ~build_dir ~filter path cancel)
              cm_files))
   with Cancelled -> Error `Cancelled
 
