@@ -8,24 +8,24 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
-        submodules: true
-    - name: nix
-      uses: cachix/install-nix-action@v21
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
-    - run: nix develop -c make nix-tests
+      - name: Checkout tree
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: nix
+        uses: cachix/install-nix-action@v26
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - run: nix develop -c make nix-tests
   fmt:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
-        submodules: true
-    - name: nix
-      uses: cachix/install-nix-action@v21
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
-    - run: nix develop -c make nix-fmt
+      - name: Checkout tree
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: nix
+        uses: cachix/install-nix-action@v26
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - run: nix develop -c make nix-fmt
