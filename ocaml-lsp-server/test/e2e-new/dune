@@ -56,6 +56,7 @@
     semantic_hl_helpers
     semantic_hl_tests
     start_stop
+    syntax_doc_tests
     test
     with_pp
     with_ppx

@@ -300,13 +300,23 @@ module Merlin = struct
     | `Found s | `Builtin s -> Some s
     | _ -> None
 
+  let syntax_doc pipeline pos =
+    let res =
+      let command = Query_protocol.Syntax_document pos in
+      Query_commands.dispatch pipeline command
+    in
+    match res with
+    | `Found s -> Some s
+    | `No_documentation -> None
+
   type type_enclosing =
     { loc : Loc.t
     ; typ : string
     ; doc : string option
+    ; syntax_doc : Query_protocol.syntax_doc_result option
     }
 
-  let type_enclosing doc pos verbosity =
+  let type_enclosing doc pos verbosity ~with_syntax_doc =
     with_pipeline_exn doc (fun pipeline ->
         let command = Query_protocol.Type_enclosing (None, pos, Some 0) in
         let pipeline =
@@ -327,7 +337,12 @@ module Merlin = struct
         | [] | (_, `Index _, _) :: _ -> None
         | (loc, `String typ, _) :: _ ->
           let doc = doc_comment pipeline pos in
-          Some { loc; typ; doc })
+          let syntax_doc =
+            match with_syntax_doc with
+            | true -> syntax_doc pipeline pos
+            | false -> None
+          in
+          Some { loc; typ; doc; syntax_doc })
 
   let doc_comment doc pos =
     with_pipeline_exn doc (fun pipeline -> doc_comment pipeline pos)

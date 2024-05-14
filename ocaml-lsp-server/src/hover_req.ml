@@ -193,29 +193,42 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   in
   !result
 
-let format_type_enclosing ~syntax ~markdown ~typ ~doc =
+let print_dividers sections = String.concat ~sep:"\n---\n" sections
+
+let format_as_code_block ~highlighter strings =
+  sprintf "```%s\n%s\n```" highlighter (String.concat ~sep:" " strings)
+
+let format_type_enclosing ~syntax ~markdown ~typ ~doc
+    ~(syntax_doc : Query_protocol.syntax_doc_result option) =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
+  let syntax_doc =
+    Option.map syntax_doc ~f:(fun syntax_doc ->
+        sprintf
+          "`syntax` %s: %s. See [Manual](%s)"
+          syntax_doc.name
+          syntax_doc.description
+          syntax_doc.documentation)
+  in
   `MarkupContent
     (if markdown then
        let value =
          let markdown_name = Document.Syntax.markdown_name syntax in
-         match doc with
-         | None -> sprintf "```%s\n%s\n```" markdown_name typ
-         | Some s ->
-           let doc =
-             match Doc_to_md.translate s with
-             | Raw d -> sprintf "(** %s *)" d
-             | Markdown d -> d
-           in
-           sprintf "```%s\n%s\n```\n---\n%s" markdown_name typ doc
+         let type_info =
+           Some (format_as_code_block ~highlighter:markdown_name [ typ ])
+         in
+         let doc =
+           Option.map doc ~f:(fun doc ->
+               match Doc_to_md.translate doc with
+               | Raw d -> d
+               | Markdown d -> d)
+         in
+         print_dividers (List.filter_opt [ type_info; syntax_doc; doc ])
        in
        { MarkupContent.value; kind = MarkupKind.Markdown }
      else
        let value =
-         match doc with
-         | None -> sprintf "%s" typ
-         | Some d -> sprintf "%s\n%s" typ d
+         print_dividers (List.filter_opt [ Some typ; syntax_doc; doc ])
        in
        { MarkupContent.value; kind = MarkupKind.PlainText })
 
@@ -224,7 +237,7 @@ let format_ppx_expansion ~ppx ~expansion =
   `MarkedString { Lsp.Types.MarkedString.value; language = Some "ocaml" }
 
 let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
-    ~merlin ~mode ~uri ~position =
+    ~with_syntax_doc ~merlin ~mode ~uri ~position =
   let state = Server.state server in
   let verbosity =
     let mode =
@@ -252,11 +265,15 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
       v
   in
   let* type_enclosing =
-    Document.Merlin.type_enclosing merlin (Position.logical position) verbosity
+    Document.Merlin.type_enclosing
+      merlin
+      (Position.logical position)
+      verbosity
+      ~with_syntax_doc
   in
   match type_enclosing with
   | None -> Fiber.return None
-  | Some { Document.Merlin.loc; typ; doc = documentation } ->
+  | Some { Document.Merlin.loc; typ; doc = documentation; syntax_doc } ->
     let syntax = Document.syntax doc in
     let* typ =
       (* We ask Ocamlformat to format this type *)
@@ -288,7 +305,12 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
           client_capabilities
           ~field:(fun td -> Option.map td.hover ~f:(fun h -> h.contentFormat))
       in
-      format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation
+      format_type_enclosing
+        ~syntax
+        ~markdown
+        ~typ
+        ~doc:documentation
+        ~syntax_doc
     in
     let range = Range.of_loc loc in
     let hover = Hover.create ~contents ~range () in
@@ -411,7 +433,19 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
         match hover_at_cursor parsetree (Position.logical position) with
         | None -> Fiber.return None
         | Some `Type_enclosing ->
-          type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position
+          let with_syntax_doc =
+            match state.configuration.data.syntax_documentation with
+            | Some { enable = true } -> true
+            | Some _ | None -> false
+          in
+          type_enclosing_hover
+            ~server
+            ~doc
+            ~merlin
+            ~mode
+            ~uri
+            ~position
+            ~with_syntax_doc
         | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) -> (
           let+ ppx_parsetree =
             Document.Merlin.with_pipeline_exn

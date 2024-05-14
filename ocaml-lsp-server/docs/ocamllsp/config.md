@@ -35,5 +35,12 @@ interface config {
   * @since 1.18
   */
   inlayHints: { enable : boolean }
+
+  /**
+  * Enable/Disable Syntax Documentation
+  * @default false
+  * @since 1.18
+  */
+  syntaxDocumentation: { enable : boolean }
 }
 ```
