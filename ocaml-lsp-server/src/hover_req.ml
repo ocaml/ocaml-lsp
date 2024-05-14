@@ -201,7 +201,7 @@ let format_as_code_block ~highlighter strings =
 let format_type_enclosing ~syntax ~markdown ~typ ~doc
     ~(syntax_doc : Query_protocol.syntax_doc_result option) =
   (* TODO for vscode, we should just use the language id. But that will not work
-      for all editors *)
+     for all editors *)
   let syntax_doc =
     Option.map syntax_doc ~f:(fun syntax_doc ->
         sprintf
@@ -212,30 +212,32 @@ let format_type_enclosing ~syntax ~markdown ~typ ~doc
   in
   `MarkupContent
     (if markdown then
-        let value =
-          let markdown_name = Document.Syntax.markdown_name syntax in
-          let type_info = Some (format_as_code_block ~highlighter:markdown_name [ typ ]) in
-          let doc =
-            Option.map doc ~f:(fun doc ->
-                match Doc_to_md.translate doc with
-                | Raw d -> d
-                | Markdown d -> d)
-          in
-          print_dividers (List.filter_opt [ type_info; syntax_doc; doc ])
-        in
-        { MarkupContent.value; kind = MarkupKind.Markdown }
-      else
-        let value =
-          print_dividers (List.filter_opt [ Some typ; syntax_doc; doc ])
-        in
-        { MarkupContent.value; kind = MarkupKind.PlainText })
+       let value =
+         let markdown_name = Document.Syntax.markdown_name syntax in
+         let type_info =
+           Some (format_as_code_block ~highlighter:markdown_name [ typ ])
+         in
+         let doc =
+           Option.map doc ~f:(fun doc ->
+               match Doc_to_md.translate doc with
+               | Raw d -> d
+               | Markdown d -> d)
+         in
+         print_dividers (List.filter_opt [ type_info; syntax_doc; doc ])
+       in
+       { MarkupContent.value; kind = MarkupKind.Markdown }
+     else
+       let value =
+         print_dividers (List.filter_opt [ Some typ; syntax_doc; doc ])
+       in
+       { MarkupContent.value; kind = MarkupKind.PlainText })
 
 let format_ppx_expansion ~ppx ~expansion =
   let value = sprintf "(* ppx %s expansion *)\n%s" ppx expansion in
   `MarkedString { Lsp.Types.MarkedString.value; language = Some "ocaml" }
 
-let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t) ~with_syntax_doc
-    ~merlin ~mode ~uri ~position =
+let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
+    ~with_syntax_doc ~merlin ~mode ~uri ~position =
   let state = Server.state server in
   let verbosity =
     let mode =
@@ -263,7 +265,11 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t) ~with_
       v
   in
   let* type_enclosing =
-    Document.Merlin.type_enclosing merlin (Position.logical position) verbosity ~with_syntax_doc
+    Document.Merlin.type_enclosing
+      merlin
+      (Position.logical position)
+      verbosity
+      ~with_syntax_doc
   in
   match type_enclosing with
   | None -> Fiber.return None
@@ -299,7 +305,12 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t) ~with_
           client_capabilities
           ~field:(fun td -> Option.map td.hover ~f:(fun h -> h.contentFormat))
       in
-      format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation ~syntax_doc
+      format_type_enclosing
+        ~syntax
+        ~markdown
+        ~typ
+        ~doc:documentation
+        ~syntax_doc
     in
     let range = Range.of_loc loc in
     let hover = Hover.create ~contents ~range () in
@@ -427,7 +438,14 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
             | Some { enable = true } -> true
             | Some _ | None -> false
           in
-          type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position ~with_syntax_doc
+          type_enclosing_hover
+            ~server
+            ~doc
+            ~merlin
+            ~mode
+            ~uri
+            ~position
+            ~with_syntax_doc
         | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) -> (
           let+ ppx_parsetree =
             Document.Merlin.with_pipeline_exn

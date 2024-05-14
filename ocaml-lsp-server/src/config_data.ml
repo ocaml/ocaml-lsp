@@ -441,17 +441,18 @@ let t_of_yojson =
              extended_hover_field := Ppx_yojson_conv_lib.Option.Some fvalue
            | Ppx_yojson_conv_lib.Option.Some _ ->
              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-          | "syntaxDocumentation" -> (
-          match Ppx_yojson_conv_lib.( ! ) syntax_documentation_field with
-          | Ppx_yojson_conv_lib.Option.None ->
-            let fvalue =
-              Json.Nullable_option.t_of_yojson
-                SyntaxDocumentation.t_of_yojson
-                _field_yojson
-            in
-            syntax_documentation_field := Ppx_yojson_conv_lib.Option.Some fvalue
-          | Ppx_yojson_conv_lib.Option.Some _ ->
-            duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+         | "syntaxDocumentation" -> (
+           match Ppx_yojson_conv_lib.( ! ) syntax_documentation_field with
+           | Ppx_yojson_conv_lib.Option.None ->
+             let fvalue =
+               Json.Nullable_option.t_of_yojson
+                 SyntaxDocumentation.t_of_yojson
+                 _field_yojson
+             in
+             syntax_documentation_field :=
+               Ppx_yojson_conv_lib.Option.Some fvalue
+           | Ppx_yojson_conv_lib.Option.Some _ ->
+             duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
          | "inlayHints" -> (
            match Ppx_yojson_conv_lib.( ! ) inlay_hints_field with
            | Ppx_yojson_conv_lib.Option.None ->
@@ -474,7 +475,7 @@ let t_of_yojson =
              dune_diagnostics_field := Ppx_yojson_conv_lib.Option.Some fvalue
            | Ppx_yojson_conv_lib.Option.Some _ ->
              duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-      | _ -> ());
+         | _ -> ());
          iter tail
        | [] -> ()
      in
@@ -539,8 +540,8 @@ let yojson_of_t =
      ; extended_hover = v_extended_hover
      ; inlay_hints = v_inlay_hints
      ; dune_diagnostics = v_dune_diagnostics
-    ; syntax_documentation = 
-       v_syntax_documentation } ->
+     ; syntax_documentation = v_syntax_documentation
+     } ->
      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
      let bnds =
        if None = v_dune_diagnostics then bnds
