@@ -115,7 +115,7 @@ module Complete_by_prefix = struct
     in
     Query_commands.dispatch pipeline complete
 
-  let process_dispatch_resp ~deprecated ~resolve doc pos
+  let process_dispatch_resp ~deprecated ~resolve ~prefix doc pos
       (completion : Query_protocol.completions) =
     let range =
       let logical_pos = Position.logical pos in
@@ -132,12 +132,17 @@ module Complete_by_prefix = struct
       | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
         completion.entries
         @ List.map labels ~f:(fun (name, typ) ->
-              { Query_protocol.Compl.name
-              ; kind = `Label
-              ; desc = typ
-              ; info = ""
-              ; deprecated = false (* TODO this is wrong *)
-              })
+          let name =
+            if String.is_prefix prefix ~prefix:"~" && String.is_prefix name ~prefix:"?"
+            then "~" ^ String.drop_prefix_if_exists name ~prefix:"?"
+            else name
+          in
+          { Query_protocol.Compl.name
+          ; kind = `Label
+          ; desc = typ
+          ; info = ""
+          ; deprecated = false (* TODO this is wrong *)
+          })
     in
     (* we need to json-ify completion params to put them in completion item's
        [data] field to keep it across [textDocument/completion] and the
@@ -190,7 +195,7 @@ module Complete_by_prefix = struct
       | Impl -> complete_keywords pos prefix
     in
     keyword_completionItems
-    @ process_dispatch_resp ~deprecated ~resolve doc pos completion
+    @ process_dispatch_resp ~deprecated ~resolve ~prefix doc pos completion
 end
 
 module Complete_with_construct = struct
@@ -348,6 +353,7 @@ let complete (state : State.t)
                 Complete_by_prefix.process_dispatch_resp
                   ~resolve
                   ~deprecated
+                  ~prefix
                   merlin
                   pos
                   compl_by_prefix_resp

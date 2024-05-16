@@ -1,40 +1,5 @@
 open Test.Import
 
-let client_capabilities = ClientCapabilities.create ()
-
-let uri = DocumentUri.of_path "test.ml"
-
-let test ?extra_env text req =
-  let handler =
-    Client.Handler.make
-      ~on_notification:(fun client _notification ->
-        Client.state client;
-        Fiber.return ())
-      ()
-  in
-  Test.run ~handler ?extra_env (fun client ->
-      let run_client () =
-        Client.start
-          client
-          (InitializeParams.create ~capabilities:client_capabilities ())
-      in
-      let run () =
-        let* (_ : InitializeResult.t) = Client.initialized client in
-        let textDocument =
-          TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
-        in
-        let* () =
-          Client.notification
-            client
-            (TextDocumentDidOpen
-               (DidOpenTextDocumentParams.create ~textDocument))
-        in
-        let* () = req client in
-        let* () = Client.request client Shutdown in
-        Client.stop client
-      in
-      Fiber.fork_and_join_unit run_client run)
-
 let print_hover hover =
   match hover with
   | None -> print_endline "no hover response"
@@ -48,7 +13,7 @@ let hover client position =
     client
     (TextDocumentHover
        { HoverParams.position
-       ; textDocument = TextDocumentIdentifier.create ~uri
+       ; textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri
        ; workDoneToken = None
        })
 
@@ -60,7 +25,7 @@ let hover_extended client position verbosity =
     let required =
       [ ( "textDocument"
         , TextDocumentIdentifier.yojson_of_t
-            (TextDocumentIdentifier.create ~uri) )
+            (TextDocumentIdentifier.create ~uri:Helpers.uri) )
       ; ("position", Position.yojson_of_t position)
       ]
     in
@@ -91,7 +56,7 @@ let foo_value : foo = Some 1
     let () = print_hover resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
@@ -121,7 +86,7 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
     let () = print_hover resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
@@ -151,7 +116,7 @@ let foo_value : foo = Some 1
     let () = print_hover resp in
     Fiber.return ()
   in
-  test ~extra_env:[ "OCAMLLSP_HOVER_IS_EXTENDED=true" ] source req;
+  Helpers.test ~extra_env:[ "OCAMLLSP_HOVER_IS_EXTENDED=true" ] source req;
   [%expect
     {|
     {
@@ -183,7 +148,7 @@ let foo_value : foo = Some 1
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
@@ -208,7 +173,7 @@ let foo_value : foo = Some 1
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
@@ -233,7 +198,7 @@ let foo_value : foo = Some 1
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
@@ -258,7 +223,7 @@ let foo_value : foo = Some 1
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
@@ -287,7 +252,7 @@ let foo_value : foo = Some 1
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
@@ -325,7 +290,7 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {
