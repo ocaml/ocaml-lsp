@@ -374,7 +374,7 @@ let text_document_lens (state : State.t)
   | `Other -> Fiber.return []
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return []
   | `Merlin doc ->
-    let+ outline = Document.Merlin.dispatch_exn doc Outline in
+    let+ outline = Document.Merlin.dispatch_exn ~name:"outline" doc Outline in
     let rec symbol_info_of_outline_item (item : Query_protocol.item) =
       let children =
         List.concat_map item.children ~f:symbol_info_of_outline_item
@@ -427,7 +427,7 @@ let selection_range (state : State.t)
     let+ ranges =
       Fiber.sequential_map positions ~f:(fun x ->
           let+ shapes =
-            Document.Merlin.dispatch_exn merlin (Shape (Position.logical x))
+            Document.Merlin.dispatch_exn ~name:"shape" merlin (Shape (Position.logical x))
           in
           selection_range_of_shapes x shapes)
     in
@@ -441,6 +441,7 @@ let references (state : State.t)
   | `Merlin doc ->
     let+ locs =
       Document.Merlin.dispatch_exn
+        ~name:"occurrences"
         doc
         (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
@@ -459,6 +460,7 @@ let highlight (state : State.t)
   | `Merlin m ->
     let+ locs =
       Document.Merlin.dispatch_exn
+        ~name:"occurrences"
         m
         (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
@@ -599,7 +601,12 @@ let on_request :
           match Document.kind doc with
           | `Other -> Fiber.return ci
           | `Merlin doc ->
-            Compl.resolve doc ci resolve Document.Merlin.doc_comment ~markdown))
+            Compl.resolve
+              doc
+              ci
+              resolve
+              (Document.Merlin.doc_comment ~name:"completion-resolve")
+              ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
   | InlayHint params ->
@@ -645,6 +652,7 @@ let on_request :
         | `Merlin doc ->
           let+ locs =
             Document.Merlin.dispatch_exn
+              ~name:"occurrences"
               doc
               (Occurrences (`Ident_at (Position.logical position), `Buffer))
           in

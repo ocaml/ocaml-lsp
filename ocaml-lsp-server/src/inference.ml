@@ -12,7 +12,7 @@ let infer_intf_for_impl doc =
       "expected an implementation document, got an interface instead"
       []
   | `Merlin doc ->
-    Document.Merlin.with_pipeline_exn doc (fun pipeline ->
+    Document.Merlin.with_pipeline_exn ~name:"infer-interface" doc (fun pipeline ->
         let typer = Mpipeline.typer_result pipeline in
         let sig_ : Types.signature =
           let typedtree = Mtyper.get_typedtree typer in

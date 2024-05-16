@@ -56,12 +56,18 @@ module Merlin : sig
   val with_pipeline_exn : ?name:string -> t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
   val dispatch :
-    t -> 'a Query_protocol.t -> ('a, Exn_with_backtrace.t) result Fiber.t
+       ?name:string
+    -> t
+    -> 'a Query_protocol.t
+    -> ('a, Exn_with_backtrace.t) result Fiber.t
 
-  val dispatch_exn : t -> 'a Query_protocol.t -> 'a Fiber.t
+  val dispatch_exn : ?name:string -> t -> 'a Query_protocol.t -> 'a Fiber.t
 
   val doc_comment :
-    t -> Msource.position -> (* doc string *) string option Fiber.t
+       ?name:string
+    -> t
+    -> Msource.position
+    -> (* doc string *) string option Fiber.t
 
   val syntax_doc :
     Mpipeline.t -> Msource.position -> Query_protocol.syntax_doc_result option
@@ -74,7 +80,8 @@ module Merlin : sig
     }
 
   val type_enclosing :
-       t
+       ?name:string
+    -> t
     -> Msource.position
     -> (* verbosity *) int
     -> with_syntax_doc:bool

@@ -61,6 +61,7 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
     if List.is_empty batchable then Fiber.return []
     else
       Document.Merlin.with_pipeline_exn
+        ~name:"batched-code-actions"
         (Document.merlin_exn doc)
         (fun pipeline ->
           List.filter_map batchable ~f:(fun ca ->

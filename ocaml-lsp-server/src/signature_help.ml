@@ -203,7 +203,7 @@ let run (state : State.t)
       match inside_comment with
       | true -> Fiber.return None
       | false ->
-        Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+        Document.Merlin.with_pipeline_exn ~name:"signature-help" merlin (fun pipeline ->
             let typer = Mpipeline.typer_result pipeline in
             let pos = Mpipeline.get_lexing_pos pipeline pos in
             let node = Mtyper.node_at typer pos in
@@ -223,6 +223,7 @@ let run (state : State.t)
       let offset = String.length prefix in
       let+ doc =
         Document.Merlin.doc_comment
+          ~name:"signature help-position"
           merlin
           application_signature.function_position
       in
