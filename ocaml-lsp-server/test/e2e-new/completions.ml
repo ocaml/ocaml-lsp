@@ -2,22 +2,21 @@ open Async
 open Test.Import
 
 let print_completion
-      (completions :
-         [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option)
-  =
+    (completions :
+      [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ]
+      option) =
   let print_items (items : CompletionItem.t list) =
     List.map items ~f:(fun item ->
-      CompletionItem.yojson_of_t item |> Yojson.Safe.pretty_to_string ~std:false)
-    |> String.concat ~sep:"\n"
-    |> print_endline
+        CompletionItem.yojson_of_t item
+        |> Yojson.Safe.pretty_to_string ~std:false)
+    |> String.concat ~sep:"\n" |> print_endline
   in
   match completions with
   | None -> print_endline "no completion response"
-  | Some completions ->
-    (match completions with
-     | `List items -> print_items items
-     | `CompletionList completions -> print_items completions.items)
-;;
+  | Some completions -> (
+    match completions with
+    | `List items -> print_items items
+    | `CompletionList completions -> print_items completions.items)
 
 let completion client position =
   Client.request
@@ -27,7 +26,6 @@ let completion client position =
           ~position
           ~textDocument:(TextDocumentIdentifier.create ~uri:Helpers.uri)
           ()))
-;;
 
 let%expect_test "completing optional arguments" =
   let source =
@@ -134,4 +132,3 @@ let foo_value = foo ?a
       }
     }
     |}]
-;;
