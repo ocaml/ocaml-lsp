@@ -278,7 +278,10 @@ let _ =
   let $f : int -> int = fun x -> x in
   f 0
 |};
-  [%expect {| |}]
+  [%expect {|
+    let _ =
+      let f : int -> int = fun x -> x in
+      (0) |}]
 
 let%expect_test "" =
   inline_test
