@@ -156,6 +156,15 @@
             # present
             buildInputs = (with pkgs; [ ocaml ocamlformat_0_26_1 yarn dune_3 ]);
           };
+
+          check = pkgs_4_14.mkShell {
+            buildInputs = (with pkgs_4_14; [
+              yarn
+              ocamlPackages.ppx_expect
+              ocamlformat_0_26_1
+            ]);
+            inputsFrom = with packages_4_14; [ ocaml-lsp jsonrpc lsp ];
+          };
         };
       }));
 }

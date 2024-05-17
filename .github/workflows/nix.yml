@@ -16,7 +16,7 @@ jobs:
         uses: cachix/install-nix-action@v26
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - run: nix develop -c make nix-tests
+      - run: nix develop .#check -c make nix-tests
   fmt:
     runs-on: ubuntu-latest
     steps:
