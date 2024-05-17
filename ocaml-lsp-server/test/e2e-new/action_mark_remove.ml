@@ -47,7 +47,11 @@ let%expect_test "mark value in top level let" =
 let $f$ =
   let x = 1 in
   0
-|}
+|};
+  [%expect {|
+    let _f =
+      let x = 1 in
+      0 |}]
 
 let%expect_test "mark value in match" =
   mark_test `Value {|

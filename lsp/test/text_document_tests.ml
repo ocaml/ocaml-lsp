@@ -248,7 +248,7 @@ let%expect_test "replace second line first line is \\n" =
   let new_doc = Text_document.apply_text_document_edits doc [ edit ] in
   new_doc |> Text_document.text |> String.escaped |> print_endline;
   [%expect {|
-    \nfochange\nfoo\nbar\nbaz\n |}]
+    \nfochangeo\nbar\nbaz\n |}]
 
 let%expect_test "get position after change" =
   let range = tuple_range (1, 2) (1, 2) in
@@ -260,4 +260,4 @@ let%expect_test "get position after change" =
   printf "pos: %d\n" pos;
   [%expect {|
     \nfochangeo\nbar\nbaz\n
-    pos: 19 |}]
+    pos: 22 |}]

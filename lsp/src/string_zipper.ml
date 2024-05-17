@@ -183,8 +183,9 @@ let rec prev_newline t =
           })
 
 let beginning_of_line t =
+  let line = t.line in
   let t = prev_newline t in
-  if is_begin t then t else advance_char t
+  if is_begin t && t.line = line then t else advance_char t
 
 let rec goto_line_backward t = function
   | 0 -> beginning_of_line t

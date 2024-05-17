@@ -48,6 +48,8 @@
   completions that start with `?` to start with `~` when the prefix being
   completed starts with `~`. (#1277)
 
+- Fix document syncing (#1278, #1280, fixes #1207)
+
 # 1.17.0
 
 ## Fixes
