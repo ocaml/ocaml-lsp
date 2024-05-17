@@ -162,3 +162,15 @@ let%expect_test "add buffer between" =
   printfn "result: %S" (Buffer.contents b);
   [%expect {|
     result: "foo\n" |}]
+
+let%expect_test "drop_until bug" =
+  let t = String_zipper.of_string "foo\nbar\nxxx" in
+  let t' = String_zipper.goto_line t 10 in
+  let t = String_zipper.goto_line t 2 in
+  let t = String_zipper.drop_until t t' in
+  printfn "%S" (String_zipper.to_string_debug t);
+  [%expect {|
+    "foo\nbar\n|" |}];
+  printfn "abs_pos: %d" (String_zipper.Private.reflect t).abs_pos;
+  [%expect {|
+    abs_pos: 16 |}]
