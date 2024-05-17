@@ -240,3 +240,24 @@ let%expect_test "absolute_position" =
   [%expect {| position: 7/13 |}];
   test (100, 0);
   [%expect {| position: 13/13 |}]
+
+let%expect_test "replace second line first line is \\n" =
+  let range = tuple_range (1, 2) (1, 2) in
+  let doc = make_document (Uri.of_path "foo.ml") ~text:"\nfoo\nbar\nbaz\n" in
+  let edit = TextEdit.create ~newText:"change" ~range in
+  let new_doc = Text_document.apply_text_document_edits doc [ edit ] in
+  new_doc |> Text_document.text |> String.escaped |> print_endline;
+  [%expect {|
+    \nfochange\nfoo\nbar\nbaz\n |}]
+
+let%expect_test "get position after change" =
+  let range = tuple_range (1, 2) (1, 2) in
+  let doc = make_document (Uri.of_path "foo.ml") ~text:"\nfoo\nbar\nbaz\n" in
+  let edit = TextDocumentContentChangeEvent.create ~text:"change" ~range () in
+  let new_doc = Text_document.apply_content_changes doc [ edit ] in
+  let pos = Text_document.absolute_position new_doc range.start in
+  new_doc |> Text_document.text |> String.escaped |> print_endline;
+  printf "pos: %d\n" pos;
+  [%expect {|
+    \nfochangeo\nbar\nbaz\n
+    pos: 19 |}]
