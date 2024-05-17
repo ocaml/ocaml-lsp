@@ -36,10 +36,12 @@
   dune-rpc
   ocamlformat-rpc-lib
   ocamlc-loc
+  core
   base)
  (lint
   (pps ppx_yojson_conv))
  (instrumentation
-  (backend bisect_ppx)))
+  (backend bisect_ppx))
+ (preprocess (pps ppx_let)))
 
 (include_subdirs unqualified)
