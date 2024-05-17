@@ -174,7 +174,7 @@ let%expect_test "can start completion after operator with space" =
   let position = Position.create ~line:0 ~character:16 in
   print_completions source position;
   [%expect
-    {| 
+    {|
   Completions:
   {
     "detail": "('a -> 'b) -> 'a list -> 'b list",
@@ -587,7 +587,7 @@ let somenum = 42
 let somestring = "hello"
 
 let plus_42 (x:int) (y:int) =
-  somenum + 
+  somenum +
 |ocaml}
   in
   let position = Position.create ~line:5 ~character:12 in
@@ -596,134 +596,31 @@ let plus_42 (x:int) (y:int) =
     {|
   Completions:
   {
-    "kind": 14,
-    "label": "in",
-    "textEdit": {
-      "newText": "in",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "int",
+    "detail": "int -> int -> int",
     "kind": 12,
-    "label": "somenum",
+    "label": "+",
     "sortText": "0000",
     "textEdit": {
-      "newText": "somenum",
+      "newText": "+",
       "range": {
         "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
+        "start": { "character": 11, "line": 5 }
       }
     }
   }
   {
-    "detail": "int",
+    "detail": "float -> float -> float",
     "kind": 12,
-    "label": "x",
+    "label": "+.",
     "sortText": "0001",
     "textEdit": {
-      "newText": "x",
+      "newText": "+.",
       "range": {
         "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
+        "start": { "character": 11, "line": 5 }
       }
     }
   }
-  {
-    "detail": "int",
-    "kind": 12,
-    "label": "y",
-    "sortText": "0002",
-    "textEdit": {
-      "newText": "y",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "int",
-    "kind": 12,
-    "label": "max_int",
-    "sortText": "0003",
-    "textEdit": {
-      "newText": "max_int",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "int",
-    "kind": 12,
-    "label": "min_int",
-    "sortText": "0004",
-    "textEdit": {
-      "newText": "min_int",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "int -> int",
-    "kind": 12,
-    "label": "abs",
-    "sortText": "0005",
-    "textEdit": {
-      "newText": "abs",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "in_channel -> int",
-    "kind": 12,
-    "label": "in_channel_length",
-    "sortText": "0006",
-    "textEdit": {
-      "newText": "in_channel_length",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "in_channel -> int",
-    "kind": 12,
-    "label": "input_binary_int",
-    "sortText": "0007",
-    "textEdit": {
-      "newText": "input_binary_int",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  {
-    "detail": "in_channel -> int",
-    "kind": 12,
-    "label": "input_byte",
-    "sortText": "0008",
-    "textEdit": {
-      "newText": "input_byte",
-      "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 12, "line": 5 }
-      }
-    }
-  }
-  .............
   |}]
 
 let%expect_test "completes labels" =

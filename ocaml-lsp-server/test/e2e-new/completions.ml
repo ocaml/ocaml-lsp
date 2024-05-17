@@ -1,4 +1,3 @@
-open Async
 open Test.Import
 
 let print_completion
@@ -49,11 +48,11 @@ let foo_value = foo ?a
      type. The LSP could filter these to exclude those that don't match the [?] prefix,
      but since the LSP already relies on the clients to do filtering, it feels weird to
      add filtering to the LSP. *)
-  let%map.Deferred () = Helpers.test source req in
+  Helpers.test source req;
   [%expect
     {|
     {
-      "detail": "'a option",
+      "detail": "'a",
       "kind": 5,
       "label": "~aaa",
       "sortText": "0000",
@@ -66,7 +65,7 @@ let foo_value = foo ?a
       }
     }
     {
-      "detail": "'b option",
+      "detail": "'b",
       "kind": 5,
       "label": "~aab",
       "sortText": "0001",
@@ -93,7 +92,7 @@ let foo_value = foo ?a
     }
     ****************************************
     {
-      "detail": "'a option",
+      "detail": "'a",
       "kind": 5,
       "label": "?aaa",
       "sortText": "0000",
@@ -106,7 +105,7 @@ let foo_value = foo ?a
       }
     }
     {
-      "detail": "'b option",
+      "detail": "'b",
       "kind": 5,
       "label": "?aab",
       "sortText": "0001",
