@@ -43,6 +43,11 @@
   toggled on, allows display of sytax documentation on hover tooltips. Can be
   controlled via environment variables and by GUI for VS code. (#1218)
 
+- For completions on labels that the LSP gets from merlin, take into account
+  whether the prefix being completed starts with `~` or `?`. Change the label
+  completions that start with `?` to start with `~` when the prefix being
+  completed starts with `~`. (#1277)
+
 # 1.17.0
 
 ## Fixes

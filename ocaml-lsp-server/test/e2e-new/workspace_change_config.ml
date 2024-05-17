@@ -1,40 +1,5 @@
 open Test.Import
 
-let client_capabilities = ClientCapabilities.create ()
-
-let uri = DocumentUri.of_path "test.ml"
-
-let test text req =
-  let handler =
-    Client.Handler.make
-      ~on_notification:(fun client _notification ->
-        Client.state client;
-        Fiber.return ())
-      ()
-  in
-  Test.run ~handler (fun client ->
-      let run_client () =
-        Client.start
-          client
-          (InitializeParams.create ~capabilities:client_capabilities ())
-      in
-      let run () =
-        let* (_ : InitializeResult.t) = Client.initialized client in
-        let textDocument =
-          TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
-        in
-        let* () =
-          Client.notification
-            client
-            (TextDocumentDidOpen
-               (DidOpenTextDocumentParams.create ~textDocument))
-        in
-        let* () = req client in
-        let* () = Client.request client Shutdown in
-        Client.stop client
-      in
-      Fiber.fork_and_join_unit run_client run)
-
 let change_config client params =
   Client.notification client (ChangeConfiguration params)
 
@@ -50,7 +15,7 @@ let string = "Hello"
 |ocaml} in
 
   let req client =
-    let text_document = TextDocumentIdentifier.create ~uri in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let* () =
       change_config
         client
@@ -67,7 +32,7 @@ let string = "Hello"
     Fiber.return ()
   in
 
-  test source req;
+  Helpers.test source req;
   [%expect {| CodeLens found: 0 |}]
 
 let%expect_test "enable hover extended" =
@@ -103,7 +68,7 @@ let foo_value : foo = Some 1
     let () = Hover_extended.print_hover resp in
     Fiber.return ()
   in
-  test source req;
+  Helpers.test source req;
   [%expect
     {|
     {

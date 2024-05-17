@@ -45,6 +45,7 @@
     action_mark_remove
     code_actions
     completion
+    completions
     doc_to_md
     document_flow
     exit_notification
