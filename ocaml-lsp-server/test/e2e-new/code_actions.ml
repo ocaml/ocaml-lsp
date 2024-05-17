@@ -483,7 +483,10 @@ let f (x : t) = x
     let end_ = Position.create ~line:2 ~character:17 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct (enumerate cases)");
   [%expect
     {|
     Code actions:
@@ -511,18 +514,19 @@ let f (x : t) = x
     |}]
 
 let%expect_test "can destruct match line" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 let f (x:bool) =
   match x
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:2 ~character:5 in
     let end_ = Position.create ~line:2 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -550,17 +554,18 @@ let f (x:bool) =
     |}]
 
 let%expect_test "can destruct match-with line" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
     match (Ok 0) with
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:1 ~character:0 in
     let end_ = Position.create ~line:1 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -605,7 +610,10 @@ let f (x: q) =
     let end_ = Position.create ~line:8 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -645,7 +653,10 @@ let zip (type a b) (xs : a list) (ys : b list) : (a * b) list =
     let end_ = Position.create ~line:3 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -683,15 +694,18 @@ type t =
 let f (x: t) =
   match x with
   |ocaml}
-    in
-    let range =
-      let start = Position.create ~line:7 ~character:7 in
-      let end_ = Position.create ~line:7 ~character:7 in
-      Range.create ~start ~end_
-    in
-    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
-    [%expect
-      {|
+  in
+  let range =
+    let start = Position.create ~line:7 ~character:7 in
+    let end_ = Position.create ~line:7 ~character:7 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
       Code actions:
       {
         "edit": {
@@ -729,15 +743,18 @@ let f (x: q) =
   match x with
   | Almost_as_long_name_for_for_the_second_case -> _
 |ocaml}
-    in
-    let range =
-      let start = Position.create ~line:9 ~character:22 in
-      let end_ = Position.create ~line:9 ~character:22 in
-      Range.create ~start ~end_
-    in
-    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
-    [%expect
-      {|
+  in
+  let range =
+    let start = Position.create ~line:9 ~character:22 in
+    let end_ = Position.create ~line:9 ~character:22 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
       Code actions:
       {
         "edit": {
