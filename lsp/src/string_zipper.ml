@@ -292,7 +292,7 @@ let drop_until from until =
       | [] -> empty
       | current :: left ->
         let rel_pos = Substring.length current in
-        let abs_pos = from.rel_pos + rel_pos in
+        let abs_pos = from.abs_pos + rel_pos in
         { from with right; left; current; rel_pos; abs_pos })
 
 let add_buffer_between b start stop =

@@ -173,4 +173,4 @@ let%expect_test "drop_until bug" =
     "foo\nbar\n|" |}];
   printfn "abs_pos: %d" (String_zipper.Private.reflect t).abs_pos;
   [%expect {|
-    abs_pos: 16 |}]
+    abs_pos: 8 |}]
