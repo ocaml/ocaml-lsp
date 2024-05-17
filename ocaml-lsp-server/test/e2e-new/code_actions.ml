@@ -522,9 +522,7 @@ let f (x:bool) =
     let end_ = Position.create ~line:2 ~character:5 in
     Range.create ~start ~end_
   in
-  let%map.Deferred () =
-    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)")
-  in
+  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -562,9 +560,7 @@ let%expect_test "can destruct match-with line" =
     let end_ = Position.create ~line:1 ~character:0 in
     Range.create ~start ~end_
   in
-  let%map.Deferred () =
-    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)")
-  in
+  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -609,9 +605,7 @@ let f (x: q) =
     let end_ = Position.create ~line:8 ~character:0 in
     Range.create ~start ~end_
   in
-  let%map.Deferred () =
-    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)")
-  in
+  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -651,9 +645,7 @@ let zip (type a b) (xs : a list) (ys : b list) : (a * b) list =
     let end_ = Position.create ~line:3 ~character:5 in
     Range.create ~start ~end_
   in
-  let%map.Deferred () =
-    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)")
-  in
+  print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect
     {|
     Code actions:
@@ -697,9 +689,7 @@ let f (x: t) =
       let end_ = Position.create ~line:7 ~character:7 in
       Range.create ~start ~end_
     in
-    let%map.Deferred () =
-      print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)")
-    in
+    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
     [%expect
       {|
       Code actions:
@@ -745,9 +735,7 @@ let f (x: q) =
       let end_ = Position.create ~line:9 ~character:22 in
       Range.create ~start ~end_
     in
-    let%map.Deferred () =
-      print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)")
-    in
+    print_code_actions source range ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
     [%expect
       {|
       Code actions:
