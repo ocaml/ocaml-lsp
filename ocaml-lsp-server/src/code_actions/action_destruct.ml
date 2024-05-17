@@ -1,7 +1,7 @@
 open Import
 open Fiber.O
 
-let action_kind = "destruct"
+let action_kind = "destruct (enumerate cases)"
 
 let kind = CodeActionKind.Other action_kind
 
