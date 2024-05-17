@@ -44,7 +44,10 @@ let on_request ~params state =
       | `Merlin doc -> (
         let pos = Position.logical cursor_position in
         let+ node =
-          Document.Merlin.with_pipeline_exn doc (fun pipeline ->
+          Document.Merlin.with_pipeline_exn
+            ~name:"wrapping-ast-node"
+            doc
+            (fun pipeline ->
               let typer = Mpipeline.typer_result pipeline in
               let pos = Mpipeline.get_lexing_pos pipeline pos in
               let enclosing_nodes (* from smallest node to largest *) =

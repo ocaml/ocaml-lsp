@@ -34,14 +34,14 @@ let run kind (state : State.t) uri position =
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc -> (
-    let command =
+    let command, name =
       let pos = Position.logical position in
       match kind with
-      | `Definition -> Query_protocol.Locate (None, `ML, pos)
-      | `Declaration -> Query_protocol.Locate (None, `MLI, pos)
-      | `Type_definition -> Query_protocol.Locate_type pos
+      | `Definition -> (Query_protocol.Locate (None, `ML, pos), "definition")
+      | `Declaration -> (Query_protocol.Locate (None, `MLI, pos), "declaration")
+      | `Type_definition -> (Query_protocol.Locate_type pos, "type definition")
     in
-    let* result = Document.Merlin.dispatch_exn doc command in
+    let* result = Document.Merlin.dispatch_exn ~name doc command in
     match location_of_merlin_loc uri result with
     | Ok s -> Fiber.return s
     | Error err_msg ->

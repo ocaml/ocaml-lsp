@@ -284,11 +284,12 @@ module Merlin = struct
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
 
-  let dispatch t command =
-    with_pipeline t (fun pipeline -> Query_commands.dispatch pipeline command)
+  let dispatch ?name t command =
+    with_pipeline ?name t (fun pipeline ->
+        Query_commands.dispatch pipeline command)
 
-  let dispatch_exn t command =
-    with_pipeline_exn t (fun pipeline ->
+  let dispatch_exn ?name t command =
+    with_pipeline_exn ?name t (fun pipeline ->
         Query_commands.dispatch pipeline command)
 
   let doc_comment pipeline pos =
@@ -316,8 +317,8 @@ module Merlin = struct
     ; syntax_doc : Query_protocol.syntax_doc_result option
     }
 
-  let type_enclosing doc pos verbosity ~with_syntax_doc =
-    with_pipeline_exn doc (fun pipeline ->
+  let type_enclosing ?name doc pos verbosity ~with_syntax_doc =
+    with_pipeline_exn ?name doc (fun pipeline ->
         let command = Query_protocol.Type_enclosing (None, pos, Some 0) in
         let pipeline =
           match verbosity with
@@ -344,8 +345,8 @@ module Merlin = struct
           in
           Some { loc; typ; doc; syntax_doc })
 
-  let doc_comment doc pos =
-    with_pipeline_exn doc (fun pipeline -> doc_comment pipeline pos)
+  let doc_comment ?name doc pos =
+    with_pipeline_exn ?name doc (fun pipeline -> doc_comment pipeline pos)
 end
 
 let edit t text_edits =

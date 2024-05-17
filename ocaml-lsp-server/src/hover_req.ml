@@ -266,6 +266,7 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
   in
   let* type_enclosing =
     Document.Merlin.type_enclosing
+      ~name:"hover-enclosing"
       merlin
       (Position.logical position)
       verbosity

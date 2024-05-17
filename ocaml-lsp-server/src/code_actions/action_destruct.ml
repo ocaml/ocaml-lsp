@@ -48,7 +48,7 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
       let finish = Position.logical params.range.end_ in
       Query_protocol.Case_analysis (start, finish)
     in
-    let* res = Document.Merlin.dispatch merlin command in
+    let* res = Document.Merlin.dispatch ~name:"destruct" merlin command in
     match res with
     | Ok (loc, newText) ->
       let+ newText =

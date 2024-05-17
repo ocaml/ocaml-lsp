@@ -110,7 +110,7 @@ let compute (state : State.t)
   | `Merlin doc ->
     let hints = ref [] in
     let* () =
-      Document.Merlin.with_pipeline_exn doc (fun pipeline ->
+      Document.Merlin.with_pipeline_exn ~name:"inlay-hints" doc (fun pipeline ->
           match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
           | `Interface _ -> ()
           | `Implementation typedtree ->
