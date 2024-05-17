@@ -28,4 +28,4 @@ jobs:
         uses: cachix/install-nix-action@v26
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - run: nix develop -c make nix-fmt
+      - run: nix develop .#fmt -c make nix-fmt

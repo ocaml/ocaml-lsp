@@ -149,6 +149,13 @@
 
           release =
             pkgs_4_14.mkShell { buildInputs = [ pkgs_4_14.dune-release ]; };
+
+          fmt = let pkgs = (import nixpkgs { inherit system; });
+          in pkgs.mkShell {
+            # TODO: get rid of ocaml once dune get format without ocaml being
+            # present
+            buildInputs = (with pkgs; [ ocaml ocamlformat_0_26_1 yarn dune_3 ]);
+          };
         };
       }));
 }
