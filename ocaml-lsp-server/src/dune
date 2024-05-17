@@ -35,7 +35,10 @@
   yojson
   dune-rpc
   ocamlformat-rpc-lib
-  ocamlc-loc)
+  ocamlc-loc
+  core
+  base
+  re2)
  (lint
   (pps ppx_yojson_conv))
  (instrumentation

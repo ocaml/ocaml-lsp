@@ -5,9 +5,9 @@ open Core
 let action_kind = "destruct-line (enumerate cases, use existing match)"
 let kind = CodeActionKind.Other action_kind
 
-(* CR-someday bwiedenbeck: All of the pre- and post-processing here is done by simple
-   regexes and other string manipulations. It would be nice if more of it could rely on
-   the typed tree or other analysis of the code provided by Merlin. *)
+(* TODO: All of the pre- and post-processing here is done by simple regexes and other
+   string manipulations. It would be nice if more of it could rely on the typed tree or
+   other analysis of the code provided by Merlin. *)
 
 type statement_kind =
   | MatchLine (* [match ...] *)
@@ -169,20 +169,20 @@ let match_indent ~(statement : destructable_statement) (new_code : string) =
   let i = String.substr_index_exn full_line ~pattern:(String.strip full_line) in
   let indent = String.sub full_line ~pos:0 ~len:i in
   match
-    Re2.replace ~f:(fun _ -> [%string "\n%{indent}| "]) (Re2.create_exn "\n\\| ") new_code
+    Re2.replace ~f:(fun _ -> "\n" ^ indent ^ "| ") (Re2.create_exn "\n\\| ") new_code
   with
   | Ok with_newlines -> with_newlines
   | Error _ -> new_code
 ;;
 
-(* CR-someday bwiedenbeck: If [ocamlformat_rpc] ever gets implemented, it would probably
-   be worth re-thinking the post-processing that's happening here. *)
+(* TODO: If [ocamlformat_rpc] ever gets implemented, it would probably be worth
+   re-thinking the post-processing that's happening here. *)
 let format_merlin_reply ~(statement : destructable_statement) (new_code : string) =
   let start_of_case = Re2.create_exn " \\| " in
   let lines = Re2.split start_of_case new_code in
   let lines = match lines with
-  | fst :: rst -> fst :: List.map ~f:String.strip rst
-  | [] -> lines
+    | fst :: rst -> fst :: List.map ~f:String.strip rst
+    | [] -> lines
   in
   match statement.kind with
   | MatchLine | MatchWithLine ->
