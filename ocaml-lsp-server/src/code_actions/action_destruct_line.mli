@@ -19,8 +19,7 @@ open Import
 
     In addition, the code action detects a sub-case of the [| x -> y] form, where the
     cursor is on an underscore within [x]. This often corresponds to a wildcard pattern
-    where a destruct action is useful and extra post-processing helps. This enables some
-    of the functionality described in the request for "typed holes" on the wiki.
+    where a destruct action is useful and extra post-processing helps.
     The follwing expansions result from repeated applications of [destruct-line]:
     [let zip (type a b) (xs : a list) (ys : b list) : (a * b) list =
        match xs, ys] (code action invoked anywhere on the match line)
