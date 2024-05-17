@@ -427,7 +427,10 @@ let selection_range (state : State.t)
     let+ ranges =
       Fiber.sequential_map positions ~f:(fun x ->
           let+ shapes =
-            Document.Merlin.dispatch_exn ~name:"shape" merlin (Shape (Position.logical x))
+            Document.Merlin.dispatch_exn
+              ~name:"shape"
+              merlin
+              (Shape (Position.logical x))
           in
           selection_range_of_shapes x shapes)
     in

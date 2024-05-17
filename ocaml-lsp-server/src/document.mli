@@ -67,7 +67,8 @@ module Merlin : sig
        ?name:string
     -> t
     -> Msource.position
-    -> (* doc string *) string option Fiber.t
+    -> (* doc string *)
+    string option Fiber.t
 
   val syntax_doc :
     Mpipeline.t -> Msource.position -> Query_protocol.syntax_doc_result option

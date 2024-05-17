@@ -63,7 +63,10 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
              ()
       | Some doc ->
         let+ holes =
-          Document.Merlin.dispatch_exn ~name:"typed-holes" (Document.merlin_exn doc) Holes
+          Document.Merlin.dispatch_exn
+            ~name:"typed-holes"
+            (Document.merlin_exn doc)
+            Holes
         in
         Json.yojson_of_list
           (fun (loc, _type) -> loc |> Range.of_loc |> Range.yojson_of_t)

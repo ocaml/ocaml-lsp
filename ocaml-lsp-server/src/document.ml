@@ -285,7 +285,8 @@ module Merlin = struct
     | Error exn -> Exn_with_backtrace.reraise exn
 
   let dispatch ?name t command =
-    with_pipeline ?name t (fun pipeline -> Query_commands.dispatch pipeline command)
+    with_pipeline ?name t (fun pipeline ->
+        Query_commands.dispatch pipeline command)
 
   let dispatch_exn ?name t command =
     with_pipeline_exn ?name t (fun pipeline ->

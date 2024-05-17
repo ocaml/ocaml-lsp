@@ -203,7 +203,10 @@ let run (state : State.t)
       match inside_comment with
       | true -> Fiber.return None
       | false ->
-        Document.Merlin.with_pipeline_exn ~name:"signature-help" merlin (fun pipeline ->
+        Document.Merlin.with_pipeline_exn
+          ~name:"signature-help"
+          merlin
+          (fun pipeline ->
             let typer = Mpipeline.typer_result pipeline in
             let pos = Mpipeline.get_lexing_pos pipeline pos in
             let node = Mtyper.node_at typer pos in
