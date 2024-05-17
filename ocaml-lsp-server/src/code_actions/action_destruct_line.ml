@@ -1,6 +1,5 @@
 open Import
 open Fiber.O
-open Core
 
 let action_kind = "destruct-line (enumerate cases, use existing match)"
 
