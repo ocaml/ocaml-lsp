@@ -66,27 +66,40 @@ let is_hole (case_line : string) (cursor_pos : int) =
   then true
   else false
 
-let get_statement_kind (code_line : string) (range : Range.t) =
-  let logical_line = String.strip code_line in
-  (* Line starts with [match], ends with [with], and has at least one other word. *)
-  let match_with_regex = "^match[ \t]+[^ \t].*[ \t]with$" in
+let get_statement_kind =
+  let space_without_nl = Re.set " \t" in
   (* Line starts with [match] and has at least one other word. *)
-  let match_regex = "^match[ \t]+[^ \t]" in
-  (* Line starts with a pipe and contains an arrow. *)
-  let case_regex = "^\\|.*->.*" in
-  let regex =
-    Re2.Multiple.create_exn
-      [ (match_with_regex, `MatchWithLine)
-      ; (match_regex, `MatchLine)
-      ; (case_regex, `CaseLine)
-      ]
+  let match_regex =
+    let open Re in
+    seq [ str "match"; rep1 space_without_nl; compl [ space_without_nl ] ]
   in
-  match Re2.Multiple.matches regex logical_line with
-  | `MatchWithLine :: _ -> Some MatchWithLine
-  | `MatchLine :: _ -> Some MatchLine
-  | `CaseLine :: _ ->
-    if is_hole code_line range.start.character then Some Hole else Some CaseLine
-  | [] -> None
+  let match_with_regex =
+    let open Re in
+    seq [ match_regex; rep any; space_without_nl; str "with"; eos ]
+  in
+  (* Line starts with a pipe and contains an arrow. *)
+  let case_regex =
+    let open Re in
+    seq [ str "|"; rep any; str "->"; rep any ]
+  in
+  let regexes =
+    [ (match_with_regex, `MatchWithLine)
+    ; (match_regex, `MatchLine)
+    ; (case_regex, `CaseLine)
+    ]
+    |> List.map ~f:(fun (re, kind) -> (Re.(seq [ bos; re ] |> compile), kind))
+  in
+  fun (code_line : string) (range : Range.t) ->
+    let logical_line = String.strip code_line in
+    (* Line starts with [match], ends with [with], and has at least one other word. *)
+    List.find_map regexes ~f:(fun (re, name) ->
+        Option.some_if (Re.execp re logical_line) name)
+    |> Option.bind ~f:(function
+           | `MatchWithLine -> Some MatchWithLine
+           | `MatchLine -> Some MatchLine
+           | `CaseLine ->
+             if is_hole code_line range.start.character then Some Hole
+             else Some CaseLine)
 
 (** Given a line of the form [match x] or [match x with] or [| x -> y], create a
     query range corresponding to [x]. *)
@@ -162,51 +175,49 @@ let extract_statement (doc : Document.t) (ca_range : Range.t) :
       Some { code; kind; query_range; reply_range }
 
 (* Merlin often surrounds [line] (or part of it) with parentheses that we don't want. *)
-let strip_parentheses ~(kind : statement_kind) (line : string) =
-  (match kind with
-  | MatchLine | MatchWithLine | Hole -> line
-  | CaseLine -> (
-    let regex = Re2.create_exn "\\)\\s+->\\s+_" in
-    match Re2.replace ~f:(fun _ -> " -> _") regex line with
-    | Ok new_line -> new_line
-    | Error _ -> line))
-  |> String.chop_prefix_if_exists ~prefix:"("
-  |> String.chop_suffix_if_exists ~suffix:")"
+let strip_parentheses =
+  let regex =
+    let open Re in
+    seq [ str ")"; rep1 space; str "->"; rep1 space; char '_' ] |> compile
+  in
+  fun ~(kind : statement_kind) (line : string) ->
+    (match kind with
+    | MatchLine | MatchWithLine | Hole -> line
+    | CaseLine -> Re.replace ~f:(fun _ -> " -> _") regex line)
+    |> String.chop_prefix_if_exists ~prefix:"("
+    |> String.chop_suffix_if_exists ~suffix:")"
 
-let match_indent ~(statement : destructable_statement) (new_code : string) =
-  let full_line = statement.code in
-  let i = String.substr_index_exn full_line ~pattern:(String.strip full_line) in
-  let indent = String.sub full_line ~pos:0 ~len:i in
-  match
-    Re2.replace
-      ~f:(fun _ -> "\n" ^ indent ^ "| ")
-      (Re2.create_exn "\n\\| ")
-      new_code
-  with
-  | Ok with_newlines -> with_newlines
-  | Error _ -> new_code
+let match_indent =
+  let re = Re.str "\n| " |> Re.compile in
+  fun ~(statement : destructable_statement) (new_code : string) ->
+    let full_line = statement.code in
+    let i =
+      String.substr_index_exn full_line ~pattern:(String.strip full_line)
+    in
+    let indent = String.sub full_line ~pos:0 ~len:i in
+    Re.replace ~f:(fun _ -> "\n" ^ indent ^ "| ") re new_code
 
 (* TODO: If [ocamlformat_rpc] ever gets implemented, it would probably be worth
    re-thinking the post-processing that's happening here. *)
-let format_merlin_reply ~(statement : destructable_statement)
-    (new_code : string) =
-  let start_of_case = Re2.create_exn " \\| " in
-  let lines = Re2.split start_of_case new_code in
-  let lines =
-    match lines with
-    | fst :: rst -> fst :: List.map ~f:String.strip rst
-    | [] -> lines
-  in
-  match statement.kind with
-  | MatchLine | MatchWithLine ->
-    String.concat ~sep:"\n| " lines
-    |> strip_parentheses ~kind:statement.kind
-    |> match_indent ~statement
-  | CaseLine ->
-    List.map ~f:(strip_parentheses ~kind:statement.kind) lines
-    |> String.concat ~sep:" -> _\n| "
-    |> match_indent ~statement
-  | Hole -> String.concat ~sep:" -> _\n| " lines |> match_indent ~statement
+let format_merlin_reply =
+  let start_of_case = Re.str " | " |> Re.compile in
+  fun ~(statement : destructable_statement) (new_code : string) ->
+    let lines = Re.split start_of_case new_code in
+    let lines =
+      match lines with
+      | fst :: rst -> fst :: List.map ~f:String.strip rst
+      | [] -> lines
+    in
+    match statement.kind with
+    | MatchLine | MatchWithLine ->
+      String.concat ~sep:"\n| " lines
+      |> strip_parentheses ~kind:statement.kind
+      |> match_indent ~statement
+    | CaseLine ->
+      List.map ~f:(strip_parentheses ~kind:statement.kind) lines
+      |> String.concat ~sep:" -> _\n| "
+      |> match_indent ~statement
+    | Hole -> String.concat ~sep:" -> _\n| " lines |> match_indent ~statement
 
 let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText)
     =

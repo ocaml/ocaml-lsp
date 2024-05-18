@@ -96,9 +96,7 @@
                 yojson
                 ppx_yojson_conv_lib
                 merlin-lib
-                re2
                 base
-                core
               ];
               propagatedBuildInputs = [ ];
               doCheck = false;
