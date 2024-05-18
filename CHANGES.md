@@ -28,6 +28,9 @@
 
   This now includes PPXs like `let%expect_test` or `let%bench` in the outline.
 
+- Introduce a `destruct-line` code action. This is an improved version of the
+  old `destruct` code action. (#1283)
+
 ## Fixes
 
 - Detect document kind by looking at merlin's `suffixes` config.
