@@ -114,6 +114,7 @@
       });
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
+        pkgsWithoutOverlays = (import nixpkgs { inherit system; });
         makeNixpkgs = ocaml: merlin:
           import nixpkgs {
             overlays = [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
@@ -125,14 +126,16 @@
           makeNixpkgs (ocaml: ocaml.ocamlPackages_5_1) inputs.merlin5_1;
         packages_4_14 = makePackages pkgs_4_14;
         packages_5_1 = makePackages pkgs_5_1;
-        mkShell = packages: nixpkgs:
+        ocamlformat = pkgs: pkgs.ocamlformat_0_26_1;
+        testDeps = pkgs:
+          with pkgs; [
+            (ocamlformat pkgs)
+            yarn
+            pkgs.ocamlPackages.ppx_expect
+          ];
+        devShell = packages: nixpkgs:
           nixpkgs.mkShell {
-            buildInputs = (with nixpkgs; [
-              # dev tools
-              ocamlformat_0_26_1
-              yarn
-
-              ocamlPackages.ppx_expect
+            buildInputs = testDeps nixpkgs ++ (with nixpkgs; [
               ocamlPackages.utop
               ocamlPackages.cinaps
               ocamlPackages.ppx_yojson_conv
@@ -143,26 +146,27 @@
         packages = (packages_4_14 // { default = packages_4_14.ocaml-lsp; });
 
         devShells = {
-          default = mkShell packages_4_14 pkgs_4_14;
+          default = devShell packages_4_14 pkgs_4_14;
 
-          ocaml5_1 = mkShell packages_5_1 pkgs_5_1;
+          ocaml5_1 = devShell packages_5_1 pkgs_5_1;
 
-          release =
-            pkgs_4_14.mkShell { buildInputs = [ pkgs_4_14.dune-release ]; };
+          release = pkgsWithoutOverlays.mkShell {
+            buildInputs = [ pkgsWithoutOverlays.dune-release ];
+          };
 
-          fmt = let pkgs = (import nixpkgs { inherit system; });
-          in pkgs.mkShell {
+          fmt = pkgsWithoutOverlays.mkShell {
             # TODO: get rid of ocaml once dune get format without ocaml being
             # present
-            buildInputs = (with pkgs; [ ocaml ocamlformat_0_26_1 yarn dune_3 ]);
+            buildInputs = [
+              pkgsWithoutOverlays.ocaml
+              (ocamlformat pkgsWithoutOverlays)
+              pkgsWithoutOverlays.yarn
+              pkgsWithoutOverlays.dune_3
+            ];
           };
 
           check = pkgs_4_14.mkShell {
-            buildInputs = (with pkgs_4_14; [
-              yarn
-              ocamlPackages.ppx_expect
-              ocamlformat_0_26_1
-            ]);
+            buildInputs = testDeps pkgs_4_14;
             inputsFrom = with packages_4_14; [ ocaml-lsp jsonrpc lsp ];
           };
         };
