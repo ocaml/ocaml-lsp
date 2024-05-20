@@ -419,7 +419,7 @@ let get_impl_intf_counterparts m uri =
   let files_to_switch_to =
     match find_switch exts_to_switch_to with
     | [] ->
-      let switch_to_ext = List.hd exts_to_switch_to in
+      let switch_to_ext = List.hd_exn exts_to_switch_to in
       let switch_to_fpath = fpath_w_ext switch_to_ext in
       [ switch_to_fpath ]
     | to_switch_to -> to_switch_to

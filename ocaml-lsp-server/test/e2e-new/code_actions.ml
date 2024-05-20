@@ -825,6 +825,342 @@ let f (x : t) = x
       "title": "Insert inferred interface"
     } |}]
 
+let%expect_test "inferred interface excludes existing names" =
+  let impl_source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) = x
+|ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let intf_source = {ocaml|
+val f : t -> t
+|ocaml} in
+  let range =
+    let start = Position.create ~line:0 ~character:0 in
+    let end_ = Position.create ~line:0 ~character:0 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "inferred_intf");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "type t = Foo of int | Bar of bool\n",
+                "range": {
+                  "end": { "character": 0, "line": 0 },
+                  "start": { "character": 0, "line": 0 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "inferred_intf",
+      "title": "Insert inferred interface"
+    }
+    |}]
+
+let%expect_test "update-signatures adds new function args" =
+  let impl_source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let intf_source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+val f : t -> bool
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:2 ~character:0 in
+    let end_ = Position.create ~line:2 ~character:0 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "update_intf");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "val f : t -> bool -> bool\n",
+                "range": {
+                  "end": { "character": 17, "line": 2 },
+                  "start": { "character": 0, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "update_intf",
+      "title": "Update signature(s) to match implementation"
+    }
+    |}]
+
+let%expect_test "update-signatures removes old function args" =
+  let impl_source =
+    {ocaml|
+let f i s b =
+  if b then String.length s > i else String.length s < i
+|ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let intf_source =
+    {ocaml|
+val f : int -> string -> 'a list -> bool -> bool
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:10 in
+    let end_ = Position.create ~line:1 ~character:10 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "update_intf");
+  [%expect
+    {|
+  Code actions:
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "val f : int -> string -> bool -> bool\n",
+              "range": {
+                "end": { "character": 48, "line": 1 },
+                "start": { "character": 0, "line": 1 }
+              }
+            }
+          ],
+          "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+        }
+      ]
+    },
+    "isPreferred": false,
+    "kind": "update_intf",
+    "title": "Update signature(s) to match implementation"
+  }
+  |}]
+
+let%expect_test "update-signatures updates parameter types" =
+  let impl_source =
+    {ocaml|
+let f i s l b =
+  if b then List.length s > i else List.length l < i
+  |ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let intf_source =
+    {ocaml|
+val f : int -> string -> 'a list -> bool -> bool
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:1 in
+    let end_ = Position.create ~line:1 ~character:12 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "update_intf");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "val f : int -> 'a list -> 'b list -> bool -> bool\n",
+                "range": {
+                  "end": { "character": 48, "line": 1 },
+                  "start": { "character": 0, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "update_intf",
+      "title": "Update signature(s) to match implementation"
+    }
+    |}]
+
+let%expect_test "update-signatures preserves functions and their comments" =
+  let impl_source =
+    {ocaml|
+let f x = x + 1;;
+
+let g x y z ~another_arg ~yet_another_arg ~keep_them_coming = x - y + z + another_arg + yet_another_arg + keep_them_coming;;
+
+let h x = x *. 2.0;;
+  |ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let intf_source =
+    {ocaml|
+val f :
+    int  (* This comment should stay. *)
+    -> int
+
+val g : int
+    -> int (* This comment should disappear since the function changes. *)
+    -> int
+
+(* This comment should stay even though the function changes. *)
+val h : int -> bool
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:0 in
+    let end_ = Position.create ~line:10 ~character:19 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "update_intf");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "val g :\n  int ->\n  int ->\n  int ->\n  another_arg:int -> yet_another_arg:int -> keep_them_coming:int -> int\n",
+                "range": {
+                  "end": { "character": 10, "line": 7 },
+                  "start": { "character": 0, "line": 5 }
+                }
+              },
+              {
+                "newText": "val h : float -> float\n",
+                "range": {
+                  "end": { "character": 19, "line": 10 },
+                  "start": { "character": 0, "line": 10 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "update_intf",
+      "title": "Update signature(s) to match implementation"
+    }
+    |}]
+
+let%expect_test "update-signatures updates modules" =
+  let impl_source =
+    {ocaml|
+module M = struct
+  type t =
+    | I of int
+    | F of float
+  ;;
+  let f (x : t) ~long_name_for_an_integer_argument =
+    match x with
+    | I i -> i
+    | F f -> long_name_for_an_integer_argument
+  ;;
+end
+|ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let intf_source =
+    {ocaml|
+module M : sig type t = I of int | B of bool end
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:0 in
+    let end_ = Position.create ~line:1 ~character:0 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "update_intf");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "module M :\n  sig\n    type t = I of int | F of float\n    val f : t -> long_name_for_an_integer_argument:int -> int\n  end\n",
+                "range": {
+                  "end": { "character": 48, "line": 1 },
+                  "start": { "character": 0, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "update_intf",
+      "title": "Update signature(s) to match implementation"
+    }
+    |}]
+
 let position_of_offset src x =
   assert (0 <= x && x < String.length src);
   let cnum = ref 0

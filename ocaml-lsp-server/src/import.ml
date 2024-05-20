@@ -21,7 +21,24 @@ include struct
   module Fdecl = Fdecl
   module Fpath = Path
   module Int = Int
-  module List = List
+
+  module List = struct
+    include List
+    open Base
+
+    let findi xs ~f = List.findi xs ~f
+
+    let sub xs ~pos ~len = List.sub xs ~pos ~len
+
+    let hd_exn t = List.hd_exn t
+
+    let nth_exn t n = List.nth_exn t n
+
+    let hd t = List.hd t
+
+    let filter t ~f = List.filter t ~f
+  end
+
   module Map = Map
   module Monoid = Monoid
   module Option = Option
