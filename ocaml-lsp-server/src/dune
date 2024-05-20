@@ -40,7 +40,6 @@
  (lint
   (pps ppx_yojson_conv))
  (instrumentation
-  (backend bisect_ppx))
- (preprocess (pps ppx_let)))
+  (backend bisect_ppx)))
 
 (include_subdirs unqualified)

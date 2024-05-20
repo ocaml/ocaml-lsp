@@ -834,11 +834,9 @@ let f (x : t) = x
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source =
-    {ocaml|
+  let intf_source = {ocaml|
 val f : t -> t
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:0 ~character:0 in
     let end_ = Position.create ~line:0 ~character:0 in
@@ -932,32 +930,32 @@ val f : t -> bool
     |}]
 
 let%expect_test "update-signatures removes old function args" =
-let impl_source =
-  {ocaml|
+  let impl_source =
+    {ocaml|
 let f i s b =
   if b then String.length s > i else String.length s < i
 |ocaml}
-in
-let uri = DocumentUri.of_path "foo.ml" in
-let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-let intf_source =
-  {ocaml|
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let intf_source =
+    {ocaml|
 val f : int -> string -> 'a list -> bool -> bool
 |ocaml}
-in
-let range =
-  let start = Position.create ~line:1 ~character:10 in
-  let end_ = Position.create ~line:1 ~character:10 in
-  Range.create ~start ~end_
-in
-print_code_actions
-  intf_source
-  range
-  ~prep
-  ~path:"foo.mli"
-  ~filter:(find_action "update_intf");
-[%expect
-  {|
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:10 in
+    let end_ = Position.create ~line:1 ~character:10 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "update_intf");
+  [%expect
+    {|
   Code actions:
   {
     "edit": {
@@ -1032,6 +1030,7 @@ val f : int -> string -> 'a list -> bool -> bool
       "title": "Update signature(s) to match implementation"
     }
     |}]
+
 let%expect_test "update-signatures preserves functions and their comments" =
   let impl_source =
     {ocaml|
@@ -1101,6 +1100,7 @@ val h : int -> bool
       "title": "Update signature(s) to match implementation"
     }
     |}]
+
 let%expect_test "update-signatures updates modules" =
   let impl_source =
     {ocaml|

@@ -21,7 +21,15 @@ include struct
   module Fdecl = Fdecl
   module Fpath = Path
   module Int = Int
-  module List = List
+
+  module List = struct
+    include List
+
+    let findi xs ~f = Base.List.findi xs ~f
+
+    let sub xs ~pos ~len = Base.List.sub xs ~pos ~len
+  end
+
   module Map = Map
   module Monoid = Monoid
   module Option = Option

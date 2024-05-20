@@ -6,7 +6,7 @@ let action_kind = "update_intf"
 let code_action_of_intf doc text_edits =
   let edit : WorkspaceEdit.t =
     let doc_edit =
-      let edits = (List.map text_edits ~f:(fun e -> `TextEdit e)) in
+      let edits = List.map text_edits ~f:(fun e -> `TextEdit e) in
       let textDocument =
         let uri = Document.uri doc in
         let version = Document.version doc in
@@ -16,7 +16,9 @@ let code_action_of_intf doc text_edits =
     in
     WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit doc_edit ] ()
   in
-  let title = String.capitalize_ascii "update signature(s) to match implementation" in
+  let title =
+    String.capitalize_ascii "update signature(s) to match implementation"
+  in
   CodeAction.create
     ~title
     ~kind:(CodeActionKind.Other action_kind)
@@ -34,8 +36,7 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
     in
     match text_edits with
     | [] -> Fiber.return None
-    | _ ->
-      Fiber.return (Some (code_action_of_intf doc text_edits)))
+    | _ -> Fiber.return (Some (code_action_of_intf doc text_edits)))
 
 let kind = CodeActionKind.Other action_kind
 
