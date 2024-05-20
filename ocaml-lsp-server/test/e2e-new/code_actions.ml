@@ -496,7 +496,7 @@ let f (x : t) = x
           {
             "edits": [
               {
-                "newText": "match x with Foo _ -> _ | Bar _ -> _\n",
+                "newText": "match x with | Foo _ -> _ | Bar _ -> _",
                 "range": {
                   "end": { "character": 17, "line": 2 },
                   "start": { "character": 16, "line": 2 }
@@ -809,7 +809,7 @@ let f (x : t) = x
           {
             "edits": [
               {
-                "newText": "type t = Foo of int | Bar of bool\n\nval f : t -> t\n",
+                "newText": "type t = Foo of int | Bar of bool\nval f : t -> t\n",
                 "range": {
                   "end": { "character": 0, "line": 0 },
                   "start": { "character": 0, "line": 0 }

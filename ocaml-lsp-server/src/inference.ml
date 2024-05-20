@@ -166,8 +166,8 @@ type shared_signature =
 (** Try to make a [shared_signature], if an ID can be extracted from the [tree_item] and
     a matching ID can be found in both signature lists. *)
 let find_shared_signature tree_item ~old_sigs ~new_sigs =
-  let module List = Core.List in
-  let open Core.Option.Let_syntax in
+  let module List = Base.List in
+  let open Base.Option.Let_syntax in
   let%bind id = top_level_id tree_item in
   let id_equal sig_item = Ident.equal id (Types.signature_item_id sig_item) in
   let%bind old_sig = List.find ~f:id_equal old_sigs in
@@ -181,8 +181,8 @@ let find_shared_signature tree_item ~old_sigs ~new_sigs =
     [Typedtree.signature], and [sig_type_list] is the [sig_type] field on the same
     [Typedtree.signature], meaning that the lists will be in the same order. *)
 let select_matching_range ~first ~last sig_type_list =
-  let module List = Core.List in
-  let open Core.Option.Let_syntax in
+  let module List = Base.List in
+  let open Base.Option.Let_syntax in
   let index_of item =
     let%bind item = item in
     let%bind id = top_level_id item in
@@ -194,7 +194,7 @@ let select_matching_range ~first ~last sig_type_list =
   in
   let start_index = index_of first |> Option.value ~default:0 in
   let end_index = index_of last |> Option.value ~default:(List.length sig_type_list - 1) in
-  List.slice sig_type_list start_index (end_index + 1)
+  List.sub sig_type_list ~pos:start_index ~len:(end_index + 1 - start_index)
 ;;
 
 (** Formats both the old and new signatures as they would appear in the interface.
@@ -221,7 +221,7 @@ let build_signature_edits
   ~(new_sigs : Types.signature) (* Inferred by Merlin from the implementation. *)
   ~(formatter : Types.signature_item -> string Fiber.t)
   =
-  let module List = Core.List in
+  let module List = Base.List in
   (* These are [Typedtree.signature_item]s, and we need them for the location. *)
   let in_range_tree_items =
     List.filter old_intf.sig_items ~f:(fun si ->
@@ -275,8 +275,8 @@ let update_signatures
            less likely to be doing lots of little CAs in the mli file) and think more
            about the broader CA protocol in the future. *)
       let* typers = Fiber.parallel_map [ intf_merlin; impl_merlin ] ~f:get_typer in
-      let intf_typer = Core.List.hd_exn typers in
-      let impl_typer = Core.List.nth_exn typers 1 in
+      let intf_typer = Base.List.hd_exn typers in
+      let impl_typer = Base.List.nth_exn typers 1 in
       (match Mtyper.get_typedtree intf_typer with
        | `Interface old_intf ->
          let formatter sig_item =
