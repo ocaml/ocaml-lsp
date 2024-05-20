@@ -117,7 +117,7 @@ let infer_intf (state : State.t) intf_doc =
     Fiber.of_thunk (fun () ->
         let intf_uri = Document.uri intf_doc in
         let impl_uri =
-          Document.get_impl_intf_counterparts (Some m) intf_uri |> List.hd
+          Document.get_impl_intf_counterparts (Some m) intf_uri |> List.hd_exn
         in
         let* impl_opt =
           match Document_store.get_opt state.store impl_uri with
@@ -162,7 +162,6 @@ type shared_signature =
 (** Try to make a [shared_signature], if an ID can be extracted from the
     [tree_item] and a matching ID can be found in both signature lists. *)
 let find_shared_signature tree_item ~old_sigs ~new_sigs =
-  let module List = Base.List in
   let open Option.O in
   let* id = top_level_id tree_item in
   let id_equal sig_item = Ident.equal id (Types.signature_item_id sig_item) in
@@ -221,7 +220,6 @@ let build_signature_edits ~(old_intf : Typedtree.signature)
     (new_sigs : Types.signature)
     ~(* Inferred by Merlin from the implementation. *)
     (formatter : Types.signature_item -> string Fiber.t) =
-  let module List = Base.List in
   (* These are [Typedtree.signature_item]s, and we need them for the location. *)
   let in_range_tree_items =
     List.filter old_intf.sig_items ~f:(fun si ->
@@ -263,7 +261,7 @@ let update_signatures ~(state : State.t) ~(intf_merlin : Document.Merlin.t)
       let intf_uri = Document.uri doc in
       let impl_uri =
         Document.get_impl_intf_counterparts (Some intf_merlin) intf_uri
-        |> List.hd
+        |> List.hd_exn
       in
       let* impl_doc =
         match Document_store.get_opt state.store impl_uri with
@@ -284,8 +282,8 @@ let update_signatures ~(state : State.t) ~(intf_merlin : Document.Merlin.t)
         let* typers =
           Fiber.parallel_map [ intf_merlin; impl_merlin ] ~f:get_typer
         in
-        let intf_typer = Base.List.hd_exn typers in
-        let impl_typer = Base.List.nth_exn typers 1 in
+        let intf_typer = List.hd_exn typers in
+        let impl_typer = List.nth_exn typers 1 in
         match Mtyper.get_typedtree intf_typer with
         | `Interface old_intf ->
           let formatter sig_item =

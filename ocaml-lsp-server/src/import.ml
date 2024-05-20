@@ -24,10 +24,19 @@ include struct
 
   module List = struct
     include List
+    open Base
 
-    let findi xs ~f = Base.List.findi xs ~f
+    let findi xs ~f = List.findi xs ~f
 
-    let sub xs ~pos ~len = Base.List.sub xs ~pos ~len
+    let sub xs ~pos ~len = List.sub xs ~pos ~len
+
+    let hd_exn t = List.hd_exn t
+
+    let nth_exn t n = List.nth_exn t n
+
+    let hd t = List.hd t
+
+    let filter t ~f = List.filter t ~f
   end
 
   module Map = Map
