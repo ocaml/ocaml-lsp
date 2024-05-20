@@ -31,6 +31,13 @@
 - Introduce a `destruct-line` code action. This is an improved version of the
   old `destruct` code action. (#1283)
 
+- Improve signature inference to only include types for elements that were
+  absent from the signature. Previously, all signature items would always be
+  inserted. (#1289)
+
+- Add an `update-signature` code action to update the types of elements that
+  were already present in the signature (#1289)
+
 ## Fixes
 
 - Detect document kind by looking at merlin's `suffixes` config.
