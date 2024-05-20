@@ -54,85 +54,87 @@ let%expect_test "start/stop" =
       |> print_endline);
   [%expect
     {|
-      client: server initialized with:
-      {
-        "capabilities": {
-          "codeActionProvider": {
-            "codeActionKinds": [
-              "quickfix", "refactor.inline", "construct", "destruct",
-              "inferred_intf", "put module name in identifiers",
-              "remove module name from identifiers", "remove type annotation",
-              "type-annotate"
-            ]
-          },
-          "codeLensProvider": { "resolveProvider": false },
-          "completionProvider": {
-            "resolveProvider": true,
-            "triggerCharacters": [ ".", "#" ]
-          },
-          "declarationProvider": true,
-          "definitionProvider": true,
-          "documentFormattingProvider": true,
-          "documentHighlightProvider": true,
-          "documentSymbolProvider": true,
-          "executeCommandProvider": {
-            "commands": [
-              "ocamllsp/view-metrics", "ocamllsp/open-related-source",
-              "ocamllsp/show-document-text", "ocamllsp/show-merlin-config",
-              "dune/promote"
-            ]
-          },
-          "experimental": {
-            "ocamllsp": {
-              "interfaceSpecificLangId": true,
-              "handleSwitchImplIntf": true,
-              "handleInferIntf": true,
-              "handleTypedHoles": true,
-              "handleWrappingAstNode": true,
-              "diagnostic_promotions": true,
-              "handleHoverExtended": true
-            }
-          },
-          "foldingRangeProvider": true,
-          "hoverProvider": true,
-          "inlayHintProvider": true,
-          "referencesProvider": true,
-          "renameProvider": { "prepareProvider": true },
-          "selectionRangeProvider": true,
-          "semanticTokensProvider": {
-            "full": { "delta": true },
-            "legend": {
-              "tokenModifiers": [
-                "declaration", "definition", "readonly", "static", "deprecated",
-                "abstract", "async", "modification", "documentation",
-                "defaultLibrary"
-              ],
-              "tokenTypes": [
-                "namespace", "type", "class", "enum", "interface", "struct",
-                "typeParameter", "parameter", "variable", "property", "enumMember",
-                "event", "function", "method", "macro", "keyword", "modifier",
-                "comment", "string", "number", "regexp", "operator", "decorator"
-              ]
-            }
-          },
-          "signatureHelpProvider": {
-            "triggerCharacters": [ " ", "~", "?", ":", "(" ]
-          },
-          "textDocumentSync": {
-            "change": 2,
-            "openClose": true,
-            "save": { "includeText": false },
-            "willSave": false,
-            "willSaveWaitUntil": false
-          },
-          "typeDefinitionProvider": true,
-          "workspace": {
-            "workspaceFolders": { "changeNotifications": true, "supported": true }
-          },
-          "workspaceSymbolProvider": true
+    client: server initialized with:
+    {
+      "capabilities": {
+        "codeActionProvider": {
+          "codeActionKinds": [
+            "quickfix", "refactor.inline", "construct",
+            "destruct (enumerate cases)", "inferred_intf",
+            "put module name in identifiers",
+            "remove module name from identifiers", "remove type annotation",
+            "type-annotate"
+          ]
         },
-        "serverInfo": { "name": "ocamllsp", "version": "dev" }
-      }
-      client: shutting down server
+        "codeLensProvider": { "resolveProvider": false },
+        "completionProvider": {
+          "resolveProvider": true,
+          "triggerCharacters": [ ".", "#" ]
+        },
+        "declarationProvider": true,
+        "definitionProvider": true,
+        "documentFormattingProvider": true,
+        "documentHighlightProvider": true,
+        "documentSymbolProvider": true,
+        "executeCommandProvider": {
+          "commands": [
+            "ocamllsp/view-metrics", "ocamllsp/open-related-source",
+            "ocamllsp/show-document-text", "ocamllsp/show-merlin-config",
+            "dune/promote"
+          ]
+        },
+        "experimental": {
+          "ocamllsp": {
+            "interfaceSpecificLangId": true,
+            "handleSwitchImplIntf": true,
+            "handleInferIntf": true,
+            "handleTypedHoles": true,
+            "handleWrappingAstNode": true,
+            "diagnostic_promotions": true,
+            "handleHoverExtended": true
+          }
+        },
+        "foldingRangeProvider": true,
+        "hoverProvider": true,
+        "inlayHintProvider": true,
+        "referencesProvider": true,
+        "renameProvider": { "prepareProvider": true },
+        "selectionRangeProvider": true,
+        "semanticTokensProvider": {
+          "full": { "delta": true },
+          "legend": {
+            "tokenModifiers": [
+              "declaration", "definition", "readonly", "static", "deprecated",
+              "abstract", "async", "modification", "documentation",
+              "defaultLibrary"
+            ],
+            "tokenTypes": [
+              "namespace", "type", "class", "enum", "interface", "struct",
+              "typeParameter", "parameter", "variable", "property", "enumMember",
+              "event", "function", "method", "macro", "keyword", "modifier",
+              "comment", "string", "number", "regexp", "operator", "decorator"
+            ]
+          }
+        },
+        "signatureHelpProvider": {
+          "triggerCharacters": [ " ", "~", "?", ":", "(" ]
+        },
+        "textDocumentSync": {
+          "change": 2,
+          "openClose": true,
+          "save": { "includeText": false },
+          "willSave": false,
+          "willSaveWaitUntil": false
+        },
+        "typeDefinitionProvider": true,
+        "workspace": {
+          "workspaceFolders": { "changeNotifications": true, "supported": true }
+        },
+        "workspaceSymbolProvider": true
+      },
+      "serverInfo": { "name": "ocamllsp", "version": "dev" }
+    }
+    client: shutting down server
 
-      notifications received: |}]
+    notifications received:
+    |}]

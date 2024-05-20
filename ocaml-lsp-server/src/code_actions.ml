@@ -34,7 +34,8 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
   let enabled_actions =
     List.filter
       ~f:action_is_enabled
-      [ Action_destruct.t state
+      [ Action_destruct_line.t state
+      ; Action_destruct.t state
       ; Action_inferred_intf.t state
       ; Action_type_annotate.t
       ; Action_remove_type_annotation.t

@@ -104,6 +104,7 @@
                 yojson
                 ppx_yojson_conv_lib
                 merlin-lib
+                base
               ];
               propagatedBuildInputs = [ ];
               buildPhase = ''

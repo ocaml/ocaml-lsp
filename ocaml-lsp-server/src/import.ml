@@ -33,6 +33,14 @@ include struct
   module String = struct
     include String
 
+    let strip = trim
+
+    let chop_prefix_if_exists = Base.String.chop_prefix_if_exists
+
+    let chop_suffix_if_exists = Base.String.chop_suffix_if_exists
+
+    let substr_index_exn = Base.String.substr_index_exn
+
     (**Filters a string keeping any chars for which f returns true and
        discarding those for which it returns false*)
     let filter f s =
