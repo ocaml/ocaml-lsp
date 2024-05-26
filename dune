@@ -5,6 +5,9 @@
 (rule
  (copy lsp.opam.template jsonrpc.opam.template))
 
+(rule
+ (copy lsp.opam.template ocaml-lsp-server.opam.template))
+
 (env
  (_
   (flags :standard -alert -unstable)))

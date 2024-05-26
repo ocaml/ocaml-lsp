@@ -22,6 +22,8 @@ depends: [
   "dune" {>= "3.0"}
   "yojson"
   "base"
+  "lsp" {= version}
+  "jsonrpc" {= version}
   "re" {>= "1.5.0"}
   "ppx_yojson_conv_lib" {>= "v0.14"}
   "dune-rpc" {>= "3.4.0"}
@@ -51,9 +53,11 @@ build: [
   [
     "dune"
     "build"
+    "-p"
+    name
     "-j"
     jobs
-    "ocaml-lsp-server.install"
-    "--release"
+    "@install"
+    "@doc" {with-doc}
   ]
 ]
