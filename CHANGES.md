@@ -60,6 +60,8 @@
 
 - Fix document syncing (#1278, #1280, fixes #1207)
 
+- Stop generating inlay hints on generated code (#1290)
+
 # 1.17.0
 
 ## Fixes
