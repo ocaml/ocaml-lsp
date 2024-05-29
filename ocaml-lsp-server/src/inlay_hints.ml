@@ -56,6 +56,8 @@ let hint_binding_iter ?(hint_let_bindings = false)
       | Texp_match (expr, cases, _) ->
         iter.expr iter expr;
         List.iter cases ~f:(case hint_pattern_variables iter)
+      (* Stop iterating when we see a ghost location to avoid annotating generated code *)
+      | _ when e.exp_loc.loc_ghost && not inside_test -> ()
       | _ -> I.default_iterator.expr iter e
   in
 
@@ -65,6 +67,8 @@ let hint_binding_iter ?(hint_let_bindings = false)
       | Typedtree.Tstr_value (_, vbs) ->
         List.iter vbs ~f:(fun (vb : Typedtree.value_binding) ->
             expr iter vb.vb_expr)
+      (* Stop iterating when we see a ghost location to avoid annotating generated code *)
+      | _ when item.str_loc.loc_ghost && not inside_test -> ()
       | _ -> I.default_iterator.structure_item iter item
   in
   let pat (type k) iter (pat : k Typedtree.general_pattern) =
