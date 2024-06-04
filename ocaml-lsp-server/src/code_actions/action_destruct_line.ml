@@ -15,6 +15,7 @@ type statement_kind =
   | CaseLine (* [|...->...] *)
   | Hole
 (* [|..._...->...] AND the range indicates a query at the underscore. *)
+  | OffsetHole of int (* [| _ ->...] BUT the hole is here, not at the query location. *)
 
 type destructable_statement =
   { code : string
@@ -66,6 +67,16 @@ let is_hole (case_line : string) (cursor_pos : int) =
   then true
   else false
 
+(** Finds the index of a lhs underscore in [case_line], if any. *)
+let find_hole (case_line : string) =
+  let start_of_lhs = 1 + String.substr_index_exn case_line ~pattern:"|" in
+  let end_of_lhs = String.substr_index_exn case_line ~pattern:"->" in
+  let lhs = String.strip (String.sub case_line ~pos:start_of_lhs ~len:(end_of_lhs - start_of_lhs)) in
+  if String.equal "_" lhs
+  then String.substr_index case_line ~pattern:"_"
+  else None
+;;
+
 let get_statement_kind =
   let space_without_nl = Re.set " \t" in
   (* Line starts with [match] and has at least one other word. *)
@@ -98,8 +109,11 @@ let get_statement_kind =
            | `MatchWithLine -> Some MatchWithLine
            | `MatchLine -> Some MatchLine
            | `CaseLine ->
-             if is_hole code_line range.start.character then Some Hole
-             else Some CaseLine)
+             if is_hole code_line range.start.character
+             then Some Hole
+             else (match find_hole code_line with
+             | None -> Some CaseLine
+             | Some offset -> Some (OffsetHole offset)))
 
 (** Given a line of the form [match x] or [match x with] or [| x -> y], create a
     query range corresponding to [x]. *)
@@ -113,11 +127,12 @@ let get_query_range (code : string) (kind : statement_kind) (range : Range.t) :
       let len = String.substr_index_exn code ~pattern:"->" in
       let expr = String.sub code ~pos:0 ~len in
       strip_head_and_tail expr ~head_offset:1 ~tail_offset:0
-    | Hole -> ""
+    | Hole | OffsetHole _ -> ""
   in
   let start_index, end_index =
     match kind with
     | Hole -> (range.start.character, range.end_.character)
+    | OffsetHole offset -> offset, offset
     | _ -> substr_endpoints_exn ~str:code ~substr:expr
   in
   { start = { range.start with character = start_index }
@@ -131,7 +146,7 @@ let get_query_range (code : string) (kind : statement_kind) (range : Range.t) :
 let get_reply_range (code : string) (kind : statement_kind)
     (query_range : Range.t) =
   match kind with
-  | CaseLine | Hole -> query_range
+  | CaseLine | Hole | OffsetHole _ -> query_range
   | MatchLine | MatchWithLine ->
     let logical_line = String.strip code in
     let start_char, end_char =
@@ -174,50 +189,64 @@ let extract_statement (doc : Document.t) (ca_range : Range.t) :
       let reply_range = get_reply_range code kind query_range in
       Some { code; kind; query_range; reply_range }
 
-(* Merlin often surrounds [line] (or part of it) with parentheses that we don't want. *)
-let strip_parentheses =
-  let regex =
-    let open Re in
-    seq [ str ")"; rep1 space; str "->"; rep1 space; char '_' ] |> compile
+(** Strips " -> _ " off the rhs and " | " off the lhs of a case-line if present. *)
+let strip_case_line line =
+  String.strip line
+  |> String.chop_prefix_if_exists ~prefix:"|"
+  |> String.chop_suffix_if_exists ~suffix:"_"
+  |> String.strip
+  |> String.chop_suffix_if_exists ~suffix:"->"
+  |> String.strip
+;;
+
+let strip_parens line =
+  String.chop_prefix_if_exists line ~prefix:"("
+  |> String.chop_suffix_if_exists ~suffix:")"
+;;
+
+(** Combines match-case lines that have already been stripped. *)
+let format_match_cases lines ~indent =
+  "\n"
+  ^ (List.filter_map lines ~f:(fun l ->
+       match strip_parens (strip_case_line l) with
+       | "" -> None
+       | l -> Some (indent ^ "| " ^ l ^ " -> _"))
+     |> String.concat ~sep:"\n")
+;;
+
+(** Finds the "with" in the Merlin reply and splits after it. *)
+let separate_match_line new_code =
+  let end_of_match = String.substr_index_exn new_code ~pattern:"with" in
+  let match_line = String.prefix new_code (end_of_match + 4) in
+  let rest = Base.String.drop_prefix new_code (end_of_match + 4) in
+  match_line, rest
+;;
+
+let format_merlin_reply ~(statement : destructable_statement) (new_code : string) =
+  let indent =
+    match String.lfindi statement.code ~f:(fun _ c -> not (Base.Char.is_whitespace c)) with
+    | None -> ""
+    | Some i -> String.sub statement.code ~pos:0 ~len:i
   in
-  fun ~(kind : statement_kind) (line : string) ->
-    (match kind with
-    | MatchLine | MatchWithLine | Hole -> line
-    | CaseLine -> Re.replace ~f:(fun _ -> " -> _") regex line)
-    |> String.chop_prefix_if_exists ~prefix:"("
-    |> String.chop_suffix_if_exists ~suffix:")"
-
-let match_indent =
-  let re = Re.str "\n| " |> Re.compile in
-  fun ~(statement : destructable_statement) (new_code : string) ->
-    let full_line = statement.code in
-    let i =
-      String.substr_index_exn full_line ~pattern:(String.strip full_line)
-    in
-    let indent = String.sub full_line ~pos:0 ~len:i in
-    Re.replace ~f:(fun _ -> "\n" ^ indent ^ "| ") re new_code
-
-(* TODO: If [ocamlformat_rpc] ever gets implemented, it would probably be worth
-   re-thinking the post-processing that's happening here. *)
-let format_merlin_reply =
-  let start_of_case = Re.str " | " |> Re.compile in
-  fun ~(statement : destructable_statement) (new_code : string) ->
-    let lines = Re.split start_of_case new_code in
-    let lines =
-      match lines with
-      | fst :: rst -> fst :: List.map ~f:String.strip rst
-      | [] -> lines
-    in
-    match statement.kind with
-    | MatchLine | MatchWithLine ->
-      String.concat ~sep:"\n| " lines
-      |> strip_parentheses ~kind:statement.kind
-      |> match_indent ~statement
-    | CaseLine ->
-      List.map ~f:(strip_parentheses ~kind:statement.kind) lines
-      |> String.concat ~sep:" -> _\n| "
-      |> match_indent ~statement
-    | Hole -> String.concat ~sep:" -> _\n| " lines |> match_indent ~statement
+  match statement.kind with
+  | MatchLine | MatchWithLine ->
+    let match_line, rest = separate_match_line new_code in
+    let rest = String.chop_suffix_if_exists rest ~suffix:")" in
+    let match_line = String.chop_prefix_if_exists match_line ~prefix:"(" in
+    let lines = String.split ~on:'|' rest in
+    match_line ^ (format_match_cases lines ~indent)
+  | CaseLine ->
+    format_match_cases (String.split ~on:'|' new_code) ~indent
+  | Hole | OffsetHole _ ->
+    let lines = String.split ~on:'|' new_code in
+    match List.hd lines, List.tl lines with
+    | (None, _) | (_, None) -> new_code
+    | Some first_line, Some other_lines ->
+      let other_lines =
+        List.map other_lines ~f:(fun l -> indent ^ "| " ^ (strip_case_line l))
+      in
+      String.concat ~sep:" -> _\n" ((String.strip first_line) :: other_lines)
+;;
 
 let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText)
     =
