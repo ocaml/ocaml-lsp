@@ -62,6 +62,8 @@
 
 - Stop generating inlay hints on generated code (#1290)
 
+- Fix parenthesizing of function types in `SignatureHelp` (#1296)
+
 # 1.17.0
 
 ## Fixes
