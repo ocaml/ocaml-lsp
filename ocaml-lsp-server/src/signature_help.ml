@@ -59,8 +59,7 @@ let rec type_is_arrow ty =
 
 (* surround function types in parentheses *)
 let pp_parameter_type env ppf ty =
-  if type_is_arrow ty
-  then Format.fprintf ppf "(%a)" (pp_type env) ty
+  if type_is_arrow ty then Format.fprintf ppf "(%a)" (pp_type env) ty
   else pp_type env ppf ty
 
 (* print parameter labels and types *)
