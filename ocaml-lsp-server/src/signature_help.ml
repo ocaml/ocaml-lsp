@@ -50,11 +50,17 @@ let pp_type env ppf ty =
   Printtyp.wrap_printing_env env ~verbosity:(Lvl 0) (fun () ->
       Printtyp.shared_type_scheme ppf ty)
 
+let rec type_is_arrow ty =
+  match Types.get_desc ty with
+  | Tarrow _ -> true
+  | Tlink ty -> type_is_arrow ty
+  | Tpoly (ty, _) -> type_is_arrow ty
+  | _ -> false
+
 (* surround function types in parentheses *)
 let pp_parameter_type env ppf ty =
-  match Types.get_desc ty with
-  | Tarrow _ -> Format.fprintf ppf "(%a)" (pp_type env) ty
-  | _ -> pp_type env ppf ty
+  if type_is_arrow ty then Format.fprintf ppf "(%a)" (pp_type env) ty
+  else pp_type env ppf ty
 
 (* print parameter labels and types *)
 let pp_parameter env label ppf ty =
