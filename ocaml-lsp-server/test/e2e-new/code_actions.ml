@@ -683,6 +683,102 @@ let zip (type a b) (xs : a list) (ys : b list) : (a * b) list =
     }
     |}]
 
+let%expect_test "destruct hole spacing" =
+  let source =
+    {ocaml|
+type q =
+| A
+| B
+| C
+| D
+let f (x: q) =
+  match x with
+  | _ -> _
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:8 ~character:5 in
+    let end_ = Position.create ~line:8 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "A -> _\n  | B -> _\n  | C -> _\n  | D",
+                "range": {
+                  "end": { "character": 5, "line": 8 },
+                  "start": { "character": 4, "line": 8 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+
+let%expect_test "destruct a case with a hole but not on the hole" =
+  let source =
+    {ocaml|
+type q =
+| A
+| B
+| C
+| D
+let f (x: q) =
+  match x with
+  | _ -> _
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:8 ~character:2 in
+    let end_ = Position.create ~line:8 ~character:2 in
+    Range.create ~start ~end_
+  in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "A -> _\n  | B -> _\n  | C -> _\n  | D",
+                "range": {
+                  "end": { "character": 5, "line": 8 },
+                  "start": { "character": 4, "line": 8 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+
 let%expect_test "destruct uses the right number of newlines" =
   let source =
     {ocaml|
@@ -713,7 +809,7 @@ let f (x: t) =
             {
               "edits": [
                 {
-                  "newText": "match x with\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_use_multiple_lines\n    -> _\n  | Almost_as_long_name_for_for_the_second_case -> _\n  | Another_long_name_for_for_the_third_case -> _",
+                  "newText": "match x with\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_use_multiple_lines -> _\n  | Almost_as_long_name_for_for_the_second_case -> _\n  | Another_long_name_for_for_the_third_case -> _",
                   "range": {
                     "end": { "character": 14, "line": 7 },
                     "start": { "character": 2, "line": 7 }
@@ -734,10 +830,10 @@ let%expect_test "destruct strips parentheses even on long lines" =
   let source =
     {ocaml|
 type q =
-  | Very_long_name_for_for_the_first_case_so_that_merlin_will_use_multiple_lines
+  | Very_long_name_for_for_the_first_case_so_that_merlin_will_be_forced_to_use_multiple_lines
   | Almost_as_long_name_for_for_the_second_case
   | Another_long_name_for_for_the_third_case
-  | Very_long_name_for_for_the_last_case_so_that_we_can_make_sure_it_strips_parens
+  | Very_long_name_for_for_the_last_case_so_that_we_can_make_sure_we_handle_both_parens_and_line_breaks of int
 ;;
 let f (x: q) =
   match x with
@@ -762,7 +858,7 @@ let f (x: q) =
             {
               "edits": [
                 {
-                  "newText": "\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_use_multiple_lines\n  -> _\n  | Another_long_name_for_for_the_third_case -> _\n  | Very_long_name_for_for_the_last_case_so_that_we_can_make_sure_it_strips_parens -> _",
+                  "newText": "\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_be_forced_to_use_multiple_lines -> _\n  | Another_long_name_for_for_the_third_case -> _\n  | Very_long_name_for_for_the_last_case_so_that_we_can_make_sure_we_handle_both_parens_and_line_breaks\n     _ -> _",
                   "range": {
                     "end": { "character": 52, "line": 9 },
                     "start": { "character": 52, "line": 9 }
