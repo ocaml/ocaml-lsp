@@ -85,6 +85,16 @@ requests](https://github.com/ocaml/ocaml-lsp/tree/master/ocaml-lsp-server/src/cu
 In most cases, it is likely that the contributions will focus solely on this
 project.
 
+##### Warning
+
+For historical reasons, but also for development convenience, `ocaml-lsp-server`
+should not build logic based on `Parsetree` (which changes from version to
+version and migration logic is not provided by `lsp`, nor `ocaml-lsp-server` but
+by [Merlin](https://github.com/ocaml/merlin)). If a command, or a constant,
+relies on the `Parsetree`, it is **strongly** recommended to build a command in
+Merlin that handles the logic to ensure the migration is localized to a single
+project.
+
 #### lsp
 
 Implementation of the LSP protocol in OCaml. It is designed to be as portable as
