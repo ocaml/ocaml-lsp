@@ -52,6 +52,10 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           allow-prerelease-opam: true
 
+      # Remove this pin once a compatible version of Merlin has been released
+      - name: Pin dev Merlin
+        run: opam pin https://github.com/ocaml/merlin.git#master
+
       - name: Build and install dependencies
         run: opam install .
 
