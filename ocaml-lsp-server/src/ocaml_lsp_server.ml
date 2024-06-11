@@ -98,6 +98,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
               ; Req_hover_extended.capability
+              ; Req_merlin_call_compatible.capability
               ] )
         ]
     in
@@ -519,6 +520,7 @@ let on_request :
                 Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
       ; (Req_typed_holes.meth, Req_typed_holes.on_request)
+      ; (Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request)
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
       ; ( Semantic_highlighting.Debug.meth_request_full
         , Semantic_highlighting.Debug.on_request_full )
