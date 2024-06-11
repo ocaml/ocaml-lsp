@@ -25,6 +25,7 @@
   merlin-lib.ocaml_utils
   merlin-lib.utils
   merlin-lib.extend
+  merlin-lib.commands
   cmarkit
   odoc_parser
   ppx_yojson_conv_lib
