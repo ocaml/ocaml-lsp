@@ -74,7 +74,7 @@ let%expect_test "with-ppx" =
     Received 0 diagnostics
     {
       "contents": {
-        "value": "(* ppx expect expansion *)\nExpect_test_collector.Current_file.unset ()",
+        "value": "(* ppx expect expansion *)\nPpx_expect_runtime.Current_file.unset ()",
         "language": "ocaml"
       },
       "range": {
