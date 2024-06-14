@@ -83,15 +83,24 @@ maybeDescribe("textDocument/formatting", () => {
       );
 
       let result = await query(languageServer, name);
-      expect(result).toMatchObject([
-        {
-          range: {
-            start: { character: 0, line: 2 },
-            end: { character: 0, line: 3 },
-          },
-          newText: "  | 0, n\n",
-        },
-      ]);
+      expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "newText": "  | 0, n
+",
+    "range": Object {
+      "end": Object {
+        "character": 0,
+        "line": 3,
+      },
+      "start": Object {
+        "character": 0,
+        "line": 2,
+      },
+    },
+  },
+]
+`);
     });
 
     it("leaves unchanged files alone", async () => {
@@ -127,15 +136,24 @@ maybeDescribe("textDocument/formatting", () => {
 
       let result = await query(languageServer, name);
 
-      expect(result).toMatchObject([
-        {
-          range: {
-            start: { character: 0, line: 0 },
-            end: { character: 0, line: 1 },
-          },
-          newText: "module Test : sig\n",
-        },
-      ]);
+      expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "newText": "module Test : sig
+",
+    "range": Object {
+      "end": Object {
+        "character": 0,
+        "line": 1,
+      },
+      "start": Object {
+        "character": 0,
+        "line": 0,
+      },
+    },
+  },
+]
+`);
     });
 
     it("does not format ignored files", async () => {

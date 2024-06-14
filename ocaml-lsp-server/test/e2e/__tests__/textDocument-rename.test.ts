@@ -74,10 +74,18 @@ describe("textDocument/rename", () => {
     `);
 
     let result = await query_prepare(Types.Position.create(0, 4));
-    expect(result).toMatchObject({
-      start: { line: 0, character: 4 },
-      end: { line: 0, character: 7 },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "end": Object {
+    "character": 7,
+    "line": 0,
+  },
+  "start": Object {
+    "character": 4,
+    "line": 0,
+  },
+}
+`);
   });
 
   it("rename value in a file without documentChanges capability", async () => {
@@ -95,38 +103,40 @@ describe("textDocument/rename", () => {
 
     let result = await query(Types.Position.create(0, 4));
 
-    expect(result).toMatchObject({
-      changes: {
-        "file:///test.ml": [
-          {
-            range: {
-              start: {
-                line: 0,
-                character: 4,
-              },
-              end: {
-                line: 0,
-                character: 7,
-              },
-            },
-            newText: "new_num",
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "changes": Object {
+    "file:///test.ml": Array [
+      Object {
+        "newText": "new_num",
+        "range": Object {
+          "end": Object {
+            "character": 7,
+            "line": 0,
           },
-          {
-            range: {
-              start: {
-                line: 1,
-                character: 10,
-              },
-              end: {
-                line: 1,
-                character: 13,
-              },
-            },
-            newText: "new_num",
+          "start": Object {
+            "character": 4,
+            "line": 0,
           },
-        ],
+        },
       },
-    });
+      Object {
+        "newText": "new_num",
+        "range": Object {
+          "end": Object {
+            "character": 13,
+            "line": 1,
+          },
+          "start": Object {
+            "character": 10,
+            "line": 1,
+          },
+        },
+      },
+    ],
+  },
+}
+`);
   });
 
   it("rename value in a file with documentChanges capability", async () => {
@@ -144,44 +154,46 @@ describe("textDocument/rename", () => {
 
     let result = await query(Types.Position.create(0, 4));
 
-    expect(result).toMatchObject({
-      documentChanges: [
-        {
-          textDocument: {
-            version: 0,
-            uri: "file:///test.ml",
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "documentChanges": Array [
+    Object {
+      "edits": Array [
+        Object {
+          "newText": "new_num",
+          "range": Object {
+            "end": Object {
+              "character": 7,
+              "line": 0,
+            },
+            "start": Object {
+              "character": 4,
+              "line": 0,
+            },
           },
-          edits: [
-            {
-              range: {
-                start: {
-                  line: 0,
-                  character: 4,
-                },
-                end: {
-                  line: 0,
-                  character: 7,
-                },
-              },
-              newText: "new_num",
+        },
+        Object {
+          "newText": "new_num",
+          "range": Object {
+            "end": Object {
+              "character": 13,
+              "line": 1,
             },
-            {
-              range: {
-                start: {
-                  line: 1,
-                  character: 10,
-                },
-                end: {
-                  line: 1,
-                  character: 13,
-                },
-              },
-              newText: "new_num",
+            "start": Object {
+              "character": 10,
+              "line": 1,
             },
-          ],
+          },
         },
       ],
-    });
+      "textDocument": Object {
+        "uri": "file:///test.ml",
+        "version": 0,
+      },
+    },
+  ],
+}
+`);
   });
 
   it("rename a var used as a named argument", async () => {

@@ -2,8 +2,6 @@
   "name": "ocaml-lsp",
   "private": true,
   "scripts": {
-    "fmt-check": "prettier --check .",
-    "fmt": "prettier --write .",
     "test": "jest",
     "promote": "jest --updateSnapshot"
   },
@@ -15,7 +13,6 @@
     "@types/jest": "28.1.3",
     "@types/node": "^20.14.2",
     "jest": "28.1.1",
-    "prettier": "3.3.2",
     "ts-jest": "28.0.5",
     "typescript": "5.4.5",
     "vscode-jsonrpc": "8.0.1",

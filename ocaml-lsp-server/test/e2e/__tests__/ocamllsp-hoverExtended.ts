@@ -27,13 +27,24 @@ describe("ocamllsp/hoverExtended", () => {
       verbosity: 0,
     });
 
-    expect(result).toMatchObject({
-      contents: { kind: "plaintext", value: "int" },
-      range: {
-        end: { character: 5, line: 0 },
-        start: { character: 4, line: 0 },
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "plaintext",
+    "value": "int",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 5,
+      "line": 0,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 0,
+    },
+  },
+}
+`);
   });
 
   it("returns type inferred under cursor (markdown formatting)", async () => {
@@ -63,13 +74,26 @@ describe("ocamllsp/hoverExtended", () => {
       verbosity: 0,
     });
 
-    expect(result).toMatchObject({
-      contents: { kind: "markdown", value: "```ocaml\nint\n```" },
-      range: {
-        end: { character: 5, line: 0 },
-        start: { character: 4, line: 0 },
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+int
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 5,
+      "line": 0,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 0,
+    },
+  },
+}
+`);
   });
 
   it("returns type inferred under cursor with documentation", async () => {
@@ -104,18 +128,28 @@ describe("ocamllsp/hoverExtended", () => {
       verbosity: 0,
     });
 
-    expect(result).toMatchObject({
-      contents: {
-        kind: "markdown",
-        value: outdent`
-          \`\`\`ocaml
-          'a -> 'a
-          \`\`\`
-          ---
-          This function has a nice documentation
-          `,
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+'a -> 'a
+\`\`\`
+---
+This function has a nice documentation",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 11,
+      "line": 3,
+    },
+    "start": Object {
+      "character": 9,
+      "line": 3,
+    },
+  },
+}
+`);
   });
 
   it("returns type inferred under cursor with documentation with tags (markdown formatting)", async () => {
@@ -170,48 +204,58 @@ describe("ocamllsp/hoverExtended", () => {
       verbosity: 0,
     });
 
-    expect(result).toMatchObject({
-      contents: {
-        kind: "markdown",
-        value: outdent`
-          \`\`\`ocaml
-          int -> int -> int
-          \`\`\`
-          ---
-          This function has a nice documentation.
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+int -> int -> int
+\`\`\`
+---
+This function has a nice documentation.
 
-          It performs division of two integer numbers.
+It performs division of two integer numbers.
 
-          ***@param*** \`x\`
-          dividend
+***@param*** \`x\`
+dividend
 
-          ***@param*** divisor
+***@param*** divisor
 
-          ***@return***
-          *quotient*, i.e. result of division
+***@return***
+*quotient*, i.e. result of division
 
-          ***@raise*** \`Division_by_zero\`
-          raised when divided by zero
+***@raise*** \`Division_by_zero\`
+raised when divided by zero
 
-          ***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\(%C3%B7,_or_/\\))
-          article
+***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\\\(%C3%B7,_or_/\\\\))
+article
 
-          ***@see*** \`arithmetic.ml\`
-          for more context
+***@see*** \`arithmetic.ml\`
+for more context
 
-          ***@since*** \`4.0.0\`
+***@since*** \`4.0.0\`
 
-          ***@before*** \`4.4.0\`
+***@before*** \`4.4.0\`
 
-          ***@deprecated***
-          use \`(/)\`
+***@deprecated***
+use \`(/)\`
 
-          ***@version*** \`1.0.0\`
+***@version*** \`1.0.0\`
 
-          ***@author*** John Doe
-          `,
-      },
-    });
+***@author*** John Doe",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 11,
+      "line": 23,
+    },
+    "start": Object {
+      "character": 8,
+      "line": 23,
+    },
+  },
+}
+`);
   });
 
   it("returns good type when cursor is between values", async () => {
@@ -246,16 +290,26 @@ describe("ocamllsp/hoverExtended", () => {
       verbosity: 0,
     });
 
-    expect(result).toMatchObject({
-      contents: {
-        kind: "markdown",
-        value: "```ocaml\nint\n```",
-      },
-      range: {
-        start: { character: 12, line: 3 },
-        end: { character: 13, line: 3 },
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+int
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 13,
+      "line": 3,
+    },
+    "start": Object {
+      "character": 12,
+      "line": 3,
+    },
+  },
+}
+`);
   });
 
   it("regression test for #343", async () => {

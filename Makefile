@@ -70,7 +70,7 @@ clean: ## Clean build artifacts and other generated files
 .PHONY: fmt
 fmt: ## Format the codebase with ocamlformat
 	dune build @fmt --auto-promote
-	cd $(TEST_E2E_DIR) && yarn fmt
+	cd $(TEST_E2E_DIR)
 
 .PHONY: watch
 watch: ## Watch for the filesystem and rebuild on every change
@@ -97,7 +97,7 @@ nix-tests:
 nix-fmt:
 	$(MAKE) yarn-install
 	dune build @fmt --auto-promote
-	cd $(TEST_E2E_DIR) && yarn fmt
+	cd $(TEST_E2E_DIR)
 
 .PHONY: coverage-deps
 coverage-deps:

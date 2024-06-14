@@ -51,28 +51,57 @@ describe("textDocument/references", () => {
 
     let result = await query();
 
-    expect(result).toMatchObject([
-      {
-        command: { command: "", title: "int -> int -> int" },
-        range: {
-          end: { character: 19, line: 4 },
-          start: { character: 2, line: 4 },
-        },
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "command": Object {
+      "command": "",
+      "title": "int -> int -> int",
+    },
+    "range": Object {
+      "end": Object {
+        "character": 19,
+        "line": 4,
       },
-      {
-        command: { command: "", title: "string" },
-        range: {
-          end: { character: 20, line: 1 },
-          start: { character: 0, line: 1 },
-        },
+      "start": Object {
+        "character": 2,
+        "line": 4,
       },
-      {
-        command: { command: "", title: "int" },
-        range: {
-          end: { character: 12, line: 0 },
-          start: { character: 0, line: 0 },
-        },
+    },
+  },
+  Object {
+    "command": Object {
+      "command": "",
+      "title": "string",
+    },
+    "range": Object {
+      "end": Object {
+        "character": 20,
+        "line": 1,
       },
-    ]);
+      "start": Object {
+        "character": 0,
+        "line": 1,
+      },
+    },
+  },
+  Object {
+    "command": Object {
+      "command": "",
+      "title": "int",
+    },
+    "range": Object {
+      "end": Object {
+        "character": 12,
+        "line": 0,
+      },
+      "start": Object {
+        "character": 0,
+        "line": 0,
+      },
+    },
+  },
+]
+`);
   });
 });

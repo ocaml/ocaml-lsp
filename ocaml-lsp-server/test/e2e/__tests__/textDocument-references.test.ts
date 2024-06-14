@@ -45,46 +45,48 @@ describe("textDocument/references", () => {
 
     let result = await query(Types.Position.create(0, 4));
 
-    expect(result).toMatchObject([
-      {
-        range: {
-          end: {
-            character: 7,
-            line: 0,
-          },
-          start: {
-            character: 4,
-            line: 0,
-          },
-        },
-        uri: "file:///test.ml",
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "range": Object {
+      "end": Object {
+        "character": 7,
+        "line": 0,
       },
-      {
-        range: {
-          end: {
-            character: 13,
-            line: 1,
-          },
-          start: {
-            character: 10,
-            line: 1,
-          },
-        },
-        uri: "file:///test.ml",
+      "start": Object {
+        "character": 4,
+        "line": 0,
       },
-      {
-        range: {
-          end: {
-            character: 20,
-            line: 2,
-          },
-          start: {
-            character: 17,
-            line: 2,
-          },
-        },
-        uri: "file:///test.ml",
+    },
+    "uri": "file:///test.ml",
+  },
+  Object {
+    "range": Object {
+      "end": Object {
+        "character": 13,
+        "line": 1,
       },
-    ]);
+      "start": Object {
+        "character": 10,
+        "line": 1,
+      },
+    },
+    "uri": "file:///test.ml",
+  },
+  Object {
+    "range": Object {
+      "end": Object {
+        "character": 20,
+        "line": 2,
+      },
+      "start": Object {
+        "character": 17,
+        "line": 2,
+      },
+    },
+    "uri": "file:///test.ml",
+  },
+]
+`);
   });
 });

@@ -26,13 +26,24 @@ describe("textDocument/hover", () => {
       position: Types.Position.create(0, 4),
     });
 
-    expect(result).toMatchObject({
-      contents: { kind: "plaintext", value: "int" },
-      range: {
-        end: { character: 5, line: 0 },
-        start: { character: 4, line: 0 },
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "plaintext",
+    "value": "int",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 5,
+      "line": 0,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 0,
+    },
+  },
+}
+`);
   });
 
   it("returns type inferred under cursor (markdown formatting)", async () => {
@@ -61,13 +72,26 @@ describe("textDocument/hover", () => {
       position: Types.Position.create(0, 4),
     });
 
-    expect(result).toMatchObject({
-      contents: { kind: "markdown", value: "```ocaml\nint\n```" },
-      range: {
-        end: { character: 5, line: 0 },
-        start: { character: 4, line: 0 },
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+int
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 5,
+      "line": 0,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 0,
+    },
+  },
+}
+`);
   });
 
   // checks for regression https://github.com/ocaml/merlin/issues/1540
@@ -102,18 +126,28 @@ describe("textDocument/hover", () => {
       position: Types.Position.create(1, 4),
     });
 
-    expect(result).toMatchObject({
-      contents: {
-        kind: "markdown",
-        value: outdent`
-          \`\`\`ocaml
-          'a -> 'a
-          \`\`\`
-          ---
-          This function has a nice documentation
-          `,
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+'a -> 'a
+\`\`\`
+---
+This function has a nice documentation",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 6,
+      "line": 1,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 1,
+    },
+  },
+}
+`);
   });
 
   it("returns type inferred under cursor with documentation", async () => {
@@ -147,18 +181,28 @@ describe("textDocument/hover", () => {
       position: Types.Position.create(3, 9),
     });
 
-    expect(result).toMatchObject({
-      contents: {
-        kind: "markdown",
-        value: outdent`
-          \`\`\`ocaml
-          'a -> 'a
-          \`\`\`
-          ---
-          This function has a nice documentation
-          `,
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+'a -> 'a
+\`\`\`
+---
+This function has a nice documentation",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 11,
+      "line": 3,
+    },
+    "start": Object {
+      "character": 9,
+      "line": 3,
+    },
+  },
+}
+`);
   });
 
   it("returns type inferred under cursor with documentation with tags (markdown formatting)", async () => {
@@ -212,48 +256,58 @@ describe("textDocument/hover", () => {
       position: Types.Position.create(23, 9),
     });
 
-    expect(result).toMatchObject({
-      contents: {
-        kind: "markdown",
-        value: outdent`
-          \`\`\`ocaml
-          int -> int -> int
-          \`\`\`
-          ---
-          This function has a nice documentation.
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+int -> int -> int
+\`\`\`
+---
+This function has a nice documentation.
 
-          It performs division of two integer numbers.
+It performs division of two integer numbers.
 
-          ***@param*** \`x\`
-          dividend
+***@param*** \`x\`
+dividend
 
-          ***@param*** divisor
+***@param*** divisor
 
-          ***@return***
-          *quotient*, i.e. result of division
+***@return***
+*quotient*, i.e. result of division
 
-          ***@raise*** \`Division_by_zero\`
-          raised when divided by zero
+***@raise*** \`Division_by_zero\`
+raised when divided by zero
 
-          ***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\(%C3%B7,_or_/\\))
-          article
+***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\\\(%C3%B7,_or_/\\\\))
+article
 
-          ***@see*** \`arithmetic.ml\`
-          for more context
+***@see*** \`arithmetic.ml\`
+for more context
 
-          ***@since*** \`4.0.0\`
+***@since*** \`4.0.0\`
 
-          ***@before*** \`4.4.0\`
+***@before*** \`4.4.0\`
 
-          ***@deprecated***
-          use \`(/)\`
+***@deprecated***
+use \`(/)\`
 
-          ***@version*** \`1.0.0\`
+***@version*** \`1.0.0\`
 
-          ***@author*** John Doe
-          `,
-      },
-    });
+***@author*** John Doe",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 11,
+      "line": 23,
+    },
+    "start": Object {
+      "character": 8,
+      "line": 23,
+    },
+  },
+}
+`);
   });
 
   it("returns good type when cursor is between values", async () => {
@@ -287,16 +341,26 @@ describe("textDocument/hover", () => {
       position: Types.Position.create(3, 13),
     });
 
-    expect(result).toMatchObject({
-      contents: {
-        kind: "markdown",
-        value: "```ocaml\nint\n```",
-      },
-      range: {
-        start: { character: 12, line: 3 },
-        end: { character: 13, line: 3 },
-      },
-    });
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+int
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 13,
+      "line": 3,
+    },
+    "start": Object {
+      "character": 12,
+      "line": 3,
+    },
+  },
+}
+`);
   });
 
   it("regression test for #343", async () => {
@@ -330,25 +394,25 @@ describe("textDocument/hover", () => {
     });
 
     expect(hover1).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      type s = t
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 14,
-            "line": 1,
-          },
-          "start": Object {
-            "character": 0,
-            "line": 1,
-          },
-        },
-      }
-    `);
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+type s = t
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 14,
+      "line": 1,
+    },
+    "start": Object {
+      "character": 0,
+      "line": 1,
+    },
+  },
+}
+`);
 
     let hover2 = await languageServer.sendRequest("textDocument/hover", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
@@ -356,25 +420,25 @@ describe("textDocument/hover", () => {
     });
 
     expect(hover2).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      type 'a fib = ('a -> unit) -> unit
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 34,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 0,
-            "line": 2,
-          },
-        },
-      }
-    `);
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+type 'a fib = ('a -> unit) -> unit
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 34,
+      "line": 2,
+    },
+    "start": Object {
+      "character": 0,
+      "line": 2,
+    },
+  },
+}
+`);
   });
 
   it("regression test for #403", async () => {
@@ -398,23 +462,23 @@ let x : foo = 1
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "foo",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+Object {
+  "contents": Object {
+    "kind": "plaintext",
+    "value": "foo",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 5,
+      "line": 2,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
   });
 
   it("FIXME: reproduce [#344](https://github.com/ocaml/ocaml-lsp/issues/344)", async () => {
@@ -474,25 +538,25 @@ let x : foo = 1
     });
 
     expect(hoverOverK).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      unit
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 24,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 24,
-          },
-        },
-      }
-    `);
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+unit
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 5,
+      "line": 24,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 24,
+    },
+  },
+}
+`);
 
     // we trigger the bug
     let autocompleteForListm = await languageServer.sendRequest(
@@ -513,24 +577,24 @@ let x : foo = 1
 
     // now the same hover as before comes with unrelated documentation
     expect(buggedHoverOverK).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      unit
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 24,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 24,
-          },
-        },
-      }
-    `);
+Object {
+  "contents": Object {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+unit
+\`\`\`",
+  },
+  "range": Object {
+    "end": Object {
+      "character": 5,
+      "line": 24,
+    },
+    "start": Object {
+      "character": 4,
+      "line": 24,
+    },
+  },
+}
+`);
   });
 });
