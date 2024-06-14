@@ -47,19 +47,141 @@ describe("textDocument/selectionRange", () => {
         `);
 
     let result = await selectionRange([Types.Position.create(1, 17)]);
-    expect(result).toMatchObject([
-      {
-        range: {
-          start: {
-            line: 1,
-            character: 15,
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "parent": Object {
+      "parent": Object {
+        "parent": Object {
+          "parent": Object {
+            "parent": Object {
+              "parent": Object {
+                "parent": Object {
+                  "parent": Object {
+                    "parent": Object {
+                      "parent": Object {
+                        "range": Object {
+                          "end": Object {
+                            "character": 17,
+                            "line": 3,
+                          },
+                          "start": Object {
+                            "character": 0,
+                            "line": 0,
+                          },
+                        },
+                      },
+                      "range": Object {
+                        "end": Object {
+                          "character": 17,
+                          "line": 3,
+                        },
+                        "start": Object {
+                          "character": 0,
+                          "line": 0,
+                        },
+                      },
+                    },
+                    "range": Object {
+                      "end": Object {
+                        "character": 17,
+                        "line": 3,
+                      },
+                      "start": Object {
+                        "character": 0,
+                        "line": 0,
+                      },
+                    },
+                  },
+                  "range": Object {
+                    "end": Object {
+                      "character": 17,
+                      "line": 3,
+                    },
+                    "start": Object {
+                      "character": 8,
+                      "line": 0,
+                    },
+                  },
+                },
+                "range": Object {
+                  "end": Object {
+                    "character": 17,
+                    "line": 3,
+                  },
+                  "start": Object {
+                    "character": 8,
+                    "line": 0,
+                  },
+                },
+              },
+              "range": Object {
+                "end": Object {
+                  "character": 17,
+                  "line": 3,
+                },
+                "start": Object {
+                  "character": 10,
+                  "line": 0,
+                },
+              },
+            },
+            "range": Object {
+              "end": Object {
+                "character": 17,
+                "line": 3,
+              },
+              "start": Object {
+                "character": 10,
+                "line": 0,
+              },
+            },
           },
-          end: {
-            line: 1,
-            character: 18,
+          "range": Object {
+            "end": Object {
+              "character": 17,
+              "line": 3,
+            },
+            "start": Object {
+              "character": 2,
+              "line": 1,
+            },
+          },
+        },
+        "range": Object {
+          "end": Object {
+            "character": 22,
+            "line": 1,
+          },
+          "start": Object {
+            "character": 2,
+            "line": 1,
           },
         },
       },
-    ]);
+      "range": Object {
+        "end": Object {
+          "character": 22,
+          "line": 1,
+        },
+        "start": Object {
+          "character": 15,
+          "line": 1,
+        },
+      },
+    },
+    "range": Object {
+      "end": Object {
+        "character": 18,
+        "line": 1,
+      },
+      "start": Object {
+        "character": 15,
+        "line": 1,
+      },
+    },
+  },
+]
+`);
   });
 });

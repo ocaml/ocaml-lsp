@@ -59,10 +59,18 @@ describe("textDocument/definition", () => {
     let result = await queryDefinition(Types.Position.create(3, 4));
 
     expect(result.length).toBe(1);
-    expect(result[0].range).toMatchObject({
-      end: { character: 0, line: 1 },
-      start: { character: 0, line: 1 },
-    });
+    expect(result[0].range).toMatchInlineSnapshot(`
+Object {
+  "end": Object {
+    "character": 0,
+    "line": 1,
+  },
+  "start": Object {
+    "character": 0,
+    "line": 1,
+  },
+}
+`);
     expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
 
@@ -78,10 +86,18 @@ describe("textDocument/definition", () => {
     let result = await queryDefinition(Types.Position.create(4, 4));
 
     expect(result.length).toBe(1);
-    expect(result[0].range).toMatchObject({
-      end: { character: 0, line: 1 },
-      start: { character: 0, line: 1 },
-    });
+    expect(result[0].range).toMatchInlineSnapshot(`
+Object {
+  "end": Object {
+    "character": 0,
+    "line": 1,
+  },
+  "start": Object {
+    "character": 0,
+    "line": 1,
+  },
+}
+`);
     expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
 
@@ -96,10 +112,18 @@ describe("textDocument/definition", () => {
     let result = await queryDefinition(Types.Position.create(3, 4));
 
     expect(result.length).toBe(1);
-    expect(result[0].range).toMatchObject({
-      end: { character: 0, line: 1 },
-      start: { character: 0, line: 1 },
-    });
+    expect(result[0].range).toMatchInlineSnapshot(`
+Object {
+  "end": Object {
+    "character": 0,
+    "line": 1,
+  },
+  "start": Object {
+    "character": 0,
+    "line": 1,
+  },
+}
+`);
     expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
 });
