@@ -30,127 +30,7 @@ open Fiber.O
 module Std = Merlin_utils.Std
 module Misc = Merlin_utils.Misc
 
-module List = struct
-  include List
-
-  let filter_dup' ~equiv lst =
-    let tbl = Hashtbl.create 17 in
-    let f a b =
-      let b' = equiv b in
-      if Hashtbl.mem tbl b' then a
-      else (
-        Hashtbl.add tbl b' ();
-        b :: a)
-    in
-    rev (fold_left ~f ~init:[] lst)
-
-  let filter_dup lst = filter_dup' ~equiv:(fun x -> x) lst
-end
-
-module Config = struct
-  type t =
-    { build_path : string list
-    ; source_path : string list
-    ; cmi_path : string list
-    ; cmt_path : string list
-    ; flags : string list Std.with_workdir list
-    ; extensions : string list
-    ; suffixes : (string * string) list
-    ; stdlib : string option
-    ; reader : string list
-    ; exclude_query_dir : bool
-    ; use_ppx_cache : bool
-    }
-
-  let empty =
-    { build_path = []
-    ; source_path = []
-    ; cmi_path = []
-    ; cmt_path = []
-    ; extensions = []
-    ; suffixes = []
-    ; flags = []
-    ; stdlib = None
-    ; reader = []
-    ; exclude_query_dir = false
-    ; use_ppx_cache = false
-    }
-
-  (* Parses suffixes pairs that were supplied as whitespace separated pairs
-     designating implementation/interface suffixes. These would be supplied in
-     the .merlin file as:
-
-     SUFFIX .sfx .sfxi *)
-  let parse_suffix str =
-    match
-      let trimmed = String.trim str in
-      String.extract_blank_separated_words trimmed
-    with
-    | [ first; second ] ->
-      if String.get first 0 <> '.' || String.get second 0 <> '.' then []
-      else [ (first, second) ]
-    | _ -> []
-
-  let prepend ~dir:cwd (directives : Merlin_dot_protocol.directive list) config
-      =
-    List.fold_left ~init:(config, []) directives ~f:(fun (config, errors) ->
-      function
-      | `B path ->
-        ({ config with build_path = path :: config.build_path }, errors)
-      | `S path ->
-        ({ config with source_path = path :: config.source_path }, errors)
-      | `CMI path -> ({ config with cmi_path = path :: config.cmi_path }, errors)
-      | `CMT path -> ({ config with cmt_path = path :: config.cmt_path }, errors)
-      | `EXT exts ->
-        ({ config with extensions = exts @ config.extensions }, errors)
-      | `SUFFIX suffix ->
-        ( { config with suffixes = parse_suffix suffix @ config.suffixes }
-        , errors )
-      | `FLG flags ->
-        let flags = { Std.workdir = cwd; workval = flags } in
-        ({ config with flags = flags :: config.flags }, errors)
-      | `STDLIB path -> ({ config with stdlib = Some path }, errors)
-      | `READER reader -> ({ config with reader }, errors)
-      | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
-      | `USE_PPX_CACHE -> ({ config with use_ppx_cache = true }, errors)
-      | `UNKNOWN_TAG _ ->
-        (* For easier forward compatibility we ignore unknown configuration tags
-           when they are provided by dune *)
-        (config, errors)
-      | `ERROR_MSG str -> (config, str :: errors))
-
-  let postprocess =
-    let clean list = List.rev (List.filter_dup list) in
-    fun config ->
-      { build_path = clean config.build_path
-      ; source_path = clean config.source_path
-      ; cmi_path = clean config.cmi_path
-      ; cmt_path = clean config.cmt_path
-      ; extensions = clean config.extensions
-      ; suffixes = clean config.suffixes
-      ; flags = clean config.flags
-      ; stdlib = config.stdlib
-      ; reader = config.reader
-      ; exclude_query_dir = config.exclude_query_dir
-      ; use_ppx_cache = config.use_ppx_cache
-      }
-
-  let merge t (merlin : Mconfig.merlin) failures config_path =
-    { merlin with
-      build_path = t.build_path @ merlin.build_path
-    ; source_path = t.source_path @ merlin.source_path
-    ; cmi_path = t.cmi_path @ merlin.cmi_path
-    ; cmt_path = t.cmt_path @ merlin.cmt_path
-    ; exclude_query_dir = t.exclude_query_dir || merlin.exclude_query_dir
-    ; extensions = t.extensions @ merlin.extensions
-    ; suffixes = t.suffixes @ merlin.suffixes
-    ; stdlib = (if t.stdlib = None then merlin.stdlib else t.stdlib)
-    ; reader = (if t.reader = [] then merlin.reader else t.reader)
-    ; flags_to_apply = t.flags @ merlin.flags_to_apply
-    ; failures = failures @ merlin.failures
-    ; config_path = Some config_path
-    }
-end
+let empty = Mconfig_dot.empty_config
 
 module Process = struct
   type nonrec t =
@@ -326,11 +206,17 @@ let get_config (p : Process.t) ~workdir path_abs =
 
   match answer with
   | Ok directives ->
-    let cfg, failures = Config.prepend ~dir:workdir directives Config.empty in
-    (Config.postprocess cfg, failures)
-  | Error (Merlin_dot_protocol.Unexpected_output msg) -> (Config.empty, [ msg ])
+    let cfg, failures =
+      Mconfig_dot.prepend_config
+        ~dir:workdir
+        Mconfig_dot.Configurator.Dune
+        directives
+        empty
+    in
+    (Mconfig_dot.postprocess_config cfg, failures)
+  | Error (Merlin_dot_protocol.Unexpected_output msg) -> (empty, [ msg ])
   | Error (Csexp_parse_error _) ->
-    ( Config.empty
+    ( empty
     , [ "ocamllsp could not load its configuration from the external reader. \
          Building your project with `dune` might solve this issue."
       ] )
@@ -442,7 +328,9 @@ let config (t : t) : Mconfig.t Fiber.t =
         get_config entry.process ~workdir:ctx.workdir t.path
       in
 
-      let merlin = Config.merge dot t.initial.merlin failures config_path in
+      let merlin =
+        Mconfig.merge_merlin_config dot t.initial.merlin ~failures ~config_path
+      in
       Mconfig.normalize { t.initial with merlin }
 
 module DB = struct

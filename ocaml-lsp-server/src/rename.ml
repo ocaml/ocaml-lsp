@@ -10,7 +10,9 @@ let rename (state : State.t)
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
     in
-    let+ locs = Document.Merlin.dispatch_exn ~name:"rename" merlin command in
+    let+ locs, _desync =
+      Document.Merlin.dispatch_exn ~name:"rename" merlin command
+    in
     let version = Document.version doc in
     let source = Document.source doc in
     let edits =

@@ -63,7 +63,7 @@ let find_inline_task typedtree pos =
       match expr.exp_desc with
       | Texp_let
           ( Nonrecursive
-          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }, _); _ }
               ; vb_expr = inlined_expr
               ; _
               }
@@ -79,7 +79,7 @@ let find_inline_task typedtree pos =
       match item.str_desc with
       | Tstr_value
           ( Nonrecursive
-          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }, _); _ }
               ; vb_expr = inlined_expr
               ; _
               }
@@ -132,44 +132,10 @@ let strip_attribute attr_name expr =
   let mapper = { M.default_mapper with expr = expr_map } in
   mapper.expr mapper expr
 
-(** Overapproximation of the number of uses of a [Path.t] in an expression. *)
-module Uses : sig
-  type t
-
-  val find : t -> Path.t -> int option
-
-  val of_typedtree : Typedtree.expression -> t
-end = struct
-  type t = int Path.Map.t
-
-  let find m k = Path.Map.find_opt k m
-
-  let of_typedtree (expr : Typedtree.expression) =
-    let module I = Ocaml_typing.Tast_iterator in
-    let uses = ref Path.Map.empty in
-    let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
-      match expr.exp_desc with
-      | Texp_ident (path, _, _) ->
-        uses :=
-          Path.Map.update
-            path
-            (function
-              | Some c -> Some (c + 1)
-              | None -> Some 1)
-            !uses
-      | _ -> I.default_iterator.expr iter expr
-    in
-    let iterator = { I.default_iterator with expr = expr_iter } in
-    iterator.expr iterator expr;
-    !uses
-end
-
 (** Mapping from [Location.t] to [Path.t]. Computed from the typedtree. Useful
     for determining whether two parsetree identifiers refer to the same path. *)
 module Paths : sig
   type t
-
-  val find : t -> Loc.t -> Path.t option
 
   val of_typedtree : Typedtree.expression -> t
 
@@ -190,8 +156,9 @@ end = struct
     let pat_iter (type k) (iter : I.iterator)
         (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
-      | Tpat_var (id, { loc; _ }) -> paths := Loc.Map.set !paths loc (Pident id)
-      | Tpat_alias (pat, id, { loc; _ }) ->
+      | Tpat_var (id, { loc; _ }, _) ->
+        paths := Loc.Map.set !paths loc (Pident id)
+      | Tpat_alias (pat, id, { loc; _ }, _) ->
         paths := Loc.Map.set !paths loc (Pident id);
         I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
@@ -219,82 +186,59 @@ let subst same subst_expr subst_id body =
   mapper.expr mapper body
 
 (** Rough check for expressions that can be duplicated without duplicating any
-    side effects. *)
+    side effects (or introducing a sigificant performance difference). *)
 let rec is_pure (expr : Parsetree.expression) =
   match expr.pexp_desc with
   | Pexp_ident _ | Pexp_constant _ | Pexp_unreachable -> true
   | Pexp_field (e, _) | Pexp_constraint (e, _) -> is_pure e
   | _ -> false
 
-let rec find_map_remove ~f = function
-  | [] -> (None, [])
-  | x :: xs -> (
-    match f x with
-    | Some x' -> (Some x', xs)
-    | None ->
-      let ret, xs' = find_map_remove ~f xs in
-      (ret, x :: xs'))
+let all_unlabeled_params =
+  List.for_all ~f:(fun p ->
+      match p.Parsetree.pparam_desc with
+      | Pparam_val (Nolabel, _, _) -> true
+      | _ -> false)
 
-let rec beta_reduce (uses : Uses.t) (paths : Paths.t)
-    (app : Parsetree.expression) =
-  let rec beta_reduce_arg (pat : Parsetree.pattern) body arg =
-    let default () =
-      H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] (beta_reduce uses paths body)
-    in
+let same_path paths (id : _ H.with_loc) (id' : _ H.with_loc) =
+  Paths.same_path paths id.loc id'.loc
+
+let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
+  let rec beta_reduce_arg body (pat : Parsetree.pattern) arg =
+    let with_let () = H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] body in
+    let with_subst param = subst (same_path paths) arg param body in
     match pat.ppat_desc with
     | Ppat_any | Ppat_construct ({ txt = Lident "()"; _ }, _) ->
-      beta_reduce uses paths body
-    | Ppat_var param | Ppat_constraint ({ ppat_desc = Ppat_var param; _ }, _)
-      -> (
-      let open Option.O in
-      let m_uses =
-        let* path = Paths.find paths param.loc in
-        Uses.find uses path
-      in
-      let same_path paths (id : _ H.with_loc) (id' : _ H.with_loc) =
-        Paths.same_path paths id.loc id'.loc
-      in
-      match m_uses with
-      | Some 0 -> beta_reduce uses paths body
-      | Some 1 ->
-        beta_reduce uses paths (subst (same_path paths) arg param body)
-      | Some _ | None ->
-        if is_pure arg then
-          beta_reduce uses paths (subst (same_path paths) arg param body)
-        else
-          (* if the parameter is used multiple times in the body, introduce a
-             let binding so that the parameter is evaluated only once *)
-          default ())
+      if is_pure arg then body else with_let ()
+    | Ppat_var param | Ppat_constraint ({ ppat_desc = Ppat_var param; _ }, _) ->
+      if is_pure arg then with_subst param else with_let ()
     | Ppat_tuple pats -> (
       match arg.pexp_desc with
       | Pexp_tuple args ->
-        List.fold_left2
-          ~f:(fun body pat arg -> beta_reduce_arg pat body arg)
-          ~init:body
-          pats
-          args
-      | _ -> default ())
-    | _ -> default ()
+        List.fold_left2 ~f:beta_reduce_arg ~init:body pats args
+      | _ -> with_let ())
+    | _ -> with_let ()
   in
-  let apply func args =
-    if List.is_empty args then func else H.Exp.apply func args
+  let extract_param_pats params =
+    List.map params ~f:(fun p ->
+        match p.Parsetree.pparam_desc with
+        | Pparam_val (Nolabel, _, pat) -> Some pat
+        | _ -> None)
+    |> Option.List.all
   in
   match app.pexp_desc with
   | Pexp_apply
-      ( { pexp_desc = Pexp_fun (Nolabel, None, pat, body); _ }
-      , (Nolabel, arg) :: args' ) -> beta_reduce_arg pat (apply body args') arg
-  | Pexp_apply
-      ({ pexp_desc = Pexp_fun ((Labelled l as lbl), None, pat, body); _ }, args)
+      ( { pexp_desc = Pexp_function (params, None, Pfunction_body body); _ }
+      , args )
+    when List.length params = List.length args && all_unlabeled_params params
     -> (
-    let m_matching_arg, args' =
-      find_map_remove args ~f:(function
-          | Asttypes.Labelled l', e when String.equal l l' -> Some e
-          | _ -> None)
-    in
-    match m_matching_arg with
-    | Some arg -> beta_reduce_arg pat (apply body args') arg
-    | None -> H.Exp.fun_ lbl None pat (beta_reduce uses paths (apply body args))
-    )
+    match extract_param_pats params with
+    | Some pats ->
+      List.fold_left2
+        ~f:(fun body pat (_, arg) -> beta_reduce_arg body pat arg)
+        ~init:body
+        pats
+        args
+    | None -> app)
   | _ -> app
 
 let inlined_text pipeline task =
@@ -358,7 +302,6 @@ let inline_edits pipeline task =
     | _, _ -> Option.iter m_arg_expr ~f:(iter.expr iter)
   in
 
-  let uses = Uses.of_typedtree task.inlined_expr in
   let paths = Paths.of_typedtree task.inlined_expr in
   let inlined_pexpr =
     find_parsetree_loc_exn pipeline task.inlined_expr.exp_loc
@@ -374,7 +317,7 @@ let inline_edits pipeline task =
         let app_pexpr = find_parsetree_loc_exn pipeline expr.exp_loc in
         match app_pexpr.pexp_desc with
         | Pexp_apply ({ pexp_desc = Pexp_ident _; _ }, args) ->
-          beta_reduce uses paths (H.Exp.apply inlined_pexpr args)
+          beta_reduce paths (H.Exp.apply inlined_pexpr args)
         | _ -> app_pexpr
       in
       let newText =

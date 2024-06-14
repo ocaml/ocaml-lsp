@@ -17,7 +17,7 @@ all:
 # results in a conflict
 .PHONY: install-test-deps
 install-test-deps:
-	opam install --yes cinaps 'ppx_expect>=v0.15.0' \
+	opam install --yes cinaps 'ppx_expect<v0.17.0' \
 		ocamlformat.$$(awk -F = '$$1 == "version" {print $$2}' .ocamlformat)
 
 .PHONY: dev

@@ -173,7 +173,7 @@ let binding_document_symbol (binding : Parsetree.value_binding) ~ppx
   | `Parent name ->
     let kind : SymbolKind.t =
       match (ppx, binding.pvb_expr.pexp_desc) with
-      | None, (Pexp_function _ | Pexp_fun _ | Pexp_newtype _) -> Function
+      | None, (Pexp_function _ | Pexp_newtype _) -> Function
       | Some _, _ -> Property
       | _ -> Variable
     in

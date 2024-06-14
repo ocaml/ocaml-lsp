@@ -69,14 +69,13 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         in
         if is_on_field then result := Some `Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
-      | Pexp_fun _ | Pexp_function _ | Pexp_lazy _ ->
+      | Pexp_function _ | Pexp_lazy _ ->
         (* Anonymous function expressions can be hovered on the keyword [fun] or
            [function]. Lazy expressions can also be hovered on the [lazy]
            keyword. *)
         let is_at_keyword =
           let keyword_len =
             match expr.pexp_desc with
-            | Pexp_fun _ -> 3
             | Pexp_function _ -> 8
             | Pexp_lazy _ -> 4
             | _ -> 0

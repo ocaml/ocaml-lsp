@@ -208,10 +208,11 @@ let _ =
   let $f x y = x + y in
   f 0
 |};
-  [%expect {|
+  [%expect
+    {|
     let _ =
       let f x y = x + y in
-      (fun y -> 0 + y) |}]
+      ((fun x y -> x + y) 0) |}]
 
 let%expect_test "" =
   inline_test {|
@@ -231,10 +232,11 @@ let _ =
   let $f ~x y = x + y in
   f ~x:0
 |};
-  [%expect {|
+  [%expect
+    {|
     let _ =
       let f ~x y = x + y in
-      (fun y -> 0 + y) |}]
+      ((fun ~x y -> x + y) ~x:0) |}]
 
 let%expect_test "" =
   inline_test {|
@@ -246,7 +248,7 @@ let _ =
     {|
     let _ =
       let f ~x ~y = x + y in
-      (fun ~x -> x + 0) |}]
+      ((fun ~x ~y -> x + y) ~y:0) |}]
 
 let%expect_test "" =
   inline_test {|
@@ -270,7 +272,7 @@ let _ =
     {|
     let _ =
       let f (type a) (x : a) = x in
-      ((fun (type a) -> fun (x : a) -> x) 0) |}]
+      ((fun (type a) (x : a) -> x) 0) |}]
 
 let%expect_test "" =
   inline_test {|
@@ -278,10 +280,7 @@ let _ =
   let $f : int -> int = fun x -> x in
   f 0
 |};
-  [%expect {|
-    let _ =
-      let f : int -> int = fun x -> x in
-      (0) |}]
+  [%expect {| |}]
 
 let%expect_test "" =
   inline_test
@@ -460,3 +459,15 @@ let h = M.f
       let g y = (y)
     end
     let h = M.f |}]
+
+let%expect_test "" =
+  inline_test {|
+let _ = 
+  let $f _ = 0 in
+  f (print_endline "hi")
+|};
+  [%expect
+    {|
+    let _ = 
+      let f _ = 0 in
+      (let _ = print_endline "hi" in 0) |}]
