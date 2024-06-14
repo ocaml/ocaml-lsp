@@ -28,7 +28,7 @@ depends: [
   "yojson"
   "ppx_yojson_conv_lib" {>= "v0.14"}
   "cinaps" {with-test}
-  "ppx_expect" {>= "v0.17.0" & with-test}
+  "ppx_expect" {>= "v0.15.0" & with-test}
   "uutf" {>= "1.0.2"}
   "odoc" {with-doc}
   "ocaml" {>= "4.14"}
