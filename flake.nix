@@ -141,12 +141,12 @@
           };
       in {
         packages =
-          (localPackages_4_14 // { default = localPackages_4_14.ocaml-lsp; });
+          (localPackages_5_1 // { default = localPackages_5_1.ocaml-lsp; });
 
         devShells = {
-          default = devShell localPackages_4_14 pkgs_4_14;
+          ocaml4_11 = devShell localPackages_4_14 pkgs_4_14;
 
-          ocaml5_1 = devShell localPackages_5_1 pkgs_5_1;
+          default = devShell localPackages_5_1 pkgs_5_1;
 
           release = pkgsWithoutOverlays.mkShell {
             buildInputs = [ pkgsWithoutOverlays.dune-release ];
@@ -163,7 +163,7 @@
             ];
           };
 
-          check = pkgs_4_14.mkShell {
+          check = pkgs_5_1.mkShell {
             inputsFrom = builtins.attrValues localPackages_4_14;
           };
         };
