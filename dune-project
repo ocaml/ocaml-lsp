@@ -55,6 +55,7 @@ possible and does not make any assumptions about IO.
   dyn
   stdune
   (fiber (and (>= 3.1.1) (< 4.0.0)))
+  (ocaml (>= 5.2.0))
   xdg
   ordering
   dune-build-info

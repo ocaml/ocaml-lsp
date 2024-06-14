@@ -31,6 +31,7 @@ depends: [
   "dyn"
   "stdune"
   "fiber" {>= "3.1.1" & < "4.0.0"}
+  "ocaml" {>= "5.2.0"}
   "xdg"
   "ordering"
   "dune-build-info"
