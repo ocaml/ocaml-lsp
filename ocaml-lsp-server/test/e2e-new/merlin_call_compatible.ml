@@ -51,8 +51,9 @@ let f ({a; b} : t) = assert false|}
   let request client =
     let open Fiber.O in
     let args = obj [ ("start", "2:9"); ("end", "2:9") ] in
-    let+ response = call_merlin_compatible client "case-analysis" args false in
-    print_merin_call_compatible response
+    let* response = call_merlin_compatible client "case-analysis" args false in
+    let () = print_merin_call_compatible response in
+    Fiber.return ()
   in
   Helpers.test source request;
   [%expect
@@ -67,8 +68,9 @@ let%expect_test "case-analysis on empty example" =
   let request client =
     let open Fiber.O in
     let args = list [ "-start"; "2:9"; "-end"; "2:9" ] in
-    let+ response = call_merlin_compatible client "case-analysis" args false in
-    print_merin_call_compatible response
+    let* response = call_merlin_compatible client "case-analysis" args false in
+    let () = print_merin_call_compatible response in
+    Fiber.return ()
   in
   Helpers.test source request;
   [%expect
@@ -86,8 +88,9 @@ let f ({a; b} : t) = assert false|}
   let request client =
     let open Fiber.O in
     let args = list [ "-start"; "2:9"; "-end"; "2:9" ] in
-    let+ response = call_merlin_compatible client "case-analysis" args true in
-    print_merin_call_compatible response
+    let* response = call_merlin_compatible client "case-analysis" args true in
+    let () = print_merin_call_compatible response in
+    Fiber.return ()
   in
   Helpers.test source request;
   [%expect
@@ -102,8 +105,9 @@ let%expect_test "errors: warning is shown" =
   let request client =
     let open Fiber.O in
     let args = list [] in
-    let+ response = call_merlin_compatible client "errors" args false in
-    print_merin_call_compatible response
+    let* response = call_merlin_compatible client "errors" args false in
+    let () = print_merin_call_compatible response in
+    Fiber.return ()
   in
   Helpers.test source request;
   [%expect
@@ -118,8 +122,9 @@ let%expect_test "errors: warning is disabled" =
   let request client =
     let open Fiber.O in
     let args = list [ "-w"; "-8" ] in
-    let+ response = call_merlin_compatible client "errors" args false in
-    print_merin_call_compatible response
+    let* response = call_merlin_compatible client "errors" args false in
+    let () = print_merin_call_compatible response in
+    Fiber.return ()
   in
   Helpers.test source request;
   [%expect
