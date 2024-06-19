@@ -42,7 +42,8 @@ bench: ##
 
 .PHONY: test-ocaml
 test-ocaml: ## Run the unit tests
-	dune build @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
+	# FIXME: Find another approach to prevent competing test runs from causing errors
+	dune build  -j 1 @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
 
 .PHONY: promote
 promote:
@@ -105,5 +106,6 @@ coverage-deps:
 
 .PHONY: test-coverage
 test-coverage:
-	dune build --instrument-with bisect_ppx --force @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
+	# FIXME: Find another approach to prevent competing test runs from causing errors
+	dune build -j 1 --instrument-with bisect_ppx --force @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
 	bisect-ppx-report send-to Coveralls
