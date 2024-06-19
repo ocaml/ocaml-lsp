@@ -3,11 +3,11 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     merlin4_14 = {
-      url = "github:ocaml/merlin/v4.14-414";
+      url = "github:ocaml/merlin/v4.16-414";
       flake = false;
     };
     merlin5_1 = {
-      url = "github:ocaml/merlin/v4.14-501";
+      url = "github:ocaml/merlin/v4.16-501";
       flake = false;
     };
   };

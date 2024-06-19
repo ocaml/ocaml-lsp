@@ -53,7 +53,15 @@ module Merlin : sig
 
   val timer : t -> Lev_fiber.Timer.Wheel.task
 
+  (** uses a single pipeline, provisioned by the configuration attached to the
+      merlin document (via {!type:t}). *)
   val with_pipeline_exn : ?name:string -> t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
+
+  (** Like {!val:with_pipeline_exn} but where the merlin configuration is
+      supplied manually. If, for example, it is computed outside the execution
+      of the pipeline.*)
+  val with_configurable_pipeline_exn :
+    ?name:string -> config:Mconfig.t -> t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
   val dispatch :
        ?name:string

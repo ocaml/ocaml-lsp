@@ -69,7 +69,7 @@ possible and does not make any assumptions about IO.
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
   (ocaml (and (>= 4.14) (< 5.2)))
-  (merlin-lib (and (>= 4.14) (< 5.0)))))
+  (merlin-lib (and (>= 4.16) (< 5.0)))))
 
 (package
  (name jsonrpc)

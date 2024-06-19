@@ -38,6 +38,11 @@
 - Add an `update-signature` code action to update the types of elements that
   were already present in the signature (#1289)
 
+- Add custom
+  [`ocamllsp/merlinCallCompatible`](https://github.com/ocaml/ocaml-lsp/blob/e165f6a3962c356adc7364b9ca71788e93489dd0/ocaml-lsp-server/docs/ocamllsp/merlinCallCompatible-spec.md)
+  request (#1265)
+
+
 ## Fixes
 
 - Detect document kind by looking at merlin's `suffixes` config.

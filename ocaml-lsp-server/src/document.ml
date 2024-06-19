@@ -131,13 +131,20 @@ module Single_pipeline : sig
     -> config:Merlin_config.t
     -> f:(Mpipeline.t -> 'a)
     -> ('a, Exn_with_backtrace.t) result Fiber.t
+
+  val use_with_config :
+       ?name:string
+    -> t
+    -> doc:Text_document.t
+    -> config:Mconfig.t
+    -> f:(Mpipeline.t -> 'a)
+    -> ('a, Exn_with_backtrace.t) result Fiber.t
 end = struct
   type t = { thread : Lev_fiber.Thread.t } [@@unboxed]
 
   let create thread = { thread }
 
-  let use ?name t ~doc ~config ~f =
-    let* config = Merlin_config.config config in
+  let use_with_config ?name t ~doc ~config ~f =
     let make_pipeline =
       let source = Msource.make (Text_document.text doc) in
       fun () -> Mpipeline.make config source
@@ -173,6 +180,10 @@ end = struct
       in
       let+ () = Metrics.report event in
       Ok res
+
+  let use ?name t ~doc ~config ~f =
+    let* config = Merlin_config.config config in
+    use_with_config ?name t ~doc ~config ~f
 end
 
 type merlin =
@@ -276,10 +287,19 @@ module Merlin = struct
   let with_pipeline ?name (t : t) f =
     Single_pipeline.use ?name t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
 
+  let with_configurable_pipeline ?name ~config (t : t) f =
+    Single_pipeline.use_with_config ?name t.pipeline ~doc:t.tdoc ~config ~f
+
   let mconfig (t : t) = Merlin_config.config t.merlin_config
 
   let with_pipeline_exn ?name doc f =
     let+ res = with_pipeline ?name doc f in
+    match res with
+    | Ok s -> s
+    | Error exn -> Exn_with_backtrace.reraise exn
+
+  let with_configurable_pipeline_exn ?name ~config doc f =
+    let+ res = with_configurable_pipeline ?name ~config doc f in
     match res with
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
