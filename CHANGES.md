@@ -55,7 +55,7 @@
 - Disable automatic completion and signature help inside comments (#1246)
 
 - Includes a new optional/configurable option to toggle syntax documentation. If
-  toggled on, allows display of sytax documentation on hover tooltips. Can be
+  toggled on, allows display of syntax documentation on hover tooltips. Can be
   controlled via environment variables and by GUI for VS code. (#1218)
 
 - For completions on labels that the LSP gets from merlin, take into account
@@ -68,6 +68,8 @@
 - Stop generating inlay hints on generated code (#1290)
 
 - Fix parenthesizing of function types in `SignatureHelp` (#1296)
+
+- Fix syntax documentation rendering (#1318)
 
 # 1.17.0
 

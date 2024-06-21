@@ -82,7 +82,7 @@ type color = Red|Blue
     {
       "contents": {
         "kind": "plaintext",
-        "value": "type color = Red | Blue\n---\n`syntax` Variant Type: Represent's data that may take on multiple different forms.. See [Manual](https://v2.ocaml.org/releases/4.14/htmlman/typedecl.html#ss:typedefs)"
+        "value": "type color = Red | Blue\n***\n`syntax` Variant Type: Represent's data that may take on multiple different forms.. See [Manual](https://v2.ocaml.org/releases/4.14/htmlman/typedecl.html#ss:typedefs)"
       },
       "range": {
         "end": { "character": 21, "line": 1 },
@@ -129,7 +129,7 @@ type t = ..
     {
       "contents": {
         "kind": "plaintext",
-        "value": "type t = ..\n---\n`syntax` Extensible Variant Type: Can be extended with new variant constructors using `+=`.. See [Manual](https://v2.ocaml.org/releases/4.14/htmlman/extensiblevariants.html)"
+        "value": "type t = ..\n***\n`syntax` Extensible Variant Type: Can be extended with new variant constructors using `+=`.. See [Manual](https://v2.ocaml.org/releases/4.14/htmlman/extensiblevariants.html)"
       },
       "range": {
         "end": { "character": 11, "line": 1 },
