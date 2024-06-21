@@ -133,7 +133,7 @@ Object {
     "value": "\`\`\`ocaml
 'a -> 'a
 \`\`\`
----
+***
 This function has a nice documentation",
   },
   "range": Object {
@@ -188,7 +188,7 @@ Object {
     "value": "\`\`\`ocaml
 'a -> 'a
 \`\`\`
----
+***
 This function has a nice documentation",
   },
   "range": Object {
@@ -263,7 +263,7 @@ Object {
     "value": "\`\`\`ocaml
 int -> int -> int
 \`\`\`
----
+***
 This function has a nice documentation.
 
 It performs division of two integer numbers.
