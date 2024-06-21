@@ -193,7 +193,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   in
   !result
 
-let print_dividers sections = String.concat ~sep:"\n---\n" sections
+let print_dividers sections = String.concat ~sep:"\n***\n" sections
 
 let format_as_code_block ~highlighter strings =
   sprintf "```%s\n%s\n```" highlighter (String.concat ~sep:" " strings)
