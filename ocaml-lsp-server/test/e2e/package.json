@@ -16,7 +16,7 @@
     "ts-jest": "28.0.5",
     "typescript": "5.4.5",
     "vscode-jsonrpc": "8.0.1",
-    "vscode-languageserver-protocol": "3.17.1",
+    "vscode-languageserver-protocol": "3.17.5",
     "vscode-languageserver-types": "3.17.5"
   }
 }
