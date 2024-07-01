@@ -1,91 +1,86 @@
 open Import
+module TextDocumentPositionParams = Lsp.Types.TextDocumentPositionParams
 
 let capability = ("handleTypeEnclosing", `Bool true)
 
 let meth = "ocamllsp/typeEnclosing"
 
-type params =
-  { text_document_position : Lsp.Types.TextDocumentPositionParams.t
-  ; index : int
-  ; range_end : Position.t option
-  ; verbosity : int
+module Request_params = struct
+  type t =
+    { text_document_position : TextDocumentPositionParams.t
+    ; index : int
+    ; range_end : Position.t option
+    ; verbosity : int
+    }
+
+  let yojson_of_t { text_document_position; index; range_end; verbosity } =
+    match TextDocumentPositionParams.yojson_of_t text_document_position with
+    | `Assoc assoc ->
+      let index = ("index", `Int index) in
+      let range_end =
+        ( "rangeEnd"
+        , match range_end with
+          | Some x -> Position.yojson_of_t x
+          | None -> `Null )
+      in
+      let verbosity = ("verbosity", `Int verbosity) in
+      `Assoc (index :: range_end :: verbosity :: assoc)
+    | _ -> (* unreachable  *) assert false
+
+  let create ?range_end ?(verbosity = 0) ~text_document_position ~index () =
+    { text_document_position; index; range_end; verbosity }
+
+  let json_error json =
+    Json.error "invalid Req_type_enclosing.Request_params" json
+
+  let index_of_yojson json params =
+    match List.assoc_opt "index" params with
+    | Some (`Int index) -> index
+    | _ ->
+      (* If the parameter is incorrectly formatted or missing, we refuse to build
+         the parameter, [index] is mandatory. *)
+      json_error json
+
+  let verbosity_of_yojson params =
+    match List.assoc_opt "verbosity" params with
+    | Some (`Int verbosity) -> verbosity
+    | _ ->
+      (* If the parameter is incorrectly formatted or missing, it is assumed that
+         the we ask for a verbosity level set to 0. *)
+      0
+
+  let range_end_of_yojson params =
+    match List.assoc_opt "rangeEnd" params with
+    | Some range_end -> (
+      try Some (Position.t_of_yojson range_end) with _ -> None)
+    | _ ->
+      (* If the parameter is incorrectly formatted or missing, it is assumed that
+         the we do not provide rangeEnd parameter. *)
+      None
+
+  let t_of_yojson = function
+    | `Assoc params as json ->
+      let verbosity = verbosity_of_yojson params in
+      let range_end = range_end_of_yojson params in
+      let index = index_of_yojson json params in
+      let text_document_position =
+        TextDocumentPositionParams.t_of_yojson json
+      in
+      { index; range_end; verbosity; text_document_position }
+    | json -> json_error json
+end
+
+type t =
+  { index : int
+  ; type_ : string
+  ; enclosings : Range.t list
   }
 
-let expected_params =
-  `Assoc
-    [ ("index", `String "uinteger")
-    ; ("rangeEnd?", `String "<Position>")
-    ; ("verbosity?", `String "uinteger")
-    ; ("position", `String "<Position>")
-    ; ("textDocument", `String "<TextDocumentIdentifier>")
-    ]
-
-let index_of_yojson params =
-  match List.assoc_opt "index" params with
-  | Some (`Int index) -> Some index
-  | _ ->
-    (* If the parameter is incorrectly formatted or missing, we refuse to build
-       the parameter, [index] is mandatory. *)
-    None
-
-let verbosity_of_yojson params =
-  match List.assoc_opt "verbosity" params with
-  | Some (`Int verbosity) -> verbosity
-  | _ ->
-    (* If the parameter is incorrectly formatted or missing, it is assumed that
-       the we ask for a verbosity level set to 0. *)
-    0
-
-let range_end_of_yojson params =
-  match List.assoc_opt "rangeEnd" params with
-  | Some range_end -> (
-    try Some (Position.t_of_yojson range_end) with _ -> None)
-  | _ ->
-    (* If the parameter is incorrectly formatted or missing, it is assumed that
-       the we do not provide rangeEnd parameter. *)
-    None
-
-let raise_invalid_params ?data ~message () =
-  let open Jsonrpc.Response.Error in
-  raise @@ make ?data ~code:Code.InvalidParams ~message ()
-
-let of_yojson = function
-  | `Assoc params as full_params ->
-    let verbosity = verbosity_of_yojson params in
-    let range_end = range_end_of_yojson params in
-    let open Option.O in
-    let* index = index_of_yojson params in
-    let text_document_position =
-      Lsp.Types.TextDocumentPositionParams.t_of_yojson full_params
-    in
-    Some { index; range_end; verbosity; text_document_position }
-  | _ -> None
-
-let of_yojson_exn = function
-  | None -> raise_invalid_params ~message:"Expected params but received none" ()
-  | Some params -> (
-    match of_yojson params with
-    | Some params -> params
-    | None ->
-      let data =
-        `Assoc
-          [ ("expectedParams", expected_params)
-          ; ("receivedParams", (params :> Json.t))
-          ]
-      in
-      raise_invalid_params ~data ~message:"Unexpected params format" ())
-
-let render_result index result =
-  let typ, enclosings =
-    match result with
-    | None -> ("<no information>", [])
-    | Some (typ, enclosings) ->
-      (typ, List.map ~f:Lsp.Types.Range.yojson_of_t enclosings)
-  in
+let yojson_of_t { index; type_; enclosings } =
   `Assoc
     [ ("index", `Int index)
-    ; ("enclosings", `List enclosings)
-    ; ("type", `String typ)
+    ; ("enclosings", `List (List.map ~f:Range.yojson_of_t enclosings))
+    ; ("type", `String type_)
     ]
 
 let config_with_given_verbosity config verbosity =
@@ -95,7 +90,7 @@ let config_with_given_verbosity config verbosity =
 let with_pipeline state uri verbosity with_pipeline =
   let doc = Document_store.get state.State.store uri in
   match Document.kind doc with
-  | `Other -> Fiber.return None
+  | `Other -> Fiber.return `Null
   | `Merlin merlin ->
     let open Fiber.O in
     let* config = Document.Merlin.mconfig merlin in
@@ -108,8 +103,8 @@ let make_enclosing_command position index =
   Query_protocol.Type_enclosing (None, position, Some index)
 
 let get_first_enclosing_index range_end enclosings =
-  let rec aux i = function
-    | (loc, _, _) :: xs -> (
+  List.find_mapi
+    ~f:(fun i (loc, _, _) ->
       let range = Range.of_loc loc in
       match
         ( Position.compare range_end range.start
@@ -120,10 +115,11 @@ let get_first_enclosing_index range_end enclosings =
       | Ordering.(Gt, Eq)
       | Ordering.(Eq, Eq)
       | Ordering.(Gt, Lt) -> Some i
-      | _ -> aux (succ i) xs)
-    | _ -> None
-  in
-  aux 0 enclosings
+      | Ordering.Lt, Ordering.Lt
+      | Ordering.Lt, Ordering.Eq
+      | Ordering.Lt, Ordering.Gt
+      | Ordering.Eq, Ordering.Gt -> None)
+    enclosings
 
 let dispatch_command pipeline command first_index index =
   let rec aux i acc = function
@@ -167,25 +163,31 @@ let dispatch_without_range_end pipeline position index =
   let command = make_enclosing_command position index in
   dispatch_command pipeline command 0 index
 
-let dispatch_type_enclosing text_document_position index range_end pipeline =
-  let position =
-    Position.logical
-      text_document_position.Lsp.Types.TextDocumentPositionParams.position
+let dispatch_type_enclosing
+    (text_document_position : TextDocumentPositionParams.t) index range_end
+    pipeline =
+  let position = Position.logical text_document_position.position in
+  let result =
+    match range_end with
+    | None -> dispatch_without_range_end pipeline position index
+    | Some range_end ->
+      dispatch_with_range_end pipeline position index range_end
   in
-  match range_end with
-  | None -> dispatch_without_range_end pipeline position index
-  | Some range_end -> dispatch_with_range_end pipeline position index range_end
+  let type_, enclosings =
+    match result with
+    | None -> ("<no information>", [])
+    | Some (typ, enclosings) -> (typ, enclosings)
+  in
+  yojson_of_t { index; type_; enclosings }
 
 let on_request ~params state =
   Fiber.of_thunk (fun () ->
-      let open Fiber.O in
-      let { index; verbosity; text_document_position; range_end; _ } =
-        of_yojson_exn params
+      let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
+      let Request_params.
+            { index; verbosity; text_document_position; range_end; _ } =
+        Request_params.t_of_yojson params
       in
       let uri = text_document_position.textDocument.uri in
       let verbosity = Mconfig.Verbosity.Lvl verbosity in
-      let+ result =
-        with_pipeline state uri verbosity
-        @@ dispatch_type_enclosing text_document_position index range_end
-      in
-      render_result index result)
+      with_pipeline state uri verbosity
+      @@ dispatch_type_enclosing text_document_position index range_end)

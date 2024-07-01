@@ -26,7 +26,7 @@ module Util = struct
   let print_type_enclosing result =
     result |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
 
-  let test ?(verbosity = 0) ?(index = 0) ?range_end ~line ~character source =
+  let test ?range_end ~verbosity ~index ~line ~character source =
     let position = Position.create ~line ~character in
     let range_end =
       Option.map
@@ -53,8 +53,10 @@ let%expect_test {|
     =
   let source = "let x = string_of_int 2002" in
   let line = 0
-  and character = 4 in
-  Util.test ~line ~character source;
+  and character = 4
+  and verbosity = 0
+  and index = 0 in
+  Util.test ~verbosity ~index ~line ~character source;
   [%expect
     {|
     {
@@ -79,8 +81,10 @@ let%expect_test {|
     =
   let source = "let x = string_of_int 2002" in
   let line = 0
-  and character = 23 in
-  Util.test ~line ~character source;
+  and character = 23
+  and verbosity = 0
+  and index = 0 in
+  Util.test ~verbosity ~index ~line ~character source;
   [%expect
     {|
     {
@@ -112,8 +116,9 @@ let%expect_test {|
   let source = "let x = string_of_int 2002" in
   let line = 0
   and character = 23
+  and verbosity = 0
   and index = 1 in
-  Util.test ~line ~character ~index source;
+  Util.test ~verbosity ~line ~character ~index source;
   [%expect
     {|
     {
@@ -161,8 +166,10 @@ module A = struct
 end|}
   in
   let line = 16
-  and character = 6 in
-  Util.test ~verbosity:1 ~line ~character source;
+  and character = 6
+  and verbosity = 1
+  and index = 0 in
+  Util.test ~verbosity ~index ~line ~character source;
   [%expect
     {|
     {
@@ -214,8 +221,9 @@ end|}
   in
   let line = 16
   and character = 6
+  and verbosity = 0
   and index = 2 in
-  Util.test ~line ~character ~index source;
+  Util.test ~verbosity ~line ~character ~index source;
   [%expect
     {|
     {
@@ -268,8 +276,10 @@ module A = struct
 end|}
   in
   let line = 10
-  and character = 18 in
-  Util.test ~line ~character source;
+  and character = 18
+  and verbosity = 0
+  and index = 0 in
+  Util.test ~verbosity ~index ~line ~character source;
   [%expect
     {|
     {
@@ -335,8 +345,9 @@ end|}
   in
   let line = 10
   and character = 18
+  and verbosity = 0
   and index = 1 in
-  Util.test ~index ~line ~character source;
+  Util.test ~verbosity ~index ~line ~character source;
   [%expect
     {|
     {
@@ -402,8 +413,10 @@ end|}
   in
   let line = 10
   and character = 18
+  and verbosity = 0
+  and index = 0
   and range_end = (7, 17) in
-  Util.test ~range_end ~line ~character source;
+  Util.test ~verbosity ~index ~range_end ~line ~character source;
   [%expect
     {|
     {
@@ -463,8 +476,9 @@ end|}
   let line = 10
   and character = 18
   and range_end = (7, 17)
+  and verbosity = 0
   and index = 2 in
-  Util.test ~range_end ~index ~line ~character source;
+  Util.test ~verbosity ~range_end ~index ~line ~character source;
   [%expect
     {|
     {
