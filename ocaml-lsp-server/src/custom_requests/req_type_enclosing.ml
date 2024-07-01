@@ -103,8 +103,7 @@ let make_enclosing_command position index =
   Query_protocol.Type_enclosing (None, position, Some index)
 
 let get_first_enclosing_index range_end enclosings =
-  List.find_mapi
-    ~f:(fun i (loc, _, _) ->
+  List.find_mapi enclosings ~f:(fun i (loc, _, _) ->
       let range = Range.of_loc loc in
       match
         ( Position.compare range_end range.start
@@ -119,7 +118,6 @@ let get_first_enclosing_index range_end enclosings =
       | Ordering.Lt, Ordering.Eq
       | Ordering.Lt, Ordering.Gt
       | Ordering.Eq, Ordering.Gt -> None)
-    enclosings
 
 let dispatch_command pipeline command first_index index =
   let rec aux i acc = function
