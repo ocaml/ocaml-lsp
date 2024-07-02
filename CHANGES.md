@@ -42,6 +42,8 @@
   [`ocamllsp/merlinCallCompatible`](https://github.com/ocaml/ocaml-lsp/blob/e165f6a3962c356adc7364b9ca71788e93489dd0/ocaml-lsp-server/docs/ocamllsp/merlinCallCompatible-spec.md)
   request (#1265)
 
+- Add custom [`ocamllsp/typeEnclosing`](https://github.com/ocaml/ocaml-lsp/blob/109801e56f2060caf4487427bede28b824f4f1fe/ocaml-lsp-server/docs/ocamllsp/typeEnclosing-spec.md) request (#1304)
+
 
 ## Fixes
 

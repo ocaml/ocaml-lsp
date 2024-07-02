@@ -60,6 +60,7 @@
     start_stop
     syntax_doc_tests
     test
+    type_enclosing
     with_pp
     with_ppx
     workspace_change_config))))
