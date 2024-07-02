@@ -51,8 +51,7 @@ module Request_params = struct
 
   let range_end_of_yojson params =
     match List.assoc_opt "rangeEnd" params with
-    | Some range_end -> (
-      try Some (Position.t_of_yojson range_end) with _ -> None)
+    | Some range_end -> Some (Position.t_of_yojson range_end)
     | _ ->
       (* If the parameter is incorrectly formatted or missing, it is assumed that
          the we do not provide rangeEnd parameter. *)
@@ -127,12 +126,13 @@ let dispatch_command pipeline command first_index index =
         , List.map
             ~f:(fun (loc, _, _) -> Range.of_loc loc)
             (List.rev_append acc enclosings) )
-    | curr :: enclosings when i >= first_index ->
-      aux (succ i) (curr :: acc) enclosings
-    | _ :: enclosings -> aux (succ i) acc enclosings
+    | curr :: enclosings -> aux (succ i) (curr :: acc) enclosings
     | [] -> None
   in
-  aux 0 [] (Query_commands.dispatch pipeline command)
+  let result =
+    List.drop (Query_commands.dispatch pipeline command) first_index
+  in
+  aux 0 [] result
 
 let dispatch_with_range_end pipeline position index range_end =
   (* merlin's `type-enclosing` command takes a position and returns a list of
@@ -155,7 +155,7 @@ let dispatch_with_range_end pipeline position index range_end =
     ~f:(fun first_index ->
       let real_index = first_index + index in
       let command = make_enclosing_command position real_index in
-      dispatch_command pipeline command first_index real_index)
+      dispatch_command pipeline command first_index index)
 
 let dispatch_without_range_end pipeline position index =
   let command = make_enclosing_command position index in

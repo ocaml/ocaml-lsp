@@ -41,6 +41,8 @@ include struct
     let filter t ~f = List.filter t ~f
 
     let tl t = List.tl t
+
+    let drop xs i = List.drop xs i
   end
 
   module Map = Map
