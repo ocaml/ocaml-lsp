@@ -4,9 +4,9 @@ module Request_params : sig
   type t
 
   val create :
-       ?range_end:Position.t
-    -> ?verbosity:int
-    -> text_document_position:Lsp.Types.TextDocumentPositionParams.t
+       ?verbosity:int
+    -> text_document:Lsp.Types.TextDocumentIdentifier.t
+    -> at:[ `Position of Position.t | `Range of Range.t ]
     -> index:int
     -> unit
     -> t

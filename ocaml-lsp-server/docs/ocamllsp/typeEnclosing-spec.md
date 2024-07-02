@@ -25,11 +25,10 @@ There is no client capability relative to this request.
 
   ```json
   {
-    "textDocument": TextDocumentIdentifier,
-    "position": Position,
+    "uri": TextDocumentIdentifier,
+    "at": (Position | Range),
     "index": uinteger,
     "verbosity?": uinteger,
-    "rangeEnd?": Position
   }
   ```
 
@@ -37,9 +36,10 @@ There is no client capability relative to this request.
     the types lazily: normally, Merlin would return the signature of all enclosing
     modules, which can be very expensive.
   - `verbosity` determines the number of expansions of aliases in answers.
-  - `rangeEnd` an optional end position. If provided, only enclosings that contain the
-    range `[super.position; end[` will be included in the answer.
-
+  - `at` :
+    - if a `Position` is given, it will returns all enclosing around the position
+    - if a `Range` is given, only enclosings that contain the range
+    `[range.start; range.end[` will be included in the answer
 
 
 ## Response

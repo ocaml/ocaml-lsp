@@ -1,20 +1,23 @@
 open Test.Import
 
 module Util = struct
-  let call_type_enclosing ?(verbosity = 0) ?range_end client position index =
+  let call_type_enclosing ?(verbosity = 0) client at index =
     let uri = DocumentUri.of_path "test.ml" in
     let text_document = TextDocumentIdentifier.create ~uri in
+    let at =
+      match at with
+      | `Range r -> Range.yojson_of_t r
+      | `Position p -> Position.yojson_of_t p
+    in
     let params =
-      `Assoc
-        ([ ("textDocument", TextDocumentIdentifier.yojson_of_t text_document)
-         ; ("position", Position.yojson_of_t position)
-         ; ("index", `Int index)
-         ; ("verbosity", `Int verbosity)
-         ]
-        @
-        match range_end with
-        | None -> []
-        | Some x -> [ ("rangeEnd", Position.yojson_of_t x) ])
+      match TextDocumentIdentifier.yojson_of_t text_document with
+      | `Assoc assoc ->
+        `Assoc
+          (("at", at)
+          :: ("index", `Int index)
+          :: ("verbosity", `Int verbosity)
+          :: assoc)
+      | _ -> (* unreachable *) assert false
     in
     let params = Some (Jsonrpc.Structured.t_of_yojson params) in
     let req =
@@ -27,21 +30,102 @@ module Util = struct
     result |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
 
   let test ?range_end ~verbosity ~index ~line ~character source =
-    let position = Position.create ~line ~character in
-    let range_end =
-      Option.map
-        ~f:(fun (line, character) -> Position.create ~line ~character)
-        range_end
+    let start = Position.create ~line ~character in
+    let at =
+      match range_end with
+      | None -> `Position start
+      | Some (character, line) ->
+        let end_ = Position.create ~character ~line in
+        let range = Range.create ~start ~end_ in
+        `Range range
     in
     let request client =
       let open Fiber.O in
-      let+ response =
-        call_type_enclosing ~verbosity ?range_end client position index
-      in
+      let+ response = call_type_enclosing ~verbosity client at index in
       print_type_enclosing response
     in
     Helpers.test source request
 end
+
+let%expect_test "Application of function without range end" =
+  let source = "string_of_int 42" in
+  let line = 0
+  and character = 0
+  and verbosity = 0
+  and index = 0 in
+  Util.test ~verbosity ~index ~line ~character source;
+  [%expect
+    {|
+    {
+      "index": 0,
+      "enclosings": [
+        {
+          "end": { "character": 13, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        },
+        {
+          "end": { "character": 13, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        },
+        {
+          "end": { "character": 16, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        }
+      ],
+      "type": "int -> string"
+    } |}]
+
+let%expect_test "Application of function with range end (including the current \
+                 enclosing) it should not change the result" =
+  let source = "string_of_int 42" in
+  let line = 0
+  and character = 0
+  and range_end = (13, 0)
+  and verbosity = 0
+  and index = 0 in
+  Util.test ~range_end ~verbosity ~index ~line ~character source;
+  [%expect
+    {|
+    {
+      "index": 0,
+      "enclosings": [
+        {
+          "end": { "character": 13, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        },
+        {
+          "end": { "character": 13, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        },
+        {
+          "end": { "character": 16, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        }
+      ],
+      "type": "int -> string"
+    } |}]
+
+let%expect_test "Application of function with range end (excluding the current \
+                 enclosing)" =
+  let source = "string_of_int 42" in
+  let line = 0
+  and character = 0
+  and range_end = (14, 0)
+  and verbosity = 0
+  and index = 0 in
+  Util.test ~range_end ~verbosity ~index ~line ~character source;
+  [%expect
+    {|
+    {
+      "index": 0,
+      "enclosings": [
+        {
+          "end": { "character": 16, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        }
+      ],
+      "type": "string"
+    } |}]
 
 let%expect_test {|
   The cursor is positioned on [x].
@@ -68,6 +152,37 @@ let%expect_test {|
         }
       ],
       "type": "string"
+    } |}]
+
+let%expect_test {|
+  The cursor is positioned on [string_of_int] and we do not give a range.
+|}
+    =
+  let source = "let x = string_of_int 2002" in
+  let line = 0
+  and character = 8
+  and verbosity = 0
+  and index = 0 in
+  Util.test ~verbosity ~index ~line ~character source;
+  [%expect
+    {|
+    {
+      "index": 0,
+      "enclosings": [
+        {
+          "end": { "character": 21, "line": 0 },
+          "start": { "character": 8, "line": 0 }
+        },
+        {
+          "end": { "character": 21, "line": 0 },
+          "start": { "character": 8, "line": 0 }
+        },
+        {
+          "end": { "character": 26, "line": 0 },
+          "start": { "character": 8, "line": 0 }
+        }
+      ],
+      "type": "int -> string"
     } |}]
 
 let%expect_test {|
@@ -138,7 +253,7 @@ let%expect_test {|
 
 let%expect_test {|
   First, let's locate on [A.z], we expect the type [t], but we
-  will increase the verbosity in order to get the fuill expansion of
+  will increase the verbosity in order to get the full expansion of
   [type t]. And we will have 3 enclosings:
   0 : [16:06 - 16:07], the [z] expr.
   1 : [02:11 - 17:03], the [struct ... end] expr.
@@ -379,127 +494,4 @@ end|}
         }
       ],
       "type": "b * int"
-    } |}]
-
-let%expect_test {|
-  Now, the list is a little bit to large and we just want enclosings
-  that start at the [struct ... end] attached to the module B.
-  We use a [range_end] argument.
-
-  0. [07:13 - 12:05] the [struct .. end] (of [module B])
-  1. [02:11 - 17:03] the [struct .. end] (of [module A])
-  2. [02:00 - 17:03], the [module A] expr.
-|}
-    =
-  let source =
-    {|type a = Foo | Bar
-
-module A = struct
-  let f () = 10
-  let g = Bar
-  let h x = x
-
-  module B = struct
-    type b = Baz
-
-    let x = (Baz, 10)
-    let y = (Bar, Foo)
-  end
-
-  type t = { a : string; b : float }
-
-  let z = { a = "Hello"; b = 1.0 }
-end|}
-  in
-  let line = 10
-  and character = 18
-  and verbosity = 0
-  and index = 0
-  and range_end = (7, 17) in
-  Util.test ~verbosity ~index ~range_end ~line ~character source;
-  [%expect
-    {|
-    {
-      "index": 0,
-      "enclosings": [
-        {
-          "end": { "character": 5, "line": 12 },
-          "start": { "character": 13, "line": 7 }
-        },
-        {
-          "end": { "character": 5, "line": 12 },
-          "start": { "character": 2, "line": 7 }
-        },
-        {
-          "end": { "character": 3, "line": 17 },
-          "start": { "character": 11, "line": 2 }
-        },
-        {
-          "end": { "character": 3, "line": 17 },
-          "start": { "character": 0, "line": 2 }
-        }
-      ],
-      "type": "sig type b = Baz val x : b * int val y : a * a end"
-    } |}]
-
-let%expect_test {|
-  Now, the list is a little bit to large and we just want enclosings
-  that start at the [struct ... end] attached to the module B.
-  We use a [range_end] argument and we can couple it with [index],
-  [2] for example, we get the type of [module A].
-
-  0. [07:13 - 12:05] the [struct .. end] (of [module B])
-  1. [02:11 - 17:03] the [struct .. end] (of [module A])
-  2. [02:00 - 17:03], the [module A] expr.
-|}
-    =
-  let source =
-    {|type a = Foo | Bar
-
-module A = struct
-  let f () = 10
-  let g = Bar
-  let h x = x
-
-  module B = struct
-    type b = Baz
-
-    let x = (Baz, 10)
-    let y = (Bar, Foo)
-  end
-
-  type t = { a : string; b : float }
-
-  let z = { a = "Hello"; b = 1.0 }
-end|}
-  in
-  let line = 10
-  and character = 18
-  and range_end = (7, 17)
-  and verbosity = 0
-  and index = 2 in
-  Util.test ~verbosity ~range_end ~index ~line ~character source;
-  [%expect
-    {|
-    {
-      "index": 2,
-      "enclosings": [
-        {
-          "end": { "character": 5, "line": 12 },
-          "start": { "character": 13, "line": 7 }
-        },
-        {
-          "end": { "character": 5, "line": 12 },
-          "start": { "character": 2, "line": 7 }
-        },
-        {
-          "end": { "character": 3, "line": 17 },
-          "start": { "character": 11, "line": 2 }
-        },
-        {
-          "end": { "character": 3, "line": 17 },
-          "start": { "character": 0, "line": 2 }
-        }
-      ],
-      "type": "sig\n  val f : unit -> int\n  val g : a\n  val h : 'a -> 'a\n  module B : sig type b = Baz val x : b * int val y : a * a end\n  type t = { a : string; b : float; }\n  val z : t\nend"
     } |}]
