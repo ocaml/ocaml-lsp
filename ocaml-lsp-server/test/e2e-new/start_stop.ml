@@ -92,7 +92,8 @@ let%expect_test "start/stop" =
             "handleWrappingAstNode": true,
             "diagnostic_promotions": true,
             "handleHoverExtended": true,
-            "handleMerlinCallCompatible": true
+            "handleMerlinCallCompatible": true,
+            "handleTypeEnclosing": true
           }
         },
         "foldingRangeProvider": true,

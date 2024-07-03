@@ -28,6 +28,8 @@ include struct
 
     let findi xs ~f = List.findi xs ~f
 
+    let find_mapi xs ~f = List.find_mapi xs ~f
+
     let sub xs ~pos ~len = List.sub xs ~pos ~len
 
     let hd_exn t = List.hd_exn t
@@ -39,6 +41,8 @@ include struct
     let filter t ~f = List.filter t ~f
 
     let tl t = List.tl t
+
+    let drop xs i = List.drop xs i
   end
 
   module Map = Map
