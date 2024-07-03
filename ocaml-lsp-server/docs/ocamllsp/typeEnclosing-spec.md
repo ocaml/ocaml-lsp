@@ -39,7 +39,7 @@ There is no client capability relative to this request.
   - `at` :
     - if a `Position` is given, it will returns all enclosing around the position
     - if a `Range` is given, only enclosings that contain the range
-    `[range.start; range.end[` will be included in the answer
+    `[range.start; range.end]` will be included in the answer
 
 
 ## Response
