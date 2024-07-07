@@ -36,7 +36,16 @@ let find_unused_diagnostic pos ds =
       | `Outside _ -> false
       | `Inside -> true)
   |> List.find_map ~f:(fun (d : Diagnostic.t) ->
-         let* group = Re.exec_opt diagnostic_regex d.message in
+         let* group =
+           let message =
+             match d.message with
+             | `String m -> m
+             | `MarkupContent { value = m; _ } ->
+               (* TODO: this is wrong *)
+               m
+           in
+           Re.exec_opt diagnostic_regex message
+         in
          let+ kind =
            List.find_map diagnostic_regex_marks ~f:(fun (m, k) ->
                if Re.Mark.test group m then Some k else None)

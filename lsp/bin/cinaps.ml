@@ -49,10 +49,6 @@ let preprocess_metamodel =
       let open Metamodel.Path in
       match path with
       | Top (Structure s)
-        when p.name = "experimental" && s.name = "ServerCapabilities" ->
-        assert (p.type_ = Metamodel.Reference "T");
-        update_type (Metamodel.Reference "LSPAny")
-      | Top (Structure s)
         when p.name = "trace"
              && (s.name = "_InitializeParams" || s.name = "InitializeParams") ->
         update_type (Reference "TraceValues")

@@ -127,6 +127,7 @@ module Prim : sig
     | Bool
     | Number
     | Uinteger
+    | Uri
     | Any
     | Object
     | List

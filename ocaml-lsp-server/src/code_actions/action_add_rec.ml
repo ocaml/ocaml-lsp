@@ -68,7 +68,12 @@ let code_action pipeline doc (params : CodeActionParams.t) =
   let pos_start = Position.logical params.range.start in
   let* diagnostic =
     List.find params.context.diagnostics ~f:(fun (d : Diagnostic.t) ->
-        let is_unbound () = String.is_prefix d.message ~prefix:"Unbound value"
+        let is_unbound () =
+          String.is_prefix
+            ~prefix:"Unbound value"
+            (match d.message with
+            | `String m -> m
+            | `MarkupContent { value; _ } -> value)
         and in_range () =
           match Position.compare_inclusion params.range.start d.range with
           | `Outside _ -> false
