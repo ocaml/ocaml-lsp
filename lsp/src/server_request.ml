@@ -17,6 +17,9 @@ type _ t =
   | CodeLensRefresh : unit t
   | SemanticTokensRefresh : unit t
   | WorkspaceDiagnosticRefresh : unit t
+  | WorkspaceFoldingRangeRefresh : unit t
+  | WorkspaceInlayHintRefresh : unit t
+  | WorkspaceInlineValueRefresh : unit t
   | UnknownRequest : string * Jsonrpc.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
@@ -34,6 +37,9 @@ let method_ (type a) (t : a t) =
   | CodeLensRefresh -> "workspace/codeLens/refresh"
   | SemanticTokensRefresh -> "workspace/semanticTokens/refresh"
   | WorkspaceDiagnosticRefresh -> "workspace/diagnostic/refresh"
+  | WorkspaceFoldingRangeRefresh -> "workspace/foldingRange/refresh"
+  | WorkspaceInlayHintRefresh -> "workspace/inlayHint/refresh"
+  | WorkspaceInlineValueRefresh -> "workspace/inlineValue/refresh"
   | UnknownRequest (r, _) -> r
 
 let params =
@@ -56,6 +62,9 @@ let params =
       ret (WorkDoneProgressCreateParams.yojson_of_t params)
     | CodeLensRefresh -> None
     | SemanticTokensRefresh -> None
+    | WorkspaceFoldingRangeRefresh
+    | WorkspaceInlayHintRefresh
+    | WorkspaceInlineValueRefresh
     | WorkspaceDiagnosticRefresh -> None
     | UnknownRequest (_, params) -> params
 
@@ -92,6 +101,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
     E (WorkDoneProgressCreate params)
   | "workspace/codeLens/refresh" -> Ok (E CodeLensRefresh)
   | "workspace/semanticTokens/refresh" -> Ok (E SemanticTokensRefresh)
+  | "workspace/foldingRange/refresh" -> Ok (E WorkspaceFoldingRangeRefresh)
+  | "workspace/inlayHint/refresh" -> Ok (E WorkspaceInlayHintRefresh)
+  | "workspace/inlineValue/refresh" -> Ok (E WorkspaceInlineValueRefresh)
   | m -> Ok (E (UnknownRequest (m, r.params)))
 
 let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
@@ -109,6 +121,9 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   | CodeLensRefresh, _ -> `Null
   | SemanticTokensRefresh, _ -> `Null
   | WorkspaceDiagnosticRefresh, _ -> `Null
+  | WorkspaceFoldingRangeRefresh, _ -> `Null
+  | WorkspaceInlayHintRefresh, _ -> `Null
+  | WorkspaceInlineValueRefresh, _ -> `Null
   | UnknownRequest (_, _), json -> json
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
@@ -125,4 +140,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | CodeLensRefresh -> unit_of_yojson json
   | SemanticTokensRefresh -> unit_of_yojson json
   | WorkspaceDiagnosticRefresh -> unit_of_yojson json
+  | WorkspaceFoldingRangeRefresh -> unit_of_yojson json
+  | WorkspaceInlayHintRefresh -> unit_of_yojson json
+  | WorkspaceInlineValueRefresh -> unit_of_yojson json
   | UnknownRequest (_, _) -> json
