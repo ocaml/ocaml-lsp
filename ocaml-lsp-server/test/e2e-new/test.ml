@@ -168,19 +168,21 @@ end
 
 include T
 
-let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
+let drain_diagnostics () =
   let diagnostics = Fiber.Ivar.create () in
-  let handler =
-    Client.Handler.make
-      ~on_notification:(fun _ -> function
-        | PublishDiagnostics _ -> (
-          let* diag = Fiber.Ivar.peek diagnostics in
-          match diag with
-          | Some _ -> Fiber.return ()
-          | None -> Fiber.Ivar.fill diagnostics ())
-        | _ -> Fiber.return ())
-      ()
+  let on_notification _ = function
+    | Lsp.Server_notification.PublishDiagnostics _ -> (
+      let* diag = Fiber.Ivar.peek diagnostics in
+      match diag with
+      | Some _ -> Fiber.return ()
+      | None -> Fiber.Ivar.fill diagnostics ())
+    | _ -> Fiber.return ()
   in
+  (on_notification, diagnostics)
+
+let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
+  let on_notification, diagnostics = drain_diagnostics () in
+  let handler = Client.Handler.make ~on_notification () in
   run ~handler @@ fun client ->
   let run_client () =
     let capabilities =
