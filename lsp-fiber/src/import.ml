@@ -27,11 +27,11 @@ module Json = struct
     | List xs -> `List (List.map ~f:of_dyn xs)
     | Array xs -> `List (List.map ~f:of_dyn (Array.to_list xs))
     | Tuple xs -> `List (List.map ~f:of_dyn xs)
-    | Record r -> `Assoc (List.map r ~f:(fun (k, v) -> (k, of_dyn v)))
-    | Variant (name, args) -> `Assoc [ (name, of_dyn (List args)) ]
+    | Record r -> `Assoc (List.map r ~f:(fun (k, v) -> k, of_dyn v))
+    | Variant (name, args) -> `Assoc [ name, of_dyn (List args) ]
     | Set xs -> `List (List.map ~f:of_dyn xs)
-    | Map map ->
-      `List (List.map map ~f:(fun (k, v) -> `List [ of_dyn k; of_dyn v ]))
+    | Map map -> `List (List.map map ~f:(fun (k, v) -> `List [ of_dyn k; of_dyn v ]))
+  ;;
 
   let rec to_dyn (t : t) : Dyn.t =
     match t with
@@ -39,18 +39,18 @@ module Json = struct
     | `Int i -> Int i
     | `Float f -> Float f
     | `Bool f -> Bool f
-    | `Assoc o -> Record (List.map o ~f:(fun (k, v) -> (k, to_dyn v)))
+    | `Assoc o -> Record (List.map o ~f:(fun (k, v) -> k, to_dyn v))
     | `List l -> List (List.map l ~f:to_dyn)
     | `Tuple args -> Tuple (List.map args ~f:to_dyn)
     | `Null -> Dyn.Variant ("Null", [])
     | `Variant (name, Some arg) -> Variant (name, [ to_dyn arg ])
     | `Variant (name, None) -> Variant (name, [])
     | `Intlit s -> String s
+  ;;
 end
 
 module Log = struct
   let level : (string option -> bool) ref = ref (fun _ -> false)
-
   let out = ref Format.err_formatter
 
   type message =
@@ -61,15 +61,17 @@ module Log = struct
   let msg message payload = { message; payload }
 
   let log ?section k =
-    if !level section then (
+    if !level section
+    then (
       let message = k () in
       (match section with
-      | None -> Format.fprintf !out "%s@." message.message
-      | Some section -> Format.fprintf !out "[%s] %s@." section message.message);
+       | None -> Format.fprintf !out "%s@." message.message
+       | Some section -> Format.fprintf !out "[%s] %s@." section message.message);
       (match message.payload with
-      | [] -> ()
-      | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields));
+       | [] -> ()
+       | fields -> Format.fprintf !out "%a@." Json.pp (`Assoc fields));
       Format.pp_print_flush !out ())
+  ;;
 end
 
 let sprintf = Stdune.sprintf
@@ -86,4 +88,5 @@ module Jrpc_id = struct
   let to_dyn = function
     | `String s -> Dyn.String s
     | `Int i -> Dyn.Int i
+  ;;
 end

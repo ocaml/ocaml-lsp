@@ -9,7 +9,6 @@ module Experimental_capabilities : sig
   type t
 
   val of_opt_json : Json.t option -> t
-
   val supportsJumpToNextHole : t -> bool
 end
 
@@ -38,6 +37,5 @@ module Custom_commands : sig
       @param notify_if_no_hole
         specifies whether we want the client to show the user a message if there
         is no hole to jump to *)
-  val next_hole :
-    ?in_range:Range.t -> notify_if_no_hole:bool -> unit -> Command.t
+  val next_hole : ?in_range:Range.t -> notify_if_no_hole:bool -> unit -> Command.t
 end

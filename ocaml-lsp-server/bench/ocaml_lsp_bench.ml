@@ -10,18 +10,11 @@ let () =
   Command_unix.run
     (Bench.make_command
        [ Bench.Test.create ~name:"get_prefix" (fun _ ->
-             Testing.Compl.prefix_of_position
-               ~short_path:false
-               document
-               position
-             |> ignore)
+           Testing.Compl.prefix_of_position ~short_path:false document position |> ignore)
        ; Bench.Test.create ~name:"get_prefix_long" (fun _ ->
-             Testing.Compl.prefix_of_position
-               ~short_path:false
-               long_document
-               long_position
-             |> ignore)
+           Testing.Compl.prefix_of_position ~short_path:false long_document long_position
+           |> ignore)
        ; Bench.Test.create ~name:"get_offset_long" (fun _ ->
-             Merlin_kernel.Msource.get_offset long_document long_position
-             |> ignore)
+           Merlin_kernel.Msource.get_offset long_document long_position |> ignore)
        ])
+;;

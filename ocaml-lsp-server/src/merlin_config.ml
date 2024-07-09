@@ -37,12 +37,14 @@ module List = struct
     let tbl = Hashtbl.create 17 in
     let f a b =
       let b' = equiv b in
-      if Hashtbl.mem tbl b' then a
+      if Hashtbl.mem tbl b'
+      then a
       else (
         Hashtbl.add tbl b' ();
         b :: a)
     in
     rev (fold_left ~f ~init:[] lst)
+  ;;
 
   let filter_dup lst = filter_dup' ~equiv:(fun x -> x) lst
 end
@@ -75,6 +77,7 @@ module Config = struct
     ; exclude_query_dir = false
     ; use_ppx_cache = false
     }
+  ;;
 
   (* Parses suffixes pairs that were supplied as whitespace separated pairs
      designating implementation/interface suffixes. These would be supplied in
@@ -87,37 +90,35 @@ module Config = struct
       String.extract_blank_separated_words trimmed
     with
     | [ first; second ] ->
-      if String.get first 0 <> '.' || String.get second 0 <> '.' then []
-      else [ (first, second) ]
+      if String.get first 0 <> '.' || String.get second 0 <> '.'
+      then []
+      else [ first, second ]
     | _ -> []
+  ;;
 
-  let prepend ~dir:cwd (directives : Merlin_dot_protocol.directive list) config
-      =
+  let prepend ~dir:cwd (directives : Merlin_dot_protocol.directive list) config =
     List.fold_left ~init:(config, []) directives ~f:(fun (config, errors) ->
-      function
-      | `B path ->
-        ({ config with build_path = path :: config.build_path }, errors)
-      | `S path ->
-        ({ config with source_path = path :: config.source_path }, errors)
-      | `CMI path -> ({ config with cmi_path = path :: config.cmi_path }, errors)
-      | `CMT path -> ({ config with cmt_path = path :: config.cmt_path }, errors)
-      | `EXT exts ->
-        ({ config with extensions = exts @ config.extensions }, errors)
-      | `SUFFIX suffix ->
-        ( { config with suffixes = parse_suffix suffix @ config.suffixes }
-        , errors )
-      | `FLG flags ->
-        let flags = { Std.workdir = cwd; workval = flags } in
-        ({ config with flags = flags :: config.flags }, errors)
-      | `STDLIB path -> ({ config with stdlib = Some path }, errors)
-      | `READER reader -> ({ config with reader }, errors)
-      | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
-      | `USE_PPX_CACHE -> ({ config with use_ppx_cache = true }, errors)
-      | `UNKNOWN_TAG _ ->
-        (* For easier forward compatibility we ignore unknown configuration tags
-           when they are provided by dune *)
-        (config, errors)
-      | `ERROR_MSG str -> (config, str :: errors))
+        function
+        | `B path -> { config with build_path = path :: config.build_path }, errors
+        | `S path -> { config with source_path = path :: config.source_path }, errors
+        | `CMI path -> { config with cmi_path = path :: config.cmi_path }, errors
+        | `CMT path -> { config with cmt_path = path :: config.cmt_path }, errors
+        | `EXT exts -> { config with extensions = exts @ config.extensions }, errors
+        | `SUFFIX suffix ->
+          { config with suffixes = parse_suffix suffix @ config.suffixes }, errors
+        | `FLG flags ->
+          let flags = { Std.workdir = cwd; workval = flags } in
+          { config with flags = flags :: config.flags }, errors
+        | `STDLIB path -> { config with stdlib = Some path }, errors
+        | `READER reader -> { config with reader }, errors
+        | `EXCLUDE_QUERY_DIR -> { config with exclude_query_dir = true }, errors
+        | `USE_PPX_CACHE -> { config with use_ppx_cache = true }, errors
+        | `UNKNOWN_TAG _ ->
+          (* For easier forward compatibility we ignore unknown configuration tags
+             when they are provided by dune *)
+          config, errors
+        | `ERROR_MSG str -> config, str :: errors)
+  ;;
 
   let postprocess =
     let clean list = List.rev (List.filter_dup list) in
@@ -134,6 +135,7 @@ module Config = struct
       ; exclude_query_dir = config.exclude_query_dir
       ; use_ppx_cache = config.use_ppx_cache
       }
+  ;;
 
   let merge t (merlin : Mconfig.merlin) failures config_path =
     { merlin with
@@ -150,6 +152,7 @@ module Config = struct
     ; failures = failures @ merlin.failures
     ; config_path = Some config_path
     }
+  ;;
 end
 
 module Process = struct
@@ -163,20 +166,22 @@ module Process = struct
 
   let to_dyn { pid; initial_cwd; _ } =
     let open Dyn in
-    record [ ("pid", Pid.to_dyn pid); ("initial_cwd", string initial_cwd) ]
+    record [ "pid", Pid.to_dyn pid; "initial_cwd", string initial_cwd ]
+  ;;
 
   let waitpid t =
     let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
     (match status with
-    | Unix.WEXITED n -> (
-      match n with
-      | 0 -> ()
-      | n -> Format.eprintf "dune finished with code = %d@.%!" n)
-    | WSIGNALED s -> Format.eprintf "dune finished signal = %d@.%!" s
-    | WSTOPPED _ -> ());
+     | Unix.WEXITED n ->
+       (match n with
+        | 0 -> ()
+        | n -> Format.eprintf "dune finished with code = %d@.%!" n)
+     | WSIGNALED s -> Format.eprintf "dune finished signal = %d@.%!" s
+     | WSTOPPED _ -> ());
     Format.eprintf "closed merlin process@.%s@." (Dyn.to_string @@ to_dyn t);
     Lev_fiber.Io.close t.stdin;
     Lev_fiber.Io.close t.stdout
+  ;;
 
   let start ~dir =
     match Bin.which "dune" with
@@ -194,18 +199,13 @@ module Process = struct
       let pid =
         let argv = [ prog; "ocaml-merlin"; "--no-print-directory" ] in
         Pid.of_int
-          (Spawn.spawn
-             ~cwd:(Path dir)
-             ~prog
-             ~argv
-             ~stdin:stdin_r
-             ~stdout:stdout_w
-             ())
+          (Spawn.spawn ~cwd:(Path dir) ~prog ~argv ~stdin:stdin_r ~stdout:stdout_w ())
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
       let blockity =
-        if Sys.win32 then `Blocking
+        if Sys.win32
+        then `Blocking
         else (
           Unix.set_nonblock stdin_w;
           Unix.set_nonblock stdout_r;
@@ -219,6 +219,7 @@ module Process = struct
       let+ stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
       { pid; initial_cwd = dir; stdin; stdout; session }
+  ;;
 end
 
 module Dot_protocol_io =
@@ -228,7 +229,6 @@ module Dot_protocol_io =
       include Lev_fiber_csexp.Session
 
       type in_chan = t
-
       type out_chan = t
 
       let read t =
@@ -237,6 +237,7 @@ module Dot_protocol_io =
         match opt with
         | Some r -> Result.return r
         | None -> Error "Read error"
+      ;;
 
       let write t x = write t [ x ]
     end)
@@ -258,21 +259,21 @@ module Entry = struct
   type t = entry
 
   let create db process = { db; process; ref_count = 0 }
-
   let equal = ( == )
-
   let incr t = t.ref_count <- t.ref_count + 1
 
   let destroy (t : t) =
     assert (t.ref_count > 0);
     t.ref_count <- t.ref_count - 1;
-    if t.ref_count > 0 then Fiber.return ()
+    if t.ref_count > 0
+    then Fiber.return ()
     else (
       Table.remove t.db.running t.process.initial_cwd;
       Format.eprintf
         "halting dune merlin process@.%s@."
         (Dyn.to_string (Process.to_dyn t.process));
       Dot_protocol_io.Commands.halt t.process.session)
+  ;;
 end
 
 let get_process t ~dir =
@@ -284,6 +285,7 @@ let get_process t ~dir =
     Table.add_exn t.running dir entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
     entry
+;;
 
 type context =
   { workdir : string
@@ -300,20 +302,18 @@ let get_config (p : Process.t) ~workdir path_abs =
   let path_rel =
     String.drop_prefix ~prefix:p.initial_cwd path_abs
     |> Option.map ~f:(fun path ->
-           (* We need to remove the leading path separator after chopping. There
-              is one case where no separator is left: when [initial_cwd] was the
-              root of the filesystem *)
-           if String.length path > 0 && path.[0] = Filename.dir_sep.[0] then
-             String.drop path 1
-           else path)
+      (* We need to remove the leading path separator after chopping. There
+         is one case where no separator is left: when [initial_cwd] was the
+         root of the filesystem *)
+      if String.length path > 0 && path.[0] = Filename.dir_sep.[0]
+      then String.drop path 1
+      else path)
   in
-
   let path =
     match path_rel with
     | Some path_rel -> path_rel
     | _ -> path_abs
   in
-
   (* Starting with Dune 2.8.3 relative paths are prefered. However to maintain
      compatibility with 2.8 <= Dune <= 2.8.2 we always retry with an absolute
      path if using a relative one failed *)
@@ -323,22 +323,23 @@ let get_config (p : Process.t) ~workdir path_abs =
     | Ok [ `ERROR_MSG _ ] -> query path_abs p
     | answer -> Fiber.return answer
   in
-
   match answer with
   | Ok directives ->
     let cfg, failures = Config.prepend ~dir:workdir directives Config.empty in
-    (Config.postprocess cfg, failures)
-  | Error (Merlin_dot_protocol.Unexpected_output msg) -> (Config.empty, [ msg ])
+    Config.postprocess cfg, failures
+  | Error (Merlin_dot_protocol.Unexpected_output msg) -> Config.empty, [ msg ]
   | Error (Csexp_parse_error _) ->
     ( Config.empty
-    , [ "ocamllsp could not load its configuration from the external reader. \
-         Building your project with `dune` might solve this issue."
+    , [ "ocamllsp could not load its configuration from the external reader. Building \
+         your project with `dune` might solve this issue."
       ] )
+;;
 
 let file_exists fname =
   match Unix.stat fname with
   | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
   | s -> s.st_kind <> S_DIR
+;;
 
 let find_project_context start_dir =
   (* The workdir is the first directory we find which contains a [dune] file. We
@@ -352,28 +353,28 @@ let find_project_context start_dir =
       let fnames = List.map ~f:(Filename.concat dir) [ "dune"; "dune-file" ] in
       if List.exists ~f:file_exists fnames then Some dir else None
   in
-
   let rec loop workdir dir =
     match
       List.find_map [ "dune-project"; "dune-workspace" ] ~f:(fun f ->
-          let fname = Filename.concat dir f in
-          if file_exists fname then
-            let workdir =
-              Misc.canonicalize_filename (Option.value ~default:dir workdir)
-            in
-            Some ({ workdir; process_dir = dir }, fname)
-          else None)
+        let fname = Filename.concat dir f in
+        if file_exists fname
+        then (
+          let workdir = Misc.canonicalize_filename (Option.value ~default:dir workdir) in
+          Some ({ workdir; process_dir = dir }, fname))
+        else None)
     with
     | Some s -> Some s
     | None ->
       let parent = Filename.dirname dir in
-      if parent <> dir then
+      if parent <> dir
+      then (
         (* Was this directory the workdir ? *)
         let workdir = map_workdir dir workdir in
-        loop workdir parent
+        loop workdir parent)
       else None
   in
   loop None start_dir
+;;
 
 type nonrec t =
   { path : string
@@ -390,6 +391,7 @@ let destroy t =
   | Some entry ->
     t.entry <- None;
     Entry.destroy entry
+;;
 
 let create db path =
   let path =
@@ -402,15 +404,11 @@ let create db path =
     let init = Mconfig.initial in
     { init with
       ocaml = { init.ocaml with real_paths = false }
-    ; query =
-        { init.query with
-          filename
-        ; directory
-        ; verbosity = Mconfig.Verbosity.Smart
-        }
+    ; query = { init.query with filename; directory; verbosity = Mconfig.Verbosity.Smart }
     }
   in
   { path; directory; initial; db; entry = None }
+;;
 
 let config (t : t) : Mconfig.t Fiber.t =
   let use_entry entry =
@@ -418,9 +416,9 @@ let config (t : t) : Mconfig.t Fiber.t =
     t.entry <- Some entry
   in
   let* () = Fiber.return () in
-  if !should_read_dot_merlin then
-    Fiber.return (Mconfig.get_external_config t.path t.initial)
-  else
+  if !should_read_dot_merlin
+  then Fiber.return (Mconfig.get_external_config t.path t.initial)
+  else (
     match find_project_context t.directory with
     | None ->
       let+ () = destroy t in
@@ -433,17 +431,16 @@ let config (t : t) : Mconfig.t Fiber.t =
           use_entry entry;
           Fiber.return ()
         | Some entry' ->
-          if Entry.equal entry entry' then Fiber.return ()
+          if Entry.equal entry entry'
+          then Fiber.return ()
           else
             let+ () = destroy t in
             use_entry entry
       in
-      let+ dot, failures =
-        get_config entry.process ~workdir:ctx.workdir t.path
-      in
-
+      let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
       let merlin = Config.merge dot t.initial.merlin failures config_path in
-      Mconfig.normalize { t.initial with merlin }
+      Mconfig.normalize { t.initial with merlin })
+;;
 
 module DB = struct
   type t = db
@@ -452,13 +449,15 @@ module DB = struct
 
   let create () =
     { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
+  ;;
 
   let run t = Fiber.Pool.run t.pool
 
   let stop t =
     let* () = Fiber.return () in
     Table.iter t.running ~f:(fun running ->
-        let pid = Pid.to_int running.process.pid in
-        Unix.kill pid (if Sys.win32 then Sys.sigkill else Sys.sigterm));
+      let pid = Pid.to_int running.process.pid in
+      Unix.kill pid (if Sys.win32 then Sys.sigkill else Sys.sigterm));
     Fiber.Pool.stop t.pool
+  ;;
 end

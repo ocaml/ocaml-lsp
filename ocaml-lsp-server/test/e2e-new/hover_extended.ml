@@ -4,9 +4,8 @@ let print_hover hover =
   match hover with
   | None -> print_endline "no hover response"
   | Some hover ->
-    hover |> Hover.yojson_of_t
-    |> Yojson.Safe.pretty_to_string ~std:false
-    |> print_endline
+    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+;;
 
 let hover client position =
   Client.request
@@ -16,9 +15,11 @@ let hover client position =
        ; textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri
        ; workDoneToken = None
        })
+;;
 
 let print_hover_extended resp =
   resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+;;
 
 let hover_extended client position verbosity =
   let params =
@@ -26,7 +27,7 @@ let hover_extended client position verbosity =
       [ ( "textDocument"
         , TextDocumentIdentifier.yojson_of_t
             (TextDocumentIdentifier.create ~uri:Helpers.uri) )
-      ; ("position", Position.yojson_of_t position)
+      ; "position", Position.yojson_of_t position
       ]
     in
     let params =
@@ -36,18 +37,15 @@ let hover_extended client position verbosity =
     in
     Some (Jsonrpc.Structured.t_of_yojson (`Assoc params))
   in
-  Client.request
-    client
-    (UnknownRequest { meth = "ocamllsp/hoverExtended"; params })
+  Client.request client (UnknownRequest { meth = "ocamllsp/hoverExtended"; params })
+;;
 
 let%expect_test "hover reference" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml}
-  in
+|ocaml} in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover client position in
@@ -73,6 +71,7 @@ let foo_value : foo = Some 1
         "start": { "character": 4, "line": 3 }
       }
     } |}]
+;;
 
 let%expect_test "hover returns type inferred under cursor in a formatted way" =
   let source =
@@ -99,15 +98,14 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
         "start": { "character": 4, "line": 1 }
       }
     } |}]
+;;
 
 let%expect_test "hover extended" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml}
-  in
+|ocaml} in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover client position in
@@ -133,15 +131,14 @@ let foo_value : foo = Some 1
         "start": { "character": 4, "line": 3 }
       }
     } |}]
+;;
 
 let%expect_test "default verbosity" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml}
-  in
+|ocaml} in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position None in
@@ -158,15 +155,14 @@ let foo_value : foo = Some 1
         "start": { "character": 4, "line": 3 }
       }
     } |}]
+;;
 
 let%expect_test "explicit verbosity 0" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml}
-  in
+|ocaml} in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position (Some 0) in
@@ -183,15 +179,14 @@ let foo_value : foo = Some 1
         "start": { "character": 4, "line": 3 }
       }
     } |}]
+;;
 
 let%expect_test "explicit verbosity 1" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml}
-  in
+|ocaml} in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position (Some 1) in
@@ -208,15 +203,14 @@ let foo_value : foo = Some 1
         "start": { "character": 4, "line": 3 }
       }
     } |}]
+;;
 
 let%expect_test "explicit verbosity 2" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml}
-  in
+|ocaml} in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position (Some 2) in
@@ -233,15 +227,14 @@ let foo_value : foo = Some 1
         "start": { "character": 4, "line": 3 }
       }
     } |}]
+;;
 
 let%expect_test "implicity verbosity increases" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml}
-  in
+|ocaml} in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position None in
@@ -276,9 +269,9 @@ let foo_value : foo = Some 1
         "start": { "character": 4, "line": 3 }
       }
     } |}]
+;;
 
-let%expect_test "hover extended returns type inferred under cursor in a \
-                 formatted way" =
+let%expect_test "hover extended returns type inferred under cursor in a formatted way" =
   let source =
     {ocaml|
 let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
@@ -303,3 +296,4 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
         "start": { "character": 4, "line": 1 }
       }
     } |}]
+;;

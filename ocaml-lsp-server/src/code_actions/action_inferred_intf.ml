@@ -23,26 +23,27 @@ let code_action_of_intf doc intf range =
     ~edit
     ~isPreferred:false
     ()
+;;
 
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Impl -> Fiber.return None
-  | `Merlin _ -> (
+  | `Merlin _ ->
     let* intf = Inference.infer_intf state doc in
-    match intf with
-    | None -> Fiber.return None
-    | Some intf ->
-      let+ formatted_intf =
-        Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ:intf
-      in
-      let intf =
-        match formatted_intf with
-        | Ok formatted_intf -> formatted_intf
-        | Error _ -> intf
-      in
-      Some (code_action_of_intf doc intf params.range))
+    (match intf with
+     | None -> Fiber.return None
+     | Some intf ->
+       let+ formatted_intf =
+         Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ:intf
+       in
+       let intf =
+         match formatted_intf with
+         | Ok formatted_intf -> formatted_intf
+         | Error _ -> intf
+       in
+       Some (code_action_of_intf doc intf params.range))
+;;
 
 let kind = CodeActionKind.Other action_kind
-
 let t state = { Code_action.kind; run = `Non_batchable (code_action state) }

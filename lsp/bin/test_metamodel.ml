@@ -8,3 +8,4 @@ let () =
   let json = Yojson.Safe.from_string s in
   let (_ : Metamodel.t) = Metamodel.t json in
   close_in read
+;;

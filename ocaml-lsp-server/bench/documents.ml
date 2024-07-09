@@ -1,5 +1,4 @@
-let document =
-  "let mem = ListLabels.mem\n\nlet _ = mem ~se" |> Merlin_kernel.Msource.make
+let document = "let mem = ListLabels.mem\n\nlet _ = mem ~se" |> Merlin_kernel.Msource.make
 
 let long_document_text =
   {|let prefix_of_position ~short_path source position =
@@ -96,3 +95,4 @@ module Complete_by_prefix = struct
     in
     Query_commands.dispatch pipeline comp
     |}
+;;

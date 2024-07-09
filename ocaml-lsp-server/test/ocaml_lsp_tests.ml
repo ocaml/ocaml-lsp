@@ -17,3 +17,4 @@ let%expect_test "eat_message tests" =
   [%expect {| [PASS] |}];
   test "foo bar" "foo Bar" false;
   [%expect {| [PASS] |}]
+;;

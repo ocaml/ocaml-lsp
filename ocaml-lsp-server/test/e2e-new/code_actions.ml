@@ -8,31 +8,40 @@ let iter_code_actions ?prep ?path ?(diagnostics = []) ~source range =
       (CodeActionParams.create ~textDocument ~range ~context ())
   in
   iter_lsp_response ?prep ?path ~makeRequest ~source
+;;
 
-let print_code_actions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
-    ?(filter = fun _ -> true) source range =
+let print_code_actions
+  ?(prep = fun _ -> Fiber.return ())
+  ?(path = "foo.ml")
+  ?(filter = fun _ -> true)
+  source
+  range
+  =
   iter_code_actions ~prep ~path ~source range (function
-      | None -> print_endline "No code actions"
-      | Some code_actions -> (
-        code_actions |> List.filter ~f:filter |> function
-        | [] -> print_endline "No code actions"
-        | actions ->
-          print_endline "Code actions:";
-          List.iter actions ~f:(fun ca ->
-              let json =
-                match ca with
-                | `Command command -> Command.yojson_of_t command
-                | `CodeAction ca -> CodeAction.yojson_of_t ca
-              in
-              Yojson.Safe.pretty_to_string ~std:false json |> print_endline)))
+    | None -> print_endline "No code actions"
+    | Some code_actions ->
+      code_actions
+      |> List.filter ~f:filter
+      |> (function
+       | [] -> print_endline "No code actions"
+       | actions ->
+         print_endline "Code actions:";
+         List.iter actions ~f:(fun ca ->
+           let json =
+             match ca with
+             | `Command command -> Command.yojson_of_t command
+             | `CodeAction ca -> CodeAction.yojson_of_t ca
+           in
+           Yojson.Safe.pretty_to_string ~std:false json |> print_endline)))
+;;
 
 let find_action action_name action =
   match action with
   | `CodeAction { CodeAction.kind = Some (Other name); _ } -> name = action_name
   | _ -> false
+;;
 
 let find_annotate_action = find_action "type-annotate"
-
 let find_remove_annotation_action = find_action "remove type annotation"
 
 let%expect_test "code actions" =
@@ -81,14 +90,13 @@ let foo = 123
       "kind": "switch",
       "title": "Create foo.mli"
     } |}]
+;;
 
 let%expect_test "can type-annotate a function argument" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type t = Foo of int | Bar of bool
 let f x = Foo x
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:2 ~character:6 in
     let end_ = Position.create ~line:2 ~character:7 in
@@ -119,6 +127,7 @@ let f x = Foo x
       "kind": "type-annotate",
       "title": "Type-annotate"
     } |}]
+;;
 
 let%expect_test "can type-annotate a toplevel value" =
   let source = {ocaml|
@@ -167,6 +176,7 @@ let iiii = 3 + 4
       "title": "Create foo.mli"
     }
      |}]
+;;
 
 let%expect_test "does not type-annotate function" =
   let source = {ocaml|
@@ -179,6 +189,7 @@ let my_fun x y = 1
   in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
+;;
 
 let%expect_test "can type-annotate an argument in a function call" =
   let source =
@@ -219,15 +230,14 @@ let () =
       "kind": "type-annotate",
       "title": "Type-annotate"
     } |}]
+;;
 
 let%expect_test "can type-annotate a variant with its name only" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type t = Foo of int | Bar of bool
 
 let f (x : t) = x
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:3 ~character:16 in
     let end_ = Position.create ~line:3 ~character:17 in
@@ -258,6 +268,7 @@ let f (x : t) = x
       "kind": "type-annotate",
       "title": "Type-annotate"
     } |}]
+;;
 
 let%expect_test "does not type-annotate in a non expression context" =
   let source = {ocaml|
@@ -272,6 +283,7 @@ type x =
   in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
+;;
 
 let%expect_test "does not type-annotate already annotated argument" =
   let source = {ocaml|
@@ -284,6 +296,7 @@ let f (x : int) = 1
   in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
+;;
 
 let%expect_test "does not type-annotate already annotated expression" =
   let source = {ocaml|
@@ -296,9 +309,9 @@ let f x = (1 : int)
   in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
+;;
 
-let%expect_test "does not type-annotate already annotated and coerced \
-                 expression" =
+let%expect_test "does not type-annotate already annotated and coerced expression" =
   let source = {ocaml|
 let f x = (1 : int :> int)
 |ocaml} in
@@ -309,14 +322,13 @@ let f x = (1 : int :> int)
   in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
+;;
 
 let%expect_test "can remove type annotation from a function argument" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = Foo x
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:2 ~character:7 in
     let end_ = Position.create ~line:2 ~character:8 in
@@ -347,6 +359,7 @@ let f (x : t) = Foo x
       "kind": "remove type annotation",
       "title": "Remove type annotation"
     } |}]
+;;
 
 let%expect_test "can remove type annotation from a toplevel value" =
   let source = {ocaml|
@@ -382,9 +395,9 @@ let (iiii : int) = 3 + 4
       "kind": "remove type annotation",
       "title": "Remove type annotation"
     } |}]
+;;
 
-let%expect_test "can remove type annotation from an argument in a function call"
-    =
+let%expect_test "can remove type annotation from an argument in a function call" =
   let source =
     {ocaml|
 let f (x : int) = x + 1
@@ -423,6 +436,7 @@ let f (x : int) = x + 1
       "kind": "remove type annotation",
       "title": "Remove type annotation"
     } |}]
+;;
 
 let%expect_test "can remove type annotation from a coerced expression" =
   let source = {ocaml|
@@ -458,6 +472,7 @@ let x = (7 : int :> int)
       "kind": "remove type annotation",
       "title": "Remove type annotation"
     } |}]
+;;
 
 let%expect_test "does not remove type annotation from function" =
   let source = {ocaml|
@@ -470,23 +485,19 @@ let my_fun x y : int = 1
   in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect {| No code actions |}]
+;;
 
 let%expect_test "can destruct sum types" =
-  let source =
-    {ocaml|
+  let source = {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = x
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:2 ~character:16 in
     let end_ = Position.create ~line:2 ~character:17 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct (enumerate cases)");
+  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
   [%expect
     {|
     Code actions:
@@ -512,6 +523,7 @@ let f (x : t) = x
       "title": "Destruct (enumerate cases)"
     }
     |}]
+;;
 
 let%expect_test "can destruct match line" =
   let source = {ocaml|
@@ -552,6 +564,7 @@ let f (x:bool) =
       "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
+;;
 
 let%expect_test "can destruct match-with line" =
   let source = {ocaml|
@@ -591,6 +604,7 @@ let%expect_test "can destruct match-with line" =
       "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
+;;
 
 let%expect_test "can destruct case line" =
   let source =
@@ -639,6 +653,7 @@ let f (x: q) =
       "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
+;;
 
 let%expect_test "can destruct hole" =
   let source =
@@ -682,6 +697,7 @@ let zip (type a b) (xs : a list) (ys : b list) : (a * b) list =
       "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
+;;
 
 let%expect_test "destruct hole spacing" =
   let source =
@@ -730,6 +746,7 @@ let f (x: q) =
       "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
+;;
 
 let%expect_test "destruct a case with a hole but not on the hole" =
   let source =
@@ -778,6 +795,7 @@ let f (x: q) =
       "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
+;;
 
 let%expect_test "destruct uses the right number of newlines" =
   let source =
@@ -825,6 +843,7 @@ let f (x: t) =
         "title": "Destruct-line (enumerate cases, use existing match)"
       }
       |}]
+;;
 
 let%expect_test "destruct strips parentheses even on long lines" =
   let source =
@@ -874,14 +893,13 @@ let f (x: q) =
         "title": "Destruct-line (enumerate cases, use existing match)"
       }
       |}]
+;;
 
 let%expect_test "can infer module interfaces" =
-  let impl_source =
-    {ocaml|
+  let impl_source = {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = x
-|ocaml}
-  in
+|ocaml} in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
   let intf_source = "" in
@@ -920,14 +938,13 @@ let f (x : t) = x
       "kind": "inferred_intf",
       "title": "Insert inferred interface"
     } |}]
+;;
 
 let%expect_test "inferred interface excludes existing names" =
-  let impl_source =
-    {ocaml|
+  let impl_source = {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = x
-|ocaml}
-  in
+|ocaml} in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
   let intf_source = {ocaml|
@@ -969,6 +986,7 @@ val f : t -> t
       "title": "Insert inferred interface"
     }
     |}]
+;;
 
 let%expect_test "update-signatures adds new function args" =
   let impl_source =
@@ -982,12 +1000,10 @@ let f (x : t) (d : bool) =
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source =
-    {ocaml|
+  let intf_source = {ocaml|
 type t = Foo of int | Bar of bool
 val f : t -> bool
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:2 ~character:0 in
     let end_ = Position.create ~line:2 ~character:0 in
@@ -1024,6 +1040,7 @@ val f : t -> bool
       "title": "Update signature(s) to match implementation"
     }
     |}]
+;;
 
 let%expect_test "update-signatures removes old function args" =
   let impl_source =
@@ -1034,11 +1051,9 @@ let f i s b =
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source =
-    {ocaml|
+  let intf_source = {ocaml|
 val f : int -> string -> 'a list -> bool -> bool
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:1 ~character:10 in
     let end_ = Position.create ~line:1 ~character:10 in
@@ -1075,6 +1090,7 @@ val f : int -> string -> 'a list -> bool -> bool
     "title": "Update signature(s) to match implementation"
   }
   |}]
+;;
 
 let%expect_test "update-signatures updates parameter types" =
   let impl_source =
@@ -1085,11 +1101,9 @@ let f i s l b =
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source =
-    {ocaml|
+  let intf_source = {ocaml|
 val f : int -> string -> 'a list -> bool -> bool
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:1 ~character:1 in
     let end_ = Position.create ~line:1 ~character:12 in
@@ -1126,6 +1140,7 @@ val f : int -> string -> 'a list -> bool -> bool
       "title": "Update signature(s) to match implementation"
     }
     |}]
+;;
 
 let%expect_test "update-signatures preserves functions and their comments" =
   let impl_source =
@@ -1196,6 +1211,7 @@ val h : int -> bool
       "title": "Update signature(s) to match implementation"
     }
     |}]
+;;
 
 let%expect_test "update-signatures updates modules" =
   let impl_source =
@@ -1215,11 +1231,9 @@ end
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source =
-    {ocaml|
+  let intf_source = {ocaml|
 module M : sig type t = I of int | B of bool end
-|ocaml}
-  in
+|ocaml} in
   let range =
     let start = Position.create ~line:1 ~character:0 in
     let end_ = Position.create ~line:1 ~character:0 in
@@ -1256,18 +1270,21 @@ module M : sig type t = I of int | B of bool end
       "title": "Update signature(s) to match implementation"
     }
     |}]
+;;
 
 let position_of_offset src x =
   assert (0 <= x && x < String.length src);
   let cnum = ref 0
   and lnum = ref 0 in
   for i = 0 to x - 1 do
-    if src.[i] = '\n' then (
+    if src.[i] = '\n'
+    then (
       incr lnum;
       cnum := 0)
     else incr cnum
   done;
   Position.create ~character:!cnum ~line:!lnum
+;;
 
 let parse_selection src =
   let start_pos =
@@ -1278,8 +1295,8 @@ let parse_selection src =
   let end_pos =
     match String.index_from src (start_pos + 1) '$' with
     | Some x ->
-      if Option.is_some (String.index_from src (x + 1) '$') then
-        failwith "unexpected third selection mark";
+      if Option.is_some (String.index_from src (x + 1) '$')
+      then failwith "unexpected third selection mark";
       x - 1 (* account for opening mark *)
     | None -> start_pos
   in
@@ -1287,36 +1304,36 @@ let parse_selection src =
   let end_ = position_of_offset src end_pos in
   let src' =
     String.filter_map src ~f:(function
-        | '$' -> None
-        | c -> Some c)
+      | '$' -> None
+      | c -> Some c)
   in
-  (src', Range.create ~start ~end_)
+  src', Range.create ~start ~end_
+;;
 
 let apply_code_action ?diagnostics title source range =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
-  iter_code_actions ?diagnostics ~source range (fun ca ->
-      code_actions := Some ca);
+  iter_code_actions ?diagnostics ~source range (fun ca -> code_actions := Some ca);
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
-
   let* edit =
     List.find_map code_actions ~f:(function
-        | `CodeAction { title = t; edit = Some edit; _ } when t = title ->
-          Some edit
-        | _ -> None)
+      | `CodeAction { title = t; edit = Some edit; _ } when t = title -> Some edit
+      | _ -> None)
   in
   let+ changes = edit.documentChanges in
   List.concat_map changes ~f:(function
-      | `TextDocumentEdit x ->
-        List.map x.edits ~f:(function
-            | `AnnotatedTextEdit (a : AnnotatedTextEdit.t) ->
-              TextEdit.create ~newText:a.newText ~range:a.range
-            | `TextEdit e -> e)
-      | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
+    | `TextDocumentEdit x ->
+      List.map x.edits ~f:(function
+        | `AnnotatedTextEdit (a : AnnotatedTextEdit.t) ->
+          TextEdit.create ~newText:a.newText ~range:a.range
+        | `TextEdit e -> e)
+    | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
   |> Test.apply_edits source
+;;
 
 let code_action_test ~title source =
   let src, range = parse_selection source in
   Option.iter (apply_code_action title src range) ~f:print_string
+;;

@@ -19,15 +19,13 @@ module Json : sig
 
   module Jsonable : sig
     module type S = sig
-      type json
+        type json
+        type t
 
-      type t
-
-      val yojson_of_t : t -> json
-
-      val t_of_yojson : json -> t
-    end
-    with type json := t
+        val yojson_of_t : t -> json
+        val t_of_yojson : json -> t
+      end
+      with type json := t
   end
 end
 
@@ -40,7 +38,6 @@ module Id : sig
   include Json.Jsonable.S with type t := t
 
   val hash : t -> int
-
   val equal : t -> t -> bool
 end
 
@@ -60,7 +57,6 @@ module Notification : sig
     }
 
   val create : ?params:Structured.t -> method_:string -> unit -> t
-
   val yojson_of_t : t -> Json.t
 end
 
@@ -72,7 +68,6 @@ module Request : sig
     }
 
   val create : ?params:Structured.t -> id:Id.t -> method_:string -> unit -> t
-
   val yojson_of_t : t -> Json.t
 end
 
@@ -105,11 +100,8 @@ module Response : sig
     exception E of t
 
     val make : ?data:Json.t -> code:Code.t -> message:string -> unit -> t
-
     val raise : t -> 'a
-
     val of_exn : exn -> t
-
     val yojson_of_t : t -> Json.t
   end
 
@@ -119,7 +111,6 @@ module Response : sig
     }
 
   val ok : Id.t -> Json.t -> t
-
   val error : Id.t -> Error.t -> t
 
   include Json.Jsonable.S with type t := t
@@ -131,8 +122,7 @@ module Packet : sig
     | Request of Request.t
     | Response of Response.t
     | Batch_response of Response.t list
-    | Batch_call of
-        [ `Request of Request.t | `Notification of Notification.t ] list
+    | Batch_call of [ `Request of Request.t | `Notification of Notification.t ] list
 
   include Json.Jsonable.S with type t := t
 end

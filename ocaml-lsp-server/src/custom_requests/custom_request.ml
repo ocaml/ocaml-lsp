@@ -16,17 +16,15 @@ let of_jsonrpc_params_exn spec params =
   in
   match params with
   | None -> raise_invalid_params ~message:"Expected params but received none" ()
-  | Some params -> (
-    match spec.of_jsonrpc_params params with
-    | Some t -> t
-    | None ->
-      let error_json =
-        `Assoc
-          [ ("params_expected", (spec.params_schema :> Json.t))
-          ; ("params_received", (params :> Json.t))
-          ]
-      in
-      raise_invalid_params
-        ~message:"Unexpected parameter format"
-        ~data:error_json
-        ())
+  | Some params ->
+    (match spec.of_jsonrpc_params params with
+     | Some t -> t
+     | None ->
+       let error_json =
+         `Assoc
+           [ "params_expected", (spec.params_schema :> Json.t)
+           ; "params_received", (params :> Json.t)
+           ]
+       in
+       raise_invalid_params ~message:"Unexpected parameter format" ~data:error_json ())
+;;

@@ -6,49 +6,53 @@ let range_contains_loc range loc =
   match Range.of_loc_opt loc with
   | Some range' -> Range.contains range range'
   | None -> false
+;;
 
 let range_contained_by_loc range loc =
   match Range.of_loc_opt loc with
   | Some range' -> Range.contains range' range
   | None -> false
+;;
 
 let largest_enclosed_expression typedtree range =
   let exception Found of Typedtree.expression in
   let module I = Ocaml_typing.Tast_iterator in
   let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
-    if range_contains_loc range expr.exp_loc then raise (Found expr)
+    if range_contains_loc range expr.exp_loc
+    then raise (Found expr)
     else I.default_iterator.expr iter expr
   in
   let iterator = { I.default_iterator with expr = expr_iter } in
   try
     iterator.structure iterator typedtree;
     None
-  with Found e -> Some e
+  with
+  | Found e -> Some e
+;;
 
 let enclosing_structure_item typedtree range =
   let exception Found of Typedtree.structure_item in
   let module I = Ocaml_typing.Tast_iterator in
-  let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item)
-      =
-    if range_contained_by_loc range item.str_loc then
+  let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item) =
+    if range_contained_by_loc range item.str_loc
+    then (
       match item.str_desc with
       | Tstr_value _ -> raise (Found item)
-      | _ -> I.default_iterator.structure_item iter item
+      | _ -> I.default_iterator.structure_item iter item)
   in
-  let iterator =
-    { I.default_iterator with structure_item = structure_item_iter }
-  in
+  let iterator = { I.default_iterator with structure_item = structure_item_iter } in
   try
     iterator.structure iterator typedtree;
     None
-  with Found e -> Some e
+  with
+  | Found e -> Some e
+;;
 
 let tightest_enclosing_binder_position typedtree range =
   let exception Found of Position.t in
   let module I = Ocaml_typing.Tast_iterator in
   let found_loc loc =
-    Position.of_lexical_position loc
-    |> Option.iter ~f:(fun p -> raise (Found p))
+    Position.of_lexical_position loc |> Option.iter ~f:(fun p -> raise (Found p))
   in
   let found_if_expr_contains (expr : Typedtree.expression) =
     let loc = expr.exp_loc in
@@ -56,10 +60,11 @@ let tightest_enclosing_binder_position typedtree range =
   in
   let found_if_case_contains cases =
     List.iter cases ~f:(fun (case : _ Typedtree.case) ->
-        found_if_expr_contains case.c_rhs)
+      found_if_expr_contains case.c_rhs)
   in
   let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
-    if range_contained_by_loc range expr.exp_loc then (
+    if range_contained_by_loc range expr.exp_loc
+    then (
       I.default_iterator.expr iter expr;
       match expr.exp_desc with
       | Texp_let (_, _, body)
@@ -74,32 +79,31 @@ let tightest_enclosing_binder_position typedtree range =
       | Texp_try (_, cases) -> found_if_case_contains cases
       | _ -> ())
   in
-  let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item)
-      =
-    if range_contained_by_loc range item.str_loc then (
+  let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item) =
+    if range_contained_by_loc range item.str_loc
+    then (
       I.default_iterator.structure_item iter item;
       match item.str_desc with
       | Tstr_value (_, bindings) ->
         List.iter bindings ~f:(fun (binding : Typedtree.value_binding) ->
-            found_if_expr_contains binding.vb_expr)
+          found_if_expr_contains binding.vb_expr)
       | _ -> ())
   in
   let iterator =
-    { I.default_iterator with
-      expr = expr_iter
-    ; structure_item = structure_item_iter
-    }
+    { I.default_iterator with expr = expr_iter; structure_item = structure_item_iter }
   in
   try
     iterator.structure iterator typedtree;
     None
-  with Found e -> Some e
+  with
+  | Found e -> Some e
+;;
 
 module LongidentSet = Set.Make (struct
-  type t = Longident.t
+    type t = Longident.t
 
-  let compare = compare
-end)
+    let compare = compare
+  end)
 
 (** [free expr] returns the free variables in [expr]. *)
 let free (expr : Typedtree.expression) =
@@ -107,31 +111,31 @@ let free (expr : Typedtree.expression) =
   let idents = ref [] in
   let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
     match expr.exp_desc with
-    | Texp_ident (path, { txt = ident; _ }, _) ->
-      idents := (ident, path) :: !idents
+    | Texp_ident (path, { txt = ident; _ }, _) -> idents := (ident, path) :: !idents
     | _ ->
       I.default_iterator.expr iter expr;
-
       (* if a variable was bound but is no longer, it must be associated with a
          binder inside the expression *)
-      idents :=
-        List.filter !idents ~f:(fun (ident, path) ->
-            match Env.find_value_by_name ident expr.exp_env with
-            | path', _ -> Path.same path path'
-            | exception Not_found -> false)
+      idents
+      := List.filter !idents ~f:(fun (ident, path) ->
+           match Env.find_value_by_name ident expr.exp_env with
+           | path', _ -> Path.same path path'
+           | exception Not_found -> false)
   in
   let iter = { I.default_iterator with expr = expr_iter } in
   iter.expr iter expr;
   !idents
+;;
 
 let must_pass expr env =
   List.filter (free expr) ~f:(fun (ident, path) ->
-      match Env.find_value_by_name ident env with
-      | path', _ ->
-        (* new environment binds ident to a different path than the old one *)
-        not (Path.same path path')
-      | exception Not_found -> true)
+    match Env.find_value_by_name ident env with
+    | path', _ ->
+      (* new environment binds ident to a different path than the old one *)
+      not (Path.same path path')
+    | exception Not_found -> true)
   |> List.map ~f:fst
+;;
 
 let extract_local doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
@@ -145,6 +149,7 @@ let extract_local doc typedtree range =
     [ TextEdit.create ~newText ~range:insert_range
     ; TextEdit.create ~newText:new_name ~range:extract_range
     ]
+;;
 
 let extract_function doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
@@ -156,8 +161,8 @@ let extract_function doc typedtree range =
     let free_vars = must_pass to_extract parent_item.str_env in
     let+ args =
       List.map free_vars ~f:(function
-          | Longident.Lident id -> Some id
-          | _ -> None)
+        | Longident.Lident id -> Some id
+        | _ -> None)
       |> Option.List.all
     in
     let s = String.concat ~sep:" " args in
@@ -171,6 +176,7 @@ let extract_function doc typedtree range =
     [ TextEdit.create ~newText:new_function ~range:insert_range
     ; TextEdit.create ~newText:new_call ~range:extract_range
     ]
+;;
 
 let run_extract_local pipeline doc (params : CodeActionParams.t) =
   let typer = Mpipeline.typer_result pipeline in
@@ -186,6 +192,7 @@ let run_extract_local pipeline doc (params : CodeActionParams.t) =
     ~edit:(Document.edit doc edits)
     ~isPreferred:false
     ()
+;;
 
 let run_extract_function pipeline doc (params : CodeActionParams.t) =
   let typer = Mpipeline.typer_result pipeline in
@@ -201,7 +208,7 @@ let run_extract_function pipeline doc (params : CodeActionParams.t) =
     ~edit:(Document.edit doc edits)
     ~isPreferred:false
     ()
+;;
 
 let local = Code_action.batchable RefactorExtract run_extract_local
-
 let function_ = Code_action.batchable RefactorExtract run_extract_function

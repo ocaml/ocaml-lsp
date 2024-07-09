@@ -11,7 +11,8 @@ let force t =
   | None -> Fiber.Ivar.read t.value
   | Some f ->
     Fiber.of_thunk (fun () ->
-        t.f <- None;
-        let* v = f () in
-        let+ () = Fiber.Ivar.fill t.value v in
-        v)
+      t.f <- None;
+      let* v = f () in
+      let+ () = Fiber.Ivar.fill t.value v in
+      v)
+;;

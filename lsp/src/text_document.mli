@@ -8,15 +8,10 @@ type encoding :=
   ]
 
 val make : position_encoding:encoding -> DidOpenTextDocumentParams.t -> t
-
 val languageId : t -> string
-
 val documentUri : t -> Uri0.t
-
 val position_encoding : t -> encoding
-
 val version : t -> int
-
 val text : t -> string
 
 type invalid_utf =
@@ -25,8 +20,11 @@ type invalid_utf =
 
 exception Invalid_utf of invalid_utf
 
-val apply_content_changes :
-  ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t
+val apply_content_changes
+  :  ?version:int
+  -> t
+  -> TextDocumentContentChangeEvent.t list
+  -> t
 
 val set_version : t -> version:int -> t
 

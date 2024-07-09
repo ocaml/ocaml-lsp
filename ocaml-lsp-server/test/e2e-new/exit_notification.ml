@@ -14,19 +14,20 @@ end = struct
       | WSTOPPED s -> Format.eprintf "ocamllsp stopped with signal = %d@.%!" s
     in
     a
+  ;;
 end
 
 let test run =
   T.run (fun client ->
-      let run_client () =
-        Client.start
-          client
-          (InitializeParams.create ~capabilities:client_capabilities ())
-      in
-      Fiber.fork_and_join_unit run_client (run client))
+    let run_client () =
+      Client.start client (InitializeParams.create ~capabilities:client_capabilities ())
+    in
+    Fiber.fork_and_join_unit run_client (run client))
+;;
 
 let%expect_test "ocamllsp process exits with code 0 after Shutdown and Exit \
-                 notifications are sent" =
+                 notifications are sent"
+  =
   let run client () =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let* () = Client.request client Shutdown in
@@ -35,6 +36,7 @@ let%expect_test "ocamllsp process exits with code 0 after Shutdown and Exit \
   test run;
   [%expect {|
     ocamllsp finished with code = 0  |}]
+;;
 
 let%expect_test "ocamllsp does not exit if only Shutdown notification is sent" =
   let run client () =
@@ -44,9 +46,11 @@ let%expect_test "ocamllsp does not exit if only Shutdown notification is sent" =
   test run;
   [%expect {|
     ocamllsp killed with signal = -7  |}]
+;;
 
-let%expect_test "ocamllsp process exits with code 0 after Exit notification is \
-                 sent (should be 1)" =
+let%expect_test "ocamllsp process exits with code 0 after Exit notification is sent \
+                 (should be 1)"
+  =
   let run client () =
     let* (_ : InitializeResult.t) = Client.initialized client in
     Client.notification client Exit
@@ -54,3 +58,4 @@ let%expect_test "ocamllsp process exits with code 0 after Exit notification is \
   test run;
   [%expect {|
     ocamllsp finished with code = 0  |}]
+;;

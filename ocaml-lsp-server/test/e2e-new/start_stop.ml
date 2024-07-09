@@ -7,51 +7,49 @@ let%expect_test "start/stop" =
       ~on_notification:(fun _ notif -> Queue.push notifs notif |> Fiber.return)
       ()
   in
-  ( Test.run ~handler:handler_collecting_notifs @@ fun client ->
-    let run_client () =
-      let capabilities =
-        let window =
-          let showDocument =
-            ShowDocumentClientCapabilities.create ~support:true
-          in
-          WindowClientCapabilities.create ~showDocument ()
-        in
-        let textDocument =
-          let codeAction =
-            let codeActionLiteralSupport =
-              let codeActionKind =
-                CodeActionClientCapabilities.create_codeActionKind ~valueSet:[]
-              in
-              CodeActionClientCapabilities.create_codeActionLiteralSupport
-                ~codeActionKind
-            in
-            CodeActionClientCapabilities.create ~codeActionLiteralSupport ()
-          in
-          TextDocumentClientCapabilities.create ~codeAction ()
-        in
-        ClientCapabilities.create ~window ~textDocument ()
-      in
-      Client.start client (InitializeParams.create ~capabilities ())
-    in
-    let print_init =
-      let+ resp = Client.initialized client in
-      print_endline "client: server initialized with:";
-      InitializeResult.yojson_of_t resp
-      |> Yojson.Safe.pretty_to_string ~std:false
-      |> print_endline
-    in
-    let run =
-      let* () = print_init in
-      print_endline "client: shutting down server";
-      Client.request client Shutdown
-    in
-    Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client)
-  );
+  (Test.run ~handler:handler_collecting_notifs
+   @@ fun client ->
+   let run_client () =
+     let capabilities =
+       let window =
+         let showDocument = ShowDocumentClientCapabilities.create ~support:true in
+         WindowClientCapabilities.create ~showDocument ()
+       in
+       let textDocument =
+         let codeAction =
+           let codeActionLiteralSupport =
+             let codeActionKind =
+               CodeActionClientCapabilities.create_codeActionKind ~valueSet:[]
+             in
+             CodeActionClientCapabilities.create_codeActionLiteralSupport ~codeActionKind
+           in
+           CodeActionClientCapabilities.create ~codeActionLiteralSupport ()
+         in
+         TextDocumentClientCapabilities.create ~codeAction ()
+       in
+       ClientCapabilities.create ~window ~textDocument ()
+     in
+     Client.start client (InitializeParams.create ~capabilities ())
+   in
+   let print_init =
+     let+ resp = Client.initialized client in
+     print_endline "client: server initialized with:";
+     InitializeResult.yojson_of_t resp
+     |> Yojson.Safe.pretty_to_string ~std:false
+     |> print_endline
+   in
+   let run =
+     let* () = print_init in
+     print_endline "client: shutting down server";
+     Client.request client Shutdown
+   in
+   Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client));
   print_endline "\nnotifications received:";
   Queue.iter notifs ~f:(fun notif ->
-      Lsp.Server_notification.to_jsonrpc notif
-      |> Jsonrpc.Notification.yojson_of_t |> Yojson.Safe.pretty_to_string
-      |> print_endline);
+    Lsp.Server_notification.to_jsonrpc notif
+    |> Jsonrpc.Notification.yojson_of_t
+    |> Yojson.Safe.pretty_to_string
+    |> print_endline);
   [%expect
     {|
     client: server initialized with:
@@ -140,3 +138,4 @@ let%expect_test "start/stop" =
 
     notifications received:
     |}]
+;;

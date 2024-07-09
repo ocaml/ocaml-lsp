@@ -40,26 +40,20 @@ let method_ = function
   | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
   | WorkDoneProgress _ -> Progress.method_
   | UnknownNotification n -> n.method_
+;;
 
 let yojson_of_t = function
-  | TextDocumentDidOpen params ->
-    Some (DidOpenTextDocumentParams.yojson_of_t params)
-  | TextDocumentDidChange params ->
-    Some (DidChangeTextDocumentParams.yojson_of_t params)
-  | TextDocumentDidClose params ->
-    Some (DidCloseTextDocumentParams.yojson_of_t params)
+  | TextDocumentDidOpen params -> Some (DidOpenTextDocumentParams.yojson_of_t params)
+  | TextDocumentDidChange params -> Some (DidChangeTextDocumentParams.yojson_of_t params)
+  | TextDocumentDidClose params -> Some (DidCloseTextDocumentParams.yojson_of_t params)
   | Exit -> None
   | Initialized -> None
   | ChangeWorkspaceFolders params ->
     Some (DidChangeWorkspaceFoldersParams.yojson_of_t params)
-  | ChangeConfiguration params ->
-    Some (DidChangeConfigurationParams.yojson_of_t params)
-  | WillSaveTextDocument params ->
-    Some (WillSaveTextDocumentParams.yojson_of_t params)
-  | DidSaveTextDocument params ->
-    Some (DidSaveTextDocumentParams.yojson_of_t params)
-  | DidChangeWatchedFiles params ->
-    Some (DidChangeWatchedFilesParams.yojson_of_t params)
+  | ChangeConfiguration params -> Some (DidChangeConfigurationParams.yojson_of_t params)
+  | WillSaveTextDocument params -> Some (WillSaveTextDocumentParams.yojson_of_t params)
+  | DidSaveTextDocument params -> Some (DidSaveTextDocumentParams.yojson_of_t params)
+  | DidChangeWatchedFiles params -> Some (DidChangeWatchedFilesParams.yojson_of_t params)
   | DidCreateFiles params -> Some (CreateFilesParams.yojson_of_t params)
   | DidDeleteFiles params -> Some (DeleteFilesParams.yojson_of_t params)
   | DidRenameFiles params -> Some (RenameFilesParams.yojson_of_t params)
@@ -70,25 +64,20 @@ let yojson_of_t = function
   | WorkDoneProgress params ->
     Some ((ProgressParams.yojson_of_t Progress.yojson_of_t) params)
   | UnknownNotification n -> (n.params :> Json.t option)
+;;
 
 let of_jsonrpc (r : Jsonrpc.Notification.t) =
   let open Result.O in
   let params = r.params in
   match r.method_ with
   | "textDocument/didOpen" ->
-    let+ params =
-      Json.message_params params DidOpenTextDocumentParams.t_of_yojson
-    in
+    let+ params = Json.message_params params DidOpenTextDocumentParams.t_of_yojson in
     TextDocumentDidOpen params
   | "textDocument/didChange" ->
-    let+ params =
-      Json.message_params params DidChangeTextDocumentParams.t_of_yojson
-    in
+    let+ params = Json.message_params params DidChangeTextDocumentParams.t_of_yojson in
     TextDocumentDidChange params
   | "textDocument/didClose" ->
-    let+ params =
-      Json.message_params params DidCloseTextDocumentParams.t_of_yojson
-    in
+    let+ params = Json.message_params params DidCloseTextDocumentParams.t_of_yojson in
     TextDocumentDidClose params
   | "exit" -> Ok Exit
   | "initialized" -> Ok Initialized
@@ -98,24 +87,16 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
     in
     ChangeWorkspaceFolders params
   | "workspace/didChangeConfiguration" ->
-    let+ params =
-      Json.message_params params DidChangeConfigurationParams.t_of_yojson
-    in
+    let+ params = Json.message_params params DidChangeConfigurationParams.t_of_yojson in
     ChangeConfiguration params
   | "textDocument/willSave" ->
-    let+ params =
-      Json.message_params params WillSaveTextDocumentParams.t_of_yojson
-    in
+    let+ params = Json.message_params params WillSaveTextDocumentParams.t_of_yojson in
     WillSaveTextDocument params
   | "textDocument/didSave" ->
-    let+ params =
-      Json.message_params params DidSaveTextDocumentParams.t_of_yojson
-    in
+    let+ params = Json.message_params params DidSaveTextDocumentParams.t_of_yojson in
     DidSaveTextDocument params
   | "workspace/didChangeWatchedFiles" ->
-    let+ params =
-      Json.message_params params DidChangeWatchedFilesParams.t_of_yojson
-    in
+    let+ params = Json.message_params params DidChangeWatchedFilesParams.t_of_yojson in
     DidChangeWatchedFiles params
   | "workspace/didCreateFiles" ->
     let+ params = Json.message_params params CreateFilesParams.t_of_yojson in
@@ -130,23 +111,21 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
     let+ params = Json.message_params params Cancel_request.t_of_yojson in
     CancelRequest params
   | "window/workDoneProgress/cancel" ->
-    let+ params =
-      Json.message_params params WorkDoneProgressCancelParams.t_of_yojson
-    in
+    let+ params = Json.message_params params WorkDoneProgressCancelParams.t_of_yojson in
     WorkDoneProgressCancel params
   | "$/setTrace" ->
     let+ params = Json.message_params params SetTraceParams.t_of_yojson in
     SetTrace params
   | m when m = Progress.method_ ->
     let+ params =
-      Json.message_params
-        params
-        (ProgressParams.t_of_yojson Progress.t_of_yojson)
+      Json.message_params params (ProgressParams.t_of_yojson Progress.t_of_yojson)
     in
     WorkDoneProgress params
   | _ -> Ok (UnknownNotification r)
+;;
 
 let to_jsonrpc t =
   let method_ = method_ t in
   let params = yojson_of_t t |> Option.map Jsonrpc.Structured.t_of_yojson in
   { Jsonrpc.Notification.params; method_ }
+;;

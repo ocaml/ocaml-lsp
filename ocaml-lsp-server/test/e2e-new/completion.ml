@@ -1,37 +1,52 @@
 open Test.Import
 
-let iter_completions ?prep ?path ?(triggerCharacter = "")
-    ?(triggerKind = CompletionTriggerKind.Invoked) ~position =
+let iter_completions
+  ?prep
+  ?path
+  ?(triggerCharacter = "")
+  ?(triggerKind = CompletionTriggerKind.Invoked)
+  ~position
+  =
   let makeRequest textDocument =
     let context = CompletionContext.create ~triggerCharacter ~triggerKind () in
     Lsp.Client_request.TextDocumentCompletion
       (CompletionParams.create ~textDocument ~position ~context ())
   in
   Lsp_helpers.iter_lsp_response ?prep ?path ~makeRequest
+;;
 
-let print_completions ?(prep = fun _ -> Fiber.return ()) ?(path = "foo.ml")
-    ?(limit = 10) ?(pre_print = fun x -> x) source position =
+let print_completions
+  ?(prep = fun _ -> Fiber.return ())
+  ?(path = "foo.ml")
+  ?(limit = 10)
+  ?(pre_print = fun x -> x)
+  source
+  position
+  =
   iter_completions ~prep ~path ~source ~position (function
-      | None -> print_endline "No completion Items"
-      | Some completions -> (
-        let items =
-          match completions with
-          | `CompletionList comp -> comp.items
-          | `List comp -> comp
-        in
-        items |> pre_print |> function
-        | [] -> print_endline "No completions"
-        | items ->
-          print_endline "Completions:";
-
-          let originalLength = List.length items in
-          items
-          |> List.take (min limit originalLength)
-          |> List.iter ~f:(fun item ->
-                 item |> CompletionItem.yojson_of_t
-                 |> Yojson.Safe.pretty_to_string ~std:false
-                 |> print_endline);
-          if originalLength > limit then print_endline "............."))
+    | None -> print_endline "No completion Items"
+    | Some completions ->
+      let items =
+        match completions with
+        | `CompletionList comp -> comp.items
+        | `List comp -> comp
+      in
+      items
+      |> pre_print
+      |> (function
+       | [] -> print_endline "No completions"
+       | items ->
+         print_endline "Completions:";
+         let originalLength = List.length items in
+         items
+         |> List.take (min limit originalLength)
+         |> List.iter ~f:(fun item ->
+           item
+           |> CompletionItem.yojson_of_t
+           |> Yojson.Safe.pretty_to_string ~std:false
+           |> print_endline);
+         if originalLength > limit then print_endline "............."))
+;;
 
 let%expect_test "can start completion at arbitrary position (before the dot)" =
   let source = {ocaml|Strin.func|ocaml} in
@@ -66,6 +81,7 @@ let%expect_test "can start completion at arbitrary position (before the dot)" =
           }
         }
       } |}]
+;;
 
 let%expect_test "can start completion at arbitrary position" =
   let source = {ocaml|StringLabels|ocaml} in
@@ -100,6 +116,7 @@ let%expect_test "can start completion at arbitrary position" =
           }
         }
       } |}]
+;;
 
 let%expect_test "can start completion at arbitrary position 2" =
   let source = {ocaml|StringLabels|ocaml} in
@@ -121,6 +138,7 @@ let%expect_test "can start completion at arbitrary position 2" =
         }
       }
     } |}]
+;;
 
 let%expect_test "can start completion after operator without space" =
   let source = {ocaml|[1;2]|>List.ma|ocaml} in
@@ -168,6 +186,7 @@ let%expect_test "can start completion after operator without space" =
           }
         }
       } |}]
+;;
 
 let%expect_test "can start completion after operator with space" =
   let source = {ocaml|[1;2] |> List.ma|ocaml} in
@@ -216,6 +235,7 @@ let%expect_test "can start completion after operator with space" =
     }
   }
   |}]
+;;
 
 let%expect_test "can start completion in dot chain with tab" =
   let source = {ocaml|[1;2] |> List.	ma|ocaml} in
@@ -264,6 +284,7 @@ let%expect_test "can start completion in dot chain with tab" =
         }
       }
   |}]
+;;
 
 let%expect_test "can start completion in dot chain with newline" =
   let source = {ocaml|[1;2] |> List.
@@ -313,6 +334,7 @@ ma|ocaml} in
     }
   }
   |}]
+;;
 
 let%expect_test "can start completion in dot chain with space" =
   let source = {ocaml|[1;2] |> List. ma|ocaml} in
@@ -361,6 +383,7 @@ let%expect_test "can start completion in dot chain with space" =
         }
       }
   |}]
+;;
 
 let%expect_test "can start completion after dereference" =
   let source = {ocaml|let apple=ref 10 in
@@ -384,6 +407,7 @@ let%expect_test "can start completion after dereference" =
     }
   }
   |}]
+;;
 
 let%expect_test "can complete symbol passed as a named argument" =
   let source = {ocaml|let g ~f = f 0 in
@@ -407,6 +431,7 @@ g ~f:ig|ocaml} in
     }
   }
   |}]
+;;
 
 let%expect_test "can complete symbol passed as a named argument - 2" =
   let source =
@@ -433,6 +458,7 @@ g ~f:M.ig|ocaml}
     }
   }
   |}]
+;;
 
 let%expect_test "can complete symbol passed as an optional argument" =
   let source = {ocaml|
@@ -458,6 +484,7 @@ g ?f:ig
     }
   }
   |}]
+;;
 
 let%expect_test "can complete symbol passed as an optional argument - 2" =
   let source =
@@ -484,6 +511,7 @@ g ?f:M.ig|ocaml}
     }
   }
   |}]
+;;
 
 let%expect_test "completes identifier after completion-triggering character" =
   let source =
@@ -528,6 +556,7 @@ let x = Test.
     }
   }
   |}]
+;;
 
 let%expect_test "completes infix operators" =
   let source = {ocaml|
@@ -579,6 +608,7 @@ let y = 1 >
     }
   }
   |}]
+;;
 
 let%expect_test "completes without prefix" =
   let source =
@@ -622,6 +652,7 @@ let plus_42 (x:int) (y:int) =
     }
   }
   |}]
+;;
 
 let%expect_test "completes labels" =
   let source = {ocaml|let f = ListLabels.map ~|ocaml} in
@@ -696,9 +727,9 @@ let%expect_test "completes labels" =
     }
   }
   |}]
+;;
 
-let%expect_test "works for polymorphic variants - function application context \
-                 - 1" =
+let%expect_test "works for polymorphic variants - function application context - 1" =
   let source =
     {ocaml|
 let f (_a: [`String | `Int of int]) = ()
@@ -725,9 +756,9 @@ let u = f `Str
     }
   }
   |}]
+;;
 
-let%expect_test "works for polymorphic variants - function application context \
-                 - 2" =
+let%expect_test "works for polymorphic variants - function application context - 2" =
   let source =
     {ocaml|
 let f (_a: [`String | `Int of int]) = ()
@@ -754,6 +785,7 @@ let u = f `In
     }
   }
   |}]
+;;
 
 let%expect_test "works for polymorphic variants" =
   let source = {ocaml|
@@ -780,13 +812,14 @@ let x : t = `I
     }
   }
   |}]
+;;
 
 let%expect_test "completion for holes" =
   let source = {ocaml|let u : int = _|ocaml} in
   let position = Position.create ~line:0 ~character:15 in
   let filter =
     List.filter ~f:(fun (item : CompletionItem.t) ->
-        not (String.starts_with ~prefix:"__" item.label))
+      not (String.starts_with ~prefix:"__" item.label))
   in
   print_completions ~pre_print:filter source position;
   [%expect
@@ -806,6 +839,7 @@ let%expect_test "completion for holes" =
     }
   }
   |}]
+;;
 
 let%expect_test "completes identifier at top level" =
   let source =
@@ -849,6 +883,7 @@ let () =
     }
   }
   |}]
+;;
 
 let%expect_test "completes from a module" =
   let source = {ocaml|let f = List.m|ocaml} in
@@ -961,6 +996,7 @@ let%expect_test "completes from a module" =
       }
     }
   }|}]
+;;
 
 let%expect_test "completes a module name" =
   let source = {ocaml|let f = L|ocaml} in
@@ -1035,6 +1071,7 @@ let%expect_test "completes a module name" =
     }
   }
   |}]
+;;
 
 let%expect_test "completion doesn't autocomplete record fields" =
   let source =
@@ -1051,12 +1088,12 @@ let%expect_test "completion doesn't autocomplete record fields" =
   print_completions
     ~pre_print:
       (List.filter ~f:(fun (compl : CompletionItem.t) ->
-           compl.label = "x" || compl.label = "y"))
+         compl.label = "x" || compl.label = "y"))
     source
     position;
-
   (* We expect 0 completions*)
   [%expect {| No completions |}]
+;;
 
 let%expect_test "completion for `in` keyword - no prefix" =
   let source = {ocaml|
@@ -1105,6 +1142,7 @@ let foo param1 =
       }
     }
     ............. |}]
+;;
 
 let%expect_test "completion for `in` keyword - prefix i" =
   let source = {ocaml|
@@ -1154,6 +1192,7 @@ let foo param1 =
       }
     }
     ............. |}]
+;;
 
 let%expect_test "completion for `in` keyword - prefix in" =
   let source = {ocaml|
@@ -1203,3 +1242,4 @@ let foo param1 =
       }
     }
     ............. |}]
+;;

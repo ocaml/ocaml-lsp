@@ -11,26 +11,27 @@ module Stream_chan = struct
     match what with
     | `Read -> Fiber.return ()
     | `Write -> Out.write o None
+  ;;
 
   let send (_, o) p = Fiber.sequential_iter p ~f:(fun x -> Out.write o (Some x))
-
   let recv (i, _) = In.read i
 end
 
 module Jrpc = Jsonrpc_fiber.Make (Stream_chan)
 module Context = Jrpc.Context
 
-let print_json json =
-  print_endline (Yojson.Safe.pretty_to_string ~std:false json)
+let print_json json = print_endline (Yojson.Safe.pretty_to_string ~std:false json)
 
 let no_output () =
   let received_none = ref false in
   Out.create (function
-      | None ->
-        if !received_none then failwith "received None more than once"
-        else received_none := true;
-        Fiber.return ()
-      | Some _ -> failwith "unexpected element")
+    | None ->
+      if !received_none
+      then failwith "received None more than once"
+      else received_none := true;
+      Fiber.return ()
+    | Some _ -> failwith "unexpected element")
+;;
 
 let%expect_test "start and stop server" =
   let run () =
@@ -42,12 +43,11 @@ let%expect_test "start and stop server" =
   let () = Fiber_test.test Dyn.opaque run in
   [%expect {|
     <opaque> |}]
+;;
 
 let%expect_test "server accepts notifications" =
   let notif =
-    { Jsonrpc.Notification.method_ = "method"
-    ; params = Some (`List [ `String "bar" ])
-    }
+    { Jsonrpc.Notification.method_ = "method"; params = Some (`List [ `String "bar" ]) }
   in
   let run () =
     let in_ = In.of_list [ Jsonrpc.Packet.Notification notif ] in
@@ -58,22 +58,22 @@ let%expect_test "server accepts notifications" =
       print_endline "received notification";
       Fiber.return (Notify.Stop, state)
     in
-    let jrpc =
-      Jrpc.create ~name:"test" ~on_notification (in_, no_output ()) ()
-    in
+    let jrpc = Jrpc.create ~name:"test" ~on_notification (in_, no_output ()) () in
     Jrpc.run jrpc
   in
   Fiber_test.test Dyn.opaque run;
   [%expect {|
     received notification
     <opaque> |}]
+;;
 
 let of_ref ref =
   Fiber.Stream.Out.create (function
-      | None -> Fiber.return ()
-      | Some x ->
-        ref := x :: !ref;
-        Fiber.return ())
+    | None -> Fiber.return ()
+    | Some x ->
+      ref := x :: !ref;
+      Fiber.return ())
+;;
 
 let%expect_test "serving requests" =
   let id = `Int 1 in
@@ -95,23 +95,21 @@ let%expect_test "serving requests" =
     let jrpc = Jrpc.create ~name:"test" ~on_request (in_, out) () in
     let+ () = Jrpc.run jrpc in
     List.iter !responses ~f:(fun resp ->
-        let json = Jsonrpc.Packet.yojson_of_t resp in
-        print_endline (Yojson.Safe.pretty_to_string ~std:false json))
+      let json = Jsonrpc.Packet.yojson_of_t resp in
+      print_endline (Yojson.Safe.pretty_to_string ~std:false json))
   in
   Fiber_test.test Dyn.opaque run;
-  [%expect
-    {|
+  [%expect {|
     { "id": 1, "jsonrpc": "2.0", "result": "response" }
     <opaque> |}]
+;;
 
 (* The current client/server implement has no concurrent handling of requests.
    We can show this when we try to send a request when handling a response. *)
 let%expect_test "concurrent requests" =
   let print packet =
     print_endline
-      (Yojson.Safe.pretty_to_string
-         ~std:false
-         (Jsonrpc.Packet.yojson_of_t packet))
+      (Yojson.Safe.pretty_to_string ~std:false (Jsonrpc.Packet.yojson_of_t packet))
   in
   let waiter chan =
     let on_request c =
@@ -121,21 +119,19 @@ let%expect_test "concurrent requests" =
       print (Request request);
       let response =
         Reply.later (fun send ->
-            print_endline "waiter: sending response";
-            let* () = send (Jsonrpc.Response.ok request.id `Null) in
-            print_endline "waiter: making request";
-            let* response =
-              let request =
-                Jsonrpc.Request.create ~id:(`Int 100) ~method_:"shutdown" ()
-              in
-              Jrpc.request self request
-            in
-            print_endline "waiter: received response:";
-            print (Response response);
-            let* () = send (Jsonrpc.Response.ok request.id `Null) in
-            print_endline "waiter: stopping";
-            let+ () = Jrpc.stop self in
-            print_endline "waiter: stopped")
+          print_endline "waiter: sending response";
+          let* () = send (Jsonrpc.Response.ok request.id `Null) in
+          print_endline "waiter: making request";
+          let* response =
+            let request = Jsonrpc.Request.create ~id:(`Int 100) ~method_:"shutdown" () in
+            Jrpc.request self request
+          in
+          print_endline "waiter: received response:";
+          print (Response response);
+          let* () = send (Jsonrpc.Response.ok request.id `Null) in
+          print_endline "waiter: stopping";
+          let+ () = Jrpc.stop self in
+          print_endline "waiter: stopped")
       in
       Fiber.return (response, ())
     in
@@ -148,13 +144,14 @@ let%expect_test "concurrent requests" =
       print (Request request);
       let response =
         Reply.later (fun send ->
-            let* () = send (Jsonrpc.Response.ok request.id (`Int 42)) in
-            if request.method_ = "shutdown" then (
-              let self = Context.session c in
-              print_endline "waitee: stopping";
-              let+ () = Jrpc.stop self in
-              print_endline "waitee: stopped")
-            else Fiber.return ())
+          let* () = send (Jsonrpc.Response.ok request.id (`Int 42)) in
+          if request.method_ = "shutdown"
+          then (
+            let self = Context.session c in
+            print_endline "waitee: stopping";
+            let+ () = Jrpc.stop self in
+            print_endline "waitee: stopped")
+          else Fiber.return ())
       in
       let state = Context.state c in
       Fiber.return (response, state)
@@ -167,16 +164,13 @@ let%expect_test "concurrent requests" =
   let waiter = waiter (waiter_in, waiter_out) in
   let run () =
     let initial_request () =
-      let request =
-        Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" ()
-      in
+      let request = Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" () in
       print_endline "initial: waitee requests from waiter";
       let+ resp = Jrpc.request waitee request in
       print_endline "initial request response:";
       print (Response resp)
     in
-    Fiber.all_concurrently_unit
-      [ Jrpc.run waitee; initial_request (); Jrpc.run waiter ]
+    Fiber.all_concurrently_unit [ Jrpc.run waitee; initial_request (); Jrpc.run waiter ]
   in
   Fiber_test.test Dyn.opaque run;
   [%expect
@@ -195,6 +189,7 @@ let%expect_test "concurrent requests" =
     waiter: received response:
     { "id": 100, "jsonrpc": "2.0", "result": 42 }
     [FAIL] unexpected Never raised |}]
+;;
 
 let%expect_test "test from jsonrpc_test.ml" =
   Printexc.record_backtrace false;
@@ -235,22 +230,21 @@ let%expect_test "test from jsonrpc_test.ml" =
   let reqs_in, reqs_out = pipe () in
   let chan =
     let out = of_ref responses in
-    (reqs_in, out)
+    reqs_in, out
   in
   let session = Jrpc.create ~on_notification ~on_request ~name:"test" chan () in
   let write_reqs () =
     let* () =
-      Fiber.sequential_iter initial_requests ~f:(fun req ->
-          Out.write reqs_out (Some req))
+      Fiber.sequential_iter initial_requests ~f:(fun req -> Out.write reqs_out (Some req))
     in
     Out.write reqs_out None
   in
   Fiber_test.test Dyn.opaque (fun () ->
-      Fiber.fork_and_join_unit write_reqs (fun () -> Jrpc.run session));
+    Fiber.fork_and_join_unit write_reqs (fun () -> Jrpc.run session));
   List.rev !responses
   |> List.iter ~f:(fun packet ->
-         let json = Jsonrpc.Packet.yojson_of_t packet in
-         print_json json);
+    let json = Jsonrpc.Packet.yojson_of_t packet in
+    print_json json);
   [%expect
     {|
     >> received notification
@@ -264,14 +258,13 @@ let%expect_test "test from jsonrpc_test.ml" =
     <opaque>
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
+;;
 
 let%expect_test "cancellation" =
   let () = Printexc.record_backtrace true in
   let print packet =
     print_endline
-      (Yojson.Safe.pretty_to_string
-         ~std:false
-         (Jsonrpc.Packet.yojson_of_t packet))
+      (Yojson.Safe.pretty_to_string ~std:false (Jsonrpc.Packet.yojson_of_t packet))
   in
   let server_req_ack = Fiber.Ivar.create () in
   let client_req_ack = Fiber.Ivar.create () in
@@ -284,11 +277,10 @@ let%expect_test "cancellation" =
       let* () = Fiber.Ivar.fill server_req_ack () in
       let response =
         Reply.later (fun send ->
-            print_endline
-              "server: waiting for client ack before sending response";
-            let* () = Fiber.Ivar.read client_req_ack in
-            print_endline "server: got client ack, sending response";
-            send (Jsonrpc.Response.ok request.id (`String "Ok")))
+          print_endline "server: waiting for client ack before sending response";
+          let* () = Fiber.Ivar.read client_req_ack in
+          print_endline "server: got client ack, sending response";
+          send (Jsonrpc.Response.ok request.id (`String "Ok")))
       in
       Fiber.return (response, state)
     in
@@ -300,9 +292,7 @@ let%expect_test "cancellation" =
     let server_in, server_out = pipe () in
     let client = client (client_in, server_out) in
     let server = server (server_in, client_out) in
-    let request =
-      Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" ()
-    in
+    let request = Jsonrpc.Request.create ~id:(`String "initial") ~method_:"init" () in
     let cancel, req = Jrpc.request_with_cancel client request in
     let fire_cancellation =
       let* () = Fiber.return () in
@@ -346,3 +336,4 @@ let%expect_test "cancellation" =
     request has been cancelled
     server: got client ack, sending response
     <opaque> |}]
+;;

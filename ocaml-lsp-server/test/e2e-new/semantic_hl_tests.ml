@@ -68,23 +68,26 @@ let client_capabilities =
     TextDocumentClientCapabilities.create ~semanticTokens ()
   in
   ClientCapabilities.create ~textDocument ()
+;;
 
 type 'resp req_ctx =
   { initializeResult : InitializeResult.t
   ; resp : 'resp
   }
 
-let test :
-    type resp.
-       src:string
+let test
+  : type resp.
+    src:string
     -> (SemanticTokensParams.t -> resp Client.out_request)
     -> (resp req_ctx -> unit Fiber.t)
-    -> unit =
- fun ~src req consume_resp ->
+    -> unit
+  =
+  fun ~src req consume_resp ->
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
-      ~on_notification:(fun client -> function
+      ~on_notification:(fun client ->
+        function
         | Lsp.Server_notification.PublishDiagnostics _ ->
           (* we don't want to close the connection from client-side before we
              process diagnostics arrived on the channel. TODO: would a better
@@ -96,39 +99,35 @@ let test :
       ()
   in
   Test.run ~handler (fun client ->
-      let run_client () =
-        Client.start
+    let run_client () =
+      Client.start client (InitializeParams.create ~capabilities:client_capabilities ())
+    in
+    let run () =
+      let* (initializeResult : InitializeResult.t) = Client.initialized client in
+      let uri = DocumentUri.of_path "test.ml" in
+      let textDocument =
+        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:src
+      in
+      let* () =
+        Client.notification
           client
-          (InitializeParams.create ~capabilities:client_capabilities ())
+          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
       in
-      let run () =
-        let* (initializeResult : InitializeResult.t) =
-          Client.initialized client
-        in
-        let uri = DocumentUri.of_path "test.ml" in
-        let textDocument =
-          TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:src
-        in
-        let* () =
-          Client.notification
-            client
-            (TextDocumentDidOpen
-               (DidOpenTextDocumentParams.create ~textDocument))
-        in
-        let* resp =
-          let textDocument = TextDocumentIdentifier.create ~uri in
-          let params = SemanticTokensParams.create ~textDocument () in
-          Client.request client (req params)
-        in
-        let* () = consume_resp { initializeResult; resp } in
-        let* () =
-          Fiber.fork_and_join_unit
-            (fun () -> Fiber.Ivar.read wait_for_diagnostics)
-            (fun () -> Client.request client Shutdown)
-        in
-        Client.stop client
+      let* resp =
+        let textDocument = TextDocumentIdentifier.create ~uri in
+        let params = SemanticTokensParams.create ~textDocument () in
+        Client.request client (req params)
       in
-      Fiber.fork_and_join_unit run_client run)
+      let* () = consume_resp { initializeResult; resp } in
+      let* () =
+        Fiber.fork_and_join_unit
+          (fun () -> Fiber.Ivar.read wait_for_diagnostics)
+          (fun () -> Client.request client Shutdown)
+      in
+      Client.stop client
+    in
+    Fiber.fork_and_join_unit run_client run)
+;;
 
 let test_semantic_tokens_full src =
   let print_resp { initializeResult; resp } =
@@ -154,6 +153,7 @@ let test_semantic_tokens_full src =
            src
   in
   test ~src (fun p -> SemanticTokensFull p) print_resp
+;;
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =
   test_semantic_tokens_full Semantic_hl_data.src0;
@@ -210,6 +210,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         ; <property|-71>bar</71> : <type|-72>int</72>
         }
     end) |}]
+;;
 
 let test_semantic_tokens_full_debug src =
   test
@@ -218,14 +219,11 @@ let test_semantic_tokens_full_debug src =
       UnknownRequest
         { meth = semantic_tokens_full_debug
         ; params =
-            Some
-              (SemanticTokensParams.yojson_of_t p
-              |> Jsonrpc.Structured.t_of_yojson)
+            Some (SemanticTokensParams.yojson_of_t p |> Jsonrpc.Structured.t_of_yojson)
         })
     (fun { resp; _ } ->
-      resp
-      |> Yojson.Safe.pretty_to_string ~std:false
-      |> print_endline |> Fiber.return)
+      resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline |> Fiber.return)
+;;
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =
   test_semantic_tokens_full_debug Semantic_hl_data.src0;
@@ -671,10 +669,10 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "modifiers": []
       }
     ] |}]
+;;
 
 let%expect_test "highlighting longidents with space between identifiers" =
-  test_semantic_tokens_full
-  @@ String.trim {|
+  test_semantic_tokens_full @@ String.trim {|
 let foo = Bar.jar
 
 let joo = Bar.   jar
@@ -684,9 +682,9 @@ let joo = Bar.   jar
     let <variable|-0>foo</0> = <namespace|-1>Bar</1>.<variable|-2>jar</2>
 
     let <variable|-3>joo</3> = <namespace|-4>Bar</4>.   <variable|-5>jar</5> |}]
+;;
 
-let%expect_test "highlighting longidents with space between identifiers and \
-                 infix fns" =
+let%expect_test "highlighting longidents with space between identifiers and infix fns" =
   test_semantic_tokens_full
   @@ String.trim {|
 Bar.(+) ;;
@@ -706,6 +704,7 @@ Bar. ( + ) ;;
     <namespace|-6>Bar</6>. <variable|-7>(+)</7> ;;
 
     <namespace|-8>Bar</8>. <namespace|-9>(</9> <namespace|-10>+</10> <variable|-11>)</11> ;; |}]
+;;
 
 let%expect_test "longidents in records" =
   test_semantic_tokens_full
@@ -720,6 +719,7 @@ let x = { M . foo = 0 ; bar = "bar"}
     module <namespace|definition-0>M</0> = struct type <struct|definition-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
 
     let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>} |}]
+;;
 
 let%expect_test "operators" =
   test_semantic_tokens_full
@@ -733,6 +733,7 @@ let z = 0 >>= 1
     let <variable|-0>x</0> = <number|-1>1.0</1> <function|-2>*.</2> <number|-3>2.0</3>
     let <variable|-4>y</4> = <number|-5>1</5> <function|-6>*</6> <number|-7>2</7>
     let <variable|-8>z</8> = <number|-9>0</9> <function|-10>>>=</10> <number|-11>1</11> |}]
+;;
 
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
@@ -747,3 +748,4 @@ let ((*comment*)) = ()
     let <variable|-0>y</0> = (* comment *) <number|-1>0</1>
     let <variable|-2>x</2> = ((* comment *))
     let ((*comment*)) = () |}]
+;;

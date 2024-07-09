@@ -23,16 +23,17 @@ let test ~from ~to_ =
       (DidOpenTextDocumentParams.create ~textDocument)
   in
   let to_' =
-    Text_document.apply_text_document_edits text_document edits
-    |> Text_document.text
+    Text_document.apply_text_document_edits text_document edits |> Text_document.text
   in
-  if not @@ String.equal to_ to_' then
-    printfn "[FAILURE]\nresult:   %S\nexpected: %S" to_' to_
+  if not @@ String.equal to_ to_'
+  then printfn "[FAILURE]\nresult:   %S\nexpected: %S" to_' to_
+;;
 
 let%expect_test "empty strings" =
   test ~from:"" ~to_:"";
   [%expect {|
     [] |}]
+;;
 
 let%expect_test "from empty" =
   test ~from:"" ~to_:"foobar";
@@ -59,6 +60,7 @@ let%expect_test "from empty" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "from empty - with newline" =
   test ~from:"" ~to_:"foobar\n";
@@ -73,6 +75,7 @@ let%expect_test "from empty - with newline" =
       }
     }
   ] |}]
+;;
 
 let%expect_test "to empty" =
   test ~from:"foobar" ~to_:"";
@@ -87,11 +90,13 @@ let%expect_test "to empty" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "no change" =
   test ~from:"foobar" ~to_:"foobar";
   [%expect {|
     [] |}]
+;;
 
 let%expect_test "multiline" =
   test ~from:"foo" ~to_:"baz\nbar\nxx\n";
@@ -106,6 +111,7 @@ let%expect_test "multiline" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "change a character" =
   test ~from:"xxx y xx" ~to_:"xxx z xx";
@@ -120,6 +126,7 @@ let%expect_test "change a character" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "delete empty line" =
   test ~from:"xxx\n\nyyy\n" ~to_:"xxx\nyyy\n";
@@ -134,6 +141,7 @@ let%expect_test "delete empty line" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "regerssion test 1" =
   Printexc.record_backtrace false;
@@ -163,6 +171,7 @@ z
         }
       }
     ] |}]
+;;
 
 let%expect_test "regerssion test 2" =
   test ~from:"1\nz\n2" ~to_:"2\n1\n";
@@ -184,6 +193,7 @@ let%expect_test "regerssion test 2" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "regression test 3" =
   (* the diff given here is wierd *)
@@ -206,6 +216,7 @@ let%expect_test "regression test 3" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "regression test 4" =
   (* the diff given here is wierd *)
@@ -228,6 +239,7 @@ let%expect_test "regression test 4" =
         }
       }
     ] |}]
+;;
 
 let%expect_test "regression test 5" =
   test ~from:"\nXXX\n\n" ~to_:"XXX\n";
@@ -249,3 +261,4 @@ let%expect_test "regression test 5" =
         }
       }
     ] |}]
+;;
