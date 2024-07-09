@@ -105,71 +105,78 @@ type t =
   ; typeAliases : typeAlias list
   }
 
-let error msg json =
-  failwith (msg ^ "\n" ^ Yojson.Safe.pretty_to_string ~std:false json)
+let error msg json = failwith (msg ^ "\n" ^ Yojson.Safe.pretty_to_string ~std:false json)
 
 let fields = function
   | `Assoc xs -> xs
   | xs -> error "expected fields" xs
+;;
 
 let field ?default (name : string) p fields =
   match List.assoc fields name with
   | Some f -> p f
-  | None -> (
-    match default with
-    | None -> error ("field not found " ^ name) (`Assoc fields)
-    | Some x -> x)
+  | None ->
+    (match default with
+     | None -> error ("field not found " ^ name) (`Assoc fields)
+     | Some x -> x)
+;;
 
 let field_o name p fields =
   match List.assoc fields name with
   | None -> None
   | Some f -> Some (p f)
+;;
 
 let bool = function
   | `Bool b -> b
   | json -> error "boolean expected" json
+;;
 
-let literal lit json =
-  if not (Poly.equal json lit) then error "unexpected literal" json
+let literal lit json = if not (Poly.equal json lit) then error "unexpected literal" json
 
 let enum variants json =
   match json with
-  | `String s -> (
-    match List.assoc variants s with
-    | None -> error "not a valid enum value" json
-    | Some v -> v)
+  | `String s ->
+    (match List.assoc variants s with
+     | None -> error "not a valid enum value" json
+     | Some v -> v)
   | _ -> error "not a valid enum value" json
+;;
 
 let string = function
   | `String s -> s
   | json -> error "expected string" json
+;;
 
 let string_or_number = function
   | `String s -> `String s
   | `Int i -> `Int i
   | json -> error "expected string or number" json
+;;
 
 let name fields = field "name" string fields
 
 let list conv = function
   | `List xs -> List.map xs ~f:conv
   | json -> error "expected list" json
+;;
 
 let baseType json : baseType =
   match json with
-  | `String s -> (
-    match s with
-    | "URI" | "Uri" -> Uri
-    | "DocumentUri" -> DocumentUri
-    | "integer" -> Integer
-    | "uinteger" -> Uinteger
-    | "decimal" -> Decimal
-    | "RegExp" -> RegExp
-    | "string" -> String
-    | "boolean" -> Boolean
-    | "null" -> Null
-    | _ -> error "unknown base type" json)
+  | `String s ->
+    (match s with
+     | "URI" | "Uri" -> Uri
+     | "DocumentUri" -> DocumentUri
+     | "integer" -> Integer
+     | "uinteger" -> Uinteger
+     | "decimal" -> Decimal
+     | "RegExp" -> RegExp
+     | "string" -> String
+     | "boolean" -> Boolean
+     | "null" -> Null
+     | _ -> error "unknown base type" json)
   | _ -> error "unknown base type" json
+;;
 
 let mapKeyType json : mapKeyType =
   let fields = fields json in
@@ -180,19 +187,21 @@ let mapKeyType json : mapKeyType =
     field
       "name"
       (enum
-         [ ("Uri", Uri)
-         ; ("URI", Uri)
-         ; ("DocumentUri", DocumentUri)
-         ; ("string", String)
-         ; ("integer", Integer)
+         [ "Uri", Uri
+         ; "URI", Uri
+         ; "DocumentUri", DocumentUri
+         ; "string", String
+         ; "integer", Integer
          ])
       fields
   | kind -> error ("invalid kind for map key type: " ^ kind) json
+;;
 
 let doc fields =
   let since = field_o "since" string fields in
   let documentation = field_o "documentation" string fields in
   { since; documentation }
+;;
 
 let rec type_ json =
   let fields_conv = fields in
@@ -234,8 +243,7 @@ let rec type_ json =
     Literal (Record fields)
   | kind -> error "unrecognized kind" (`String kind)
 
-and properties fields : property list =
-  field "properties" (list property) fields
+and properties fields : property list = field "properties" (list property) fields
 
 and property json : property =
   let fields = fields json in
@@ -251,6 +259,7 @@ let params = function
   | `List l -> `Params (List.map l ~f:type_)
   | `Assoc _ as json -> `Param (type_ json)
   | json -> error "list or object expected" json
+;;
 
 let call fields =
   let method_ = field "method" string fields in
@@ -258,11 +267,13 @@ let call fields =
   let doc = doc fields in
   let registrationOptions = field_o "registrationOptions" type_ fields in
   { registrationOptions; doc; method_; params }
+;;
 
 let notification json =
   let fields = fields json in
   let call = call fields in
   { call }
+;;
 
 let request json =
   let fields = fields json in
@@ -271,6 +282,7 @@ let request json =
   let partialResult = field_o "partialResult" type_ fields in
   let result = field "result" type_ fields in
   { call; errorData; partialResult; result }
+;;
 
 let enumerationEntry json : enumerationEntry =
   let fields = fields json in
@@ -278,6 +290,7 @@ let enumerationEntry json : enumerationEntry =
   let doc = doc fields in
   let value = field "value" string_or_number fields in
   { name; value; doc }
+;;
 
 let enumerationType json =
   let fields = fields json in
@@ -285,11 +298,11 @@ let enumerationType json =
   let name =
     field
       "name"
-      (enum
-         [ ("integer", `Integer); ("string", `String); ("uinteger", `Uinteger) ])
+      (enum [ "integer", `Integer; "string", `String; "uinteger", `Uinteger ])
       fields
   in
   { name }
+;;
 
 let enumeration json =
   let fields = fields json in
@@ -297,10 +310,9 @@ let enumeration json =
   let doc = doc fields in
   let values = field "values" (list enumerationEntry) fields in
   let type_ = field "type" enumerationType fields in
-  let supportsCustomValues =
-    field ~default:false "supportsCustomValues" bool fields
-  in
+  let supportsCustomValues = field ~default:false "supportsCustomValues" bool fields in
   { supportsCustomValues; type_; values; name; doc }
+;;
 
 let structure json =
   let fields = fields json in
@@ -310,6 +322,7 @@ let structure json =
   let mixins = field ~default:[] "mixins" (list type_) fields in
   let properties = properties fields in
   { doc; name; extends; mixins; properties }
+;;
 
 let typeAlias json : typeAlias =
   let fields = fields json in
@@ -317,6 +330,7 @@ let typeAlias json : typeAlias =
   let type_ = type_field fields in
   let doc = doc fields in
   { doc; name; type_ }
+;;
 
 let t json =
   let fields = fields json in
@@ -326,6 +340,7 @@ let t json =
   let enumerations = field "enumerations" (list enumeration) fields in
   let typeAliases = field "typeAliases" (list typeAlias) fields in
   { requests; notifications; structures; enumerations; typeAliases }
+;;
 
 type metamodel = t
 
@@ -339,26 +354,21 @@ module Entity = struct
     type nonrec t = t String.Map.t
 
     let create
-        ({ structures
-         ; requests = _
-         ; notifications = _
-         ; enumerations
-         ; typeAliases
-         } :
-          metamodel) : t =
+      ({ structures; requests = _; notifications = _; enumerations; typeAliases } :
+        metamodel)
+      : t
+      =
       let structures =
-        String.Map.of_list_map_exn structures ~f:(fun s ->
-            (s.name, Structure s))
+        String.Map.of_list_map_exn structures ~f:(fun s -> s.name, Structure s)
       in
       let enumerations =
-        String.Map.of_list_map_exn enumerations ~f:(fun s ->
-            (s.name, Enumeration s))
+        String.Map.of_list_map_exn enumerations ~f:(fun s -> s.name, Enumeration s)
       in
       let typeAliases =
-        String.Map.of_list_map_exn typeAliases ~f:(fun a -> (a.name, Alias a))
+        String.Map.of_list_map_exn typeAliases ~f:(fun a -> a.name, Alias a)
       in
-      String.Map.union_exn structures enumerations
-      |> String.Map.union_exn typeAliases
+      String.Map.union_exn structures enumerations |> String.Map.union_exn typeAliases
+    ;;
 
     let find t x = String.Map.find_exn t x
   end
@@ -410,9 +420,7 @@ class map =
         in
         Option.map ~f:params c.params
       in
-      let registrationOptions =
-        Option.map ~f:(self#type_ path) c.registrationOptions
-      in
+      let registrationOptions = Option.map ~f:(self#type_ path) c.registrationOptions in
       { c with params; registrationOptions }
 
     method request (r : request) =
@@ -440,8 +448,7 @@ class map =
 
     method enumeration (e : enumeration) : enumeration = e
 
-    method t { requests; notifications; structures; enumerations; typeAliases }
-        =
+    method t { requests; notifications; structures; enumerations; typeAliases } =
       let requests = List.map requests ~f:self#request in
       let notifications = List.map notifications ~f:self#notification in
       let structures = List.map structures ~f:self#structure in

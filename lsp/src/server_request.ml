@@ -2,16 +2,12 @@ open Import
 open Types
 
 type _ t =
-  | WorkspaceApplyEdit :
-      ApplyWorkspaceEditParams.t
-      -> ApplyWorkspaceEditResult.t t
+  | WorkspaceApplyEdit : ApplyWorkspaceEditParams.t -> ApplyWorkspaceEditResult.t t
   | WorkspaceFolders : WorkspaceFolder.t list t
   | WorkspaceConfiguration : ConfigurationParams.t -> Json.t list t
   | ClientRegisterCapability : RegistrationParams.t -> unit t
   | ClientUnregisterCapability : UnregistrationParams.t -> unit t
-  | ShowMessageRequest :
-      ShowMessageRequestParams.t
-      -> MessageActionItem.t option t
+  | ShowMessageRequest : ShowMessageRequestParams.t -> MessageActionItem.t option t
   | ShowDocumentRequest : ShowDocumentParams.t -> ShowDocumentResult.t t
   | WorkDoneProgressCreate : WorkDoneProgressCreateParams.t -> unit t
   | CodeLensRefresh : unit t
@@ -41,22 +37,18 @@ let method_ (type a) (t : a t) =
   | WorkspaceInlayHintRefresh -> "workspace/inlayHint/refresh"
   | WorkspaceInlineValueRefresh -> "workspace/inlineValue/refresh"
   | UnknownRequest (r, _) -> r
+;;
 
 let params =
   let ret x = Some (Jsonrpc.Structured.t_of_yojson x) in
   fun (type a) (t : a t) ->
     match t with
-    | WorkspaceApplyEdit params ->
-      ret (ApplyWorkspaceEditParams.yojson_of_t params)
+    | WorkspaceApplyEdit params -> ret (ApplyWorkspaceEditParams.yojson_of_t params)
     | WorkspaceFolders -> None
-    | WorkspaceConfiguration params ->
-      ret (ConfigurationParams.yojson_of_t params)
-    | ClientRegisterCapability params ->
-      ret (RegistrationParams.yojson_of_t params)
-    | ClientUnregisterCapability params ->
-      ret (UnregistrationParams.yojson_of_t params)
-    | ShowMessageRequest params ->
-      ret (ShowMessageRequestParams.yojson_of_t params)
+    | WorkspaceConfiguration params -> ret (ConfigurationParams.yojson_of_t params)
+    | ClientRegisterCapability params -> ret (RegistrationParams.yojson_of_t params)
+    | ClientUnregisterCapability params -> ret (UnregistrationParams.yojson_of_t params)
+    | ShowMessageRequest params -> ret (ShowMessageRequestParams.yojson_of_t params)
     | ShowDocumentRequest params -> ret (ShowDocumentParams.yojson_of_t params)
     | WorkDoneProgressCreate params ->
       ret (WorkDoneProgressCreateParams.yojson_of_t params)
@@ -67,11 +59,13 @@ let params =
     | WorkspaceInlineValueRefresh
     | WorkspaceDiagnosticRefresh -> None
     | UnknownRequest (_, params) -> params
+;;
 
 let to_jsonrpc_request t ~id =
   let method_ = method_ t in
   let params = params t in
   Jsonrpc.Request.create ~id ~method_ ?params ()
+;;
 
 let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
   let open Result.O in
@@ -105,18 +99,17 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
   | "workspace/inlayHint/refresh" -> Ok (E WorkspaceInlayHintRefresh)
   | "workspace/inlineValue/refresh" -> Ok (E WorkspaceInlineValueRefresh)
   | m -> Ok (E (UnknownRequest (m, r.params)))
+;;
 
 let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
-  match (t, r) with
+  match t, r with
   | WorkspaceApplyEdit _, r -> ApplyWorkspaceEditResult.yojson_of_t r
-  | WorkspaceFolders, r ->
-    Json.Conv.yojson_of_list WorkspaceFolder.yojson_of_t r
+  | WorkspaceFolders, r -> Json.Conv.yojson_of_list WorkspaceFolder.yojson_of_t r
   | WorkspaceConfiguration _, r -> Json.Conv.yojson_of_list (fun x -> x) r
   | ClientRegisterCapability _, () -> `Null
   | ClientUnregisterCapability _, () -> `Null
   | WorkDoneProgressCreate _, () -> `Null
-  | ShowMessageRequest _, r ->
-    Json.Conv.yojson_of_option MessageActionItem.yojson_of_t r
+  | ShowMessageRequest _, r -> Json.Conv.yojson_of_option MessageActionItem.yojson_of_t r
   | ShowDocumentRequest _, r -> ShowDocumentResult.yojson_of_t r
   | CodeLensRefresh, _ -> `Null
   | SemanticTokensRefresh, _ -> `Null
@@ -125,6 +118,7 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   | WorkspaceInlayHintRefresh, _ -> `Null
   | WorkspaceInlineValueRefresh, _ -> `Null
   | UnknownRequest (_, _), json -> json
+;;
 
 let response_of_json (type a) (t : a t) (json : Json.t) : a =
   let open Json.Conv in
@@ -144,3 +138,4 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | WorkspaceInlayHintRefresh -> unit_of_yojson json
   | WorkspaceInlineValueRefresh -> unit_of_yojson json
   | UnknownRequest (_, _) -> json
+;;

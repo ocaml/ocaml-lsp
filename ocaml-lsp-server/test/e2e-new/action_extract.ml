@@ -1,7 +1,5 @@
 let extract_local_test = Code_actions.code_action_test ~title:"Extract local"
-
-let extract_function_test =
-  Code_actions.code_action_test ~title:"Extract function"
+let extract_function_test = Code_actions.code_action_test ~title:"Extract function"
 
 let%expect_test "extract local constant" =
   extract_local_test {|
@@ -12,6 +10,7 @@ let f =
     let f =
       let var_name = 1 in
     0 + var_name |}]
+;;
 
 let%expect_test "extract local expression" =
   extract_local_test {|
@@ -25,18 +24,19 @@ let f =
       let x = 2 in
       let var_name = 0 + 1 + x in
     var_name + 1 |}]
+;;
 
 let%expect_test "extract function single parameter" =
   extract_function_test {|
 let f x =
   $(x * 2)$ + 3
 |};
-  [%expect
-    {|
+  [%expect {|
     let fun_name x = (x * 2)
 
     let f x =
       fun_name x + 3 |}]
+;;
 
 let%expect_test "extract function multiple parameter" =
   extract_function_test {|
@@ -51,6 +51,7 @@ let f x =
     let f x =
       let y = 0 in
       fun_name y x + 3 |}]
+;;
 
 let%expect_test "extract function with local module" =
   extract_function_test
@@ -62,6 +63,7 @@ let f x =
   $(x * M.y)$ + 3
 |};
   [%expect {||}]
+;;
 
 (* TODO: This extraction shouldn't be allowed. *)
 let%expect_test "extract function with local exception" =
@@ -77,18 +79,19 @@ let f x =
     let f x =
       let exception Local in
       fun_name () |}]
+;;
 
 let%expect_test "extract function with shadowed parameter" =
   extract_function_test {|
 let x = 0
 let f x = $x + 1$
 |};
-  [%expect
-    {|
+  [%expect {|
     let x = 0
     let fun_name x = x + 1
 
     let f x = fun_name x |}]
+;;
 
 let%expect_test "extract function with bound variable" =
   extract_function_test {|
@@ -103,6 +106,7 @@ let f x = $x + y$
     let fun_name x = x + y
 
     let f x = fun_name x |}]
+;;
 
 let%expect_test "extract higher order function" =
   extract_function_test {|
@@ -115,6 +119,7 @@ let f x =
 
     let f x =
       fun_name x |}]
+;;
 
 let%expect_test "extract higher order function" =
   extract_function_test {|
@@ -127,6 +132,7 @@ let f y =
 
     let f y =
       fun_name y |}]
+;;
 
 let%expect_test "extract higher order function" =
   extract_function_test {|
@@ -139,6 +145,7 @@ let f y =
 
     let f y =
       fun_name y |}]
+;;
 
 let%expect_test "extract inside let binding" =
   extract_function_test {|
@@ -153,6 +160,7 @@ let f y =
     let f y =
       let y = y + 1 in
       fun_name y |}]
+;;
 
 let%expect_test "extract free variable" =
   extract_function_test {|
@@ -164,3 +172,4 @@ let f () =
 
     let f () =
       fun_name () |}]
+;;

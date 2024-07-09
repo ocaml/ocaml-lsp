@@ -12,14 +12,14 @@ module Resolve : sig
   include Json.Jsonable.S with type t := t
 end
 
-val complete :
-     State.t
+val complete
+  :  State.t
   -> CompletionParams.t
   -> [> `CompletionList of CompletionList.t ] option Fiber.t
 
 (** creates a server response for ["completionItem/resolve"] *)
-val resolve :
-     Document.Merlin.t
+val resolve
+  :  Document.Merlin.t
   -> CompletionItem.t
   -> Resolve.t
   -> (Document.Merlin.t -> [> `Logical of int * int ] -> string option Fiber.t)
@@ -37,8 +37,7 @@ val resolve :
       [List.m<cursor>] returns ["m"] when [short_path] is set vs ["List.m"] when
       not.
     @return prefix of [position] in [source] and its length *)
-val prefix_of_position :
-  short_path:bool -> Msource.t -> [< Msource.position ] -> string
+val prefix_of_position : short_path:bool -> Msource.t -> [< Msource.position ] -> string
 
 (** [reconstruct_ident source position] returns the identifier at [position].
     Note: [position] can be in the middle of the identifier.

@@ -7,6 +7,7 @@ let run_with_modes f =
   print_endline "Windows:";
   Lsp.Uri.Private.win32 := true;
   f ()
+;;
 
 let test_uri_parsing =
   let test s =
@@ -14,6 +15,7 @@ let test_uri_parsing =
     Printf.printf "%s -> %s\n" s (Uri.to_path uri)
   in
   fun uris -> run_with_modes (fun () -> List.iter test uris)
+;;
 
 let%expect_test "test uri parsing" =
   test_uri_parsing [ "file:///Users/foo"; "file:///c:/Users/foo" ];
@@ -25,6 +27,7 @@ let%expect_test "test uri parsing" =
     Windows:
     file:///Users/foo -> \Users\foo
     file:///c:/Users/foo -> c:\Users\foo |}]
+;;
 
 let uri_of_path =
   let test path =
@@ -32,6 +35,7 @@ let uri_of_path =
     Printf.printf "%s -> %s\n" path (Uri.to_string uri)
   in
   fun uris -> run_with_modes (fun () -> List.iter test uris)
+;;
 
 let%expect_test "uri of path" =
   uri_of_path [ "/foo/bar.ml"; "foo/bar.mli" ];
@@ -43,6 +47,7 @@ let%expect_test "uri of path" =
     Windows:
     /foo/bar.ml -> file:///foo/bar.ml
     foo/bar.mli -> file:///foo/bar.mli |}]
+;;
 
 let%expect_test "of_path -> to_string" =
   let test_of_path_to_string =
@@ -101,6 +106,7 @@ let%expect_test "of_path -> to_string" =
     a.file -> file:///a.file
     /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
     |}]
+;;
 
 let%expect_test "of_path -> to_path" =
   let test_of_path_to_path =
@@ -159,6 +165,7 @@ let%expect_test "of_path -> to_path" =
     c:\test with %25\c#code -> c:\test with %25\c#code
     hello -> \hello
     |}]
+;;
 
 let%expect_test "of_string -> to_path" =
   let test_of_string_to_path =
@@ -196,6 +203,7 @@ let%expect_test "of_string -> to_path" =
     /shares/pröjects/c%23/#l12 -> \shares\pröjects\c#\
     \shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
     |}]
+;;
 
 let%expect_test "of_string -> to_string" =
   let test_of_string_to_string =
@@ -245,6 +253,7 @@ let%expect_test "of_string -> to_string" =
     file:///pro%2Fjects/ -> file:///pro/jects/
     vscode://mount/test.ml -> vscode://mount/test.ml
     |}]
+;;
 
 let%expect_test "of_string -> to_path" =
   let test_of_string_to_path =
@@ -276,3 +285,4 @@ let%expect_test "of_string -> to_path" =
        -> \
       file://LöC%2FAL/host:8080/projects/ -> \\LöC\AL\host:8080\projects\
       |}]
+;;

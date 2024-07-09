@@ -11,41 +11,36 @@ module Id = struct
   let yojson_of_t = function
     | `String s -> `String s
     | `Int i -> `Int i
+  ;;
 
   let t_of_yojson = function
     | `String s -> `String s
     | `Int i -> `Int i
     | json -> Json.error "Id.t" json
+  ;;
 
   let hash x = Hashtbl.hash x
-
   let equal = ( = )
 end
 
 module Constant = struct
   let jsonrpc = "jsonrpc"
-
   let jsonrpcv = "2.0"
-
   let id = "id"
-
   let method_ = "method"
-
   let params = "params"
-
   let result = "result"
-
   let error = "error"
 end
 
 let assert_jsonrpc_version fields =
-  let jsonrpc =
-    Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
-  in
-  if not (String.equal jsonrpc Constant.jsonrpcv) then
+  let jsonrpc = Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson in
+  if not (String.equal jsonrpc Constant.jsonrpcv)
+  then
     Json.error
       ("invalid packet: jsonrpc version doesn't match " ^ jsonrpc)
       (`Assoc fields)
+;;
 
 module Structured = struct
   type t =
@@ -57,6 +52,7 @@ module Structured = struct
     | `Assoc xs -> `Assoc xs
     | `List xs -> `List xs
     | json -> Json.error "invalid structured value" json
+  ;;
 
   let yojson_of_t t = (t :> Json.t)
 end
@@ -69,16 +65,14 @@ module Notification = struct
 
   let fields ~method_ ~params =
     let json =
-      [ (Constant.method_, `String method_)
-      ; (Constant.jsonrpc, `String Constant.jsonrpcv)
-      ]
+      [ Constant.method_, `String method_; Constant.jsonrpc, `String Constant.jsonrpcv ]
     in
     match params with
     | None -> json
     | Some params -> (Constant.params, (params :> Json.t)) :: json
+  ;;
 
   let yojson_of_t { method_; params } = `Assoc (fields ~method_ ~params)
-
   let create ?params ~method_ () = { params; method_ }
 end
 
@@ -92,6 +86,7 @@ module Request = struct
   let yojson_of_t { id; method_; params } =
     let fields = Notification.fields ~method_ ~params in
     `Assoc ((Constant.id, Id.yojson_of_t id) :: fields)
+  ;;
 
   let create ?params ~id ~method_ () = { params; id; method_ }
 end
@@ -132,6 +127,7 @@ module Response = struct
         | -32802 -> ServerCancelled
         | -32803 -> RequestFailed
         | code -> Other code
+      ;;
 
       let to_int = function
         | ParseError -> -32700
@@ -148,11 +144,13 @@ module Response = struct
         | ServerCancelled -> -32802
         | RequestFailed -> -32803
         | Other code -> code
+      ;;
 
       let t_of_yojson json =
         match json with
         | `Int i -> of_int i
         | _ -> Json.error "invalid code" json
+      ;;
 
       let yojson_of_t t = `Int (to_int t)
     end
@@ -164,15 +162,14 @@ module Response = struct
       }
 
     let yojson_of_t { code; message; data } =
-      let assoc =
-        [ ("code", Code.yojson_of_t code); ("message", `String message) ]
-      in
+      let assoc = [ "code", Code.yojson_of_t code; "message", `String message ] in
       let assoc =
         match data with
         | None -> assoc
         | Some data -> ("data", data) :: assoc
       in
       `Assoc assoc
+    ;;
 
     let t_of_yojson json =
       match json with
@@ -182,16 +179,17 @@ module Response = struct
         let data = Json.field fields "data" (fun x -> x) in
         { code; message; data }
       | _ -> Json.error "Jsonrpc.Response.t" json
+    ;;
 
     exception E of t
 
     let raise t = raise (E t)
-
     let make ?data ~code ~message () = { data; code; message }
 
     let of_exn exn =
       let message = Printexc.to_string exn in
       make ~code:InternalError ~message ()
+    ;;
   end
 
   type t =
@@ -202,37 +200,34 @@ module Response = struct
   let yojson_of_t { id; result } =
     let result =
       match result with
-      | Ok json -> (Constant.result, json)
-      | Error e -> (Constant.error, Error.yojson_of_t e)
+      | Ok json -> Constant.result, json
+      | Error e -> Constant.error, Error.yojson_of_t e
     in
     `Assoc
-      [ (Constant.id, Id.yojson_of_t id)
-      ; (Constant.jsonrpc, `String Constant.jsonrpcv)
+      [ Constant.id, Id.yojson_of_t id
+      ; Constant.jsonrpc, `String Constant.jsonrpcv
       ; result
       ]
+  ;;
 
   let t_of_yojson json =
     match json with
-    | `Assoc fields -> (
+    | `Assoc fields ->
       let id = Json.field_exn fields Constant.id Id.t_of_yojson in
-      let jsonrpc =
-        Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson
-      in
-      if jsonrpc <> Constant.jsonrpcv then Json.error "Invalid response" json
-      else
+      let jsonrpc = Json.field_exn fields Constant.jsonrpc Json.Conv.string_of_yojson in
+      if jsonrpc <> Constant.jsonrpcv
+      then Json.error "Invalid response" json
+      else (
         match Json.field fields Constant.result (fun x -> x) with
         | Some res -> { id; result = Ok res }
         | None ->
-          let result =
-            Error (Json.field_exn fields Constant.error Error.t_of_yojson)
-          in
+          let result = Error (Json.field_exn fields Constant.error Error.t_of_yojson) in
           { id; result })
     | _ -> Json.error "Jsonrpc.Result.t" json
+  ;;
 
   let make ~id ~result = { id; result }
-
   let ok id result = make ~id ~result:(Ok result)
-
   let error id error = make ~id ~result:(Error error)
 end
 
@@ -242,8 +237,7 @@ module Packet = struct
     | Request of Request.t
     | Response of Response.t
     | Batch_response of Response.t list
-    | Batch_call of
-        [ `Request of Request.t | `Notification of Notification.t ] list
+    | Batch_call of [ `Request of Request.t | `Notification of Notification.t ] list
 
   let yojson_of_t = function
     | Notification r -> Notification.yojson_of_t r
@@ -253,71 +247,73 @@ module Packet = struct
     | Batch_call r ->
       `List
         (List.map r ~f:(function
-            | `Request r -> Request.yojson_of_t r
-            | `Notification r -> Notification.yojson_of_t r))
+          | `Request r -> Request.yojson_of_t r
+          | `Notification r -> Notification.yojson_of_t r))
+  ;;
 
   let t_of_fields (fields : (string * Json.t) list) =
     assert_jsonrpc_version fields;
     match Json.field fields Constant.id Id.t_of_yojson with
     | None ->
-      let method_ =
-        Json.field_exn fields Constant.method_ Json.Conv.string_of_yojson
-      in
+      let method_ = Json.field_exn fields Constant.method_ Json.Conv.string_of_yojson in
       let params = Json.field fields Constant.params Structured.t_of_yojson in
       Notification { Notification.params; method_ }
-    | Some id -> (
-      match Json.field fields Constant.method_ Json.Conv.string_of_yojson with
-      | Some method_ ->
-        let params = Json.field fields Constant.params Structured.t_of_yojson in
-        Request { Request.method_; params; id }
-      | None ->
-        Response
-          (match Json.field fields Constant.result (fun x -> x) with
-          | Some result -> { Response.id; result = Ok result }
-          | None ->
-            let error =
-              Json.field_exn fields Constant.error Response.Error.t_of_yojson
-            in
-            { id; result = Error error }))
+    | Some id ->
+      (match Json.field fields Constant.method_ Json.Conv.string_of_yojson with
+       | Some method_ ->
+         let params = Json.field fields Constant.params Structured.t_of_yojson in
+         Request { Request.method_; params; id }
+       | None ->
+         Response
+           (match Json.field fields Constant.result (fun x -> x) with
+            | Some result -> { Response.id; result = Ok result }
+            | None ->
+              let error =
+                Json.field_exn fields Constant.error Response.Error.t_of_yojson
+              in
+              { id; result = Error error }))
+  ;;
 
   let t_of_yojson_single json =
     match json with
     | `Assoc fields -> t_of_fields fields
     | _ -> Json.error "invalid packet" json
+  ;;
 
   let t_of_yojson (json : Json.t) =
     match json with
     | `List [] -> Json.error "invalid packet" json
-    | `List (x :: xs) -> (
+    | `List (x :: xs) ->
       (* we inspect the first element to see what we're dealing with *)
       let x =
         match x with
         | `Assoc fields -> t_of_fields fields
         | _ -> Json.error "invalid packet" json
       in
-      match
-        match x with
-        | Notification x -> `Call (`Notification x)
-        | Request x -> `Call (`Request x)
-        | Response r -> `Response r
-        | _ -> Json.error "invalid packet" json
-      with
-      | `Call x ->
-        Batch_call
-          (x
-          :: List.map xs ~f:(fun call ->
-                 let x = t_of_yojson_single call in
-                 match x with
-                 | Notification n -> `Notification n
-                 | Request n -> `Request n
-                 | _ -> Json.error "invalid packet" json))
-      | `Response x ->
-        Batch_response
-          (x
-          :: List.map xs ~f:(fun resp ->
-                 let resp = t_of_yojson_single resp in
-                 match resp with
-                 | Response n -> n
-                 | _ -> Json.error "invalid packet" json)))
+      (match
+         match x with
+         | Notification x -> `Call (`Notification x)
+         | Request x -> `Call (`Request x)
+         | Response r -> `Response r
+         | _ -> Json.error "invalid packet" json
+       with
+       | `Call x ->
+         Batch_call
+           (x
+            :: List.map xs ~f:(fun call ->
+              let x = t_of_yojson_single call in
+              match x with
+              | Notification n -> `Notification n
+              | Request n -> `Request n
+              | _ -> Json.error "invalid packet" json))
+       | `Response x ->
+         Batch_response
+           (x
+            :: List.map xs ~f:(fun resp ->
+              let resp = t_of_yojson_single resp in
+              match resp with
+              | Response n -> n
+              | _ -> Json.error "invalid packet" json)))
     | _ -> t_of_yojson_single json
+  ;;
 end

@@ -5,15 +5,21 @@ open Lsp_fiber
 
 module Test = struct
   module Client = struct
-    let run ?(capabilities = ClientCapabilities.create ()) ?on_request
-        ?on_notification state (in_, out) =
+    let run
+      ?(capabilities = ClientCapabilities.create ())
+      ?on_request
+      ?on_notification
+      state
+      (in_, out)
+      =
       let initialize = InitializeParams.create ~capabilities () in
       let client =
         let stream_io = Lsp_fiber.Fiber_io.make in_ out in
         let handler = Client.Handler.make ?on_request ?on_notification () in
         Client.make handler stream_io state
       in
-      (client, Client.start client initialize)
+      client, Client.start client initialize
+    ;;
   end
 
   module Server = struct
@@ -23,7 +29,8 @@ module Test = struct
         let handler = Server.Handler.make ?on_request ?on_notification () in
         Server.make handler stream_io state
       in
-      (server, Server.start server)
+      server, Server.start server
+    ;;
   end
 end
 
@@ -41,16 +48,15 @@ let test make_client make_server =
   in
   Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
   print_endline "[TEST] finished"
+;;
 
 let json_pp = Yojson.Safe.pretty_print ~std:false
 
 module End_to_end_client = struct
   let on_request (type a) _ (_ : a Server_request.t) =
     Jsonrpc.Response.Error.raise
-      (Jsonrpc.Response.Error.make
-         ~message:"not implemented"
-         ~code:InternalError
-         ())
+      (Jsonrpc.Response.Error.make ~message:"not implemented" ~code:InternalError ())
+  ;;
 
   let on_notification (client : _ Client.t) n =
     let state = Client.state client in
@@ -63,6 +69,7 @@ module End_to_end_client = struct
     let+ () = Fiber.Ivar.fill received_notification () in
     Format.eprintf "client: filled received_notification@.%!";
     state
+  ;;
 
   let run io =
     let detached = Fiber.Pool.create () in
@@ -78,13 +85,11 @@ module End_to_end_client = struct
       let cancel = Fiber.Cancel.create () in
       let* () =
         Fiber.Pool.task detached ~f:(fun () ->
-            Format.eprintf
-              "client: waiting to receive notification before cancelling the \
-               request@.%!";
-            let* () = Fiber.Ivar.read received_notification in
-            Format.eprintf
-              "client: received notification, cancelling the request@.%!";
-            Fiber.Cancel.fire cancel)
+          Format.eprintf
+            "client: waiting to receive notification before cancelling the request@.%!";
+          let* () = Fiber.Ivar.read received_notification in
+          Format.eprintf "client: received notification, cancelling the request@.%!";
+          Fiber.Cancel.fire cancel)
       in
       let* res_cancel =
         let req_cancel =
@@ -102,8 +107,8 @@ module End_to_end_client = struct
         Client.request client req_reply
       in
       (match res_cancel with
-      | `Cancelled -> Format.eprintf "client: req_cancel got cancelled@.%!"
-      | `Ok _ -> assert false);
+       | `Cancelled -> Format.eprintf "client: req_cancel got cancelled@.%!"
+       | `Ok _ -> assert false);
       Format.eprintf
         "client: Successfully executed req_reply with result:@.%a@."
         json_pp
@@ -113,9 +118,8 @@ module End_to_end_client = struct
       Client.notification client Exit
     in
     Fiber.fork_and_join_unit init (fun () ->
-        Fiber.fork_and_join_unit
-          (fun () -> running)
-          (fun () -> Fiber.Pool.run detached))
+      Fiber.fork_and_join_unit (fun () -> running) (fun () -> Fiber.Pool.run detached))
+  ;;
 end
 
 module End_to_end_server = struct
@@ -124,8 +128,7 @@ module End_to_end_server = struct
     | Initialized
 
   let on_request =
-    let on_request (type a) self (req : a Client_request.t) :
-        (a Rpc.Reply.t * _) Fiber.t =
+    let on_request (type a) self (req : a Client_request.t) : (a Rpc.Reply.t * _) Fiber.t =
       let state = Server.state self in
       let _status, detached = state in
       match req with
@@ -135,61 +138,58 @@ module End_to_end_server = struct
         Format.eprintf "server: initializing server@.";
         Format.eprintf "server: returning initialization result@.%!";
         Fiber.return (Rpc.Reply.now result, (Initialized, detached))
-      | Client_request.ExecuteCommand { command; _ } -> (
+      | Client_request.ExecuteCommand { command; _ } ->
         Format.eprintf "server: received command %s@.%!" command;
         let* () =
           match command with
           | "cmd_cancel" ->
             Fiber.Pool.task detached ~f:(fun () ->
-                Format.eprintf
-                  "server: sending message notification to client@.%!";
-                let msg =
-                  ShowMessageParams.create
-                    ~type_:MessageType.Info
-                    ~message:"notifying client"
-                in
-                Server.notification self (Server_notification.ShowMessage msg))
+              Format.eprintf "server: sending message notification to client@.%!";
+              let msg =
+                ShowMessageParams.create
+                  ~type_:MessageType.Info
+                  ~message:"notifying client"
+              in
+              Server.notification self (Server_notification.ShowMessage msg))
           | _ -> Fiber.return ()
         in
         let* () = Fiber.Pool.stop detached in
         let result = `String "successful execution" in
         let* cancel = Rpc.Server.cancel_token () in
-        match command with
-        | "cmd_cancel" ->
-          let+ () = Lev_fiber.Timer.sleepf 0.2 in
-          ( Rpc.Reply.later (fun k ->
-                let* cancel = Rpc.Server.cancel_token () in
-                (* Make sure that we can access the cancel token in a Reply
-                   response *)
-                assert (Option.is_some cancel);
-                k result)
-          , state )
-        | _ ->
-          (* Make sure that we can access the cancel token in a Now response *)
-          assert (Option.is_some cancel);
-          Fiber.return (Rpc.Reply.now result, state))
+        (match command with
+         | "cmd_cancel" ->
+           let+ () = Lev_fiber.Timer.sleepf 0.2 in
+           ( Rpc.Reply.later (fun k ->
+               let* cancel = Rpc.Server.cancel_token () in
+               (* Make sure that we can access the cancel token in a Reply
+                  response *)
+               assert (Option.is_some cancel);
+               k result)
+           , state )
+         | _ ->
+           (* Make sure that we can access the cancel token in a Now response *)
+           assert (Option.is_some cancel);
+           Fiber.return (Rpc.Reply.now result, state))
       | _ ->
         Jsonrpc.Response.Error.raise
-          (Jsonrpc.Response.Error.make
-             ~code:InternalError
-             ~message:"not supported"
-             ())
+          (Jsonrpc.Response.Error.make ~code:InternalError ~message:"not supported" ())
     in
     { Server.Handler.on_request }
+  ;;
 
   let on_notification self _ =
     let state = Server.state self in
     Format.eprintf "server: Received notification@.%!";
     Fiber.return state
+  ;;
 
   let run io =
     let detached = Fiber.Pool.create () in
     let _server, running =
       Test.Server.run ~on_request ~on_notification (Started, detached) io
     in
-    Fiber.fork_and_join_unit
-      (fun () -> running)
-      (fun () -> Fiber.Pool.run detached)
+    Fiber.fork_and_join_unit (fun () -> running) (fun () -> Fiber.Pool.run detached)
+  ;;
 end
 
 let%expect_test "end to end run of lsp tests" =
@@ -220,3 +220,4 @@ let%expect_test "end to end run of lsp tests" =
     client: sending request to shutdown
     Successful termination of test
     [TEST] finished |}]
+;;

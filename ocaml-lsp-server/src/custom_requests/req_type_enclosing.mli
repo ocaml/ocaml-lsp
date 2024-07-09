@@ -3,8 +3,8 @@ open Import
 module Request_params : sig
   type t
 
-  val create :
-       ?verbosity:int
+  val create
+    :  ?verbosity:int
     -> text_document:Lsp.Types.TextDocumentIdentifier.t
     -> at:[ `Position of Position.t | `Range of Range.t ]
     -> index:int
@@ -17,7 +17,5 @@ end
 type t
 
 val capability : string * Json.t
-
 val meth : string
-
 val on_request : params:Jsonrpc.Structured.t option -> State.t -> Json.t Fiber.t

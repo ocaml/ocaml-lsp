@@ -5,8 +5,8 @@ val infer_intf_for_impl : Document.t -> string Fiber.t
     the diff between them to produce the updated interface. Any names present in
     the existing interface are omitted from the inserted code (regardless of
     whether their signatures have changed). *)
-val infer_missing_intf_for_impl :
-     Document.t (** implementation *)
+val infer_missing_intf_for_impl
+  :  Document.t (** implementation *)
   -> Document.t (** interface *)
   -> string Fiber.t
 (** code to be inserted in the interface *)
@@ -17,8 +17,8 @@ val infer_intf : State.t -> Document.t -> string option Fiber.t
     Compares signatures found in the selected range of the interface document
     with ones inferred from the corresponding implementation document, and
     produces text edits for any that can be updated. *)
-val update_signatures :
-     state:State.t
+val update_signatures
+  :  state:State.t
   -> intf_merlin:Document.Merlin.t
   -> doc:Document.t
   -> range:Range.t

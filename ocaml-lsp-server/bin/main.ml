@@ -7,11 +7,11 @@ let () =
   let read_dot_merlin = ref false in
   let arg = Lsp.Cli.Arg.create () in
   let spec =
-    [ ("--version", Arg.Set version, "print version")
+    [ "--version", Arg.Set version, "print version"
     ; ( "--fallback-read-dot-merlin"
       , Arg.Set read_dot_merlin
-      , "read Merlin config from .merlin files. The `dot-merlin-reader` \
-         package must be installed" )
+      , "read Merlin config from .merlin files. The `dot-merlin-reader` package must be \
+         installed" )
     ]
     @ Cli.Arg.spec arg
   in
@@ -19,10 +19,7 @@ let () =
     "ocamllsp [ --stdio | --socket PORT | --port PORT | --pipe PIPE ] [ \
      --clientProcessId pid ]"
   in
-  Arg.parse
-    spec
-    (fun _ -> raise @@ Arg.Bad "anonymous arguments aren't allowed")
-    usage;
+  Arg.parse spec (fun _ -> raise @@ Arg.Bad "anonymous arguments aren't allowed") usage;
   let channel =
     match Cli.Arg.channel arg with
     | Ok c -> c
@@ -32,9 +29,10 @@ let () =
       exit 1
   in
   let version = !version in
-  if version then
+  if version
+  then (
     let version = Ocaml_lsp_server.Version.get () in
-    print_endline version
+    print_endline version)
   else
     let module Exn_with_backtrace = Stdune.Exn_with_backtrace in
     match
@@ -45,3 +43,4 @@ let () =
     | Error exn ->
       Format.eprintf "%a@." Exn_with_backtrace.pp_uncaught exn;
       exit 1
+;;

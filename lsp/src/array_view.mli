@@ -12,23 +12,13 @@ type 'a t
 val make : ?len:int -> 'a array -> pos:int -> 'a t
 
 val get : 'a t -> int -> 'a
-
 val set : 'a t -> int -> 'a -> unit
-
 val is_empty : 'a t -> bool
-
 val length : 'a t -> int
-
 val common_suffix_len : 'a t -> 'a t -> int
-
 val fold_left : 'a t -> init:'acc -> f:('acc -> 'a -> 'acc) -> 'acc
-
 val iteri : 'a t -> f:(int -> 'a -> unit) -> unit
-
 val sub : 'a t -> pos:int -> len:int -> 'a t
-
 val blit : 'a t -> 'a array -> pos:int -> unit
-
 val copy : 'a t -> 'a array
-
 val backing_array_pos : _ t -> int -> int

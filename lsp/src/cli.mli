@@ -5,8 +5,8 @@ module Channel : sig
 
   type t =
     | Stdio
-    | Pipe of string  (** A path to the unix domain socket or windows pipe *)
-    | Socket of int  (** A tcp connection on localhost with the port number *)
+    | Pipe of string (** A path to the unix domain socket or windows pipe *)
+    | Socket of int (** A tcp connection on localhost with the port number *)
 end
 
 module Arg : sig

@@ -32,6 +32,7 @@ let check_typeable_context pipeline pos_start =
     :: _ -> is_valid pat_loc is_pat_constrained pat_extra
   | (_, Pattern p) :: _ -> is_valid p.pat_loc is_pat_constrained p.pat_extra
   | _ :: _ | [] -> `Invalid
+;;
 
 let get_source_text doc (loc : Loc.t) =
   let open Option.O in
@@ -41,6 +42,7 @@ let get_source_text doc (loc : Loc.t) =
   let (`Offset start) = Msource.get_offset source (Position.logical start) in
   let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
   String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
+;;
 
 let code_action_of_type_enclosing uri doc (loc, constr_loc) =
   let open Option.O in
@@ -50,12 +52,8 @@ let code_action_of_type_enclosing uri doc (loc, constr_loc) =
       { range = Range.of_loc (Loc.union loc constr_loc); newText = src_text }
     in
     let version = Document.version doc in
-    let textDocument =
-      OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
-    in
-    let edit =
-      TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ]
-    in
+    let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
+    let edit = TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ] in
     WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
   in
   let title = String.capitalize_ascii action_kind in
@@ -65,6 +63,7 @@ let code_action_of_type_enclosing uri doc (loc, constr_loc) =
     ~edit
     ~isPreferred:false
     ()
+;;
 
 let code_action pipeline doc (params : CodeActionParams.t) =
   let pos_start = Position.logical params.range.start in
@@ -73,7 +72,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
   | `Invalid -> None
   | `Valid (loc1, loc2) ->
     code_action_of_type_enclosing params.textDocument.uri doc (loc1, loc2)
+;;
 
 let kind = CodeActionKind.Other action_kind
-
 let t = Code_action.batchable kind code_action
