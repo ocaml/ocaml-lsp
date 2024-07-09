@@ -159,7 +159,7 @@ let baseType json : baseType =
   match json with
   | `String s -> (
     match s with
-    | "Uri" -> Uri
+    | "URI" | "Uri" -> Uri
     | "DocumentUri" -> DocumentUri
     | "integer" -> Integer
     | "uinteger" -> Uinteger
@@ -181,6 +181,7 @@ let mapKeyType json : mapKeyType =
       "name"
       (enum
          [ ("Uri", Uri)
+         ; ("URI", Uri)
          ; ("DocumentUri", DocumentUri)
          ; ("string", String)
          ; ("integer", Integer)

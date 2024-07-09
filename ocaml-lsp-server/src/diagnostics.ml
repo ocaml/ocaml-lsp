@@ -127,9 +127,15 @@ let send =
                   List.exists diagnostics ~f:(fun (d : Diagnostic.t) ->
                       match d.source with
                       | None -> assert false
-                      | Some source ->
+                      | Some source -> (
                         String.equal ocamllsp_source source
-                        && equal_message d.message diagnostic.message)
+                        &&
+                        match (d.message, diagnostic.message) with
+                        | `String m1, `String m2 -> equal_message m1 m2
+                        | `MarkupContent { kind; value }, `MarkupContent mc ->
+                          Poly.equal kind mc.kind
+                          && equal_message value mc.value
+                        | _, _ -> false))
                 then diagnostics
                 else diagnostic :: diagnostics))
     in
@@ -290,9 +296,11 @@ let merlin_diagnostics diagnostics merlin =
         match Query_commands.dispatch pipeline command with
         | exception Merlin_extend.Extend_main.Handshake.Error error ->
           let message =
-            sprintf
-              "%s.\nHint: install the following packages: merlin-extend, reason"
-              error
+            `String
+              (sprintf
+                 "%s.\n\
+                  Hint: install the following packages: merlin-extend, reason"
+                 error)
           in
           [ create_diagnostic ~range:Range.first_line ~message () ]
         | errors ->
@@ -335,7 +343,7 @@ let merlin_diagnostics diagnostics merlin =
                   ?tags
                   ?relatedInformation
                   ~range
-                  ~message
+                  ~message:(`String message)
                   ~severity
                   ())
           in
@@ -353,7 +361,7 @@ let merlin_diagnostics diagnostics merlin =
                    create_diagnostic
                      ~code:(`String "hole")
                      ~range
-                     ~message
+                     ~message:(`String message)
                      ~severity
                      ())
           in

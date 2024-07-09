@@ -301,6 +301,7 @@ module Prim = struct
     | Bool
     | Number
     | Uinteger
+    | Uri
     | Any
     | Object
     | List
@@ -319,6 +320,7 @@ module Prim = struct
     | Object -> variant "Object" []
     | List -> variant "List" []
     | Self -> variant "Self" []
+    | Uri -> variant "Uri" []
     | Resolved r -> variant "Resolved" [ Ident.to_dyn r ]
 
   let of_string s ~resolve =
@@ -333,6 +335,7 @@ module Prim = struct
     | "array" -> List
     | "object" -> Object
     | "lspobject" -> Object
+    | "uri" -> Uri
     | _ -> resolve s
 end
 

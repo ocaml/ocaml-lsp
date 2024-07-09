@@ -192,9 +192,10 @@ let set_diagnostics detached diagnostics doc =
     | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
       let no_reason_merlin =
         let message =
-          sprintf
-            "Could not detect %s. Please install reason"
-            ocamlmerlin_reason
+          `String
+            (sprintf
+               "Could not detect %s. Please install reason"
+               ocamlmerlin_reason)
         in
         Diagnostic.create
           ~source:Diagnostics.ocamllsp_source

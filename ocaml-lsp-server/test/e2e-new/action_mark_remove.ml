@@ -4,7 +4,7 @@ let run_test ~title ~message source =
   let src, range = Code_actions.parse_selection source in
   Option.iter
     (Code_actions.apply_code_action
-       ~diagnostics:[ Diagnostic.create ~message ~range () ]
+       ~diagnostics:[ Diagnostic.create ~message:(`String message) ~range () ]
        title
        src
        range)

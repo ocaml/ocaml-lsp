@@ -364,7 +364,8 @@ end = struct
       | Ident Any -> Type.json
       | Ident Null -> assert false
       | Ident List -> Type.list Type.json
-      | Ident (Resolved { id = _; name = "URI" }) -> Type.module_t "DocumentUri"
+      | Ident Uri | Ident (Resolved { id = _; name = "URI" }) ->
+        Type.module_t "DocumentUri"
       | Ident (Resolved { id = _; name = "LSPAny" }) -> Type.json
       | Ident (Resolved { id = _; name = "LSPObject" }) -> Type.json_object
       | Ident (Resolved r) ->

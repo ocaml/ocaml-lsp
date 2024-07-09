@@ -265,5 +265,5 @@ let run (state : State.t)
       SignatureHelp.create
         ~signatures:[ info ]
         ~activeSignature:0
-        ?activeParameter:application_signature.active_param
+        ?activeParameter:(Some application_signature.active_param)
         ())

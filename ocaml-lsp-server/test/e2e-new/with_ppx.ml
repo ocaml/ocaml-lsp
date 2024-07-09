@@ -32,7 +32,9 @@ let%expect_test "with-ppx" =
       | PublishDiagnostics diag ->
         printfn "Received %i diagnostics" (List.length diag.diagnostics);
         List.iter diag.diagnostics ~f:(fun (d : Diagnostic.t) ->
-            print_endline d.message);
+            match d.message with
+            | `String m -> print_endline m
+            | `MarkupContent _ -> assert false);
         Fiber.Ivar.fill diagnostics ()
       | _ -> Fiber.return ()
     in

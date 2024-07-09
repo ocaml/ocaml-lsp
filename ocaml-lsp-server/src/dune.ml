@@ -237,7 +237,7 @@ end = struct
       ~range
       ?severity
       ~source:Diagnostics.dune_source
-      ~message
+      ~message:(`String message)
       ?tags
       ?data
       ()
