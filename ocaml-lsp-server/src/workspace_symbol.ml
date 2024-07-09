@@ -279,7 +279,7 @@ let find_cm_files dir =
   (* TODO we could get into a symlink loop here so we should we be careful *)
   let rec loop acc dir =
     let contents = Sys.readdir dir in
-    Array.fold_left contents ~init:acc ~f:(fun acc fname ->
+    Array.fold contents ~init:acc ~f:(fun acc fname ->
       let path = Filename.concat dir fname in
       if is_directory path
       then loop acc path

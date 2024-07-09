@@ -12,9 +12,9 @@ let report (event : Chrome_trace.Event.t) : unit Fiber.t =
   let+ t = get () in
   if Queue.length t.events >= max_len
   then (
-    let (_ : Chrome_trace.Event.t) = Queue.pop_exn t.events in
+    let (_ : Chrome_trace.Event.t) = Queue.dequeue_exn t.events in
     ());
-  Queue.push t.events event
+  Queue.enqueue t.events event
 ;;
 
 let dump () =
