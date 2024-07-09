@@ -17,6 +17,9 @@ type _ t =
   | CodeLensRefresh : unit t
   | SemanticTokensRefresh : unit t
   | WorkspaceDiagnosticRefresh : unit t
+  | WorkspaceFoldingRangeRefresh : unit t
+  | WorkspaceInlayHintRefresh : unit t
+  | WorkspaceInlineValueRefresh : unit t
   | UnknownRequest : string * Jsonrpc.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
