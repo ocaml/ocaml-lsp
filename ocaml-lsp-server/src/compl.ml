@@ -41,7 +41,7 @@ let prefix_of_position ~short_path source position =
       |> Option.value ~default:""
       (* We remove the whitespace because merlin expects no whitespace and it's
          semantically meaningless *)
-      |> String.filter (fun x -> not (x = ' ' || x = '\n' || x = '\t'))
+      |> String.filter ~f:(fun x -> not (x = ' ' || x = '\n' || x = '\t'))
     in
     if short_path
     then (

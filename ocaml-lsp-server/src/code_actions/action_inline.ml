@@ -314,7 +314,7 @@ let inline_edits pipeline task =
   let make_edit newText loc = TextEdit.create ~newText ~range:(Range.of_loc loc) in
   let edits = Queue.create () in
   let error = ref None in
-  let insert_edit newText loc = Queue.push edits (make_edit newText loc) in
+  let insert_edit newText loc = Queue.enqueue edits (make_edit newText loc) in
   let not_shadowed env =
     match check_shadowing task.inlined_expr env with
     | Ok () -> true
