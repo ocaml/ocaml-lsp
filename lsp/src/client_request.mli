@@ -15,13 +15,29 @@ type _ t =
       -> [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option t
   | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
   | InlayHint : InlayHintParams.t -> InlayHint.t list option t
+  | InlayHintResolve : InlayHint.t -> InlayHint.t t
+  | TextDocumentDiagnostic : DocumentDiagnosticParams.t -> DocumentDiagnosticReport.t t
+  | TextDocumentInlineCompletion :
+      InlineCompletionParams.t
+      -> [ `InlineCompletion of InlineCompletionList.t
+         | `InlineCompletionItem of InlineCompletionItem.t list
+         ]
+           option
+           t
+  | TextDocumentInlineValue : InlineValueParams.t -> InlineValue.t list option t
   | TextDocumentCodeLensResolve : CodeLens.t -> CodeLens.t t
   | TextDocumentPrepareCallHierarchy :
       CallHierarchyPrepareParams.t
       -> CallHierarchyItem.t list option t
+  | TextDocumentPrepareTypeHierarchy :
+      TypeHierarchyPrepareParams.t
+      -> TypeHierarchyItem.t list option t
   | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
   | TextDocumentRangeFormatting :
       DocumentRangeFormattingParams.t
+      -> TextEdit.t list option t
+  | TextDocumentRangesFormatting :
+      DocumentRangesFormattingParams.t
       -> TextEdit.t list option t
   | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
   | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
@@ -35,6 +51,7 @@ type _ t =
            option
            t
   | WorkspaceSymbol : WorkspaceSymbolParams.t -> SymbolInformation.t list option t
+  | WorkspaceSymbolResolve : WorkspaceSymbol.t -> WorkspaceSymbol.t t
   | DebugEcho : DebugEcho.Params.t -> DebugEcho.Result.t t
   | DebugTextDocumentGet :
       DebugTextDocumentGet.Params.t
@@ -78,6 +95,13 @@ type _ t =
   | WillCreateFiles : CreateFilesParams.t -> WorkspaceEdit.t option t
   | WillDeleteFiles : DeleteFilesParams.t -> WorkspaceEdit.t option t
   | WillRenameFiles : RenameFilesParams.t -> WorkspaceEdit.t option t
+  | WorkspaceDiagnostic : WorkspaceDiagnosticParams.t -> WorkspaceDiagnosticReport.t t
+  | TypeHierarchySubtypes :
+      TypeHierarchySubtypesParams.t
+      -> TypeHierarchyItem.t list option t
+  | TypeHierarchySupertypes :
+      TypeHierarchySupertypesParams.t
+      -> TypeHierarchyItem.t list option t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Structured.t option

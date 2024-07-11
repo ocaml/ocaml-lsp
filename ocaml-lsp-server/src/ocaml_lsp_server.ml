@@ -671,6 +671,16 @@ let on_request
   | WillCreateFiles _ -> not_supported ()
   | WillRenameFiles _ -> not_supported ()
   | WillDeleteFiles _ -> not_supported ()
+  | InlayHintResolve _ -> not_supported ()
+  | TextDocumentDiagnostic _ -> not_supported ()
+  | TextDocumentInlineCompletion _ -> not_supported ()
+  | TextDocumentInlineValue _ -> not_supported ()
+  | WorkspaceSymbolResolve _ -> not_supported ()
+  | WorkspaceDiagnostic _ -> not_supported ()
+  | TextDocumentRangesFormatting _ -> not_supported ()
+  | TextDocumentPrepareTypeHierarchy _ -> not_supported ()
+  | TypeHierarchySupertypes _ -> not_supported ()
+  | TypeHierarchySubtypes _ -> not_supported ()
 ;;
 
 let on_notification server (notification : Client_notification.t) : State.t Fiber.t =
@@ -739,6 +749,10 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
   | Initialized
   | WorkDoneProgressCancel _
   | WorkDoneProgress _
+  | NotebookDocumentDidOpen _
+  | NotebookDocumentDidChange _
+  | NotebookDocumentDidSave _
+  | NotebookDocumentDidClose _
   | Exit -> Fiber.return state
   | SetTrace { value } -> Fiber.return { state with trace = value }
   | UnknownNotification req ->

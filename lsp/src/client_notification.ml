@@ -19,6 +19,10 @@ type t =
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | SetTrace of SetTraceParams.t
   | WorkDoneProgress of Progress.t ProgressParams.t
+  | NotebookDocumentDidOpen of DidOpenNotebookDocumentParams.t
+  | NotebookDocumentDidChange of DidChangeNotebookDocumentParams.t
+  | NotebookDocumentDidSave of DidSaveNotebookDocumentParams.t
+  | NotebookDocumentDidClose of DidCloseNotebookDocumentParams.t
   | UnknownNotification of Jsonrpc.Notification.t
 
 let method_ = function
@@ -39,6 +43,10 @@ let method_ = function
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
   | WorkDoneProgress _ -> Progress.method_
+  | NotebookDocumentDidOpen _ -> "notebookDocument/didOpen"
+  | NotebookDocumentDidChange _ -> "notebookDocument/didChange"
+  | NotebookDocumentDidSave _ -> "notebookDocument/didSave"
+  | NotebookDocumentDidClose _ -> "notebookDocument/didClose"
   | UnknownNotification n -> n.method_
 ;;
 
@@ -63,6 +71,14 @@ let yojson_of_t = function
   | SetTrace params -> Some (SetTraceParams.yojson_of_t params)
   | WorkDoneProgress params ->
     Some ((ProgressParams.yojson_of_t Progress.yojson_of_t) params)
+  | NotebookDocumentDidOpen params ->
+    Some (DidOpenNotebookDocumentParams.yojson_of_t params)
+  | NotebookDocumentDidClose params ->
+    Some (DidCloseNotebookDocumentParams.yojson_of_t params)
+  | NotebookDocumentDidChange params ->
+    Some (DidChangeNotebookDocumentParams.yojson_of_t params)
+  | NotebookDocumentDidSave params ->
+    Some (DidSaveNotebookDocumentParams.yojson_of_t params)
   | UnknownNotification n -> (n.params :> Json.t option)
 ;;
 
@@ -116,6 +132,20 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
   | "$/setTrace" ->
     let+ params = Json.message_params params SetTraceParams.t_of_yojson in
     SetTrace params
+  | "notebookDocument/didOpen" ->
+    let+ params = Json.message_params params DidOpenNotebookDocumentParams.t_of_yojson in
+    NotebookDocumentDidOpen params
+  | "notebookDocument/didClose" ->
+    let+ params = Json.message_params params DidCloseNotebookDocumentParams.t_of_yojson in
+    NotebookDocumentDidClose params
+  | "notebookDocument/didSave" ->
+    let+ params = Json.message_params params DidSaveNotebookDocumentParams.t_of_yojson in
+    NotebookDocumentDidSave params
+  | "notebookDocument/didChange" ->
+    let+ params =
+      Json.message_params params DidChangeNotebookDocumentParams.t_of_yojson
+    in
+    NotebookDocumentDidChange params
   | m when m = Progress.method_ ->
     let+ params =
       Json.message_params params (ProgressParams.t_of_yojson Progress.t_of_yojson)
