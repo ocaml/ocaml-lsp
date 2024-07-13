@@ -28,7 +28,7 @@ let run_command cancel prog stdin_value args =
           res, Fiber.Cancel.Not_cancelled
       | Some token ->
         let on_cancel () =
-          Unix.kill (Pid.to_int pid) Sys.sigint;
+          Unix.kill (Pid.to_int pid) Sys.sigterm;
           Fiber.return ()
         in
         fun f -> Fiber.Cancel.with_handler token ~on_cancel f
