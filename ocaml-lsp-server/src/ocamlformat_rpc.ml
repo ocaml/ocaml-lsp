@@ -89,13 +89,13 @@ end = struct
     let* client = pick_client ~pid session in
     match client with
     | Error (`Msg msg) ->
-      (* The process did start but something went wrong when negociating the
+      (* The process did start but something went wrong when negotiating the
          version so we need to kill it *)
       Unix.kill pid Sys.sigkill;
       let* () =
         let message =
           Printf.sprintf
-            "An error happened when negociating with the OCamlformat-RPC server: %s"
+            "An error happened when negotiating with the OCamlformat-RPC server: %s"
             msg
         in
         logger ~type_:MessageType.Error ~message
