@@ -103,43 +103,47 @@ let hint_binding_iter
 ;;
 
 let compute (state : State.t) { InlayHintParams.range; textDocument = { uri }; _ } =
-  let store = state.store in
-  let doc = Document_store.get store uri in
-  let hint_let_bindings =
-    Option.map state.configuration.data.inlay_hints ~f:(fun c -> c.hint_let_bindings)
-  in
-  let hint_pattern_variables =
-    Option.map state.configuration.data.inlay_hints ~f:(fun c -> c.hint_pattern_variables)
+  let doc =
+    let store = state.store in
+    Document_store.get store uri
   in
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
   | `Merlin doc ->
-    let hints = ref [] in
-    let* () =
+    let+ hints =
+      let hint_let_bindings =
+        Option.map state.configuration.data.inlay_hints ~f:(fun c -> c.hint_let_bindings)
+      in
+      let hint_pattern_variables =
+        Option.map state.configuration.data.inlay_hints ~f:(fun c ->
+          c.hint_pattern_variables)
+      in
       Document.Merlin.with_pipeline_exn ~name:"inlay-hints" doc (fun pipeline ->
-        match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
-        | `Interface _ -> ()
-        | `Implementation typedtree ->
-          hint_binding_iter
-            ?hint_let_bindings
-            ?hint_pattern_variables
-            typedtree
-            range
-            (fun env type_ loc ->
-               let open Option.O in
-               let hint =
-                 let label = outline_type ~env type_ in
-                 let+ position = Position.of_lexical_position loc.loc_end in
-                 InlayHint.create
-                   ~kind:Type
-                   ~position
-                   ~label:(`String label)
-                   ~paddingLeft:false
-                   ~paddingRight:false
-                   ()
-               in
-               Option.iter hint ~f:(fun hint -> hints := hint :: !hints)))
+        let hints = ref [] in
+        (match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
+         | `Interface _ -> ()
+         | `Implementation typedtree ->
+           hint_binding_iter
+             ?hint_let_bindings
+             ?hint_pattern_variables
+             typedtree
+             range
+             (fun env type_ loc ->
+                let hint =
+                  let label = outline_type ~env type_ in
+                  let open Option.O in
+                  let+ position = Position.of_lexical_position loc.loc_end in
+                  InlayHint.create
+                    ~kind:Type
+                    ~position
+                    ~label:(`String label)
+                    ~paddingLeft:false
+                    ~paddingRight:false
+                    ()
+                in
+                Option.iter hint ~f:(fun hint -> hints := hint :: !hints)));
+        !hints)
     in
-    Fiber.return (Some !hints)
+    Some hints
 ;;
