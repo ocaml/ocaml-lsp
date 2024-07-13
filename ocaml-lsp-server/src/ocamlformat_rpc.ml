@@ -91,7 +91,7 @@ end = struct
     | Error (`Msg msg) ->
       (* The process did start but something went wrong when negociating the
          version so we need to kill it *)
-      Unix.kill pid Sys.sigkill;
+      Unix.kill pid Sys.sigterm;
       let* () =
         let message =
           Printf.sprintf
