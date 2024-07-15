@@ -8,7 +8,7 @@ Merlin has a command `document` that gets `odoc` documentation for symbols based
 
 ```js
 export interface GetDocClientCapabilities {
-	contentFormat?: MarkupKind[];
+	contentFormat: MarkupKind[];
 }
 ```
 - `contentFormat`: Client supports the following content formats if the content property refers to a `literal of type MarkupContent`. The order describes the preferred format of the client.
