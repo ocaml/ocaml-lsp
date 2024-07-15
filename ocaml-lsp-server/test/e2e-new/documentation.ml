@@ -98,3 +98,27 @@ let%expect_test "Documentation of simple type with an identifier and no \
         "value": "List operations.\n\n   Some functions are flagged as not tail-recursive.  A tail-recursive\n   function uses constant stack space, while a non-tail-recursive function\n   uses stack space proportional to the length of its list argument, which\n   can be a problem with very long lists.  When the function takes several\n   list arguments, an approximate formula giving stack usage (in some\n   unspecified constant unit) is shown in parentheses.\n\n   The above considerations can usually be ignored if your lists are not\n   longer than about 10000 elements.\n\n   The labeled version of this module can be used as described in the\n   {!StdLabels} module."
       }
     } |}]
+
+let%expect_test "Documentation when List module is shadowed" =
+  let source =
+    "{|\n\
+     module List = struct\n\
+    \  (** This is my custom list module *)\n\
+    \  let rec iter ~f = function (** This is the custom iter module *)\n\
+    \    | [] -> () (** This is when the list is empty *)\n\
+    \    | x :: xs -> f x; iter ~f xs\n\
+     end\n\
+     List.iter ~f:(fun x -> x*x) [2;4]\n\
+     |}"
+  in
+  let line = 1 in
+  let character = 8 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+  {
+    "doc": {
+      "kind": "plaintext",
+      "value": "List operations.\n\n   Some functions are flagged as not tail-recursive.  A tail-recursive\n   function uses constant stack space, while a non-tail-recursive function\n   uses stack space proportional to the length of its list argument, which\n   can be a problem with very long lists.  When the function takes several\n   list arguments, an approximate formula giving stack usage (in some\n   unspecified constant unit) is shown in parentheses.\n\n   The above considerations can usually be ignored if your lists are not\n   longer than about 10000 elements.\n\n   The labeled version of this module can be used as described in the\n   {!StdLabels} module."
+    }
+  } |}]
