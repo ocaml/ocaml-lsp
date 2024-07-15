@@ -6,28 +6,14 @@ let meth = "ocamllsp/documentation"
 let capability = ("handleDocumentation", `Bool true)
 
 module GetDocClientCapabilities = struct
-  type t = { contentFormat : MarkupKind.t list option }
+  type t = { contentFormat : MarkupKind.t list }
 
   let yojson_of_t { contentFormat } =
     `Assoc
-      (match contentFormat with
-      | Some formats ->
-        [ ( "contentFormat"
-          , `List
-              (List.map
-                 ~f:(fun format -> MarkupKind.yojson_of_t format)
-                 formats) )
-        ]
-      | None -> [])
-
-  let t_of_yojson json =
-    let open Yojson.Safe.Util in
-    let contentFormat =
-      json |> member "contentFormat" |> to_list
-      |> List.map ~f:(fun format -> MarkupKind.t_of_yojson format)
-      |> Option.some
-    in
-    { contentFormat }
+      (`List
+        (List.map
+           ~f:(fun format -> MarkupKind.yojson_of_t format)
+           contentFormat))
 end
 
 module GetDocParams = struct
@@ -37,23 +23,6 @@ module GetDocParams = struct
     ; identifier : string option
     ; contentFormat : MarkupKind.t option
     }
-
-  let yojson_of_t { text_document; position; identifier; contentFormat } =
-    let identifier =
-      match identifier with
-      | Some ident -> [ ("identifier", `String ident) ]
-      | None -> []
-    in
-    let contentFormat =
-      match contentFormat with
-      | Some format -> [ ("contentFormat", MarkupKind.yojson_of_t format) ]
-      | None -> []
-    in
-    `Assoc
-      (("textDocument", TextDocumentIdentifier.yojson_of_t text_document)
-       :: ("position", Position.yojson_of_t position)
-       :: identifier
-      @ contentFormat)
 
   let t_of_yojson json =
     let open Yojson.Safe.Util in
@@ -76,14 +45,26 @@ module GetDoc = struct
 
   let yojson_of_t { doc } = `Assoc [ ("doc", MarkupContent.yojson_of_t doc) ]
 
-  let t_of_yojson json =
-    let open Yojson.Safe.Util in
-    let doc = json |> member "doc" |> MarkupContent.t_of_yojson in
-    { doc }
+  let create ~kind ~value = MarkupContent.create ~kind ~value
 end
 
-let make_documentation_command position ~identifier =
-  Query_protocol.Document (identifier, position)
+let dispatch ~merlin ~position ~identifier ~contentFormat =
+  Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+      let position = Position.logical position in
+      let query = Query_protocol.Document (identifier, position) in
+      let result = Query_commands.dispatch pipeline query in
+      match result with
+      | `No_documentation | `Invalid_context | `Not_found _ -> `Null
+      | `Builtin value
+      | `File_not_found value
+      | `Found value
+      | `Not_in_env value ->
+        let markup_content =
+          match contentFormat with
+          | Some format -> GetDoc.create ~kind:format ~value
+          | None -> GetDoc.create ~kind:MarkupKind.PlainText ~value
+        in
+        GetDoc.yojson_of_t { doc = markup_content })
 
 let on_request ~params state =
   Fiber.of_thunk (fun () ->
@@ -97,24 +78,4 @@ let on_request ~params state =
       let doc = Document_store.get state.State.store uri in
       match Document.kind doc with
       | `Other -> Fiber.return `Null
-      | `Merlin merlin ->
-        Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-            let position = Position.logical position in
-            let query = make_documentation_command position ~identifier in
-            let result = Query_commands.dispatch pipeline query in
-            let response =
-              match result with
-              | `No_documentation | `Invalid_context | `Not_found _ -> `Null
-              | `Builtin value
-              | `File_not_found value
-              | `Found value
-              | `Not_in_env value ->
-                let markup_content =
-                  match contentFormat with
-                  | Some format -> MarkupContent.create ~kind:format ~value
-                  | None ->
-                    MarkupContent.create ~kind:MarkupKind.PlainText ~value
-                in
-                GetDoc.yojson_of_t { doc = markup_content }
-            in
-            response))
+      | `Merlin merlin -> dispatch ~merlin ~position ~identifier ~contentFormat)
