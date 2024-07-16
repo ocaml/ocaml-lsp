@@ -948,3 +948,5 @@ let run channel ~read_dot_merlin () =
     start (Lsp_fiber.Fiber_io.make input output))
   |> Lev_fiber.Error.ok_exn
 ;;
+
+module Custom_request = Custom_request

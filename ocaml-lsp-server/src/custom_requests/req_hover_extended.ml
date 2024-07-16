@@ -156,8 +156,8 @@ module Request_params = struct
   ;;
 
   let of_jsonrpc_params_exn params : t =
-    let params_spec = { Custom_request.params_schema; of_jsonrpc_params } in
-    Custom_request.of_jsonrpc_params_exn params_spec params
+    let params_spec = Util.{ params_schema; of_jsonrpc_params } in
+    Util.of_jsonrpc_params_exn params_spec params
   ;;
 end
 

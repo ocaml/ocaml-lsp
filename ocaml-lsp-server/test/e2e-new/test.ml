@@ -250,3 +250,7 @@ let apply_edits src edits =
   List.fold_left edits ~init:src ~f:(fun src (new_text, start, end_) ->
     String.take src start ^ new_text ^ String.drop src end_)
 ;;
+
+let print_result result =
+  result |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+;;

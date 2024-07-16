@@ -1,30 +1,20 @@
 open Test.Import
+module Req = Ocaml_lsp_server.Custom_request.Type_enclosing
 
 module Util = struct
   let call_type_enclosing ?(verbosity = 0) client at index =
     let uri = DocumentUri.of_path "test.ml" in
     let text_document = TextDocumentIdentifier.create ~uri in
-    let at =
-      match at with
-      | `Range r -> Range.yojson_of_t r
-      | `Position p -> Position.yojson_of_t p
-    in
     let params =
-      match TextDocumentIdentifier.yojson_of_t text_document with
-      | `Assoc assoc ->
-        `Assoc
-          (("at", at) :: ("index", `Int index) :: ("verbosity", `Int verbosity) :: assoc)
-      | _ -> (* unreachable *) assert false
+      Req.Request_params.create ~verbosity ~text_document ~at ~index ()
+      |> Req.Request_params.yojson_of_t
+      |> Jsonrpc.Structured.t_of_yojson
+      |> Option.some
     in
-    let params = Some (Jsonrpc.Structured.t_of_yojson params) in
     let req =
       Lsp.Client_request.UnknownRequest { meth = "ocamllsp/typeEnclosing"; params }
     in
     Client.request client req
-  ;;
-
-  let print_type_enclosing result =
-    result |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
   ;;
 
   let test ?range_end ~verbosity ~index ~line ~character source =
@@ -40,7 +30,7 @@ module Util = struct
     let request client =
       let open Fiber.O in
       let+ response = call_type_enclosing ~verbosity client at index in
-      print_type_enclosing response
+      Test.print_result response
     in
     Helpers.test source request
   ;;
