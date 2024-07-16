@@ -16,6 +16,7 @@ module Request_params = struct
 
   let create ?verbosity ~text_document ~cursor_position () =
     { text_document; cursor_position; verbosity }
+  ;;
 
   let _ = fun (_ : t) -> ()
 
@@ -159,6 +160,10 @@ module Request_params = struct
     Custom_request.of_jsonrpc_params_exn params_spec params
   ;;
 end
+
+type t = Hover.t
+
+let t_of_yojson = Hover.t_of_yojson
 
 let on_request ~(params : Jsonrpc.Structured.t option) (server : State.t Server.t) =
   let { Request_params.text_document; cursor_position; verbosity } =

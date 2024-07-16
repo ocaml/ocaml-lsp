@@ -55,6 +55,15 @@ type t =
   ; enclosings : Range.t list
   }
 
+let t_of_yojson json =
+  let open Yojson.Safe.Util in
+  let index = json |> member "index" |> to_int in
+  let type_ = json |> member "type" |> to_string in
+  let enclosings =
+    json |> member "enclosings" |> to_list |> List.map ~f:Range.t_of_yojson
+  in
+  { index; type_; enclosings }
+
 let yojson_of_t { index; type_; enclosings } =
   `Assoc
     [ "index", `Int index
