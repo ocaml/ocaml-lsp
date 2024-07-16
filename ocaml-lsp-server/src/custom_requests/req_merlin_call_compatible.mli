@@ -3,8 +3,8 @@ open Import
 module Request_params : sig
   type t
 
-  val create :
-       text_document:TextDocumentIdentifier.t
+  val create
+    :  text_document:TextDocumentIdentifier.t
     -> result_as_sexp:bool
     -> command:string
     -> args:string list
@@ -16,7 +16,6 @@ end
 type t
 
 val t_of_yojson : Json.t -> t
-
 val capability : string * Json.t
 val meth : string
 val on_request : params:Jsonrpc.Structured.t option -> State.t -> Json.t Fiber.t

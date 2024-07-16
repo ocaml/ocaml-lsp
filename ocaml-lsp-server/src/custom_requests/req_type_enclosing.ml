@@ -63,6 +63,7 @@ let t_of_yojson json =
     json |> member "enclosings" |> to_list |> List.map ~f:Range.t_of_yojson
   in
   { index; type_; enclosings }
+;;
 
 let yojson_of_t { index; type_; enclosings } =
   `Assoc
