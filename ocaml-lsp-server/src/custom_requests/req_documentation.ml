@@ -48,6 +48,8 @@ module GetDoc = struct
   let create ~kind ~value = MarkupContent.create ~kind ~value
 end
 
+type t = GetDoc.t
+
 let dispatch ~merlin ~position ~identifier ~contentFormat =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
       let position = Position.logical position in
