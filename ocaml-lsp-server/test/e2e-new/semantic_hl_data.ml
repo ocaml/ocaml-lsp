@@ -52,3 +52,4 @@ module Foo_inst = Foo (struct
     }
 end)
 |}
+;;

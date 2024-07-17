@@ -1,29 +1,25 @@
 open! Test.Import
 
-let change_config client params =
-  Client.notification client (ChangeConfiguration params)
-
+let change_config client params = Client.notification client (ChangeConfiguration params)
 let uri = DocumentUri.of_path "test.ml"
-
 let create_postion line character = Position.create ~line ~character
 
 let activate_syntax_doc =
   DidChangeConfigurationParams.create
-    ~settings:
-      (`Assoc [ ("syntaxDocumentation", `Assoc [ ("enable", `Bool true) ]) ])
+    ~settings:(`Assoc [ "syntaxDocumentation", `Assoc [ "enable", `Bool true ] ])
+;;
 
 let deactivate_syntax_doc =
   DidChangeConfigurationParams.create
-    ~settings:
-      (`Assoc [ ("syntaxDocumentation", `Assoc [ ("enable", `Bool false) ]) ])
+    ~settings:(`Assoc [ "syntaxDocumentation", `Assoc [ "enable", `Bool false ] ])
+;;
 
 let print_hover hover =
   match hover with
   | None -> print_endline "no hover response"
   | Some hover ->
-    hover |> Hover.yojson_of_t
-    |> Yojson.Safe.pretty_to_string ~std:false
-    |> print_endline
+    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+;;
 
 let hover_req client position =
   Client.request
@@ -33,6 +29,7 @@ let hover_req client position =
        ; textDocument = TextDocumentIdentifier.create ~uri
        ; workDoneToken = None
        })
+;;
 
 let run_test text req =
   let handler =
@@ -43,26 +40,26 @@ let run_test text req =
       ()
   in
   Test.run ~handler (fun client ->
-      let run_client () =
-        let capabilities = ClientCapabilities.create () in
-        Client.start client (InitializeParams.create ~capabilities ())
+    let run_client () =
+      let capabilities = ClientCapabilities.create () in
+      Client.start client (InitializeParams.create ~capabilities ())
+    in
+    let run () =
+      let* (_ : InitializeResult.t) = Client.initialized client in
+      let textDocument =
+        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
       in
-      let run () =
-        let* (_ : InitializeResult.t) = Client.initialized client in
-        let textDocument =
-          TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
-        in
-        let* () =
-          Client.notification
-            client
-            (TextDocumentDidOpen
-               (DidOpenTextDocumentParams.create ~textDocument))
-        in
-        let* () = req client in
-        let* () = Client.request client Shutdown in
-        Client.stop client
+      let* () =
+        Client.notification
+          client
+          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
       in
-      Fiber.fork_and_join_unit run_client run)
+      let* () = req client in
+      let* () = Client.request client Shutdown in
+      Client.stop client
+    in
+    Fiber.fork_and_join_unit run_client run)
+;;
 
 let%expect_test "syntax doc should display" =
   let source = {ocaml|
@@ -89,6 +86,7 @@ type color = Red|Blue
         "start": { "character": 0, "line": 1 }
       }
     } |}]
+;;
 
 let%expect_test "syntax doc should not display" =
   let source = {ocaml|
@@ -111,6 +109,7 @@ type color = Red|Blue
         "start": { "character": 0, "line": 1 }
       }
     } |}]
+;;
 
 let%expect_test "syntax doc should print" =
   let source = {ocaml|
@@ -136,6 +135,7 @@ type t = ..
         "start": { "character": 0, "line": 1 }
       }
     } |}]
+;;
 
 let%expect_test "should receive no hover response" =
   let source = {ocaml|
@@ -150,3 +150,4 @@ let%expect_test "should receive no hover response" =
   in
   run_test source req;
   [%expect {| no hover response |}]
+;;

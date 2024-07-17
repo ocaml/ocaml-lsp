@@ -9,9 +9,7 @@ let command_run server store args =
     | Some [ `String arg ] -> arg
     | _ -> assert false
   in
-  let doc =
-    Document_store.get store (Uri.t_of_yojson (`String uri)) |> Document.text
-  in
+  let doc = Document_store.get store (Uri.t_of_yojson (`String uri)) |> Document.text in
   let uri, chan =
     Filename.open_temp_file
       (sprintf "ocamllsp-document.%d" (Unix.getpid ()))
@@ -21,8 +19,8 @@ let command_run server store args =
   close_out_noerr chan;
   let req =
     let uri = Uri.of_path uri in
-    Server_request.ShowDocumentRequest
-      (ShowDocumentParams.create ~uri ~takeFocus:true ())
+    Server_request.ShowDocumentRequest (ShowDocumentParams.create ~uri ~takeFocus:true ())
   in
   let+ { ShowDocumentResult.success = _ } = Server.request server req in
   ()
+;;

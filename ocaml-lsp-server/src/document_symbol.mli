@@ -1,11 +1,11 @@
 open Import
 
-val run :
-     ClientCapabilities.t
+val run
+  :  ClientCapabilities.t
   -> Document.t
   -> Uri.t
   -> [> `DocumentSymbol of DocumentSymbol.t list
      | `SymbolInformation of SymbolInformation.t list
      ]
-     option
-     Fiber.t
+       option
+       Fiber.t

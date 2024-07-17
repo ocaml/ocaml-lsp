@@ -2,7 +2,6 @@ module Substring = Lsp.Private.Substring
 module List = ListLabels
 
 let () = Printexc.record_backtrace false
-
 let printf = Printf.printf
 
 let make_sub pre sub post =
@@ -11,13 +10,15 @@ let make_sub pre sub post =
   let res = Substring.take res (String.length sub) in
   assert (sub = Substring.to_string res);
   res
+;;
 
 let common_variations sub =
   List.map
-    [ ("foo", ""); ("", "baz"); ("a", "b"); ("\n", ""); ("", "\n") ]
+    [ "foo", ""; "", "baz"; "a", "b"; "\n", ""; "", "\n" ]
     ~f:(fun (pre, post) ->
       let name = Printf.sprintf "(%S, %S, %S)" pre sub post in
-      (name, make_sub pre sub post))
+      name, make_sub pre sub post)
+;;
 
 let%expect_test "split_at" =
   let test sub i =
@@ -33,6 +34,7 @@ let%expect_test "split_at" =
   [%expect {| l = "foo" r = "|bar" |}];
   test s 1;
   [%expect {| l = "f" r = "oo|bar" |}]
+;;
 
 let%expect_test "index_from" =
   let test sub pos char =
@@ -48,6 +50,7 @@ let%expect_test "index_from" =
   [%expect {| drop 3 = "|bar" |}];
   test s 4 '|';
   [%expect {| Not found |}]
+;;
 
 let%expect_test "rsplit_at" =
   let test sub i =
@@ -64,6 +67,7 @@ let%expect_test "rsplit_at" =
   test s 7;
   [%expect {|
     "" "foo|bar" |}]
+;;
 
 let test f sub ~pos ~len =
   let res = f (Substring.of_string sub) ~pos ~len in
@@ -74,10 +78,12 @@ let test f sub ~pos ~len =
   print res;
   let variations = common_variations sub in
   List.iter variations ~f:(fun (name, sub) ->
-      let res' = f sub ~pos ~len in
-      if res <> res' then (
-        printf "[FAIL] %s:\n" name;
-        print res'))
+    let res' = f sub ~pos ~len in
+    if res <> res'
+    then (
+      printf "[FAIL] %s:\n" name;
+      print res'))
+;;
 
 let%expect_test "move_left" =
   let test = test Substring.move_left in
@@ -101,6 +107,7 @@ let%expect_test "move_left" =
   [%expect {|
     [definitive]
     newlines = 0 consumed = 1 |}]
+;;
 
 let%expect_test "move_right" =
   let test = test Substring.move_right in
@@ -120,6 +127,7 @@ let%expect_test "move_right" =
   [%expect {|
     [definitive]
     newlines = 1 consumed = 2 |}]
+;;
 
 let%expect_test "rindex_from" =
   let test sub pos =
@@ -139,10 +147,11 @@ let%expect_test "rindex_from" =
     print res;
     let variations = common_variations sub in
     List.iter variations ~f:(fun (name, sub) ->
-        let res' = f sub in
-        if res <> res' then (
-          printf "[FAIL] %s:\n" name;
-          print res'))
+      let res' = f sub in
+      if res <> res'
+      then (
+        printf "[FAIL] %s:\n" name;
+        print res'))
   in
   test "foo" 0;
   [%expect {|
@@ -178,3 +187,4 @@ let%expect_test "rindex_from" =
     {|
     [definitive]
     exception: Invalid_argument("Substring.rindex_from: out of bounds") |}]
+;;

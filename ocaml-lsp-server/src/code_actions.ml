@@ -10,12 +10,13 @@ module Code_action_error = struct
   let empty = Initial
 
   let combine x y =
-    match (x, y) with
+    match x, y with
     | Initial, _ -> y (* [Initial] cedes to any *)
     | _, Initial -> x
     | Exn _, _ -> x (* [Exn] takes over any *)
     | _, Exn _ -> y
     | Need_merlin_extend _, Need_merlin_extend _ -> y
+  ;;
 end
 
 module Code_action_error_monoid = struct
@@ -60,15 +61,16 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       enabled_actions
   in
   let* batch_results =
-    if List.is_empty batchable then Fiber.return []
+    if List.is_empty batchable
+    then Fiber.return []
     else
       Document.Merlin.with_pipeline_exn
         ~name:"batched-code-actions"
         (Document.merlin_exn doc)
         (fun pipeline ->
-          List.filter_map batchable ~f:(fun ca ->
-              try ca pipeline doc params
-              with Merlin_extend.Extend_main.Handshake.Error _ -> None))
+           List.filter_map batchable ~f:(fun ca ->
+             try ca pipeline doc params with
+             | Merlin_extend.Extend_main.Handshake.Error _ -> None))
   in
   let code_action ca =
     let+ res =
@@ -88,10 +90,10 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
     | Error (Exn exn) -> Exn_with_backtrace.reraise exn
   in
   let+ non_batch_results =
-    Fiber.parallel_map non_batchable ~f:code_action
-    |> Fiber.map ~f:List.filter_opt
+    Fiber.parallel_map non_batchable ~f:code_action |> Fiber.map ~f:List.filter_opt
   in
   batch_results @ non_batch_results
+;;
 
 let compute server (params : CodeActionParams.t) =
   let state : State.t = Server.state server in
@@ -100,16 +102,14 @@ let compute server (params : CodeActionParams.t) =
     let store = state.store in
     Document_store.get_opt store uri
   in
-  let dune_actions =
-    Dune.code_actions (State.dune state) params.textDocument.uri
-  in
+  let dune_actions = Dune.code_actions (State.dune state) params.textDocument.uri in
   let actions = function
     | [] -> None
     | xs -> Some (List.map ~f:(fun a -> `CodeAction a) xs)
   in
   match doc with
   | None -> Fiber.return (Reply.now (actions dune_actions), state)
-  | Some doc -> (
+  | Some doc ->
     let open_related =
       let capabilities =
         let open Option.O in
@@ -118,22 +118,20 @@ let compute server (params : CodeActionParams.t) =
       in
       Action_open_related.for_uri capabilities doc
     in
-    match Document.syntax doc with
-    | Ocamllex | Menhir | Cram | Dune ->
-      Fiber.return (Reply.now (actions (dune_actions @ open_related)), state)
-    | Ocaml | Reason ->
-      let reply () =
-        let+ code_action_results =
-          compute_ocaml_code_actions params state doc
-        in
-        List.concat [ code_action_results; dune_actions; open_related ]
-        |> actions
-      in
-      let later f =
-        Fiber.return
-          ( Reply.later (fun k ->
-                let* resp = f () in
-                k resp)
-          , state )
-      in
-      later reply)
+    (match Document.syntax doc with
+     | Ocamllex | Menhir | Cram | Dune ->
+       Fiber.return (Reply.now (actions (dune_actions @ open_related)), state)
+     | Ocaml | Reason ->
+       let reply () =
+         let+ code_action_results = compute_ocaml_code_actions params state doc in
+         List.concat [ code_action_results; dune_actions; open_related ] |> actions
+       in
+       let later f =
+         Fiber.return
+           ( Reply.later (fun k ->
+               let* resp = f () in
+               k resp)
+           , state )
+       in
+       later reply)
+;;

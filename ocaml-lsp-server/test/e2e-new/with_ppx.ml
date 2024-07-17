@@ -1,16 +1,14 @@
 open! Test.Import
 
 let path = Filename.concat (Sys.getcwd ()) "for_ppx.ml"
-
 let uri = DocumentUri.of_path path
 
 let print_hover hover =
   match hover with
   | None -> print_endline "no hover response"
   | Some hover ->
-    hover |> Hover.yojson_of_t
-    |> Yojson.Safe.pretty_to_string ~std:false
-    |> print_endline
+    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+;;
 
 let hover_req client position =
   Client.request
@@ -20,6 +18,7 @@ let hover_req client position =
        ; textDocument = TextDocumentIdentifier.create ~uri
        ; workDoneToken = None
        })
+;;
 
 let%expect_test "with-ppx" =
   (* We will call 'hover' on the last line of this very file *)
@@ -32,14 +31,17 @@ let%expect_test "with-ppx" =
       | PublishDiagnostics diag ->
         printfn "Received %i diagnostics" (List.length diag.diagnostics);
         List.iter diag.diagnostics ~f:(fun (d : Diagnostic.t) ->
-            print_endline d.message);
+          match d.message with
+          | `String m -> print_endline m
+          | `MarkupContent _ -> assert false);
         Fiber.Ivar.fill diagnostics ()
       | _ -> Fiber.return ()
     in
     Client.Handler.make ~on_notification ()
   in
   let output =
-    Test.run ~handler @@ fun client ->
+    Test.run ~handler
+    @@ fun client ->
     let run_client () =
       let capabilities = ClientCapabilities.create () in
       Client.start client (InitializeParams.create ~capabilities ())
@@ -83,3 +85,4 @@ let%expect_test "with-ppx" =
       }
     }
     |xxx}]
+;;

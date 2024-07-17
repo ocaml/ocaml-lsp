@@ -22,21 +22,17 @@ module Arg = struct
           | Some _ -> raise @@ Arg.Bad "port is already set once"
           | None -> t.port <- Some p)
     , description )
+  ;;
 
   let create () =
     let t =
-      { pipe = None
-      ; port = None
-      ; stdio = false
-      ; spec = []
-      ; clientProcessId = None
-      }
+      { pipe = None; port = None; stdio = false; spec = []; clientProcessId = None }
     in
     let spec =
-      [ ("--pipe", Arg.String (fun p -> t.pipe <- Some p), "set pipe path")
+      [ "--pipe", Arg.String (fun p -> t.pipe <- Some p), "set pipe path"
       ; port t ~name:"--socket" ~description:"set the port"
       ; port t ~name:"--port" ~description:"synonym for --socket"
-      ; ("--stdio", Arg.Unit (fun () -> t.stdio <- true), "set stdio")
+      ; "--stdio", Arg.Unit (fun () -> t.stdio <- true), "set stdio"
       ; ( "--node-ipc"
         , Arg.Unit (fun () -> raise @@ Arg.Bad "node-ipc isn't supported")
         , "not supported" )
@@ -47,18 +43,20 @@ module Arg = struct
     in
     t.spec <- spec;
     t
+  ;;
 
   let spec t = t.spec
-
   let clientProcessId t = t.clientProcessId
 
-  let channel { pipe; port; stdio; spec = _; clientProcessId = _ } :
-      (Channel.t, string) result =
-    match (pipe, port, stdio) with
+  let channel { pipe; port; stdio; spec = _; clientProcessId = _ }
+    : (Channel.t, string) result
+    =
+    match pipe, port, stdio with
     | None, None, _ -> Ok Stdio
     | Some p, None, false -> Ok (Pipe p)
     | None, Some s, false -> Ok (Socket s)
     | _, _, _ -> Error "invalid arguments"
+  ;;
 end
 
 let args ?channel ?clientProcessId () =
@@ -72,3 +70,4 @@ let args ?channel ?clientProcessId () =
   | Some Stdio -> "--stdio" :: args
   | Some (Pipe pipe) -> "--pipe" :: pipe :: args
   | Some (Socket port) -> "--socket" :: string_of_int port :: args
+;;

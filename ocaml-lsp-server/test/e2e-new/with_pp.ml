@@ -1,16 +1,14 @@
 open! Test.Import
 
 let path = Filename.concat (Sys.getcwd ()) "for_pp.ml"
-
 let uri = DocumentUri.of_path path
 
 let print_hover hover =
   match hover with
   | None -> print_endline "no hover response"
   | Some hover ->
-    hover |> Hover.yojson_of_t
-    |> Yojson.Safe.pretty_to_string ~std:false
-    |> print_endline
+    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+;;
 
 let hover_req client position =
   Client.request
@@ -20,6 +18,7 @@ let hover_req client position =
        ; textDocument = TextDocumentIdentifier.create ~uri
        ; workDoneToken = None
        })
+;;
 
 let%expect_test "with-pp" =
   let position = Position.create ~line:0 ~character:9 in
@@ -31,7 +30,8 @@ let%expect_test "with-pp" =
       ()
   in
   let output =
-    Test.run ~handler @@ fun client ->
+    Test.run ~handler
+    @@ fun client ->
     let run_client () =
       let capabilities = ClientCapabilities.create () in
       Client.start client (InitializeParams.create ~capabilities ())
@@ -69,3 +69,4 @@ let%expect_test "with-pp" =
         "start": { "character": 0, "line": 0 }
       }
     }|}]
+;;

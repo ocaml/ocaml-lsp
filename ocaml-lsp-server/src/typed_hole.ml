@@ -1,7 +1,6 @@
 open Import
 
 let syntax_repr = "_"
-
 let can_be_hole s = String.equal syntax_repr s
 
 (* the pattern matching below is taken and modified (minimally, to adapt the
@@ -17,3 +16,4 @@ let is_a_hole = function
   | (_, Browse_raw.Module_expr { mod_desc = Tmod_hole; _ }) :: (_, _) :: _
   | (_, Browse_raw.Expression { exp_desc = Texp_hole; _ }) :: _ -> true
   | [] | (_, _) :: _ -> false
+;;

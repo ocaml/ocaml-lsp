@@ -1,7 +1,7 @@
 open Import
 
-val run :
-     [ `Definition | `Declaration | `Type_definition ]
+val run
+  :  [ `Definition | `Declaration | `Type_definition ]
   -> State.t
   -> Uri.t
   -> Position.t

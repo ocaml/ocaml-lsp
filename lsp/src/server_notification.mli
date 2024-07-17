@@ -12,5 +12,4 @@ type t =
   | UnknownNotification of Jsonrpc.Notification.t
 
 val to_jsonrpc : t -> Jsonrpc.Notification.t
-
 val of_jsonrpc : Jsonrpc.Notification.t -> (t, string) Result.t

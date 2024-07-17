@@ -14,9 +14,9 @@ type init =
 (** State specific to the hoverExtended request. *)
 type hover_extended =
   { mutable history : (Uri.t * Position.t * int) option
-        (** File, position, and verbosity level of the last call to
-            hoverExtended. This value is used to pick a verbosity level when it
-            is not specific by the client. *)
+  (** File, position, and verbosity level of the last call to
+      hoverExtended. This value is used to pick a verbosity level when it
+      is not specific by the client. *)
   }
 
 type t =
@@ -33,8 +33,8 @@ type t =
   ; hover_extended : hover_extended
   }
 
-val create :
-     store:Document_store.t
+val create
+  :  store:Document_store.t
   -> merlin:Lev_fiber.Thread.t
   -> detached:Fiber.Pool.t
   -> configuration:Configuration.t
@@ -44,13 +44,11 @@ val create :
   -> t
 
 val position_encoding : t -> [ `UTF16 | `UTF8 ]
-
 val wheel : t -> Lev_fiber.Timer.Wheel.t
-
 val initialize_params : t -> InitializeParams.t
 
-val initialize :
-     t
+val initialize
+  :  t
   -> position_encoding:[ `UTF16 | `UTF8 ]
   -> InitializeParams.t
   -> Workspaces.t
@@ -59,11 +57,8 @@ val initialize :
   -> t
 
 val workspace_root : t -> Uri.t
-
 val workspaces : t -> Workspaces.t
-
 val dune : t -> Dune.t
-
 val modify_workspaces : t -> f:(Workspaces.t -> Workspaces.t) -> t
 
 (** @return
@@ -76,6 +71,4 @@ val client_capabilities : t -> ClientCapabilities.t
 val experimental_client_capabilities : t -> Client.Experimental_capabilities.t
 
 val diagnostics : t -> Diagnostics.t
-
-val log_msg :
-  t Server.t -> type_:MessageType.t -> message:string -> unit Fiber.t
+val log_msg : t Server.t -> type_:MessageType.t -> message:string -> unit Fiber.t

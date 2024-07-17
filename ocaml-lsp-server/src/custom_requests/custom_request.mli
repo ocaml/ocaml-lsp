@@ -1,11 +1,9 @@
-type 't req_params_spec =
-  { params_schema : Jsonrpc.Structured.t
-        (** used to document the structure of the params; example:
-            [`Assoc [ "uri" , `String "<Uri>" ]]; *)
-  ; of_jsonrpc_params : Jsonrpc.Structured.t -> 't option
-        (** parses given structured JSON if it's of the expected schema;
-            otherwise, return [None] *)
-  }
+(** {1 Exposed Custom Request} *)
 
-val of_jsonrpc_params_exn :
-  'req_params req_params_spec -> Jsonrpc.Structured.t option -> 'req_params
+module Hover_extended = Req_hover_extended
+module Infer_intf = Req_infer_intf
+module Merlin_call_compatible = Req_merlin_call_compatible
+module Switch_impl_intf = Req_switch_impl_intf
+module Typed_holes = Req_typed_holes
+module Type_enclosing = Req_type_enclosing
+module Wrapping_ast_node = Req_wrapping_ast_node

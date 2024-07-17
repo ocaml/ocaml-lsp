@@ -9,6 +9,7 @@ module Experimental_capabilities = struct
       Json.field fields "jumpToNextHole" Json.Conv.bool_of_yojson
       |> Option.value ~default:false
     | _ -> false
+  ;;
 
   let supportsJumpToNextHole t = t
 end
@@ -16,10 +17,8 @@ end
 module Vscode = struct
   module Commands = struct
     let triggerSuggest =
-      Command.create
-        ~title:"Trigger Suggest"
-        ~command:"editor.action.triggerSuggest"
-        ()
+      Command.create ~title:"Trigger Suggest" ~command:"editor.action.triggerSuggest" ()
+    ;;
   end
 end
 
@@ -27,11 +26,9 @@ module Custom_commands = struct
   let next_hole ?in_range ~notify_if_no_hole () =
     let arguments =
       let arg_obj_fields =
-        let notif_json =
-          Some ("shouldNotifyIfNoHole", Json.bool notify_if_no_hole)
-        in
+        let notif_json = Some ("shouldNotifyIfNoHole", Json.bool notify_if_no_hole) in
         let in_range_json =
-          Option.map in_range ~f:(fun r -> ("inRange", Range.yojson_of_t r))
+          Option.map in_range ~f:(fun r -> "inRange", Range.yojson_of_t r)
         in
         List.filter_opt [ in_range_json; notif_json ]
       in
@@ -42,9 +39,6 @@ module Custom_commands = struct
            command is intended *)
         [ `Assoc fields ]
     in
-    Command.create
-      ~title:"Jump to Next Hole"
-      ~command:"ocaml.next-hole"
-      ~arguments
-      ()
+    Command.create ~title:"Jump to Next Hole" ~command:"ocaml.next-hole" ~arguments ()
+  ;;
 end

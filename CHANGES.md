@@ -1,4 +1,11 @@
-# Unreleased
+# Unreelased
+
+## Fixes
+
+- Kill unnecessary ocamlformat processes with sigterm rather than sigint or
+  sigkill (#1343)
+
+# 1.18.0
 
 ## Features
 

@@ -22,18 +22,16 @@ type variable_transform =
 type t
 
 val tabstop : int -> t
-
 val placeholder : ?index:int -> t -> t
-
 val choice : ?index:int -> string list -> t
 
-val variable :
-     ?opt:[ `Placeholder of t | `Transform of variable_transform | `None ]
+val variable
+  :  ?opt:[ `Placeholder of t | `Transform of variable_transform | `None ]
   -> Var.t
   -> t
 
-val variable_transform :
-     regex:string
+val variable_transform
+  :  regex:string
   -> ?regex_options:string
   -> format_string:string
   -> unit
@@ -43,14 +41,10 @@ val text : string -> t
 
 module O : sig
   val ( ^^ ) : t -> t -> t
-
   val ( @+ ) : string -> t -> t
-
   val ( +@ ) : t -> string -> t
 end
 
 val concat : ?sep:t -> t list -> t
-
 val to_string : t -> string
-
 val pp : Format.formatter -> t -> unit

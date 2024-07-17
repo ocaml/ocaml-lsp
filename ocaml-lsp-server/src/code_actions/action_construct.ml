@@ -14,8 +14,9 @@ let code_action pipeline doc (params : CodeActionParams.t) =
       let src = Document.source doc in
       Compl.prefix_of_position ~short_path:false src pos
     in
-    if not (Typed_hole.can_be_hole prefix) then None
-    else
+    if not (Typed_hole.can_be_hole prefix)
+    then None
+    else (
       let structures =
         let typedtree =
           let typer = Mpipeline.typer_result pipeline in
@@ -24,8 +25,9 @@ let code_action pipeline doc (params : CodeActionParams.t) =
         let pos = Mpipeline.get_lexing_pos pipeline pos in
         Mbrowse.enclosing pos [ Mbrowse.of_typedtree typedtree ]
       in
-      if not (Typed_hole.is_a_hole structures) then None
-      else
+      if not (Typed_hole.is_a_hole structures)
+      then None
+      else (
         (* ocaml-lsp can provide [Construct] values as completion entries, so
            this code action requests the client [1] to trigger completion
            request at the cursor's current position [2]
@@ -48,6 +50,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
             ~command:Client.Vscode.Commands.triggerSuggest
             ()
         in
-        Some code_action
+        Some code_action))
+;;
 
 let t = Code_action.batchable (Other action_kind) code_action

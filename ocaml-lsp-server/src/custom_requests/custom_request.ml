@@ -1,32 +1,7 @@
-open Import
-
-type 't req_params_spec =
-  { params_schema : Jsonrpc.Structured.t
-  ; of_jsonrpc_params : Jsonrpc.Structured.t -> 't option
-  }
-
-let of_jsonrpc_params_exn spec params =
-  let raise_invalid_params ?data ~message () =
-    Jsonrpc.Response.Error.raise
-    @@ Jsonrpc.Response.Error.make
-         ?data
-         ~code:Jsonrpc.Response.Error.Code.InvalidParams
-         ~message
-         ()
-  in
-  match params with
-  | None -> raise_invalid_params ~message:"Expected params but received none" ()
-  | Some params -> (
-    match spec.of_jsonrpc_params params with
-    | Some t -> t
-    | None ->
-      let error_json =
-        `Assoc
-          [ ("params_expected", (spec.params_schema :> Json.t))
-          ; ("params_received", (params :> Json.t))
-          ]
-      in
-      raise_invalid_params
-        ~message:"Unexpected parameter format"
-        ~data:error_json
-        ())
+module Hover_extended = Req_hover_extended
+module Infer_intf = Req_infer_intf
+module Merlin_call_compatible = Req_merlin_call_compatible
+module Switch_impl_intf = Req_switch_impl_intf
+module Typed_holes = Req_typed_holes
+module Type_enclosing = Req_type_enclosing
+module Wrapping_ast_node = Req_wrapping_ast_node
