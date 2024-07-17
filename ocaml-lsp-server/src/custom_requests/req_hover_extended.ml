@@ -14,6 +14,10 @@ module Request_params = struct
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
+  let create ?verbosity ~text_document ~cursor_position () =
+    { text_document; cursor_position; verbosity }
+  ;;
+
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
@@ -152,10 +156,14 @@ module Request_params = struct
   ;;
 
   let of_jsonrpc_params_exn params : t =
-    let params_spec = { Custom_request.params_schema; of_jsonrpc_params } in
-    Custom_request.of_jsonrpc_params_exn params_spec params
+    let params_spec = Util.{ params_schema; of_jsonrpc_params } in
+    Util.of_jsonrpc_params_exn params_spec params
   ;;
 end
+
+type t = Hover.t
+
+let t_of_yojson = Hover.t_of_yojson
 
 let on_request ~(params : Jsonrpc.Structured.t option) (server : State.t Server.t) =
   let { Request_params.text_document; cursor_position; verbosity } =

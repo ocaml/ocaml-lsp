@@ -9,6 +9,7 @@ module Request_params = struct
 
   (* Request params must have the form as in the given string. *)
   let expected_params = `Assoc [ "uri", `String "<DocumentUri>" ]
+  let create uri = uri
 
   let t_of_structured_json params : t option =
     match params with
@@ -39,7 +40,20 @@ module Request_params = struct
          in
          raise_invalid_params ~message:"Unxpected parameter format" ~data:error_json ())
   ;;
+
+  let yojson_of_t = Uri.yojson_of_t
 end
+
+type t = Range.t list
+
+let yojson_of_t holes =
+  Json.yojson_of_list (fun (loc, _type) -> loc |> Range.of_loc |> Range.yojson_of_t) holes
+;;
+
+let t_of_yojson list =
+  let open Yojson.Safe.Util in
+  list |> to_list |> List.map ~f:(fun range -> range |> Range.t_of_yojson)
+;;
 
 let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
   Fiber.of_thunk (fun () ->
@@ -60,7 +74,5 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
       let+ holes =
         Document.Merlin.dispatch_exn ~name:"typed-holes" (Document.merlin_exn doc) Holes
       in
-      Json.yojson_of_list
-        (fun (loc, _type) -> loc |> Range.of_loc |> Range.yojson_of_t)
-        holes)
+      yojson_of_t holes)
 ;;

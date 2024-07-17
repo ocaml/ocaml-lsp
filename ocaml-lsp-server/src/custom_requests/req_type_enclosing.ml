@@ -1,5 +1,4 @@
 open Import
-module TextDocumentPositionParams = Lsp.Types.TextDocumentPositionParams
 
 let capability = "handleTypeEnclosing", `Bool true
 let meth = "ocamllsp/typeEnclosing"
@@ -31,45 +30,22 @@ module Request_params = struct
     { text_document; index; at; verbosity }
   ;;
 
-  let json_error json = Json.error "invalid Req_type_enclosing.Request_params" json
-
-  let index_of_yojson json params =
-    match List.assoc_opt "index" params with
-    | Some (`Int index) -> index
-    | _ ->
-      (* If the parameter is incorrectly formatted or missing, we refuse to build
-         the parameter, [index] is mandatory. *)
-      json_error json
+  let at_of_yojson json =
+    let open Yojson.Safe.Util in
+    let at = json |> member "at" in
+    try `Position (Position.t_of_yojson at) with
+    | _ -> `Range (Range.t_of_yojson at)
   ;;
 
-  let verbosity_of_yojson params =
-    match List.assoc_opt "verbosity" params with
-    | Some (`Int verbosity) -> verbosity
-    | _ ->
-      (* If the parameter is incorrectly formatted or missing, it is assumed that
-         the we ask for a verbosity level set to 0. *)
-      0
-  ;;
-
-  let at_of_yojson json params =
-    match List.assoc_opt "at" params with
-    | Some at ->
-      (try `Position (Position.t_of_yojson at) with
-       | _ -> `Range (Range.t_of_yojson at))
-    | _ ->
-      (* If the parameter is incorrectly formatted or missing, we refuse to build
-         the parameter, [at] is mandatory. *)
-      json_error json
-  ;;
-
-  let t_of_yojson = function
-    | `Assoc params as json ->
-      let verbosity = verbosity_of_yojson params in
-      let at = at_of_yojson json params in
-      let index = index_of_yojson json params in
-      let text_document = TextDocumentIdentifier.t_of_yojson json in
-      { index; at; verbosity; text_document }
-    | json -> json_error json
+  let t_of_yojson json =
+    let open Yojson.Safe.Util in
+    let verbosity =
+      json |> member "verbosity" |> to_int_option |> Option.value ~default:0
+    in
+    let at = at_of_yojson json in
+    let index = json |> member "index" |> to_int in
+    let text_document = TextDocumentIdentifier.t_of_yojson json in
+    { index; at; verbosity; text_document }
   ;;
 end
 
@@ -78,6 +54,16 @@ type t =
   ; type_ : string
   ; enclosings : Range.t list
   }
+
+let t_of_yojson json =
+  let open Yojson.Safe.Util in
+  let index = json |> member "index" |> to_int in
+  let type_ = json |> member "type" |> to_string in
+  let enclosings =
+    json |> member "enclosings" |> to_list |> List.map ~f:Range.t_of_yojson
+  in
+  { index; type_; enclosings }
+;;
 
 let yojson_of_t { index; type_; enclosings } =
   `Assoc
