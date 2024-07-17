@@ -102,7 +102,8 @@ let%expect_test "Documentation of simple type with an identifier and no \
 let%expect_test "Documentation when List module is shadowed" =
   let source =
     "{|\n\
-     module List = struct\n\
+     List.iter ~f:(fun x -> x*x) [2;4]\n\
+    \ module List = struct\n\
     \  (** This is my custom list module *)\n\
     \  let rec iter ~f = function (** This is the custom iter module *)\n\
     \    | [] -> () (** This is when the list is empty *)\n\
@@ -111,8 +112,56 @@ let%expect_test "Documentation when List module is shadowed" =
      List.iter ~f:(fun x -> x*x) [2;4]\n\
      |}"
   in
-  let line = 1 in
-  let character = 8 in
+  let line = 2 in
+  let character = 6 in
+  let identifier = "List.iter" in
+  Util.test ~line ~character ~identifier source;
+  [%expect
+    {|
+  {
+    "doc": {
+      "kind": "plaintext",
+      "value": "[iter f [a1; ...; an]] applies function [f] in turn to\n   [a1; ...; an]. It is equivalent to\n   [begin f a1; f a2; ...; f an; () end]."
+    }
+  } |}]
+
+let%expect_test "Documentation when List module is shadowed" =
+  let source =
+    "{|\n\
+     List.iter ~f:(fun x -> x*x) [2;4]\n\
+     module List = struct\n\
+    \  (** This is my custom list module *)\n\
+    \  let rec iter ~f = function (** This is the custom iter module *)\n\
+    \    | [] -> () (** This is when the list is empty *)\n\
+    \    | x :: xs -> f x; iter ~f xs\n\
+     end\n\
+     Base.List.iter ~f:(fun x -> x*x) [2;4]\n\
+     |}"
+  in
+  let line = 7 in
+  let character = 12 in
+  let identifier = "Base.List.iter" in
+  Util.test ~line ~character ~identifier source;
+  [%expect
+    {|
+  { "doc": { "kind": "plaintext", "value": "Base.List.iter" } } |}]
+
+(* TODO: Open Issue in Merlin to investigate while this doesnt return documentation of the custom List module*)
+let%expect_test "Documentation when List module is shadowed" =
+  let source =
+    "{|\n\
+     List.iter ~f:(fun x -> x*x) [2;4]\n\
+     module List = struct\n\
+    \  (** This is my custom list module *)\n\
+    \  let rec iter ~f = function (** This is the custom iter module *)\n\
+    \    | [] -> () (** This is when the list is empty *)\n\
+    \    | x :: xs -> f x; iter ~f xs\n\
+     end\n\
+     Base.List.iter ~f:(fun x -> x*x) [2;4]\n\
+     |}"
+  in
+  let line = 2 in
+  let character = 9 in
   Util.test ~line ~character source;
   [%expect
     {|
