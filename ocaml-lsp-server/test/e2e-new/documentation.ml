@@ -17,8 +17,6 @@ module Util = struct
     Client.request client req
   ;;
 
-  let print_documentation result = Test.print_result result
-
   let test ~line ~character ?identifier ?contentFormat source =
     let position = Position.create ~character ~line in
     let contentFormat =
@@ -29,7 +27,7 @@ module Util = struct
     let request client =
       let open Fiber.O in
       let+ response = call_documentation ~position ~identifier ~contentFormat client in
-      print_documentation response
+      Test.print_result response
     in
     Helpers.test source request
   ;;
