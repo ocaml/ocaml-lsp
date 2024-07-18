@@ -10,6 +10,7 @@ module GetDocClientCapabilities = struct
   let _yojson_of_t { contentFormat } =
     `Assoc
       (`List (List.map ~f:(fun format -> MarkupKind.yojson_of_t format) contentFormat))
+  ;;
 end
 
 module GetDocParams = struct
@@ -32,23 +33,25 @@ module GetDocParams = struct
     ; identifier
     ; contentFormat
     }
+  ;;
 
-    let yojson_of_t { text_document; position; identifier; contentFormat } =
-      let identifier =
-        match identifier with
-        | Some ident -> [ ("identifier", `String ident) ]
-        | None -> []
-      in
-      let contentFormat =
-        match contentFormat with
-        | Some format -> [ ("contentFormat", MarkupKind.yojson_of_t format) ]
-        | None -> []
-      in
-      `Assoc
-        (("textDocument", TextDocumentIdentifier.yojson_of_t text_document)
-         :: ("position", Position.yojson_of_t position)
-         :: identifier
-        @ contentFormat)
+  let yojson_of_t { text_document; position; identifier; contentFormat } =
+    let identifier =
+      match identifier with
+      | Some ident -> [ "identifier", `String ident ]
+      | None -> []
+    in
+    let contentFormat =
+      match contentFormat with
+      | Some format -> [ "contentFormat", MarkupKind.yojson_of_t format ]
+      | None -> []
+    in
+    `Assoc
+      ((("textDocument", TextDocumentIdentifier.yojson_of_t text_document)
+        :: ("position", Position.yojson_of_t position)
+        :: identifier)
+       @ contentFormat)
+  ;;
 end
 
 module GetDoc = struct
@@ -60,11 +63,13 @@ module GetDoc = struct
     let open Yojson.Safe.Util in
     let doc = json |> member "doc" |> MarkupContent.t_of_yojson in
     { doc }
+  ;;
 
   let create ~kind ~value = MarkupContent.create ~kind ~value
 end
 
 type t = GetDoc.t
+
 let t_of_yojson json = GetDoc.t_of_yojson json
 
 module Request_params = struct
@@ -73,7 +78,8 @@ module Request_params = struct
   let yojson_of_t t = GetDocParams.yojson_of_t t
 
   let create ~text_document ~position ?(identifier = None) ?(contentFormat = None) () : t =
-    {text_document; identifier; contentFormat; position}
+    { text_document; identifier; contentFormat; position }
+  ;;
 end
 
 let dispatch ~merlin ~position ~identifier ~contentFormat =
@@ -90,7 +96,7 @@ let dispatch ~merlin ~position ~identifier ~contentFormat =
         | None -> MarkupKind.PlainText
       in
       GetDoc.yojson_of_t { doc = GetDoc.create ~kind ~value })
-
+;;
 
 let on_request ~params state =
   Fiber.of_thunk (fun () ->
@@ -103,4 +109,4 @@ let on_request ~params state =
     match Document.kind doc with
     | `Other -> Fiber.return `Null
     | `Merlin merlin -> dispatch ~merlin ~position ~identifier ~contentFormat)
-
+;;
