@@ -17,9 +17,7 @@ module Util = struct
     Client.request client req
   ;;
 
-  let print_documentation result =
-    Test.print_result result
-  ;;
+  let print_documentation result = Test.print_result result
 
   let test ~line ~character ?identifier ?contentFormat source =
     let position = Position.create ~character ~line in
