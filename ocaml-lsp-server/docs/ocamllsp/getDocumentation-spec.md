@@ -2,7 +2,7 @@
 
 ## Description
 
-Merlin has a command `document` that gets `odoc` documentation for symbols based on a cursor position or an optional identifier. This request allows documentation to be gotten using a classic Merlin workflow.
+ This custom request allows `odoc` documentation to be gotten without using Hover.
 
 ## Client capability
 
@@ -13,6 +13,12 @@ export interface GetDocClientCapabilities {
 ```
 - `contentFormat`: Client supports the following content formats if the content property refers to a `literal of type MarkupContent`. The order describes the preferred format of the client.
 
+## Server capability
+
+- property name: `handleDocumentation`
+- property type: `boolean`
+
+
 ## Request
 
 ```js
@@ -22,9 +28,11 @@ export interface GetDocParams extends TextDocumentPositionParams
     contentFormat?:MarkupKind;
 }
 ```
-- `position`: The position of the cursor.
-- `identifier`: An optional identifier. If provided, documentation for this ident is looked up from the environment at the given position. Else the server will look for the documentation of the identifier under the cursor.
-- `contentFormat`: Optionally override the result's format. Could be `Plaintext` or `Markdown`.
+- method : `ocamllsp/getDocumentation`
+- params :
+    - `position`: The position of the cursor.
+    - `identifier`: An optional identifier. If provided, documentation for this ident is looked up from the environment at the given position. Else the server will look for the documentation of the identifier under the cursor.
+    - `contentFormat`: Optionally override the result's format. Could be `Plaintext` or `Markdown`.
 
 ## Response
 

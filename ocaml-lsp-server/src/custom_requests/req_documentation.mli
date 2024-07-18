@@ -1,22 +1,21 @@
 open Import
 
+module Request_params : sig
+    type t
+
+    val yojson_of_t : t -> Json.t
+
+    val create :
+      text_document:TextDocumentIdentifier.t ->
+      position:Position.t ->
+      ?identifier:string option -> ?contentFormat:MarkupKind.t option -> unit -> t
+end
+
+type t
+
+val t_of_yojson : Json.t -> t
 val meth : string
-
 val capability : string * [> `Bool of bool ]
-
-module GetDocClientCapabilities : sig
-  type t = { contentFormat : MarkupKind.t list }
-
-  val yojson_of_t : t -> [> `Assoc of [> `List of Json.t list ] ]
-end
-
-module GetDoc : sig
-  type t = { doc : MarkupContent.t }
-end
-
-type t = GetDoc.t
-
 val on_request :
-     params:[< Yojson.Safe.t > `Assoc ] option
-  -> State.t
-  -> [> `Assoc of (string * Yojson.Safe.t) list | `Null ] Fiber.t
+  params:Jsonrpc.Structured.t option ->
+  State.t -> Json.t Fiber.t

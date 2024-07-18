@@ -51,7 +51,7 @@
 
 - Add custom [`ocamllsp/typeEnclosing`](https://github.com/ocaml/ocaml-lsp/blob/109801e56f2060caf4487427bede28b824f4f1fe/ocaml-lsp-server/docs/ocamllsp/typeEnclosing-spec.md) request (#1304)
 
-- Add custom [`ocamllsp/documentation`](/ocaml-lsp-server/docs/ocamllsp/documentation-spec.md) request (#1336)
+- Add custom [`ocamllsp/getDocumentation`](/ocaml-lsp-server/docs/ocamllsp/getDocumentation-spec.md) request (#1336)
 
 
 ## Fixes

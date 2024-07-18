@@ -1,28 +1,17 @@
 open Test.Import
+module Req = Ocaml_lsp_server.Custom_request.Documentation
 
 module Util = struct
-  let call_documentation ~position ?(identifier = None) ?(contentFormat = None)
-      client =
+  let call_documentation ~position ?(identifier = None) ?(contentFormat = None) client =
     let uri = DocumentUri.of_path "test.ml" in
-    let text_document =
-      TextDocumentIdentifier.yojson_of_t @@ TextDocumentIdentifier.create ~uri
-    in
-    let position = Position.yojson_of_t position in
+    let text_document = TextDocumentIdentifier.create ~uri in
     let params =
-      `Assoc
-        (("position", position)
-        :: (match identifier with
-           | Some ident -> ("identifier", `String ident)
-           | None -> ("identifier", `Null))
-        :: (match contentFormat with
-           | Some fmt -> ("contentFormat", `String fmt)
-           | None -> ("contentFormat", `Null))
-        :: [ ("textDocument", text_document) ])
-    in
-    let params = Some (Jsonrpc.Structured.t_of_yojson params) in
+      Req.Request_params.create ~text_document ~position ~identifier ~contentFormat ()
+    |> Req.Request_params.yojson_of_t
+    |> Jsonrpc.Structured.t_of_yojson
+    |> Option.some in
     let req =
-      Lsp.Client_request.UnknownRequest
-        { meth = "ocamllsp/documentation"; params }
+      Lsp.Client_request.UnknownRequest { meth = "ocamllsp/getDocumentation"; params }
     in
     Client.request client req
 
@@ -31,40 +20,36 @@ module Util = struct
 
   let test ~line ~character ?identifier ?contentFormat source =
     let position = Position.create ~character ~line in
+    let contentFormat = match contentFormat with
+    | Some "markdown" -> Some MarkupKind.Markdown
+    | Some "plaintext" | _ -> Some MarkupKind.PlainText
+  in
     let request client =
       let open Fiber.O in
-      let+ response =
-        call_documentation ~position ~identifier ~contentFormat client
-      in
+      let+ response = call_documentation ~position ~identifier ~contentFormat client in
       print_documentation response
     in
     Helpers.test source request
 end
 
-let%expect_test "Documentation of simple type with no contentFormat and no \
-                 identifier" =
+let%expect_test "Documentation of simple type with no contentFormat and no identifier" =
   let source = "type tree (** This is a comment *)" in
   let line = 0 in
   let character = 7 in
   Util.test ~line ~character source;
-  [%expect
-    {| { "doc": { "kind": "plaintext", "value": "This is a comment" } } |}]
+  [%expect {| { "doc": { "kind": "plaintext", "value": "This is a comment" } } |}]
 
-let%expect_test "Documentation of simple type with contentFormat set to \
-                 markdown" =
+let%expect_test "Documentation of simple type with contentFormat set to markdown" =
   let source = "type tree (** This is another comment *)" in
   let line = 0 in
   let character = 7 in
   let contentFormat = "markdown" in
   Util.test ~line ~character ~contentFormat source;
-  [%expect
-    {| { "doc": { "kind": "markdown", "value": "This is another comment" } } |}]
+  [%expect {| { "doc": { "kind": "markdown", "value": "This is another comment" } } |}]
 
-let%expect_test "Documentation of simple type with an identifier and \
-                 contentFormat" =
+let%expect_test "Documentation of simple type with an identifier and contentFormat" =
   let source =
-    "{|type tree (** This is another comment *)\n\
-    \  List.iter ~f:(fun x -> x*x) [2;4]|}"
+    "{|type tree (** This is another comment *)\n  List.iter ~f:(fun x -> x*x) [2;4]|}"
   in
   let line = 0 in
   let character = 7 in
@@ -80,11 +65,9 @@ let%expect_test "Documentation of simple type with an identifier and \
       }
     } |}]
 
-let%expect_test "Documentation of simple type with an identifier and no \
-                 contentFormat" =
+let%expect_test "Documentation of simple type with an identifier and no contentFormat" =
   let source =
-    "{|type tree (** This is another comment *)\n\
-    \  List.iter ~f:(fun x -> x*x) [2;4]|}"
+    "{|type tree (** This is another comment *)\n  List.iter ~f:(fun x -> x*x) [2;4]|}"
   in
   let line = 0 in
   let character = 7 in
@@ -142,8 +125,7 @@ let%expect_test "Documentation when List module is shadowed" =
   let character = 12 in
   let identifier = "Base.List.iter" in
   Util.test ~line ~character ~identifier source;
-  [%expect
-    {|
+  [%expect {|
   { "doc": { "kind": "plaintext", "value": "Base.List.iter" } } |}]
 
 (* TODO: Open Issue in Merlin to investigate while this doesnt return documentation of the custom List module*)

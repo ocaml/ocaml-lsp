@@ -508,8 +508,8 @@ let on_request
        ; Req_typed_holes.meth, Req_typed_holes.on_request
        ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
        ; Req_type_enclosing.meth, Req_type_enclosing.on_request
-       ; (Req_documentation.meth, Req_documentation.on_request)
-      ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
+       ; Req_documentation.meth, Req_documentation.on_request
+       ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
        ; ( Semantic_highlighting.Debug.meth_request_full
          , Semantic_highlighting.Debug.on_request_full )
        ; ( Req_hover_extended.meth
