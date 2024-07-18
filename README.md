@@ -4,7 +4,7 @@
 [![Build][build-badge]][build]
 [![Coverage Status][coverall-badge]][coverall]
 
-[build-badge]: https://github.com/ocaml/ocaml-lsp/workflows/Build%20and%20Test/badge.svg
+[build-badge]: https://github.com/ocaml/ocaml-lsp/actions/workflows/build-and-test.yml/badge.svg
 [build]: https://github.com/ocaml/ocaml-lsp/actions
 [coverall-badge]: https://coveralls.io/repos/github/ocaml/ocaml-lsp/badge.svg?branch=master
 [coverall]: https://coveralls.io/github/ocaml/ocaml-lsp?branch=master
