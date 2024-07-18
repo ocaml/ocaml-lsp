@@ -2,7 +2,7 @@ open Import
 module TextDocumentPositionParams = Lsp.Types.TextDocumentPositionParams
 
 let meth = "ocamllsp/getDocumentation"
-let capability = "handleDocumentation", `Bool true
+let capability = "handleGetDocumentation", `Bool true
 
 module GetDocClientCapabilities = struct
   type _t = { contentFormat : MarkupKind.t list }

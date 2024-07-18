@@ -1,5 +1,5 @@
 open Test.Import
-module Req = Ocaml_lsp_server.Custom_request.Documentation
+module Req = Ocaml_lsp_server.Custom_request.Get_documentation
 
 module Util = struct
   let call_documentation ~position ?(identifier = None) ?(contentFormat = None) client =
@@ -18,7 +18,7 @@ module Util = struct
   ;;
 
   let print_documentation result =
-    result |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+    Test.print_result result
   ;;
 
   let test ~line ~character ?identifier ?contentFormat source =
