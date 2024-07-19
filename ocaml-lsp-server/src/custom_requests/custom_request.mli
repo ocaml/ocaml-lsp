@@ -1,5 +1,6 @@
 (** {1 Exposed Custom Request} *)
 
+module Construct = Req_construct
 module Hover_extended = Req_hover_extended
 module Infer_intf = Req_infer_intf
 module Merlin_call_compatible = Req_merlin_call_compatible
