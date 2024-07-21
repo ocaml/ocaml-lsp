@@ -1,9 +1,11 @@
-# Unreelased
+# Unreleased
 
 ## Fixes
 
 - Kill unnecessary ocamlformat processes with sigterm rather than sigint or
   sigkill (#1343)
+
+- Fix fd leak in running external processes for preprocessing (#1349)
 
 # 1.18.0
 

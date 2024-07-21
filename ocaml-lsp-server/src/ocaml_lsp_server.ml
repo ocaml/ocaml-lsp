@@ -929,6 +929,7 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr (
   in
   Unix.close stdin;
   if should_close_stdout then Unix.close stdout;
+  Option.iter stderr ~f:Unix.close;
   `Finished res
 ;;
 
