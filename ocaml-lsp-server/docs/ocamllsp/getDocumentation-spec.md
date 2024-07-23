@@ -30,7 +30,7 @@ export interface GetDocParams extends TextDocumentPositionParams
 ```
 - method : `ocamllsp/getDocumentation`
 - params :
-    - `position`: The position of the cursor.
+    - `TextDocumentPositionParams`: A record which contains the `TextDocumentIdentifier` and `Position`.
     - `identifier`: An optional identifier. If provided, documentation for this ident is looked up from the environment at the given position. Else the server will look for the documentation of the identifier under the cursor.
     - `contentFormat`: Optionally override the result's format. Could be `Plaintext` or `Markdown`.
 
