@@ -6,8 +6,8 @@
       url = "github:ocaml/merlin/v4.16-414";
       flake = false;
     };
-    merlin5_1 = {
-      url = "github:ocaml/merlin/v4.16-501";
+    merlin5_2 = {
+      url = "github:ocaml/merlin/v5.1-502";
       flake = false;
     };
   };
@@ -130,10 +130,10 @@
           };
         pkgs_4_14 =
           makeNixpkgs (ocaml: ocaml.ocamlPackages_4_14) inputs.merlin4_14;
-        pkgs_5_1 =
-          makeNixpkgs (ocaml: ocaml.ocamlPackages_5_1) inputs.merlin5_1;
+        pkgs_5_2 =
+          makeNixpkgs (ocaml: ocaml.ocamlPackages_5_2) inputs.merlin5_2;
         localPackages_4_14 = makeLocalPackages pkgs_4_14;
-        localPackages_5_1 = makeLocalPackages pkgs_5_1;
+        localPackages_5_2 = makeLocalPackages pkgs_5_2;
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
             buildInputs = [ nixpkgs.ocamlPackages.utop ];
@@ -141,12 +141,12 @@
           };
       in {
         packages =
-          (localPackages_5_1 // { default = localPackages_5_1.ocaml-lsp; });
+          (localPackages_5_2 // { default = localPackages_5_2.ocaml-lsp; });
 
         devShells = {
           ocaml4_11 = devShell localPackages_4_14 pkgs_4_14;
 
-          default = devShell localPackages_5_1 pkgs_5_1;
+          default = devShell localPackages_5_2 pkgs_5_2;
 
           release = pkgsWithoutOverlays.mkShell {
             buildInputs = [ pkgsWithoutOverlays.dune-release ];
@@ -163,8 +163,8 @@
             ];
           };
 
-          check = pkgs_5_1.mkShell {
-            inputsFrom = builtins.attrValues localPackages_4_14;
+          check = pkgs_5_2.mkShell {
+            inputsFrom = builtins.attrValues localPackages_5_2;
           };
         };
       }));
