@@ -160,7 +160,7 @@ describe("workspace/symbol", () => {
     let symbols = await queryWorkspaceSymbol({
       query: "",
     });
-
+    /* FIXME: symbol lib_type from lib.ml is missing */
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
       Array [
         "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",

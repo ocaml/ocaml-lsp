@@ -285,6 +285,7 @@ let _ =
       ((fun (type a) (x : a) -> x) 0) |}]
 ;;
 
+(* FIXME this test broke with the update to OCaml 5.2 *)
 let%expect_test "" =
   inline_test {|
 let _ =
