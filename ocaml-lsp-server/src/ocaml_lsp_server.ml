@@ -485,7 +485,7 @@ let highlight
         (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
     let lsp_locs =
-      List.filter_map (fst locs) ~f:(fun loc ->
+      List.filter_map locs ~f:(fun loc ->
         let range = Range.of_loc loc in
         (* filter out multi-line ranges, since those are very noisy and happen
            a lot with certain PPXs *)
@@ -666,7 +666,7 @@ let on_request
               (Occurrences (`Ident_at (Position.logical position), `Buffer))
           in
           let loc =
-            List.find_opt (fst locs) ~f:(fun loc ->
+            List.find_opt locs ~f:(fun loc ->
               let range = Range.of_loc loc in
               Position.compare_inclusion position range = `Inside)
           in
