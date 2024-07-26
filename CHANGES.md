@@ -1,5 +1,9 @@
 # Unreelased
 
+## Features
+
+- Add support for OCaml 5.2
+
 ## Fixes
 
 - Kill unnecessary ocamlformat processes with sigterm rather than sigint or
