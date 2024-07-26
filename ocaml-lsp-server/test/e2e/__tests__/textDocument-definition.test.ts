@@ -59,7 +59,18 @@ describe("textDocument/definition", () => {
     let result = await queryDefinition(Types.Position.create(3, 12));
 
     expect(result.length).toBe(1);
-    expect(result[0].range).toMatchInlineSnapshot(``);
+    expect(result[0].range).toMatchInlineSnapshot(`
+Object {
+  "end": Object {
+    "character": 4,
+    "line": 0,
+  },
+  "start": Object {
+    "character": 4,
+    "line": 0,
+  },
+}
+`);
     expect(result[0].uri).toEqualUri(testUri("test.ml"));
   });
 });
