@@ -28,11 +28,17 @@ export interface GetDocParams extends TextDocumentPositionParams
     contentFormat?:MarkupKind;
 }
 ```
-- method : `ocamllsp/getDocumentation`
-- params :
-    - `TextDocumentPositionParams`: A record which contains the `TextDocumentIdentifier` and `Position`.
-    - `identifier`: An optional identifier. If provided, documentation for this ident is looked up from the environment at the given position. Else the server will look for the documentation of the identifier under the cursor.
-    - `contentFormat`: Optionally override the result's format. Could be `Plaintext` or `Markdown`.
+- method: `ocamllsp/getDocumentation`
+- params:
+    - `TextDocumentPositionParams`: This is an existing interface that includes:
+        - `TextDocumentIdentifier`: Specifies the document for which the request is sent. It includes a uri property that points to the document.
+        - `Position`: Specifies the position in the document for which the documentation is requested. It includes line and character properties.
+    More details can be found in the [TextDocumentPositionParams - LSP Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentPositionParams).
+    - `identifier` (Optional): A string representing an identifier for which the documentation is requested. If provided, the documentation lookup will be specifically for this identifier in the context of the position in the document. If omitted, the server will automatically fetch the documentation for the identifier currently under the cursor at the given position.
+    - `contentFormat` (Optional): This parameter specifies the desired format for the returned documentation content. It can be either:
+        - `Plaintext`: The documentation will be returned in plain text format.
+        - `Markdown`: The documentation will be returned in Markdown format.
+    The type `MarkupKind` typically supports these two formats, as specified in the [MarkupKind - LSP protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#markupContent).
 
 ## Response
 
