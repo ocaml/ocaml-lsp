@@ -64,7 +64,7 @@ let%expect_test "Documentation of simple type with an identifier and contentForm
     {
       "doc": {
         "kind": "markdown",
-        "value": "List operations.\n\n   Some functions are flagged as not tail-recursive.  A tail-recursive\n   function uses constant stack space, while a non-tail-recursive function\n   uses stack space proportional to the length of its list argument, which\n   can be a problem with very long lists.  When the function takes several\n   list arguments, an approximate formula giving stack usage (in some\n   unspecified constant unit) is shown in parentheses.\n\n   The above considerations can usually be ignored if your lists are not\n   longer than about 10000 elements.\n\n   The labeled version of this module can be used as described in the\n   {!StdLabels} module."
+        "value": "List operations.\n\nSome functions are flagged as not tail-recursive. A tail-recursive function uses constant stack space, while a non-tail-recursive function uses stack space proportional to the length of its list argument, which can be a problem with very long lists. When the function takes several list arguments, an approximate formula giving stack usage (in some unspecified constant unit) is shown in parentheses.\n\nThe above considerations can usually be ignored if your lists are not longer than about 10000 elements.\n\nThe labeled version of this module can be used as described in the `StdLabels` module."
       }
     } |}]
 ;;

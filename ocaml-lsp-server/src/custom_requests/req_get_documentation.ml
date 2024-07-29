@@ -65,7 +65,17 @@ module GetDoc = struct
     { doc }
   ;;
 
-  let create ~kind ~value = MarkupContent.create ~kind ~value
+  let create ~kind ~value =
+    let v =
+      match kind with
+      | MarkupKind.Markdown ->
+        (match Doc_to_md.translate value with
+         | Raw d -> d
+         | Markdown d -> d)
+      | MarkupKind.PlainText -> value
+    in
+    MarkupContent.create ~kind ~value:v
+  ;;
 end
 
 type t = GetDoc.t
