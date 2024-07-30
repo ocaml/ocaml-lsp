@@ -1,12 +1,9 @@
-# Unreleased
+# 1.19.0
 
 ## Features
 
 - Add custom [`ocamllsp/getDocumentation`](/ocaml-lsp-server/docs/ocamllsp/getDocumentation-spec.md) request (#1336)
-
-## Features
-
-- Add support for OCaml 5.2
+- Add support for OCaml 5.2 (#1233)
 
 ## Fixes
 
