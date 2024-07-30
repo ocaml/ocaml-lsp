@@ -109,7 +109,7 @@ let%expect_test "Documentation when List module is shadowed" =
   {
     "doc": {
       "kind": "plaintext",
-      "value": "[iter f [a1; ...; an]] applies function [f] in turn to\n   [a1; ...; an]. It is equivalent to\n   [begin f a1; f a2; ...; f an; () end]."
+      "value": "[iter f [a1; ...; an]] applies function [f] in turn to\n   [[a1; ...; an]]. It is equivalent to\n   [f a1; f a2; ...; f an]."
     }
   } |}]
 ;;
