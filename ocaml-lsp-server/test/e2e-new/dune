@@ -61,6 +61,7 @@
     syntax_doc_tests
     test
     type_enclosing
+    documentation
     with_pp
     with_ppx
     workspace_change_config))))
