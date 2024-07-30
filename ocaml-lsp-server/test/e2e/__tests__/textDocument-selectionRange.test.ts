@@ -57,49 +57,13 @@ Array [
             "parent": Object {
               "parent": Object {
                 "parent": Object {
-                  "parent": Object {
-                    "parent": Object {
-                      "parent": Object {
-                        "range": Object {
-                          "end": Object {
-                            "character": 17,
-                            "line": 3,
-                          },
-                          "start": Object {
-                            "character": 0,
-                            "line": 0,
-                          },
-                        },
-                      },
-                      "range": Object {
-                        "end": Object {
-                          "character": 17,
-                          "line": 3,
-                        },
-                        "start": Object {
-                          "character": 0,
-                          "line": 0,
-                        },
-                      },
-                    },
-                    "range": Object {
-                      "end": Object {
-                        "character": 17,
-                        "line": 3,
-                      },
-                      "start": Object {
-                        "character": 0,
-                        "line": 0,
-                      },
-                    },
-                  },
                   "range": Object {
                     "end": Object {
                       "character": 17,
                       "line": 3,
                     },
                     "start": Object {
-                      "character": 8,
+                      "character": 0,
                       "line": 0,
                     },
                   },
@@ -110,7 +74,7 @@ Array [
                     "line": 3,
                   },
                   "start": Object {
-                    "character": 8,
+                    "character": 0,
                     "line": 0,
                   },
                 },
@@ -121,7 +85,7 @@ Array [
                   "line": 3,
                 },
                 "start": Object {
-                  "character": 10,
+                  "character": 0,
                   "line": 0,
                 },
               },
@@ -132,7 +96,7 @@ Array [
                 "line": 3,
               },
               "start": Object {
-                "character": 10,
+                "character": 8,
                 "line": 0,
               },
             },

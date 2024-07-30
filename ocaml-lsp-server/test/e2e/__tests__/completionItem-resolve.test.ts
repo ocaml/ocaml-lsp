@@ -59,7 +59,7 @@ describe("textDocument/completion", () => {
         "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is
          [[f a1 b1; ...; f an bn]].
          @raise Invalid_argument if the two lists are determined
-         to have different lengths. Not tail-recursive.",
+         to have different lengths.",
         "label": "map2",
       }
     `);

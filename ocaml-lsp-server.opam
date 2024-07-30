@@ -31,21 +31,21 @@ depends: [
   "dyn"
   "stdune"
   "fiber" {>= "3.1.1" & < "4.0.0"}
+  "ocaml" {>= "5.2.0"}
   "xdg"
   "ordering"
   "dune-build-info"
   "spawn"
   "astring"
   "camlp-streams"
-  "ppx_expect" {>= "v0.15.0" & with-test}
+  "ppx_expect" {>= "v0.15.0" & < "0.17.0" & with-test}
   "ocamlformat" {with-test & = "0.26.2"}
   "ocamlc-loc" {>= "3.7.0"}
   "pp" {>= "1.1.2"}
   "csexp" {>= "1.5"}
   "ocamlformat-rpc-lib" {>= "0.21.0"}
   "odoc" {with-doc}
-  "ocaml" {>= "4.14" & < "5.2"}
-  "merlin-lib" {>= "4.16" & < "5.0"}
+  "merlin-lib" {>= "5.0" & < "6.0"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
