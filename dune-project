@@ -34,7 +34,7 @@ possible and does not make any assumptions about IO.
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
   (cinaps :with-test)
-  (ppx_expect (and (>= v0.15.0) :with-test))
+  (ppx_expect (and (>= v0.15.0) (< 0.17.0) :with-test))
   (uutf (>= 1.0.2))
   (odoc :with-doc)
   (ocaml (>= 4.14))))
@@ -55,21 +55,21 @@ possible and does not make any assumptions about IO.
   dyn
   stdune
   (fiber (and (>= 3.1.1) (< 4.0.0)))
+  (ocaml (>= 5.2.0))
   xdg
   ordering
   dune-build-info
   spawn
   astring
   camlp-streams
-  (ppx_expect (and (>= v0.15.0) :with-test))
+  (ppx_expect (and (>= v0.15.0) (< 0.17.0) :with-test))
   (ocamlformat (and :with-test (= 0.26.2)))
   (ocamlc-loc (>= 3.7.0))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (ocaml (and (>= 4.14) (< 5.2)))
-  (merlin-lib (and (>= 4.16) (< 5.0)))))
+  (merlin-lib (and (>= 5.0) (< 6.0)))))
 
 (package
  (name jsonrpc)

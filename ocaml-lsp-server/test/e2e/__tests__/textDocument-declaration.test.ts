@@ -70,11 +70,11 @@ describe("textDocument/declaration", () => {
     expect(result[0].range).toMatchInlineSnapshot(`
 Object {
   "end": Object {
-    "character": 0,
+    "character": 4,
     "line": 0,
   },
   "start": Object {
-    "character": 0,
+    "character": 4,
     "line": 0,
   },
 }

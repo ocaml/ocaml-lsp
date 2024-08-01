@@ -94,6 +94,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_hover_extended.capability
               ; Req_merlin_call_compatible.capability
               ; Req_type_enclosing.capability
+              ; Req_get_documentation.capability
               ] )
         ]
     in
@@ -423,21 +424,49 @@ let selection_range
     List.filter_opt ranges
 ;;
 
-let references (state : State.t) { ReferenceParams.textDocument = { uri }; position; _ } =
+let references
+  rpc
+  (state : State.t)
+  { ReferenceParams.textDocument = { uri }; position; _ }
+  =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc ->
-    let+ locs =
+    let* locs, synced =
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         doc
-        (Occurrences (`Ident_at (Position.logical position), `Buffer))
+        (Occurrences (`Ident_at (Position.logical position), `Project))
+    in
+    let+ () =
+      match synced with
+      | `Out_of_sync _ ->
+        let msg =
+          let message =
+            "The index might be out-of-sync.  If you use Dune you can build the target \
+             `@ocaml-index` to refresh the index."
+          in
+          ShowMessageParams.create ~message ~type_:Warning
+        in
+        task_if_running state.detached ~f:(fun () ->
+          Server.notification rpc (ShowMessage msg))
+      | _ -> Fiber.return ()
     in
     Some
       (List.map locs ~f:(fun loc ->
          let range = Range.of_loc loc in
-         (* using original uri because merlin is looking only in local file *)
+         let uri =
+           match loc.loc_start.pos_fname with
+           | "" -> uri
+           | path -> Uri.of_path path
+         in
+         Log.log ~section:"debug" (fun () ->
+           Log.msg
+             "merlin returned fname %a"
+             [ "pos_fname", `String loc.loc_start.pos_fname
+             ; "uri", `String (Uri.to_string uri)
+             ]);
          { Location.uri; range }))
 ;;
 
@@ -450,7 +479,7 @@ let highlight
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m ->
-    let+ locs =
+    let+ locs, _synced =
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         m
@@ -507,6 +536,7 @@ let on_request
        ; Req_typed_holes.meth, Req_typed_holes.on_request
        ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
        ; Req_type_enclosing.meth, Req_type_enclosing.on_request
+       ; Req_get_documentation.meth, Req_get_documentation.on_request
        ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
        ; ( Semantic_highlighting.Debug.meth_request_full
          , Semantic_highlighting.Debug.on_request_full )
@@ -609,7 +639,7 @@ let on_request
       | Some _ | None -> Hover_req.Default
     in
     later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ()
-  | TextDocumentReferences req -> later references req
+  | TextDocumentReferences req -> later (references rpc) req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req ->
     (match state.configuration.data.codelens with
@@ -631,7 +661,7 @@ let on_request
         match Document.kind doc with
         | `Other -> Fiber.return None
         | `Merlin doc ->
-          let+ locs =
+          let+ locs, _synced =
             Document.Merlin.dispatch_exn
               ~name:"occurrences"
               doc
