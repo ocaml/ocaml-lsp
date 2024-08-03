@@ -1,10 +1,16 @@
+# Unreleased
+
+## Fixes
+
+- Fix fd leak in running external processes for preprocessing (#1349)
+
 # 1.19.0
 
 ## Features
 
 - Add custom [`ocamllsp/getDocumentation`](/ocaml-lsp-server/docs/ocamllsp/getDocumentation-spec.md) request (#1336)
 - Add support for OCaml 5.2 (#1233)
-
+- 
 ## Fixes
 
 - Kill unnecessary ocamlformat processes with sigterm rather than sigint or
