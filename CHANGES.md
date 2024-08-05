@@ -9,8 +9,9 @@
 ## Features
 
 - Add custom [`ocamllsp/getDocumentation`](/ocaml-lsp-server/docs/ocamllsp/getDocumentation-spec.md) request (#1336)
+
 - Add support for OCaml 5.2 (#1233)
-- 
+
 ## Fixes
 
 - Kill unnecessary ocamlformat processes with sigterm rather than sigint or
