@@ -26,28 +26,80 @@ module Util = struct
   ;;
 end
 
-let%expect_test "Get location of a simple let target" =
-  let source =
-  "{|
-  let find_vowel x =
-  match x with
-  | 'A' ->
-    true
-  | 'E' ->
-    true
-  | 'I' ->
-    true
-  | 'O' ->
-    true
-  | 'U' ->
-    true
-  | _ ->
-    false
-  |}" in
-  let line = 4 in
-  let character = 2 in
-  let target = "match" in
-  Util.test ~line ~character ~target ~source;
-  [%expect {|
-   |}]
+let%expect_test "Get location of the next match case" =
+let source =
+{|
+let find_vowel x =
+match x with
+| 'A' -> true
+| 'E' -> true
+| 'I' -> true
+| 'O' -> true
+| 'U' -> true
+| _ -> false
+|}
+in
+let line = 3 in
+let character = 2 in
+let target = "match-next-case" in
+Util.test ~line ~character ~target ~source;
+[%expect {|
+  [
+    {
+      "range": {
+        "end": { "character": 2, "line": 4 },
+        "start": { "character": 2, "line": 4 }
+      },
+      "uri": "file:///test.ml"
+    }
+  ] |}]
+;;
+
+let%expect_test "Get location of a the module" =
+let source =
+    {|type a = Foo | Bar
+
+module A = struct
+  let f () = 10
+  let g = Bar
+  let h x = x
+
+  module B = struct
+    type b = Baz
+
+    let x = (Baz, 10)
+    let y = (Bar, Foo)
+  end
+
+  type t = { a : string; b : float }
+
+  let z = { a = "Hello"; b = 1.0 }
+end|}
+in
+let line = 10 in
+let character = 3 in
+let target = "module" in
+Util.test ~line ~character ~target ~source;
+[%expect {|
+  [
+    {
+      "range": {
+        "end": { "character": 2, "line": 7 },
+        "start": { "character": 2, "line": 7 }
+      },
+      "uri": "file:///test.ml"
+    }
+  ] |}]
+;;
+
+
+let%expect_test "Same line should output no locations" =
+let source =
+{|let x = 5 |}
+in
+let line = 1 in
+let character = 5 in
+let target = "let" in
+Util.test ~line ~character ~target ~source;
+[%expect {| "No matching target" |}]
 ;;

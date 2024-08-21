@@ -92,8 +92,7 @@ let%expect_test "start/stop" =
             "handleHoverExtended": true,
             "handleMerlinCallCompatible": true,
             "handleTypeEnclosing": true,
-            "handleGetDocumentation": true,
-            "handleJump": true
+            "handleGetDocumentation": true
           }
         },
         "foldingRangeProvider": true,
