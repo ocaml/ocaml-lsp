@@ -62,6 +62,7 @@
     test
     type_enclosing
     documentation
+    merlin_jump
     with_pp
     with_ppx
     workspace_change_config))))
