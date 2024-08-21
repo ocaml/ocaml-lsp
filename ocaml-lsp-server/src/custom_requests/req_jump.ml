@@ -58,7 +58,6 @@ end
 let dispatch ~merlin ~position ~target =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
     let pposition = Position.logical position in
-    Format.eprintf "%s at %d:%d" target position.line position.character;
     let query = Query_protocol.Jump (target, pposition) in
     Query_commands.dispatch pipeline query)
 ;;
