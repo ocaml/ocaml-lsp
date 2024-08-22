@@ -319,7 +319,7 @@ type point = {x: int; y: int}
 Hovering over the above will
 display:
 ```
-ocaml type point = { x : int; y : int } 
+ocaml type point = { x : int; y : int }
 syntax Record type:
 Allows you to define variants with a fixed set of fields, and all of the
 constructors for a record variant type must have the same fields. See
@@ -328,7 +328,7 @@ Manual
 The documentation is gotten from the Merlin engine which receives
 the nodes under the cursor and infers what the syntax may be about, and
 displays the required information along with links to the manual for further
-reading. 
+reading.
 
 Syntax Documentation is an optional feature and can be activated by
 using the LSP config system with the key called `syntaxDocumentation` and can
@@ -356,7 +356,7 @@ cd ocaml-lsp
 git submodule update --init --recursive
 
 # create local switch (or use global one)
-opam switch --yes create . ocaml-base-compiler.4.14.0
+opam switch --yes create .
 
 # don't forget to set your environment to use the local switch
 eval $(opam env)
