@@ -33,7 +33,10 @@ let f (x : t) (d : bool) =
           "locations": [
             {
               "uri": "file:///foo.ml",
-              "position": { "character": 0, "line": 2 }
+              "rangeOrPosition": {
+                "start": { "character": 0, "line": 2 },
+                "end": { "character": 0, "line": 2 }
+              }
             }
           ],
           "multiple": "peek",

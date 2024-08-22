@@ -19,12 +19,14 @@ let code_action_of_jump start_pos (locs : Location.t list) =
   | [] -> None
   | _ ->
     let locations =
-      `List
-        (List.map locs ~f:(fun { Location.range; uri } ->
-           `Assoc
-             [ "uri", `String (Uri.to_string uri)
-             ; "position", Position.yojson_of_t range.start
-             ]))
+      `List (List.map locs ~f:(fun { Location.range; uri } ->
+        let pos = range.start in
+        `Assoc
+          [ "uri", `String (Uri.to_string uri)
+          ; "rangeOrPosition", `Assoc
+              [ "start", Position.yojson_of_t pos
+              ; "end", Position.yojson_of_t pos ]
+          ]))
     in
     let uri =
       match locs with
