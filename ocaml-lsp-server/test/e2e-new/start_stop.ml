@@ -58,7 +58,7 @@ let%expect_test "start/stop" =
         "codeActionProvider": {
           "codeActionKinds": [
             "quickfix", "refactor.inline", "construct",
-            "destruct (enumerate cases)", "inferred_intf",
+            "destruct (enumerate cases)", "inferred_intf", "jump-to-target",
             "put module name in identifiers",
             "remove module name from identifiers", "remove type annotation",
             "type-annotate"

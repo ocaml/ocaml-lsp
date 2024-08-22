@@ -18,6 +18,13 @@ val apply_code_action
   -> Range.t
   -> string option
 
+  val apply_code_action_no_edit
+  :  ?diagnostics:Diagnostic.t list
+  -> string
+  -> string
+  -> Range.t
+  -> unit option
+
 (** [code_action_test title source] runs the code action with title [title] and
     prints the resulting source. *)
 val code_action_test : title:string -> string -> unit

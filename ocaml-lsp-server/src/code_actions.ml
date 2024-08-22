@@ -50,6 +50,7 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       ; Action_inline.t
       ; Action_extract.local
       ; Action_extract.function_
+      ; Action_jump.t
       ]
   in
   let batchable, non_batchable =

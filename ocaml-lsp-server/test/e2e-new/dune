@@ -43,6 +43,7 @@
     action_extract
     action_inline
     action_mark_remove
+    action_jump
     code_actions
     completion
     completions

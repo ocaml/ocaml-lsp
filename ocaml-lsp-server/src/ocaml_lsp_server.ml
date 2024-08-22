@@ -47,6 +47,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
              ; Action_refactor_open.qualify
              ; Action_add_rec.t
              ; Action_inline.t
+             ; Action_jump.t
              ]
         |> List.sort_uniq ~compare:Poly.compare
       in

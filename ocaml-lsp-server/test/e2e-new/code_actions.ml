@@ -1272,6 +1272,50 @@ module M : sig type t = I of int | B of bool end
     |}]
 ;;
 
+let%expect_test "can jump to target" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:5 in
+    let end_ = Position.create ~line:4 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "jump-to-target");
+  [%expect
+    {|
+      Code actions:
+      {
+        "command": {
+          "arguments": [
+            {
+              "uri": "file:///foo.ml",
+              "position": { "character": 5, "line": 4 },
+              "locations": [
+                {
+                  "end": { "character": 0, "line": 2 },
+                  "start": { "character": 0, "line": 2 }
+                }
+              ],
+              "multiple": "peek",
+              "noResultsMessage": "No targets found"
+            }
+          ],
+          "command": "editor.action.goToLocations",
+          "title": "Merlin Jump"
+        },
+        "kind": "jump-to-target",
+        "title": "Jump to Target"
+      }
+       |}]
+;;
+
 let position_of_offset src x =
   assert (0 <= x && x < String.length src);
   let cnum = ref 0
@@ -1336,4 +1380,18 @@ let apply_code_action ?diagnostics title source range =
 let code_action_test ~title source =
   let src, range = parse_selection source in
   Option.iter (apply_code_action title src range) ~f:print_string
+;;
+
+
+let apply_code_action_no_edit ?diagnostics title source range =
+  let open Option.O in
+  let code_actions = ref None in
+  iter_code_actions ?diagnostics ~source range (fun ca -> code_actions := Some ca);
+  let* m_code_actions = !code_actions in
+  let* code_actions = m_code_actions in
+  List.find_map code_actions ~f:(function
+    | `CodeAction { title = t; command = Some cmd; _ } when t = title ->
+      print_endline (Yojson.Safe.pretty_to_string (Command.yojson_of_t cmd));
+      Some ()
+    | _ -> None)
 ;;
