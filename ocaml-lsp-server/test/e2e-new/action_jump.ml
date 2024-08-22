@@ -8,13 +8,11 @@ let run_test ~title source =
 let jump_test = run_test ~title:"Jump to Target"
 
 let%expect_test "jump to unrecognized target" =
-  jump_test
-    {|
+  jump_test {|
 type t = Foo of int | $B$ar of bool
 |};
   [%expect {| No matching target or action could not be applied |}]
 ;;
-
 
 let%expect_test "jump to a target" =
   jump_test
@@ -25,7 +23,8 @@ let f (x : t) (d : bool) =
   |Bar $x$ -> x
   |Foo _ -> d
 |};
-  [%expect {|
+  [%expect
+    {|
     {
       "arguments": [
         {
@@ -33,8 +32,8 @@ let f (x : t) (d : bool) =
           "position": { "character": 7, "line": 4 },
           "locations": [
             {
-              "end": { "character": 0, "line": 2 },
-              "start": { "character": 0, "line": 2 }
+              "uri": "file:///foo.ml",
+              "position": { "character": 0, "line": 2 }
             }
           ],
           "multiple": "peek",
@@ -47,4 +46,3 @@ let f (x : t) (d : bool) =
     Action applied successfully
 |}]
 ;;
-

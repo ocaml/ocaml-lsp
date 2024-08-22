@@ -1299,8 +1299,8 @@ let f (x : t) (d : bool) =
               "position": { "character": 5, "line": 4 },
               "locations": [
                 {
-                  "end": { "character": 0, "line": 2 },
-                  "start": { "character": 0, "line": 2 }
+                  "uri": "file:///foo.ml",
+                  "position": { "character": 0, "line": 2 }
                 }
               ],
               "multiple": "peek",
@@ -1381,7 +1381,6 @@ let code_action_test ~title source =
   let src, range = parse_selection source in
   Option.iter (apply_code_action title src range) ~f:print_string
 ;;
-
 
 let apply_code_action_no_edit ?diagnostics title source range =
   let open Option.O in

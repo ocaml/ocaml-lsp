@@ -18,7 +18,7 @@ val apply_code_action
   -> Range.t
   -> string option
 
-  val apply_code_action_no_edit
+val apply_code_action_no_edit
   :  ?diagnostics:Diagnostic.t list
   -> string
   -> string
