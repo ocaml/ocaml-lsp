@@ -1243,3 +1243,13 @@ let foo param1 =
     }
     ............. |}]
 ;;
+
+(* Test case was taken from issue #1358 *)
+let%expect_test "completion for object methods" =
+  let source = {ocaml|let f (x : < a_method : 'a >) = x#|ocaml} in
+  let position = Position.create ~line:0 ~character:34 in
+  print_completions ~limit:3 source position;
+  [%expect
+    {|
+    No completions |}]
+;;
