@@ -3,6 +3,7 @@
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)
+- Fix prefix parsing for completion of object methods (#1363, fixes #1358)
 
 # 1.19.0
 
