@@ -1289,7 +1289,8 @@ let f (x : t) (d : bool) =
     Range.create ~start ~end_
   in
   print_code_actions source range ~filter:(find_action "merlin-jump");
-  [%expect {|
+  [%expect
+    {|
     Code actions:
     {
       "command": {
