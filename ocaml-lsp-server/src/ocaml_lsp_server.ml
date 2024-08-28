@@ -47,7 +47,6 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
              ; Action_refactor_open.qualify
              ; Action_add_rec.t
              ; Action_inline.t
-             ; Action_jump.t
              ]
         |> List.sort_uniq ~compare:Poly.compare
       in
@@ -108,6 +107,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
         then
           view_metrics_command_name
           :: Action_open_related.command_name
+          :: Action_jump.command_name
           :: Document_text_command.command_name
           :: Merlin_config_command.command_name
           :: Dune.commands
@@ -538,7 +538,6 @@ let on_request
        ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
        ; Req_type_enclosing.meth, Req_type_enclosing.on_request
        ; Req_get_documentation.meth, Req_get_documentation.on_request
-       ; Req_jump.meth, Req_jump.on_request
        ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
        ; ( Semantic_highlighting.Debug.meth_request_full
          , Semantic_highlighting.Debug.on_request_full )
@@ -594,6 +593,8 @@ let on_request
     else if String.equal command.command Action_open_related.command_name
     then
       later (fun _state server -> Action_open_related.command_run server command) server
+    else if String.equal command.command Action_jump.command_name
+    then later (fun _state server -> Action_jump.command_run server command) server
     else
       later
         (fun state () ->

@@ -1276,6 +1276,7 @@ let%expect_test "can jump to target" =
   let source =
     {ocaml|
 type t = Foo of int | Bar of bool
+let square x = x * x
 let f (x : t) (d : bool) =
   match x with
   |Bar x -> x
@@ -1283,39 +1284,89 @@ let f (x : t) (d : bool) =
 |ocaml}
   in
   let range =
-    let start = Position.create ~line:4 ~character:5 in
-    let end_ = Position.create ~line:4 ~character:5 in
+    let start = Position.create ~line:5 ~character:5 in
+    let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "jump-to-target");
-  [%expect
-    {|
-      Code actions:
-      {
-        "command": {
-          "arguments": [
-            {
-              "uri": "file:///foo.ml",
-              "position": { "character": 5, "line": 4 },
-              "locations": [
-                {
-                  "uri": "file:///foo.ml",
-                  "rangeOrPosition": {
-                    "start": { "character": 0, "line": 2 },
-                    "end": { "character": 0, "line": 2 }
-                  }
-                }
-              ],
-              "multiple": "peek",
-              "noResultsMessage": "No targets found"
-            }
-          ],
-          "command": "editor.action.goToLocations",
-          "title": "Merlin Jump"
-        },
-        "kind": "jump-to-target",
-        "title": "Jump to Target"
-      }
+  print_code_actions source range ~filter:(find_action "merlin-jump");
+  [%expect {|
+    Code actions:
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 0, "line": 3 },
+            "start": { "character": 0, "line": 3 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to fun"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to fun"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 2, "line": 4 },
+            "start": { "character": 2, "line": 4 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to match"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to match"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 0, "line": 3 },
+            "start": { "character": 0, "line": 3 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to let"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to let"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 3, "line": 6 },
+            "start": { "character": 3, "line": 6 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to match-next-case"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to match-next-case"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 3, "line": 5 },
+            "start": { "character": 3, "line": 5 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to match-prev-case"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to match-prev-case"
+    }
+
        |}]
 ;;
 
