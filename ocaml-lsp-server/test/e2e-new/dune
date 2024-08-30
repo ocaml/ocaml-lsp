@@ -43,7 +43,6 @@
     action_extract
     action_inline
     action_mark_remove
-    action_jump
     code_actions
     completion
     completions
@@ -63,7 +62,6 @@
     test
     type_enclosing
     documentation
-    merlin_jump
     with_pp
     with_ppx
     workspace_change_config))))
