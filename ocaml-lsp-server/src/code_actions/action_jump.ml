@@ -44,15 +44,15 @@ let command_run server (params : ExecuteCommandParams.t) =
 
 (* Dispatch the jump request to Merlin and get the result *)
 let process_jump_request ~merlin ~position ~target =
-  let* results =
+  let+ results =
     Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
       let pposition = Position.logical position in
       let query = Query_protocol.Jump (target, pposition) in
       Query_commands.dispatch pipeline query)
   in
   match results with
-  | `Error _ -> Fiber.return None
-  | `Found pos -> Fiber.return (Some pos)
+  | `Error _ -> None
+  | `Found pos -> Some pos
 ;;
 
 let code_actions
@@ -66,31 +66,21 @@ let code_actions
     (match available capabilities with
      | false -> Fiber.return []
      | true ->
-       let* actions_fiber_list =
+       let+ actions =
+         (* TODO: Merlin Jump command that returns all avaliable jump locations for a source code buffer. *)
          Fiber.parallel_map targets ~f:(fun target ->
-           let* res = process_jump_request ~merlin ~position:params.range.start ~target in
-           match res with
-           | None -> Fiber.return None
-           | Some pos ->
-             (match Position.of_lexical_position pos with
-              | None -> Fiber.return None
-              | Some position ->
-                let uri = Document.uri doc in
-                let range = { Range.start = position; end_ = position } in
-                let title = sprintf "Jump to %s" target in
-                let command =
-                  let arguments =
-                    [ DocumentUri.yojson_of_t uri; Range.yojson_of_t range ]
-                  in
-                  Command.create ~title ~command:command_name ~arguments ()
-                in
-                Fiber.return
-                  (Some
-                     (CodeAction.create
-                        ~title
-                        ~kind:(CodeActionKind.Other "merlin-jump")
-                        ~command
-                        ()))))
+           let+ res = process_jump_request ~merlin ~position:params.range.start ~target in
+           let open Option.O in
+           let* lexing_pos = res in
+           let+ position = Position.of_lexical_position lexing_pos in
+           let uri = Document.uri doc in
+           let range = { Range.start = position; end_ = position } in
+           let title = sprintf "Jump to %s" target in
+           let command =
+             let arguments = [ DocumentUri.yojson_of_t uri; Range.yojson_of_t range ] in
+             Command.create ~title ~command:command_name ~arguments ()
+           in
+           CodeAction.create ~title ~kind:(CodeActionKind.Other "merlin-jump") ~command ())
        in
-       Fiber.return (List.filter_opt actions_fiber_list))
+       List.filter_opt actions)
 ;;

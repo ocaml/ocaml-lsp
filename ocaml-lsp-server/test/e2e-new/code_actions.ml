@@ -1436,16 +1436,3 @@ let code_action_test ~title source =
   let src, range = parse_selection source in
   Option.iter (apply_code_action title src range) ~f:print_string
 ;;
-
-let apply_code_action_no_edit ?diagnostics title source range =
-  let open Option.O in
-  let code_actions = ref None in
-  iter_code_actions ?diagnostics ~source range (fun ca -> code_actions := Some ca);
-  let* m_code_actions = !code_actions in
-  let* code_actions = m_code_actions in
-  List.find_map code_actions ~f:(function
-    | `CodeAction { title = t; command = Some cmd; _ } when t = title ->
-      print_endline (Yojson.Safe.pretty_to_string (Command.yojson_of_t cmd));
-      Some ()
-    | _ -> None)
-;;
