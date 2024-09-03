@@ -387,41 +387,27 @@ let selection_range
   match Document.kind doc with
   | `Other -> Fiber.return []
   | `Merlin merlin ->
-    let selection_range_of_shapes
-      (cursor_position : Position.t)
-      (shapes : Query_protocol.shape list)
+    let selection_range_of_enclosings (enclosings : Warnings.loc list)
       : SelectionRange.t option
       =
-      let rec ranges_of_shape parent (s : Query_protocol.shape) =
-        let selectionRange =
-          let range = Range.of_loc s.shape_loc in
-          { SelectionRange.range; parent }
-        in
-        match s.shape_sub with
-        | [] -> [ selectionRange ]
-        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
+      let ranges_of_enclosing parent (enclosing : Warnings.loc) =
+        let range = Range.of_loc enclosing in
+        { SelectionRange.range; parent }
       in
-      (* try to find the nearest range inside first, then outside *)
-      let nearest_range =
-        let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
-        List.min ranges ~f:(fun r1 r2 ->
-          let inc (r : SelectionRange.t) =
-            Position.compare_inclusion cursor_position r.range
-          in
-          match inc r1, inc r2 with
-          | `Outside x, `Outside y -> Position.compare x y
-          | `Outside _, `Inside -> Gt
-          | `Inside, `Outside _ -> Lt
-          | `Inside, `Inside -> Range.compare_size r1.range r2.range)
-      in
-      nearest_range
+      List.fold_left
+        ~f:(fun parent enclosing -> Some (ranges_of_enclosing parent enclosing))
+        ~init:None
+      @@ List.rev enclosings
     in
     let+ ranges =
       Fiber.sequential_map positions ~f:(fun x ->
-        let+ shapes =
-          Document.Merlin.dispatch_exn ~name:"shape" merlin (Shape (Position.logical x))
+        let+ enclosings =
+          Document.Merlin.dispatch_exn
+            ~name:"shape"
+            merlin
+            (Enclosing (Position.logical x))
         in
-        selection_range_of_shapes x shapes)
+        selection_range_of_enclosings enclosings)
     in
     List.filter_opt ranges
 ;;
