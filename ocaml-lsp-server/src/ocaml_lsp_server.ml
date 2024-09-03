@@ -107,6 +107,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
         then
           view_metrics_command_name
           :: Action_open_related.command_name
+          :: Action_jump.command_name
           :: Document_text_command.command_name
           :: Merlin_config_command.command_name
           :: Dune.commands
@@ -592,6 +593,8 @@ let on_request
     else if String.equal command.command Action_open_related.command_name
     then
       later (fun _state server -> Action_open_related.command_run server command) server
+    else if String.equal command.command Action_jump.command_name
+    then later (fun _state server -> Action_jump.command_run server command) server
     else
       later
         (fun state () ->

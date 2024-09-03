@@ -13,6 +13,8 @@
 
 - Add support for OCaml 5.2 (#1233)
 
+- Add a code-action for syntactic and semantic movement shortcuts based on Merlin's Jump command (#1364)
+
 ## Fixes
 
 - Kill unnecessary ocamlformat processes with sigterm rather than sigint or

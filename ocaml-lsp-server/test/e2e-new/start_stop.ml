@@ -77,8 +77,8 @@ let%expect_test "start/stop" =
         "executeCommandProvider": {
           "commands": [
             "ocamllsp/view-metrics", "ocamllsp/open-related-source",
-            "ocamllsp/show-document-text", "ocamllsp/show-merlin-config",
-            "dune/promote"
+            "ocamllsp/merlin-jump-to-target", "ocamllsp/show-document-text",
+            "ocamllsp/show-merlin-config", "dune/promote"
           ]
         },
         "experimental": {

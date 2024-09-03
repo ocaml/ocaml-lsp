@@ -1272,6 +1272,105 @@ module M : sig type t = I of int | B of bool end
     |}]
 ;;
 
+let%expect_test "can jump to target" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let square x = x * x
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:5 ~character:5 in
+    let end_ = Position.create ~line:5 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump");
+  [%expect
+    {|
+    Code actions:
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 0, "line": 3 },
+            "start": { "character": 0, "line": 3 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to fun"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to fun"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 2, "line": 4 },
+            "start": { "character": 2, "line": 4 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to match"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to match"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 0, "line": 3 },
+            "start": { "character": 0, "line": 3 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to let"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to let"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 3, "line": 6 },
+            "start": { "character": 3, "line": 6 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to match-next-case"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to match-next-case"
+    }
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 3, "line": 5 },
+            "start": { "character": 3, "line": 5 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Jump to match-prev-case"
+      },
+      "kind": "merlin-jump",
+      "title": "Jump to match-prev-case"
+    }
+
+       |}]
+;;
+
 let position_of_offset src x =
   assert (0 <= x && x < String.length src);
   let cnum = ref 0
