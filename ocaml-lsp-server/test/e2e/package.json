@@ -14,7 +14,7 @@
     "@types/node": "^20.14.9",
     "jest": "28.1.1",
     "ts-jest": "28.0.5",
-    "typescript": "5.4.5",
+    "typescript": "5.6.2",
     "vscode-jsonrpc": "8.0.1",
     "vscode-languageserver-protocol": "3.17.1",
     "vscode-languageserver-types": "3.17.5"
