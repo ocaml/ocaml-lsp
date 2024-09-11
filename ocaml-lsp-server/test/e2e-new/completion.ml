@@ -1243,3 +1243,59 @@ let foo param1 =
     }
     ............. |}]
 ;;
+
+(* Test case was taken from issue #1358 *)
+let%expect_test "completion for object methods" =
+  let source = {ocaml|let f (x : < a_method : 'a >) = x#|ocaml} in
+  let position = Position.create ~line:0 ~character:34 in
+  print_completions ~limit:3 source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 34, "line": 0 },
+          "start": { "character": 34, "line": 0 }
+        }
+      }
+    }
+    {
+      "detail": "'a",
+      "kind": 2,
+      "label": "a_method",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "a_method",
+        "range": {
+          "end": { "character": 34, "line": 0 },
+          "start": { "character": 34, "line": 0 }
+        }
+      }
+    } |}]
+;;
+
+let%expect_test "completion for object methods" =
+  let source = {ocaml|let f (x : < a_method : 'a; ab_m : 'b >) = x#ab|ocaml} in
+  let position = Position.create ~line:0 ~character:49 in
+  print_completions ~limit:3 source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "'b",
+      "kind": 2,
+      "label": "ab_m",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "ab_m",
+        "range": {
+          "end": { "character": 49, "line": 0 },
+          "start": { "character": 47, "line": 0 }
+        }
+      }
+    } |}]
+;;

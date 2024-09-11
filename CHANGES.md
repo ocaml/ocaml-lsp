@@ -3,6 +3,7 @@
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)
+- Fix prefix parsing for completion of object methods (#1363, fixes #1358)
 
 # 1.19.0
 
@@ -11,6 +12,8 @@
 - Add custom [`ocamllsp/getDocumentation`](/ocaml-lsp-server/docs/ocamllsp/getDocumentation-spec.md) request (#1336)
 
 - Add support for OCaml 5.2 (#1233)
+
+- Add a code-action for syntactic and semantic movement shortcuts based on Merlin's Jump command (#1364)
 
 ## Fixes
 
