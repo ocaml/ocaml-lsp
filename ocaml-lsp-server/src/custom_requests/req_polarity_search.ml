@@ -4,33 +4,6 @@ module TextDocumentPositionParams = Lsp.Types.TextDocumentPositionParams
 let meth = "ocamllsp/polaritySearch"
 let capability = "handlePolaritySearch", `Bool true
 
-let completion_kind kind : CompletionItemKind.t =
-  match kind with
-  | `Value -> Value
-  | `Variant -> EnumMember
-  | `Label -> Field
-  | `Module -> Module
-  | `Modtype -> Interface
-  | `MethodCall -> Method
-  | `Keyword -> Keyword
-  | `Constructor -> Constructor
-  | `Type -> TypeParameter
-;;
-
-let kind_of_completion_kind (kind : CompletionItemKind.t) =
-  match kind with
-  | Value -> `Value
-  | EnumMember -> `Variant
-  | Field -> `Label
-  | Module -> `Module
-  | Interface -> `Modtype
-  | Method -> `MethodCall
-  | Keyword -> `Keyword
-  | Constructor -> `Constructor
-  | TypeParameter -> `Type
-  | _ -> failwith "Unknown kind"
-;;
-
 module PolaritySearchParams = struct
   type t =
     { text_document : TextDocumentIdentifier.t
@@ -57,28 +30,22 @@ module PolaritySearchParams = struct
 end
 
 module PolaritySearch = struct
-  type t = Query_protocol.Compl.entry list
+  type entry =
+    { path : string
+    ; desc : string
+    }
+
+  type t = entry list
 
   let entry_of_yojson json =
     let open Yojson.Safe.Util in
-    let name = json |> member "name" |> to_string in
-    let kind =
-      json |> member "kind" |> CompletionItemKind.t_of_yojson |> kind_of_completion_kind
-    in
-    let desc = json |> member "desc" |> to_string in
-    let info = json |> member "info" |> to_string in
-    let deprecated = json |> member "deprecated" |> to_bool in
-    { Query_protocol.Compl.name; kind; desc; info; deprecated }
+    let path = json |> member "path" |> to_string in
+    let desc = json |> member "type" |> to_string in
+    { path; desc }
   ;;
 
-  let yojson_of_entry { Query_protocol.Compl.name; kind; desc; info; deprecated } =
-    `Assoc
-      [ "name", `String name
-      ; "kind", CompletionItemKind.yojson_of_t (completion_kind kind)
-      ; "desc", `String desc
-      ; "info", `String info
-      ; "deprecated", `Bool deprecated
-      ]
+  let yojson_of_entry { path; desc } =
+    `Assoc [ "path", `String path; "type", `String desc ]
   ;;
 
   let t_of_yojson json =
@@ -105,9 +72,11 @@ let dispatch merlin position query =
     let position = Position.logical position in
     let query = Query_protocol.Polarity_search (query, position) in
     let completions = Query_commands.dispatch pipeline query in
-    match completions.context with
-    | `Unknown -> PolaritySearch.yojson_of_t completions.entries
-    | _ -> failwith "Wrong context")
+    PolaritySearch.yojson_of_t
+      (List.map
+         ~f:(fun entry ->
+           { PolaritySearch.path = entry.Query_protocol.Compl.name; desc = entry.desc })
+         completions.entries))
 ;;
 
 let on_request ~params state =
