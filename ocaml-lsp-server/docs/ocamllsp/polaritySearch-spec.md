@@ -24,13 +24,15 @@ export interface PolaritySearchParams extends TexDocumentPositionParams
             - `Position`: Specifies the cursor position.
         More details can be found in the [TextDocumentPositionParams - LSP Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentPositionParams).
     - `query`: The search pattern.
+    - `limit`: The number of results to return
 
 ## Response
 
 ```js
 result: PolaritySearch | null
 export interface PolaritySearch {
-    type t = Query_protocol.Compl.entry list
+    type entry = { path : string; desc : string }
+    type t = entry list
 }
 ```
 - `t`: A list of completion entries that match the query.
