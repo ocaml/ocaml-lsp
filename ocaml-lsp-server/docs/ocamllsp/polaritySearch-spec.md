@@ -30,8 +30,8 @@ export interface PolaritySearchParams extends TexDocumentPositionParams
 ```js
 result: PolaritySearch | null
 export interface PolaritySearch {
-    completions
+    type t = Query_protocol.Compl.entry list
 }
 ```
-- `completions`: A list of completions that match the query.
-- A response with null result is returned if no completions are found.
+- `t`: A list of completion entries that match the query.
+- A response with null result is returned if no entries are found.
