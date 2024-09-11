@@ -8,6 +8,7 @@ module PolaritySearchParams = struct
   type t =
     { text_document : TextDocumentIdentifier.t
     ; position : Position.t
+    ; limit : int
     ; query : string
     }
 
@@ -15,16 +16,19 @@ module PolaritySearchParams = struct
     let open Yojson.Safe.Util in
     let textDocumentPosition = Lsp.Types.TextDocumentPositionParams.t_of_yojson json in
     let query = json |> member "query" |> to_string in
+    let limit = json |> member "limit" |> to_int in
     { position = textDocumentPosition.position
     ; text_document = textDocumentPosition.textDocument
     ; query
+    ; limit
     }
   ;;
 
-  let yojson_of_t { text_document; position; query } =
+  let yojson_of_t { text_document; position; query; limit } =
     `Assoc
       (("textDocument", TextDocumentIdentifier.yojson_of_t text_document)
        :: ("position", Position.yojson_of_t position)
+       :: ("limit", `Int limit)
        :: [ "query", `String query ])
   ;;
 end
@@ -64,10 +68,13 @@ module Request_params = struct
   type t = PolaritySearchParams.t
 
   let yojson_of_t t = PolaritySearchParams.yojson_of_t t
-  let create text_document position query : t = { text_document; position; query }
+
+  let create text_document position limit query : t =
+    { text_document; position; limit; query }
+  ;;
 end
 
-let dispatch merlin position query =
+let dispatch merlin position limit query =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
     let position = Position.logical position in
     let query = Query_protocol.Polarity_search (query, position) in
@@ -76,18 +83,20 @@ let dispatch merlin position query =
       (List.map
          ~f:(fun entry ->
            { PolaritySearch.path = entry.Query_protocol.Compl.name; desc = entry.desc })
-         completions.entries))
+         (if List.length completions.entries > limit
+          then List.sub ~pos:0 ~len:limit completions.entries
+          else completions.entries)))
 ;;
 
 let on_request ~params state =
   Fiber.of_thunk (fun () ->
     let params = (Option.value ~default:(`Assoc []) params :> Yojson.Safe.t) in
-    let PolaritySearchParams.{ text_document; position; query } =
+    let PolaritySearchParams.{ text_document; position; limit; query } =
       PolaritySearchParams.t_of_yojson params
     in
     let uri = text_document.uri in
     let doc = Document_store.get state.State.store uri in
     match Document.kind doc with
     | `Other -> Fiber.return `Null
-    | `Merlin merlin -> dispatch merlin position query)
+    | `Merlin merlin -> dispatch merlin position limit query)
 ;;

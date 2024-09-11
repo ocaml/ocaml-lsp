@@ -4,7 +4,7 @@ module Request_params : sig
   type t
 
   val yojson_of_t : t -> Json.t
-  val create : TextDocumentIdentifier.t -> Position.t -> string -> t
+  val create : TextDocumentIdentifier.t -> Position.t -> int -> string -> t
 end
 
 type t
