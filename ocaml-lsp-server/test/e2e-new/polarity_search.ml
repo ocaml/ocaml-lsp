@@ -33,7 +33,8 @@ let%expect_test "Search for a simple query that takes an int and returns a strin
   let line = 1 in
   let character = 0 in
   Util.test ~line ~character ~query:"-int +string" source;
-  [%expect {|
+  [%expect
+    {|
     [
       {
         "name": "string_of_int",
