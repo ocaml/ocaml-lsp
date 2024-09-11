@@ -15,6 +15,7 @@ This custom request allows clients to perform a polarity-based search at a speci
 export interface PolaritySearchParams extends TexDocumentPositionParams
 {
     query: string;
+    limit: int
 }
 ```
 - method: `ocamllsp/polaritySearch`
