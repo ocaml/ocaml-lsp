@@ -36,7 +36,7 @@ end
 module PolaritySearch = struct
   type entry =
     { path : string
-    ; desc : string
+    ; type_ : string
     }
 
   type t = entry list
@@ -44,12 +44,12 @@ module PolaritySearch = struct
   let entry_of_yojson json =
     let open Yojson.Safe.Util in
     let path = json |> member "path" |> to_string in
-    let desc = json |> member "type" |> to_string in
-    { path; desc }
+    let type_ = json |> member "type" |> to_string in
+    { path; type_ }
   ;;
 
-  let yojson_of_entry { path; desc } =
-    `Assoc [ "path", `String path; "type", `String desc ]
+  let yojson_of_entry { path; type_ } =
+    `Assoc [ "path", `String path; "type", `String type_ ]
   ;;
 
   let t_of_yojson json =
@@ -82,7 +82,7 @@ let dispatch merlin position limit query =
     PolaritySearch.yojson_of_t
       (List.map
          ~f:(fun entry ->
-           { PolaritySearch.path = entry.Query_protocol.Compl.name; desc = entry.desc })
+           { PolaritySearch.path = entry.Query_protocol.Compl.name; type_ = entry.desc })
          (if List.length completions.entries > limit
           then List.sub ~pos:0 ~len:limit completions.entries
           else completions.entries)))

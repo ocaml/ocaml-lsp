@@ -1,5 +1,5 @@
 open Test.Import
-module Req = Ocaml_lsp_server.Custom_request.PolaritySearch
+module Req = Ocaml_lsp_server.Custom_request.Polarity_search
 
 module Util = struct
   let call_search position query limit client =
