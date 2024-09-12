@@ -83,9 +83,7 @@ let dispatch merlin position limit query =
       (List.map
          ~f:(fun entry ->
            { PolaritySearch.path = entry.Query_protocol.Compl.name; type_ = entry.desc })
-         (if List.length completions.entries > limit
-          then List.sub ~pos:0 ~len:limit completions.entries
-          else completions.entries)))
+         (Base.List.take completions.entries limit)))
 ;;
 
 let on_request ~params state =
