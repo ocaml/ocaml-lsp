@@ -19,7 +19,7 @@ There is no client capability relative to this request.
 
 ## Request
 
-- method: `ocamllsp/typeEnclosing`
+- method: `ocamllsp/construct`
 - params:
 
   ```json
@@ -30,6 +30,11 @@ There is no client capability relative to this request.
     "withValues?": <"local" | "none">,
   }
   ```
+
+The `depth` parameter allows to recursively construct terms. Note that
+when `depth > 1` partial results of inferior depth will not be
+returned. The `withValues` use values from the environment (`local`)
+or not (`none`), by default, the parameter is fixed to `none`.
 
 ## Response
 
