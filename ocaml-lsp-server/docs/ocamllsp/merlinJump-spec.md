@@ -1,4 +1,4 @@
-# Jump Request
+# Merlin Jump Request
 
 ## Description
 
@@ -6,7 +6,7 @@ This custom request allows Merlin-type code navigation in a source buffer.
 
 ## Server capability
 
-- propert name: `handleJump`
+- propert name: `handleMerlinJump`
 - property type: `boolean`
 
 ## Request
@@ -18,7 +18,7 @@ export interface JumpParams extends TextDocumentPositionParams
 }
 ```
 
-- method: `ocamllsp/jump`
+- method: `ocamllsp/merlinJump`
 - params:
     - `TextDocumentIdentifier`: Specifies the document for which the request is sent. It includes a uri property that points to the document.
     - `Position`: Specifies the position in the document for which the documentation is requested. It includes line and character properties.
