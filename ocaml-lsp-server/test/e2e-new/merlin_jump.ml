@@ -27,8 +27,8 @@ module Util = struct
 end
 
 let%expect_test "Get location of the next match case" =
-let source =
-{|
+  let source =
+    {|
 let find_vowel x =
 match x with
 | 'A' -> true
@@ -38,12 +38,13 @@ match x with
 | 'U' -> true
 | _ -> false
 |}
-in
-let line = 3 in
-let character = 2 in
-let target = "match-next-case" in
-Util.test ~line ~character ~target ~source;
-[%expect {|
+  in
+  let line = 3 in
+  let character = 2 in
+  let target = "match-next-case" in
+  Util.test ~line ~character ~target ~source;
+  [%expect
+    {|
   [
     {
       "range": {
@@ -56,7 +57,7 @@ Util.test ~line ~character ~target ~source;
 ;;
 
 let%expect_test "Get location of a the module" =
-let source =
+  let source =
     {|type a = Foo | Bar
 
 module A = struct
@@ -75,12 +76,13 @@ module A = struct
 
   let z = { a = "Hello"; b = 1.0 }
 end|}
-in
-let line = 10 in
-let character = 3 in
-let target = "module" in
-Util.test ~line ~character ~target ~source;
-[%expect {|
+  in
+  let line = 10 in
+  let character = 3 in
+  let target = "module" in
+  Util.test ~line ~character ~target ~source;
+  [%expect
+    {|
   [
     {
       "range": {
@@ -92,14 +94,11 @@ Util.test ~line ~character ~target ~source;
   ] |}]
 ;;
 
-
 let%expect_test "Same line should output no locations" =
-let source =
-{|let x = 5 |}
-in
-let line = 1 in
-let character = 5 in
-let target = "let" in
-Util.test ~line ~character ~target ~source;
-[%expect {| "No matching target" |}]
+  let source = {|let x = 5 |} in
+  let line = 1 in
+  let character = 5 in
+  let target = "let" in
+  Util.test ~line ~character ~target ~source;
+  [%expect {| "No matching target" |}]
 ;;
