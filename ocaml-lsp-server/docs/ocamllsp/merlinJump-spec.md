@@ -24,6 +24,7 @@ export interface JumpParams extends TextDocumentPositionParams
     - `Position`: Specifies the position in the document for which the documentation is requested. It includes line and character properties.
     More details can be found in the [TextDocumentPositionParams - LSP Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentPositionParams).
     - `Target`: A string representing the identifier within the document to search for and jump to.
+                The target can be any of `fun`, `let`, `module`, `module-type`, `match`, `match-next-case`, `match-prev-case`.
 
 ## Response
 

@@ -34,12 +34,9 @@ module Jump = struct
   type t = Lsp.Types.TextDocumentPositionParams.t
 
   let yojson_of_t t = TextDocumentPositionParams.yojson_of_t t
-  let t_of_yojson json = Lsp.Types.TextDocumentPositionParams.t_of_yojson json
 end
 
 type t = Jump.t
-
-let t_of_yojson json = Jump.t_of_yojson json
 
 module Request_params = struct
   type t = JumpParams.t
@@ -64,17 +61,17 @@ let on_request ~params state =
     match Document.kind doc with
     | `Other -> Fiber.return `Null
     | `Merlin merlin ->
-      Fiber.bind (dispatch ~merlin ~position ~target) ~f:(fun res ->
+      Fiber.map (dispatch ~merlin ~position ~target) ~f:(fun res ->
         match res with
-        | `Error err -> Fiber.return (`String err)
+        | `Error err -> `String err
         | `Found pos ->
           (match Position.of_lexical_position pos with
-           | None -> Fiber.return `Null
+           | None -> `Null
            | Some position ->
              let loc =
                Lsp.Types.TextDocumentPositionParams.create
                  ~position
                  ~textDocument:(TextDocumentIdentifier.create ~uri)
              in
-             Fiber.return (Jump.yojson_of_t loc))))
+             Jump.yojson_of_t loc)))
 ;;

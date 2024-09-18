@@ -15,7 +15,6 @@ end
 
 type t
 
-val t_of_yojson : Json.t -> t
 val meth : string
 val capability : string * [> `Bool of bool ]
 val on_request : params:Jsonrpc.Structured.t option -> State.t -> Json.t Fiber.t
