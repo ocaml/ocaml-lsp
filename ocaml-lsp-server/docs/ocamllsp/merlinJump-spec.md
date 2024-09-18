@@ -29,21 +29,14 @@ export interface JumpParams extends TextDocumentPositionParams
 
 ```js
 result: Jump | String
-export interface Jump extends Location {
-    uri: string;
-    range: {
-        start: Position;
-        end: Position;
-    }
+export interface Jump extends TextDocumentPositionParams {
 }
 ```
 
 - result:
     - Type: Jump or string
-    - Description: If the jump is successful, a list of locations is returned where the first location is the most relevant one. If no relevant jump location is found, the result will be a string "no matching target" or an error message.
+    - Description: If the jump is successful, a position and document path is returned. If no relevant jump location is found, the result will be a string "no matching target" or an error message.
     - Jump:
-        - Type: Location[], A list of Location objects representing the potential targets of the jump.
-            - Location:
-                - uri: The URI of the document where the jump target is located.
-                - range: The range within the document where the jump target is located. Both start and end positions are the same as the jump target location.
-    The Location type is the same type returned by `Goto` requests such as `goto-definition`, `goto-declaration` and `goto-typeDefinition`.
+        - Type: TextDocumentPositionParams
+            - `Position`: The position to jump to
+            - `TextDocumentIdentifier`: the document path which contains this position (ideally the same document as the request)

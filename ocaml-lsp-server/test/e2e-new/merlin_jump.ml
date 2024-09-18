@@ -45,15 +45,10 @@ match x with
   Util.test ~line ~character ~target ~source;
   [%expect
     {|
-  [
-    {
-      "range": {
-        "end": { "character": 2, "line": 4 },
-        "start": { "character": 2, "line": 4 }
-      },
-      "uri": "file:///test.ml"
-    }
-  ] |}]
+  {
+    "position": { "character": 2, "line": 4 },
+    "textDocument": { "uri": "file:///test.ml" }
+  } |}]
 ;;
 
 let%expect_test "Get location of a the module" =
@@ -83,15 +78,10 @@ end|}
   Util.test ~line ~character ~target ~source;
   [%expect
     {|
-  [
-    {
-      "range": {
-        "end": { "character": 2, "line": 7 },
-        "start": { "character": 2, "line": 7 }
-      },
-      "uri": "file:///test.ml"
-    }
-  ] |}]
+  {
+    "position": { "character": 2, "line": 7 },
+    "textDocument": { "uri": "file:///test.ml" }
+  } |}]
 ;;
 
 let%expect_test "Same line should output no locations" =

@@ -31,17 +31,10 @@ module JumpParams = struct
 end
 
 module Jump = struct
-  type t = [ `Location of Location.t list ]
+  type t = Lsp.Types.TextDocumentPositionParams.t
 
-  let yojson_of_t t = `List (List.map ~f:Location.yojson_of_t t)
-
-  let t_of_yojson json =
-    match json with
-    | `List lst ->
-      let locations = List.map ~f:Location.t_of_yojson lst in
-      `Location locations
-    | _ -> failwith "Invalid JSON for Jump.t"
-  ;;
+  let yojson_of_t t = TextDocumentPositionParams.yojson_of_t t
+  let t_of_yojson json = Lsp.Types.TextDocumentPositionParams.t_of_yojson json
 end
 
 type t = Jump.t
@@ -78,7 +71,10 @@ let on_request ~params state =
           (match Position.of_lexical_position pos with
            | None -> Fiber.return `Null
            | Some position ->
-             let range = { Range.start = position; end_ = position } in
-             let locs = [ { Location.range; uri } ] in
-             Fiber.return (Jump.yojson_of_t locs))))
+             let loc =
+               Lsp.Types.TextDocumentPositionParams.create
+                 ~position
+                 ~textDocument:(TextDocumentIdentifier.create ~uri)
+             in
+             Fiber.return (Jump.yojson_of_t loc))))
 ;;
