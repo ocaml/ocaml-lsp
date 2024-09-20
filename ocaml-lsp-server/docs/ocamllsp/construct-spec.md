@@ -2,7 +2,7 @@
 
 ## Description
 
-Provides commands to browse and fill typed holes (`_`). Such holes sometimes
+Provides commands to fill typed holes (`_`). Such holes sometimes
 appear in the result of other commands like `destruct` and can also be inserted
 manually in the source. The command is already accessible via a completion hook,
 however, in certain situations, invoking `construct` on a hole via a request
@@ -33,8 +33,8 @@ There is no client capability relative to this request.
 
 The `depth` parameter allows to recursively construct terms. Note that
 when `depth > 1` partial results of inferior depth will not be
-returned. The `withValues` use values from the environment (`local`)
-or not (`none`), by default, the parameter is fixed to `none`.
+returned. The `withValues` parameter enables the use of values from
+the environment (`local`) or not (`none`), It defaults to `none`.
 
 ## Response
 

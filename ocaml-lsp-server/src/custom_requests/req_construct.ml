@@ -84,7 +84,7 @@ let with_pipeline state uri f =
   | `Merlin merlin ->
     (match Document.Merlin.kind merlin with
      | Document.Kind.Intf ->
-       (* Construct makes so sense if its called from an interface. *)
+       (* Construct makes no sense if its called from an interface. *)
        Fiber.return `Null
      | Document.Kind.Impl -> Document.Merlin.with_pipeline_exn merlin f)
 ;;
