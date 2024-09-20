@@ -10,19 +10,6 @@ open struct
   module Btype = Btype
 end
 
-let dispatch merlin position =
-  Document.Merlin.with_pipeline_exn ~name:"signature-help" merlin (fun pipeline ->
-    let params : Query_protocol.signature_help =
-      { position
-      ; trigger_kind = None
-      ; active_signature_help = None
-      ; is_retrigger = false
-      }
-    in
-    let query = Query_protocol.Signature_help params in
-    Query_commands.dispatch pipeline query)
-;;
-
 let format_doc ~markdown ~doc =
   `MarkupContent
     (if markdown
@@ -42,23 +29,52 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
     let store = state.store in
     Document_store.get store uri
   in
+  let pos = Position.logical position in
+  let prefix =
+    (* The value of [short_path] doesn't make a difference to the final result
+       because labels cannot include dots. However, a true value is slightly
+       faster for getting the prefix. *)
+    Compl.prefix_of_position (Document.source doc) pos ~short_path:true
+  in
+  (* TODO use merlin resources efficiently and do everything in 1 thread *)
   match Document.kind doc with
-  | `Other -> Fiber.return (SignatureHelp.create ~signatures:[] ())
+  | `Other ->
+    let help = SignatureHelp.create ~signatures:[] () in
+    Fiber.return help
   | `Merlin merlin ->
-    let position = Position.logical position in
-    let* signature_help_result = dispatch merlin position in
-    (match signature_help_result with
-     | None -> Fiber.return (SignatureHelp.create ~signatures:[] ())
-     | Some signature_help ->
+    let* application_signature =
+      let* inside_comment = Check_for_comments.position_in_comment ~position ~merlin in
+      match inside_comment with
+      | true -> Fiber.return None
+      | false ->
+        Document.Merlin.with_pipeline_exn ~name:"signature-help" merlin (fun pipeline ->
+          let typer = Mpipeline.typer_result pipeline in
+          let pos = Mpipeline.get_lexing_pos pipeline pos in
+          let node = Mtyper.node_at typer pos in
+          Merlin_analysis.Signature_help.application_signature node ~prefix ~cursor:pos)
+    in
+    (match application_signature with
+     | None ->
+       let help = SignatureHelp.create ~signatures:[] () in
+       Fiber.return help
+     | Some application_signature ->
+       let prefix =
+         let fun_name = Option.value ~default:"_" application_signature.function_name in
+         sprintf "%s : " fun_name
+       in
+       let offset = String.length prefix in
        let+ doc =
-         Document.Merlin.doc_comment ~name:"signature help-position" merlin position
+         Document.Merlin.doc_comment
+           ~name:"signature help-position"
+           merlin
+           application_signature.function_position
        in
        let info =
          let parameters =
            List.map
-             signature_help.parameters
-             ~f:(fun (p : Query_protocol.signature_help_param) ->
-               let label = `Offset (p.label_start, p.label_end) in
+             application_signature.parameters
+             ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
+               let label = `Offset (offset + p.param_start, offset + p.param_end) in
                ParameterInformation.create ~label ())
          in
          let documentation =
@@ -74,15 +90,12 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
            in
            format_doc ~markdown ~doc
          in
-         SignatureInformation.create
-           ~label:signature_help.label
-           ?documentation
-           ~parameters
-           ()
+         let label = prefix ^ application_signature.signature in
+         SignatureInformation.create ~label ?documentation ~parameters ()
        in
        SignatureHelp.create
          ~signatures:[ info ]
-         ~activeSignature:signature_help.active_signature
-         ?activeParameter:(Some (Some signature_help.active_param))
+         ~activeSignature:0
+         ?activeParameter:(Some application_signature.active_param)
          ())
 ;;
