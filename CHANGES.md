@@ -15,6 +15,8 @@
 
 - Add a code-action for syntactic and semantic movement shortcuts based on Merlin's Jump command (#1364)
 
+- Upstream the implementation of signature help to merlin-lib (#1375)
+
 ## Fixes
 
 - Kill unnecessary ocamlformat processes with sigterm rather than sigint or
