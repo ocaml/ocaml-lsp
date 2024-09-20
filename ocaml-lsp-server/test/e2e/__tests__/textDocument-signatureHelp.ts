@@ -203,6 +203,10 @@ Object {
   "activeSignature": 0,
   "signatures": Array [
     Object {
+      "documentation": Object {
+        "kind": "markdown",
+        "value": "\`abs x\` is the absolute value of \`x\`. That is \`x\` if \`x\` is positive and \`neg x\` if \`x\` is negative. **Warning.** This may be negative if the argument is \`min_int\`.",
+      },
       "label": "map : f:(int -> int) -> int list -> int list",
       "parameters": Array [
         Object {
@@ -387,102 +391,6 @@ Object {
   "activeSignature": 0,
   "signatures": Array [
     Object {
-      "documentation": Object {
-        "kind": "markdown",
-        "value": "This is an example of a docstring that demonstrates various ocamldoc syntax features.
-
-#### Sections and Labels
-
-We can create sections using 
-
-#### Section title
-
-and labels using 
-
-#### Section title with label
-
-#### Links and Cross-references
-
-External links: [OCaml's official website](https://ocaml.org/)
-
-Cross-references: \`List.length\` Replacement text
-
-#### Inline Formatting
-
-**Bold**, *Italic*, *Emphasize*, ^{Superscript}, \\\\_{Subscript}, and \`inline code\`
-
-#### Text Alignment
-
-Centered text
-
-Left-aligned text
-
-Right-aligned text
-
-#### Lists
-
-1. Ordered list item 1
-2. Ordered list item 2
-
-- Unordered list item 1
-- Unordered list item 2
-
-- Unordered list item 1
-- Unordered list item 2
-
-#### Code Blocks
-
-\`\`\`ocaml
-let square x = x * x
-let result = square 3
-\`\`\`
-
-\`\`\`python
-def f():
-  return 0
-\`\`\`
-
-#### Verbatim
-
-\`\`\`verb
-    This text will be displayed verbatim.
-    No formatting will be applied.
-\`\`\`
-
-#### Module List
-
-* Array
-* List
-* String
-
-***@param*** \`x\`
-dividend
-
-***@param*** divisor
-
-***@return***
-*quotient*, i.e. result of division
-
-***@raise*** \`Division_by_zero\`
-raised when divided by zero
-
-***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\\\(%C3%B7,_or_/\\\\))
-article
-
-***@see*** \`arithmetic.ml\`
-for more context
-
-***@since*** \`4.0.0\`
-
-***@before*** \`4.4.0\`
-
-***@deprecated***
-use \`(/)\`
-
-***@version*** \`1.0.0\`
-
-***@author*** John Doe",
-      },
       "label": "div : int -> int -> int",
       "parameters": Array [
         Object {
