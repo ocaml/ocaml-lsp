@@ -13,7 +13,7 @@ jobs:
         with:
           submodules: true
       - name: nix
-        uses: cachix/install-nix-action@V27
+        uses: cachix/install-nix-action@V28
         with:
           nix_path: nixpkgs=channel:nixos-unstable
       - run: nix develop .#check -c make nix-tests
@@ -25,7 +25,7 @@ jobs:
         with:
           submodules: true
       - name: nix
-        uses: cachix/install-nix-action@V27
+        uses: cachix/install-nix-action@V28
         with:
           nix_path: nixpkgs=channel:nixos-unstable
       - run: nix develop .#fmt -c make nix-fmt
