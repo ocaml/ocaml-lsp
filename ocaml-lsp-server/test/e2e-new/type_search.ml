@@ -12,7 +12,7 @@ module Util = struct
       |> Option.some
     in
     let req =
-      Lsp.Client_request.UnknownRequest { meth = "ocamllsp/polaritySearch"; params }
+      Lsp.Client_request.UnknownRequest { meth = "ocamllsp/typeSearch"; params }
     in
     Client.request client req
   ;;

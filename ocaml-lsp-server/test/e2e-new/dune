@@ -62,7 +62,7 @@
     test
     type_enclosing
     documentation
-    polarity_search
+    type_search
     with_pp
     with_ppx
     workspace_change_config))))
