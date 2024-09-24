@@ -16,7 +16,7 @@
 - Add a code-action for syntactic and semantic movement shortcuts based on Merlin's Jump command (#1364)
 
 - Add custom
-  [`ocamllsp/polaritysearch`](/ocaml-lsp-server/docs/ocamllsp/polaritySearch-spec.md) request (#1369)
+  [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
 
 ## Fixes
 
