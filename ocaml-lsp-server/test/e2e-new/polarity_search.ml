@@ -1,12 +1,12 @@
 open Test.Import
-module Req = Ocaml_lsp_server.Custom_request.Polarity_search
+module Req = Ocaml_lsp_server.Custom_request.Type_search
 
 module Util = struct
-  let call_search position query limit client =
+  let call_search position query with_doc client =
     let uri = DocumentUri.of_path "test.ml" in
     let text_document = TextDocumentIdentifier.create ~uri in
     let params =
-      Req.Request_params.create text_document position limit query
+      Req.Request_params.create text_document position 3 query with_doc
       |> Req.Request_params.yojson_of_t
       |> Jsonrpc.Structured.t_of_yojson
       |> Option.some
@@ -17,83 +17,190 @@ module Util = struct
     Client.request client req
   ;;
 
-  let test ~line ~character ~query limit source =
+  let test ~line ~character ~query source ~with_doc =
     let position = Position.create ~character ~line in
     let request client =
       let open Fiber.O in
-      let+ response = call_search position query limit client in
+      let+ response = call_search position query with_doc client in
       Test.print_result response
     in
     Helpers.test source request
   ;;
 end
 
-let%expect_test "Search for a simple query that takes an int and returns a string" =
+let%expect_test "Polarity Search for a simple query that takes an int and returns a string with documentation" =
   let source = "" in
   let line = 1 in
   let character = 0 in
-  Util.test ~line ~character ~query:"-int +string" 20 source;
+  Util.test ~line ~character ~query:"-int +string" source ~with_doc:true;
   [%expect
     {|
     [
-      { "path": "string_of_int", "type": "int -> string" },
-      { "path": "string_of_int", "type": "int -> string" },
-      { "path": "Stdlib__Int.to_string", "type": "int -> string" },
-      { "path": "really_input_string", "type": "in_channel -> int -> string" },
-      { "path": "really_input_string", "type": "in_channel -> int -> string" },
       {
-        "path": "Stdlib__Digest.channel",
-        "type": "in_channel -> int -> Stdlib__Digest.t"
-      },
-      { "path": "Stdlib__String.make", "type": "int -> char -> string" },
-      { "path": "Stdlib__StringLabels.make", "type": "int -> char -> string" },
-      {
-        "path": "Stdlib__Digest.BLAKE128.channel",
-        "type": "in_channel -> int -> Stdlib__Digest.BLAKE128.t"
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": "Return the string representation of an integer, in decimal.",
+        "cost": 4,
+        "constructible": "string_of_int _"
       },
       {
-        "path": "Stdlib__Digest.BLAKE256.channel",
-        "type": "in_channel -> int -> Stdlib__Digest.BLAKE256.t"
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": "Return the string representation of an integer, in decimal.",
+        "cost": 4,
+        "constructible": "string_of_int _"
       },
       {
-        "path": "Stdlib__Digest.BLAKE512.channel",
-        "type": "in_channel -> int -> Stdlib__Digest.BLAKE512.t"
+        "name": "Int.to_string",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 29, "line": 152 },
+          "start": { "character": 0, "line": 152 }
+        },
+        "doc": "[to_string x] is the written representation of [x] in decimal.",
+        "cost": 4,
+        "constructible": "Int.to_string _"
+      }
+    ] |}]
+;;
+
+let%expect_test "Polarity Search for a simple query that takes an int and returns a string with no documentation" =
+  let source = "" in
+  let line = 1 in
+  let character = 0 in
+  Util.test ~line ~character ~query:"-int +string" source ~with_doc:false;
+  [%expect
+    {|
+    [
+      {
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": null,
+        "cost": 4,
+        "constructible": "string_of_int _"
       },
       {
-        "path": "Stdlib__Digest.MD5.channel",
-        "type": "in_channel -> int -> Stdlib__Digest.MD5.t"
+        "name": "Int.to_string",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 29, "line": 152 },
+          "start": { "character": 0, "line": 152 }
+        },
+        "doc": null,
+        "cost": 4,
+        "constructible": "Int.to_string _"
       },
       {
-        "path": "Stdlib__In_channel.really_input_string",
-        "type": "Stdlib__In_channel.t -> int -> string option"
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": null,
+        "cost": 4,
+        "constructible": "string_of_int _"
+      }
+    ] |}]
+;;
+
+let%expect_test "Type Search for a simple query that takes an int and returns a string with no documentation" =
+  let source = "" in
+  let line = 1 in
+  let character = 0 in
+  Util.test ~line ~character ~query:"int -> string" source ~with_doc:false;
+  [%expect
+    {|
+    [
+      {
+        "name": "Int.to_string",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 29, "line": 152 },
+          "start": { "character": 0, "line": 152 }
+        },
+        "doc": null,
+        "cost": 0,
+        "constructible": "Int.to_string _"
       },
       {
-        "path": "Stdlib__Printexc.Slot.format",
-        "type": "int -> Stdlib__Printexc.Slot.t -> string option"
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": null,
+        "cost": 0,
+        "constructible": "string_of_int _"
       },
       {
-        "path": "Stdlib__Buffer.sub",
-        "type": "Stdlib__Buffer.t -> int -> int -> string"
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": null,
+        "cost": 0,
+        "constructible": "string_of_int _"
+      }
+    ] |}]
+;;
+
+
+let%expect_test "Type Search for a simple query that takes an int and returns a string with documentation" =
+  let source = "" in
+  let line = 1 in
+  let character = 0 in
+  Util.test ~line ~character ~query:"int -> string" source ~with_doc:true;
+  [%expect
+    {|
+    [
+      {
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": "Return the string representation of an integer, in decimal.",
+        "cost": 0,
+        "constructible": "string_of_int _"
       },
       {
-        "path": "Stdlib__Bytes.sub_string",
-        "type": "bytes -> int -> int -> string"
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": "Return the string representation of an integer, in decimal.",
+        "cost": 0,
+        "constructible": "string_of_int _"
       },
       {
-        "path": "Stdlib__BytesLabels.sub_string",
-        "type": "bytes -> pos:int -> len:int -> string"
-      },
-      {
-        "path": "Stdlib__Digest.subbytes",
-        "type": "bytes -> int -> int -> Stdlib__Digest.t"
-      },
-      {
-        "path": "Stdlib__Digest.substring",
-        "type": "string -> int -> int -> Stdlib__Digest.t"
-      },
-      {
-        "path": "Stdlib__Lexing.sub_lexeme",
-        "type": "Stdlib__Lexing.lexbuf -> int -> int -> string"
+        "name": "Int.to_string",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 29, "line": 152 },
+          "start": { "character": 0, "line": 152 }
+        },
+        "doc": "[to_string x] is the written representation of [x] in decimal.",
+        "cost": 0,
+        "constructible": "Int.to_string _"
       }
     ] |}]
 ;;
