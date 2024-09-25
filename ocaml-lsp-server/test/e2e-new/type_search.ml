@@ -28,7 +28,9 @@ module Util = struct
   ;;
 end
 
-let%expect_test "Polarity Search for a simple query that takes an int and returns a string with documentation" =
+let%expect_test "Polarity Search for a simple query that takes an int and returns a \
+                 string with documentation"
+  =
   let source = "" in
   let line = 1 in
   let character = 0 in
@@ -36,28 +38,6 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
   [%expect
     {|
     [
-      {
-        "name": "string_of_int",
-        "typ": "int -> string",
-        "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
-        },
-        "doc": "Return the string representation of an integer, in decimal.",
-        "cost": 4,
-        "constructible": "string_of_int _"
-      },
-      {
-        "name": "string_of_int",
-        "typ": "int -> string",
-        "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
-        },
-        "doc": "Return the string representation of an integer, in decimal.",
-        "cost": 4,
-        "constructible": "string_of_int _"
-      },
       {
         "name": "Int.to_string",
         "typ": "int -> string",
@@ -68,18 +48,7 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
         "doc": "[to_string x] is the written representation of [x] in decimal.",
         "cost": 4,
         "constructible": "Int.to_string _"
-      }
-    ] |}]
-;;
-
-let%expect_test "Polarity Search for a simple query that takes an int and returns a string with no documentation" =
-  let source = "" in
-  let line = 1 in
-  let character = 0 in
-  Util.test ~line ~character ~query:"-int +string" source ~with_doc:false;
-  [%expect
-    {|
-    [
+      },
       {
         "name": "string_of_int",
         "typ": "int -> string",
@@ -87,10 +56,34 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
           "end": { "character": 33, "line": 740 },
           "start": { "character": 0, "line": 740 }
         },
-        "doc": null,
+        "doc": "Return the string representation of an integer, in decimal.",
         "cost": 4,
         "constructible": "string_of_int _"
       },
+      {
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": "Return the string representation of an integer, in decimal.",
+        "cost": 4,
+        "constructible": "string_of_int _"
+      }
+    ] |}]
+;;
+
+let%expect_test "Polarity Search for a simple query that takes an int and returns a \
+                 string with no documentation"
+  =
+  let source = "" in
+  let line = 1 in
+  let character = 0 in
+  Util.test ~line ~character ~query:"-int +string" source ~with_doc:false;
+  [%expect
+    {|
+    [
       {
         "name": "Int.to_string",
         "typ": "int -> string",
@@ -112,11 +105,24 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
         "doc": null,
         "cost": 4,
         "constructible": "string_of_int _"
+      },
+      {
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": null,
+        "cost": 4,
+        "constructible": "string_of_int _"
       }
     ] |}]
 ;;
 
-let%expect_test "Type Search for a simple query that takes an int and returns a string with no documentation" =
+let%expect_test "Type Search for a simple query that takes an int and returns a string \
+                 with no documentation"
+  =
   let source = "" in
   let line = 1 in
   let character = 0 in
@@ -160,8 +166,9 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
     ] |}]
 ;;
 
-
-let%expect_test "Type Search for a simple query that takes an int and returns a string with documentation" =
+let%expect_test "Type Search for a simple query that takes an int and returns a string \
+                 with documentation"
+  =
   let source = "" in
   let line = 1 in
   let character = 0 in
@@ -169,28 +176,6 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
   [%expect
     {|
     [
-      {
-        "name": "string_of_int",
-        "typ": "int -> string",
-        "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
-        },
-        "doc": "Return the string representation of an integer, in decimal.",
-        "cost": 0,
-        "constructible": "string_of_int _"
-      },
-      {
-        "name": "string_of_int",
-        "typ": "int -> string",
-        "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
-        },
-        "doc": "Return the string representation of an integer, in decimal.",
-        "cost": 0,
-        "constructible": "string_of_int _"
-      },
       {
         "name": "Int.to_string",
         "typ": "int -> string",
@@ -201,6 +186,28 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
         "doc": "[to_string x] is the written representation of [x] in decimal.",
         "cost": 0,
         "constructible": "Int.to_string _"
+      },
+      {
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": "Return the string representation of an integer, in decimal.",
+        "cost": 0,
+        "constructible": "string_of_int _"
+      },
+      {
+        "name": "string_of_int",
+        "typ": "int -> string",
+        "loc": {
+          "end": { "character": 33, "line": 740 },
+          "start": { "character": 0, "line": 740 }
+        },
+        "doc": "Return the string representation of an integer, in decimal.",
+        "cost": 0,
+        "constructible": "string_of_int _"
       }
     ] |}]
 ;;
