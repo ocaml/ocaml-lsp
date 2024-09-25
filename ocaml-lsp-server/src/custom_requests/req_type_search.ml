@@ -38,10 +38,10 @@ module TypeSearchParams = struct
 end
 
 module TypeSearch = struct
-  type t = Query_protocol.type_search_result list
+  type t = string Query_protocol.type_search_result list
 
   let yojson_of_t (t : t) =
-    let yojson_of_type_search_result (res : Query_protocol.type_search_result) =
+    let yojson_of_type_search_result (res : string Query_protocol.type_search_result) =
       `Assoc
         [ "name", `String res.name
         ; "typ", `String res.typ
