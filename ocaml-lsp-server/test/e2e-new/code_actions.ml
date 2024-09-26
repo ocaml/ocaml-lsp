@@ -1288,25 +1288,10 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump");
+  print_code_actions source range ~filter:(find_action "merlin-jump-match");
   [%expect
     {|
     Code actions:
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 0, "line": 3 },
-            "start": { "character": 0, "line": 3 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to fun"
-      },
-      "kind": "merlin-jump",
-      "title": "Jump to fun"
-    }
     {
       "command": {
         "arguments": [
@@ -1317,55 +1302,10 @@ let f (x : t) (d : bool) =
           }
         ],
         "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to match"
+        "title": "Match jump"
       },
-      "kind": "merlin-jump",
-      "title": "Jump to match"
-    }
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 0, "line": 3 },
-            "start": { "character": 0, "line": 3 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to let"
-      },
-      "kind": "merlin-jump",
-      "title": "Jump to let"
-    }
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 3, "line": 6 },
-            "start": { "character": 3, "line": 6 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to match-next-case"
-      },
-      "kind": "merlin-jump",
-      "title": "Jump to match-next-case"
-    }
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 3, "line": 5 },
-            "start": { "character": 3, "line": 5 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to match-prev-case"
-      },
-      "kind": "merlin-jump",
-      "title": "Jump to match-prev-case"
+      "kind": "merlin-jump-match",
+      "title": "Match jump"
     }
 
        |}]
