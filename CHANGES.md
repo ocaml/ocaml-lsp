@@ -20,6 +20,10 @@
 - Kill unnecessary ocamlformat processes with sigterm rather than sigint or
   sigkill (#1343)
 
+## Features
+
+- Add custom [`ocamllsp/construct`](https://github.com/ocaml/ocaml-lsp/blob/ocaml-lsp-server/docs/ocamllsp/construct-spec.md) request (#1348)
+
 # 1.18.0
 
 ## Features

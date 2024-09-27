@@ -46,6 +46,7 @@
     code_actions
     completion
     completions
+    construct
     doc_to_md
     document_flow
     exit_notification
