@@ -72,7 +72,13 @@
               uutf
             ];
             checkInputs = let p = pkgs.ocamlPackages;
-            in [ p.stdune p.cinaps p.ppx_expect p.ppx_yojson_conv (ocamlformat pkgs) ];
+            in [
+              p.stdune
+              p.cinaps
+              p.ppx_expect
+              p.ppx_yojson_conv
+              (ocamlformat pkgs)
+            ];
           });
 
           ocaml-lsp = with pkgs.ocamlPackages;
@@ -140,15 +146,15 @@
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
             buildInputs = [ nixpkgs.ocamlPackages.utop ];
-            inputsFrom = builtins.map (x: x.overrideAttrs(p: n: { doCheck = true; }))
+            inputsFrom =
+              builtins.map (x: x.overrideAttrs (p: n: { doCheck = true; }))
               (builtins.attrValues localPackages);
           };
       in {
-        packages =
-          (localPackages_5_2 // {
-            default = localPackages_5_2.ocaml-lsp;
-            ocaml_5_1 = localPackages_5_1;
-          });
+        packages = (localPackages_5_2 // {
+          default = localPackages_5_2.ocaml-lsp;
+          ocaml_5_1 = localPackages_5_1;
+        });
 
         devShells = {
           default = devShell localPackages_5_2 pkgs_5_2;
