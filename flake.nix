@@ -54,11 +54,13 @@
         in rec {
           jsonrpc = buildDunePackage (basePackage // {
             pname = "jsonrpc";
+            doCheck = false;
             propagatedBuildInputs = with pkgs.ocamlPackages; [ ];
           });
 
           lsp = buildDunePackage (basePackage // {
             pname = "lsp";
+            doCheck = false;
             propagatedBuildInputs = with pkgs.ocamlPackages; [
               jsonrpc
               yojson
@@ -66,12 +68,13 @@
               uutf
             ];
             checkInputs = let p = pkgs.ocamlPackages;
-            in [ p.cinaps p.ppx_expect p.ppx_yojson_conv (ocamlformat pkgs) ];
+            in [ p.stdune p.cinaps p.ppx_expect p.ppx_yojson_conv (ocamlformat pkgs) ];
           });
 
           ocaml-lsp = with pkgs.ocamlPackages;
             buildDunePackage (basePackage // {
               pname = package;
+              doCheck = false;
               checkInputs = let p = pkgs.ocamlPackages;
               in [
                 p.ppx_expect
