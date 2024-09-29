@@ -133,7 +133,8 @@
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
             buildInputs = [ nixpkgs.ocamlPackages.utop ];
-            inputsFrom = builtins.attrValues localPackages;
+            inputsFrom = builtins.map (x: x.overrideAttrs(p: n: { doCheck = true; }))
+              (builtins.attrValues localPackages);
           };
       in {
         packages =
