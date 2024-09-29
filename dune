@@ -10,4 +10,4 @@
 
 (env
  (_
-  (flags :standard -alert -unstable)))
+  (flags :standard -alert -unstable -w -58)))
