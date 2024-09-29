@@ -1,11 +1,7 @@
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    merlin4_14 = {
-      url = "github:ocaml/merlin/v4.16-414";
-      flake = false;
-    };
+    nixpkgs.url = "github:nix-ocaml/nix-overlays";
     merlin5_2 = {
       url = "github:ocaml/merlin/v5.1-502";
       flake = false;
@@ -128,11 +124,8 @@
             overlays = [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
             inherit system;
           };
-        pkgs_4_14 =
-          makeNixpkgs (ocaml: ocaml.ocamlPackages_4_14) inputs.merlin4_14;
         pkgs_5_2 =
           makeNixpkgs (ocaml: ocaml.ocamlPackages_5_2) inputs.merlin5_2;
-        localPackages_4_14 = makeLocalPackages pkgs_4_14;
         localPackages_5_2 = makeLocalPackages pkgs_5_2;
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
@@ -144,8 +137,6 @@
           (localPackages_5_2 // { default = localPackages_5_2.ocaml-lsp; });
 
         devShells = {
-          ocaml4_11 = devShell localPackages_4_14 pkgs_4_14;
-
           default = devShell localPackages_5_2 pkgs_5_2;
 
           release = pkgsWithoutOverlays.mkShell {
