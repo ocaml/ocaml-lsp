@@ -1327,7 +1327,7 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-match-next-case");
+  print_code_actions source range ~filter:(find_action "merlin-jump-next-case");
   [%expect
     {|
     Code actions:
@@ -1341,10 +1341,10 @@ let f (x : t) (d : bool) =
           }
         ],
         "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Match-next-case jump"
+        "title": "Next-case jump"
       },
-      "kind": "merlin-jump-match-next-case",
-      "title": "Match-next-case jump"
+      "kind": "merlin-jump-next-case",
+      "title": "Next-case jump"
     } |}]
 ;;
 
@@ -1364,7 +1364,7 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-match-prev-case");
+  print_code_actions source range ~filter:(find_action "merlin-jump-prev-case");
   [%expect
     {|
     Code actions:
@@ -1378,10 +1378,10 @@ let f (x : t) (d : bool) =
           }
         ],
         "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Match-prev-case jump"
+        "title": "Prev-case jump"
       },
-      "kind": "merlin-jump-match-prev-case",
-      "title": "Match-prev-case jump"
+      "kind": "merlin-jump-prev-case",
+      "title": "Prev-case jump"
     } |}]
 ;;
 
