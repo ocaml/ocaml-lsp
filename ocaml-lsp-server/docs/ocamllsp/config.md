@@ -48,6 +48,6 @@ interface config {
   * @default true
   * @since 1.19
   */
-  merlinJumpsCodeAction: { enable : boolean }
+  merlinJumpCodeActions: { enable : boolean }
 }
 ```
