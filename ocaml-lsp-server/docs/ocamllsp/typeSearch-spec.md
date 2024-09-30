@@ -41,11 +41,14 @@ export interface TypeSearch {
     ```
     type Query_protocol.type_search_result =
     {
-        name : string; // The fully qualified name of this result.
-        typ : string;  // The signature of this result.
-        loc : Range.t; // The location of the definition of this result in the source code.
-        doc : string option; // Optional documentation associated with this result.
-        cost : int; // A numeric value representing the "cost" or distance between this result and the query.
+        "name": string; // The fully qualified name of this result.,
+        "typ": string;  // The signature of this result,
+        "loc": { // The location of the definition of this result in the source code.
+          "end": { "character": int, "line": int },
+          "start": { "character": int, "line": int }
+        },
+        "doc": string // Optional documentation associated with this result.,
+        "cost": int; // A numeric value representing the "cost" or distance between this result and the query.
         constructible : string; // A constructible form or template that can be used to invoke this result
     }
     ```
