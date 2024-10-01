@@ -1,13 +1,13 @@
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    merlin4_14 = {
-      url = "github:ocaml/merlin/v4.16-414";
+    nixpkgs.url = "github:nix-ocaml/nix-overlays";
+    merlin5_2 = {
+      url = "github:ocaml/merlin/main";
       flake = false;
     };
-    merlin5_2 = {
-      url = "github:ocaml/merlin/v5.1-502";
+    merlin5_1 = {
+      url = "github:ocaml/merlin/501";
       flake = false;
     };
   };
@@ -58,11 +58,13 @@
         in rec {
           jsonrpc = buildDunePackage (basePackage // {
             pname = "jsonrpc";
+            doCheck = false;
             propagatedBuildInputs = with pkgs.ocamlPackages; [ ];
           });
 
           lsp = buildDunePackage (basePackage // {
             pname = "lsp";
+            doCheck = false;
             propagatedBuildInputs = with pkgs.ocamlPackages; [
               jsonrpc
               yojson
@@ -70,12 +72,13 @@
               uutf
             ];
             checkInputs = let p = pkgs.ocamlPackages;
-            in [ p.cinaps p.ppx_expect p.ppx_yojson_conv (ocamlformat pkgs) ];
+            in [ p.stdune p.cinaps p.ppx_expect p.ppx_yojson_conv (ocamlformat pkgs) ];
           });
 
           ocaml-lsp = with pkgs.ocamlPackages;
             buildDunePackage (basePackage // {
               pname = package;
+              doCheck = false;
               checkInputs = let p = pkgs.ocamlPackages;
               in [
                 p.ppx_expect
@@ -128,25 +131,29 @@
             overlays = [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
             inherit system;
           };
-        pkgs_4_14 =
-          makeNixpkgs (ocaml: ocaml.ocamlPackages_4_14) inputs.merlin4_14;
+        pkgs_5_1 =
+          makeNixpkgs (ocaml: ocaml.ocamlPackages_5_1) inputs.merlin5_1;
         pkgs_5_2 =
           makeNixpkgs (ocaml: ocaml.ocamlPackages_5_2) inputs.merlin5_2;
-        localPackages_4_14 = makeLocalPackages pkgs_4_14;
+        localPackages_5_1 = makeLocalPackages pkgs_5_1;
         localPackages_5_2 = makeLocalPackages pkgs_5_2;
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
             buildInputs = [ nixpkgs.ocamlPackages.utop ];
-            inputsFrom = builtins.attrValues localPackages;
+            inputsFrom = builtins.map (x: x.overrideAttrs(p: n: { doCheck = true; }))
+              (builtins.attrValues localPackages);
           };
       in {
         packages =
-          (localPackages_5_2 // { default = localPackages_5_2.ocaml-lsp; });
+          (localPackages_5_2 // {
+            default = localPackages_5_2.ocaml-lsp;
+            ocaml_5_1 = localPackages_5_1;
+          });
 
         devShells = {
-          ocaml4_11 = devShell localPackages_4_14 pkgs_4_14;
-
           default = devShell localPackages_5_2 pkgs_5_2;
+
+          ocaml5_1 = devShell localPackages_5_1 pkgs_5_1;
 
           release = pkgsWithoutOverlays.mkShell {
             buildInputs = [ pkgsWithoutOverlays.dune-release ];
