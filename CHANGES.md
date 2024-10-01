@@ -1,5 +1,8 @@
 # Unreleased
 
+- Add custom
+  [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
+
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)

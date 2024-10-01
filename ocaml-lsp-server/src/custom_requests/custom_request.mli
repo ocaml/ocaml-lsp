@@ -9,3 +9,4 @@ module Typed_holes = Req_typed_holes
 module Type_enclosing = Req_type_enclosing
 module Wrapping_ast_node = Req_wrapping_ast_node
 module Get_documentation = Req_get_documentation
+module Type_search = Req_type_search
