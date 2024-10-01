@@ -1,5 +1,8 @@
 # Unreleased
 
+- Add custom
+  [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
+
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)
@@ -14,9 +17,6 @@
 - Add support for OCaml 5.2 (#1233)
 
 - Add a code-action for syntactic and semantic movement shortcuts based on Merlin's Jump command (#1364)
-
-- Add custom
-  [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
 
 ## Fixes
 
