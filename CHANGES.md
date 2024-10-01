@@ -1,5 +1,7 @@
 # Unreleased
 
+- Add custom [`ocamllsp/merlinJump`](/ocaml-lsp-server/docs/ocamllsp/merlinJump-spec.md) request (#1374)
+
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)
@@ -10,6 +12,7 @@
 ## Features
 
 - Add custom [`ocamllsp/getDocumentation`](/ocaml-lsp-server/docs/ocamllsp/getDocumentation-spec.md) request (#1336)
+
 
 - Add support for OCaml 5.2 (#1233)
 
