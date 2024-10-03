@@ -1272,7 +1272,7 @@ module M : sig type t = I of int | B of bool end
     |}]
 ;;
 
-let%expect_test "can jump to target" =
+let%expect_test "can jump to match target" =
   let source =
     {ocaml|
 type t = Foo of int | Bar of bool
@@ -1288,7 +1288,120 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump");
+  print_code_actions source range ~filter:(find_action "merlin-jump-match");
+  [%expect
+    {|
+    Code actions:
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 2, "line": 4 },
+            "start": { "character": 2, "line": 4 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Match jump"
+      },
+      "kind": "merlin-jump-match",
+      "title": "Match jump"
+    }
+
+       |}]
+;;
+
+let%expect_test "can jump to match-next-case target" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let square x = x * x
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:5 ~character:5 in
+    let end_ = Position.create ~line:5 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump-next-case");
+  [%expect
+    {|
+    Code actions:
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 3, "line": 6 },
+            "start": { "character": 3, "line": 6 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Next-case jump"
+      },
+      "kind": "merlin-jump-next-case",
+      "title": "Next-case jump"
+    } |}]
+;;
+
+let%expect_test "can jump to  match-prev-case target" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let square x = x * x
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:5 ~character:5 in
+    let end_ = Position.create ~line:5 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump-prev-case");
+  [%expect
+    {|
+    Code actions:
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 3, "line": 5 },
+            "start": { "character": 3, "line": 5 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Prev-case jump"
+      },
+      "kind": "merlin-jump-prev-case",
+      "title": "Prev-case jump"
+    } |}]
+;;
+
+let%expect_test "can jump to let target" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let square x = x * x
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:5 ~character:5 in
+    let end_ = Position.create ~line:5 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump-let");
   [%expect
     {|
     Code actions:
@@ -1302,26 +1415,33 @@ let f (x : t) (d : bool) =
           }
         ],
         "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to fun"
+        "title": "Let jump"
       },
-      "kind": "merlin-jump",
-      "title": "Jump to fun"
-    }
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 2, "line": 4 },
-            "start": { "character": 2, "line": 4 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to match"
-      },
-      "kind": "merlin-jump",
-      "title": "Jump to match"
-    }
+      "kind": "merlin-jump-let",
+      "title": "Let jump"
+    } |}]
+;;
+
+let%expect_test "can jump to fun target" =
+  let source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let square x = x * x
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:5 ~character:5 in
+    let end_ = Position.create ~line:5 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump-fun");
+  [%expect
+    {|
+    Code actions:
     {
       "command": {
         "arguments": [
@@ -1332,43 +1452,110 @@ let f (x : t) (d : bool) =
           }
         ],
         "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to let"
+        "title": "Fun jump"
       },
-      "kind": "merlin-jump",
-      "title": "Jump to let"
-    }
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 3, "line": 6 },
-            "start": { "character": 3, "line": 6 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to match-next-case"
-      },
-      "kind": "merlin-jump",
-      "title": "Jump to match-next-case"
-    }
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 3, "line": 5 },
-            "start": { "character": 3, "line": 5 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Jump to match-prev-case"
-      },
-      "kind": "merlin-jump",
-      "title": "Jump to match-prev-case"
-    }
+      "kind": "merlin-jump-fun",
+      "title": "Fun jump"
+    } |}]
+;;
 
-       |}]
+let%expect_test "can jump to module target" =
+  let source =
+    {ocaml|
+module FooBar = struct
+  type t = Foo of int | Bar of bool
+end
+let f (x : t) (d : bool) =
+  match x with
+  |Bar x -> x
+  |Foo _ -> d
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:2 ~character:5 in
+    let end_ = Position.create ~line:2 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump-module");
+  [%expect
+    {|
+    Code actions:
+    {
+      "command": {
+        "arguments": [
+          "file:///foo.ml",
+          {
+            "end": { "character": 0, "line": 1 },
+            "start": { "character": 0, "line": 1 }
+          }
+        ],
+        "command": "ocamllsp/merlin-jump-to-target",
+        "title": "Module jump"
+      },
+      "kind": "merlin-jump-module",
+      "title": "Module jump"
+    } |}]
+;;
+
+let%expect_test "can jump to module-type target" =
+  let source =
+    {ocaml|
+  module type ORDER = sig
+    type t
+    val leq : t -> t -> bool
+    val equal : t -> t -> bool
+  end
+
+  let f (x : t) (d : bool) =
+    match x with
+    |Bar x -> x
+    |Foo _ -> d
+  |ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:5 in
+    let end_ = Position.create ~line:4 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump-module-type");
+  [%expect
+    {|
+      Code actions:
+      {
+        "command": {
+          "arguments": [
+            "file:///foo.ml",
+            {
+              "end": { "character": 2, "line": 1 },
+              "start": { "character": 2, "line": 1 }
+            }
+          ],
+          "command": "ocamllsp/merlin-jump-to-target",
+          "title": "Module-type jump"
+        },
+        "kind": "merlin-jump-module-type",
+        "title": "Module-type jump"
+      } |}]
+;;
+
+let%expect_test "shouldn't find the jump target on the same line" =
+  let source =
+    {ocaml|
+  let square x = x * x
+  let f (x : t) (d : bool) =
+    match x with
+    |Bar x -> x
+    |Foo _ -> d
+  |ocaml}
+  in
+  let range =
+    let start = Position.create ~line:0 ~character:5 in
+    let end_ = Position.create ~line:0 ~character:5 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "merlin-jump-fun");
+  [%expect {|
+      No code actions |}]
 ;;
 
 let position_of_offset src x =

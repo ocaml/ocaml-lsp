@@ -8,6 +8,12 @@ let targets =
   [ "fun"; "match"; "let"; "module"; "module-type"; "match-next-case"; "match-prev-case" ]
 ;;
 
+let rename_target target =
+  if String.starts_with ~prefix:"match-" target
+  then String.sub target ~pos:6 ~len:(String.length target - 6)
+  else target
+;;
+
 let available (capabilities : ShowDocumentClientCapabilities.t option) =
   match capabilities with
   | Some { support } -> support
@@ -71,12 +77,16 @@ let code_actions
         let+ position = Position.of_lexical_position lexing_pos in
         let uri = Document.uri doc in
         let range = { Range.start = position; end_ = position } in
-        let title = sprintf "Jump to %s" target in
+        let title = sprintf "%s jump" (String.capitalize_ascii (rename_target target)) in
         let command =
           let arguments = [ DocumentUri.yojson_of_t uri; Range.yojson_of_t range ] in
           Command.create ~title ~command:command_name ~arguments ()
         in
-        CodeAction.create ~title ~kind:(CodeActionKind.Other "merlin-jump") ~command ())
+        CodeAction.create
+          ~title
+          ~kind:(CodeActionKind.Other (sprintf "merlin-jump-%s" (rename_target target)))
+          ~command
+          ())
     in
     List.filter_opt actions
   | _ -> Fiber.return []
