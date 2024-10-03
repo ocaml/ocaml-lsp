@@ -55,30 +55,6 @@ Array [
         "parent": Object {
           "parent": Object {
             "parent": Object {
-              "parent": Object {
-                "parent": Object {
-                  "range": Object {
-                    "end": Object {
-                      "character": 17,
-                      "line": 3,
-                    },
-                    "start": Object {
-                      "character": 0,
-                      "line": 0,
-                    },
-                  },
-                },
-                "range": Object {
-                  "end": Object {
-                    "character": 17,
-                    "line": 3,
-                  },
-                  "start": Object {
-                    "character": 0,
-                    "line": 0,
-                  },
-                },
-              },
               "range": Object {
                 "end": Object {
                   "character": 17,
@@ -170,30 +146,6 @@ Array [
           "parent": Object {
             "parent": Object {
               "parent": Object {
-                "parent": Object {
-                  "parent": Object {
-                    "range": Object {
-                      "end": Object {
-                        "character": 3,
-                        "line": 6,
-                      },
-                      "start": Object {
-                        "character": 0,
-                        "line": 0,
-                      },
-                    },
-                  },
-                  "range": Object {
-                    "end": Object {
-                      "character": 3,
-                      "line": 6,
-                    },
-                    "start": Object {
-                      "character": 0,
-                      "line": 3,
-                    },
-                  },
-                },
                 "range": Object {
                   "end": Object {
                     "character": 3,
@@ -201,7 +153,7 @@ Array [
                   },
                   "start": Object {
                     "character": 0,
-                    "line": 3,
+                    "line": 0,
                   },
                 },
               },
@@ -211,19 +163,19 @@ Array [
                   "line": 6,
                 },
                 "start": Object {
-                  "character": 11,
+                  "character": 0,
                   "line": 3,
                 },
               },
             },
             "range": Object {
               "end": Object {
-                "character": 24,
-                "line": 5,
+                "character": 3,
+                "line": 6,
               },
               "start": Object {
-                "character": 2,
-                "line": 4,
+                "character": 11,
+                "line": 3,
               },
             },
           },
@@ -234,7 +186,7 @@ Array [
             },
             "start": Object {
               "character": 2,
-              "line": 5,
+              "line": 4,
             },
           },
         },
@@ -293,72 +245,36 @@ Array [
               "parent": Object {
                 "parent": Object {
                   "parent": Object {
-                    "parent": Object {
-                      "parent": Object {
-                        "parent": Object {
-                          "range": Object {
-                            "end": Object {
-                              "character": 4,
-                              "line": 3,
-                            },
-                            "start": Object {
-                              "character": 0,
-                              "line": 0,
-                            },
-                          },
-                        },
-                        "range": Object {
-                          "end": Object {
-                            "character": 4,
-                            "line": 3,
-                          },
-                          "start": Object {
-                            "character": 0,
-                            "line": 0,
-                          },
-                        },
-                      },
-                      "range": Object {
-                        "end": Object {
-                          "character": 4,
-                          "line": 3,
-                        },
-                        "start": Object {
-                          "character": 0,
-                          "line": 0,
-                        },
-                      },
-                    },
                     "range": Object {
                       "end": Object {
                         "character": 4,
                         "line": 3,
                       },
                       "start": Object {
-                        "character": 11,
+                        "character": 0,
                         "line": 0,
                       },
                     },
                   },
                   "range": Object {
                     "end": Object {
-                      "character": 3,
+                      "character": 4,
                       "line": 3,
                     },
                     "start": Object {
-                      "character": 21,
+                      "character": 11,
                       "line": 0,
                     },
                   },
                 },
                 "range": Object {
                   "end": Object {
-                    "character": 39,
-                    "line": 2,
+                    "character": 3,
+                    "line": 3,
                   },
                   "start": Object {
-                    "character": 2,
-                    "line": 1,
+                    "character": 21,
+                    "line": 0,
                   },
                 },
               },
@@ -369,7 +285,7 @@ Array [
                 },
                 "start": Object {
                   "character": 2,
-                  "line": 2,
+                  "line": 1,
                 },
               },
             },
@@ -446,73 +362,25 @@ Array [
         "parent": Object {
           "parent": Object {
             "parent": Object {
-              "parent": Object {
-                "parent": Object {
-                  "parent": Object {
-                    "parent": Object {
-                      "range": Object {
-                        "end": Object {
-                          "character": 3,
-                          "line": 2,
-                        },
-                        "start": Object {
-                          "character": 0,
-                          "line": 0,
-                        },
-                      },
-                    },
-                    "range": Object {
-                      "end": Object {
-                        "character": 3,
-                        "line": 2,
-                      },
-                      "start": Object {
-                        "character": 0,
-                        "line": 0,
-                      },
-                    },
-                  },
-                  "range": Object {
-                    "end": Object {
-                      "character": 3,
-                      "line": 2,
-                    },
-                    "start": Object {
-                      "character": 0,
-                      "line": 0,
-                    },
-                  },
-                },
-                "range": Object {
-                  "end": Object {
-                    "character": 3,
-                    "line": 2,
-                  },
-                  "start": Object {
-                    "character": 11,
-                    "line": 0,
-                  },
-                },
-              },
               "range": Object {
                 "end": Object {
-                  "character": 35,
-                  "line": 1,
+                  "character": 3,
+                  "line": 2,
                 },
                 "start": Object {
-                  "character": 4,
-                  "line": 1,
+                  "character": 0,
+                  "line": 0,
                 },
               },
             },
             "range": Object {
               "end": Object {
-                "character": 35,
-                "line": 1,
+                "character": 3,
+                "line": 2,
               },
               "start": Object {
-                "character": 4,
-                "line": 1,
+                "character": 11,
+                "line": 0,
               },
             },
           },
@@ -555,7 +423,7 @@ Array [
         "line": 1,
       },
       "start": Object {
-        "character": 20,
+        "character": 34,
         "line": 1,
       },
     },
@@ -578,62 +446,14 @@ Array [
         "parent": Object {
           "parent": Object {
             "parent": Object {
-              "parent": Object {
-                "parent": Object {
-                  "parent": Object {
-                    "parent": Object {
-                      "range": Object {
-                        "end": Object {
-                          "character": 2,
-                          "line": 2,
-                        },
-                        "start": Object {
-                          "character": 0,
-                          "line": 0,
-                        },
-                      },
-                    },
-                    "range": Object {
-                      "end": Object {
-                        "character": 2,
-                        "line": 2,
-                      },
-                      "start": Object {
-                        "character": 0,
-                        "line": 0,
-                      },
-                    },
-                  },
-                  "range": Object {
-                    "end": Object {
-                      "character": 2,
-                      "line": 2,
-                    },
-                    "start": Object {
-                      "character": 0,
-                      "line": 0,
-                    },
-                  },
-                },
-                "range": Object {
-                  "end": Object {
-                    "character": 2,
-                    "line": 2,
-                  },
-                  "start": Object {
-                    "character": 11,
-                    "line": 0,
-                  },
-                },
-              },
               "range": Object {
                 "end": Object {
                   "character": 2,
                   "line": 2,
                 },
                 "start": Object {
-                  "character": 4,
-                  "line": 1,
+                  "character": 0,
+                  "line": 0,
                 },
               },
             },
@@ -643,8 +463,8 @@ Array [
                 "line": 2,
               },
               "start": Object {
-                "character": 4,
-                "line": 1,
+                "character": 11,
+                "line": 0,
               },
             },
           },
@@ -683,11 +503,11 @@ Array [
     },
     "range": Object {
       "end": Object {
-        "character": 2,
-        "line": 2,
+        "character": 35,
+        "line": 1,
       },
       "start": Object {
-        "character": 20,
+        "character": 34,
         "line": 1,
       },
     },
