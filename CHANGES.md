@@ -1,6 +1,7 @@
 # Unreleased
 
 - Make MerlinJump code action configurable (#1376)
+- Add support for OCaml 5.3 (#1386)
 
 ## Fixes
 
