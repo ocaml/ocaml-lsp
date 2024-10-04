@@ -21,7 +21,7 @@ jobs:
           - macos-latest
           - windows-latest
         ocaml-compiler:
-          - "5.2"
+          - ocaml-base-compiler.5.3.0~alpha1
 
 
     runs-on: ${{ matrix.os }}
@@ -53,8 +53,8 @@ jobs:
           allow-prerelease-opam: true
 
       # Remove this pin once a compatible version of Merlin has been released
-      # - name: Pin dev Merlin
-      #   run: opam pin https://github.com/ocaml/merlin.git#master
+      - name: Pin dev Merlin
+        run: opam pin https://github.com/xvw/merlin.git#503-preview
 
       - name: Build and install dependencies
         run: opam install .
@@ -84,9 +84,9 @@ jobs:
           submodules: true
 
       - name: Set-up OCaml
-        uses: ocaml/setup-ocaml@v2
+        uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "5.2"
+          ocaml-compiler: ocaml-base-compiler.5.3.0~alpha1
           allow-prerelease-opam: true
 
       - name: Set git user
