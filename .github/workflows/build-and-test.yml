@@ -54,7 +54,7 @@ jobs:
 
       # Remove this pin once a compatible version of Merlin has been released
       - name: Pin dev Merlin
-        run: opam pin https://github.com/xvw/merlin.git#503-preview
+        run: opam --cli=2.1 pin --with-version=5.3-503 https://github.com/xvw/merlin.git#503-preview
 
       - name: Build and install dependencies
         run: opam install .
