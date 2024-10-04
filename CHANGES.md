@@ -22,6 +22,7 @@
   [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
 
 - Make MerlinJump code action configurable (#1376)
+- Add support for OCaml 5.3 (#1386)
 
 - Add custom [`ocamllsp/jump`](/ocaml-lsp-server/docs/ocamllsp/merlinJump-spec.md) request (#1374)
 
