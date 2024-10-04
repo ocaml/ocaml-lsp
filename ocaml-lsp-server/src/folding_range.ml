@@ -159,7 +159,8 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Ppat_exception _
       | Ppat_extension _
       | Ppat_open _
-      | Ppat_any -> Ast_iterator.default_iterator.pat self p
+      | Ppat_any
+      | _ -> Ast_iterator.default_iterator.pat self p
     in
     let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
       match expr.pexp_desc with
