@@ -150,10 +150,10 @@ let to_string { scheme; authority; path; query; fragment } =
      Buffer.add_char buff '?';
      Buffer.add_string buff (encode q));
   (match fragment with
-  | None -> ()
-  | Some f ->
-    Buffer.add_char buff '#';
-    Buffer.add_string buff (encode f));
+   | None -> ()
+   | Some f ->
+     Buffer.add_char buff '#';
+     Buffer.add_string buff (encode f));
   Buffer.contents buff
 ;;
 
