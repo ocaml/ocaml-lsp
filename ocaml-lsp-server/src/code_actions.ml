@@ -118,8 +118,8 @@ let compute server (params : CodeActionParams.t) =
     let open_related = Action_open_related.for_uri capabilities doc in
     let* merlin_jumps =
       match state.configuration.data.merlin_jump_code_actions with
-      | Some { enable = true } -> Action_jump.code_actions doc params capabilities
-      | _ -> Fiber.return []
+      | Some { enable = true } | None -> Action_jump.code_actions doc params capabilities
+      | Some { enable = false } -> Fiber.return []
     in
     (match Document.syntax doc with
      | Ocamllex | Menhir | Cram | Dune ->
