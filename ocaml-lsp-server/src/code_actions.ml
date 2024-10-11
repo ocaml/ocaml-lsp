@@ -119,7 +119,7 @@ let compute server (params : CodeActionParams.t) =
     let* merlin_jumps =
       match state.configuration.data.merlin_jump_code_actions with
       | Some { enable = true } | None -> Action_jump.code_actions doc params capabilities
-      | _ -> Fiber.return []
+      | Some { enable = false } -> Fiber.return []
     in
     (match Document.syntax doc with
      | Ocamllex | Menhir | Cram | Dune ->
