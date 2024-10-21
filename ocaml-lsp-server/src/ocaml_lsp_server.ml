@@ -96,6 +96,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_type_enclosing.capability
               ; Req_get_documentation.capability
               ; Req_construct.capability
+              ; Req_type_search.capability
               ] )
         ]
     in
