@@ -255,7 +255,7 @@ let%expect_test "of_string -> to_string" =
   [%expect
     {|
     Unix:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
+    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/#l12
     file://sh%c3%a4res/path -> file://sh%C3%A4res/path
     untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
     untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
@@ -267,7 +267,7 @@ let%expect_test "of_string -> to_string" =
     file:///pro%2Fjects/ -> file:///pro/jects/
     vscode://mount/test.ml -> vscode://mount/test.ml
     Windows:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
+    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/#l12
     file://sh%c3%a4res/path -> file://sh%C3%A4res/path
     untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
     untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt

@@ -45,7 +45,7 @@ depends: [
   "csexp" {>= "1.5"}
   "ocamlformat-rpc-lib" {>= "0.21.0"}
   "odoc" {with-doc}
-  "merlin-lib" {>= "5.0" & < "6.0"}
+  "merlin-lib" {>= "5.2" & < "6.0"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [

@@ -3,10 +3,14 @@
 - Add custom
   [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
 
+- Make MerlinJump code action configurable (#1376)
+
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)
 - Fix prefix parsing for completion of object methods (#1363, fixes #1358)
+- Remove some duplicates in the `selectionRange` answers (#1368)
+
 
 # 1.19.0
 
