@@ -30,26 +30,22 @@ export interface TypeSearchParams extends TexDocumentPositionParams
     - `with_doc`: If to return documentation information or not
 
 ## Response
-
-```js
-result: TypeSearch | null
-export interface TypeSearch {
-    type t = Query_protocol.type_search_result list
+```json
+{
+    [
+        "name": string,
+        "typ": string,
+        "loc": Range,
+        "doc": string,
+        "cost": int,
+        "constructible" : string
+    ]
 }
-```
-- `t`: A list of types that match the query.
-    ```
-    type Query_protocol.type_search_result =
-    {
-        "name": string; // The fully qualified name of this result.,
-        "typ": string;  // The signature of this result,
-        "loc": { // The location of the definition of this result in the source code.
-          "end": { "character": int, "line": int },
-          "start": { "character": int, "line": int }
-        },
-        "doc": string // Optional documentation associated with this result.,
-        "cost": int; // A numeric value representing the "cost" or distance between this result and the query.
-        constructible : string; // A constructible form or template that can be used to invoke this result
-    }
-    ```
+ ```
+- name: The fully qualified name of this result.,
+- typ: The signature of this result,
+- loc: The location of the definition of this result in the source code.,
+- doc: Optional documentation associated with this result.,
+- cost: A numeric value representing the "cost" or distance between this result and the query.
+- constructible: A constructible form or template that can be used to invoke this result
 - A response with null result is returned if no entries are found.
