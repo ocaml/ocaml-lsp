@@ -37,19 +37,19 @@ module TypeSearchParams = struct
       | None -> []
     in
     `Assoc
-      ((("textDocument", TextDocumentIdentifier.yojson_of_t text_document)
-        :: ("position", Position.yojson_of_t position)
-        :: ("limit", `Int limit)
-        :: ("with_doc", `Bool with_doc)
-        :: [ "query", `String query ])
-       @ doc_format)
+      (("textDocument", TextDocumentIdentifier.yojson_of_t text_document)
+       :: ("position", Position.yojson_of_t position)
+       :: ("limit", `Int limit)
+       :: ("with_doc", `Bool with_doc)
+       :: ("query", `String query)
+       :: doc_format)
   ;;
 end
 
 module TypeSearch = struct
   type t = string Query_protocol.type_search_result list
 
-  let create ~kind ~value =
+  let doc_to_markupContent ~kind ~value =
     let v =
       match kind with
       | MarkupKind.Markdown ->
@@ -74,7 +74,8 @@ module TypeSearch = struct
         ; "loc", Range.yojson_of_t (Range.of_loc res.loc)
         ; ( "doc"
           , match res.doc with
-            | Some value -> create ~kind:format ~value |> MarkupContent.yojson_of_t
+            | Some value ->
+              doc_to_markupContent ~kind:format ~value |> MarkupContent.yojson_of_t
             | None -> `Null )
         ; "cost", `Int res.cost
         ; "constructible", `String res.constructible

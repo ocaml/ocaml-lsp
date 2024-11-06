@@ -137,13 +137,7 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
   let source = "" in
   let line = 1 in
   let character = 0 in
-  Util.test
-    ~line
-    ~character
-    ~query:"int -> string"
-    source
-    ~with_doc:false
-    ();
+  Util.test ~line ~character ~query:"int -> string" source ~with_doc:false ();
   [%expect
     {|
     [

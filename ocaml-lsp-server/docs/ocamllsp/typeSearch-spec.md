@@ -17,6 +17,7 @@ export interface TypeSearchParams extends TexDocumentPositionParams
     query: string;
     limit: int;
     with_doc: bool;
+    doc_format: string;
 }
 ```
 - method: `ocamllsp/typeSearch`
@@ -36,7 +37,10 @@ export interface TypeSearchParams extends TexDocumentPositionParams
         "name": string,
         "typ": string,
         "loc": Range,
-        "doc": string,
+        "doc": {
+            "value": string,
+            "kind": string
+        },
         "cost": int,
         "constructible" : string
     ]
