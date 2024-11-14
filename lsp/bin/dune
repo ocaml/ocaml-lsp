@@ -3,7 +3,7 @@
 (test
  (name test_metamodel)
  (modules test_metamodel)
- (libraries stdune yojson lsp_gen)
+ (libraries yojson lsp_gen)
  (deps metamodel/metaModel.json)
  (action
   (run ./test_metamodel.exe %{deps})))
@@ -13,4 +13,4 @@
  (instrumentation
   (backend bisect_ppx))
  (modules :standard \ test_metamodel)
- (libraries stdune dyn pp yojson))
+ (libraries dyn pp yojson))
