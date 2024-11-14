@@ -1,5 +1,8 @@
 # Unreleased
 
+- Add custom
+  [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
+
 - Make MerlinJump code action configurable (#1376)
 
 ## Fixes

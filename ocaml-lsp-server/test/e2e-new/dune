@@ -63,6 +63,7 @@
     test
     type_enclosing
     documentation
+    type_search
     with_pp
     with_ppx
     workspace_change_config))))
