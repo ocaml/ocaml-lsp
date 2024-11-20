@@ -219,7 +219,7 @@ struct
     let t =
       { io
       ; state = Waiting_for_init
-      ; session = Fdecl.create Dyn.opaque
+      ; session = Fdecl.create ()
       ; initialized = Fiber.Ivar.create ()
       ; req_id = 1
       ; pending = Table.create 32
