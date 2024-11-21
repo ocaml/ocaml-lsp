@@ -111,12 +111,12 @@ describe("textDocument/rename", () => {
         "newText": "new_num",
         "range": {
           "end": {
-            "character": 7,
-            "line": 0,
+            "character": 13,
+            "line": 1,
           },
           "start": {
-            "character": 4,
-            "line": 0,
+            "character": 10,
+            "line": 1,
           },
         },
       },
@@ -124,12 +124,12 @@ describe("textDocument/rename", () => {
         "newText": "new_num",
         "range": {
           "end": {
-            "character": 13,
-            "line": 1,
+            "character": 7,
+            "line": 0,
           },
           "start": {
-            "character": 10,
-            "line": 1,
+            "character": 4,
+            "line": 0,
           },
         },
       },
@@ -163,12 +163,12 @@ describe("textDocument/rename", () => {
           "newText": "new_num",
           "range": {
             "end": {
-              "character": 7,
-              "line": 0,
+              "character": 13,
+              "line": 1,
             },
             "start": {
-              "character": 4,
-              "line": 0,
+              "character": 10,
+              "line": 1,
             },
           },
         },
@@ -176,12 +176,12 @@ describe("textDocument/rename", () => {
           "newText": "new_num",
           "range": {
             "end": {
-              "character": 13,
-              "line": 1,
+              "character": 7,
+              "line": 0,
             },
             "start": {
-              "character": 10,
-              "line": 1,
+              "character": 4,
+              "line": 0,
             },
           },
         },
@@ -218,19 +218,6 @@ let () = bar ~foo
   "changes": {
     "file:///test.ml": [
       {
-        "newText": "ident",
-        "range": {
-          "end": {
-            "character": 7,
-            "line": 0,
-          },
-          "start": {
-            "character": 4,
-            "line": 0,
-          },
-        },
-      },
-      {
         "newText": ":ident",
         "range": {
           "end": {
@@ -240,6 +227,19 @@ let () = bar ~foo
           "start": {
             "character": 17,
             "line": 4,
+          },
+        },
+      },
+      {
+        "newText": "ident",
+        "range": {
+          "end": {
+            "character": 7,
+            "line": 0,
+          },
+          "start": {
+            "character": 4,
+            "line": 0,
           },
         },
       },
@@ -272,19 +272,6 @@ ignore (bar ?foo ())
   "changes": {
     "file:///test.ml": [
       {
-        "newText": "sunit",
-        "range": {
-          "end": {
-            "character": 7,
-            "line": 0,
-          },
-          "start": {
-            "character": 4,
-            "line": 0,
-          },
-        },
-      },
-      {
         "newText": ":sunit",
         "range": {
           "end": {
@@ -294,6 +281,19 @@ ignore (bar ?foo ())
           "start": {
             "character": 16,
             "line": 5,
+          },
+        },
+      },
+      {
+        "newText": "sunit",
+        "range": {
+          "end": {
+            "character": 7,
+            "line": 0,
+          },
+          "start": {
+            "character": 4,
+            "line": 0,
           },
         },
       },

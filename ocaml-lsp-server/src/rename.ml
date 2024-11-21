@@ -8,38 +8,55 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
   | `Other -> Fiber.return (WorkspaceEdit.create ())
   | `Merlin merlin ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
     in
     let+ locs, _desync = Document.Merlin.dispatch_exn ~name:"rename" merlin command in
     let version = Document.version doc in
-    let source = Document.source doc in
+    let uri = Document.uri doc in
     let edits =
-      List.map locs ~f:(fun (loc : Warnings.loc) ->
+      List.fold_left locs ~init:Uri.Map.empty ~f:(fun acc (loc : Warnings.loc) ->
         let range = Range.of_loc loc in
-        let make_edit () = TextEdit.create ~range ~newText:newName in
-        match
-          let occur_start_pos =
-            Position.of_lexical_position loc.loc_start |> Option.value_exn
-          in
-          occur_start_pos
-        with
-        | { character = 0; _ } -> make_edit ()
-        | pos ->
-          let mpos = Position.logical pos in
-          let (`Offset index) = Msource.get_offset source mpos in
-          assert (index > 0)
-          (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
-             when [character = 0] in a separate matching branch *);
-          let source_txt = Msource.text source in
-          (match source_txt.[index - 1] with
-           | '~' (* the occurrence is a named argument *)
-           | '?' (* is an optional argument *) ->
-             let empty_range_at_occur_end =
-               let occur_end_pos = range.Range.end_ in
-               { range with start = occur_end_pos }
-             in
-             TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-           | _ -> make_edit ()))
+        let edit = TextEdit.create ~range ~newText:newName in
+        let uri =
+          match loc.loc_start.pos_fname with
+          | "" -> uri
+          | path -> Uri.of_path path
+        in
+        Uri.Map.add_to_list uri edit acc)
+    in
+    let edits =
+      Uri.Map.mapi
+        (fun doc_uri edits ->
+           let source =
+             match Document_store.get_opt state.store doc_uri with
+             | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
+               Document.source doc
+             | Some _ | None ->
+               let source_path = Uri.to_path doc_uri in
+               In_channel.with_open_text source_path In_channel.input_all |> Msource.make
+           in
+           List.map edits ~f:(fun (edit : TextEdit.t) ->
+             let start_position = edit.range.start in
+             match start_position with
+             | { character = 0; _ } -> edit
+             | pos ->
+               let mpos = Position.logical pos in
+               let (`Offset index) = Msource.get_offset source mpos in
+               assert (index > 0)
+               (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
+                 when [character = 0] in a separate matching branch *);
+               let source_txt = Msource.text source in
+               (* TODO: handle record field puning *)
+               (match source_txt.[index - 1] with
+                | '~' (* the occurrence is a named argument *)
+                | '?' (* is an optional argument *) ->
+                  let empty_range_at_occur_end =
+                    let occur_end_pos = edit.range.end_ in
+                    { edit.range with start = occur_end_pos }
+                  in
+                  TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
+                | _ -> edit)))
+        edits
     in
     let workspace_edits =
       let documentChanges =
@@ -53,15 +70,19 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
       in
       if documentChanges
       then (
-        let textDocument =
-          OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+        let documentChanges =
+          Uri.Map.to_list edits
+          |> List.map ~f:(fun (uri, edits) ->
+            let textDocument =
+              OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+            in
+            let edits = List.map edits ~f:(fun e -> `TextEdit e) in
+            `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits))
         in
-        let edits = List.map edits ~f:(fun e -> `TextEdit e) in
-        WorkspaceEdit.create
-          ~documentChanges:
-            [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
-          ())
-      else WorkspaceEdit.create ~changes:[ uri, edits ] ()
+        WorkspaceEdit.create ~documentChanges ())
+      else (
+        let changes = Uri.Map.to_list edits in
+        WorkspaceEdit.create ~changes ())
     in
     workspace_edits
 ;;
