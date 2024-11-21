@@ -24,7 +24,7 @@ module Process : sig
 
   val create
     :  logger:(type_:MessageType.t -> message:string -> unit Fiber.t)
-    -> bin:Fpath.t
+    -> bin:string
     -> unit
     -> (t, [> `No_process ]) result Fiber.t
 
@@ -62,7 +62,6 @@ end = struct
   ;;
 
   let create ~logger ~bin () =
-    let bin = Fpath.to_string bin in
     let* pid, stdout, stdin =
       let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
       let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
