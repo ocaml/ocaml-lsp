@@ -6,6 +6,7 @@
   unix
   dune-build-info
   fiber
+  fs-io
   chrome-trace
   lev
   lev_fiber

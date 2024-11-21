@@ -118,7 +118,7 @@ module Poll =
         | s -> Ok (`Mtime s.st_mtime)
       ;;
 
-      let read_file s = Fiber.of_thunk (fun () -> Fiber.return (Io.read_file s))
+      let read_file s = Fiber.of_thunk (fun () -> Fiber.return (Fs_io.read_file s))
     end)
 
 type config =
