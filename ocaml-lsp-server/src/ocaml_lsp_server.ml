@@ -787,7 +787,7 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
 
 let start stream =
   let detached = Fiber.Pool.create () in
-  let server = Fdecl.create Dyn.opaque in
+  let server = Fdecl.create () in
   let store = Document_store.make server detached in
   let handler =
     let on_request = { Server.Handler.on_request } in
