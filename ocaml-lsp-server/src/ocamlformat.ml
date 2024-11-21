@@ -136,8 +136,7 @@ let formatter doc =
           | `Other -> Code_error.raise "unable to format non merlin document" []))
 ;;
 
-let exec cancel bin args stdin =
-  let refmt = Fpath.to_string bin in
+let exec cancel refmt args stdin =
   let+ res, cancel = run_command cancel refmt stdin args in
   match cancel with
   | Cancelled () ->

@@ -69,7 +69,6 @@ module Process = struct
            ~message:"dune binary not found"
            ())
     | Some prog ->
-      let prog = Fpath.to_string prog in
       let stdin_r, stdin_w = Unix.pipe () in
       let stdout_r, stdout_w = Unix.pipe () in
       Unix.set_close_on_exec stdin_w;
