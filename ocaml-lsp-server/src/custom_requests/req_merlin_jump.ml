@@ -44,12 +44,17 @@ module Jump = struct
     then None
     else
       Some
-        (`List
-          (List.map
-             ~f:(fun (target, position) ->
-               `Assoc
-                 [ "target", `String target; "position", Position.yojson_of_t position ])
-             lst))
+        (`Assoc
+          [ ( "jumps"
+            , `List
+                (List.map
+                   ~f:(fun (target, position) ->
+                     `Assoc
+                       [ "target", `String target
+                       ; "position", Position.yojson_of_t position
+                       ])
+                   lst) )
+          ])
   ;;
 end
 

@@ -43,12 +43,17 @@ match x with
   Util.test ~line ~character ~source;
   [%expect
     {|
-  [
-    { "target": "fun", "position": { "character": 0, "line": 1 } },
-    { "target": "match", "position": { "character": 0, "line": 2 } },
-    { "target": "let", "position": { "character": 0, "line": 1 } },
-    { "target": "match-next-case", "position": { "character": 2, "line": 4 } }
-  ] |}]
+  {
+    "jumps": [
+      { "target": "fun", "position": { "character": 0, "line": 1 } },
+      { "target": "match", "position": { "character": 0, "line": 2 } },
+      { "target": "let", "position": { "character": 0, "line": 1 } },
+      {
+        "target": "match-next-case",
+        "position": { "character": 2, "line": 4 }
+      }
+    ]
+  } |}]
 ;;
 
 let%expect_test "Get location of a the module" =
@@ -75,9 +80,12 @@ end|}
   let line = 10 in
   let character = 3 in
   Util.test ~line ~character ~source;
-  [%expect
-    {|
-  [ { "target": "module", "position": { "character": 2, "line": 7 } } ] |}]
+  [%expect {|
+  {
+    "jumps": [
+      { "target": "module", "position": { "character": 2, "line": 7 } }
+    ]
+  } |}]
 ;;
 
 let%expect_test "Same line should output no locations" =
