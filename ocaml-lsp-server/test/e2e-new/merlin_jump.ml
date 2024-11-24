@@ -2,11 +2,10 @@ open Test.Import
 module Req = Ocaml_lsp_server.Custom_request.Merlin_jump
 
 module Util = struct
-  let call_jump position target client =
+  let call_jump position client =
     let uri = DocumentUri.of_path "test.ml" in
-    let text_document = TextDocumentIdentifier.create ~uri in
     let params =
-      Req.Request_params.create ~text_document ~position ~target ()
+      Req.Request_params.create ~uri ~position
       |> Req.Request_params.yojson_of_t
       |> Jsonrpc.Structured.t_of_yojson
       |> Option.some
@@ -15,11 +14,11 @@ module Util = struct
     Client.request client req
   ;;
 
-  let test ~line ~character ~target ~source =
+  let test ~line ~character ~source =
     let position = Position.create ~character ~line in
     let request client =
       let open Fiber.O in
-      let+ response = call_jump position target client in
+      let+ response = call_jump position client in
       Test.print_result response
     in
     Helpers.test source request
@@ -41,14 +40,15 @@ match x with
   in
   let line = 3 in
   let character = 2 in
-  let target = "match-next-case" in
-  Util.test ~line ~character ~target ~source;
+  Util.test ~line ~character ~source;
   [%expect
     {|
-  {
-    "position": { "character": 2, "line": 4 },
-    "textDocument": { "uri": "file:///test.ml" }
-  } |}]
+  [
+    { "target": "fun", "position": { "character": 0, "line": 1 } },
+    { "target": "match", "position": { "character": 0, "line": 2 } },
+    { "target": "let", "position": { "character": 0, "line": 1 } },
+    { "target": "match-next-case", "position": { "character": 2, "line": 4 } }
+  ] |}]
 ;;
 
 let%expect_test "Get location of a the module" =
@@ -74,21 +74,16 @@ end|}
   in
   let line = 10 in
   let character = 3 in
-  let target = "module" in
-  Util.test ~line ~character ~target ~source;
+  Util.test ~line ~character ~source;
   [%expect
     {|
-  {
-    "position": { "character": 2, "line": 7 },
-    "textDocument": { "uri": "file:///test.ml" }
-  } |}]
+  [ { "target": "module", "position": { "character": 2, "line": 7 } } ] |}]
 ;;
 
 let%expect_test "Same line should output no locations" =
   let source = {|let x = 5 |} in
   let line = 1 in
   let character = 5 in
-  let target = "let" in
-  Util.test ~line ~character ~target ~source;
-  [%expect {| "No matching target" |}]
+  Util.test ~line ~character ~source;
+  [%expect {| null |}]
 ;;

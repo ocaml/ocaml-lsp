@@ -20,24 +20,22 @@ export interface JumpParams extends TextDocumentPositionParams
 
 - method: `ocamllsp/merlinJump`
 - params:
-    - `TextDocumentIdentifier`: Specifies the document for which the request is sent. It includes a uri property that points to the document.
+    - `TextDocument`: Specifies the document for which the request is sent. It includes a uri property that points to the document.
     - `Position`: Specifies the position in the document for which the documentation is requested. It includes line and character properties.
-    More details can be found in the [TextDocumentPositionParams - LSP Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentPositionParams).
-    - `Target`: A string representing the identifier within the document to search for and jump to.
-                The target can be any of `fun`, `let`, `module`, `module-type`, `match`, `match-next-case`, `match-prev-case`.
+    More details can be found in the [Position - LSP Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#position) and [TextDocument](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentIdentifier)
 
 ## Response
 
 ```js
-result: Jump | String
+result: Some Jump list | None
 export interface Jump extends TextDocumentPositionParams {
 }
 ```
 
 - result:
-    - Type: Jump or string
-    - Description: If the jump is successful, a position and document path is returned. If no relevant jump location is found, the result will be a string "no matching target" or an error message.
+    - Type: Some Jump list or None
+    - Description: All succesful jumps are accumulated in a list of (`target`,`position`) and returned or `None` indicating no valid targets.
     - Jump:
-        - Type: TextDocumentPositionParams
-            - `Position`: The position to jump to
-            - `TextDocumentIdentifier`: the document path which contains this position (ideally the same document as the request)
+        - Type:
+            - `Position`: The position to jump to.
+            - `target`: The target which corresponds to this jump.
