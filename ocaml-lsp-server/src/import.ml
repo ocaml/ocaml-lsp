@@ -6,8 +6,6 @@ include struct
   module Code_error = Code_error
   module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
-  module Fdecl = Fdecl
-  module Fpath = Path
   module Int = Int
   module Table = Table
   module Tuple = Tuple
@@ -212,6 +210,7 @@ module Format = Merlin_utils.Std.Format
 include struct
   open Lsp_fiber
   module Log = Private.Log
+  module Fdecl = Private.Fdecl
   module Reply = Rpc.Reply
   module Server = Server
   module Lazy_fiber = Lsp_fiber.Lazy_fiber

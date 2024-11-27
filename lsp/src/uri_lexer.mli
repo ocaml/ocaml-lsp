@@ -3,6 +3,7 @@ type t =
   ; authority : string
   ; path : string
   ; query : string option
+  ; fragment : string option
   }
 
 val of_string : string -> t

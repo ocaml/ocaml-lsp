@@ -110,13 +110,16 @@ let compute server (params : CodeActionParams.t) =
   match doc with
   | None -> Fiber.return (Reply.now (actions dune_actions), state)
   | Some doc ->
-    let open_related =
-      let capabilities =
-        let open Option.O in
-        let* window = (State.client_capabilities state).window in
-        window.showDocument
-      in
-      Action_open_related.for_uri capabilities doc
+    let capabilities =
+      let open Option.O in
+      let* window = (State.client_capabilities state).window in
+      window.showDocument
+    in
+    let open_related = Action_open_related.for_uri capabilities doc in
+    let* merlin_jumps =
+      match state.configuration.data.merlin_jump_code_actions with
+      | Some { enable = true } | None -> Action_jump.code_actions doc params capabilities
+      | Some { enable = false } -> Fiber.return []
     in
     (match Document.syntax doc with
      | Ocamllex | Menhir | Cram | Dune ->
@@ -124,7 +127,8 @@ let compute server (params : CodeActionParams.t) =
      | Ocaml | Reason ->
        let reply () =
          let+ code_action_results = compute_ocaml_code_actions params state doc in
-         List.concat [ code_action_results; dune_actions; open_related ] |> actions
+         List.concat [ code_action_results; dune_actions; open_related; merlin_jumps ]
+         |> actions
        in
        let later f =
          Fiber.return

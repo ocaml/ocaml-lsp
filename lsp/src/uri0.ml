@@ -14,9 +14,11 @@ type t = Uri_lexer.t =
   ; authority : string
   ; path : string
   ; query : string option
+  ; fragment : string option
   }
 
 let query t = t.query
+let fragment t = t.fragment
 
 let backslash_to_slash =
   String.map ~f:(function
@@ -35,7 +37,7 @@ let of_path path =
   Uri_lexer.of_path path
 ;;
 
-let to_path { path; authority; scheme; query } =
+let to_path { path; authority; scheme; query; _ } =
   let path =
     let len = String.length path in
     if len = 0
@@ -104,7 +106,7 @@ let encode ?(allow_slash = false) s =
   Buffer.contents buf
 ;;
 
-let to_string { scheme; authority; path; query } =
+let to_string { scheme; authority; path; query; fragment } =
   let buff = Buffer.create 64 in
   if not (String.is_empty scheme)
   then (
@@ -147,6 +149,11 @@ let to_string { scheme; authority; path; query } =
    | Some q ->
      Buffer.add_char buff '?';
      Buffer.add_string buff (encode q));
+  (match fragment with
+   | None -> ()
+   | Some f ->
+     Buffer.add_char buff '#';
+     Buffer.add_string buff (encode f));
   Buffer.contents buff
 ;;
 

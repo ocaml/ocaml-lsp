@@ -95,6 +95,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_merlin_call_compatible.capability
               ; Req_type_enclosing.capability
               ; Req_get_documentation.capability
+              ; Req_construct.capability
+              ; Req_type_search.capability
               ; Req_merlin_jump.capability
               ] )
         ]
@@ -108,6 +110,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
         then
           view_metrics_command_name
           :: Action_open_related.command_name
+          :: Action_jump.command_name
           :: Document_text_command.command_name
           :: Merlin_config_command.command_name
           :: Dune.commands
@@ -386,41 +389,27 @@ let selection_range
   match Document.kind doc with
   | `Other -> Fiber.return []
   | `Merlin merlin ->
-    let selection_range_of_shapes
-      (cursor_position : Position.t)
-      (shapes : Query_protocol.shape list)
+    let selection_range_of_enclosings (enclosings : Warnings.loc list)
       : SelectionRange.t option
       =
-      let rec ranges_of_shape parent (s : Query_protocol.shape) =
-        let selectionRange =
-          let range = Range.of_loc s.shape_loc in
-          { SelectionRange.range; parent }
-        in
-        match s.shape_sub with
-        | [] -> [ selectionRange ]
-        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
+      let ranges_of_enclosing parent (enclosing : Warnings.loc) =
+        let range = Range.of_loc enclosing in
+        { SelectionRange.range; parent }
       in
-      (* try to find the nearest range inside first, then outside *)
-      let nearest_range =
-        let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
-        List.min ranges ~f:(fun r1 r2 ->
-          let inc (r : SelectionRange.t) =
-            Position.compare_inclusion cursor_position r.range
-          in
-          match inc r1, inc r2 with
-          | `Outside x, `Outside y -> Position.compare x y
-          | `Outside _, `Inside -> Gt
-          | `Inside, `Outside _ -> Lt
-          | `Inside, `Inside -> Range.compare_size r1.range r2.range)
-      in
-      nearest_range
+      List.fold_left
+        ~f:(fun parent enclosing -> Some (ranges_of_enclosing parent enclosing))
+        ~init:None
+      @@ List.rev enclosings
     in
     let+ ranges =
       Fiber.sequential_map positions ~f:(fun x ->
-        let+ shapes =
-          Document.Merlin.dispatch_exn ~name:"shape" merlin (Shape (Position.logical x))
+        let+ enclosings =
+          Document.Merlin.dispatch_exn
+            ~name:"shape"
+            merlin
+            (Enclosing (Position.logical x))
         in
-        selection_range_of_shapes x shapes)
+        selection_range_of_enclosings enclosings)
     in
     List.filter_opt ranges
 ;;
@@ -540,6 +529,8 @@ let on_request
        ; Req_get_documentation.meth, Req_get_documentation.on_request
        ; Req_merlin_jump.meth, Req_merlin_jump.on_request
        ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
+       ; Req_type_search.meth, Req_type_search.on_request
+       ; Req_construct.meth, Req_construct.on_request
        ; ( Semantic_highlighting.Debug.meth_request_full
          , Semantic_highlighting.Debug.on_request_full )
        ; ( Req_hover_extended.meth
@@ -594,6 +585,8 @@ let on_request
     else if String.equal command.command Action_open_related.command_name
     then
       later (fun _state server -> Action_open_related.command_run server command) server
+    else if String.equal command.command Action_jump.command_name
+    then later (fun _state server -> Action_jump.command_run server command) server
     else
       later
         (fun state () ->
@@ -796,7 +789,7 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
 
 let start stream =
   let detached = Fiber.Pool.create () in
-  let server = Fdecl.create Dyn.opaque in
+  let server = Fdecl.create () in
   let store = Document_store.make server detached in
   let handler =
     let on_request = { Server.Handler.on_request } in

@@ -42,5 +42,12 @@ interface config {
   * @since 1.18
   */
   syntaxDocumentation: { enable : boolean }
+
+  /**
+  * Enable/Disable Merlin Jump code actions
+  * @default true
+  * @since 1.19
+  */
+  merlinJumpCodeActions: { enable : boolean }
 }
 ```

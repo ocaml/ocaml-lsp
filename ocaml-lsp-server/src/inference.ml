@@ -126,23 +126,10 @@ let infer_intf (state : State.t) intf_doc =
 (** Extracts an [Ident.t] from all variants that have one at the top level. For
     many of the other variants, it would be possible to extract a list of IDs,
     but that's not needed for the update-signatures code action. *)
-let top_level_id (item : Typedtree.signature_item) =
-  match item.sig_desc with
-  | Typedtree.Tsig_value { val_id; _ } -> Some val_id
-  | Typedtree.Tsig_module { md_id; _ } -> md_id
-  | Typedtree.Tsig_modsubst { ms_id; _ } -> Some ms_id
-  | Typedtree.Tsig_modtype { mtd_id; _ } -> Some mtd_id
-  | Typedtree.Tsig_modtypesubst { mtd_id; _ } -> Some mtd_id
-  | Typedtree.Tsig_type _
-  | Typedtree.Tsig_typesubst _
-  | Typedtree.Tsig_typext _
-  | Typedtree.Tsig_exception _
-  | Typedtree.Tsig_recmodule _
-  | Typedtree.Tsig_open _
-  | Typedtree.Tsig_include _
-  | Typedtree.Tsig_class _
-  | Typedtree.Tsig_class_type _
-  | Typedtree.Tsig_attribute _ -> None
+let top_level_id item =
+  match Merlin_analysis.Typedtree_utils.extract_toplevel_identifier item with
+  | [ ident ] -> Some ident
+  | _ -> None
 ;;
 
 (** Represents an item that's present in the existing interface and has a
