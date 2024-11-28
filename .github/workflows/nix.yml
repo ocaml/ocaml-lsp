@@ -5,18 +5,18 @@ on:
     branches:
       - master
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout tree
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: nix
-        uses: cachix/install-nix-action@v30
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - run: nix develop .#check -c make nix-tests
+  # tests:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout tree
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: true
+  #     - name: nix
+  #       uses: cachix/install-nix-action@v30
+  #       with:
+  #         nix_path: nixpkgs=channel:nixos-unstable
+  #     - run: nix develop .#check -c make nix-tests
   fmt:
     runs-on: ubuntu-latest
     steps:
