@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - 414-LTS
   schedule:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
@@ -22,9 +22,6 @@ jobs:
           - windows-latest
         ocaml-compiler:
           - "4.14"
-        include:
-          - os: ubuntu-latest
-            ocaml-compiler: 5.1.x
 
     runs-on: ${{ matrix.os }}
 

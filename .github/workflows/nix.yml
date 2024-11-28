@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - 414-LTS
 jobs:
   # tests:
   #   runs-on: ubuntu-latest
