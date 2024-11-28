@@ -55,21 +55,21 @@ possible and does not make any assumptions about IO.
   dyn
   stdune
   (fiber (and (>= 3.1.1) (< 4.0.0)))
-  (ocaml (>= 5.2.0))
+  (ocaml (and (>= 4.14.0) (< 5.0)))
   xdg
   ordering
   dune-build-info
   spawn
   astring
   camlp-streams
-  (ppx_expect (and (>= v0.17.0) :with-test))
+  (ppx_expect (and (< v0.17.0) :with-test))
   (ocamlformat (and :with-test (= 0.26.2)))
   (ocamlc-loc (>= 3.7.0))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (merlin-lib (and (>= 5.2) (< 6.0)))))
+  (merlin-lib (and (>= 4.18) (< 5.0)))))
 
 (package
  (name jsonrpc)
