@@ -61,9 +61,7 @@ jobs:
       - name: Build and install dependencies
         run: opam install .
 
-      # the makefile explains why we don't use --with-test
-      # ppx expect is not yet compatible with 5.1 and test output vary from one
-      # compiler to another. We only test on 4.14.
+      # the makefile explains why we don't use test dependencies
       - name: Install test dependencies
         if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make install-test-deps
