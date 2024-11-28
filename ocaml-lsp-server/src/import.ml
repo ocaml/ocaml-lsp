@@ -193,7 +193,6 @@ end
 include struct
   open Merlin_kernel
   module Mconfig = Mconfig
-  module Mconfig_dot = Mconfig_dot
   module Msource = Msource
   module Mbrowse = Mbrowse
   module Mpipeline = Mpipeline

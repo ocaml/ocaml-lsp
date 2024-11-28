@@ -21,8 +21,10 @@ jobs:
           - macos-latest
           - windows-latest
         ocaml-compiler:
-          - "5.2"
-
+          - "4.14"
+        include:
+          - os: ubuntu-latest
+            ocaml-compiler: 5.1.x
 
     runs-on: ${{ matrix.os }}
 
@@ -63,15 +65,19 @@ jobs:
       # ppx expect is not yet compatible with 5.1 and test output vary from one
       # compiler to another. We only test on 4.14.
       - name: Install test dependencies
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make install-test-deps
 
       - name: Run build @all
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make all
 
       - name: Run the unit tests
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make test-ocaml
 
       - name: Run the template integration tests
+        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make test-e2e
 
   coverage:
@@ -86,7 +92,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: "5.2"
+          ocaml-compiler: "4.14"
           allow-prerelease-opam: true
 
       - name: Set git user

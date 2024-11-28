@@ -196,6 +196,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_extension _
       | Pexp_let _
       | Pexp_open _
+      | Pexp_fun _
       | Pexp_poly _
       | Pexp_sequence _
       | Pexp_constraint _

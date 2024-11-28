@@ -61,7 +61,7 @@ Array [
                   "line": 3,
                 },
                 "start": Object {
-                  "character": 0,
+                  "character": 10,
                   "line": 0,
                 },
               },
@@ -72,7 +72,7 @@ Array [
                 "line": 3,
               },
               "start": Object {
-                "character": 8,
+                "character": 10,
                 "line": 0,
               },
             },
