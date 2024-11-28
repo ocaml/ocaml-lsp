@@ -6,36 +6,49 @@ This custom request allows Merlin-type code navigation in a source buffer.
 
 ## Server capability
 
-- propert name: `handleMerlinJump`
+- propert name: `handleJump`
 - property type: `boolean`
 
 ## Request
 
+- method: `ocamllsp/jump`
+- params: `JumpParams`  extends [TextDocumentPositionParams](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentPositionParams) and is defined as follows:
+
 ```js
 export interface JumpParams extends TextDocumentPositionParams
 {
-    target: string;
+	/**
+	 * The requested target of the jump, one of `fun`, `let`, `module`,
+     * `module-type`, `match`, `match-next-case`, `match-prev-case`.
+     *
+     * If omitted, all valid targets will be considered.
+	 */
+    target?: string;
 }
 ```
-
-- method: `ocamllsp/merlinJump`
-- params:
-    - `TextDocument`: Specifies the document for which the request is sent. It includes a uri property that points to the document.
-    - `Position`: Specifies the position in the document for which the documentation is requested. It includes line and character properties.
-    More details can be found in the [Position - LSP Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#position) and [TextDocument](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentIdentifier)
 
 ## Response
 
+- result: `Jump`
+
 ```js
-result: Some Jump list | None
-export interface Jump extends TextDocumentPositionParams {
+
+export interface TargetPosition {
+    /**
+     * The target's kind.
+     */
+    target: string;
+
+    /**
+     * The corresponding position in the request's document.
+     */
+    position: Position;
+}
+
+export interface Jump {
+    /**
+     * The list of possible targets to jump-to.
+     */
+    jumps: TargetPosition[]
 }
 ```
-
-- result:
-    - Type: Some Jump list or None
-    - Description: All succesful jumps are accumulated in a list of (`target`,`position`) and returned or `None` indicating no valid targets.
-    - Jump:
-        - Type:
-            - `Position`: The position to jump to.
-            - `target`: The target which corresponds to this jump.
