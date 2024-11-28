@@ -419,7 +419,7 @@ let references (state : State.t) { ReferenceParams.textDocument = { uri }; posit
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc ->
-    let+ locs =
+    let+ locs, _status =
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         doc
@@ -441,7 +441,7 @@ let highlight
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m ->
-    let+ locs =
+    let+ locs, _status =
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         m
@@ -628,7 +628,7 @@ let on_request
         match Document.kind doc with
         | `Other -> Fiber.return None
         | `Merlin doc ->
-          let+ locs =
+          let+ locs, _status =
             Document.Merlin.dispatch_exn
               ~name:"occurrences"
               doc
