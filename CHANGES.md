@@ -5,6 +5,8 @@
 
 - Make MerlinJump code action configurable (#1376)
 
+- Add custom [`ocamllsp/jump`](/ocaml-lsp-server/docs/ocamllsp/merlinJump-spec.md) request (#1374)
+
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)
