@@ -17,12 +17,12 @@ This custom request allows Merlin-type code navigation in a source buffer.
 ```js
 export interface JumpParams extends TextDocumentPositionParams
 {
-	/**
-	 * The requested target of the jump, one of `fun`, `let`, `module`,
+    /**
+     * The requested target of the jump, one of `fun`, `let`, `module`,
      * `module-type`, `match`, `match-next-case`, `match-prev-case`.
      *
      * If omitted, all valid targets will be considered.
-	 */
+     */
     target?: string;
 }
 ```
