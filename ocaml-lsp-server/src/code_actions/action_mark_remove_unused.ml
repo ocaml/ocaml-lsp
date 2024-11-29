@@ -73,7 +73,7 @@ let rec mark_value_unused_edit name contexts =
         pats
         ~f:
           (function
-           | { loc = field_loc; _ }, _, { pat_desc = Tpat_var (ident, _, _); pat_loc; _ }
+           | { loc = field_loc; _ }, _, { pat_desc = Tpat_var (ident, _); pat_loc; _ }
              when Ident.name ident = name ->
              (* Special case for record shorthand *)
              if field_loc.loc_start = pat_loc.loc_start
@@ -95,7 +95,7 @@ let rec mark_value_unused_edit name contexts =
     (match m_field_edit with
      | Some e -> Some e
      | None -> mark_value_unused_edit name cs)
-  | Pattern { pat_desc = Tpat_var (ident, _, _); pat_loc = loc; _ } :: _ ->
+  | Pattern { pat_desc = Tpat_var (ident, _); pat_loc = loc; _ } :: _ ->
     if Ident.name ident = name
     then
       let+ start = Position.of_lexical_position loc.loc_start in
@@ -130,7 +130,7 @@ let enclosing_value_binding_range name =
         { exp_desc =
             Texp_let
               ( _
-              , [ { vb_pat = { pat_desc = Tpat_var (_, { txt = name'; _ }, _); _ }; _ } ]
+              , [ { vb_pat = { pat_desc = Tpat_var (_, { txt = name'; _ }); _ }; _ } ]
               , { exp_loc = { loc_start = let_end; _ }; _ } )
         ; exp_loc = { loc_start = let_start; _ }
         ; _

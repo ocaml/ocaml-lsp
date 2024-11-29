@@ -15,7 +15,7 @@
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
   base
-  ppx_expect
+  ppx_expect.common
   ppx_expect.config
   ppx_expect.config_types
   ppx_inline_test.config)

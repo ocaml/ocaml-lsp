@@ -57,8 +57,8 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": {
           "kind": "markdown",
@@ -71,8 +71,8 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": {
           "kind": "markdown",
@@ -110,8 +110,8 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": null,
         "cost": 4,
@@ -121,8 +121,8 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": null,
         "cost": 4,
@@ -156,8 +156,8 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": null,
         "cost": 0,
@@ -167,8 +167,8 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": null,
         "cost": 0,
@@ -205,8 +205,8 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": {
           "kind": "plaintext",
@@ -219,8 +219,8 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 749 },
+          "start": { "character": 0, "line": 749 }
         },
         "doc": {
           "kind": "plaintext",

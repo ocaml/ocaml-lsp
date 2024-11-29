@@ -55,13 +55,25 @@ Array [
         "parent": Object {
           "parent": Object {
             "parent": Object {
+              "parent": Object {
+                "range": Object {
+                  "end": Object {
+                    "character": 17,
+                    "line": 3,
+                  },
+                  "start": Object {
+                    "character": 0,
+                    "line": 0,
+                  },
+                },
+              },
               "range": Object {
                 "end": Object {
                   "character": 17,
                   "line": 3,
                 },
                 "start": Object {
-                  "character": 0,
+                  "character": 8,
                   "line": 0,
                 },
               },
@@ -72,7 +84,7 @@ Array [
                 "line": 3,
               },
               "start": Object {
-                "character": 8,
+                "character": 10,
                 "line": 0,
               },
             },
@@ -146,6 +158,18 @@ Array [
           "parent": Object {
             "parent": Object {
               "parent": Object {
+                "parent": Object {
+                  "range": Object {
+                    "end": Object {
+                      "character": 3,
+                      "line": 6,
+                    },
+                    "start": Object {
+                      "character": 0,
+                      "line": 0,
+                    },
+                  },
+                },
                 "range": Object {
                   "end": Object {
                     "character": 3,
@@ -153,7 +177,7 @@ Array [
                   },
                   "start": Object {
                     "character": 0,
-                    "line": 0,
+                    "line": 3,
                   },
                 },
               },
@@ -163,19 +187,19 @@ Array [
                   "line": 6,
                 },
                 "start": Object {
-                  "character": 0,
+                  "character": 11,
                   "line": 3,
                 },
               },
             },
             "range": Object {
               "end": Object {
-                "character": 3,
-                "line": 6,
+                "character": 24,
+                "line": 5,
               },
               "start": Object {
-                "character": 11,
-                "line": 3,
+                "character": 2,
+                "line": 4,
               },
             },
           },
@@ -186,7 +210,7 @@ Array [
             },
             "start": Object {
               "character": 2,
-              "line": 4,
+              "line": 5,
             },
           },
         },
@@ -196,7 +220,7 @@ Array [
             "line": 5,
           },
           "start": Object {
-            "character": 2,
+            "character": 8,
             "line": 5,
           },
         },
@@ -207,7 +231,7 @@ Array [
           "line": 5,
         },
         "start": Object {
-          "character": 8,
+          "character": 9,
           "line": 5,
         },
       },
@@ -245,36 +269,48 @@ Array [
               "parent": Object {
                 "parent": Object {
                   "parent": Object {
+                    "parent": Object {
+                      "range": Object {
+                        "end": Object {
+                          "character": 4,
+                          "line": 3,
+                        },
+                        "start": Object {
+                          "character": 0,
+                          "line": 0,
+                        },
+                      },
+                    },
                     "range": Object {
                       "end": Object {
                         "character": 4,
                         "line": 3,
                       },
                       "start": Object {
-                        "character": 0,
+                        "character": 11,
                         "line": 0,
                       },
                     },
                   },
                   "range": Object {
                     "end": Object {
-                      "character": 4,
+                      "character": 3,
                       "line": 3,
                     },
                     "start": Object {
-                      "character": 11,
+                      "character": 21,
                       "line": 0,
                     },
                   },
                 },
                 "range": Object {
                   "end": Object {
-                    "character": 3,
-                    "line": 3,
+                    "character": 39,
+                    "line": 2,
                   },
                   "start": Object {
-                    "character": 21,
-                    "line": 0,
+                    "character": 2,
+                    "line": 1,
                   },
                 },
               },
@@ -285,7 +321,7 @@ Array [
                 },
                 "start": Object {
                   "character": 2,
-                  "line": 1,
+                  "line": 2,
                 },
               },
             },
@@ -295,7 +331,7 @@ Array [
                 "line": 2,
               },
               "start": Object {
-                "character": 2,
+                "character": 14,
                 "line": 2,
               },
             },
@@ -306,7 +342,7 @@ Array [
               "line": 2,
             },
             "start": Object {
-              "character": 14,
+              "character": 16,
               "line": 2,
             },
           },

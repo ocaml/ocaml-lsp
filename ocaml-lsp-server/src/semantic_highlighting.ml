@@ -386,15 +386,13 @@ end = struct
           add_token tp.loc (Token_type.of_builtin TypeParameter) Token_modifiers_set.empty);
         self.typ self ct;
         `Custom_iterator
-      | Ptyp_any -> `Custom_iterator
       | Ptyp_variant (_, _, _)
       | Ptyp_alias (_, _)
-      | Ptyp_arrow _
-      | Ptyp_extension _
-      | Ptyp_package _
-      | Ptyp_object _
-      | Ptyp_tuple _
-      | Ptyp_open _ -> `Default_iterator
+      | Ptyp_arrow _ | Ptyp_extension _ | Ptyp_package _ | Ptyp_object _ | Ptyp_tuple _ ->
+        `Default_iterator
+      | Ptyp_any ->
+        ();
+        `Custom_iterator
     in
     match iter with
     | `Default_iterator -> Ast_iterator.default_iterator.typ self ct
@@ -429,13 +427,13 @@ end = struct
 
   let value_binding
     (self : Ast_iterator.iterator)
-    ({ pvb_pat; pvb_expr; pvb_attributes; _ } as vb : Parsetree.value_binding)
+    ({ pvb_pat; pvb_expr; pvb_attributes; pvb_loc = _ } as vb : Parsetree.value_binding)
     =
     match
       match pvb_pat.ppat_desc, pvb_expr.pexp_desc with
       | Parsetree.Ppat_var fn_name, _ ->
         (match pvb_expr.pexp_desc with
-         | Pexp_function _ ->
+         | Pexp_fun _ | Pexp_function _ ->
            add_token
              fn_name.loc
              (Token_type.of_builtin Function)
@@ -569,6 +567,19 @@ end = struct
         `Custom_iterator
       | Pexp_apply (expr, args) -> pexp_apply self expr args
       | Pexp_function _ | Pexp_let (_, _, _) -> `Default_iterator
+      | Pexp_fun (_, expr_opt, pat, expr) ->
+        (match expr_opt with
+         | None -> self.pat self pat
+         | Some e ->
+           if Loc.compare e.pexp_loc pat.ppat_loc < 0
+           then (
+             self.expr self e;
+             self.pat self pat)
+           else (
+             self.pat self pat;
+             self.expr self e));
+        self.expr self expr;
+        `Custom_iterator
       | Pexp_try (_, _)
       | Pexp_tuple _
       | Pexp_variant (_, _)
@@ -635,7 +646,6 @@ end = struct
             then self.expr self pbop_exp);
         self.expr self body;
         `Custom_iterator
-      | Pexp_unreachable -> `Custom_iterator
       | Pexp_array _
       | Pexp_ifthenelse (_, _, _)
       | Pexp_while (_, _)
@@ -649,6 +659,7 @@ end = struct
       | Pexp_object _ | Pexp_pack _
       | Pexp_open (_, _)
       | Pexp_extension _ -> `Default_iterator
+      | Pexp_unreachable -> `Custom_iterator
     with
     | `Default_iterator -> Ast_iterator.default_iterator.expr self exp
     | `Custom_iterator -> self.attributes self pexp_attributes
@@ -751,10 +762,7 @@ end = struct
           self.module_type self mt);
         `Custom_iterator
       | Pmod_extension _ -> `Custom_iterator
-      | _ ->
-        (* We rely on the wildcard pattern to improve compatibility with
-           multiple OCaml's parsetree versions *)
-        `Default_iterator
+      | Pmod_unpack _ | Pmod_apply (_, _) | Pmod_structure _ -> `Default_iterator
     with
     | `Custom_iterator -> self.attributes self pmod_attributes
     | `Default_iterator -> Ast_iterator.default_iterator.module_expr self me
@@ -787,8 +795,7 @@ end = struct
        | Ptyp_alias (_, _)
        | Ptyp_variant (_, _, _)
        | Ptyp_poly (_, _)
-       | Ptyp_tuple _ | Ptyp_any | Ptyp_var _ | Ptyp_open _ ->
-         Token_type.of_builtin Variable)
+       | Ptyp_tuple _ | Ptyp_any | Ptyp_var _ -> Token_type.of_builtin Variable)
       (Token_modifiers_set.singleton Declaration);
     self.typ self pval_type;
     (* TODO: handle pval_prim ? *)

@@ -27,6 +27,7 @@
 
 open Import
 open Fiber.O
+open Merlin_kernel
 module Std = Merlin_utils.Std
 module Misc = Merlin_utils.Misc
 

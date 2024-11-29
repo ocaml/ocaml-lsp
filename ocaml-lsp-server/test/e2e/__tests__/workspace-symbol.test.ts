@@ -114,6 +114,7 @@ describe("workspace/symbol", () => {
         "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
         "main_y 12 /workspace_symbol_A/bin/main.ml 0:0 0:22",
         "vendored_x 12 /workspace_symbol_A/lib/lib.ml 14:0 14:31",
+        "lib_type 12 /workspace_symbol_A/lib/lib.ml 12:0 12:38",
         "lib_private_fn 12 /workspace_symbol_A/lib/lib.ml 10:0 10:38",
         "hd 12 /workspace_symbol_A/lib/lib.ml 8:0 8:16",
         "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",
@@ -160,7 +161,7 @@ describe("workspace/symbol", () => {
     let symbols = await queryWorkspaceSymbol({
       query: "",
     });
-    /* FIXME: symbol lib_type from lib.ml is missing */
+
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
       Array [
         "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
@@ -193,6 +194,7 @@ describe("workspace/symbol", () => {
         "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
         "main_y 12 /workspace_symbol_A/bin/main.ml 0:0 0:22",
         "vendored_x 12 /workspace_symbol_A/lib/lib.ml 14:0 14:31",
+        "lib_type 12 /workspace_symbol_A/lib/lib.ml 12:0 12:38",
         "lib_private_fn 12 /workspace_symbol_A/lib/lib.ml 10:0 10:38",
         "hd 12 /workspace_symbol_A/lib/lib.ml 8:0 8:16",
         "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",

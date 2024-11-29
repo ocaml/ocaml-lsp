@@ -62,11 +62,11 @@ describe("textDocument/definition", () => {
     expect(result[0].range).toMatchInlineSnapshot(`
 Object {
   "end": Object {
-    "character": 5,
+    "character": 0,
     "line": 1,
   },
   "start": Object {
-    "character": 5,
+    "character": 0,
     "line": 1,
   },
 }
@@ -89,11 +89,11 @@ Object {
     expect(result[0].range).toMatchInlineSnapshot(`
 Object {
   "end": Object {
-    "character": 5,
+    "character": 0,
     "line": 1,
   },
   "start": Object {
-    "character": 5,
+    "character": 0,
     "line": 1,
   },
 }
@@ -115,11 +115,11 @@ Object {
     expect(result[0].range).toMatchInlineSnapshot(`
 Object {
   "end": Object {
-    "character": 5,
+    "character": 0,
     "line": 1,
   },
   "start": Object {
-    "character": 5,
+    "character": 0,
     "line": 1,
   },
 }
