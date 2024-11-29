@@ -133,6 +133,5 @@ let find_vowel x = ()
   let line = 1 in
   let character = 2 in
   Util.test ~line ~character ~source ~target:"notatarget" ();
-  [%expect
-    {| { "jumps": [] } |}]
+  [%expect {| { "jumps": [] } |}]
 ;;
