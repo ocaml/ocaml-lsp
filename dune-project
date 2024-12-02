@@ -45,7 +45,7 @@ possible and does not make any assumptions about IO.
  (description "An LSP server for OCaml.")
  (depends
   yojson
-  base
+  (base (>= v0.16.0))
   (lsp (= :version))
   (jsonrpc (= :version))
   (re (>= 1.5.0))
@@ -55,7 +55,7 @@ possible and does not make any assumptions about IO.
   dyn
   stdune
   (fiber (and (>= 3.1.1) (< 4.0.0)))
-  (ocaml (>= 5.2.0))
+  (ocaml (and (>= 5.2.0) (< 5.3)))
   xdg
   ordering
   dune-build-info
