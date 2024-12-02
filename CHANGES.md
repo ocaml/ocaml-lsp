@@ -1,3 +1,11 @@
+# 1.20.1
+
+## Fixes
+
+- Deactivate the `jump` code actions by default. Clients can enable them with
+  the `merlinJumpCodeActions` configuration option. Alternatively a custom
+  request is provided for ad hoc use of the feature. (#1411)
+
 # 1.20.0
 
 ## Features
