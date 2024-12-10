@@ -1,5 +1,7 @@
 open Test.Import
 
+let change_config ~client params = Client.notification client (ChangeConfiguration params)
+
 let open_document ~client ~uri ~source =
   let textDocument =
     TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source

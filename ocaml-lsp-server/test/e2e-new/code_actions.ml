@@ -1272,6 +1272,14 @@ module M : sig type t = I of int | B of bool end
     |}]
 ;;
 
+let activate_jump client =
+  let config =
+    DidChangeConfigurationParams.create
+      ~settings:(`Assoc [ "merlinJumpCodeActions", `Assoc [ "enable", `Bool true ] ])
+  in
+  change_config ~client config
+;;
+
 let%expect_test "can jump to match target" =
   let source =
     {ocaml|
@@ -1288,7 +1296,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-match");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-match");
   [%expect
     {|
     Code actions:
@@ -1327,7 +1339,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-next-case");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-next-case");
   [%expect
     {|
     Code actions:
@@ -1364,7 +1380,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-prev-case");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-prev-case");
   [%expect
     {|
     Code actions:
@@ -1401,7 +1421,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-let");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-let");
   [%expect
     {|
     Code actions:
@@ -1438,7 +1462,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-fun");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-fun");
   [%expect
     {|
     Code actions:
@@ -1476,7 +1504,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:2 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-module");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-module");
   [%expect
     {|
     Code actions:
@@ -1517,7 +1549,11 @@ let%expect_test "can jump to module-type target" =
     let end_ = Position.create ~line:4 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-module-type");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-module-type");
   [%expect
     {|
       Code actions:
@@ -1553,7 +1589,11 @@ let%expect_test "shouldn't find the jump target on the same line" =
     let end_ = Position.create ~line:0 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-fun");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-fun");
   [%expect {|
       No code actions |}]
 ;;

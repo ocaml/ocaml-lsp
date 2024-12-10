@@ -628,12 +628,15 @@ let on_request
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
-    let mode =
-      match state.configuration.data.extended_hover with
-      | Some { enable = true } -> Hover_req.Extended_variable
-      | Some _ | None -> Hover_req.Default
-    in
-    later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ()
+    (match state.configuration.data.standard_hover with
+     | Some { enable = false } -> now None
+     | Some { enable = true } | None ->
+       let mode =
+         match state.configuration.data.extended_hover with
+         | Some { enable = true } -> Hover_req.Extended_variable
+         | Some _ | None -> Hover_req.Default
+       in
+       later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ())
   | TextDocumentReferences req -> later (references rpc) req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req ->
