@@ -1,7 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("textDocument/foldingRange", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -36,70 +36,70 @@ describe("textDocument/foldingRange", () => {
 
   it("returns folding ranges for `let`", async () => {
     openDocument(outdent`
-    let a = 
-      let b = 1 
-      in 
-      let c = 
-        "foo" 
-      in 
+    let a =
+      let b = 1
+      in
+      let c =
+        "foo"
+      in
       ()
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 4,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 9,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 3,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 4,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 9,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 3,
+  },
+]
+`);
   });
 
   it("returns folding ranges for open expressions", async () => {
     openDocument(outdent`
-    open struct 
-      let u = 
+    open struct
+      let u =
         ()
     end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 5,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 6,
-          "endLine": 2,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 5,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 6,
+    "endLine": 2,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for Pexp_apply expressions", async () => {
@@ -108,23 +108,23 @@ describe("textDocument/foldingRange", () => {
     two
     three"`);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 6,
-          "endLine": 2,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 6,
+    "endLine": 2,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+]
+`);
   });
 
   it("returns folding ranges for Pexp_letop", async () => {
     openDocument(outdent`
-    let () = 
+    let () =
       let+ outline =
         Stdlib.print_endline "one";
         Stdlib.print_endline "two";
@@ -133,61 +133,61 @@ describe("textDocument/foldingRange", () => {
       Stdlib.print_endline "one";
       Stdlib.print_endline "two";`);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 29,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 5,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 29,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 5,
+  },
+]
+`);
   });
 
   it("returns folding ranges for Pexp_newtype", async () => {
     openDocument(outdent`
-    let magic_of_kind : type a . a ast_kind -> string = 
-      let () = 
+    let magic_of_kind : type a . a ast_kind -> string =
+      let () =
         Stdlib.print_endline "one";
-        Stdlib.print_endline "two" 
+        Stdlib.print_endline "two"
       in ()`);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 7,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 7,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for type_extension", async () => {
@@ -197,135 +197,135 @@ describe("textDocument/foldingRange", () => {
       | B
 
     module type Type = sig
-      type t += 
-        | A 
+      type t +=
+        | A
         | B
     end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 5,
-          "endLine": 2,
-          "kind": "region",
-          "startCharacter": 5,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 4,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 19,
-          "startLine": 4,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 7,
-          "startLine": 5,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 5,
+    "endLine": 2,
+    "kind": "region",
+    "startCharacter": 5,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 4,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 19,
+    "startLine": 4,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 7,
+    "startLine": 5,
+  },
+]
+`);
   });
 
   it("returns folding ranges for match expressions", async () => {
     openDocument(outdent`
-    match 
-      Some 
-        "large expr" 
-    with 
-    | None -> 
-      () 
-    | Some _ -> 
+    match
+      Some
+        "large expr"
+    with
+    | None ->
+      ()
+    | Some _ ->
       print_endline "foo";
       print_endline "bar"
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 21,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 4,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 4,
-        },
-        Object {
-          "endCharacter": 21,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 8,
-          "startLine": 6,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 21,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 4,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 4,
+  },
+  {
+    "endCharacter": 21,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 8,
+    "startLine": 6,
+  },
+]
+`);
   });
 
   it("returns folding ranges for records", async () => {
     openDocument(outdent`
-    type r = { 
+    type r = {
       a: string;
       b: int
     }
 
-    let f 
-          { a; 
-            b } = 
+    let f
+          { a;
+            b } =
       { a = a;
         b = b + 1 }
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 1,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 15,
-          "endLine": 9,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 5,
-        },
-        Object {
-          "endCharacter": 11,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 6,
-        },
-        Object {
-          "endCharacter": 15,
-          "endLine": 9,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 8,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 1,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 15,
+    "endLine": 9,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 5,
+  },
+  {
+    "endCharacter": 11,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 6,
+  },
+  {
+    "endCharacter": 15,
+    "endLine": 9,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 8,
+  },
+]
+`);
   });
 
   it("returns folding ranges for classes", async () => {
@@ -354,60 +354,60 @@ describe("textDocument/foldingRange", () => {
       end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 5,
-          "endLine": 21,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 21,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 6,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 21,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 7,
-        },
-        Object {
-          "endCharacter": 15,
-          "endLine": 20,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 8,
-        },
-        Object {
-          "endCharacter": 13,
-          "endLine": 18,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 9,
-        },
-        Object {
-          "endCharacter": 12,
-          "endLine": 16,
-          "kind": "region",
-          "startCharacter": 8,
-          "startLine": 12,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 5,
+    "endLine": 21,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 21,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 6,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 21,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 7,
+  },
+  {
+    "endCharacter": 15,
+    "endLine": 20,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 8,
+  },
+  {
+    "endCharacter": 13,
+    "endLine": 18,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 9,
+  },
+  {
+    "endCharacter": 12,
+    "endLine": 16,
+    "kind": "region",
+    "startCharacter": 8,
+    "startLine": 12,
+  },
+]
+`);
   });
   it("returns folding ranges Pexp_while", async () => {
     openDocument(outdent`
@@ -417,18 +417,18 @@ describe("textDocument/foldingRange", () => {
     done
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 4,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 4,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+]
+`);
   });
 
   it("returns folding ranges Pexp_for", async () => {
@@ -439,18 +439,18 @@ describe("textDocument/foldingRange", () => {
     done;
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 4,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 4,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+]
+`);
   });
 
   it("returns folding ranges Pexp_object", async () => {
@@ -462,25 +462,25 @@ describe("textDocument/foldingRange", () => {
     end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges Pexp_pack", async () => {
@@ -494,32 +494,32 @@ describe("textDocument/foldingRange", () => {
     end))
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 5,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 18,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 3,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 5,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 18,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 3,
+  },
+]
+`);
   });
 
   it("returns folding ranges Pexp_letmodule", async () => {
@@ -535,32 +535,32 @@ describe("textDocument/foldingRange", () => {
     end)
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 4,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 25,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 5,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 4,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 25,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 5,
+  },
+]
+`);
   });
 
   it("returns folding ranges for value_description", async () => {
@@ -574,32 +574,32 @@ describe("textDocument/foldingRange", () => {
     end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 14,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 20,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 14,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 20,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for Pstr_extension", async () => {
@@ -613,18 +613,18 @@ describe("textDocument/foldingRange", () => {
       |}]
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 5,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 5,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+]
+`);
   });
 
   it("traverses Pexp_lazy nodes", async () => {
@@ -639,25 +639,25 @@ describe("textDocument/foldingRange", () => {
     in
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 8,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 33,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 5,
-          "startLine": 2,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 8,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 33,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 5,
+    "startLine": 2,
+  },
+]
+`);
   });
 
   it("traverses Pexp_letexception nodes", async () => {
@@ -672,55 +672,55 @@ describe("textDocument/foldingRange", () => {
     in
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 4,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 2,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 4,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 2,
+  },
+]
+`);
   });
 
   it("traverses Pexp_sequence nodes", async () => {
     openDocument(outdent`
-    let a = 
+    let a =
       Stdlib.print_endline "";
-      let b = 
+      let b =
         5 + 3 in
       b
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 9,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 2,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 9,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 2,
+  },
+]
+`);
   });
   it("supports if/else", async () => {
     openDocument(outdent`
@@ -747,84 +747,84 @@ describe("textDocument/foldingRange", () => {
         ()
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 6,
-          "endLine": 20,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 6,
-          "endLine": 10,
-          "kind": "region",
-          "startCharacter": 5,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 2,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 6,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 14,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 12,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 18,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 16,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 6,
+    "endLine": 20,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 6,
+    "endLine": 10,
+    "kind": "region",
+    "startCharacter": 5,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 2,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 6,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 14,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 12,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 18,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 16,
+  },
+]
+`);
   });
 
   it("supports return type annotation", async () => {
     openDocument(outdent`
-    let fn a b : int = 
-      let result = 
+    let fn a b : int =
+      let result =
         Stdlib.print_endline "";
-        a + b 
+        a + b
       in
       result
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 8,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 9,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 8,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 9,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for try/with", async () => {
@@ -845,46 +845,46 @@ describe("textDocument/foldingRange", () => {
         None
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 8,
-          "endLine": 13,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 8,
-          "endLine": 13,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 2,
-        },
-        Object {
-          "endCharacter": 8,
-          "endLine": 13,
-          "kind": "region",
-          "startCharacter": 13,
-          "startLine": 8,
-        },
-        Object {
-          "endCharacter": 29,
-          "endLine": 11,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 9,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 8,
+    "endLine": 13,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 8,
+    "endLine": 13,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 2,
+  },
+  {
+    "endCharacter": 8,
+    "endLine": 13,
+    "kind": "region",
+    "startCharacter": 13,
+    "startLine": 8,
+  },
+  {
+    "endCharacter": 29,
+    "endLine": 11,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 9,
+  },
+]
+`);
   });
 
   it("traverses Pexp_construct", async () => {
@@ -899,25 +899,25 @@ describe("textDocument/foldingRange", () => {
          5)
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 7,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 5,
-          "startLine": 2,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 7,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 5,
+    "startLine": 2,
+  },
+]
+`);
   });
 
   it("returns folding ranges for modules", async () => {
@@ -981,158 +981,158 @@ describe("textDocument/foldingRange", () => {
           end
         `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 16,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 56,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 7,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 56,
-          "kind": "region",
-          "startCharacter": 11,
-          "startLine": 7,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 18,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 8,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 18,
-          "kind": "region",
-          "startCharacter": 18,
-          "startLine": 8,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 14,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 9,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 14,
-          "kind": "region",
-          "startCharacter": 16,
-          "startLine": 9,
-        },
-        Object {
-          "endCharacter": 11,
-          "endLine": 13,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 10,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 31,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 20,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 31,
-          "kind": "region",
-          "startCharacter": 13,
-          "startLine": 20,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 30,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 21,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 30,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 22,
-        },
-        Object {
-          "endCharacter": 31,
-          "endLine": 26,
-          "kind": "region",
-          "startCharacter": 12,
-          "startLine": 23,
-        },
-        Object {
-          "endCharacter": 30,
-          "endLine": 30,
-          "kind": "region",
-          "startCharacter": 14,
-          "startLine": 27,
-        },
-        Object {
-          "endCharacter": 9,
-          "endLine": 55,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 33,
-        },
-        Object {
-          "endCharacter": 11,
-          "endLine": 53,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 34,
-        },
-        Object {
-          "endCharacter": 10,
-          "endLine": 42,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 38,
-        },
-        Object {
-          "endCharacter": 25,
-          "endLine": 47,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 45,
-        },
-        Object {
-          "endCharacter": 11,
-          "endLine": 53,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 49,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 16,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 56,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 7,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 56,
+    "kind": "region",
+    "startCharacter": 11,
+    "startLine": 7,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 18,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 8,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 18,
+    "kind": "region",
+    "startCharacter": 18,
+    "startLine": 8,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 14,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 9,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 14,
+    "kind": "region",
+    "startCharacter": 16,
+    "startLine": 9,
+  },
+  {
+    "endCharacter": 11,
+    "endLine": 13,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 10,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 31,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 20,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 31,
+    "kind": "region",
+    "startCharacter": 13,
+    "startLine": 20,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 30,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 21,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 30,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 22,
+  },
+  {
+    "endCharacter": 31,
+    "endLine": 26,
+    "kind": "region",
+    "startCharacter": 12,
+    "startLine": 23,
+  },
+  {
+    "endCharacter": 30,
+    "endLine": 30,
+    "kind": "region",
+    "startCharacter": 14,
+    "startLine": 27,
+  },
+  {
+    "endCharacter": 9,
+    "endLine": 55,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 33,
+  },
+  {
+    "endCharacter": 11,
+    "endLine": 53,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 34,
+  },
+  {
+    "endCharacter": 10,
+    "endLine": 42,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 38,
+  },
+  {
+    "endCharacter": 25,
+    "endLine": 47,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 45,
+  },
+  {
+    "endCharacter": 11,
+    "endLine": 53,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 49,
+  },
+]
+`);
   });
 
   it("traverses Pstr_extension structure item", async () => {
@@ -1145,32 +1145,32 @@ describe("textDocument/foldingRange", () => {
       Stdlib.print_endline (string_of_int 5)
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 40,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 40,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 9,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 40,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 40,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 9,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for class_type", async () => {
@@ -1182,25 +1182,25 @@ describe("textDocument/foldingRange", () => {
     end;;
 `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for class_type_field", async () => {
@@ -1217,90 +1217,90 @@ describe("textDocument/foldingRange", () => {
     end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 9,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 9,
-          "kind": "region",
-          "startCharacter": 19,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 2,
-        },
-        Object {
-          "endCharacter": 47,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 3,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 9,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 9,
+    "kind": "region",
+    "startCharacter": 19,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 2,
+  },
+  {
+    "endCharacter": 47,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 3,
+  },
+]
+`);
   });
 
   it("returns folding ranges for class_description", async () => {
     openDocument(outdent`
     module type T = sig
-      class cse_generic : 
-        object 
+      class cse_generic :
+        object
         end
     end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 3,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 3,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 16,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 2,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 3,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 3,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 16,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 2,
+  },
+]
+`);
   });
 
   it("returns folding ranges for class_expr", async () => {
@@ -1313,25 +1313,25 @@ describe("textDocument/foldingRange", () => {
       end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 5,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 5,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for class_type", async () => {
@@ -1343,25 +1343,25 @@ describe("textDocument/foldingRange", () => {
       end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 5,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 5,
-          "endLine": 4,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 1,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 5,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 5,
+    "endLine": 4,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 1,
+  },
+]
+`);
   });
 
   it("returns folding ranges for Pmod_functor and Pmod_structure", async () => {
@@ -1369,53 +1369,53 @@ describe("textDocument/foldingRange", () => {
     module M =
       functor (M : S) ->
         (val x)
-        (struct 
+        (struct
           type t = int
-          let x = 
+          let x =
             Stdlib.print_endline "one";
             Stdlib.print_endline "two";
         end)
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 8,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 8,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 10,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 5,
-          "startLine": 3,
-        },
-        Object {
-          "endCharacter": 35,
-          "endLine": 7,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 5,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 8,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 8,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 10,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 5,
+    "startLine": 3,
+  },
+  {
+    "endCharacter": 35,
+    "endLine": 7,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 5,
+  },
+]
+`);
   });
 
   it("returns folding ranges for Pmty_functor and Pmty_signature", async () => {
     openDocument(outdent`
-    module type S = 
-      functor (M : S) (_ : module type of M) -> 
+    module type S =
+      functor (M : S) (_ : module type of M) ->
         sig
           type t =
             | A
@@ -1423,46 +1423,46 @@ describe("textDocument/foldingRange", () => {
         end
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 7,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 0,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 10,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 18,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 7,
-          "endLine": 6,
-          "kind": "region",
-          "startCharacter": 4,
-          "startLine": 2,
-        },
-        Object {
-          "endCharacter": 11,
-          "endLine": 5,
-          "kind": "region",
-          "startCharacter": 6,
-          "startLine": 3,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 7,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 0,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 10,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 18,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 7,
+    "endLine": 6,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 2,
+  },
+  {
+    "endCharacter": 11,
+    "endLine": 5,
+    "kind": "region",
+    "startCharacter": 6,
+    "startLine": 3,
+  },
+]
+`);
   });
 
   it("returns folding ranges for Pexp_ifthenelse", async () => {
@@ -1485,38 +1485,38 @@ describe("textDocument/foldingRange", () => {
       ()
     `);
 
-    let result = await foldingRange();
+    const result = await foldingRange();
     expect(result).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "endCharacter": 54,
-          "endLine": 3,
-          "kind": "region",
-          "startCharacter": 3,
-          "startLine": 0,
-        },
-        Object {
-          "endCharacter": 42,
-          "endLine": 2,
-          "kind": "region",
-          "startCharacter": 5,
-          "startLine": 1,
-        },
-        Object {
-          "endCharacter": 6,
-          "endLine": 8,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 5,
-        },
-        Object {
-          "endCharacter": 6,
-          "endLine": 13,
-          "kind": "region",
-          "startCharacter": 2,
-          "startLine": 10,
-        },
-      ]
-    `);
+[
+  {
+    "endCharacter": 54,
+    "endLine": 3,
+    "kind": "region",
+    "startCharacter": 3,
+    "startLine": 0,
+  },
+  {
+    "endCharacter": 42,
+    "endLine": 2,
+    "kind": "region",
+    "startCharacter": 5,
+    "startLine": 1,
+  },
+  {
+    "endCharacter": 6,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 5,
+  },
+  {
+    "endCharacter": 6,
+    "endLine": 13,
+    "kind": "region",
+    "startCharacter": 2,
+    "startLine": 10,
+  },
+]
+`);
   });
 });

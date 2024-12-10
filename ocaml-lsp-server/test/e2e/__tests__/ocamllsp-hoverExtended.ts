@@ -1,7 +1,6 @@
 import outdent from "outdent";
-import * as LanguageServer from "./../src/LanguageServer";
-
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "./../src/LanguageServer";
 
 describe("ocamllsp/hoverExtended", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -21,24 +20,24 @@ describe("ocamllsp/hoverExtended", () => {
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(0, 4),
       verbosity: 0,
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "contents": Object {
+{
+  "contents": {
     "kind": "plaintext",
     "value": "int",
   },
-  "range": Object {
-    "end": Object {
+  "range": {
+    "end": {
       "character": 5,
       "line": 0,
     },
-    "start": Object {
+    "start": {
       "character": 4,
       "line": 0,
     },
@@ -68,26 +67,26 @@ Object {
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(0, 4),
       verbosity: 0,
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "contents": Object {
+{
+  "contents": {
     "kind": "markdown",
     "value": "\`\`\`ocaml
 int
 \`\`\`",
   },
-  "range": Object {
-    "end": Object {
+  "range": {
+    "end": {
       "character": 5,
       "line": 0,
     },
-    "start": Object {
+    "start": {
       "character": 4,
       "line": 0,
     },
@@ -122,15 +121,15 @@ int
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(3, 9),
       verbosity: 0,
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "contents": Object {
+{
+  "contents": {
     "kind": "markdown",
     "value": "\`\`\`ocaml
 'a -> 'a
@@ -138,12 +137,12 @@ Object {
 ***
 This function has a nice documentation",
   },
-  "range": Object {
-    "end": Object {
+  "range": {
+    "end": {
       "character": 11,
       "line": 3,
     },
-    "start": Object {
+    "start": {
       "character": 9,
       "line": 3,
     },
@@ -198,15 +197,15 @@ This function has a nice documentation",
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(23, 10),
       verbosity: 0,
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "contents": Object {
+{
+  "contents": {
     "kind": "markdown",
     "value": "\`\`\`ocaml
 int -> int -> int
@@ -227,7 +226,7 @@ dividend
 ***@raise*** \`Division_by_zero\`
 raised when divided by zero
 
-***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\\\(%C3%B7,_or_/\\\\))
+***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\(%C3%B7,_or_/\\))
 article
 
 ***@see*** \`arithmetic.ml\`
@@ -244,12 +243,12 @@ use \`(/)\`
 
 ***@author*** John Doe",
   },
-  "range": Object {
-    "end": Object {
+  "range": {
+    "end": {
       "character": 11,
       "line": 23,
     },
-    "start": Object {
+    "start": {
       "character": 8,
       "line": 23,
     },
@@ -284,26 +283,26 @@ use \`(/)\`
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(3, 13),
       verbosity: 0,
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "contents": Object {
+{
+  "contents": {
     "kind": "markdown",
     "value": "\`\`\`ocaml
 int
 \`\`\`",
   },
-  "range": Object {
-    "end": Object {
+  "range": {
+    "end": {
       "character": 13,
       "line": 3,
     },
-    "start": Object {
+    "start": {
       "character": 12,
       "line": 3,
     },
@@ -337,59 +336,59 @@ int
       ),
     });
 
-    let hover1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const hover1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(1, 4),
       verbosity: 0,
     });
 
     expect(hover1).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      type s = t
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 14,
-            "line": 1,
-          },
-          "start": Object {
-            "character": 0,
-            "line": 1,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+type s = t
+\`\`\`",
+  },
+  "range": {
+    "end": {
+      "character": 14,
+      "line": 1,
+    },
+    "start": {
+      "character": 0,
+      "line": 1,
+    },
+  },
+}
+`);
 
-    let hover2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const hover2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 9),
       verbosity: 0,
     });
 
     expect(hover2).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      type 'a fib = ('a -> unit) -> unit
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 34,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 0,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+type 'a fib = ('a -> unit) -> unit
+\`\`\`",
+  },
+  "range": {
+    "end": {
+      "character": 34,
+      "line": 2,
+    },
+    "start": {
+      "character": 0,
+      "line": 2,
+    },
+  },
+}
+`);
   });
 
   it("regression test for #403", async () => {
@@ -407,30 +406,30 @@ let x : foo = 1
       ),
     });
 
-    let result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
       verbosity: 0,
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "foo",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "plaintext",
+    "value": "foo",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 2,
+    },
+    "start": {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
   });
 
   it("FIXME: reproduce [#344](https://github.com/ocaml/ocaml-lsp/issues/344)", async () => {
@@ -484,7 +483,7 @@ let x : foo = 1
     });
 
     // here we see that all is ok
-    let hoverOverK = await languageServer.sendRequest(
+    const hoverOverK = await languageServer.sendRequest(
       "ocamllsp/hoverExtended",
       {
         textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
@@ -494,28 +493,28 @@ let x : foo = 1
     );
 
     expect(hoverOverK).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      unit
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 24,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 24,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+unit
+\`\`\`",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 24,
+    },
+    "start": {
+      "character": 4,
+      "line": 24,
+    },
+  },
+}
+`);
 
     // we trigger the bug
-    let autocompleteForListm = await languageServer.sendRequest(
+    const autocompleteForListm = await languageServer.sendRequest(
       "ocamllsp/hoverExtended",
       {
         textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
@@ -524,7 +523,7 @@ let x : foo = 1
       },
     );
 
-    let buggedHoverOverK = await languageServer.sendRequest(
+    const buggedHoverOverK = await languageServer.sendRequest(
       "ocamllsp/hoverExtended",
       {
         textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
@@ -535,25 +534,25 @@ let x : foo = 1
 
     // now the same hover as before comes with unrelated documentation
     expect(buggedHoverOverK).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "markdown",
-          "value": "\`\`\`ocaml
-      unit
-      \`\`\`",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 24,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 24,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "\`\`\`ocaml
+unit
+\`\`\`",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 24,
+    },
+    "start": {
+      "character": 4,
+      "line": 24,
+    },
+  },
+}
+`);
   });
 
   it("supports explicity verbosity", async () => {
@@ -571,80 +570,80 @@ let x : foo = Some 1
       ),
     });
 
-    let result0 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result0 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
       verbosity: 0,
     });
 
     expect(result0).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "foo",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "plaintext",
+    "value": "foo",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 2,
+    },
+    "start": {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
 
-    let result1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
       verbosity: 1,
     });
 
     expect(result1).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "int option",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "plaintext",
+    "value": "int option",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 2,
+    },
+    "start": {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
 
-    let result2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
       verbosity: 2,
     });
 
     expect(result2).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "int option",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "plaintext",
+    "value": "int option",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 2,
+    },
+    "start": {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
   });
 
   it("supports implicit verbosity", async () => {
@@ -662,76 +661,76 @@ let x : foo = Some 1
       ),
     });
 
-    let result0 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result0 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
     });
 
     expect(result0).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "foo",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "plaintext",
+    "value": "foo",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 2,
+    },
+    "start": {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
 
-    let result1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result1 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
     });
 
     expect(result1).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "int option",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "plaintext",
+    "value": "int option",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 2,
+    },
+    "start": {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
 
-    let result2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
+    const result2 = await languageServer.sendRequest("ocamllsp/hoverExtended", {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position: Types.Position.create(2, 4),
     });
 
     expect(result2).toMatchInlineSnapshot(`
-      Object {
-        "contents": Object {
-          "kind": "plaintext",
-          "value": "int option",
-        },
-        "range": Object {
-          "end": Object {
-            "character": 5,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 4,
-            "line": 2,
-          },
-        },
-      }
-    `);
+{
+  "contents": {
+    "kind": "plaintext",
+    "value": "int option",
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 2,
+    },
+    "start": {
+      "character": 4,
+      "line": 2,
+    },
+  },
+}
+`);
   });
 });

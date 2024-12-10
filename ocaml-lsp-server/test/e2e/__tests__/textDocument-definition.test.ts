@@ -1,9 +1,9 @@
 import outdent from "outdent";
-import * as LanguageServer from "./../src/LanguageServer";
-import * as Types from "vscode-languageserver-types";
-import { testUri } from "./../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
+import * as Types from "vscode-languageserver-types";
 import { isNotNullable } from "../src/utils";
+import * as LanguageServer from "./../src/LanguageServer";
+import { testUri } from "./../src/LanguageServer";
 
 describe("textDocument/definition", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -56,7 +56,7 @@ describe("textDocument/definition", () => {
         print_int x
     `);
 
-    let result = await queryDefinition(Types.Position.create(3, 12));
+    const result = await queryDefinition(Types.Position.create(3, 12));
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchObject({

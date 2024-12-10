@@ -1,7 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("textDocument/selectionRange", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -46,76 +46,76 @@ describe("textDocument/selectionRange", () => {
         min_ab * max_ab
         `);
 
-    let result = await selectionRange([Types.Position.create(1, 17)]);
+    const result = await selectionRange([Types.Position.create(1, 17)]);
     expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "parent": Object {
-      "parent": Object {
-        "parent": Object {
-          "parent": Object {
-            "parent": Object {
-              "range": Object {
-                "end": Object {
+[
+  {
+    "parent": {
+      "parent": {
+        "parent": {
+          "parent": {
+            "parent": {
+              "range": {
+                "end": {
                   "character": 17,
                   "line": 3,
                 },
-                "start": Object {
+                "start": {
                   "character": 0,
                   "line": 0,
                 },
               },
             },
-            "range": Object {
-              "end": Object {
+            "range": {
+              "end": {
                 "character": 17,
                 "line": 3,
               },
-              "start": Object {
+              "start": {
                 "character": 8,
                 "line": 0,
               },
             },
           },
-          "range": Object {
-            "end": Object {
+          "range": {
+            "end": {
               "character": 17,
               "line": 3,
             },
-            "start": Object {
+            "start": {
               "character": 2,
               "line": 1,
             },
           },
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 22,
             "line": 1,
           },
-          "start": Object {
+          "start": {
             "character": 2,
             "line": 1,
           },
         },
       },
-      "range": Object {
-        "end": Object {
+      "range": {
+        "end": {
           "character": 22,
           "line": 1,
         },
-        "start": Object {
+        "start": {
           "character": 15,
           "line": 1,
         },
       },
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 18,
         "line": 1,
       },
-      "start": Object {
+      "start": {
         "character": 15,
         "line": 1,
       },
@@ -136,95 +136,96 @@ Array [
       end
         `);
 
-    let result = await selectionRange([Types.Position.create(5, 23)]);
+    const result = await selectionRange([Types.Position.create(5, 23)]);
     expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "parent": Object {
-      "parent": Object {
-        "parent": Object {
-          "parent": Object {
-            "parent": Object {
-              "parent": Object {
-                "range": Object {
-                  "end": Object {
+[
+  {
+    "parent": {
+      "parent": {
+        "parent": {
+          "parent": {
+            "parent": {
+              "parent": {
+                "range": {
+                  "end": {
                     "character": 3,
                     "line": 6,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 0,
                     "line": 0,
                   },
                 },
               },
-              "range": Object {
-                "end": Object {
+              "range": {
+                "end": {
                   "character": 3,
                   "line": 6,
                 },
-                "start": Object {
+                "start": {
                   "character": 0,
                   "line": 3,
                 },
               },
             },
-            "range": Object {
-              "end": Object {
+            "range": {
+              "end": {
                 "character": 3,
                 "line": 6,
               },
-              "start": Object {
+              "start": {
                 "character": 11,
                 "line": 3,
               },
             },
           },
-          "range": Object {
-            "end": Object {
+          "range": {
+            "end": {
               "character": 24,
               "line": 5,
             },
-            "start": Object {
+            "start": {
               "character": 2,
               "line": 4,
             },
           },
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 24,
             "line": 5,
           },
-          "start": Object {
+          "start": {
             "character": 2,
             "line": 5,
           },
         },
       },
-      "range": Object {
-        "end": Object {
+      "range": {
+        "end": {
           "character": 24,
           "line": 5,
         },
-        "start": Object {
+        "start": {
           "character": 8,
           "line": 5,
         },
       },
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 24,
         "line": 5,
       },
-      "start": Object {
+      "start": {
         "character": 22,
         "line": 5,
       },
     },
   },
 ]
-`)});
+`);
+  });
 
   it("returns a selection range for functors", async () => {
     openDocument(outdent`
@@ -233,285 +234,288 @@ module M = Map.Make (struct
   let compare a b = a.o#rank - b.o#rank
 end)`);
 
-  let result = await selectionRange([Types.Position.create(2, 26)]);
-  expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "parent": Object {
-      "parent": Object {
-        "parent": Object {
-          "parent": Object {
-            "parent": Object {
-              "parent": Object {
-                "parent": Object {
-                  "parent": Object {
-                    "range": Object {
-                      "end": Object {
+    const result = await selectionRange([Types.Position.create(2, 26)]);
+    expect(result).toMatchInlineSnapshot(`
+[
+  {
+    "parent": {
+      "parent": {
+        "parent": {
+          "parent": {
+            "parent": {
+              "parent": {
+                "parent": {
+                  "parent": {
+                    "range": {
+                      "end": {
                         "character": 4,
                         "line": 3,
                       },
-                      "start": Object {
+                      "start": {
                         "character": 0,
                         "line": 0,
                       },
                     },
                   },
-                  "range": Object {
-                    "end": Object {
+                  "range": {
+                    "end": {
                       "character": 4,
                       "line": 3,
                     },
-                    "start": Object {
+                    "start": {
                       "character": 11,
                       "line": 0,
                     },
                   },
                 },
-                "range": Object {
-                  "end": Object {
+                "range": {
+                  "end": {
                     "character": 3,
                     "line": 3,
                   },
-                  "start": Object {
+                  "start": {
                     "character": 21,
                     "line": 0,
                   },
                 },
               },
-              "range": Object {
-                "end": Object {
+              "range": {
+                "end": {
                   "character": 39,
                   "line": 2,
                 },
-                "start": Object {
+                "start": {
                   "character": 2,
                   "line": 1,
                 },
               },
             },
-            "range": Object {
-              "end": Object {
+            "range": {
+              "end": {
                 "character": 39,
                 "line": 2,
               },
-              "start": Object {
+              "start": {
                 "character": 2,
                 "line": 2,
               },
             },
           },
-          "range": Object {
-            "end": Object {
+          "range": {
+            "end": {
               "character": 39,
               "line": 2,
             },
-            "start": Object {
+            "start": {
               "character": 14,
               "line": 2,
             },
           },
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 39,
             "line": 2,
           },
-          "start": Object {
+          "start": {
             "character": 20,
             "line": 2,
           },
         },
       },
-      "range": Object {
-        "end": Object {
+      "range": {
+        "end": {
           "character": 28,
           "line": 2,
         },
-        "start": Object {
+        "start": {
           "character": 20,
           "line": 2,
         },
       },
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 28,
         "line": 2,
       },
-      "start": Object {
+      "start": {
         "character": 23,
         "line": 2,
       },
     },
   },
 ]
-`)});
+`);
+  });
 
-it("returns a reasonable selection range for ill-typed modules", async () => {
-  openDocument(outdent`
+  it("returns a reasonable selection range for ill-typed modules", async () => {
+    openDocument(outdent`
 module M = struct
     let f x : int = string_of_int x
 end`);
 
-let result = await selectionRange([Types.Position.create(1, 34)]);
-expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "parent": Object {
-      "parent": Object {
-        "parent": Object {
-          "parent": Object {
-            "parent": Object {
-              "range": Object {
-                "end": Object {
+    const result = await selectionRange([Types.Position.create(1, 34)]);
+    expect(result).toMatchInlineSnapshot(`
+[
+  {
+    "parent": {
+      "parent": {
+        "parent": {
+          "parent": {
+            "parent": {
+              "range": {
+                "end": {
                   "character": 3,
                   "line": 2,
                 },
-                "start": Object {
+                "start": {
                   "character": 0,
                   "line": 0,
                 },
               },
             },
-            "range": Object {
-              "end": Object {
+            "range": {
+              "end": {
                 "character": 3,
                 "line": 2,
               },
-              "start": Object {
+              "start": {
                 "character": 11,
                 "line": 0,
               },
             },
           },
-          "range": Object {
-            "end": Object {
+          "range": {
+            "end": {
               "character": 35,
               "line": 1,
             },
-            "start": Object {
+            "start": {
               "character": 4,
               "line": 1,
             },
           },
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 35,
             "line": 1,
           },
-          "start": Object {
+          "start": {
             "character": 10,
             "line": 1,
           },
         },
       },
-      "range": Object {
-        "end": Object {
+      "range": {
+        "end": {
           "character": 35,
           "line": 1,
         },
-        "start": Object {
+        "start": {
           "character": 20,
           "line": 1,
         },
       },
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 35,
         "line": 1,
       },
-      "start": Object {
+      "start": {
         "character": 34,
         "line": 1,
       },
     },
   },
 ]
-`)});
+`);
+  });
 
-it("returns a reasonable selection range in the presence of syntax errors", async () => {
-  openDocument(outdent`
+  it("returns a reasonable selection range in the presence of syntax errors", async () => {
+    openDocument(outdent`
 module M = struct
     let f x : int = string_of_int x
 ed`);
 
-let result = await selectionRange([Types.Position.create(1, 34)]);
-expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "parent": Object {
-      "parent": Object {
-        "parent": Object {
-          "parent": Object {
-            "parent": Object {
-              "range": Object {
-                "end": Object {
+    const result = await selectionRange([Types.Position.create(1, 34)]);
+    expect(result).toMatchInlineSnapshot(`
+[
+  {
+    "parent": {
+      "parent": {
+        "parent": {
+          "parent": {
+            "parent": {
+              "range": {
+                "end": {
                   "character": 2,
                   "line": 2,
                 },
-                "start": Object {
+                "start": {
                   "character": 0,
                   "line": 0,
                 },
               },
             },
-            "range": Object {
-              "end": Object {
+            "range": {
+              "end": {
                 "character": 2,
                 "line": 2,
               },
-              "start": Object {
+              "start": {
                 "character": 11,
                 "line": 0,
               },
             },
           },
-          "range": Object {
-            "end": Object {
+          "range": {
+            "end": {
               "character": 2,
               "line": 2,
             },
-            "start": Object {
+            "start": {
               "character": 4,
               "line": 1,
             },
           },
         },
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 2,
             "line": 2,
           },
-          "start": Object {
+          "start": {
             "character": 10,
             "line": 1,
           },
         },
       },
-      "range": Object {
-        "end": Object {
+      "range": {
+        "end": {
           "character": 2,
           "line": 2,
         },
-        "start": Object {
+        "start": {
           "character": 20,
           "line": 1,
         },
       },
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 35,
         "line": 1,
       },
-      "start": Object {
+      "start": {
         "character": 34,
         "line": 1,
       },
     },
   },
 ]
-`)});
+`);
+  });
 });
