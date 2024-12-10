@@ -1,10 +1,13 @@
-import { assert } from "console";
-import { promises as fs } from "fs";
-import * as path from "path";
-import { DocumentUri, TextDocumentItem } from "vscode-languageserver-types";
+import { assert } from "node:console";
+import { promises as fs } from "node:fs";
+import * as path from "node:path";
+import * as Protocol from "vscode-languageserver-protocol";
+import {
+  type DocumentUri,
+  TextDocumentItem,
+} from "vscode-languageserver-types";
 import { URI } from "vscode-uri";
 import * as LanguageServer from "./../src/LanguageServer";
-import * as Protocol from "vscode-languageserver-protocol";
 
 describe("ocamllsp/switchImplIntf", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -25,7 +28,7 @@ describe("ocamllsp/switchImplIntf", () => {
     return languageServer.sendRequest("ocamllsp/switchImplIntf", documentUri);
   }
 
-  let testWorkspacePath = path.join(__dirname, "..", "test_files/");
+  const testWorkspacePath = path.join(__dirname, "..", "test_files/");
 
   beforeEach(async () => {
     languageServer = await LanguageServer.startAndInitialize();
@@ -37,22 +40,22 @@ describe("ocamllsp/switchImplIntf", () => {
     await LanguageServer.exit(languageServer);
   });
 
-  let createPathForFile = (filename: string) =>
+  const createPathForFile = (filename: string) =>
     path.join(testWorkspacePath, filename);
 
-  let createFileAtPath = (path: string) =>
+  const createFileAtPath = (path: string) =>
     fs.writeFile(path, "", { flag: "a+" });
 
-  let pathToDocumentUri = (path: string): DocumentUri =>
+  const pathToDocumentUri = (path: string): DocumentUri =>
     URI.file(path).toString();
 
-  let [mli, ml, mll, mly, rei, re] = ["mli", "ml", "mll", "mly", "rei", "re"];
+  const [mli, ml, mll, mly, rei, re] = ["mli", "ml", "mll", "mly", "rei", "re"];
 
-  let testRequest = async (
+  const testRequest = async (
     requestParam: DocumentUri,
     expectedResponse: DocumentUri[],
   ) => {
-    let response = await ocamllspSwitchImplIntf(requestParam);
+    const response = await ocamllspSwitchImplIntf(requestParam);
     expect(response).toEqual(expectedResponse);
   };
 
@@ -65,7 +68,7 @@ describe("ocamllsp/switchImplIntf", () => {
    * @param extExpected file name extensions that are expected to be returned as
    *    a reponse to 'ocamllsp/switchImplIntf'
    */
-  let testingPipeline = async (
+  const testingPipeline = async (
     extsForCreation: string[],
     extExpected: string[],
   ) => {
@@ -78,20 +81,20 @@ describe("ocamllsp/switchImplIntf", () => {
       "expected response extensions should not be empty",
     );
 
-    let filePathsForCreation = extsForCreation.map((ext) => {
-      let filename = "test.".concat(ext);
+    const filePathsForCreation = extsForCreation.map((ext) => {
+      const filename = "test.".concat(ext);
       return createPathForFile(filename);
     });
 
     await Promise.all(filePathsForCreation.map(createFileAtPath));
 
-    let filePathToSwitchFrom = filePathsForCreation[0];
-    let fileURIToSwitchFrom = pathToDocumentUri(filePathToSwitchFrom);
+    const filePathToSwitchFrom = filePathsForCreation[0];
+    const fileURIToSwitchFrom = pathToDocumentUri(filePathToSwitchFrom);
     await openDocument(fileURIToSwitchFrom);
 
-    let expectedFileURIs = extExpected.map((ext) => {
-      let filename = "test.".concat(ext);
-      let filePath = createPathForFile(filename);
+    const expectedFileURIs = extExpected.map((ext) => {
+      const filename = "test.".concat(ext);
+      const filePath = createPathForFile(filename);
       return pathToDocumentUri(filePath);
     });
 
@@ -99,10 +102,10 @@ describe("ocamllsp/switchImplIntf", () => {
   };
 
   /* `create`, `expect`, and `test_case` are for declarativeness */
-  let varargFn = <T>(...args: T[]): T[] => args;
-  let createFiles = varargFn;
-  let expectSwitchTo = varargFn;
-  let testCase = (filesToCreate: string[], filesToExpect: string[]) => [
+  const varargFn = <T>(...args: T[]): T[] => args;
+  const createFiles = varargFn;
+  const expectSwitchTo = varargFn;
+  const testCase = (filesToCreate: string[], filesToExpect: string[]) => [
     filesToCreate,
     filesToExpect,
   ];
@@ -117,13 +120,13 @@ describe("ocamllsp/switchImplIntf", () => {
   ])("test switches (%s => %s)", testingPipeline);
 
   it("can switch from file URI with non-file scheme", async () => {
-    let mlFpath = createPathForFile("test.ml");
+    const mlFpath = createPathForFile("test.ml");
     await createFileAtPath(mlFpath);
-    let mlUri = pathToDocumentUri(mlFpath);
+    const mlUri = pathToDocumentUri(mlFpath);
 
-    let newMliFpath = createPathForFile("test.mli");
+    const newMliFpath = createPathForFile("test.mli");
     await createFileAtPath(newMliFpath);
-    let mliUriUntitledScheme: DocumentUri = URI.file(newMliFpath)
+    const mliUriUntitledScheme: DocumentUri = URI.file(newMliFpath)
       .with({
         scheme: "untitled",
       })

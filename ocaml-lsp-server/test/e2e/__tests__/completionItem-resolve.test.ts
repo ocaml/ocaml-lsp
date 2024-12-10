@@ -1,8 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "./../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
-
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "./../src/LanguageServer";
 
 describe("textDocument/completion", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -49,20 +48,20 @@ describe("textDocument/completion", () => {
       List.ma
     `);
 
-    let response = await queryCompletionItemResolve(
+    const response = await queryCompletionItemResolve(
       "map2",
       Types.Position.create(0, 5),
     );
 
     expect(response).toMatchInlineSnapshot(`
-      Object {
-        "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is
-         [[f a1 b1; ...; f an bn]].
-         @raise Invalid_argument if the two lists are determined
-         to have different lengths.",
-        "label": "map2",
-      }
-    `);
+{
+  "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is
+   [[f a1 b1; ...; f an bn]].
+   @raise Invalid_argument if the two lists are determined
+   to have different lengths.",
+  "label": "map2",
+}
+`);
   });
 
   it("can get documentation at arbitrary position", async () => {
@@ -70,17 +69,17 @@ describe("textDocument/completion", () => {
       List.fld((=) 0) [1; 2; 3]
     `);
 
-    let response = await queryCompletionItemResolve(
+    const response = await queryCompletionItemResolve(
       "find_all",
       Types.Position.create(0, 5),
     );
 
     expect(response).toMatchInlineSnapshot(`
-      Object {
-        "documentation": "[find_all] is another name for {!filter}.",
-        "label": "find_all",
-      }
-    `);
+{
+  "documentation": "[find_all] is another name for {!filter}.",
+  "label": "find_all",
+}
+`);
   });
 
   it("can get documentation at arbitrary position (before dot)", async () => {
@@ -97,16 +96,16 @@ describe("textDocument/completion", () => {
       Outer.Inner.v
     `);
 
-    let response = await queryCompletionItemResolve(
+    const response = await queryCompletionItemResolve(
       "Inner",
       Types.Position.create(9, 10),
     );
 
     expect(response).toMatchInlineSnapshot(`
-      Object {
-        "documentation": "documentation for [Inner]",
-        "label": "Inner",
-      }
-    `);
+{
+  "documentation": "documentation for [Inner]",
+  "label": "Inner",
+}
+`);
   });
 });

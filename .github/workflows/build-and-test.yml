@@ -23,7 +23,6 @@ jobs:
         ocaml-compiler:
           - "5.2"
 
-
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -43,8 +42,7 @@ jobs:
           node-version: lts/*
 
       - name: Install npm packages
-        run: yarn --frozen-lockfile
-        working-directory: ocaml-lsp-server/test/e2e
+        run: yarn install --frozen-lockfile
 
       - name: Set-up OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3
