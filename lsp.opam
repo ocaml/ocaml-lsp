@@ -30,8 +30,8 @@ depends: [
   "cinaps" {with-test}
   "ppx_expect" {>= "v0.17.0" & with-test}
   "uutf" {>= "1.0.2"}
-  "odoc" {with-doc}
   "ocaml" {>= "4.14"}
+  "odoc" {with-doc}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [

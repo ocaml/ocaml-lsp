@@ -7,7 +7,3 @@
 
 (rule
  (copy lsp.opam.template ocaml-lsp-server.opam.template))
-
-(env
- (_
-  (flags :standard -alert -unstable -w -58)))
