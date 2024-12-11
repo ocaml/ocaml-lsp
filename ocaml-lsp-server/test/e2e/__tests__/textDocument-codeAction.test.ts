@@ -1,32 +1,33 @@
+import * as path from "node:path";
 import outdent from "outdent";
-import * as path from "path";
-import { URI } from "vscode-uri";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 import { Position } from "vscode-languageserver-types";
+import { URI } from "vscode-uri";
+import * as LanguageServer from "../src/LanguageServer";
 
 function findAddRecAnnotation(actions: Types.CodeAction[]) {
   return actions.find(
     (action) =>
-      action.kind == "quickfix" && action.title == "Add missing `rec` keyword",
+      action.kind === "quickfix" &&
+      action.title === "Add missing `rec` keyword",
   );
 }
 
 function findMarkUnused(actions: Types.CodeAction[]) {
   return actions.find(
-    (action) => action.kind == "quickfix" && action.title == "Mark as unused",
+    (action) => action.kind === "quickfix" && action.title === "Mark as unused",
   );
 }
 
 function findRemoveUnused(actions: Types.CodeAction[]) {
   return actions.find(
-    (action) => action.kind == "quickfix" && action.title == "Remove unused",
+    (action) => action.kind === "quickfix" && action.title === "Remove unused",
   );
 }
 
 function findInferredAction(actions: Types.CodeAction[]) {
-  return actions.find((action) => action.kind == "inferred_intf");
+  return actions.find((action) => action.kind === "inferred_intf");
 }
 
 function mkUnboundDiagnostic(start: Types.Position, end: Types.Position) {
@@ -80,7 +81,7 @@ describe("textDocument/codeAction", () => {
     end: Position,
     context?: Types.CodeActionContext,
   ): Promise<Array<Types.CodeAction> | null> {
-    if (typeof context == "undefined") {
+    if (typeof context === "undefined") {
       context = { diagnostics: [] };
     }
     return languageServer.sendRequest("textDocument/codeAction", {
@@ -91,41 +92,41 @@ describe("textDocument/codeAction", () => {
   }
 
   it("opens the implementation if not in store", async () => {
-    let testWorkspacePath = path.join(__dirname, "declaration_files/");
-    let intfFilepath = path.join(testWorkspacePath, "lib.mli");
-    let intfUri = URI.file(intfFilepath).toString();
+    const testWorkspacePath = path.join(__dirname, "declaration_files/");
+    const intfFilepath = path.join(testWorkspacePath, "lib.mli");
+    const intfUri = URI.file(intfFilepath).toString();
     openDocument("", intfUri);
-    let start = Types.Position.create(0, 0);
-    let end = Types.Position.create(0, 0);
-    let actions = (await codeAction(intfUri, start, end)) ?? [];
+    const start = Types.Position.create(0, 0);
+    const end = Types.Position.create(0, 0);
+    const actions = (await codeAction(intfUri, start, end)) ?? [];
     expect(
       findInferredAction(actions)?.edit?.documentChanges?.map((a) =>
         Types.TextDocumentEdit.is(a) ? a.edits : null,
       ),
     ).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
-            "newText": "val x : int
-      ",
-            "range": Object {
-              "end": Object {
-                "character": 0,
-                "line": 0,
-              },
-              "start": Object {
-                "character": 0,
-                "line": 0,
-              },
-            },
-          },
-        ],
-      ]
-    `);
+[
+  [
+    {
+      "newText": "val x : int
+",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 0,
+        },
+        "start": {
+          "character": 0,
+          "line": 0,
+        },
+      },
+    },
+  ],
+]
+`);
   });
 
   it("offers `Construct an expression` code action", async () => {
-    let uri = "file:///test.ml";
+    const uri = "file:///test.ml";
     openDocument(
       outdent`
 let x = _
@@ -133,176 +134,176 @@ let x = _
       uri,
     );
 
-    let actions =
+    const actions =
       (await codeAction(uri, Position.create(0, 8), Position.create(0, 9))) ??
       [];
 
     expect(actions).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "edit": Object {
-            "documentChanges": Array [
-              Object {
-                "edits": Array [
-                  Object {
-                    "newText": "(_ : 'a)",
-                    "range": Object {
-                      "end": Object {
-                        "character": 9,
-                        "line": 0,
-                      },
-                      "start": Object {
-                        "character": 8,
-                        "line": 0,
-                      },
-                    },
-                  },
-                ],
-                "textDocument": Object {
-                  "uri": "file:///test.ml",
-                  "version": 0,
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "(_ : 'a)",
+              "range": {
+                "end": {
+                  "character": 9,
+                  "line": 0,
+                },
+                "start": {
+                  "character": 8,
+                  "line": 0,
                 },
               },
-            ],
+            },
+          ],
+          "textDocument": {
+            "uri": "file:///test.ml",
+            "version": 0,
           },
-          "isPreferred": false,
-          "kind": "type-annotate",
-          "title": "Type-annotate",
         },
-        Object {
-          "command": Object {
-            "command": "editor.action.triggerSuggest",
-            "title": "Trigger Suggest",
-          },
-          "kind": "construct",
-          "title": "Construct an expression",
-        },
-        Object {
-          "edit": Object {
-            "documentChanges": Array [
-              Object {
-                "edits": Array [
-                  Object {
-                    "newText": "let var_name = _ in
-      ",
-                    "range": Object {
-                      "end": Object {
-                        "character": 8,
-                        "line": 0,
-                      },
-                      "start": Object {
-                        "character": 8,
-                        "line": 0,
-                      },
-                    },
-                  },
-                  Object {
-                    "newText": "var_name",
-                    "range": Object {
-                      "end": Object {
-                        "character": 9,
-                        "line": 0,
-                      },
-                      "start": Object {
-                        "character": 8,
-                        "line": 0,
-                      },
-                    },
-                  },
-                ],
-                "textDocument": Object {
-                  "uri": "file:///test.ml",
-                  "version": 0,
+      ],
+    },
+    "isPreferred": false,
+    "kind": "type-annotate",
+    "title": "Type-annotate",
+  },
+  {
+    "command": {
+      "command": "editor.action.triggerSuggest",
+      "title": "Trigger Suggest",
+    },
+    "kind": "construct",
+    "title": "Construct an expression",
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "let var_name = _ in
+",
+              "range": {
+                "end": {
+                  "character": 8,
+                  "line": 0,
+                },
+                "start": {
+                  "character": 8,
+                  "line": 0,
                 },
               },
-            ],
+            },
+            {
+              "newText": "var_name",
+              "range": {
+                "end": {
+                  "character": 9,
+                  "line": 0,
+                },
+                "start": {
+                  "character": 8,
+                  "line": 0,
+                },
+              },
+            },
+          ],
+          "textDocument": {
+            "uri": "file:///test.ml",
+            "version": 0,
           },
-          "isPreferred": false,
-          "kind": "refactor.extract",
-          "title": "Extract local",
         },
-        Object {
-          "edit": Object {
-            "documentChanges": Array [
-              Object {
-                "edits": Array [
-                  Object {
-                    "newText": "let fun_name () = _
+      ],
+    },
+    "isPreferred": false,
+    "kind": "refactor.extract",
+    "title": "Extract local",
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "let fun_name () = _
 
-      ",
-                    "range": Object {
-                      "end": Object {
-                        "character": 0,
-                        "line": 0,
-                      },
-                      "start": Object {
-                        "character": 0,
-                        "line": 0,
-                      },
-                    },
-                  },
-                  Object {
-                    "newText": "fun_name ()",
-                    "range": Object {
-                      "end": Object {
-                        "character": 9,
-                        "line": 0,
-                      },
-                      "start": Object {
-                        "character": 8,
-                        "line": 0,
-                      },
-                    },
-                  },
-                ],
-                "textDocument": Object {
-                  "uri": "file:///test.ml",
-                  "version": 0,
+",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 0,
+                },
+                "start": {
+                  "character": 0,
+                  "line": 0,
                 },
               },
-            ],
-          },
-          "isPreferred": false,
-          "kind": "refactor.extract",
-          "title": "Extract function",
-        },
-        Object {
-          "command": Object {
-            "arguments": Array [
-              "file:///test.mli",
-            ],
-            "command": "ocamllsp/open-related-source",
-            "title": "Create test.mli",
-          },
-          "edit": Object {
-            "documentChanges": Array [
-              Object {
-                "kind": "create",
-                "uri": "file:///test.mli",
+            },
+            {
+              "newText": "fun_name ()",
+              "range": {
+                "end": {
+                  "character": 9,
+                  "line": 0,
+                },
+                "start": {
+                  "character": 8,
+                  "line": 0,
+                },
               },
-            ],
+            },
+          ],
+          "textDocument": {
+            "uri": "file:///test.ml",
+            "version": 0,
           },
-          "kind": "switch",
-          "title": "Create test.mli",
         },
-      ]
-    `);
+      ],
+    },
+    "isPreferred": false,
+    "kind": "refactor.extract",
+    "title": "Extract function",
+  },
+  {
+    "command": {
+      "arguments": [
+        "file:///test.mli",
+      ],
+      "command": "ocamllsp/open-related-source",
+      "title": "Create test.mli",
+    },
+    "edit": {
+      "documentChanges": [
+        {
+          "kind": "create",
+          "uri": "file:///test.mli",
+        },
+      ],
+    },
+    "kind": "switch",
+    "title": "Create test.mli",
+  },
+]
+`);
 
-    let construct_actions = actions.find(
+    const construct_actions = actions.find(
       (codeAction: Types.CodeAction) =>
         codeAction.kind && codeAction.kind === "construct",
     );
 
     expect(construct_actions).toMatchInlineSnapshot(`
-      Object {
-        "command": Object {
-          "command": "editor.action.triggerSuggest",
-          "title": "Trigger Suggest",
-        },
-        "kind": "construct",
-        "title": "Construct an expression",
-      }
-    `);
+{
+  "command": {
+    "command": "editor.action.triggerSuggest",
+    "title": "Trigger Suggest",
+  },
+  "kind": "construct",
+  "title": "Construct an expression",
+}
+`);
   });
 
   type refactorOpenTestSpec = {
@@ -328,10 +329,10 @@ let x = _
 
     openDocument(documentText, documentUri);
 
-    let codeActions =
+    const codeActions =
       (await codeAction(documentUri, queryStartPos, queryEndPos)) ?? [];
 
-    let specificCodeActions = codeActions.filter(
+    const specificCodeActions = codeActions.filter(
       (codeAction: Types.CodeAction) => codeAction.title === codeActionTitle,
     );
 
@@ -339,7 +340,7 @@ let x = _
   }
 
   it("refactor-open unqualify in-file module", async () => {
-    let specificCodeActions = await testRefactorOpen({
+    const specificCodeActions = await testRefactorOpen({
       documentText: outdent`
       module M = struct
         let a = 1
@@ -356,50 +357,50 @@ let x = _
     });
 
     expect(specificCodeActions).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "edit": Object {
-            "changes": Object {
-              "file:///test.ml": Array [
-                Object {
-                  "newText": "f",
-                  "range": Object {
-                    "end": Object {
-                      "character": 11,
-                      "line": 7,
-                    },
-                    "start": Object {
-                      "character": 8,
-                      "line": 7,
-                    },
-                  },
-                },
-                Object {
-                  "newText": "a",
-                  "range": Object {
-                    "end": Object {
-                      "character": 15,
-                      "line": 7,
-                    },
-                    "start": Object {
-                      "character": 12,
-                      "line": 7,
-                    },
-                  },
-                },
-              ],
+[
+  {
+    "edit": {
+      "changes": {
+        "file:///test.ml": [
+          {
+            "newText": "f",
+            "range": {
+              "end": {
+                "character": 11,
+                "line": 7,
+              },
+              "start": {
+                "character": 8,
+                "line": 7,
+              },
             },
           },
-          "isPreferred": false,
-          "kind": "remove module name from identifiers",
-          "title": "Remove module name from identifiers",
-        },
-      ]
-    `);
+          {
+            "newText": "a",
+            "range": {
+              "end": {
+                "character": 15,
+                "line": 7,
+              },
+              "start": {
+                "character": 12,
+                "line": 7,
+              },
+            },
+          },
+        ],
+      },
+    },
+    "isPreferred": false,
+    "kind": "remove module name from identifiers",
+    "title": "Remove module name from identifiers",
+  },
+]
+`);
   });
 
   it("refactor-open qualify in-file module", async () => {
-    let specificCodeActions = await testRefactorOpen({
+    const specificCodeActions = await testRefactorOpen({
       documentText: outdent`
       module M = struct
         let a = 1
@@ -416,59 +417,59 @@ let x = _
     });
 
     expect(specificCodeActions).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "edit": Object {
-            "changes": Object {
-              "file:///test.ml": Array [
-                Object {
-                  "newText": "M.f",
-                  "range": Object {
-                    "end": Object {
-                      "character": 9,
-                      "line": 7,
-                    },
-                    "start": Object {
-                      "character": 8,
-                      "line": 7,
-                    },
-                  },
-                },
-                Object {
-                  "newText": "M.a",
-                  "range": Object {
-                    "end": Object {
-                      "character": 11,
-                      "line": 7,
-                    },
-                    "start": Object {
-                      "character": 10,
-                      "line": 7,
-                    },
-                  },
-                },
-              ],
+[
+  {
+    "edit": {
+      "changes": {
+        "file:///test.ml": [
+          {
+            "newText": "M.f",
+            "range": {
+              "end": {
+                "character": 9,
+                "line": 7,
+              },
+              "start": {
+                "character": 8,
+                "line": 7,
+              },
             },
           },
-          "isPreferred": false,
-          "kind": "put module name in identifiers",
-          "title": "Put module name in identifiers",
-        },
-      ]
-    `);
+          {
+            "newText": "M.a",
+            "range": {
+              "end": {
+                "character": 11,
+                "line": 7,
+              },
+              "start": {
+                "character": 10,
+                "line": 7,
+              },
+            },
+          },
+        ],
+      },
+    },
+    "isPreferred": false,
+    "kind": "put module name in identifiers",
+    "title": "Put module name in identifiers",
+  },
+]
+`);
   });
 
   it("add missing rec in toplevel let", async () => {
-    let uri = "file:///missing-rec-1.ml";
+    const uri = "file:///missing-rec-1.ml";
     openDocument(
       outdent`
 let needs_rec x = 1 + (needs_rec x)
 `,
       uri,
     );
-    let start = Types.Position.create(0, 31);
-    let end = Types.Position.create(0, 32);
-    let context = {
+    const start = Types.Position.create(0, 31);
+    const end = Types.Position.create(0, 32);
+    const context = {
       diagnostics: [
         mkUnboundDiagnostic(
           Types.Position.create(0, 23),
@@ -477,60 +478,60 @@ let needs_rec x = 1 + (needs_rec x)
       ],
     };
 
-    let actions = (await codeAction(uri, start, end, context)) ?? [];
+    const actions = (await codeAction(uri, start, end, context)) ?? [];
     expect(findAddRecAnnotation(actions)).toMatchInlineSnapshot(`
-      Object {
-        "diagnostics": Array [
-          Object {
-            "message": "Unbound value",
-            "range": Object {
-              "end": Object {
-                "character": 32,
+{
+  "diagnostics": [
+    {
+      "message": "Unbound value",
+      "range": {
+        "end": {
+          "character": 32,
+          "line": 0,
+        },
+        "start": {
+          "character": 23,
+          "line": 0,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "rec ",
+            "range": {
+              "end": {
+                "character": 4,
                 "line": 0,
               },
-              "start": Object {
-                "character": 23,
+              "start": {
+                "character": 4,
                 "line": 0,
               },
             },
-            "severity": 1,
-            "source": "ocamllsp",
           },
         ],
-        "edit": Object {
-          "documentChanges": Array [
-            Object {
-              "edits": Array [
-                Object {
-                  "newText": "rec ",
-                  "range": Object {
-                    "end": Object {
-                      "character": 4,
-                      "line": 0,
-                    },
-                    "start": Object {
-                      "character": 4,
-                      "line": 0,
-                    },
-                  },
-                },
-              ],
-              "textDocument": Object {
-                "uri": "file:///missing-rec-1.ml",
-                "version": 0,
-              },
-            },
-          ],
+        "textDocument": {
+          "uri": "file:///missing-rec-1.ml",
+          "version": 0,
         },
-        "isPreferred": false,
-        "kind": "quickfix",
-        "title": "Add missing \`rec\` keyword",
-      }
-    `);
+      },
+    ],
+  },
+  "isPreferred": false,
+  "kind": "quickfix",
+  "title": "Add missing \`rec\` keyword",
+}
+`);
   });
 
   it("add missing rec in expression let", async () => {
-    let uri = "file:///missing-rec-2.ml";
+    const uri = "file:///missing-rec-2.ml";
     openDocument(
       outdent`
 let outer =
@@ -539,9 +540,9 @@ let outer =
 `,
       uri,
     );
-    let start = Types.Position.create(2, 14);
-    let end = Types.Position.create(2, 15);
-    let context = {
+    const start = Types.Position.create(2, 14);
+    const end = Types.Position.create(2, 15);
+    const context = {
       diagnostics: [
         mkUnboundDiagnostic(
           Types.Position.create(2, 9),
@@ -550,60 +551,60 @@ let outer =
       ],
     };
 
-    let actions = (await codeAction(uri, start, end, context)) ?? [];
+    const actions = (await codeAction(uri, start, end, context)) ?? [];
     expect(findAddRecAnnotation(actions)).toMatchInlineSnapshot(`
-      Object {
-        "diagnostics": Array [
-          Object {
-            "message": "Unbound value",
-            "range": Object {
-              "end": Object {
-                "character": 14,
-                "line": 2,
+{
+  "diagnostics": [
+    {
+      "message": "Unbound value",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 2,
+        },
+        "start": {
+          "character": 9,
+          "line": 2,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "rec ",
+            "range": {
+              "end": {
+                "character": 6,
+                "line": 1,
               },
-              "start": Object {
-                "character": 9,
-                "line": 2,
+              "start": {
+                "character": 6,
+                "line": 1,
               },
             },
-            "severity": 1,
-            "source": "ocamllsp",
           },
         ],
-        "edit": Object {
-          "documentChanges": Array [
-            Object {
-              "edits": Array [
-                Object {
-                  "newText": "rec ",
-                  "range": Object {
-                    "end": Object {
-                      "character": 6,
-                      "line": 1,
-                    },
-                    "start": Object {
-                      "character": 6,
-                      "line": 1,
-                    },
-                  },
-                },
-              ],
-              "textDocument": Object {
-                "uri": "file:///missing-rec-2.ml",
-                "version": 0,
-              },
-            },
-          ],
+        "textDocument": {
+          "uri": "file:///missing-rec-2.ml",
+          "version": 0,
         },
-        "isPreferred": false,
-        "kind": "quickfix",
-        "title": "Add missing \`rec\` keyword",
-      }
-    `);
+      },
+    ],
+  },
+  "isPreferred": false,
+  "kind": "quickfix",
+  "title": "Add missing \`rec\` keyword",
+}
+`);
   });
 
   it("add missing rec in expression let-and", async () => {
-    let uri = "file:///missing-rec-3.ml";
+    const uri = "file:///missing-rec-3.ml";
     openDocument(
       outdent`
 let outer =
@@ -613,9 +614,9 @@ let outer =
 `,
       uri,
     );
-    let start = Types.Position.create(3, 14);
-    let end = Types.Position.create(3, 15);
-    let context = {
+    const start = Types.Position.create(3, 14);
+    const end = Types.Position.create(3, 15);
+    const context = {
       diagnostics: [
         mkUnboundDiagnostic(
           Types.Position.create(3, 9),
@@ -624,60 +625,60 @@ let outer =
       ],
     };
 
-    let actions = (await codeAction(uri, start, end, context)) ?? [];
+    const actions = (await codeAction(uri, start, end, context)) ?? [];
     expect(findAddRecAnnotation(actions)).toMatchInlineSnapshot(`
-      Object {
-        "diagnostics": Array [
-          Object {
-            "message": "Unbound value",
-            "range": Object {
-              "end": Object {
-                "character": 14,
-                "line": 3,
+{
+  "diagnostics": [
+    {
+      "message": "Unbound value",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 3,
+        },
+        "start": {
+          "character": 9,
+          "line": 3,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "rec ",
+            "range": {
+              "end": {
+                "character": 6,
+                "line": 1,
               },
-              "start": Object {
-                "character": 9,
-                "line": 3,
+              "start": {
+                "character": 6,
+                "line": 1,
               },
             },
-            "severity": 1,
-            "source": "ocamllsp",
           },
         ],
-        "edit": Object {
-          "documentChanges": Array [
-            Object {
-              "edits": Array [
-                Object {
-                  "newText": "rec ",
-                  "range": Object {
-                    "end": Object {
-                      "character": 6,
-                      "line": 1,
-                    },
-                    "start": Object {
-                      "character": 6,
-                      "line": 1,
-                    },
-                  },
-                },
-              ],
-              "textDocument": Object {
-                "uri": "file:///missing-rec-3.ml",
-                "version": 0,
-              },
-            },
-          ],
+        "textDocument": {
+          "uri": "file:///missing-rec-3.ml",
+          "version": 0,
         },
-        "isPreferred": false,
-        "kind": "quickfix",
-        "title": "Add missing \`rec\` keyword",
-      }
-    `);
+      },
+    ],
+  },
+  "isPreferred": false,
+  "kind": "quickfix",
+  "title": "Add missing \`rec\` keyword",
+}
+`);
   });
 
   it("don't add rec when rec exists", async () => {
-    let uri = "file:///has-rec-2.ml";
+    const uri = "file:///has-rec-2.ml";
     openDocument(
       outdent`
 let outer =
@@ -686,24 +687,24 @@ let outer =
 `,
       uri,
     );
-    let start = Types.Position.create(2, 14);
-    let end = Types.Position.create(2, 15);
+    const start = Types.Position.create(2, 14);
+    const end = Types.Position.create(2, 15);
 
-    let actions = (await codeAction(uri, start, end)) ?? [];
+    const actions = (await codeAction(uri, start, end)) ?? [];
     expect(findAddRecAnnotation(actions)).toBeUndefined();
   });
 
   it("don't add rec to pattern bindings", async () => {
-    let uri = "file:///no-rec-1.ml";
+    const uri = "file:///no-rec-1.ml";
     openDocument(
       outdent`
 let (f, x) = 1 + (f x)
 `,
       uri,
     );
-    let start = Types.Position.create(0, 18);
-    let end = Types.Position.create(0, 19);
-    let context = {
+    const start = Types.Position.create(0, 18);
+    const end = Types.Position.create(0, 19);
+    const context = {
       diagnostics: [
         mkUnboundDiagnostic(
           Types.Position.create(0, 18),
@@ -712,12 +713,12 @@ let (f, x) = 1 + (f x)
       ],
     };
 
-    let actions = (await codeAction(uri, start, end, context)) ?? [];
+    const actions = (await codeAction(uri, start, end, context)) ?? [];
     expect(findAddRecAnnotation(actions)).toBeUndefined();
   });
 
   it("mark variable as unused", async () => {
-    let uri = "file:///mark-unused-variable.ml";
+    const uri = "file:///mark-unused-variable.ml";
     openDocument(
       outdent`
 let f x =
@@ -729,9 +730,9 @@ let f x =
 `,
       uri,
     );
-    let start = Types.Position.create(1, 6);
-    let end = Types.Position.create(1, 7);
-    let context = {
+    const start = Types.Position.create(1, 6);
+    const end = Types.Position.create(1, 7);
+    const context = {
       diagnostics: [
         mkUnusedDiagnostic(
           Types.Position.create(1, 6),
@@ -740,60 +741,60 @@ let f x =
       ],
     };
 
-    let actions = (await codeAction(uri, start, end, context)) ?? [];
+    const actions = (await codeAction(uri, start, end, context)) ?? [];
     expect(findMarkUnused(actions)).toMatchInlineSnapshot(`
-      Object {
-        "diagnostics": Array [
-          Object {
-            "message": "Error (warning 26): unused variable",
-            "range": Object {
-              "end": Object {
-                "character": 7,
+{
+  "diagnostics": [
+    {
+      "message": "Error (warning 26): unused variable",
+      "range": {
+        "end": {
+          "character": 7,
+          "line": 1,
+        },
+        "start": {
+          "character": 6,
+          "line": 1,
+        },
+      },
+      "severity": 2,
+      "source": "ocamllsp",
+    },
+  ],
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "_",
+            "range": {
+              "end": {
+                "character": 6,
                 "line": 1,
               },
-              "start": Object {
+              "start": {
                 "character": 6,
                 "line": 1,
               },
             },
-            "severity": 2,
-            "source": "ocamllsp",
           },
         ],
-        "edit": Object {
-          "documentChanges": Array [
-            Object {
-              "edits": Array [
-                Object {
-                  "newText": "_",
-                  "range": Object {
-                    "end": Object {
-                      "character": 6,
-                      "line": 1,
-                    },
-                    "start": Object {
-                      "character": 6,
-                      "line": 1,
-                    },
-                  },
-                },
-              ],
-              "textDocument": Object {
-                "uri": "file:///mark-unused-variable.ml",
-                "version": 0,
-              },
-            },
-          ],
+        "textDocument": {
+          "uri": "file:///mark-unused-variable.ml",
+          "version": 0,
         },
-        "isPreferred": true,
-        "kind": "quickfix",
-        "title": "Mark as unused",
-      }
-    `);
+      },
+    ],
+  },
+  "isPreferred": true,
+  "kind": "quickfix",
+  "title": "Mark as unused",
+}
+`);
   });
 
   it("remove unused variable", async () => {
-    let uri = "file:///remove-unused-variable.ml";
+    const uri = "file:///remove-unused-variable.ml";
     openDocument(
       outdent`
 let f x =
@@ -805,9 +806,9 @@ let f x =
 `,
       uri,
     );
-    let start = Types.Position.create(1, 6);
-    let end = Types.Position.create(1, 7);
-    let context = {
+    const start = Types.Position.create(1, 6);
+    const end = Types.Position.create(1, 7);
+    const context = {
       diagnostics: [
         mkUnusedDiagnostic(
           Types.Position.create(1, 6),
@@ -816,60 +817,60 @@ let f x =
       ],
     };
 
-    let actions = (await codeAction(uri, start, end, context)) ?? [];
+    const actions = (await codeAction(uri, start, end, context)) ?? [];
     expect(findRemoveUnused(actions)).toMatchInlineSnapshot(`
-      Object {
-        "diagnostics": Array [
-          Object {
-            "message": "Error (warning 26): unused variable",
-            "range": Object {
-              "end": Object {
-                "character": 7,
-                "line": 1,
+{
+  "diagnostics": [
+    {
+      "message": "Error (warning 26): unused variable",
+      "range": {
+        "end": {
+          "character": 7,
+          "line": 1,
+        },
+        "start": {
+          "character": 6,
+          "line": 1,
+        },
+      },
+      "severity": 2,
+      "source": "ocamllsp",
+    },
+  ],
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "",
+            "range": {
+              "end": {
+                "character": 2,
+                "line": 5,
               },
-              "start": Object {
-                "character": 6,
+              "start": {
+                "character": 2,
                 "line": 1,
               },
             },
-            "severity": 2,
-            "source": "ocamllsp",
           },
         ],
-        "edit": Object {
-          "documentChanges": Array [
-            Object {
-              "edits": Array [
-                Object {
-                  "newText": "",
-                  "range": Object {
-                    "end": Object {
-                      "character": 2,
-                      "line": 5,
-                    },
-                    "start": Object {
-                      "character": 2,
-                      "line": 1,
-                    },
-                  },
-                },
-              ],
-              "textDocument": Object {
-                "uri": "file:///remove-unused-variable.ml",
-                "version": 0,
-              },
-            },
-          ],
+        "textDocument": {
+          "uri": "file:///remove-unused-variable.ml",
+          "version": 0,
         },
-        "isPreferred": false,
-        "kind": "quickfix",
-        "title": "Remove unused",
-      }
-    `);
+      },
+    ],
+  },
+  "isPreferred": false,
+  "kind": "quickfix",
+  "title": "Remove unused",
+}
+`);
   });
 
   it("don't remove unused value in let-and binding", async () => {
-    let uri = "file:///remove-unused-variable-2.ml";
+    const uri = "file:///remove-unused-variable-2.ml";
     openDocument(
       outdent`
 let f x =
@@ -878,9 +879,9 @@ let f x =
 `,
       uri,
     );
-    let start = Types.Position.create(1, 6);
-    let end = Types.Position.create(1, 7);
-    let context = {
+    const start = Types.Position.create(1, 6);
+    const end = Types.Position.create(1, 7);
+    const context = {
       diagnostics: [
         mkUnusedDiagnostic(
           Types.Position.create(1, 6),
@@ -889,7 +890,7 @@ let f x =
       ],
     };
 
-    let actions = (await codeAction(uri, start, end, context)) ?? [];
+    const actions = (await codeAction(uri, start, end, context)) ?? [];
     expect(findRemoveUnused(actions)).toBeUndefined();
   });
 });

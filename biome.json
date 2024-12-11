@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
+  "formatter": {
+    "enabled": true,
+    "ignore": ["lsp/bin/metamodel/metaModel.json", "package.json"],
+    "useEditorconfig": true
+  },
+  "linter": {
+    "enabled": true,
+    "ignore": ["ocaml-lsp-server/test/e2e/**"],
+    "rules": {
+      "recommended": true
+    }
+  },
+  "organizeImports": {
+    "enabled": true
+  },
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": true
+  }
+}

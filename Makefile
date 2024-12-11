@@ -4,7 +4,7 @@ TEST_E2E_DIR = ocaml-lsp-server/test/e2e
 
 .PHONY: yarn-install
 yarn-install:
-	cd $(TEST_E2E_DIR) && yarn --frozen-lockfile
+	yarn install --frozen-lockfile
 
 -include Makefile.dev
 
@@ -39,7 +39,6 @@ lock: ## Generate the lock files
 bench: ##
 	dune exec ocaml-lsp-server/bench/ocaml_lsp_bench.exe --profile bench
 
-
 .PHONY: test-ocaml
 test-ocaml: ## Run the unit tests
 	dune build @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
@@ -70,7 +69,6 @@ clean: ## Clean build artifacts and other generated files
 .PHONY: fmt
 fmt: ## Format the codebase with ocamlformat
 	dune build @fmt --auto-promote
-	cd $(TEST_E2E_DIR)
 
 .PHONY: watch
 watch: ## Watch for the filesystem and rebuild on every change
@@ -89,15 +87,12 @@ release: ## Release on Opam
 	dune-release opam submit
 
 .PHONY: nix-tests
-nix-tests:
-	(cd $(TEST_E2E_DIR) && yarn --frozen-lockfile)
+nix-tests: yarn-install
 	make test
 
 .PHONY: nix-fmt
-nix-fmt:
-	$(MAKE) yarn-install
+nix-fmt: yarn-install
 	dune build @fmt --auto-promote
-	cd $(TEST_E2E_DIR)
 
 .PHONY: coverage-deps
 coverage-deps:
