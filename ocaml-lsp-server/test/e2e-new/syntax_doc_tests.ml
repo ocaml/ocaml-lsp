@@ -1,6 +1,6 @@
 open! Test.Import
+open Lsp_helpers
 
-let change_config client params = Client.notification client (ChangeConfiguration params)
 let uri = DocumentUri.of_path "test.ml"
 let create_postion line character = Position.create ~line ~character
 
@@ -67,7 +67,7 @@ type color = Red|Blue
 |ocaml} in
   let position = create_postion 1 9 in
   let req client =
-    let* () = change_config client activate_syntax_doc in
+    let* () = change_config ~client activate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
@@ -94,7 +94,7 @@ type color = Red|Blue
 |ocaml} in
   let position = create_postion 1 9 in
   let req client =
-    let* () = change_config client deactivate_syntax_doc in
+    let* () = change_config ~client deactivate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
@@ -117,7 +117,7 @@ type t = ..
 |ocaml} in
   let position = create_postion 1 5 in
   let req client =
-    let* () = change_config client activate_syntax_doc in
+    let* () = change_config ~client activate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
@@ -143,7 +143,7 @@ let%expect_test "should receive no hover response" =
   |ocaml} in
   let position = create_postion 1 5 in
   let req client =
-    let* () = change_config client activate_syntax_doc in
+    let* () = change_config ~client activate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
