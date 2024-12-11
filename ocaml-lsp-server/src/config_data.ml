@@ -507,17 +507,6 @@ let t_of_yojson =
                extended_hover_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-          | "syntaxDocumentation" ->
-            (match Ppx_yojson_conv_lib.( ! ) syntax_documentation_field with
-             | Ppx_yojson_conv_lib.Option.None ->
-               let fvalue =
-                 Json.Nullable_option.t_of_yojson
-                   SyntaxDocumentation.t_of_yojson
-                   _field_yojson
-               in
-               syntax_documentation_field := Ppx_yojson_conv_lib.Option.Some fvalue
-             | Ppx_yojson_conv_lib.Option.Some _ ->
-               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
           | "inlayHints" ->
             (match Ppx_yojson_conv_lib.( ! ) inlay_hints_field with
              | Ppx_yojson_conv_lib.Option.None ->
@@ -536,6 +525,17 @@ let t_of_yojson =
                    _field_yojson
                in
                dune_diagnostics_field := Ppx_yojson_conv_lib.Option.Some fvalue
+             | Ppx_yojson_conv_lib.Option.Some _ ->
+               duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+          | "syntaxDocumentation" ->
+            (match Ppx_yojson_conv_lib.( ! ) syntax_documentation_field with
+             | Ppx_yojson_conv_lib.Option.None ->
+               let fvalue =
+                 Json.Nullable_option.t_of_yojson
+                   SyntaxDocumentation.t_of_yojson
+                   _field_yojson
+               in
+               syntax_documentation_field := Ppx_yojson_conv_lib.Option.Some fvalue
              | Ppx_yojson_conv_lib.Option.Some _ ->
                duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
           | "merlinJumpCodeActions" ->
@@ -625,6 +625,28 @@ let yojson_of_t =
      } ->
      let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
      let bnds =
+       if None = v_merlin_jump_code_actions
+       then bnds
+       else (
+         let arg =
+           (Json.Nullable_option.yojson_of_t MerlinJumpCodeActions.yojson_of_t)
+             v_merlin_jump_code_actions
+         in
+         let bnd = "merlinJumpCodeActions", arg in
+         bnd :: bnds)
+     in
+     let bnds =
+       if None = v_syntax_documentation
+       then bnds
+       else (
+         let arg =
+           (Json.Nullable_option.yojson_of_t SyntaxDocumentation.yojson_of_t)
+             v_syntax_documentation
+         in
+         let bnd = "syntaxDocumentation", arg in
+         bnd :: bnds)
+     in
+     let bnds =
        if None = v_dune_diagnostics
        then bnds
        else (
@@ -646,17 +668,6 @@ let yojson_of_t =
          bnd :: bnds)
      in
      let bnds =
-       if None = v_syntax_documentation
-       then bnds
-       else (
-         let arg =
-           (Json.Nullable_option.yojson_of_t SyntaxDocumentation.yojson_of_t)
-             v_syntax_documentation
-         in
-         let bnd = "syntaxDocumentation", arg in
-         bnd :: bnds)
-     in
-     let bnds =
        if None = v_extended_hover
        then bnds
        else (
@@ -672,17 +683,6 @@ let yojson_of_t =
        else (
          let arg = (Json.Nullable_option.yojson_of_t Lens.yojson_of_t) v_codelens in
          let bnd = "codelens", arg in
-         bnd :: bnds)
-     in
-     let bnds =
-       if None = v_merlin_jump_code_actions
-       then bnds
-       else (
-         let arg =
-           (Json.Nullable_option.yojson_of_t MerlinJumpCodeActions.yojson_of_t)
-             v_merlin_jump_code_actions
-         in
-         let bnd = "merlinJumpCodeActions", arg in
          bnd :: bnds)
      in
      `Assoc bnds
