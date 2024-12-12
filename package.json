@@ -1,0 +1,11 @@
+{
+  "name": "@ocaml/ocaml-lsp",
+  "private": true,
+  "workspaces": [
+    "ocaml-lsp-server/test/e2e"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4"
+  },
+  "packageManager": "yarn@1.22.22"
+}

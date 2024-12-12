@@ -1,7 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("textDocument/references", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -49,53 +49,53 @@ describe("textDocument/references", () => {
       end
     `);
 
-    let result = await query();
+    const result = await query();
 
     expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "command": Object {
+[
+  {
+    "command": {
       "command": "",
       "title": "int -> int -> int",
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 19,
         "line": 4,
       },
-      "start": Object {
+      "start": {
         "character": 2,
         "line": 4,
       },
     },
   },
-  Object {
-    "command": Object {
+  {
+    "command": {
       "command": "",
       "title": "string",
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 20,
         "line": 1,
       },
-      "start": Object {
+      "start": {
         "character": 0,
         "line": 1,
       },
     },
   },
-  Object {
-    "command": Object {
+  {
+    "command": {
       "command": "",
       "title": "int",
     },
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 12,
         "line": 0,
       },
-      "start": Object {
+      "start": {
         "character": 0,
         "line": 0,
       },

@@ -1,7 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("textDocument/references", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -43,43 +43,43 @@ describe("textDocument/references", () => {
       let sum2 = sum + num
     `);
 
-    let result = await query(Types.Position.create(0, 4));
+    const result = await query(Types.Position.create(0, 4));
 
     expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "range": Object {
-      "end": Object {
+[
+  {
+    "range": {
+      "end": {
         "character": 7,
         "line": 0,
       },
-      "start": Object {
+      "start": {
         "character": 4,
         "line": 0,
       },
     },
     "uri": "file:///test.ml",
   },
-  Object {
-    "range": Object {
-      "end": Object {
+  {
+    "range": {
+      "end": {
         "character": 13,
         "line": 1,
       },
-      "start": Object {
+      "start": {
         "character": 10,
         "line": 1,
       },
     },
     "uri": "file:///test.ml",
   },
-  Object {
-    "range": Object {
-      "end": Object {
+  {
+    "range": {
+      "end": {
         "character": 20,
         "line": 2,
       },
-      "start": Object {
+      "start": {
         "character": 17,
         "line": 2,
       },

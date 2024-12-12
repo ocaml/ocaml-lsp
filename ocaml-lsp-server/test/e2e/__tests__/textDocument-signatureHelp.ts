@@ -1,7 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "./../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "./../src/LanguageServer";
 
 const describe_opt = LanguageServer.ocamlVersionGEq("4.08.0")
   ? describe
@@ -64,23 +64,23 @@ describe_opt("textDocument/completion", () => {
       let _ = map
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(2, 11));
+    const items = await querySignatureHelp(Types.Position.create(2, 11));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 1,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
+  "signatures": [
+    {
       "label": "map : f:('a -> 'b) -> 'a list -> 'b list",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             6,
             18,
           ],
         },
-        Object {
-          "label": Array [
+        {
+          "label": [
             22,
             29,
           ],
@@ -99,23 +99,23 @@ Object {
       let _ = 1 + 2
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(2, 13));
+    const items = await querySignatureHelp(Types.Position.create(2, 13));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 1,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
+  "signatures": [
+    {
       "label": "(+) : int -> int -> int",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             6,
             9,
           ],
         },
-        Object {
-          "label": Array [
+        {
+          "label": [
             13,
             16,
           ],
@@ -132,17 +132,17 @@ Object {
       let _ = (fun x -> x + 1)
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(0, 26));
+    const items = await querySignatureHelp(Types.Position.create(0, 26));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 0,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
+  "signatures": [
+    {
       "label": "_ : int -> int",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             4,
             7,
           ],
@@ -161,23 +161,23 @@ Object {
       let _ = map []
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(2, 14));
+    const items = await querySignatureHelp(Types.Position.create(2, 14));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 1,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
+  "signatures": [
+    {
       "label": "map : f:('a -> 'b) -> 'a list -> 'b list",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             6,
             18,
           ],
         },
-        Object {
-          "label": Array [
+        {
+          "label": [
             22,
             29,
           ],
@@ -196,23 +196,23 @@ Object {
       let _ = map ~f:Int.abs
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(2, 22));
+    const items = await querySignatureHelp(Types.Position.create(2, 22));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 0,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
+  "signatures": [
+    {
       "label": "map : f:(int -> int) -> int list -> int list",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             6,
             20,
           ],
         },
-        Object {
-          "label": Array [
+        {
+          "label": [
             24,
             32,
           ],
@@ -231,23 +231,23 @@ Object {
       let _ = mem ~se
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(2, 15));
+    const items = await querySignatureHelp(Types.Position.create(2, 15));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 1,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
+  "signatures": [
+    {
       "label": "mem : 'a -> set:'a list -> bool",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             6,
             8,
           ],
         },
-        Object {
-          "label": Array [
+        {
+          "label": [
             12,
             23,
           ],
@@ -266,23 +266,23 @@ Object {
       let _ = create ?ra
     `);
 
-    let items = await querySignatureHelp(Types.Position.create(2, 18));
+    const items = await querySignatureHelp(Types.Position.create(2, 18));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 0,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
+  "signatures": [
+    {
       "label": "create : ?random:bool -> int -> ('a, 'b) Hashtbl.t",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             9,
             21,
           ],
         },
-        Object {
-          "label": Array [
+        {
+          "label": [
             25,
             28,
           ],
@@ -380,14 +380,14 @@ Object {
     `,
     );
 
-    let items = await querySignatureHelp(Types.Position.create(80, 13));
+    const items = await querySignatureHelp(Types.Position.create(80, 13));
     expect(items).toMatchInlineSnapshot(`
-Object {
+{
   "activeParameter": 0,
   "activeSignature": 0,
-  "signatures": Array [
-    Object {
-      "documentation": Object {
+  "signatures": [
+    {
+      "documentation": {
         "kind": "markdown",
         "value": "This is an example of a docstring that demonstrates various ocamldoc syntax features.
 
@@ -409,7 +409,7 @@ Cross-references: \`List.length\` Replacement text
 
 #### Inline Formatting
 
-**Bold**, *Italic*, *Emphasize*, ^{Superscript}, \\\\_{Subscript}, and \`inline code\`
+**Bold**, *Italic*, *Emphasize*, ^{Superscript}, \\_{Subscript}, and \`inline code\`
 
 #### Text Alignment
 
@@ -466,7 +466,7 @@ dividend
 ***@raise*** \`Division_by_zero\`
 raised when divided by zero
 
-***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\\\(%C3%B7,_or_/\\\\))
+***@see*** [link](https://en.wikipedia.org/wiki/Arithmetic#Division_\\(%C3%B7,_or_/\\))
 article
 
 ***@see*** \`arithmetic.ml\`
@@ -484,15 +484,15 @@ use \`(/)\`
 ***@author*** John Doe",
       },
       "label": "div : int -> int -> int",
-      "parameters": Array [
-        Object {
-          "label": Array [
+      "parameters": [
+        {
+          "label": [
             6,
             9,
           ],
         },
-        Object {
-          "label": Array [
+        {
+          "label": [
             13,
             16,
           ],

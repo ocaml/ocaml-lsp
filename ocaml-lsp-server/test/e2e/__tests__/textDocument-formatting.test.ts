@@ -1,9 +1,9 @@
-import * as LanguageServer from "../src/LanguageServer";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
+import * as LanguageServer from "../src/LanguageServer";
 
 const ocamlFormat = `
 break-cases=all
@@ -25,7 +25,7 @@ wrap-comments=true
 `;
 
 function setupOcamlFormat(ocamlFormat: string) {
-  let tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), "ocamllsp-test-"));
+  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), "ocamllsp-test-"));
   fs.writeFileSync(path.join(tmpdir, ".ocamlformat"), ocamlFormat);
   return tmpdir;
 }
@@ -69,7 +69,7 @@ maybeDescribe("textDocument/formatting", () => {
     it("can format an ocaml impl file", async () => {
       languageServer = await LanguageServer.startAndInitialize();
 
-      let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
+      const name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
 
       openDocument(
         languageServer,
@@ -82,18 +82,18 @@ maybeDescribe("textDocument/formatting", () => {
         name,
       );
 
-      let result = await query(languageServer, name);
+      const result = await query(languageServer, name);
       expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "newText": "  | 0, n
 ",
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 0,
         "line": 3,
       },
-      "start": Object {
+      "start": {
         "character": 0,
         "line": 2,
       },
@@ -106,7 +106,7 @@ Array [
     it("leaves unchanged files alone", async () => {
       languageServer = await LanguageServer.startAndInitialize();
 
-      let name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
+      const name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
 
       openDocument(
         languageServer,
@@ -119,14 +119,14 @@ Array [
         name,
       );
 
-      let result = await query(languageServer, name);
+      const result = await query(languageServer, name);
       expect(result).toMatchObject([]);
     });
 
     it("can format an ocaml intf file", async () => {
       languageServer = await LanguageServer.startAndInitialize();
 
-      let name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
+      const name = path.join(setupOcamlFormat(ocamlFormat), "test.mli");
 
       openDocument(
         languageServer,
@@ -134,19 +134,19 @@ Array [
         name,
       );
 
-      let result = await query(languageServer, name);
+      const result = await query(languageServer, name);
 
       expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "newText": "module Test : sig
 ",
-    "range": Object {
-      "end": Object {
+    "range": {
+      "end": {
         "character": 0,
         "line": 1,
       },
-      "start": Object {
+      "start": {
         "character": 0,
         "line": 0,
       },
@@ -159,12 +159,12 @@ Array [
     it("does not format ignored files", async () => {
       languageServer = await LanguageServer.startAndInitialize();
 
-      let tmpdir = setupOcamlFormat(ocamlFormat);
+      const tmpdir = setupOcamlFormat(ocamlFormat);
 
-      let ocamlFormatIgnore = path.join(tmpdir, ".ocamlformat-ignore");
+      const ocamlFormatIgnore = path.join(tmpdir, ".ocamlformat-ignore");
       fs.writeFileSync(ocamlFormatIgnore, "test.ml\n");
 
-      let name = path.join(tmpdir, "test.ml");
+      const name = path.join(tmpdir, "test.ml");
 
       openDocument(
         languageServer,
@@ -176,7 +176,7 @@ Array [
         name,
       );
 
-      let result = await query(languageServer, name);
+      const result = await query(languageServer, name);
       expect(result).toMatchObject([]);
     });
   });

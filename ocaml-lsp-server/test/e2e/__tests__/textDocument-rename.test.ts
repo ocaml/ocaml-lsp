@@ -1,7 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("textDocument/rename", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -21,7 +21,7 @@ describe("textDocument/rename", () => {
   }
 
   async function query(position: Types.Position, newNameOpt?: string) {
-    let newName = newNameOpt ? newNameOpt : "new_num";
+    const newName = newNameOpt ? newNameOpt : "new_num";
     return await languageServer.sendRequest(Protocol.RenameRequest.type, {
       textDocument: Types.TextDocumentIdentifier.create("file:///test.ml"),
       position,
@@ -56,7 +56,7 @@ describe("textDocument/rename", () => {
       let num2 = num
     `);
 
-    let result = await query_prepare(Types.Position.create(0, 1));
+    const result = await query_prepare(Types.Position.create(0, 1));
     expect(result).toBeNull();
   });
 
@@ -73,14 +73,14 @@ describe("textDocument/rename", () => {
       let num2 = num
     `);
 
-    let result = await query_prepare(Types.Position.create(0, 4));
+    const result = await query_prepare(Types.Position.create(0, 4));
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "end": Object {
+{
+  "end": {
     "character": 7,
     "line": 0,
   },
-  "start": Object {
+  "start": {
     "character": 4,
     "line": 0,
   },
@@ -101,33 +101,33 @@ Object {
       let num2 = num
     `);
 
-    let result = await query(Types.Position.create(0, 4));
+    const result = await query(Types.Position.create(0, 4));
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "changes": Object {
-    "file:///test.ml": Array [
-      Object {
+{
+  "changes": {
+    "file:///test.ml": [
+      {
         "newText": "new_num",
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 7,
             "line": 0,
           },
-          "start": Object {
+          "start": {
             "character": 4,
             "line": 0,
           },
         },
       },
-      Object {
+      {
         "newText": "new_num",
-        "range": Object {
-          "end": Object {
+        "range": {
+          "end": {
             "character": 13,
             "line": 1,
           },
-          "start": Object {
+          "start": {
             "character": 10,
             "line": 1,
           },
@@ -152,41 +152,41 @@ Object {
       let num2 = num
     `);
 
-    let result = await query(Types.Position.create(0, 4));
+    const result = await query(Types.Position.create(0, 4));
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "documentChanges": Array [
-    Object {
-      "edits": Array [
-        Object {
+{
+  "documentChanges": [
+    {
+      "edits": [
+        {
           "newText": "new_num",
-          "range": Object {
-            "end": Object {
+          "range": {
+            "end": {
               "character": 7,
               "line": 0,
             },
-            "start": Object {
+            "start": {
               "character": 4,
               "line": 0,
             },
           },
         },
-        Object {
+        {
           "newText": "new_num",
-          "range": Object {
-            "end": Object {
+          "range": {
+            "end": {
               "character": 13,
               "line": 1,
             },
-            "start": Object {
+            "start": {
               "character": 10,
               "line": 1,
             },
           },
         },
       ],
-      "textDocument": Object {
+      "textDocument": {
         "uri": "file:///test.ml",
         "version": 0,
       },
@@ -211,42 +211,42 @@ let bar ~foo = foo ()
 let () = bar ~foo
     `);
 
-    let result = await query(Types.Position.create(0, 4), "ident");
+    const result = await query(Types.Position.create(0, 4), "ident");
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "changes": Object {
-          "file:///test.ml": Array [
-            Object {
-              "newText": "ident",
-              "range": Object {
-                "end": Object {
-                  "character": 7,
-                  "line": 0,
-                },
-                "start": Object {
-                  "character": 4,
-                  "line": 0,
-                },
-              },
-            },
-            Object {
-              "newText": ":ident",
-              "range": Object {
-                "end": Object {
-                  "character": 17,
-                  "line": 4,
-                },
-                "start": Object {
-                  "character": 17,
-                  "line": 4,
-                },
-              },
-            },
-          ],
+{
+  "changes": {
+    "file:///test.ml": [
+      {
+        "newText": "ident",
+        "range": {
+          "end": {
+            "character": 7,
+            "line": 0,
+          },
+          "start": {
+            "character": 4,
+            "line": 0,
+          },
         },
-      }
-    `);
+      },
+      {
+        "newText": ":ident",
+        "range": {
+          "end": {
+            "character": 17,
+            "line": 4,
+          },
+          "start": {
+            "character": 17,
+            "line": 4,
+          },
+        },
+      },
+    ],
+  },
+}
+`);
   });
 
   it("rename a var used as a named argument", async () => {
@@ -265,41 +265,41 @@ let bar ?foo () = foo
 ignore (bar ?foo ())
     `);
 
-    let result = await query(Types.Position.create(0, 4), "sunit");
+    const result = await query(Types.Position.create(0, 4), "sunit");
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "changes": Object {
-          "file:///test.ml": Array [
-            Object {
-              "newText": "sunit",
-              "range": Object {
-                "end": Object {
-                  "character": 7,
-                  "line": 0,
-                },
-                "start": Object {
-                  "character": 4,
-                  "line": 0,
-                },
-              },
-            },
-            Object {
-              "newText": ":sunit",
-              "range": Object {
-                "end": Object {
-                  "character": 16,
-                  "line": 5,
-                },
-                "start": Object {
-                  "character": 16,
-                  "line": 5,
-                },
-              },
-            },
-          ],
+{
+  "changes": {
+    "file:///test.ml": [
+      {
+        "newText": "sunit",
+        "range": {
+          "end": {
+            "character": 7,
+            "line": 0,
+          },
+          "start": {
+            "character": 4,
+            "line": 0,
+          },
         },
-      }
-    `);
+      },
+      {
+        "newText": ":sunit",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 5,
+          },
+          "start": {
+            "character": 16,
+            "line": 5,
+          },
+        },
+      },
+    ],
+  },
+}
+`);
   });
 });
