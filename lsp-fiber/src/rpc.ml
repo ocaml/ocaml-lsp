@@ -147,9 +147,9 @@ struct
     ;;
 
     let make
-      ?(on_request = on_request_default)
-      ?(on_notification = on_notification_default)
-      ()
+          ?(on_request = on_request_default)
+          ?(on_notification = on_notification_default)
+          ()
       =
       { h_on_request = on_request; h_on_notification = on_notification }
     ;;
@@ -176,9 +176,9 @@ struct
                  Lazy.force remove;
                  exn))
             (fun () ->
-              Fiber.Var.set cancel_token cancel (fun () ->
-                Table.replace t.pending req.id cancel;
-                h_on_request.on_request t r))
+               Fiber.Var.set cancel_token cancel (fun () ->
+                 Table.replace t.pending req.id cancel;
+                 h_on_request.on_request t r))
         in
         let to_response x =
           Jsonrpc.Response.ok req.id (In_request.yojson_of_result r x)
@@ -192,8 +192,8 @@ struct
             let f send =
               Fiber.finalize
                 (fun () ->
-                  Fiber.Var.set cancel_token cancel (fun () ->
-                    k (fun r -> send (to_response r))))
+                   Fiber.Var.set cancel_token cancel (fun () ->
+                     k (fun r -> send (to_response r))))
                 ~finally:(fun () ->
                   Lazy.force remove;
                   Fiber.return ())
@@ -265,12 +265,12 @@ struct
         cancel
         ~on_cancel:(fun () -> on_cancel jsonrpc_req.id)
         (fun () ->
-          let+ resp = Session.request (Fdecl.get t.session) jsonrpc_req in
-          match resp.result with
-          | Error { code = RequestCancelled; _ } -> `Cancelled
-          | Ok _ when Fiber.Cancel.fired cancel -> `Cancelled
-          | Ok s -> `Ok (Out_request.response_of_json req s)
-          | Error e -> raise (Jsonrpc.Response.Error.E e))
+           let+ resp = Session.request (Fdecl.get t.session) jsonrpc_req in
+           match resp.result with
+           | Error { code = RequestCancelled; _ } -> `Cancelled
+           | Ok _ when Fiber.Cancel.fired cancel -> `Cancelled
+           | Ok s -> `Ok (Out_request.response_of_json req s)
+           | Error e -> raise (Jsonrpc.Response.Error.E e))
     in
     match cancel_status with
     | Cancelled () -> `Cancelled
@@ -331,8 +331,8 @@ struct
   let start_loop t =
     Fiber.fork_and_join_unit
       (fun () ->
-        let* () = Session.run (Fdecl.get t.session) in
-        Fiber.Pool.stop t.detached)
+         let* () = Session.run (Fdecl.get t.session) in
+         Fiber.Pool.stop t.detached)
       (fun () -> Fiber.Pool.run t.detached)
   ;;
 

@@ -64,8 +64,9 @@ struct
          | None -> loop chan content_length content_type
          | Some (k, v) ->
            let k = String.trim k in
-           if caseless_equal k content_length_lowercase
-              && content_length = init_content_length
+           if
+             caseless_equal k content_length_lowercase
+             && content_length = init_content_length
            then (
              let content_length = int_of_string_opt (String.trim v) in
              match content_length with

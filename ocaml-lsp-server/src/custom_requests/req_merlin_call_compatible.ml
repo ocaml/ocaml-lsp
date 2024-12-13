@@ -33,7 +33,7 @@ module Request_params = struct
     let+ args =
       List.fold_left
         ~f:(fun acc x ->
-          let* acc in
+          let* acc = acc in
           let+ x = stringish_of_yojson x in
           x :: acc)
         ~init:(Some [])
@@ -48,7 +48,7 @@ module Request_params = struct
       List.fold_left
         ~f:(fun acc (key, value) ->
           let key = "-" ^ key in
-          let* acc in
+          let* acc = acc in
           let+ x = stringish_of_yojson value in
           x :: key :: acc)
         ~init:(Some [])

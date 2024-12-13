@@ -1,8 +1,8 @@
 open Test.Import
 
 let print_completion
-  (completions :
-    [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option)
+      (completions :
+        [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option)
   =
   let print_items (items : CompletionItem.t list) =
     List.map items ~f:(fun item ->

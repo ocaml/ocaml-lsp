@@ -160,7 +160,7 @@ let find_shared_signature tree_item ~old_sigs ~new_sigs =
 let select_matching_range ~first ~last sig_type_list =
   let index_of item =
     let open Option.O in
-    let* item in
+    let* item = item in
     let* id = top_level_id item in
     let* i, _ =
       List.findi sig_type_list ~f:(fun _ item ->
@@ -196,13 +196,13 @@ let text_edit_opt shared_signature ~formatter =
     different string on the [signature_item]s from the old interface and the new
     implementation. *)
 let build_signature_edits
-  ~(old_intf : Typedtree.signature)
-  ~(* Extracted by Merlin from the interface. *)
-  (range : Range.t)
-  ~(* Selected range in the interface. *)
-  (new_sigs : Types.signature)
-  ~(* Inferred by Merlin from the implementation. *)
-  (formatter : Types.signature_item -> string Fiber.t)
+      ~(old_intf : Typedtree.signature)
+      ~(* Extracted by Merlin from the interface. *)
+      (range : Range.t)
+      ~(* Selected range in the interface. *)
+      (new_sigs : Types.signature)
+      ~(* Inferred by Merlin from the implementation. *)
+      (formatter : Types.signature_item -> string Fiber.t)
   =
   (* These are [Typedtree.signature_item]s, and we need them for the location. *)
   let in_range_tree_items =
@@ -232,10 +232,10 @@ let build_signature_edits
 
 (** Called by the code action for update-signatures. *)
 let update_signatures
-  ~(state : State.t)
-  ~(intf_merlin : Document.Merlin.t)
-  ~(doc : Document.t)
-  ~(range : Range.t)
+      ~(state : State.t)
+      ~(intf_merlin : Document.Merlin.t)
+      ~(doc : Document.t)
+      ~(range : Range.t)
   =
   Fiber.of_thunk (fun () ->
     let intf_uri = Document.uri doc in

@@ -20,7 +20,7 @@ module T = struct
     ; rel_pos : int (** the cursor's position inside [current] *)
     ; abs_pos : int (** the total length of strings in [left] *)
     ; current : Substring.t
-    (** [current] needed to prevent fragmentation of the substring. E.g.
+      (** [current] needed to prevent fragmentation of the substring. E.g.
         so that moving inside the substring doesn't create unnecessary
         splits *)
     ; line : int (** the number of '\n' characters traversed past the current position *)

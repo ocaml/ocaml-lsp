@@ -103,10 +103,11 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
     in
     let executeCommandProvider =
       let commands =
-        if Action_open_related.available
-             (let open Option.O in
-              let* window = client_capabilities.window in
-              window.showDocument)
+        if
+          Action_open_related.available
+            (let open Option.O in
+             let* window = client_capabilities.window in
+             window.showDocument)
         then
           view_metrics_command_name
           :: Action_open_related.command_name
@@ -382,8 +383,8 @@ let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }
 ;;
 
 let selection_range
-  (state : State.t)
-  { SelectionRangeParams.textDocument = { uri }; positions; _ }
+      (state : State.t)
+      { SelectionRangeParams.textDocument = { uri }; positions; _ }
   =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
@@ -415,9 +416,9 @@ let selection_range
 ;;
 
 let references
-  rpc
-  (state : State.t)
-  { ReferenceParams.textDocument = { uri }; position; _ }
+      rpc
+      (state : State.t)
+      { ReferenceParams.textDocument = { uri }; position; _ }
   =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
@@ -461,8 +462,8 @@ let references
 ;;
 
 let highlight
-  (state : State.t)
-  { DocumentHighlightParams.textDocument = { uri }; position; _ }
+      (state : State.t)
+      { DocumentHighlightParams.textDocument = { uri }; position; _ }
   =
   let store = state.store in
   let doc = Document_store.get store uri in
@@ -568,17 +569,17 @@ let on_request
     then
       later
         (fun state server ->
-          let store = state.store in
-          let+ () = Merlin_config_command.command_run server store in
-          `Null)
+           let store = state.store in
+           let+ () = Merlin_config_command.command_run server store in
+           `Null)
         server
     else if String.equal command.command Document_text_command.command_name
     then
       later
         (fun state server ->
-          let store = state.store in
-          let+ () = Document_text_command.command_run server store command.arguments in
-          `Null)
+           let store = state.store in
+           let+ () = Document_text_command.command_run server store command.arguments in
+           `Null)
         server
     else if String.equal command.command view_metrics_command_name
     then later (fun _state server -> view_metrics server) server
@@ -590,38 +591,38 @@ let on_request
     else
       later
         (fun state () ->
-          let dune = State.dune state in
-          Dune.on_command dune command)
+           let dune = State.dune state in
+           Dune.on_command dune command)
         ()
   | CompletionItemResolve ci ->
     later
       (fun state () ->
-        let markdown =
-          ClientCapabilities.markdown_support
-            (State.client_capabilities state)
-            ~field:(fun d ->
-              let open Option.O in
-              let+ completion = d.completion in
-              let* completion_item = completion.completionItem in
-              completion_item.documentationFormat)
-        in
-        let resolve = Compl.Resolve.of_completion_item ci in
-        match resolve with
-        | None -> Fiber.return ci
-        | Some resolve ->
-          let doc =
-            let uri = Compl.Resolve.uri resolve in
-            Document_store.get state.store uri
-          in
-          (match Document.kind doc with
-           | `Other -> Fiber.return ci
-           | `Merlin doc ->
-             Compl.resolve
-               doc
-               ci
-               resolve
-               (Document.Merlin.doc_comment ~name:"completion-resolve")
-               ~markdown))
+         let markdown =
+           ClientCapabilities.markdown_support
+             (State.client_capabilities state)
+             ~field:(fun d ->
+               let open Option.O in
+               let+ completion = d.completion in
+               let* completion_item = completion.completionItem in
+               completion_item.documentationFormat)
+         in
+         let resolve = Compl.Resolve.of_completion_item ci in
+         match resolve with
+         | None -> Fiber.return ci
+         | Some resolve ->
+           let doc =
+             let uri = Compl.Resolve.uri resolve in
+             Document_store.get state.store uri
+           in
+           (match Document.kind doc with
+            | `Other -> Fiber.return ci
+            | `Merlin doc ->
+              Compl.resolve
+                doc
+                ci
+                resolve
+                (Document.Merlin.doc_comment ~name:"completion-resolve")
+                ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
   | InlayHint params -> later (fun state () -> Inlay_hints.compute state params) ()
@@ -655,22 +656,22 @@ let on_request
   | TextDocumentPrepareRename { textDocument = { uri }; position; workDoneToken = _ } ->
     later
       (fun _ () ->
-        let doc = Document_store.get store uri in
-        match Document.kind doc with
-        | `Other -> Fiber.return None
-        | `Merlin doc ->
-          let+ locs, _synced =
-            Document.Merlin.dispatch_exn
-              ~name:"occurrences"
-              doc
-              (Occurrences (`Ident_at (Position.logical position), `Buffer))
-          in
-          let loc =
-            List.find_opt locs ~f:(fun loc ->
-              let range = Range.of_loc loc in
-              Position.compare_inclusion position range = `Inside)
-          in
-          Option.map loc ~f:Range.of_loc)
+         let doc = Document_store.get store uri in
+         match Document.kind doc with
+         | `Other -> Fiber.return None
+         | `Merlin doc ->
+           let+ locs, _synced =
+             Document.Merlin.dispatch_exn
+               ~name:"occurrences"
+               doc
+               (Occurrences (`Ident_at (Position.logical position), `Buffer))
+           in
+           let loc =
+             List.find_opt locs ~f:(fun loc ->
+               let range = Range.of_loc loc in
+               Position.compare_inclusion position range = `Inside)
+           in
+           Option.map loc ~f:Range.of_loc)
       ()
   | TextDocumentRename req -> later Rename.rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
@@ -681,8 +682,8 @@ let on_request
   | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later
       (fun _ () ->
-        let doc = Document_store.get store uri in
-        Formatter.run rpc doc)
+         let doc = Document_store.get store uri in
+         Formatter.run rpc doc)
       ()
   | TextDocumentOnTypeFormatting _ -> now None
   | SelectionRange req -> later selection_range req
