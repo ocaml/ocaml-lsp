@@ -137,11 +137,11 @@ struct
   ;;
 
   let create
-    ?(on_request = on_request_fail)
-    ?(on_notification = on_notification_fail)
-    ~name
-    chan
-    state
+        ?(on_request = on_request_fail)
+        ?(on_notification = on_notification_fail)
+        ~name
+        chan
+        state
     =
     let pending = Id.Table.create 10 in
     { chan
@@ -274,8 +274,8 @@ struct
       let* () =
         Fiber.fork_and_join_unit
           (fun () ->
-            let* () = loop () in
-            Fiber.Pool.stop later)
+             let* () = loop () in
+             Fiber.Pool.stop later)
           (fun () -> Fiber.Pool.run later)
       in
       close t)
@@ -358,11 +358,10 @@ struct
       let pending = !batch in
       batch := [];
       let pending, ivars =
-        List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) ->
-            function
-            | `Notification n -> Jsonrpc.Packet.Notification n :: pending, ivars
-            | `Request ((r : Request.t), ivar) ->
-              Jsonrpc.Packet.Request r :: pending, (r.id, ivar) :: ivars)
+        List.fold_left pending ~init:([], []) ~f:(fun (pending, ivars) -> function
+          | `Notification n -> Jsonrpc.Packet.Notification n :: pending, ivars
+          | `Request ((r : Request.t), ivar) ->
+            Jsonrpc.Packet.Request r :: pending, (r.id, ivar) :: ivars)
       in
       List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
       Chan.send t.chan pending)

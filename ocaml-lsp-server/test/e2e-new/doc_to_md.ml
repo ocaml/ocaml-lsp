@@ -22,19 +22,23 @@ let%expect_test "table" =
     {| {table {tr {td some content} {td some other content}} {tr {td in another} {td row}}} |}
   in
   translate doc |> print_doc;
-  [%expect {|
+  [%expect
+    {|
     | some content | some other content |
     | in another | row | |}]
 ;;
 
 let%expect_test "table2" =
-  let doc = {| 
+  let doc =
+    {| 
 {t | z    | f  |
    |:-----|---:|
    |  fse |  e | }
- |} in
+ |}
+  in
   translate doc |> print_doc;
-  [%expect {|
+  [%expect
+    {|
     | z | f |
     |:-|-:|
     | fse | e | |}]
@@ -43,14 +47,16 @@ let%expect_test "table2" =
 let%expect_test "problematic_translation" =
   let doc = {| {table {tr {td {ul {li first item} {li second item}}}} } |} in
   translate doc |> print_doc;
-  [%expect {|
+  [%expect
+    {|
     |  - first item - second item | |}]
 ;;
 
 let%expect_test "code_with_output" =
   let doc = {| {@ocaml[foo][output {b foo}]} |} in
   translate doc |> print_doc;
-  [%expect {|
+  [%expect
+    {|
     ```ocaml
     foo
     ```

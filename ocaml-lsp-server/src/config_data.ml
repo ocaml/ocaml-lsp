@@ -532,17 +532,17 @@ end
 type t =
   { codelens : Lens.t Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
   ; extended_hover : ExtendedHover.t Json.Nullable_option.t
-       [@key "extendedHover"] [@default None] [@yojson_drop_default ( = )]
+        [@key "extendedHover"] [@default None] [@yojson_drop_default ( = )]
   ; standard_hover : StandardHover.t Json.Nullable_option.t
-       [@key "standardHover"] [@default None] [@yojson_drop_default ( = )]
+        [@key "standardHover"] [@default None] [@yojson_drop_default ( = )]
   ; inlay_hints : InlayHints.t Json.Nullable_option.t
-       [@key "inlayHints"] [@default None] [@yojson_drop_default ( = )]
+        [@key "inlayHints"] [@default None] [@yojson_drop_default ( = )]
   ; dune_diagnostics : DuneDiagnostics.t Json.Nullable_option.t
-       [@key "duneDiagnostics"] [@default None] [@yojson_drop_default ( = )]
+        [@key "duneDiagnostics"] [@default None] [@yojson_drop_default ( = )]
   ; syntax_documentation : SyntaxDocumentation.t Json.Nullable_option.t
-       [@key "syntaxDocumentation"] [@default None] [@yojson_drop_default ( = )]
+        [@key "syntaxDocumentation"] [@default None] [@yojson_drop_default ( = )]
   ; merlin_jump_code_actions : MerlinJumpCodeActions.t Json.Nullable_option.t
-       [@key "merlinJumpCodeActions"] [@default None] [@yojson_drop_default ( = )]
+        [@key "merlinJumpCodeActions"] [@default None] [@yojson_drop_default ( = )]
   }
 [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 

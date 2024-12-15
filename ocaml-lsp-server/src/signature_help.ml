@@ -79,7 +79,7 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
          in
          let documentation =
            let open Option.O in
-           let+ doc in
+           let+ doc = doc in
            let markdown =
              ClientCapabilities.markdown_support
                (State.client_capabilities state)

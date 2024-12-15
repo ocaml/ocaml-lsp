@@ -62,9 +62,11 @@ let run_test text req =
 ;;
 
 let%expect_test "syntax doc should display" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type color = Red|Blue
-|ocaml} in
+|ocaml}
+  in
   let position = create_postion 1 9 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
@@ -89,9 +91,11 @@ type color = Red|Blue
 ;;
 
 let%expect_test "syntax doc should not display" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type color = Red|Blue
-|ocaml} in
+|ocaml}
+  in
   let position = create_postion 1 9 in
   let req client =
     let* () = change_config ~client deactivate_syntax_doc in
@@ -112,9 +116,11 @@ type color = Red|Blue
 ;;
 
 let%expect_test "syntax doc should print" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type t = ..
-|ocaml} in
+|ocaml}
+  in
   let position = create_postion 1 5 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
@@ -138,9 +144,11 @@ type t = ..
 ;;
 
 let%expect_test "should receive no hover response" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
   let a = 1
-  |ocaml} in
+  |ocaml}
+  in
   let position = create_postion 1 5 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
