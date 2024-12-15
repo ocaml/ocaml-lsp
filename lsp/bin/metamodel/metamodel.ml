@@ -1,4 +1,4 @@
-open Stdune
+open Import
 
 type doc =
   { since : string option
@@ -113,7 +113,7 @@ let fields = function
 ;;
 
 let field ?default (name : string) p fields =
-  match List.assoc fields name with
+  match List.assoc_opt name fields with
   | Some f -> p f
   | None ->
     (match default with
@@ -122,7 +122,7 @@ let field ?default (name : string) p fields =
 ;;
 
 let field_o name p fields =
-  match List.assoc fields name with
+  match List.assoc_opt name fields with
   | None -> None
   | Some f -> Some (p f)
 ;;
@@ -137,7 +137,7 @@ let literal lit json = if not (Poly.equal json lit) then error "unexpected liter
 let enum variants json =
   match json with
   | `String s ->
-    (match List.assoc variants s with
+    (match List.assoc_opt s variants with
      | None -> error "not a valid enum value" json
      | Some v -> v)
   | _ -> error "not a valid enum value" json
@@ -370,7 +370,7 @@ module Entity = struct
       String.Map.union_exn structures enumerations |> String.Map.union_exn typeAliases
     ;;
 
-    let find t x = String.Map.find_exn t x
+    let find t x = String.Map.find x t
   end
 end
 
