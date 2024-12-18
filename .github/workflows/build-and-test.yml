@@ -45,11 +45,10 @@ jobs:
         run: yarn --frozen-lockfile
         working-directory: ocaml-lsp-server/test/e2e
 
-      - name: Set-up OCaml ${{ matrix.ocaml-compiler }}
+      - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          allow-prerelease-opam: true
+          ocaml-compiler: "5.2"
 
       # Remove this pin once a compatible version of Merlin has been released
       # - name: Pin dev Merlin
@@ -85,10 +84,9 @@ jobs:
           submodules: true
 
       - name: Set-up OCaml
-        uses: ocaml/setup-ocaml@v2
+        uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: "4.14"
-          allow-prerelease-opam: true
 
       - name: Set git user
         run: |
@@ -99,7 +97,8 @@ jobs:
         run: |
           opam install . --deps-only
           opam exec -- make coverage-deps install-test-deps
+
       - run: opam exec -- make test-coverage
         env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_REPO_TOKEN: ${{ github.token }}
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
