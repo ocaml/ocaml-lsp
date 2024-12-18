@@ -46,6 +46,7 @@ depends: [
   "ocamlformat-rpc-lib" {>= "0.21.0"}
   "odoc" {with-doc}
   "merlin-lib" {>= "5.2" & < "6.0"}
+  "ppx_yojson_conv" {with-dev-setup}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
