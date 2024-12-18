@@ -32,6 +32,7 @@ depends: [
   "uutf" {>= "1.0.2"}
   "odoc" {with-doc}
   "ocaml" {>= "4.14"}
+  "ppx_yojson_conv" {with-dev-setup}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
