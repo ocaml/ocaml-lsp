@@ -70,7 +70,9 @@ module Request_params = struct
     let result_as_sexp = json |> member "resultAsSexp" |> to_bool in
     let command = json |> member "command" |> to_string in
     let args = args_of_yojson json in
-    let text_document = TextDocumentIdentifier.t_of_yojson json in
+    let text_document =
+      json |> member "textDocument" |> TextDocumentIdentifier.t_of_yojson
+    in
     { text_document; result_as_sexp; command; args }
   ;;
 
