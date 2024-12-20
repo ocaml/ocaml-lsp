@@ -3,9 +3,8 @@ module Req = Ocaml_lsp_server.Custom_request.Merlin_call_compatible
 
 let call_merlin_compatible client command args result_as_sexp =
   let uri = DocumentUri.of_path "test.ml" in
-  let text_document = TextDocumentIdentifier.create ~uri in
   let params =
-    Req.Request_params.create ~text_document ~result_as_sexp ~command ~args
+    Req.Request_params.create ~uri ~result_as_sexp ~command ~args
     |> Req.Request_params.yojson_of_t
     |> Jsonrpc.Structured.t_of_yojson
     |> Option.some
