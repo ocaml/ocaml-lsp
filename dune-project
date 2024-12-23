@@ -56,7 +56,7 @@ possible and does not make any assumptions about IO.
   dyn
   stdune
   (fiber (and (>= 3.1.1) (< 4.0.0)))
-  (ocaml (and (>= 5.2.0) (< 5.3)))
+  (ocaml (and (>= 5.3) (< 5.4)))
   xdg
   ordering
   dune-build-info
@@ -70,7 +70,7 @@ possible and does not make any assumptions about IO.
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (merlin-lib (and (>= 5.2) (< 6.0)))
+  (merlin-lib (and (>= 5.3) (< 6.0)))
   (ppx_yojson_conv :with-dev-setup)))
 
 (package
