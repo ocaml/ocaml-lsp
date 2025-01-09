@@ -48,3 +48,5 @@ build: [
     "@doc" {with-doc}
   ]
 ]
+
+x-maintenance-intent: [ "(latest)" "(latest)-414" ]

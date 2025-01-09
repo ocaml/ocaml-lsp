@@ -1,10 +1,10 @@
-# Unreleased
+# 1.21.0
 
 ## Features
 
 - Add a new server option `standardHover`, that can be used by clients to
   disable the default hover provider.  When `standardHover = false`
-  `textDocument/hover` requests always returns with empty result.
+  `textDocument/hover` requests always returns with empty result. (#1416)
 
 # 1.20.1
 
