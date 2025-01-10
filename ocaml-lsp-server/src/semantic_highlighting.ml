@@ -207,13 +207,13 @@ end = struct
   ;;
 
   let set_token
-    arr
-    ~delta_line_index
-    ~delta_line
-    ~delta_start
-    ~length
-    ~token_type
-    ~token_modifiers
+        arr
+        ~delta_line_index
+        ~delta_line
+        ~delta_start
+        ~length
+        ~token_type
+        ~token_modifiers
     =
     arr.(delta_line_index) <- delta_line;
     arr.(delta_line_index + 1) <- delta_start;
@@ -299,10 +299,10 @@ end = struct
   (* TODO: make sure we follow specs when parsing -
      https://v2.ocaml.org/manual/names.html#sss:refer-named *)
   let lident
-    ({ loc; _ } : Longident.t Loc.loc)
-    rightmost_name
-    ?(modifiers = Token_modifiers_set.empty)
-    ()
+        ({ loc; _ } : Longident.t Loc.loc)
+        rightmost_name
+        ?(modifiers = Token_modifiers_set.empty)
+        ()
     =
     if loc.loc_ghost
     then ()
@@ -350,8 +350,8 @@ end = struct
   ;;
 
   let constructor_arguments
-    (self : Ast_iterator.iterator)
-    (ca : Parsetree.constructor_arguments)
+        (self : Ast_iterator.iterator)
+        (ca : Parsetree.constructor_arguments)
     =
     match ca with
     | Pcstr_tuple l -> List.iter l ~f:(fun ct -> self.typ self ct)
@@ -359,8 +359,8 @@ end = struct
   ;;
 
   let module_binding
-    (self : Ast_iterator.iterator)
-    ({ pmb_name; pmb_expr; pmb_attributes; pmb_loc = _ } : Parsetree.module_binding)
+        (self : Ast_iterator.iterator)
+        ({ pmb_name; pmb_expr; pmb_attributes; pmb_loc = _ } : Parsetree.module_binding)
     =
     add_token pmb_name.loc Token_type.module_ (Token_modifiers_set.singleton Definition);
     self.module_expr self pmb_expr;
@@ -368,9 +368,9 @@ end = struct
   ;;
 
   let typ
-    (self : Ast_iterator.iterator)
-    ({ ptyp_desc; ptyp_attributes; ptyp_loc; ptyp_loc_stack = _ } as ct :
-      Parsetree.core_type)
+        (self : Ast_iterator.iterator)
+        ({ ptyp_desc; ptyp_attributes; ptyp_loc; ptyp_loc_stack = _ } as ct :
+          Parsetree.core_type)
     =
     let iter =
       match ptyp_desc with
@@ -402,9 +402,9 @@ end = struct
   ;;
 
   let constructor_declaration
-    (self : Ast_iterator.iterator)
-    ({ pcd_name; pcd_vars; pcd_args; pcd_res; pcd_loc = _; pcd_attributes } :
-      Parsetree.constructor_declaration)
+        (self : Ast_iterator.iterator)
+        ({ pcd_name; pcd_vars; pcd_args; pcd_res; pcd_loc = _; pcd_attributes } :
+          Parsetree.constructor_declaration)
     =
     add_token
       pcd_name.loc
@@ -418,9 +418,9 @@ end = struct
   ;;
 
   let label_declaration
-    (self : Ast_iterator.iterator)
-    ({ pld_name; pld_mutable = _; pld_type; pld_loc = _; pld_attributes } :
-      Parsetree.label_declaration)
+        (self : Ast_iterator.iterator)
+        ({ pld_name; pld_mutable = _; pld_type; pld_loc = _; pld_attributes } :
+          Parsetree.label_declaration)
     =
     add_token pld_name.loc (Token_type.of_builtin Property) Token_modifiers_set.empty;
     self.typ self pld_type;
@@ -428,8 +428,8 @@ end = struct
   ;;
 
   let value_binding
-    (self : Ast_iterator.iterator)
-    ({ pvb_pat; pvb_expr; pvb_attributes; _ } as vb : Parsetree.value_binding)
+        (self : Ast_iterator.iterator)
+        ({ pvb_pat; pvb_expr; pvb_attributes; _ } as vb : Parsetree.value_binding)
     =
     match
       match pvb_pat.ppat_desc, pvb_expr.pexp_desc with
@@ -464,17 +464,17 @@ end = struct
   ;;
 
   let type_declaration
-    (self : Ast_iterator.iterator)
-    ({ ptype_name
-     ; ptype_params
-     ; ptype_cstrs
-     ; ptype_kind
-     ; ptype_private = _
-     ; ptype_manifest
-     ; ptype_attributes
-     ; ptype_loc = _
-     } :
-      Parsetree.type_declaration)
+        (self : Ast_iterator.iterator)
+        ({ ptype_name
+         ; ptype_params
+         ; ptype_cstrs
+         ; ptype_kind
+         ; ptype_private = _
+         ; ptype_manifest
+         ; ptype_attributes
+         ; ptype_loc = _
+         } :
+          Parsetree.type_declaration)
     =
     List.iter
       ptype_params
@@ -546,9 +546,9 @@ end = struct
   ;;
 
   let expr
-    (self : Ast_iterator.iterator)
-    ({ pexp_desc; pexp_loc; pexp_loc_stack = _; pexp_attributes } as exp :
-      Parsetree.expression)
+        (self : Ast_iterator.iterator)
+        ({ pexp_desc; pexp_loc; pexp_loc_stack = _; pexp_attributes } as exp :
+          Parsetree.expression)
     =
     match
       match pexp_desc with
@@ -630,8 +630,9 @@ end = struct
           (let_ :: ands)
           ~f:(fun { Parsetree.pbop_op = _; pbop_pat; pbop_exp; pbop_loc = _ } ->
             self.pat self pbop_pat;
-            if Loc.compare pbop_pat.ppat_loc pbop_exp.pexp_loc
-               <> 0 (* handles punning as in e.g. [let* foo in <expr>]*)
+            if
+              Loc.compare pbop_pat.ppat_loc pbop_exp.pexp_loc
+              <> 0 (* handles punning as in e.g. [let* foo in <expr>]*)
             then self.expr self pbop_exp);
         self.expr self body;
         `Custom_iterator
@@ -655,9 +656,9 @@ end = struct
   ;;
 
   let pat
-    (self : Ast_iterator.iterator)
-    ({ ppat_desc; ppat_loc; ppat_loc_stack = _; ppat_attributes } as pat :
-      Parsetree.pattern)
+        (self : Ast_iterator.iterator)
+        ({ ppat_desc; ppat_loc; ppat_loc_stack = _; ppat_attributes } as pat :
+          Parsetree.pattern)
     =
     match
       match ppat_desc with
@@ -725,8 +726,8 @@ end = struct
   ;;
 
   let module_expr
-    (self : Ast_iterator.iterator)
-    ({ pmod_desc; pmod_loc = _; pmod_attributes } as me : Parsetree.module_expr)
+        (self : Ast_iterator.iterator)
+        ({ pmod_desc; pmod_loc = _; pmod_attributes } as me : Parsetree.module_expr)
     =
     match
       match pmod_desc with
@@ -761,9 +762,9 @@ end = struct
   ;;
 
   let module_type_declaration
-    (self : Ast_iterator.iterator)
-    ({ pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc = _ } :
-      Parsetree.module_type_declaration)
+        (self : Ast_iterator.iterator)
+        ({ pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc = _ } :
+          Parsetree.module_type_declaration)
     =
     add_token pmtd_name.loc Token_type.module_type Token_modifiers_set.empty;
     Option.iter pmtd_type ~f:(fun mdtt -> self.module_type self mdtt);
@@ -771,9 +772,9 @@ end = struct
   ;;
 
   let value_description
-    (self : Ast_iterator.iterator)
-    ({ pval_name; pval_type; pval_prim = _; pval_attributes; pval_loc = _ } :
-      Parsetree.value_description)
+        (self : Ast_iterator.iterator)
+        ({ pval_name; pval_type; pval_prim = _; pval_attributes; pval_loc = _ } :
+          Parsetree.value_description)
     =
     add_token
       pval_name.loc
@@ -796,8 +797,9 @@ end = struct
   ;;
 
   let module_declaration
-    (self : Ast_iterator.iterator)
-    ({ pmd_name; pmd_type; pmd_attributes; pmd_loc = _ } : Parsetree.module_declaration)
+        (self : Ast_iterator.iterator)
+        ({ pmd_name; pmd_type; pmd_attributes; pmd_loc = _ } :
+          Parsetree.module_declaration)
     =
     add_token pmd_name.loc Token_type.module_ (Token_modifiers_set.singleton Declaration);
     self.module_type self pmd_type;
@@ -985,7 +987,8 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
 ;;
 
 let on_request_full_delta
-  :  State.t -> SemanticTokensDeltaParams.t
+  :  State.t
+  -> SemanticTokensDeltaParams.t
   -> [ `SemanticTokens of SemanticTokens.t
      | `SemanticTokensDelta of SemanticTokensDelta.t
      ]

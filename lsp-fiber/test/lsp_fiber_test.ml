@@ -6,11 +6,11 @@ open Lsp_fiber
 module Test = struct
   module Client = struct
     let run
-      ?(capabilities = ClientCapabilities.create ())
-      ?on_request
-      ?on_notification
-      state
-      (in_, out)
+          ?(capabilities = ClientCapabilities.create ())
+          ?on_request
+          ?on_notification
+          state
+          (in_, out)
       =
       let initialize = InitializeParams.create ~capabilities () in
       let client =

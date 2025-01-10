@@ -258,17 +258,17 @@ end = struct
             Fiber.fork_and_join_unit
               (fun () -> Progress.build_progress progress p)
               (fun () ->
-                match p with
-                | Failed | Interrupted | Success ->
-                  let* () =
-                    Document_store.parallel_iter document_store ~f:(fun doc ->
-                      match Document.kind doc with
-                      | `Other -> Fiber.return ()
-                      | `Merlin merlin ->
-                        Diagnostics.merlin_diagnostics diagnostics merlin)
-                  in
-                  Diagnostics.send diagnostics `All
-                | _ -> Fiber.return ())
+                 match p with
+                 | Failed | Interrupted | Success ->
+                   let* () =
+                     Document_store.parallel_iter document_store ~f:(fun doc ->
+                       match Document.kind doc with
+                       | `Other -> Fiber.return ()
+                       | `Merlin merlin ->
+                         Diagnostics.merlin_diagnostics diagnostics merlin)
+                   in
+                   Diagnostics.send diagnostics `All
+                 | _ -> Fiber.return ())
           in
           Some ())
   ;;
@@ -333,13 +333,13 @@ end = struct
               Diagnostics.set
                 diagnostics
                 (`Dune
-                  ( running.diagnostics_id
-                  , id
-                  , uri
-                  , lsp_of_dune
-                      diagnostics
-                      ~include_promotions:config.include_promotions
-                      d ));
+                    ( running.diagnostics_id
+                    , id
+                    , uri
+                    , lsp_of_dune
+                        diagnostics
+                        ~include_promotions:config.include_promotions
+                        d ));
               promotions, requests :: add, remove)
       in
       promotions, List.flatten add, List.flatten remove
@@ -362,9 +362,9 @@ end = struct
           let+ () =
             Fiber.fork_and_join_unit
               (fun () ->
-                Document_store.unregister_promotions config.document_store (uris remove))
+                 Document_store.unregister_promotions config.document_store (uris remove))
               (fun () ->
-                Document_store.register_promotions config.document_store (uris add))
+                 Document_store.register_promotions config.document_store (uris add))
           in
           Some ())
   ;;
@@ -644,9 +644,10 @@ let poll active last_error =
         let is_running dune = String.Map.mem active.instances (Registry.Dune.root dune) in
         Registry.current active.registry
         |> List.fold_left ~init:[] ~f:(fun acc dune ->
-          if (not (is_running dune))
-             && List.exists workspace_folders ~f:(fun (wsf : WorkspaceFolder.t) ->
-               uri_dune_overlap wsf.uri dune)
+          if
+            (not (is_running dune))
+            && List.exists workspace_folders ~f:(fun (wsf : WorkspaceFolder.t) ->
+              uri_dune_overlap wsf.uri dune)
           then Instance.create dune active.config :: acc
           else acc)
       in
@@ -746,18 +747,18 @@ let stop (t : t) =
       Fiber.fork_and_join_unit
         (fun () -> Fiber.Pool.stop active.pool)
         (fun () ->
-          String.Map.values active.instances |> Fiber.parallel_iter ~f:Instance.stop))
+           String.Map.values active.instances |> Fiber.parallel_iter ~f:Instance.stop))
 ;;
 
 let env = Sys.getenv_opt
 
 let create
-  workspaces
-  (client_capabilities : ClientCapabilities.t)
-  diagnostics
-  progress
-  document_store
-  ~log
+      workspaces
+      (client_capabilities : ClientCapabilities.t)
+      diagnostics
+      progress
+      document_store
+      ~log
   =
   let config =
     let include_promotions =
@@ -788,12 +789,12 @@ let create
 ;;
 
 let create
-  workspaces
-  (client_capabilities : ClientCapabilities.t)
-  diagnostics
-  progress
-  document_store
-  ~log
+      workspaces
+      (client_capabilities : ClientCapabilities.t)
+      diagnostics
+      progress
+      document_store
+      ~log
   =
   if inside_test
   then ref Closed

@@ -25,8 +25,9 @@ module DebugEcho = struct
                  | Ppx_yojson_conv_lib.Option.Some _ ->
                    duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
               | _ ->
-                if Ppx_yojson_conv_lib.( ! )
-                     Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
+                if
+                  Ppx_yojson_conv_lib.( ! )
+                    Ppx_yojson_conv_lib.Yojson_conv.record_check_extra_fields
                 then extra := field_name :: Ppx_yojson_conv_lib.( ! ) extra
                 else ());
              iter tail
