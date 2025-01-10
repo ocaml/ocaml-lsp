@@ -88,6 +88,10 @@ jobs:
           git config --global user.name github-actions[bot]
           git config --global user.email github-actions[bot]@users.noreply.github.com
 
+      # Remove this pin once a compatible version of Merlin has been released
+      - name: Pin dev Merlin
+        run: opam --cli=2.1 pin --with-version=5.4-503 https://github.com/ocaml/merlin.git#main
+
       - name: Install dependencies
         run: |
           opam install . --deps-only
