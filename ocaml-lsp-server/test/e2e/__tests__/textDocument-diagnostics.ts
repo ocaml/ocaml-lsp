@@ -410,7 +410,7 @@ The type int is not compatible with the type unit",
 {
   "diagnostics": [
     {
-      "message": "This expression has type unit but an expression was expected of type int",
+      "message": "The constructor () has type unit but an expression was expected of type int",
       "range": {
         "end": {
           "character": 42,
@@ -457,7 +457,7 @@ The type int is not compatible with the type unit",
       "source": "ocamllsp",
     },
     {
-      "message": "This expression has type string but an expression was expected of type int",
+      "message": "This constant has type string but an expression was expected of type int",
       "range": {
         "end": {
           "character": 9,
