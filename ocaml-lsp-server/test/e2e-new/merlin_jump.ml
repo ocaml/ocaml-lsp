@@ -127,9 +127,11 @@ let%expect_test "Same line should output no locations" =
 ;;
 
 let%expect_test "Ask for a non-existing target" =
-  let source = {|
+  let source =
+    {|
 let find_vowel x = ()
-|} in
+|}
+  in
   let line = 1 in
   let character = 2 in
   Util.test ~line ~character ~source ~target:"notatarget" ();

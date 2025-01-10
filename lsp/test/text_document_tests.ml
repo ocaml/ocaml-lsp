@@ -63,19 +63,22 @@ let test_multiple text changes =
 let%expect_test "first line insert" =
   let range = tuple_range (0, 1) (0, 3) in
   test "foo bar baz" range ~change:"XXXX";
-  [%expect {|
+  [%expect
+    {|
     result: fXXXX bar baz |}]
 ;;
 
 let%expect_test "null edit" =
   test "foo bar" (tuple_range (0, 2) (0, 2)) ~change:"";
-  [%expect {|
+  [%expect
+    {|
     result: foo bar |}]
 ;;
 
 let%expect_test "no range" =
   test_general "foo bar baz" [ None, "XXXX" ];
-  [%expect {|
+  [%expect
+    {|
     result: XXXX |}]
 ;;
 
@@ -86,7 +89,8 @@ let%expect_test "char by char" =
     ; tuple_range (0, 1) (0, 1), "o"
     ; tuple_range (0, 2) (0, 2), "o"
     ];
-  [%expect {|
+  [%expect
+    {|
     result: foo |}]
 ;;
 
@@ -98,7 +102,8 @@ let%expect_test "char by char - 2" =
     ; tuple_range (1, 10) (1, 10), "r"
     ; tuple_range (1, 1) (1, 2), ""
     ];
-  [%expect {|
+  [%expect
+    {|
     result: char by char - 2\nbr |}]
 ;;
 
@@ -109,113 +114,133 @@ let%expect_test "char by char - 3" =
     ; tuple_range (1, 3) (1, 4), ""
     ; tuple_range (1, 3) (1, 3), "x"
     ];
-  [%expect {|
+  [%expect
+    {|
     result: first line skip\nchaxby char - 2\n |}]
 ;;
 
 let%expect_test "insert last" =
   test "x" (tuple_range (0, 1) (0, 1)) ~change:"y";
-  [%expect {|
+  [%expect
+    {|
     result: xy |}];
   test "x\ny" (tuple_range (1, 1) (1, 1)) ~change:"z";
-  [%expect {|
+  [%expect
+    {|
     result: x\nyz |}];
   test "x\ny" (tuple_range (1, 10) (1, 10)) ~change:"z";
-  [%expect {|
+  [%expect
+    {|
     result: x\nyz |}]
 ;;
 
 let%expect_test "replace second line" =
   let range = tuple_range (1, 0) (2, 0) in
   test "foo\nbar\nbaz\n" range ~change:"XXXX\n";
-  [%expect {|
+  [%expect
+    {|
     result: foo\nXXXX\nbaz\n |}]
 ;;
 
 let%expect_test "edit in second line" =
   let range = tuple_range (1, 1) (1, 2) in
   test "foo\nbar\nbaz\n" range ~change:"-XXX-";
-  [%expect {|
+  [%expect
+    {|
     result: foo\nb-XXX-r\nbaz\n |}]
 ;;
 
 let%expect_test "insert at the end" =
   let range = tuple_range (3, 0) (3, 0) in
   test "foo\nbar\nbaz\n" range ~change:"XXX";
-  [%expect {|
+  [%expect
+    {|
     result: foo\nbar\nbaz\nXXX |}];
   let range = tuple_range (3, 0) (4, 0) in
   test "foo\nbar\nbaz\n" range ~change:"XXX";
-  [%expect {|
+  [%expect
+    {|
     result: foo\nbar\nbaz\nXXX |}]
 ;;
 
 let%expect_test "insert at the beginning" =
   let range = tuple_range (0, 0) (0, 0) in
   test "foo\n\bar\nbaz\n" range ~change:"XXX\n";
-  [%expect {|
+  [%expect
+    {|
     result: XXX\nfoo\n\bar\nbaz\n |}]
 ;;
 
 let%expect_test "insert in the middle" =
   test "ab" (tuple_range (0, 1) (0, 1)) ~change:"---";
-  [%expect {|
+  [%expect
+    {|
     result: a---b |}]
 ;;
 
 let%expect_test "replace first line" =
   let range = tuple_range (0, 0) (1, 0) in
   test "foo\nbar\n" range ~change:"baz\n";
-  [%expect {|
+  [%expect
+    {|
     result: baz\nbar\n |}]
 ;;
 
 let%expect_test "beyond max char" =
   let range = tuple_range (0, 0) (0, 100) in
   test "foo\nbar\n" range ~change:"baz";
-  [%expect {|
+  [%expect
+    {|
     result: baz\nbar\n |}]
 ;;
 
 let%expect_test "entire line without newline" =
   test "xxx\n" (tuple_range (0, 0) (0, 3)) ~change:"baz";
-  [%expect {|
+  [%expect
+    {|
     result: baz\n |}];
   test "xxx\n" (tuple_range (0, 0) (0, 4)) ~change:"baz";
-  [%expect {|
+  [%expect
+    {|
     result: baz\n |}];
   test "xxx\n" (tuple_range (0, 0) (1, 0)) ~change:"baz";
-  [%expect {|
+  [%expect
+    {|
     result: baz |}]
 ;;
 
 let%expect_test "replace two lines" =
   test "a\nb\nc\n" (tuple_range (0, 0) (2, 0)) ~change:"XXX\n";
-  [%expect {|
+  [%expect
+    {|
     result: XXX\nc\n |}]
 ;;
 
 let%expect_test "join lines" =
   test "a\nb" (tuple_range (0, 1) (1, 0)) ~change:"";
-  [%expect {|
+  [%expect
+    {|
     result: ab |}]
 ;;
 
 let%expect_test "remove text" =
   test "a---b" (tuple_range (0, 1) (0, 4)) ~change:"";
-  [%expect {|
+  [%expect
+    {|
     result: ab |}]
 ;;
 
 let%expect_test "remove newline - 1" =
   test "\n" (tuple_range (0, 0) (0, 1)) ~change:"";
-  [%expect {|
+  [%expect
+    {|
     result: \n |}]
 ;;
 
 let%expect_test "remove newlines - 2" =
   test_multiple "\nXXX\n" [ tuple_range (0, 0) (0, 1), "" ];
-  [%expect {|
+  [%expect
+    {|
     result: \nXXX\n |}]
 ;;
 
@@ -223,13 +248,15 @@ let%expect_test "remove newlines - 3" =
   test_multiple
     "\nXXX\n\n"
     [ tuple_range (0, 0) (0, 1), ""; tuple_range (0, 1) (0, 2), "" ];
-  [%expect {|
+  [%expect
+    {|
     result: \nXXX\n\n |}]
 ;;
 
 let%expect_test "update when inserting a line at the end of the doc" =
   test "let x = 1;\n\nlet y = 2;" (tuple_range (2, 10) (2, 10)) ~change:"\n-ZZZ";
-  [%expect {|
+  [%expect
+    {|
     result: let x = 1;\n\nlet y = 2;\n-ZZZ |}]
 ;;
 
@@ -237,7 +264,8 @@ let%expect_test "update when inserting a line at the end of the doc" =
   test_multiple
     "1\n2\n3\n"
     [ tuple_range (1, 9) (1, 9), "l"; tuple_range (1, 9) (1, 10), "" ];
-  [%expect {|
+  [%expect
+    {|
     result: 1\n2l\n3\n |}]
 ;;
 
@@ -268,7 +296,8 @@ let%expect_test "replace second line first line is \\n" =
   let edit = TextEdit.create ~newText:"change" ~range in
   let new_doc = Text_document.apply_text_document_edits doc [ edit ] in
   new_doc |> Text_document.text |> String.escaped |> print_endline;
-  [%expect {|
+  [%expect
+    {|
     \nfochangeo\nbar\nbaz\n |}]
 ;;
 
@@ -280,7 +309,8 @@ let%expect_test "get position after change" =
   let pos = Text_document.absolute_position new_doc range.start in
   new_doc |> Text_document.text |> String.escaped |> print_endline;
   printf "pos: %d\n" pos;
-  [%expect {|
+  [%expect
+    {|
     \nfochangeo\nbar\nbaz\n
     pos: 22 |}]
 ;;

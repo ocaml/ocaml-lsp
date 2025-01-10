@@ -1,11 +1,11 @@
 open Import
 
 let code_action
-  (mode : [ `Qualify | `Unqualify ])
-  (action_kind : string)
-  pipeline
-  _
-  (params : CodeActionParams.t)
+      (mode : [ `Qualify | `Unqualify ])
+      (action_kind : string)
+      pipeline
+      _
+      (params : CodeActionParams.t)
   =
   let res =
     let command =

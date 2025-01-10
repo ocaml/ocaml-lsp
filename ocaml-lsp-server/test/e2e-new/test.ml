@@ -129,18 +129,18 @@ end = struct
       let cancelled = ref false in
       Fiber.fork_and_join_unit
         (fun () ->
-          Lev_fiber.Timer.Wheel.await timeout
-          >>| function
-          | `Cancelled -> ()
-          | `Ok ->
-            Unix.kill pid Sys.sigkill;
-            cancelled := true)
+           Lev_fiber.Timer.Wheel.await timeout
+           >>| function
+           | `Cancelled -> ()
+           | `Ok ->
+             Unix.kill pid Sys.sigkill;
+             cancelled := true)
         (fun () ->
-          let* (server_exit_status : Unix.process_status) = Lev_fiber.waitpid ~pid in
-          let+ () =
-            if !cancelled then Fiber.return () else Lev_fiber.Timer.Wheel.cancel timeout
-          in
-          server_exit_status)
+           let* (server_exit_status : Unix.process_status) = Lev_fiber.waitpid ~pid in
+           let+ () =
+             if !cancelled then Fiber.return () else Lev_fiber.Timer.Wheel.cancel timeout
+           in
+           server_exit_status)
     in
     Lev_fiber.run (fun () ->
       let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in

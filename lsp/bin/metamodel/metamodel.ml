@@ -236,8 +236,8 @@ let rec type_ json =
       field
         "value"
         (fun json ->
-          let fields = fields_conv json in
-          properties fields)
+           let fields = fields_conv json in
+           properties fields)
         fields
     in
     Literal (Record fields)
@@ -354,8 +354,8 @@ module Entity = struct
     type nonrec t = t String.Map.t
 
     let create
-      ({ structures; requests = _; notifications = _; enumerations; typeAliases } :
-        metamodel)
+          ({ structures; requests = _; notifications = _; enumerations; typeAliases } :
+            metamodel)
       : t
       =
       let structures =

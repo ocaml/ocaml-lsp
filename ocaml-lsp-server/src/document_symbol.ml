@@ -136,10 +136,10 @@ let module_binding_document_symbol (pmod : Parsetree.module_binding) ~children =
 ;;
 
 let binding_document_symbol
-  (binding : Parsetree.value_binding)
-  ~ppx
-  ~is_top_level
-  ~children
+      (binding : Parsetree.value_binding)
+      ~ppx
+      ~is_top_level
+      ~children
   =
   let variables_in_pattern (pattern : Parsetree.pattern) =
     let symbols = ref [] in
@@ -205,8 +205,8 @@ let binding_document_symbol
 let symbols_from_parsetree parsetree =
   let current = ref [] in
   let descend
-    (iter : unit -> unit)
-    (get_current_symbol : children:DocumentSymbol.t list -> DocumentSymbol.t)
+        (iter : unit -> unit)
+        (get_current_symbol : children:DocumentSymbol.t list -> DocumentSymbol.t)
     =
     let outer = !current in
     current := [];
@@ -231,9 +231,9 @@ let symbols_from_parsetree parsetree =
     | _ -> Ast_iterator.default_iterator.signature_item iterator item
   in
   let rec structure_item
-    ~ppx
-    (iterator : Ast_iterator.iterator)
-    (item : Parsetree.structure_item)
+            ~ppx
+            (iterator : Ast_iterator.iterator)
+            (item : Parsetree.structure_item)
     =
     match item.pstr_desc with
     | Pstr_type (_, decls) -> current := !current @ List.map decls ~f:type_document_symbol
