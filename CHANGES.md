@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Enable experimental project-wide renaming of identifiers (#1431)
+
 # 1.21.0
 
 ## Features
