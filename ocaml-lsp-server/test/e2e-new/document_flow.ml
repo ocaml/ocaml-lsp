@@ -5,9 +5,9 @@ let%expect_test "it should allow double opening the same document" =
   let drain_diagnostics () = Fiber.Mvar.read diagnostics in
   let handler =
     let on_request
-      (type resp state)
-      (client : state Client.t)
-      (req : resp Lsp.Server_request.t)
+          (type resp state)
+          (client : state Client.t)
+          (req : resp Lsp.Server_request.t)
       : (resp Lsp_fiber.Rpc.Reply.t * state) Fiber.t
       =
       match req with
@@ -17,10 +17,9 @@ let%expect_test "it should allow double opening the same document" =
       | _ -> assert false
     in
     Client.Handler.make
-      ~on_notification:(fun _ ->
-        function
-        | PublishDiagnostics _ -> Fiber.Mvar.write diagnostics ()
-        | _ -> Fiber.return ())
+      ~on_notification:(fun _ -> function
+         | PublishDiagnostics _ -> Fiber.Mvar.write diagnostics ()
+         | _ -> Fiber.return ())
       ~on_request:{ Client.Handler.on_request }
       ()
   in

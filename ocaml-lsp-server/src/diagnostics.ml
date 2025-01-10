@@ -89,9 +89,9 @@ type t =
   }
 
 let create
-  (capabilities : PublishDiagnosticsClientCapabilities.t option)
-  send
-  ~report_dune_diagnostics
+      (capabilities : PublishDiagnosticsClientCapabilities.t option)
+      send
+      ~report_dune_diagnostics
   =
   let related_information, tags =
     match capabilities with
@@ -125,17 +125,18 @@ let send =
             (match diagnostics with
              | None -> [ diagnostic ]
              | Some diagnostics ->
-               if List.exists diagnostics ~f:(fun (d : Diagnostic.t) ->
-                    match d.source with
-                    | None -> assert false
-                    | Some source ->
-                      String.equal ocamllsp_source source
-                      &&
-                        (match d.message, diagnostic.message with
-                        | `String m1, `String m2 -> equal_message m1 m2
-                        | `MarkupContent { kind; value }, `MarkupContent mc ->
-                          Poly.equal kind mc.kind && equal_message value mc.value
-                        | _, _ -> false))
+               if
+                 List.exists diagnostics ~f:(fun (d : Diagnostic.t) ->
+                   match d.source with
+                   | None -> assert false
+                   | Some source ->
+                     String.equal ocamllsp_source source
+                     &&
+                       (match d.message, diagnostic.message with
+                       | `String m1, `String m2 -> equal_message m1 m2
+                       | `MarkupContent { kind; value }, `MarkupContent mc ->
+                         Poly.equal kind mc.kind && equal_message value mc.value
+                       | _, _ -> false))
                then diagnostics
                else diagnostic :: diagnostics))
     in
@@ -161,8 +162,8 @@ let send =
         if annotate_dune_pid
         then
           fun pid (d : Diagnostic.t) ->
-          let source = Some (sprintf "dune (pid=%d)" (Pid.to_int pid)) in
-          { d with source }
+            let source = Some (sprintf "dune (pid=%d)" (Pid.to_int pid)) in
+            { d with source }
         else fun _pid x -> x
       in
       if t.report_dune_diagnostics

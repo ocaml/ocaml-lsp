@@ -31,7 +31,8 @@ let test ~from ~to_ =
 
 let%expect_test "empty strings" =
   test ~from:"" ~to_:"";
-  [%expect {|
+  [%expect
+    {|
     [] |}]
 ;;
 
@@ -94,7 +95,8 @@ let%expect_test "to empty" =
 
 let%expect_test "no change" =
   test ~from:"foobar" ~to_:"foobar";
-  [%expect {|
+  [%expect
+    {|
     [] |}]
 ;;
 
@@ -145,11 +147,15 @@ let%expect_test "delete empty line" =
 
 let%expect_test "regerssion test 1" =
   Printexc.record_backtrace false;
-  test ~from:{|a
+  test
+    ~from:
+      {|a
 y
 z
 u
-|} ~to_:{|x
+|}
+    ~to_:
+      {|x
 y
 z
 |};

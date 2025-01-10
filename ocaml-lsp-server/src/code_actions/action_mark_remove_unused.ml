@@ -76,8 +76,9 @@ let rec mark_value_unused_edit name contexts =
            | { loc = field_loc; _ }, _, { pat_desc = Tpat_var (ident, _, _); pat_loc; _ }
              when Ident.name ident = name ->
              (* Special case for record shorthand *)
-             if field_loc.loc_start = pat_loc.loc_start
-                && field_loc.loc_end = pat_loc.loc_end
+             if
+               field_loc.loc_start = pat_loc.loc_start
+               && field_loc.loc_end = pat_loc.loc_end
              then
                let+ end_pos = Position.of_lexical_position pat_loc.loc_end in
                TextEdit.
@@ -144,10 +145,10 @@ let enclosing_value_binding_range name =
 
 (* Create a code action that removes [range] and refers to [diagnostic]. *)
 let code_action_remove_range
-  ?(title = "Remove unused")
-  doc
-  (diagnostic : Diagnostic.t)
-  range
+      ?(title = "Remove unused")
+      doc
+      (diagnostic : Diagnostic.t)
+      range
   =
   let edit = Document.edit doc [ { range; newText = "" } ] in
   CodeAction.create

@@ -1,12 +1,12 @@
 open Test.Import
 
 let apply_inlay_hints
-  ?(path = "foo.ml")
-  ?range
-  ?(hint_pattern_variables = false)
-  ?(hint_let_bindings = false)
-  ~source
-  ()
+      ?(path = "foo.ml")
+      ?range
+      ?(hint_pattern_variables = false)
+      ?(hint_let_bindings = false)
+      ~source
+      ()
   =
   let range =
     match range with
@@ -29,12 +29,12 @@ let apply_inlay_hints
       ~prep:(fun client -> Test.openDocument ~client ~uri ~source)
       ~settings:
         (`Assoc
-          [ ( "inlayHints"
-            , `Assoc
-                [ "hintPatternVariables", `Bool hint_pattern_variables
-                ; "hintLetBindings", `Bool hint_let_bindings
-                ] )
-          ])
+            [ ( "inlayHints"
+              , `Assoc
+                  [ "hintPatternVariables", `Bool hint_pattern_variables
+                  ; "hintLetBindings", `Bool hint_let_bindings
+                  ] )
+            ])
       (InlayHint request)
   in
   match inlay_hints with

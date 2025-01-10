@@ -95,11 +95,11 @@ let sortText_of_index idx = Printf.sprintf "%04d" idx
 
 module Complete_by_prefix = struct
   let completionItem_of_completion_entry
-    idx
-    (entry : Query_protocol.Compl.entry)
-    ~compl_params
-    ~range
-    ~deprecated
+        idx
+        (entry : Query_protocol.Compl.entry)
+        ~compl_params
+        ~range
+        ~deprecated
     =
     let kind = completion_kind entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
@@ -122,12 +122,12 @@ module Complete_by_prefix = struct
   ;;
 
   let process_dispatch_resp
-    ~deprecated
-    ~resolve
-    ~prefix
-    doc
-    pos
-    (completion : Query_protocol.completions)
+        ~deprecated
+        ~resolve
+        ~prefix
+        doc
+        pos
+        (completion : Query_protocol.completions)
     =
     let range =
       let logical_pos = Position.logical pos in
@@ -181,9 +181,9 @@ module Complete_by_prefix = struct
           ~label:"in"
           ~textEdit:
             (`TextEdit
-              (TextEdit.create
-                 ~newText:"in"
-                 ~range:(range_prefix completion_position prefix)))
+                (TextEdit.create
+                   ~newText:"in"
+                   ~range:(range_prefix completion_position prefix)))
           ~kind:CompletionItemKind.Keyword
           ()
       in
@@ -227,9 +227,10 @@ module Complete_with_construct = struct
     | Some (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
       let deparen_constr_expr expr =
-        if (not (String.equal expr "()"))
-           && String.is_prefix expr ~prefix:"("
-           && String.is_suffix expr ~suffix:")"
+        if
+          (not (String.equal expr "()"))
+          && String.is_prefix expr ~prefix:"("
+          && String.is_suffix expr ~suffix:")"
         then String.sub expr ~pos:1 ~len:(String.length expr - 2)
         else expr
       in
@@ -260,8 +261,8 @@ module Complete_with_construct = struct
 end
 
 let complete
-  (state : State.t)
-  ({ textDocument = { uri }; position = pos; context; _ } : CompletionParams.t)
+      (state : State.t)
+      ({ textDocument = { uri }; position = pos; context; _ } : CompletionParams.t)
   =
   Fiber.of_thunk (fun () ->
     let doc = Document_store.get state.store uri in

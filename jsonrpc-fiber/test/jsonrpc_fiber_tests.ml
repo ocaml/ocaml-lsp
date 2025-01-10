@@ -41,7 +41,8 @@ let%expect_test "start and stop server" =
     Fiber.fork_and_join_unit (fun () -> run) (fun () -> Jrpc.stop jrpc)
   in
   let () = Fiber_test.test Dyn.opaque run in
-  [%expect {|
+  [%expect
+    {|
     <opaque> |}]
 ;;
 
@@ -62,7 +63,8 @@ let%expect_test "server accepts notifications" =
     Jrpc.run jrpc
   in
   Fiber_test.test Dyn.opaque run;
-  [%expect {|
+  [%expect
+    {|
     received notification
     <opaque> |}]
 ;;
@@ -99,7 +101,8 @@ let%expect_test "serving requests" =
       print_endline (Yojson.Safe.pretty_to_string ~std:false json))
   in
   Fiber_test.test Dyn.opaque run;
-  [%expect {|
+  [%expect
+    {|
     { "id": 1, "jsonrpc": "2.0", "result": "response" }
     <opaque> |}]
 ;;
