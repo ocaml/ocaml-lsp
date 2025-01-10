@@ -1,6 +1,7 @@
 open Import
 open Option.O
 module H = Ocaml_parsing.Ast_helper
+module Typedtree_utils = Merlin_analysis.Typedtree_utils
 
 let range_contains_loc range loc =
   match Range.of_loc_opt loc with
@@ -75,8 +76,12 @@ let tightest_enclosing_binder_position typedtree range =
       | Texp_open (_, body) -> found_if_expr_contains body
       | Texp_letop { body; _ } -> found_if_case_contains [ body ]
       | Texp_function (_, Tfunction_cases { cases; _ }) -> found_if_case_contains cases
-      | Texp_match (_, cases, _) -> found_if_case_contains cases
-      | Texp_try (_, cases) -> found_if_case_contains cases
+      | Texp_match _ ->
+        let m = Typedtree_utils.texp_match_of_expr expr |> Option.value_exn in
+        found_if_case_contains m.computation_cases
+      | Texp_try _ ->
+        let t = Typedtree_utils.texp_try_of_expr expr |> Option.value_exn in
+        found_if_case_contains t.value_cases
       | _ -> ())
   in
   let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item) =

@@ -1,6 +1,7 @@
 open Import
 open Fiber.O
 module Array_view = Lsp.Private.Array_view
+module Parsetree_utils = Merlin_analysis.Parsetree_utils
 
 (* TODO:
 
@@ -508,7 +509,7 @@ end = struct
 
   let const loc (constant : Parsetree.constant) =
     let token_type =
-      match constant with
+      match Parsetree_utils.constant_desc constant with
       | Parsetree.Pconst_integer _ | Pconst_float _ -> Token_type.of_builtin Number
       | Pconst_char _ | Pconst_string _ -> Token_type.of_builtin String
     in
@@ -719,7 +720,8 @@ end = struct
       | Ppat_tuple _
       | Ppat_lazy _
       | Ppat_any
-      | Ppat_interval _ -> `Default_iterator
+      | Ppat_interval _
+      | _ -> `Default_iterator
     with
     | `Default_iterator -> Ast_iterator.default_iterator.pat self pat
     | `Custom_iterator -> self.attributes self ppat_attributes

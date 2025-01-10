@@ -45,11 +45,11 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "5.2"
+          ocaml-compiler: "ocaml-base-compiler.5.3.0"
 
       # Remove this pin once a compatible version of Merlin has been released
-      # - name: Pin dev Merlin
-      #   run: opam pin https://github.com/ocaml/merlin.git#main
+      - name: Pin dev Merlin
+        run: opam --cli=2.1 pin --with-version=5.4-503 https://github.com/ocaml/merlin.git#main
 
       - name: Build and install dependencies
         run: opam install .
@@ -81,12 +81,16 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "5.2"
+          ocaml-compiler: "ocaml-base-compiler.5.3.0"
 
       - name: Set git user
         run: |
           git config --global user.name github-actions[bot]
           git config --global user.email github-actions[bot]@users.noreply.github.com
+
+      # Remove this pin once a compatible version of Merlin has been released
+      - name: Pin dev Merlin
+        run: opam --cli=2.1 pin --with-version=5.4-503 https://github.com/ocaml/merlin.git#main
 
       - name: Install dependencies
         run: |
