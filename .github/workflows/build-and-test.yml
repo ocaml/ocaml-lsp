@@ -49,7 +49,7 @@ jobs:
 
       # Remove this pin once a compatible version of Merlin has been released
       - name: Pin dev Merlin
-        run: opam --cli=2.1 pin --with-version=5.4-503 https://github.com/ocaml/merlin.git#main
+        run: opam --cli=2.1 pin --with-version=5.4-503 https://github.com/liam923/merlin.git#rename-holes
 
       - name: Build and install dependencies
         run: opam install .
