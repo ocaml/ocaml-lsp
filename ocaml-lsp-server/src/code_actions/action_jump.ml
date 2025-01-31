@@ -47,6 +47,7 @@ let command_run server (params : ExecuteCommandParams.t) =
 (* Dispatch the jump request to Merlin and get the result *)
 let get_all_possible_jump_targets ~merlin ~position =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
+    let position = Mpipeline.get_lexing_pos pipeline position in
     let typedtree = Mpipeline.typer_result pipeline |> Mtyper.get_typedtree in
     Merlin_analysis.Jump.get_all typedtree position)
 ;;
@@ -58,15 +59,7 @@ let code_actions
   =
   match Document.kind doc with
   | `Merlin merlin when available capabilities ->
-    let uri = Document.uri doc in
-    let { Position.line; character } = params.range.start in
-    let position =
-      { Lexing.pos_fname = DocumentUri.to_string uri
-      ; pos_lnum = line
-      ; pos_cnum = character
-      ; pos_bol = 0
-      }
-    in
+    let position = Position.logical params.range.start in
     let+ res = get_all_possible_jump_targets ~merlin ~position in
     List.filter_map res ~f:(fun (target, lexing_pos) ->
       let open Option.O in
