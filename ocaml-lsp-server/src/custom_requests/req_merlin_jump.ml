@@ -4,27 +4,6 @@ module TextDocumentPositionParams = Lsp.Types.TextDocumentPositionParams
 let meth = "ocamllsp/jump"
 let capability = "handleJump", `Bool true
 
-module JumpParams = struct
-  type t =
-    { textDocument : TextDocumentIdentifier.t
-    ; position : Position.t
-    }
-
-  let t_of_yojson json =
-    let open Yojson.Safe.Util in
-    { textDocument = json |> member "textDocument" |> TextDocumentIdentifier.t_of_yojson
-    ; position = json |> member "position" |> Position.t_of_yojson
-    }
-  ;;
-
-  let yojson_of_t { textDocument; position } =
-    `Assoc
-      [ "textDocument", TextDocumentIdentifier.yojson_of_t textDocument
-      ; "position", Position.yojson_of_t position
-      ]
-  ;;
-end
-
 module Jump = struct
   type t = (string * Position.t) list
 
@@ -42,12 +21,14 @@ end
 type t = Jump.t
 
 module Request_params = struct
-  type t = JumpParams.t
+  type t = TextDocumentPositionParams.t
 
-  let yojson_of_t t = JumpParams.yojson_of_t t
+  let yojson_of_t t = TextDocumentPositionParams.yojson_of_t t
 
   let create ~uri ~position =
-    { JumpParams.textDocument = TextDocumentIdentifier.create ~uri; position }
+    TextDocumentPositionParams.create
+      ~position
+      ~textDocument:(TextDocumentIdentifier.create ~uri)
   ;;
 end
 
@@ -62,7 +43,7 @@ let on_request ~params state =
   let open Fiber.O in
   Fiber.of_thunk (fun () ->
     let params = (Option.value ~default:(`Assoc []) params :> Yojson.Safe.t) in
-    let params = JumpParams.t_of_yojson params in
+    let params = TextDocumentPositionParams.t_of_yojson params in
     let uri = params.textDocument.uri in
     let position = Position.logical params.position in
     let doc = Document_store.get state.State.store uri in
