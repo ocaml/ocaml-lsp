@@ -53,7 +53,5 @@ let on_request ~params state =
       let+ res = dispatch ~merlin ~position in
       Jump.yojson_of_t
         (List.filter_map res ~f:(fun (target, position) ->
-           match Position.of_lexical_position position with
-           | Some pos -> Some (target, pos)
-           | None -> None)))
+           Option.map ~f:(fun pos -> target, pos) (Position.of_lexical_position position))))
 ;;
