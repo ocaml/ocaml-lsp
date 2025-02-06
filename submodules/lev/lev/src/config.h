@@ -47,7 +47,11 @@
 #endif
 
 #if __has_include(<sys/inotify.h>)
-#define HAVE_INOTIFY_INIT 1
+# if __FreeBSD__
+  // inotify_init seems to require linking against glib
+# else
+#  define HAVE_INOTIFY_INIT 1
+# endif
 #endif
 
 #if __has_include(<linux/fs.h>)
