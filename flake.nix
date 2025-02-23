@@ -56,7 +56,7 @@
           });
       };
       ocamlVersionOverlay =
-        (ocaml: self: super: { ocamlPackages = ocaml super.ocaml-ng; });
+        (ocaml: self: super: { ocamlPackages = super.ocaml-ng.${ocaml}; });
       makeLocalPackages = pkgs:
         let buildDunePackage = pkgs.ocamlPackages.buildDunePackage;
         in rec {
@@ -141,12 +141,9 @@
             overlays = [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
             inherit system;
           };
-        pkgs_5_1 =
-          makeNixpkgs (ocaml: ocaml.ocamlPackages_5_1) inputs.merlin5_1;
-        pkgs_5_2 =
-          makeNixpkgs (ocaml: ocaml.ocamlPackages_5_2) inputs.merlin5_2;
-        pkgs_5_3 =
-          makeNixpkgs (ocaml: ocaml.ocamlPackages_5_3) inputs.merlin5_3;
+        pkgs_5_1 = makeNixpkgs "ocamlPackages_5_1" inputs.merlin5_1;
+        pkgs_5_2 = makeNixpkgs "ocamlPackages_5_2" inputs.merlin5_2;
+        pkgs_5_3 = makeNixpkgs "ocamlPackages_5_3" inputs.merlin5_3;
         localPackages_5_1 = makeLocalPackages pkgs_5_1;
         localPackages_5_2 = makeLocalPackages pkgs_5_2;
         localPackages_5_3 = makeLocalPackages pkgs_5_3;
