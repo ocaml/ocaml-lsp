@@ -1015,9 +1015,9 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr (
   in
   let pid =
     let cwd : Spawn.Working_dir.t = Path cwd in
-    Spawn.spawn ~cwd ~prog ~argv ~stdin ~stdout ?stderr ()
+    Spawn.spawn ~cwd ~prog ~argv ~stdin ~stdout ?stderr () |> Pid.of_int
   in
-  let _, status = Unix.waitpid [] pid in
+  let _, status = Unix.waitpid [] (Pid.to_int pid) in
   let res =
     match (status : Unix.process_status) with
     | WEXITED n -> n
