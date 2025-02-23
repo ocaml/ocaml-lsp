@@ -39,18 +39,17 @@ let infer_missing_intf_for_impl impl_doc intf_doc =
        Printtyp.wrap_printing_env ~verbosity env (fun () ->
          Format.asprintf "%a@." Printtyp.signature sig_update)
        |> Fiber.return
-     | _ -> Code_error.raise "promblem encountered with Merlin typer_result" [])
-  | _ -> Code_error.raise "expected implementation and interface documents" []
+     | _ -> failwith "problem encountered with Merlin typer_result")
+  | _ -> failwith "expected implementation and interface documents"
 ;;
 
 (* No longer involved in the insert-interface code action, but still used by the
    [ocamllsp/inferIntf] custom request. *)
 let infer_intf_for_impl doc =
   match Document.kind doc with
-  | `Other ->
-    Code_error.raise "expected an implementation document, got a non merlin document" []
+  | `Other -> failwith "expected an implementation document, got a non merlin document"
   | `Merlin m when Document.Merlin.kind m = Intf ->
-    Code_error.raise "expected an implementation document, got an interface instead" []
+    failwith "expected an implementation document, got an interface instead"
   | `Merlin doc ->
     Document.Merlin.with_pipeline_exn ~name:"infer-interface" doc (fun pipeline ->
       let typer = Mpipeline.typer_result pipeline in
@@ -74,7 +73,7 @@ let language_id_of_fname s =
   | ".mlx" -> "ocaml.mlx"
   | ".mll" -> "ocaml.ocamllex"
   | ".mly" -> "ocaml.menhir"
-  | ext -> Code_error.raise "unsupported file extension" [ "extension", String ext ]
+  | ext -> invalid_arg ("unsupported file extension " ^ ext)
 ;;
 
 let open_document_from_file (state : State.t) uri =
@@ -103,9 +102,9 @@ let open_document_from_file (state : State.t) uri =
 
 let infer_intf (state : State.t) intf_doc =
   match Document.kind intf_doc with
-  | `Other -> Code_error.raise "the provided document is not a merlin source." []
+  | `Other -> invalid_arg "the provided document is not a merlin source."
   | `Merlin m when Document.Merlin.kind m = Impl ->
-    Code_error.raise "the provided document is not an interface." []
+    invalid_arg "the provided document is not an interface."
   | `Merlin m ->
     Fiber.of_thunk (fun () ->
       let intf_uri = Document.uri intf_doc in
@@ -274,5 +273,5 @@ let update_signatures
          in
          let new_sigs = get_doc_signature impl_typer in
          build_signature_edits ~old_intf ~new_sigs ~range ~formatter
-       | _ -> Code_error.raise "expected an interface" []))
+       | _ -> invalid_arg "expected an interface"))
 ;;

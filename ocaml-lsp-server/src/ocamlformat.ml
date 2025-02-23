@@ -144,7 +144,7 @@ let formatter doc =
       (Reason
          (match Document.kind doc with
           | `Merlin m -> Document.Merlin.kind m
-          | `Other -> Code_error.raise "unable to format non merlin document" []))
+          | `Other -> failwith "unable to format non merlin document"))
 ;;
 
 let exec ?cwd cancel refmt args stdin =

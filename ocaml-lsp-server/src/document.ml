@@ -108,7 +108,7 @@ let await task =
     | Ok s -> Ok s
     | Error (`Exn exn) -> Error exn
     | Error `Cancelled ->
-      let exn = Code_error.E (Code_error.create "unexpected cancellation" []) in
+      let exn = Failure "unexpected cancellation" in
       let backtrace = Printexc.get_callstack 10 in
       Error { Exn_with_backtrace.exn; backtrace }
   in
@@ -424,10 +424,7 @@ let kind = function
 let merlin_exn t =
   match kind t with
   | `Merlin m -> m
-  | `Other ->
-    Code_error.raise
-      "Document.merlin_exn"
-      [ "t", Dyn.string @@ DocumentUri.to_string @@ uri t ]
+  | `Other -> invalid_arg ("Document.merlin_exn: " ^ DocumentUri.to_string @@ uri t)
 ;;
 
 let close t =

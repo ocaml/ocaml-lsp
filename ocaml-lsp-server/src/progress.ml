@@ -59,7 +59,7 @@ let start_build (t : enabled) =
 let build_progress t (progress : Drpc.Progress.t) =
   Fiber.of_thunk (fun () ->
     match t with
-    | Disabled -> Code_error.raise "progress reporting is not supported" []
+    | Disabled -> invalid_arg "progress reporting is not supported"
     | Enabled ({ token; report_progress; _ } as t) ->
       (match progress with
        | Success -> end_build t ~message:"Build finished"
