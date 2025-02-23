@@ -30,7 +30,7 @@
         });
         dune-release =
           prev.dune-release.overrideAttrs (_: { doCheck = false; });
-        ocamlPackages = prev.ocamlPackages.overrideScope' (oself: osuper:
+        ocamlPackages = prev.ocamlPackages.overrideScope (oself: osuper:
           let
             fixPreBuild = o: {
               propagatedBuildInputs = o.propagatedBuildInputs ++ [ oself.pp ];
