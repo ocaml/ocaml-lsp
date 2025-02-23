@@ -147,21 +147,23 @@ module Paths : sig
 end = struct
   type t = Path.t Loc.Map.t
 
-  let find = Loc.Map.find
+  let find t x = Loc.Map.find_opt x t
 
   let of_typedtree (expr : Typedtree.expression) =
     let module I = Ocaml_typing.Tast_iterator in
     let paths = ref Loc.Map.empty in
     let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
       match expr.exp_desc with
-      | Texp_ident (path, { loc; _ }, _) -> paths := Loc.Map.set !paths loc path
+      | Texp_ident (path, { loc; _ }, _) ->
+        paths := Loc.Map.add !paths ~key:loc ~data:path
       | _ -> I.default_iterator.expr iter expr
     in
     let pat_iter (type k) (iter : I.iterator) (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
-      | Tpat_var (id, { loc; _ }, _) -> paths := Loc.Map.set !paths loc (Pident id)
+      | Tpat_var (id, { loc; _ }, _) ->
+        paths := Loc.Map.add !paths ~key:loc ~data:(Path.Pident id)
       | Tpat_alias (pat, id, { loc; _ }, _, _) ->
-        paths := Loc.Map.set !paths loc (Pident id);
+        paths := Loc.Map.add !paths ~key:loc ~data:(Path.Pident id);
         I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
     in
