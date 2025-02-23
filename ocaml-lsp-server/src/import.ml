@@ -1,5 +1,4 @@
-(* All modules from [Stdune] should be in the struct below. The modules are
-   listed alphabetically. Try to keep the order. *)
+(* The modules are listed alphabetically. Try to keep the order. *)
 
 include struct
   open Stdune
@@ -53,13 +52,31 @@ module List = struct
 end
 
 module Result = struct
-  module O = Stdune.Result.O
+  module O = struct
+    let ( let+ ) x f = Result.map f x
+    let ( let* ) x f = Result.bind x f
+  end
+
   include Base.Result
 end
 
 module Option = struct
-  module O = Stdune.Option.O
-  module List = Stdune.Option.List
+  module O = struct
+    let ( let+ ) x f = Option.map f x
+    let ( let* ) x f = Option.bind x f
+  end
+
+  module List = struct
+    let all =
+      let rec loop acc = function
+        | [] -> Some (List.rev acc)
+        | None :: _ -> None
+        | Some x :: xs -> loop (x :: acc) xs
+      in
+      fun xs -> loop [] xs
+    ;;
+  end
+
   include Base.Option
 end
 
