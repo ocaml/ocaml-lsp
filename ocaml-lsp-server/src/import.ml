@@ -8,12 +8,12 @@ end
 
 let sprintf = Printf.sprintf
 
+module Map = Stdlib.MoreLabels.Map
+
 include struct
   open Stdune
   module Code_error = Code_error
   module Exn_with_backtrace = Exn_with_backtrace
-  module Unix_env = Env
-  module Map = Map
   module Monoid = Monoid
 end
 

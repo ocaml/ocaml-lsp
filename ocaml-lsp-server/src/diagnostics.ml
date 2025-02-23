@@ -112,14 +112,20 @@ let create
 ;;
 
 let send =
-  let module Range_map = Map.Make (Range) in
+  let module Range_map =
+    Map.Make (struct
+      include Range
+
+      let compare x y = Ordering.to_int (compare x y)
+    end)
+  in
   (* TODO deduplicate related errors as well *)
   let add_dune_diagnostic pending uri (diagnostic : Diagnostic.t) =
     let value =
       match Table.find pending uri with
       | None -> Range_map.singleton diagnostic.range [ diagnostic ]
       | Some map ->
-        Range_map.update map diagnostic.range ~f:(fun diagnostics ->
+        Range_map.update map ~key:diagnostic.range ~f:(fun diagnostics ->
           Some
             (match diagnostics with
              | None -> [ diagnostic ]
@@ -143,7 +149,10 @@ let send =
   in
   let range_map_of_unduplicated_diagnostics diagnostics =
     List.rev_map diagnostics ~f:(fun (d : Diagnostic.t) -> d.range, d)
-    |> Range_map.of_list_multi
+    |> List.fold_left ~init:Range_map.empty ~f:(fun acc (key, v) ->
+      Range_map.update ~key acc ~f:(function
+        | None -> Some [ v ]
+        | Some xs -> Some (v :: xs)))
   in
   fun t which ->
     Fiber.of_thunk (fun () ->
@@ -181,7 +190,9 @@ let send =
           | `All -> Base.Set.empty (module Uri)
           | `One uri -> Base.Set.remove t.dirty_uris uri);
       Table.fold pending ~init:[] ~f:(fun ~key:uri ~data:diagnostics acc ->
-        let diagnostics = List.flatten (Range_map.values diagnostics) in
+        let diagnostics =
+          Range_map.to_list diagnostics |> List.map ~f:snd |> List.flatten
+        in
         (* we don't include a version because some of the diagnostics might
            come from dune which reads from the file system and not from the
            editor's view *)
