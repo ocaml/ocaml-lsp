@@ -39,7 +39,7 @@
             fixPreBuild = o: {
               propagatedBuildInputs = o.propagatedBuildInputs ++ [ oself.pp ];
               preBuild = ''
-                rm -r vendor/csexp vendor/pp
+                rm -rf vendor/csexp vendor/pp
               '';
             };
           in {
