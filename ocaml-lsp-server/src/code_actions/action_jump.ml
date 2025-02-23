@@ -1,6 +1,5 @@
 open Import
 open Fiber.O
-open Stdune
 
 let command_name = "ocamllsp/merlin-jump-to-target"
 
