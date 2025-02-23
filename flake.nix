@@ -137,10 +137,7 @@
       let
         pkgsWithoutOverlays = (import nixpkgs { inherit system; });
         makeNixpkgs = ocaml: merlin:
-          import nixpkgs {
-            overlays = [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
-            inherit system;
-          };
+          pkgsWithoutOverlays.appendOverlays [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
         pkgs_5_1 = makeNixpkgs "ocamlPackages_5_1" inputs.merlin5_1;
         pkgs_5_2 = makeNixpkgs "ocamlPackages_5_2" inputs.merlin5_2;
         pkgs_5_3 = makeNixpkgs "ocamlPackages_5_3" inputs.merlin5_3;
