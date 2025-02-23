@@ -3,20 +3,12 @@ open Import
 let ocamllsp_source = "ocamllsp"
 let dune_source = "dune"
 
-module Uri = struct
-  include Uri
-
-  let compare x y = Ordering.of_int (Uri.compare x y)
-end
-
-module Uri_c = Comparable.Make (Uri)
-module Uri_set = Uri_c.Set
-
 module Id = struct
   include Drpc.Diagnostic.Id
 
-  let equal x y = compare x y = Eq
-  let to_dyn = Dyn.opaque
+  let compare_ordering = compare
+  let sexp_of_t = Sexplib0.Sexp_conv.sexp_of_opaque
+  let compare x y = Ordering.to_int (compare_ordering x y)
 end
 
 module Dune = struct
@@ -34,7 +26,6 @@ module Dune = struct
       | r -> r
     ;;
 
-    let equal x y = Ordering.is_eq (compare x y)
     let hash { pid; id } = Poly.hash (Pid.to_int pid, id)
     let to_dyn = Dyn.opaque
   end
@@ -42,7 +33,9 @@ module Dune = struct
   include T
   module C = Comparable.Make (T)
 
+  let sexp_of_t = Sexplib0.Sexp_conv.sexp_of_opaque
   let gen pid = { pid; id = Id.gen () }
+  let compare x y = Ordering.to_int (T.compare x y)
 end
 
 let equal_message =
@@ -87,7 +80,7 @@ type t =
   { dune : (Dune.t, (Drpc.Diagnostic.Id.t, Uri.t * Diagnostic.t) Table.t) Table.t
   ; merlin : (Uri.t, Diagnostic.t list) Table.t
   ; send : PublishDiagnosticsParams.t list -> unit Fiber.t
-  ; mutable dirty_uris : Uri_set.t
+  ; mutable dirty_uris : (Uri.t, Uri.comparator_witness) Base.Set.t
   ; related_information : bool
   ; tags : DiagnosticTag.t list
   ; mutable report_dune_diagnostics : bool
@@ -109,9 +102,9 @@ let create
          | None -> []
          | Some { valueSet } -> valueSet) )
   in
-  { dune = Table.create (module Dune) 32
-  ; merlin = Table.create (module Uri) 32
-  ; dirty_uris = Uri_set.empty
+  { dune = Table.create (module Dune)
+  ; merlin = Table.create (module Uri)
+  ; dirty_uris = Base.Set.empty (module Uri)
   ; send
   ; related_information
   ; tags
@@ -148,7 +141,7 @@ let send =
                then diagnostics
                else diagnostic :: diagnostics))
     in
-    Table.set pending uri value
+    Table.set pending ~key:uri ~data:value
   in
   let range_map_of_unduplicated_diagnostics diagnostics =
     List.rev_map diagnostics ~f:(fun (d : Diagnostic.t) -> d.range, d)
@@ -159,12 +152,15 @@ let send =
       let dirty_uris =
         match which with
         | `All -> t.dirty_uris
-        | `One uri -> Uri_set.singleton uri
+        | `One uri -> Base.Set.singleton (module Uri) uri
       in
-      let pending = Table.create (module Uri) 4 in
-      Uri_set.iter dirty_uris ~f:(fun uri ->
+      let pending = Table.create (module Uri) in
+      Base.Set.iter dirty_uris ~f:(fun uri ->
         let diagnostics = Table.Multi.find t.merlin uri in
-        Table.set pending uri (range_map_of_unduplicated_diagnostics diagnostics));
+        Table.set
+          pending
+          ~key:uri
+          ~data:(range_map_of_unduplicated_diagnostics diagnostics));
       let set_dune_source =
         let annotate_dune_pid = Table.length t.dune > 1 in
         if annotate_dune_pid
@@ -176,17 +172,17 @@ let send =
       in
       if t.report_dune_diagnostics
       then
-        Table.foldi ~init:() t.dune ~f:(fun dune per_dune () ->
+        Table.fold ~init:() t.dune ~f:(fun ~key:dune ~data:per_dune () ->
           Table.iter per_dune ~f:(fun (uri, diagnostic) ->
-            if Uri_set.mem dirty_uris uri
+            if Base.Set.mem dirty_uris uri
             then (
               let diagnostic = set_dune_source dune.pid diagnostic in
               add_dune_diagnostic pending uri diagnostic)));
       t.dirty_uris
       <- (match which with
-          | `All -> Uri_set.empty
-          | `One uri -> Uri_set.remove t.dirty_uris uri);
-      Table.foldi pending ~init:[] ~f:(fun uri diagnostics acc ->
+          | `All -> Base.Set.empty (module Uri)
+          | `One uri -> Base.Set.remove t.dirty_uris uri);
+      Table.fold pending ~init:[] ~f:(fun ~key:uri ~data:diagnostics acc ->
         let diagnostics = List.flatten (Range_map.values diagnostics) in
         (* we don't include a version because some of the diagnostics might
            come from dune which reads from the file system and not from the
@@ -201,14 +197,14 @@ let set t what =
     | `Dune (_, _, uri, _) -> uri
     | `Merlin (uri, _) -> uri
   in
-  t.dirty_uris <- Uri_set.add t.dirty_uris uri;
+  t.dirty_uris <- Base.Set.add t.dirty_uris uri;
   match what with
-  | `Merlin (uri, diagnostics) -> Table.set t.merlin uri diagnostics
+  | `Merlin (uri, diagnostics) -> Table.set t.merlin ~key:uri ~data:diagnostics
   | `Dune (dune, id, uri, diagnostics) ->
     let dune_table =
-      Table.find_or_add t.dune dune ~f:(fun _ -> Table.create (module Id) 16)
+      Table.find_or_add t.dune dune ~default:(fun _ -> Table.create (module Id))
     in
-    Table.set dune_table id (uri, diagnostics)
+    Table.set dune_table ~key:id ~data:(uri, diagnostics)
 ;;
 
 let remove t = function
@@ -218,9 +214,9 @@ let remove t = function
       Table.find dune diagnostic
       |> Option.iter ~f:(fun (uri, _) ->
         Table.remove dune diagnostic;
-        t.dirty_uris <- Uri_set.add t.dirty_uris uri))
+        t.dirty_uris <- Base.Set.add t.dirty_uris uri))
   | `Merlin uri ->
-    t.dirty_uris <- Uri_set.add t.dirty_uris uri;
+    t.dirty_uris <- Base.Set.add t.dirty_uris uri;
     Table.remove t.merlin uri
 ;;
 
@@ -228,7 +224,7 @@ let disconnect t dune =
   Table.find t.dune dune
   |> Option.iter ~f:(fun dune_diagnostics ->
     Table.iter dune_diagnostics ~f:(fun (uri, _) ->
-      t.dirty_uris <- Uri_set.add t.dirty_uris uri);
+      t.dirty_uris <- Base.Set.add t.dirty_uris uri);
     Table.remove t.dune dune)
 ;;
 
@@ -417,7 +413,7 @@ let set_report_dune_diagnostics t ~report_dune_diagnostics =
     t.report_dune_diagnostics <- report_dune_diagnostics;
     Table.iter t.dune ~f:(fun per_dune ->
       Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
-        t.dirty_uris <- Uri_set.add t.dirty_uris uri));
+        t.dirty_uris <- Base.Set.add t.dirty_uris uri));
     send t `All)
 ;;
 
@@ -428,6 +424,6 @@ let set_shorten_merlin_diagnostics t ~shorten_merlin_diagnostics =
     t.shorten_merlin_diagnostics <- shorten_merlin_diagnostics;
     Table.iter t.dune ~f:(fun per_dune ->
       Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
-        t.dirty_uris <- Uri_set.add t.dirty_uris uri));
+        t.dirty_uris <- Base.Set.add t.dirty_uris uri));
     send t `All)
 ;;
