@@ -3,7 +3,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nix-ocaml/nix-overlays";
     merlin5_3 = {
-      url = "github:ocaml/merlin/main";
+      url = "github:liam923/merlin/rename-holes";
       flake = false;
     };
     merlin5_2 = {
