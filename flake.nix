@@ -10,10 +10,6 @@
       url = "github:ocaml/merlin/502";
       flake = false;
     };
-    merlin5_1 = {
-      url = "github:ocaml/merlin/501";
-      flake = false;
-    };
   };
 
   outputs = { self, flake-utils, nixpkgs, ... }@inputs:
@@ -138,10 +134,8 @@
         pkgsWithoutOverlays = (import nixpkgs { inherit system; });
         makeNixpkgs = ocaml: merlin:
           pkgsWithoutOverlays.appendOverlays [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
-        pkgs_5_1 = makeNixpkgs "ocamlPackages_5_1" inputs.merlin5_1;
         pkgs_5_2 = makeNixpkgs "ocamlPackages_5_2" inputs.merlin5_2;
         pkgs_5_3 = makeNixpkgs "ocamlPackages_5_3" inputs.merlin5_3;
-        localPackages_5_1 = makeLocalPackages pkgs_5_1;
         localPackages_5_2 = makeLocalPackages pkgs_5_2;
         localPackages_5_3 = makeLocalPackages pkgs_5_3;
         devShell = localPackages: nixpkgs:
@@ -154,14 +148,11 @@
       in {
         packages = (localPackages_5_3 // {
           default = localPackages_5_3.ocaml-lsp;
-          ocaml_5_1 = localPackages_5_1;
-          ocaml_5_2 = localPackages_5_1;
+          ocaml_5_2 = localPackages_5_2;
         });
 
         devShells = {
           default = devShell localPackages_5_3 pkgs_5_3;
-
-          ocaml5_1 = devShell localPackages_5_1 pkgs_5_1;
 
           ocaml5_2 = devShell localPackages_5_2 pkgs_5_2;
 
