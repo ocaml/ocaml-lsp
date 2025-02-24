@@ -53,12 +53,10 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       ]
   in
   let batchable, non_batchable =
-    List.partition_map
-      ~f:(fun ca ->
-        match ca.run with
-        | `Batchable f -> Left f
-        | `Non_batchable f -> Right f)
-      enabled_actions
+    List.partition_map enabled_actions ~f:(fun ca ->
+      match ca.run with
+      | `Batchable f -> Base.Either.First f
+      | `Non_batchable f -> Second f)
   in
   let* batch_results =
     if List.is_empty batchable

@@ -38,13 +38,34 @@ include struct
 end
 
 module List = struct
-  include Stdune.List
-  open Base.List
+  include Base.List
 
+  let compare xs ys ~compare =
+    Base.List.compare (fun x y -> Ordering.to_int (compare x y)) xs ys
+  ;;
+
+  let sort xs ~compare = sort xs ~compare:(fun x y -> Ordering.to_int (compare x y))
+  let fold_left2 xs ys ~init ~f = Stdlib.List.fold_left2 f init xs ys
+  let assoc xs key = Assoc.find ~equal:Poly.equal xs key
+  let assoc_opt xs key = assoc xs key
+  let mem t x ~equal = mem t x ~equal
+  let map t ~f = map t ~f
+  let concat_map t ~f = concat_map t ~f
+  let flatten t = Stdlib.List.flatten t
+  let filter_map t ~f = filter_map t ~f
+  let fold_left t ~init ~f = fold_left t ~init ~f
   let findi xs ~f = findi xs ~f
+  let find_opt xs ~f = find xs ~f
+
+  let sort_uniq xs ~compare =
+    Stdlib.List.sort_uniq (fun x y -> Ordering.to_int (compare x y)) xs
+  ;;
+
+  let for_all xs ~f = for_all xs ~f
   let find_mapi xs ~f = find_mapi xs ~f
   let sub xs ~pos ~len = sub xs ~pos ~len
   let hd_exn t = hd_exn t
+  let hd_opt t = hd t
   let nth_exn t n = nth_exn t n
   let hd t = hd t
   let filter t ~f = filter t ~f

@@ -519,6 +519,7 @@ let on_request
   match req with
   | Client_request.UnknownRequest { meth; params } ->
     (match
+       List.assoc
        [ ( Req_switch_impl_intf.meth
          , fun ~params state ->
              Fiber.of_thunk (fun () ->
@@ -536,8 +537,7 @@ let on_request
          , Semantic_highlighting.Debug.on_request_full )
        ; ( Req_hover_extended.meth
          , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
-       ]
-       |> List.assoc_opt meth
+       ] meth
      with
      | None ->
        Jsonrpc.Response.Error.raise
