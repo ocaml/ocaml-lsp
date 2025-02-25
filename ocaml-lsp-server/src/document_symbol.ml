@@ -135,30 +135,71 @@ let module_binding_document_symbol (pmod : Parsetree.module_binding) ~children =
     ()
 ;;
 
-let visit_class_struct (desc : Parsetree.class_expr) =
-  match desc.pcl_desc with
-  | Pcl_structure cs ->
-    List.filter_map
-      ~f:(fun field ->
-        match field.pcf_desc with
-        | Pcf_val (label, _, _) ->
-          DocumentSymbol.create
+let visit_class_structure iterator (cs : Parsetree.class_structure) =
+  let current = ref [] in
+  let descend
+        (iter : unit -> unit)
+        (get_current_symbol : children:DocumentSymbol.t list -> DocumentSymbol.t)
+    =
+    let outer = !current in
+    current := [];
+    iter ();
+    current := outer @ [ get_current_symbol ~children:!current ]
+  in
+  List.concat_map
+    ~f:(fun field ->
+      match field.pcf_desc with
+      | Pcf_val (label, _, Cfk_virtual _) ->
+        [ DocumentSymbol.create
             ~name:label.txt
             ~kind:Property
             ~range:(Range.of_loc field.pcf_loc)
             ~selectionRange:(Range.of_loc label.loc)
             ()
-          |> Option.some
-        | Pcf_method (label, _, _) ->
-          DocumentSymbol.create
+        ]
+      | Pcf_val (label, _, Cfk_concrete (_, expr)) ->
+        let () =
+          descend
+            (fun () -> Ast_iterator.default_iterator.expr iterator expr)
+            (fun ~children ->
+               DocumentSymbol.create
+                 ~name:label.txt
+                 ~kind:Property
+                 ~range:(Range.of_loc field.pcf_loc)
+                 ~selectionRange:(Range.of_loc label.loc)
+                 ~children
+                 ())
+        in
+        !current
+      | Pcf_method (label, _, Cfk_virtual _) ->
+        [ DocumentSymbol.create
             ~name:label.txt
             ~kind:Method
             ~range:(Range.of_loc field.pcf_loc)
             ~selectionRange:(Range.of_loc label.loc)
             ()
-          |> Option.some
-        | _ -> None)
-      cs.pcstr_fields
+        ]
+      | Pcf_method (label, _, Cfk_concrete (_, expr)) ->
+        let () =
+          descend
+            (fun () -> Ast_iterator.default_iterator.expr iterator expr)
+            (fun ~children ->
+               DocumentSymbol.create
+                 ~name:label.txt
+                 ~kind:Method
+                 ~range:(Range.of_loc field.pcf_loc)
+                 ~selectionRange:(Range.of_loc label.loc)
+                 ~children
+                 ())
+        in
+        !current
+      | _ -> [])
+    cs.pcstr_fields
+;;
+
+let visit_class_expr iterator (desc : Parsetree.class_expr) =
+  match desc.pcl_desc with
+  | Pcl_structure cs -> visit_class_structure iterator cs
   | _ -> []
 ;;
 
@@ -199,13 +240,13 @@ let class_description_symbol (decl : Parsetree.class_description) =
     ()
 ;;
 
-let class_declaration_symbol (decl : Parsetree.class_declaration) =
+let class_declaration_symbol iterator (decl : Parsetree.class_declaration) =
   DocumentSymbol.create
     ~name:decl.pci_name.txt
     ~kind:Class
     ~range:(Range.of_loc decl.pci_loc)
     ~selectionRange:(Range.of_loc decl.pci_name.loc)
-    ~children:(visit_class_struct decl.pci_expr)
+    ~children:(visit_class_expr iterator decl.pci_expr)
     ()
 ;;
 
@@ -346,7 +387,7 @@ let symbols_from_parsetree parsetree =
     | Pstr_extension ((name, PStr items), _) ->
       List.iter items ~f:(fun item -> structure_item ~ppx:(Some name.txt) iterator item)
     | Pstr_class classes ->
-      current := !current @ List.map classes ~f:class_declaration_symbol
+      current := !current @ List.map classes ~f:(class_declaration_symbol iterator)
     | Pstr_class_type classes ->
       current := !current @ List.map classes ~f:class_type_declaration_symbol
     | _ -> Ast_iterator.default_iterator.structure_item iterator item
@@ -363,6 +404,7 @@ let symbols_from_parsetree parsetree =
       in
       current := outer @ bindings;
       iterator.expr iterator inner
+    | Pexp_object cs -> current := !current @ visit_class_structure iterator cs
     | _ -> Ast_iterator.default_iterator.expr iterator item
   in
   let iterator =

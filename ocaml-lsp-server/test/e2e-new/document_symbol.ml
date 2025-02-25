@@ -281,6 +281,18 @@ let%expect_test "documentOutline with recursive definition and methods" =
       },
       {
         "containerName": "b",
+        "kind": 7,
+        "location": {
+          "range": {
+            "end": { "character": 17, "line": 3 },
+            "start": { "character": 5, "line": 3 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "foo"
+      },
+      {
+        "containerName": "b",
         "kind": 6,
         "location": {
           "range": {
@@ -344,9 +356,9 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
   let source =
     {|
      class a = object
-     let a = object
-     method inside_a_a () =
-     let x_inside_a = 10 in
+     val b = object
+     method inside_a_b () =
+     val x_inside_a_b = 10 in
      print_int x
      end
      end
@@ -371,6 +383,39 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
     {|
     [
       {
+        "kind": 6,
+        "location": {
+          "range": {
+            "end": { "character": 27, "line": 3 },
+            "start": { "character": 5, "line": 3 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "inside_a_b"
+      },
+      {
+        "kind": 6,
+        "location": {
+          "range": {
+            "end": { "character": 27, "line": 3 },
+            "start": { "character": 5, "line": 3 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "inside_a_b"
+      },
+      {
+        "kind": 7,
+        "location": {
+          "range": {
+            "end": { "character": 26, "line": 4 },
+            "start": { "character": 5, "line": 4 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "x_inside_a_b"
+      },
+      {
         "kind": 5,
         "location": {
           "range": {
@@ -382,6 +427,18 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "name": "a"
       },
       {
+        "containerName": "a",
+        "kind": 7,
+        "location": {
+          "range": {
+            "end": { "character": 16, "line": 5 },
+            "start": { "character": 5, "line": 2 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "b"
+      },
+      {
         "kind": 5,
         "location": {
           "range": {
@@ -391,6 +448,18 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
           "uri": "file:///test.ml"
         },
         "name": "b"
+      },
+      {
+        "containerName": "b",
+        "kind": 7,
+        "location": {
+          "range": {
+            "end": { "character": 17, "line": 9 },
+            "start": { "character": 5, "line": 9 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "foo"
       },
       {
         "containerName": "b",
@@ -483,6 +552,18 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
           "uri": "file:///test.ml"
         },
         "name": "c"
+      },
+      {
+        "containerName": "c",
+        "kind": 6,
+        "location": {
+          "range": {
+            "end": { "character": 37, "line": 16 },
+            "start": { "character": 22, "line": 16 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "foo"
       }
     ]
     |}]
