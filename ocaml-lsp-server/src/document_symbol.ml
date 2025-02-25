@@ -135,6 +135,90 @@ let module_binding_document_symbol (pmod : Parsetree.module_binding) ~children =
     ()
 ;;
 
+let visit_class_struct (desc : Parsetree.class_expr) =
+  match desc.pcl_desc with
+  | Pcl_structure cs ->
+    List.filter_map
+      ~f:(fun field ->
+        match field.pcf_desc with
+        | Pcf_val (label, _, _) ->
+          DocumentSymbol.create
+            ~name:label.txt
+            ~kind:Property
+            ~range:(Range.of_loc field.pcf_loc)
+            ~selectionRange:(Range.of_loc label.loc)
+            ()
+          |> Option.some
+        | Pcf_method (label, _, _) ->
+          DocumentSymbol.create
+            ~name:label.txt
+            ~kind:Method
+            ~range:(Range.of_loc field.pcf_loc)
+            ~selectionRange:(Range.of_loc label.loc)
+            ()
+          |> Option.some
+        | _ -> None)
+      cs.pcstr_fields
+  | _ -> []
+;;
+
+let visit_class_sig (desc : Parsetree.class_type) =
+  match desc.pcty_desc with
+  | Pcty_signature cs ->
+    List.filter_map
+      ~f:(fun field ->
+        match field.pctf_desc with
+        | Pctf_val (label, _, _, _) ->
+          DocumentSymbol.create
+            ~name:label.txt
+            ~kind:Property
+            ~range:(Range.of_loc field.pctf_loc)
+            ~selectionRange:(Range.of_loc label.loc)
+            ()
+          |> Option.some
+        | Pctf_method (label, _, _, _) ->
+          DocumentSymbol.create
+            ~name:label.txt
+            ~kind:Method
+            ~range:(Range.of_loc field.pctf_loc)
+            ~selectionRange:(Range.of_loc label.loc)
+            ()
+          |> Option.some
+        | _ -> None)
+      cs.pcsig_fields
+  | _ -> []
+;;
+
+let class_description_symbol (decl : Parsetree.class_description) =
+  DocumentSymbol.create
+    ~name:decl.pci_name.txt
+    ~kind:Class
+    ~range:(Range.of_loc decl.pci_loc)
+    ~selectionRange:(Range.of_loc decl.pci_name.loc)
+    ~children:(visit_class_sig decl.pci_expr)
+    ()
+;;
+
+let class_declaration_symbol (decl : Parsetree.class_declaration) =
+  DocumentSymbol.create
+    ~name:decl.pci_name.txt
+    ~kind:Class
+    ~range:(Range.of_loc decl.pci_loc)
+    ~selectionRange:(Range.of_loc decl.pci_name.loc)
+    ~children:(visit_class_struct decl.pci_expr)
+    ()
+;;
+
+let class_type_declaration_symbol (decl : Parsetree.class_type_declaration) =
+  DocumentSymbol.create
+    ~name:decl.pci_name.txt
+    ~kind:Interface
+    ~range:(Range.of_loc decl.pci_loc)
+    ~selectionRange:(Range.of_loc decl.pci_name.loc)
+    ~children:(visit_class_sig decl.pci_expr)
+    ()
+;;
+
 let binding_document_symbol
       (binding : Parsetree.value_binding)
       ~ppx
@@ -228,6 +312,10 @@ let symbols_from_parsetree parsetree =
       descend
         (fun () -> Ast_iterator.default_iterator.module_type_declaration iterator decl)
         (module_type_decl_symbol decl)
+    | Psig_class classes ->
+      current := !current @ List.map classes ~f:class_description_symbol
+    | Psig_class_type classes ->
+      current := !current @ List.map classes ~f:class_type_declaration_symbol
     | _ -> Ast_iterator.default_iterator.signature_item iterator item
   in
   let rec structure_item
@@ -257,6 +345,10 @@ let symbols_from_parsetree parsetree =
            binding_document_symbol binding ~ppx ~is_top_level:true ~children:!current)
     | Pstr_extension ((name, PStr items), _) ->
       List.iter items ~f:(fun item -> structure_item ~ppx:(Some name.txt) iterator item)
+    | Pstr_class classes ->
+      current := !current @ List.map classes ~f:class_declaration_symbol
+    | Pstr_class_type classes ->
+      current := !current @ List.map classes ~f:class_type_declaration_symbol
     | _ -> Ast_iterator.default_iterator.structure_item iterator item
   in
   let expr (iterator : Ast_iterator.iterator) (item : Parsetree.expression) =
