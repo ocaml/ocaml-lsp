@@ -424,7 +424,7 @@ let references
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc ->
-    let* locs, synced =
+    let* occurrences, synced =
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         doc
@@ -445,7 +445,8 @@ let references
       | _ -> Fiber.return ()
     in
     Some
-      (List.map locs ~f:(fun loc ->
+      (List.map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
+         let loc = occurrence.loc in
          let range = Range.of_loc loc in
          let uri =
            match loc.loc_start.pos_fname with
@@ -470,14 +471,15 @@ let highlight
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m ->
-    let+ locs, _synced =
+    let+ occurrences, _synced =
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         m
         (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
     let lsp_locs =
-      List.filter_map locs ~f:(fun loc ->
+      List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
+        let loc = occurrence.loc in
         let range = Range.of_loc loc in
         (* filter out multi-line ranges, since those are very noisy and happen
            a lot with certain PPXs *)
@@ -660,16 +662,19 @@ let on_request
          match Document.kind doc with
          | `Other -> Fiber.return None
          | `Merlin doc ->
-           let+ locs, _synced =
+           let+ occurrences, _synced =
              Document.Merlin.dispatch_exn
                ~name:"occurrences"
                doc
                (Occurrences (`Ident_at (Position.logical position), `Buffer))
            in
            let loc =
-             List.find_opt locs ~f:(fun loc ->
+             List.find_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
+               let loc = occurrence.loc in
                let range = Range.of_loc loc in
-               Position.compare_inclusion position range = `Inside)
+               match Position.compare_inclusion position range with
+               | `Inside -> Some loc
+               | `Outside _ -> None)
            in
            Option.map loc ~f:Range.of_loc)
       ()
