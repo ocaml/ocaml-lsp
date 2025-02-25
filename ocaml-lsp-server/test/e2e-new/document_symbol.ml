@@ -339,3 +339,151 @@ let%expect_test "documentOutline with recursive definition and methods" =
     ]
     |}]
 ;;
+
+let%expect_test "documentOutline with nested recursive definition and methods" =
+  let source =
+    {|
+     class a = object
+     let a = object
+     method inside_a_a () =
+     let x_inside_a = 10 in
+     print_int x
+     end
+     end
+     and b = object
+     val foo = 10
+     method bar () = print_endline "bar"
+     end and c = object end
+     class type ta = object
+        method baz : int -> int -> string
+     end and tb = object end
+     let final_let =
+       let c = object method foo = 10 end in c
+  |}
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    print_result response
+  in
+  Helpers.test source request;
+  [%expect
+    {|
+    [
+      {
+        "kind": 5,
+        "location": {
+          "range": {
+            "end": { "character": 8, "line": 6 },
+            "start": { "character": 5, "line": 1 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "a"
+      },
+      {
+        "kind": 5,
+        "location": {
+          "range": {
+            "end": { "character": 8, "line": 11 },
+            "start": { "character": 5, "line": 8 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "b"
+      },
+      {
+        "containerName": "b",
+        "kind": 7,
+        "location": {
+          "range": {
+            "end": { "character": 17, "line": 9 },
+            "start": { "character": 5, "line": 9 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "foo"
+      },
+      {
+        "containerName": "b",
+        "kind": 6,
+        "location": {
+          "range": {
+            "end": { "character": 40, "line": 10 },
+            "start": { "character": 5, "line": 10 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "bar"
+      },
+      {
+        "kind": 5,
+        "location": {
+          "range": {
+            "end": { "character": 27, "line": 11 },
+            "start": { "character": 9, "line": 11 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "c"
+      },
+      {
+        "kind": 11,
+        "location": {
+          "range": {
+            "end": { "character": 8, "line": 14 },
+            "start": { "character": 5, "line": 12 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "ta"
+      },
+      {
+        "containerName": "ta",
+        "kind": 6,
+        "location": {
+          "range": {
+            "end": { "character": 41, "line": 13 },
+            "start": { "character": 8, "line": 13 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "baz"
+      },
+      {
+        "kind": 11,
+        "location": {
+          "range": {
+            "end": { "character": 28, "line": 14 },
+            "start": { "character": 9, "line": 14 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "tb"
+      },
+      {
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 46, "line": 16 },
+            "start": { "character": 5, "line": 15 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "final_let"
+      },
+      {
+        "containerName": "final_let",
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 41, "line": 16 },
+            "start": { "character": 7, "line": 16 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "c"
+      }
+    ]
+    |}]
+;;
