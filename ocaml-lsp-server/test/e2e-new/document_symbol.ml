@@ -281,18 +281,6 @@ let%expect_test "documentOutline with recursive definition and methods" =
       },
       {
         "containerName": "b",
-        "kind": 7,
-        "location": {
-          "range": {
-            "end": { "character": 17, "line": 3 },
-            "start": { "character": 5, "line": 3 }
-          },
-          "uri": "file:///test.ml"
-        },
-        "name": "foo"
-      },
-      {
-        "containerName": "b",
         "kind": 6,
         "location": {
           "range": {
@@ -383,39 +371,6 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
     {|
     [
       {
-        "kind": 6,
-        "location": {
-          "range": {
-            "end": { "character": 27, "line": 3 },
-            "start": { "character": 5, "line": 3 }
-          },
-          "uri": "file:///test.ml"
-        },
-        "name": "inside_a_b"
-      },
-      {
-        "kind": 6,
-        "location": {
-          "range": {
-            "end": { "character": 27, "line": 3 },
-            "start": { "character": 5, "line": 3 }
-          },
-          "uri": "file:///test.ml"
-        },
-        "name": "inside_a_b"
-      },
-      {
-        "kind": 7,
-        "location": {
-          "range": {
-            "end": { "character": 26, "line": 4 },
-            "start": { "character": 5, "line": 4 }
-          },
-          "uri": "file:///test.ml"
-        },
-        "name": "x_inside_a_b"
-      },
-      {
         "kind": 5,
         "location": {
           "range": {
@@ -439,6 +394,30 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "name": "b"
       },
       {
+        "containerName": "b",
+        "kind": 6,
+        "location": {
+          "range": {
+            "end": { "character": 27, "line": 3 },
+            "start": { "character": 5, "line": 3 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "inside_a_b"
+      },
+      {
+        "containerName": "b",
+        "kind": 7,
+        "location": {
+          "range": {
+            "end": { "character": 26, "line": 4 },
+            "start": { "character": 5, "line": 4 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "x_inside_a_b"
+      },
+      {
         "kind": 5,
         "location": {
           "range": {
@@ -448,18 +427,6 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
           "uri": "file:///test.ml"
         },
         "name": "b"
-      },
-      {
-        "containerName": "b",
-        "kind": 7,
-        "location": {
-          "range": {
-            "end": { "character": 17, "line": 9 },
-            "start": { "character": 5, "line": 9 }
-          },
-          "uri": "file:///test.ml"
-        },
-        "name": "foo"
       },
       {
         "containerName": "b",

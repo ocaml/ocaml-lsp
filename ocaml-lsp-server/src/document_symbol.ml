@@ -135,74 +135,6 @@ let module_binding_document_symbol (pmod : Parsetree.module_binding) ~children =
     ()
 ;;
 
-let visit_class_structure iterator (cs : Parsetree.class_structure) =
-  let current = ref [] in
-  let descend
-        (iter : unit -> unit)
-        (get_current_symbol : children:DocumentSymbol.t list -> DocumentSymbol.t)
-    =
-    let outer = !current in
-    current := [];
-    iter ();
-    current := outer @ [ get_current_symbol ~children:!current ]
-  in
-  List.concat_map
-    ~f:(fun field ->
-      match field.pcf_desc with
-      | Pcf_val (label, _, Cfk_virtual _) ->
-        [ DocumentSymbol.create
-            ~name:label.txt
-            ~kind:Property
-            ~range:(Range.of_loc field.pcf_loc)
-            ~selectionRange:(Range.of_loc label.loc)
-            ()
-        ]
-      | Pcf_val (label, _, Cfk_concrete (_, expr)) ->
-        let () =
-          descend
-            (fun () -> Ast_iterator.default_iterator.expr iterator expr)
-            (fun ~children ->
-               DocumentSymbol.create
-                 ~name:label.txt
-                 ~kind:Property
-                 ~range:(Range.of_loc field.pcf_loc)
-                 ~selectionRange:(Range.of_loc label.loc)
-                 ~children
-                 ())
-        in
-        !current
-      | Pcf_method (label, _, Cfk_virtual _) ->
-        [ DocumentSymbol.create
-            ~name:label.txt
-            ~kind:Method
-            ~range:(Range.of_loc field.pcf_loc)
-            ~selectionRange:(Range.of_loc label.loc)
-            ()
-        ]
-      | Pcf_method (label, _, Cfk_concrete (_, expr)) ->
-        let () =
-          descend
-            (fun () -> Ast_iterator.default_iterator.expr iterator expr)
-            (fun ~children ->
-               DocumentSymbol.create
-                 ~name:label.txt
-                 ~kind:Method
-                 ~range:(Range.of_loc field.pcf_loc)
-                 ~selectionRange:(Range.of_loc label.loc)
-                 ~children
-                 ())
-        in
-        !current
-      | _ -> [])
-    cs.pcstr_fields
-;;
-
-let visit_class_expr iterator (desc : Parsetree.class_expr) =
-  match desc.pcl_desc with
-  | Pcl_structure cs -> visit_class_structure iterator cs
-  | _ -> []
-;;
-
 let visit_class_sig (desc : Parsetree.class_type) =
   match desc.pcty_desc with
   | Pcty_signature cs ->
@@ -240,13 +172,13 @@ let class_description_symbol (decl : Parsetree.class_description) =
     ()
 ;;
 
-let class_declaration_symbol iterator (decl : Parsetree.class_declaration) =
+let class_declaration_symbol (decl : Parsetree.class_declaration) ~children =
   DocumentSymbol.create
     ~name:decl.pci_name.txt
     ~kind:Class
     ~range:(Range.of_loc decl.pci_loc)
     ~selectionRange:(Range.of_loc decl.pci_name.loc)
-    ~children:(visit_class_expr iterator decl.pci_expr)
+    ~children
     ()
 ;;
 
@@ -387,13 +319,56 @@ let symbols_from_parsetree parsetree =
     | Pstr_extension ((name, PStr items), _) ->
       List.iter items ~f:(fun item -> structure_item ~ppx:(Some name.txt) iterator item)
     | Pstr_class classes ->
-      current := !current @ List.map classes ~f:(class_declaration_symbol iterator)
+      List.iter
+        ~f:(fun (klass : Parsetree.class_declaration) ->
+          descend
+            (fun () ->
+               match klass.pci_expr.pcl_desc with
+               | Pcl_structure cs ->
+                 Ast_iterator.default_iterator.class_structure iterator cs
+               | _ -> ())
+            (class_declaration_symbol klass))
+        classes
     | Pstr_class_type classes ->
       current := !current @ List.map classes ~f:class_type_declaration_symbol
     | _ -> Ast_iterator.default_iterator.structure_item iterator item
   in
+  let class_structure
+        (iterator : Ast_iterator.iterator)
+        (item : Parsetree.class_structure)
+    =
+    List.iter ~f:(Ast_iterator.default_iterator.class_field iterator) item.pcstr_fields
+  in
+  let class_field (iterator : Ast_iterator.iterator) (item : Parsetree.class_field) =
+    let mk_symbol ?children ~kind (label : string Asttypes.loc) =
+      DocumentSymbol.create
+        ~name:label.txt
+        ~kind
+        ~range:(Range.of_loc item.pcf_loc)
+        ~selectionRange:(Range.of_loc label.loc)
+        ?children
+        ()
+    in
+    match item.pcf_desc with
+    | Pcf_val (label, _, Parsetree.Cfk_virtual _) ->
+      let symbol = mk_symbol ~kind:Property label in
+      current := !current @ [ symbol ]
+    | Pcf_val (label, _, Parsetree.Cfk_concrete (_, expr)) ->
+      descend
+        (fun () -> Ast_iterator.default_iterator.expr iterator expr)
+        (fun ~children -> mk_symbol ~kind:Property label ~children)
+    | Pcf_method (label, _, Parsetree.Cfk_virtual _) ->
+      let symbol = mk_symbol ~kind:Method label in
+      current := !current @ [ symbol ]
+    | Pcf_method (label, _, Parsetree.Cfk_concrete (_, expr)) ->
+      descend
+        (fun () -> Ast_iterator.default_iterator.expr iterator expr)
+        (fun ~children -> mk_symbol ~kind:Method label ~children)
+    | _ -> Ast_iterator.default_iterator.class_field iterator item
+  in
   let expr (iterator : Ast_iterator.iterator) (item : Parsetree.expression) =
     match item.pexp_desc with
+    | Pexp_object cs -> Ast_iterator.default_iterator.class_structure iterator cs
     | Pexp_let (_, bindings, inner) ->
       let outer = !current in
       let bindings =
@@ -404,13 +379,14 @@ let symbols_from_parsetree parsetree =
       in
       current := outer @ bindings;
       iterator.expr iterator inner
-    | Pexp_object cs -> current := !current @ visit_class_structure iterator cs
     | _ -> Ast_iterator.default_iterator.expr iterator item
   in
   let iterator =
     { Ast_iterator.default_iterator with
       signature_item
     ; structure_item = structure_item ~ppx:None
+    ; class_structure
+    ; class_field
     ; expr
     }
   in
