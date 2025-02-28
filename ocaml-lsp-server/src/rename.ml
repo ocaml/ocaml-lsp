@@ -14,8 +14,10 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
       Document.Merlin.dispatch_exn ~name:"rename" merlin command
     in
     let locs =
-      List.map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
-        occurrence.loc)
+      List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
+        match occurrence.is_stale with
+        | true -> None
+        | false -> Some occurrence.loc)
     in
     let version = Document.version doc in
     let uri = Document.uri doc in
