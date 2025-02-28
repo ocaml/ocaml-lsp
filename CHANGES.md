@@ -1,3 +1,9 @@
+# unreleased
+
+## Fixes
+
+- Support for `class`, `class type`, `method` and `property` for `DocumentSymbol` query (#1487 fixes #1449)
+
 # 1.22.0
 
 ## Features
