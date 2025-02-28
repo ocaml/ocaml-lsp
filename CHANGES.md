@@ -1,6 +1,8 @@
-# 1.21.0
+# unreleased
 
-## Features
+## Fixes
+
+- Support for `class`, `class type`, `method` and `property` for `DocumentSymbol` query (#1487 fixes #1449)
 
 - Add a new server option `standardHover`, that can be used by clients to
   disable the default hover provider.  When `standardHover = false`
