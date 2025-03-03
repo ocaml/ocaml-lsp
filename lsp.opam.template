@@ -12,4 +12,4 @@ build: [
   ]
 ]
 
-x-maintenance-intent: [ "(latest)" "(latest)-414" ]
+x-maintenance-intent: [ "(latest)" ]
