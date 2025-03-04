@@ -445,21 +445,22 @@ let references
       | _ -> Fiber.return ()
     in
     Some
-      (List.map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
-         let loc = occurrence.loc in
-         let range = Range.of_loc loc in
-         let uri =
-           match loc.loc_start.pos_fname with
-           | "" -> uri
-           | path -> Uri.of_path path
-         in
-         Log.log ~section:"debug" (fun () ->
-           Log.msg
-             "merlin returned fname %a"
-             [ "pos_fname", `String loc.loc_start.pos_fname
-             ; "uri", `String (Uri.to_string uri)
-             ]);
-         { Location.uri; range }))
+      (List.filter_map occurrences ~f:(function
+         | { loc = _; is_stale = true } -> None
+         | { loc; is_stale = false } ->
+           let range = Range.of_loc loc in
+           let uri =
+             match loc.loc_start.pos_fname with
+             | "" -> uri
+             | path -> Uri.of_path path
+           in
+           Log.log ~section:"debug" (fun () ->
+             Log.msg
+               "merlin returned fname %a"
+               [ "pos_fname", `String loc.loc_start.pos_fname
+               ; "uri", `String (Uri.to_string uri)
+               ]);
+           Some { Location.uri; range }))
 ;;
 
 let highlight
@@ -672,9 +673,9 @@ let on_request
              List.find_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
                let loc = occurrence.loc in
                let range = Range.of_loc loc in
-               match Position.compare_inclusion position range with
-               | `Inside -> Some loc
-               | `Outside _ -> None)
+               match occurrence.is_stale, Position.compare_inclusion position range with
+               | false, `Inside -> Some loc
+               | true, _ | _, `Outside _ -> None)
            in
            Option.map loc ~f:Range.of_loc)
       ()
