@@ -10,7 +10,15 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
     in
-    let+ locs, _desync = Document.Merlin.dispatch_exn ~name:"rename" merlin command in
+    let+ occurrences, _desync =
+      Document.Merlin.dispatch_exn ~name:"rename" merlin command
+    in
+    let locs =
+      List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
+        match occurrence.is_stale with
+        | true -> None
+        | false -> Some occurrence.loc)
+    in
     let version = Document.version doc in
     let uri = Document.uri doc in
     let edits =
