@@ -10,13 +10,37 @@ include struct
   module Table = Table
   module Tuple = Tuple
   module Unix_env = Env
-  module Io = Io
   module Map = Map
   module Monoid = Monoid
   module Pid = Pid
   module Poly = Poly
 
   let sprintf = sprintf
+end
+
+module Io = struct
+  open Base
+
+  let read_file f =
+    Base.Result.try_with (fun () ->
+      let fd = Unix.openfile f [ O_CLOEXEC; O_RDONLY ] 0 in
+      Exn.protect
+        ~finally:(fun () -> Unix.close fd)
+        ~f:(fun () ->
+          match Unix.fstat fd with
+          | { Unix.st_size; _ } ->
+            let buf = Bytes.create st_size in
+            let rec loop pos remains =
+              if remains > 0
+              then (
+                let read = Unix.read fd buf pos remains in
+                if read = 0
+                then failwith (sprintf "unable to read all of %s" f)
+                else loop (pos + read) (remains - read))
+            in
+            loop 0 st_size;
+            Stdlib.Bytes.unsafe_to_string buf))
+  ;;
 end
 
 include struct
