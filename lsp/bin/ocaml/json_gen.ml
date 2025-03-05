@@ -34,7 +34,7 @@ let json_error_pat msg =
 ;;
 
 let is_json_constr (constr : Type.constr) =
-  List.mem [ "String"; "Int"; "Bool" ] constr.name ~equal:String.equal
+  List.mem ~set:[ "String"; "Int"; "Bool" ] constr.name
 ;;
 
 module Name = struct
