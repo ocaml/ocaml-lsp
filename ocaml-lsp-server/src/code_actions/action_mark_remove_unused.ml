@@ -89,7 +89,7 @@ let rec mark_value_unused_edit name contexts =
                  { range = Range.create ~start:start_pos ~end_:start_pos; newText = "_" }
            | _ -> None
            : Longident.t Loc.loc
-             * Types.label_description
+             * Data_types.label_description
              * Typedtree.value Typedtree.general_pattern
              -> TextEdit.t option)
     in
