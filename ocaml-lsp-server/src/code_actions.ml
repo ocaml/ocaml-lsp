@@ -38,6 +38,7 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       [ Action_destruct_line.t state
       ; Action_destruct.t state
       ; Action_update_signature.t state
+      ; Action_combine_cases.t
       ; Action_inferred_intf.t state
       ; Action_type_annotate.t
       ; Action_remove_type_annotation.t
