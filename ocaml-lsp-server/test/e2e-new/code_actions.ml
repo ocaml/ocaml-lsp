@@ -1645,6 +1645,94 @@ let%expect_test "shouldn't find the jump target on the same line" =
       No code actions |}]
 ;;
 
+let%expect_test "can conbine cases with multiple RHSes" =
+  let source =
+    {ocaml|
+    match card with
+    | Ace -> _
+    | King -> _
+    | Queen -> "Face card!"
+    | Jack -> "Face card?"
+    | Number _ -> _
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:3 ~character:3 in
+    let end_ = Position.create ~line:6 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "combine-cases");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "    | King | Queen | Jack | Number _ -> _\n",
+                "range": {
+                  "end": { "character": 0, "line": 7 },
+                  "start": { "character": 0, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "combine-cases",
+      "title": "Combine-cases"
+    }
+    |}]
+;;
+
+let%expect_test "can conbine cases with one unique RHS" =
+  let source =
+    {ocaml|
+    match card with
+    | Ace -> _
+    | King -> _
+    | Queen -> "Face card!"
+    | Jack -> "Face card?"
+    | Number _ -> _
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:3 ~character:3 in
+    let end_ = Position.create ~line:4 ~character:4 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "combine-cases");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "    | King | Queen -> \"Face card!\"\n",
+                "range": {
+                  "end": { "character": 0, "line": 5 },
+                  "start": { "character": 0, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "combine-cases",
+      "title": "Combine-cases"
+    }
+    |}]
+;;
+
 let position_of_offset src x =
   assert (0 <= x && x < String.length src);
   let cnum = ref 0
