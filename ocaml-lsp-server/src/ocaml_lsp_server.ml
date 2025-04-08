@@ -216,8 +216,12 @@ let on_initialize server (ip : InitializeParams.t) =
     let report_dune_diagnostics =
       Configuration.report_dune_diagnostics state.configuration
     in
+    let shorten_merlin_diagnostics =
+      Configuration.shorten_merlin_diagnostics state.configuration
+    in
     Diagnostics.create
       ~report_dune_diagnostics
+      ~shorten_merlin_diagnostics
       (let open Option.O in
        let* td = ip.capabilities.textDocument in
        td.publishDiagnostics)
@@ -755,10 +759,18 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
     let* configuration = Configuration.update state.configuration req in
-    let+ () =
+    let* () =
       let report_dune_diagnostics = Configuration.report_dune_diagnostics configuration in
       Diagnostics.set_report_dune_diagnostics
         ~report_dune_diagnostics
+        (State.diagnostics state)
+    in
+    let+ () =
+      let shorten_merlin_diagnostics =
+        Configuration.shorten_merlin_diagnostics configuration
+      in
+      Diagnostics.set_shorten_merlin_diagnostics
+        ~shorten_merlin_diagnostics
         (State.diagnostics state)
     in
     { state with configuration }
