@@ -427,7 +427,6 @@ let merlin_diagnostics diagnostics merlin =
 
 let set_report_dune_diagnostics t ~report_dune_diagnostics =
   let open Fiber.O in
-  let* () = Fiber.return () in
   if t.report_dune_diagnostics = report_dune_diagnostics
   then Fiber.return ()
   else (
@@ -440,7 +439,6 @@ let set_report_dune_diagnostics t ~report_dune_diagnostics =
 
 let set_shorten_merlin_diagnostics t ~shorten_merlin_diagnostics =
   let open Fiber.O in
-  let* () = Fiber.return () in
   if t.shorten_merlin_diagnostics = shorten_merlin_diagnostics
   then Fiber.return ()
   else (
