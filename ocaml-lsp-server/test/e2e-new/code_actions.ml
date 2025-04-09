@@ -1645,7 +1645,7 @@ let%expect_test "shouldn't find the jump target on the same line" =
       No code actions |}]
 ;;
 
-let%expect_test "can conbine cases with multiple RHSes" =
+let%expect_test "can combine cases with multiple RHSes" =
   let source =
     {ocaml|
     match card with
@@ -1689,7 +1689,7 @@ let%expect_test "can conbine cases with multiple RHSes" =
     |}]
 ;;
 
-let%expect_test "can conbine cases with one unique RHS" =
+let%expect_test "can combine cases with one unique RHS" =
   let source =
     {ocaml|
     match card with
