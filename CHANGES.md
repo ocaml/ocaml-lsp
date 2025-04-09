@@ -1,5 +1,9 @@
 # unreleased
 
+## Features
+
+- Add a code-action for combining pattern cases (just relaying on regex) (#1514)
+
 ## Fixes
 
 - Support for `class`, `class type`, `method` and `property` for `DocumentSymbol` query (#1487 fixes #1449)
