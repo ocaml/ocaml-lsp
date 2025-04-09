@@ -5,6 +5,7 @@ module InlayHints = struct
   type t =
     { hint_pattern_variables : bool [@key "hintPatternVariables"] [@default false]
     ; hint_let_bindings : bool [@key "hintLetBindings"] [@default false]
+    ; hint_function_params : bool [@key "hintFunctionParams"] [@default false]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -16,6 +17,7 @@ module InlayHints = struct
      | `Assoc field_yojsons as yojson ->
        let hint_pattern_variables_field = ref Ppx_yojson_conv_lib.Option.None
        and hint_let_bindings_field = ref Ppx_yojson_conv_lib.Option.None
+       and hint_function_params_field = ref Ppx_yojson_conv_lib.Option.None
        and duplicates = ref []
        and extra = ref [] in
        let rec iter = function
@@ -33,6 +35,13 @@ module InlayHints = struct
                | Ppx_yojson_conv_lib.Option.None ->
                  let fvalue = bool_of_yojson _field_yojson in
                  hint_let_bindings_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
+                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+            | "hintFunctionParams" ->
+              (match Ppx_yojson_conv_lib.( ! ) hint_function_params_field with
+               | Ppx_yojson_conv_lib.Option.None ->
+                 let fvalue = bool_of_yojson _field_yojson in
+                 hint_function_params_field := Ppx_yojson_conv_lib.Option.Some fvalue
                | Ppx_yojson_conv_lib.Option.Some _ ->
                  duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
             | _ -> ());
@@ -54,9 +63,13 @@ module InlayHints = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let hint_pattern_variables_value, hint_let_bindings_value =
+             let ( hint_pattern_variables_value
+                 , hint_let_bindings_value
+                 , hint_function_params_value )
+               =
                ( Ppx_yojson_conv_lib.( ! ) hint_pattern_variables_field
-               , Ppx_yojson_conv_lib.( ! ) hint_let_bindings_field )
+               , Ppx_yojson_conv_lib.( ! ) hint_let_bindings_field
+               , Ppx_yojson_conv_lib.( ! ) hint_function_params_field )
              in
              { hint_pattern_variables =
                  (match hint_pattern_variables_value with
@@ -64,6 +77,10 @@ module InlayHints = struct
                   | Ppx_yojson_conv_lib.Option.Some v -> v)
              ; hint_let_bindings =
                  (match hint_let_bindings_value with
+                  | Ppx_yojson_conv_lib.Option.None -> false
+                  | Ppx_yojson_conv_lib.Option.Some v -> v)
+             ; hint_function_params =
+                 (match hint_function_params_value with
                   | Ppx_yojson_conv_lib.Option.None -> false
                   | Ppx_yojson_conv_lib.Option.Some v -> v)
              }))
@@ -78,8 +95,13 @@ module InlayHints = struct
     (function
      | { hint_pattern_variables = v_hint_pattern_variables
        ; hint_let_bindings = v_hint_let_bindings
+       ; hint_function_params = v_hint_function_params
        } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         let arg = yojson_of_bool v_hint_function_params in
+         ("hintFunctionParams", arg) :: bnds
+       in
        let bnds =
          let arg = yojson_of_bool v_hint_let_bindings in
          ("hintLetBindings", arg) :: bnds
@@ -798,7 +820,12 @@ let default =
   { codelens = Some { enable = false }
   ; extended_hover = Some { enable = false }
   ; standard_hover = Some { enable = true }
-  ; inlay_hints = Some { hint_pattern_variables = false; hint_let_bindings = false }
+  ; inlay_hints =
+      Some
+        { hint_pattern_variables = false
+        ; hint_let_bindings = false
+        ; hint_function_params = false
+        }
   ; dune_diagnostics = Some { enable = true }
   ; syntax_documentation = Some { enable = false }
   ; merlin_jump_code_actions = Some { enable = false }

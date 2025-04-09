@@ -5,6 +5,7 @@ let apply_inlay_hints
       ?range
       ?(hint_pattern_variables = false)
       ?(hint_let_bindings = false)
+      ?(hint_function_params = true)
       ~source
       ()
   =
@@ -33,6 +34,7 @@ let apply_inlay_hints
               , `Assoc
                   [ "hintPatternVariables", `Bool hint_pattern_variables
                   ; "hintLetBindings", `Bool hint_let_bindings
+                  ; "hintFunctionParams", `Bool hint_function_params
                   ] )
             ])
       (InlayHint request)
@@ -98,4 +100,18 @@ let%expect_test "let bindings" =
   [%expect {| let f () = let y = 0 in y |}];
   apply_inlay_hints ~hint_let_bindings:true ~source ();
   [%expect {| let f () = let y$: int$ = 0 in y |}]
+;;
+
+let%expect_test "function params" =
+  let source = "let f a b c d = (a + b, c ^ string_of_bool d)" in
+  apply_inlay_hints ~source ();
+  [%expect
+    {| let f a$: int$ b$: int$ c$: string$ d$: bool$ = (a + b, c ^ string_of_bool d) |}]
+;;
+
+let%expect_test "function params (deactivated)" =
+  let source = "let f a b c d = (a + b, c ^ string_of_bool d)" in
+  apply_inlay_hints ~hint_function_params:false ~source ();
+  [%expect
+    {| let f a b c d = (a + b, c ^ string_of_bool d) |}]
 ;;
