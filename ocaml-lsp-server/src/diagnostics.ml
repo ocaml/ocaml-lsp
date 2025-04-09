@@ -403,7 +403,7 @@ let merlin_diagnostics diagnostics merlin =
                      ^ typ
                    in
                    (* we set specific diagnostic code = "hole" to be able to
-               filter through diagnostics easily *)
+                      filter through diagnostics easily *)
                    create_diagnostic
                      ~code:(`String "hole")
                      ~range
@@ -426,7 +426,6 @@ let merlin_diagnostics diagnostics merlin =
 ;;
 
 let set_report_dune_diagnostics t ~report_dune_diagnostics =
-  let open Fiber.O in
   if t.report_dune_diagnostics = report_dune_diagnostics
   then Fiber.return ()
   else (
@@ -438,7 +437,6 @@ let set_report_dune_diagnostics t ~report_dune_diagnostics =
 ;;
 
 let set_shorten_merlin_diagnostics t ~shorten_merlin_diagnostics =
-  let open Fiber.O in
   if t.shorten_merlin_diagnostics = shorten_merlin_diagnostics
   then Fiber.return ()
   else (
