@@ -1,5 +1,9 @@
 # unreleased
 
+## Features
+
+- Allow (by configuration) shortening of diagnostics (just highlighting the first line) (#1513)
+
 ## Fixes
 
 - Support for `class`, `class type`, `method` and `property` for `DocumentSymbol` query (#1487 fixes #1449)

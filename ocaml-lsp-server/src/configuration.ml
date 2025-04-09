@@ -55,3 +55,9 @@ let report_dune_diagnostics t =
   | Some { enable = true } | None -> true
   | Some { enable = false } -> false
 ;;
+
+let shorten_merlin_diagnostics t =
+  match t.data.shorten_merlin_diagnostics with
+  | Some { enable = true } -> true
+  | Some { enable = false } | None -> false
+;;

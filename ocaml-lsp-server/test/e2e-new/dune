@@ -54,6 +54,7 @@
     hover_extended
     inlay_hints
     merlin_call_compatible
+    diagnostics_filter
     metrics
     semantic_hl_data
     semantic_hl_helpers
