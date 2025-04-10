@@ -53,6 +53,7 @@
     for_ppx
     hover_extended
     inlay_hints
+    jump_typed_hole
     merlin_call_compatible
     metrics
     semantic_hl_data
