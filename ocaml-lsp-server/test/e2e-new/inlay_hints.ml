@@ -112,6 +112,5 @@ let%expect_test "function params" =
 let%expect_test "function params (deactivated)" =
   let source = "let f a b c d = (a + b, c ^ string_of_bool d)" in
   apply_inlay_hints ~hint_function_params:false ~source ();
-  [%expect
-    {| let f a b c d = (a + b, c ^ string_of_bool d) |}]
+  [%expect {| let f a b c d = (a + b, c ^ string_of_bool d) |}]
 ;;
