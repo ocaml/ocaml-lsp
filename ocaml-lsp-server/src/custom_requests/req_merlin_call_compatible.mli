@@ -3,13 +3,7 @@ open Import
 module Request_params : sig
   type t
 
-  val create
-    :  text_document:TextDocumentIdentifier.t
-    -> result_as_sexp:bool
-    -> command:string
-    -> args:string list
-    -> t
-
+  val create : uri:Uri.t -> result_as_sexp:bool -> command:string -> args:string list -> t
   val yojson_of_t : t -> Json.t
 end
 
