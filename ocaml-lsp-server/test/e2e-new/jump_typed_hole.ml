@@ -41,6 +41,14 @@ let rec zip_shortest xs ys =
 |ocaml}
 ;;
 
+let large_amount_of_holes_source =
+  {ocaml|
+  let f () =
+    (_, _, _, (_, _, _, _, _,), _, _, _, _),
+    _, _, _, _, (_, _, _), _, _, _, _, _, _
+|ocaml}
+;;
+
 let%expect_test "when there is no hole" =
   let source =
     {ocaml|
@@ -233,6 +241,38 @@ let%expect_test "prev hole in a given range with cursor outside the range" =
     {
       "end": { "character": 50, "line": 4 },
       "start": { "character": 49, "line": 4 }
+    }
+    |}]
+;;
+
+let%expect_test "next on the middle" =
+  let source = large_amount_of_holes_source
+  and direction = `Next
+  and range = range (3, 16) (3, 24)
+  and line = 3
+  and character = 20 in
+  Util.test ~direction ~range ~line ~character source;
+  [%expect
+    {|
+    {
+      "end": { "character": 24, "line": 3 },
+      "start": { "character": 23, "line": 3 }
+    }
+    |}]
+;;
+
+let%expect_test "next at the end" =
+  let source = large_amount_of_holes_source
+  and direction = `Next
+  and range = range (3, 16) (3, 24)
+  and line = 3
+  and character = 23 in
+  Util.test ~direction ~range ~line ~character source;
+  [%expect
+    {|
+    {
+      "end": { "character": 18, "line": 3 },
+      "start": { "character": 17, "line": 3 }
     }
     |}]
 ;;
