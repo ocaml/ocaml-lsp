@@ -1,8 +1,13 @@
 # unreleased
 
+## Features
+
+- Make `inlay-hint` for function parameters configurable (#1515)
+
 ## Fixes
 
 - Support for `class`, `class type`, `method` and `property` for `DocumentSymbol` query (#1487 fixes #1449)
+- Fix `inlay-hint` for function parameters (#1515)
 
 - Add a new server option `standardHover`, that can be used by clients to
   disable the default hover provider.  When `standardHover = false`
