@@ -5,7 +5,7 @@ let apply_inlay_hints
       ?range
       ?(hint_pattern_variables = false)
       ?(hint_let_bindings = false)
-      ?(hint_function_params = true)
+      ?hint_function_params
       ~source
       ()
   =
@@ -25,18 +25,19 @@ let apply_inlay_hints
     let textDocument = TextDocumentIdentifier.create ~uri in
     InlayHintParams.create ~textDocument ~range ()
   in
+  let regular_config =
+    [ "hintPatternVariables", `Bool hint_pattern_variables
+    ; "hintLetBindings", `Bool hint_let_bindings
+    ]
+    @
+    match hint_function_params with
+    | None -> []
+    | Some hint_function_params -> [ "hintFunctionParams", `Bool hint_function_params ]
+  in
   let inlay_hints =
     Test.run_request
       ~prep:(fun client -> Test.openDocument ~client ~uri ~source)
-      ~settings:
-        (`Assoc
-            [ ( "inlayHints"
-              , `Assoc
-                  [ "hintPatternVariables", `Bool hint_pattern_variables
-                  ; "hintLetBindings", `Bool hint_let_bindings
-                  ; "hintFunctionParams", `Bool hint_function_params
-                  ] )
-            ])
+      ~settings:(`Assoc [ "inlayHints", `Assoc regular_config ])
       (InlayHint request)
   in
   match inlay_hints with
