@@ -5,7 +5,7 @@ module InlayHints = struct
   type t =
     { hint_pattern_variables : bool [@key "hintPatternVariables"] [@default false]
     ; hint_let_bindings : bool [@key "hintLetBindings"] [@default false]
-    ; hint_function_params : bool [@key "hintFunctionParams"] [@default false]
+    ; hint_function_params : bool [@key "hintFunctionParams"] [@default true]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -81,7 +81,7 @@ module InlayHints = struct
                   | Ppx_yojson_conv_lib.Option.Some v -> v)
              ; hint_function_params =
                  (match hint_function_params_value with
-                  | Ppx_yojson_conv_lib.Option.None -> false
+                  | Ppx_yojson_conv_lib.Option.None -> true
                   | Ppx_yojson_conv_lib.Option.Some v -> v)
              }))
      | _ as yojson ->
