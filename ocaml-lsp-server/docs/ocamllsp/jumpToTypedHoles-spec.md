@@ -10,7 +10,7 @@ in a range or not).
 
 Reduces the need for editor-side logic and works well with the
 expression construct command. For example, constructing a value of
-type `int option` constructs, for example, the following expression:
+type `int option` constructs the following expression:
 `Some _`, coupled with typed hole navigation, you can move the cursor
 directly over the generated hole.
 
@@ -23,11 +23,11 @@ directly over the generated hole.
 
 ## Client capability
 
-nothing that should be noted
+N/A
 
 ## Server capability
 
-- property name: `handleToJumpTypedHole`
+- property name: `handleJumpToTypedHole`
 - property type: `boolean`
 
 ## Request
@@ -53,5 +53,5 @@ range.
 Range | null
 ```
 
-Returns the next or previous hole, or `null` if no hole has been
-found.
+Returns the next or previous typed hole at a given position. An
+optional range can be used to restrict the search.

@@ -3,7 +3,7 @@
 ## Features
 
 - Make `inlay-hint` for function parameters configurable (#1515)
-- Add custom `ocamllsp/jumpTypedHole` to navigate through typed holes (#1516)
+- Add custom `ocamllsp/jumpToTypedHole` to navigate through typed holes (#1516)
 
 ## Fixes
 
