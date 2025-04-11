@@ -75,7 +75,7 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
     | Some doc ->
       let open Fiber.O in
       let merlin = Document.merlin_exn doc in
-      let+ holes = Typed_hole.all ~name:"jump-to-typed-hole" merlin in
+      let+ holes = Typed_hole.all ~pipeline_name:"jump-to-typed-hole" merlin in
       holes |> Typed_hole.find ~position ~range ~direction |> yojson_of_t
     | None ->
       Jsonrpc.Response.Error.raise

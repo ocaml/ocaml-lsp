@@ -40,8 +40,8 @@ let find ~range ~position ~direction holes =
   | `Next -> find_next ~range ~position holes
 ;;
 
-let all ?(name = "typed-holes") merlin =
+let all ?(pipeline_name = "typed-holes") merlin =
   Holes
-  |> Document.Merlin.dispatch_exn ~name merlin
+  |> Document.Merlin.dispatch_exn ~name:pipeline_name merlin
   |> Fiber.map ~f:(List.map ~f:(fun (loc, _ty) -> Range.of_loc loc))
 ;;

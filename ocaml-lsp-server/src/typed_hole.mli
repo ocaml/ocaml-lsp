@@ -5,4 +5,4 @@ val find
   -> Range.t list
   -> Range.t option
 
-val all : ?name:string -> Document.Merlin.t -> Range.t list Fiber.t
+val all : ?pipeline_name:string -> Document.Merlin.t -> Range.t list Fiber.t
