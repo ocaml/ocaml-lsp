@@ -535,7 +535,7 @@ let f (x : t) = x
           {
             "edits": [
               {
-                "newText": "match x with Foo _ -> _ | Bar _ -> _\n",
+                "newText": "match x with | Foo _ -> _ | Bar _ -> _",
                 "range": {
                   "end": { "character": 17, "line": 2 },
                   "start": { "character": 16, "line": 2 }
@@ -951,7 +951,7 @@ let _ = defered_peek job_reader
           {
             "edits": [
               {
-                "newText": "match defered_peek job_reader with None -> _ | Some _ -> _\n",
+                "newText": "match defered_peek job_reader with | None -> _ | Some _ -> _",
                 "range": {
                   "end": { "character": 31, "line": 4 },
                   "start": { "character": 8, "line": 4 }
@@ -993,7 +993,7 @@ let _ = defered_peek job_reader
           {
             "edits": [
               {
-                "newText": "match job_reader with 0 -> _ | _ -> _\n",
+                "newText": "(match job_reader with | 0 -> _ | _ -> _)",
                 "range": {
                   "end": { "character": 31, "line": 4 },
                   "start": { "character": 21, "line": 4 }
