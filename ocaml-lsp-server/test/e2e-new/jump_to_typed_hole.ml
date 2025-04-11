@@ -1,5 +1,5 @@
 open Test.Import
-module Req = Ocaml_lsp_server.Custom_request.Jump_typed_hole
+module Req = Ocaml_lsp_server.Custom_request.Jump_to_typed_hole
 
 module Util = struct
   let call ?direction ?range ~position client =

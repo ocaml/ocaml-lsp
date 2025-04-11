@@ -87,7 +87,7 @@ let%expect_test "start/stop" =
             "handleSwitchImplIntf": true,
             "handleInferIntf": true,
             "handleTypedHoles": true,
-            "handleJumpTypedHole": true,
+            "handleJumpToTypedHole": true,
             "handleWrappingAstNode": true,
             "diagnostic_promotions": true,
             "handleHoverExtended": true,

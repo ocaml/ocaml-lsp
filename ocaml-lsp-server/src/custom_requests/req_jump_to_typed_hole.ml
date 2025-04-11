@@ -1,7 +1,7 @@
 open Import
 
-let capability = "handleJumpTypedHole", `Bool true
-let meth = "ocamllsp/jumpTypedHole"
+let capability = "handleJumpToTypedHole", `Bool true
+let meth = "ocamllsp/jumpToTypedHole"
 
 module Request_params = struct
   type t =

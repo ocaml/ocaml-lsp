@@ -89,7 +89,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_switch_impl_intf.capability
               ; Req_infer_intf.capability
               ; Req_typed_holes.capability
-              ; Req_jump_typed_hole.capability
+              ; Req_jump_to_typed_hole.capability
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
               ; Req_hover_extended.capability
@@ -529,7 +529,7 @@ let on_request
                Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
        ; Req_infer_intf.meth, Req_infer_intf.on_request
        ; Req_typed_holes.meth, Req_typed_holes.on_request
-       ; Req_jump_typed_hole.meth, Req_jump_typed_hole.on_request
+       ; Req_jump_to_typed_hole.meth, Req_jump_to_typed_hole.on_request
        ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
        ; Req_type_enclosing.meth, Req_type_enclosing.on_request
        ; Req_get_documentation.meth, Req_get_documentation.on_request

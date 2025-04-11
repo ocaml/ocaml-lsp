@@ -27,12 +27,12 @@ nothing that should be noted
 
 ## Server capability
 
-- property name: `handleJumpTypedHole`
+- property name: `handleToJumpTypedHole`
 - property type: `boolean`
 
 ## Request
 
-- method: `ocamllsp/jumpTypedHole`
+- method: `ocamllsp/jumpToTypedHole`
 - params:
 
 ```json
