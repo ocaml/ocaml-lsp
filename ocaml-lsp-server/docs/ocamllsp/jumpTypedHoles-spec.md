@@ -2,9 +2,8 @@
 
 ### Description
 
-Provides control over navigation between the different types of holes
-present in a document (allowing you to return the position of the next
-or previous hole) and to observe holes in ranges.
+Returns the next or previous typed hole at a given position (included
+in a range or not).
 
 
 ### Why this custom request needed
