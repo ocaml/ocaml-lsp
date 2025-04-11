@@ -2,19 +2,23 @@ open Import
 open Fiber.O
 
 let location_of_merlin_loc uri : _ -> (_, string) result = function
-  | `At_origin -> Ok None
-  | `Builtin _ -> Ok None
+  | `At_origin -> Error "Already at definition point"
+  | `Builtin s ->
+    Error
+      (sprintf
+         "%S is a builtin, and it is therefore impossible to jump to its definition"
+         s)
   | `File_not_found s -> Error (sprintf "File_not_found: %s" s)
-  | `Invalid_context -> Ok None
+  | `Invalid_context -> Error "Not a valid identifier"
   | `Not_found (ident, where) ->
     let msg =
-      let msg = sprintf "%s not found." ident in
+      let msg = sprintf "%S not found." ident in
       match where with
       | None -> msg
       | Some w -> sprintf "%s last looked in %s" msg w
     in
     Error msg
-  | `Not_in_env m -> Error (sprintf "not in environment: %s" m)
+  | `Not_in_env m -> Error (sprintf "Not in environment: %s" m)
   | `Found (path, lex_position) ->
     Ok
       (Position.of_lexical_position lex_position
@@ -56,7 +60,6 @@ let run kind (state : State.t) uri position =
          (Jsonrpc.Response.Error.make
             ~code:Jsonrpc.Response.Error.Code.RequestFailed
             ~message:(sprintf "Request \"Jump to %s\" failed." kind)
-            ~data:
-              (`String (sprintf "'Locate' query to merlin returned error: %s" err_msg))
+            ~data:(`String (sprintf "Locate: %s" err_msg))
             ()))
 ;;
