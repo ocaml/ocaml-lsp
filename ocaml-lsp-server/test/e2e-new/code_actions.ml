@@ -535,7 +535,7 @@ let f (x : t) = x
           {
             "edits": [
               {
-                "newText": "match x with Foo _ -> _ | Bar _ -> _\n",
+                "newText": "match x with | Foo _ -> _ | Bar _ -> _",
                 "range": {
                   "end": { "character": 17, "line": 2 },
                   "start": { "character": 16, "line": 2 }
@@ -925,6 +925,90 @@ let f (x: q) =
         "title": "Destruct-line (enumerate cases, use existing match)"
       }
       |}]
+;;
+
+let%expect_test "can destruct on sub-expression" =
+  let source =
+    {ocaml|
+let defered_peek x = if x >= 0 then Some (`Foo x) else None
+let job_reader = 10
+
+let _ = defered_peek job_reader
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:8 in
+    let end_ = Position.create ~line:4 ~character:31 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match defered_peek job_reader with | None -> _ | Some _ -> _",
+                "range": {
+                  "end": { "character": 31, "line": 4 },
+                  "start": { "character": 8, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct (enumerate cases)",
+      "title": "Destruct (enumerate cases)"
+    }
+    |}]
+;;
+
+let%expect_test "can destruct on sub-expression that need parenthesis" =
+  let source =
+    {ocaml|
+let defered_peek x = if x >= 0 then Some (`Foo x) else None
+let job_reader = 10
+
+let _ = defered_peek job_reader
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:21 in
+    let end_ = Position.create ~line:4 ~character:31 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(match job_reader with | 0 -> _ | _ -> _)",
+                "range": {
+                  "end": { "character": 31, "line": 4 },
+                  "start": { "character": 21, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct (enumerate cases)",
+      "title": "Destruct (enumerate cases)"
+    }
+    |}]
 ;;
 
 let%expect_test "can infer module interfaces" =
