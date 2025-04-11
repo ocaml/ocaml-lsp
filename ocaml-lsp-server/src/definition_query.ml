@@ -4,10 +4,7 @@ open Fiber.O
 let location_of_merlin_loc uri : _ -> (_, string) result = function
   | `At_origin -> Error "Already at definition point"
   | `Builtin s ->
-    Error
-      (sprintf
-         "%S is a builtin, and it is therefore impossible to jump to its definition"
-         s)
+    Error (sprintf "%S is a builtin, it is not possible to jump to its definition" s)
   | `File_not_found s -> Error (sprintf "File_not_found: %s" s)
   | `Invalid_context -> Error "Not a valid identifier"
   | `Not_found (ident, where) ->
