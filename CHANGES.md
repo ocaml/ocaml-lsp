@@ -10,6 +10,7 @@
 - Support for `class`, `class type`, `method` and `property` for `DocumentSymbol` query (#1487 fixes #1449)
 - Fix `inlay-hint` for function parameters (#1515)
 - More precise diagnostics in the event of a failed identifier search (`Definition_query`) (#1518)
+- Remove `ocamlformat` application after `destruct` (that remove some useful parenthesis) (#1519)
 
 - Add a new server option `standardHover`, that can be used by clients to
   disable the default hover provider.  When `standardHover = false`
