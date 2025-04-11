@@ -65,46 +65,6 @@ let yojson_of_t = function
   | Some range -> Range.yojson_of_t range
 ;;
 
-let holes_in_range range holes =
-  match range with
-  | None -> holes
-  | Some range -> List.filter ~f:(Range.contains range) holes
-;;
-
-let find_prev_hole ~range ~position holes =
-  let holes = holes_in_range range holes in
-  Base.List.fold_until
-    ~init:None
-    ~f:(fun prev hole ->
-      match Position.compare hole.end_ position with
-      | Lt -> Continue (Some hole)
-      | Gt | Eq -> Stop prev)
-    ~finish:Fun.id
-    holes
-  |> function
-  | None -> Base.List.last holes
-  | hole -> hole
-;;
-
-let find_next_hole ~range ~position holes =
-  let holes = holes_in_range range holes in
-  List.find
-    ~f:(fun hole ->
-      match Position.compare hole.start position with
-      | Gt -> true
-      | Lt | Eq -> false)
-    holes
-  |> function
-  | None -> Base.List.hd holes
-  | hole -> hole
-;;
-
-let find_hole ~range ~position ~direction holes =
-  match direction with
-  | `Prev -> find_prev_hole ~range ~position holes
-  | `Next -> find_next_hole ~range ~position holes
-;;
-
 let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
   Fiber.of_thunk (fun () ->
     let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
@@ -114,16 +74,9 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
     match Document_store.get_opt state.store uri with
     | Some doc ->
       let open Fiber.O in
-      let+ holes =
-        Document.Merlin.dispatch_exn
-          ~name:"jump-typed-hole"
-          (Document.merlin_exn doc)
-          Holes
-      in
-      holes
-      |> List.map ~f:(fun (loc, _ty) -> Range.of_loc loc)
-      |> find_hole ~position ~range ~direction
-      |> yojson_of_t
+      let merlin = Document.merlin_exn doc in
+      let+ holes = Typed_hole.all ~name:"jump-to-typed-hole" merlin in
+      holes |> Typed_hole.find ~position ~range ~direction |> yojson_of_t
     | None ->
       Jsonrpc.Response.Error.raise
       @@ Jsonrpc.Response.Error.make
