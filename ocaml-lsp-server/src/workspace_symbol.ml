@@ -364,9 +364,7 @@ let run server (state : State.t) (params : WorkspaceSymbolParams.t) =
          | Error `Cancelled -> assert false
          | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
     in
-    List.partition_map symbols_results ~f:(function
-      | Ok r -> Left r
-      | Error e -> Right e)
+    List.partition_result symbols_results
   in
   let+ () =
     match errors with
