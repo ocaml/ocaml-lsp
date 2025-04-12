@@ -6,7 +6,6 @@ include struct
   module Code_error = Code_error
   module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
-  module Int = Int
   module Table = Table
   module Tuple = Tuple
   module Unix_env = Env
