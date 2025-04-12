@@ -409,7 +409,7 @@ module Expr = struct
 
   let pp_constr f { tag; poly; args } =
     let tag =
-      let tag = String.capitalize tag in
+      let tag = String.capitalize_ascii tag in
       Pp.verbatim (if poly then "`" ^ tag else tag)
     in
     match args with
