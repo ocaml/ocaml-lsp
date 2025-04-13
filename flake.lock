@@ -18,23 +18,6 @@
         "type": "github"
       }
     },
-    "merlin5_1": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1727427299,
-        "narHash": "sha256-P9+3BPBWrulS/1r03CqMdicFcgEcLK1Gy7pCAcYt3n4=",
-        "owner": "ocaml",
-        "repo": "merlin",
-        "rev": "650a7865bc37a646250f7c52fa6644d9d4a5218b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ocaml",
-        "ref": "501",
-        "repo": "merlin",
-        "type": "github"
-      }
-    },
     "merlin5_2": {
       "flake": false,
       "locked": {
@@ -74,11 +57,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1740284203,
-        "narHash": "sha256-zRE+r8oICuoFv/D3sUnqZvU6t8XI1vcRA6McjNEq7Hk=",
+        "lastModified": 1744486465,
+        "narHash": "sha256-3TkMW6rapFwCRg3k+GK329SVbRnIUBYQSnOVNpHJsWs=",
         "owner": "nix-ocaml",
         "repo": "nix-overlays",
-        "rev": "6b1df9316280be7c371d367f4a8789e753c44612",
+        "rev": "24a1486ff3d9f90d4f7c1992ee0da68f86bc34e6",
         "type": "github"
       },
       "original": {
@@ -89,24 +72,23 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1740258057,
-        "narHash": "sha256-0Tmbige66gXMWEUEN3Fstcy4mhOkT1sjrO9T39ejcL0=",
+        "lastModified": 1744458331,
+        "narHash": "sha256-x2TByheDAo4719nHoa/hjmmXQ1X6NDJy7Uh14uRXra0=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "e7e1c30ce303c635781d6d1d673d61e35b8dc0a0",
+        "rev": "a9318014ca7e6e6eb830125fa3a1d5238290153f",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "e7e1c30ce303c635781d6d1d673d61e35b8dc0a0",
+        "rev": "a9318014ca7e6e6eb830125fa3a1d5238290153f",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "merlin5_1": "merlin5_1",
         "merlin5_2": "merlin5_2",
         "merlin5_3": "merlin5_3",
         "nixpkgs": "nixpkgs"
