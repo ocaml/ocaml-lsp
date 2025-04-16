@@ -11,6 +11,7 @@
 - Fix `inlay-hint` for function parameters (#1515)
 - More precise diagnostics in the event of a failed identifier search (`Definition_query`) (#1518)
 - Remove `ocamlformat` application after `destruct` (that remove some useful parenthesis) (#1519)
+- Drop `open related file` code action (at every position) (#1520)
 
 # 1.22.0
 
