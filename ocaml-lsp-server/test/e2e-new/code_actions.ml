@@ -80,18 +80,7 @@ let foo = 123
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    } |}]
+    |}]
 ;;
 
 let%expect_test "can type-annotate a function argument" =
@@ -169,19 +158,7 @@ let iiii = 3 + 4
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    }
-     |}]
+    |}]
 ;;
 
 let%expect_test "does not type-annotate function" =
