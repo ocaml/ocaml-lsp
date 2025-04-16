@@ -65,3 +65,12 @@ let overlaps x y =
   | (Lt | Eq), (Gt | Eq) | (Gt | Eq), (Lt | Eq) -> true
   | _ -> false
 ;;
+
+let to_string t =
+  sprintf
+    "((%d, %d), (%d, %d))"
+    t.start.line
+    t.start.character
+    t.end_.line
+    t.end_.character
+;;

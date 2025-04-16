@@ -9,6 +9,7 @@ val create
   :  PublishDiagnosticsClientCapabilities.t option
   -> (PublishDiagnosticsParams.t list -> unit Fiber.t)
   -> report_dune_diagnostics:bool
+  -> shorten_merlin_diagnostics:bool
   -> t
 
 val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
@@ -37,6 +38,7 @@ val tags_of_message
 
 val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
 val set_report_dune_diagnostics : t -> report_dune_diagnostics:bool -> unit Fiber.t
+val set_shorten_merlin_diagnostics : t -> shorten_merlin_diagnostics:bool -> unit Fiber.t
 
 (** Exposed for testing *)
 

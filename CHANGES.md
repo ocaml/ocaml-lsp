@@ -5,6 +5,7 @@
 - Make `inlay-hint` for function parameters configurable (#1515)
 - Add custom `ocamllsp/jumpToTypedHole` to navigate through typed holes (#1516)
 - Add a code-action for combining pattern cases (just relaying on regex) (#1514)
+- Allow (by configuration) shortening of diagnostics (just highlighting the first line) (#1513)
 
 ## Fixes
 
