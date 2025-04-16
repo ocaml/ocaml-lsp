@@ -20,3 +20,14 @@ val iter_lsp_response
   -> source:string
   -> ('a -> unit)
   -> unit
+
+(** Opens the file in the specified path with source code as specified in src.
+    This then waits for merlin to send diagnostic info and calls the diagnostics_callback
+   function with the diagnostics it receives from merlin for the source*)
+val open_document_with_diagnostics_callback
+  :  ?prep:(unit Client.t -> unit Fiber.t)
+  -> ?path:string
+  -> source:string
+  -> diagnostics_callback:(PublishDiagnosticsParams.t -> unit)
+  -> unit
+  -> unit
