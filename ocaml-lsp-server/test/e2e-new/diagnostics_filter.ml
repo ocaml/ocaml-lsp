@@ -28,18 +28,6 @@ let print_diagnostics
 
 let change_config client params = Client.notification client (ChangeConfiguration params)
 
-let%expect_test "Doesn't add other diagnostics if syntax errors" =
-  let source =
-    {ocaml|
-let x = "" in
-
-let () = 1    
-|ocaml}
-  in
-  print_diagnostics source;
-  [%expect {| Syntax error, expecting `in' |}]
-;;
-
 let%expect_test "shorten diagnostics - true" =
   let source =
     {ocaml|

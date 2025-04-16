@@ -298,7 +298,7 @@ let first_n_lines_of_range (range : Range.t) n =
     Range.create ~start ~end_)
 ;;
 
-let default_error_to_diagnostics ~diagnostics ~merlin ~error =
+let error_to_diagnostics ~diagnostics ~merlin error =
   let doc = Document.Merlin.to_doc merlin in
   let create_diagnostic = Diagnostic.create ~source:ocamllsp_source in
   let uri = Document.uri doc in
@@ -376,51 +376,31 @@ let merlin_diagnostics diagnostics merlin =
                error)
         in
         [ create_diagnostic ~range:Range.first_line ~message () ]
-      | all_errors ->
+      | errors ->
         let merlin_diagnostics =
-          match (Mpipeline.final_config pipeline).merlin.failures with
-          | [] ->
-            let syntax_diagnostics, typer_diagnostics =
-              Base.List.partition_map all_errors ~f:(fun (error : Loc.error) ->
-                let diagnostic =
-                  default_error_to_diagnostics ~diagnostics ~merlin ~error
-                in
-                match error.source with
-                | Lexer | Parser -> First diagnostic
-                | _ -> Second diagnostic)
-            in
-            (* Only show syntax errors if there are any, otherwise show the other
-               diagnostics *)
-            (match syntax_diagnostics with
-             | [] ->
-               let holes_as_err_diags =
-                 Query_commands.dispatch pipeline Holes
-                 |> List.rev_map ~f:(fun (loc, typ) ->
-                   let range = Range.of_loc loc in
-                   let severity = DiagnosticSeverity.Error in
-                   let message =
-                     "This typed hole should be replaced with an expression of type "
-                     ^ typ
-                   in
-                   (* we set specific diagnostic code = "hole" to be able to
-                      filter through diagnostics easily *)
-                   create_diagnostic
-                     ~code:(`String "hole")
-                     ~range
-                     ~message:(`String message)
-                     ~severity
-                     ())
-               in
-               List.rev_append holes_as_err_diags typer_diagnostics
-             | _ -> syntax_diagnostics)
-          | config_failures ->
-            List.map config_failures ~f:(fun failure ->
-              create_diagnostic ~range:Range.first_line ~message:(`String failure) ())
+          List.rev_map errors ~f:(error_to_diagnostics ~diagnostics ~merlin)
         in
-        List.sort
-          merlin_diagnostics
-          ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
-            Range.compare d1.range d2.range))
+        let holes_as_err_diags =
+          Query_commands.dispatch pipeline Holes
+          |> List.rev_map ~f:(fun (loc, typ) ->
+            let range = Range.of_loc loc in
+            let severity = DiagnosticSeverity.Error in
+            let message =
+              "This typed hole should be replaced with an expression of type " ^ typ
+            in
+            (* we set specific diagnostic code = "hole" to be able to
+               filter through diagnostics easily *)
+            create_diagnostic
+              ~code:(`String "hole")
+              ~range
+              ~message:(`String message)
+              ~severity
+              ())
+        in
+        (* Can we use [List.merge] instead? *)
+        List.rev_append holes_as_err_diags merlin_diagnostics
+        |> List.sort ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
+          Range.compare d1.range d2.range))
   in
   set diagnostics (`Merlin (uri, all_diagnostics))
 ;;
