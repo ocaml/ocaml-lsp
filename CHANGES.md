@@ -6,6 +6,7 @@
 - Add custom `ocamllsp/jumpToTypedHole` to navigate through typed holes (#1516)
 - Add a code-action for combining pattern cases (just relaying on regex) (#1514)
 - Allow (by configuration) shortening of diagnostics (just highlighting the first line) (#1513)
+- Fix `yojson_of_t` for `Nullable_option`: serialize `None` as `Null` instead of asserting false (#1525 fixes #1524)
 
 ## Fixes
 
