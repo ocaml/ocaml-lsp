@@ -216,7 +216,7 @@ module Json = struct
     ;;
 
     let yojson_of_t f = function
-      | None -> assert false
+      | None -> `Null
       | Some s -> f s
     ;;
   end
