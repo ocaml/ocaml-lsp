@@ -256,7 +256,7 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) ~position_enc
     let tdoc = Text_document.make ~position_encoding doc in
     let syntax = Syntax.of_text_document tdoc in
     match syntax with
-    | Ocaml | Reason -> make_merlin wheel config pipeline tdoc syntax
+    | Ocaml | Reason | Mlx -> make_merlin wheel config pipeline tdoc syntax
     | Ocamllex | Menhir | Cram | Dune -> Fiber.return (Other { tdoc; syntax }))
 ;;
 
@@ -440,6 +440,8 @@ let get_impl_intf_counterparts m uri =
     in
     match Syntax.of_fname fname with
     | Dune | Cram -> []
+    (* TODO: Unsure about this, keeping it empty for now *)
+    | Mlx -> []
     | Ocaml ->
       (match kind with
        | Intf -> [ ml; mly; mll; eliom; re ]

@@ -103,7 +103,7 @@ type formatter =
   | Mlx of Uri.t
 
 let args = function
-  | Mlx
+  | Mlx uri
   | Ocaml uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Reason kind ->
     [ "--parse"; "re"; "--print"; "re" ]
@@ -131,6 +131,7 @@ let formatter doc =
   match Document.syntax doc with
   | (Dune | Cram | Ocamllex | Menhir) as s -> Error (Unsupported_syntax s)
   | Ocaml -> Ok (Ocaml (Document.uri doc))
+  | Mlx -> Ok (Mlx (Document.uri doc))
   | Reason ->
     Ok
       (Reason
