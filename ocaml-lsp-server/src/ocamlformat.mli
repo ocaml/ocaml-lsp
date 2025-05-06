@@ -1,6 +1,7 @@
 (** Generic formatting facility for OCaml and Reason sources.
 
-    Relies on [ocamlformat] for OCaml and [refmt] for reason *)
+    Relies on [ocamlformat] for OCaml, [ocamlformat-mlx] for OCaml.mlx, and
+    [refmt] for Reason. *)
 
 open Import
 

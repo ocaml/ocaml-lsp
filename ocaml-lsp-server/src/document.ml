@@ -32,6 +32,7 @@ module Syntax = struct
     | Menhir
     | Cram
     | Dune
+    | Mlx
 
   let human_name = function
     | Ocaml -> "OCaml"
@@ -40,6 +41,7 @@ module Syntax = struct
     | Menhir -> "Menhir/ocamlyacc"
     | Cram -> "Cram"
     | Dune -> "Dune"
+    | Mlx -> "OCaml.mlx"
   ;;
 
   let all =
@@ -52,6 +54,7 @@ module Syntax = struct
     ; "dune", Dune
     ; "dune-project", Dune
     ; "dune-workspace", Dune
+    ; "ocaml.mlx", Mlx
     ]
   ;;
 
@@ -61,6 +64,7 @@ module Syntax = struct
       | s ->
         (match Filename.extension s with
          | ".eliomi" | ".eliom" | ".mli" | ".ml" -> Ok Ocaml
+         | ".mlx" -> Ok Mlx
          | ".rei" | ".re" -> Ok Reason
          | ".mll" -> Ok Ocamllex
          | ".mly" -> Ok Menhir

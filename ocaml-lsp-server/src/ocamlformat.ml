@@ -100,8 +100,10 @@ let message = function
 type formatter =
   | Reason of Document.Kind.t
   | Ocaml of Uri.t
+  | Mlx of Uri.t
 
 let args = function
+  | Mlx
   | Ocaml uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Reason kind ->
     [ "--parse"; "re"; "--print"; "re" ]
@@ -114,6 +116,7 @@ let args = function
 let binary_name t =
   match t with
   | Ocaml _ -> "ocamlformat"
+  | Mlx _ -> "ocamlformat-mlx"
   | Reason _ -> "refmt"
 ;;
 
