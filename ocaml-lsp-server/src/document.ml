@@ -425,8 +425,8 @@ let close t =
 let get_impl_intf_counterparts m uri =
   let fpath = Uri.to_path uri in
   let fname = Filename.basename fpath in
-  let ml, mli, eliom, eliomi, re, rei, mll, mly =
-    "ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly"
+  let ml, mli, eliom, eliomi, re, rei, mll, mly, mlx =
+    "ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly", "mlx"
   in
   let exts_to_switch_to =
     let kind =
@@ -441,14 +441,17 @@ let get_impl_intf_counterparts m uri =
     match Syntax.of_fname fname with
     | Dune | Cram -> []
     (* TODO: Unsure about this, keeping it empty for now *)
-    | Mlx -> []
+    | Mlx ->
+      (match kind with
+       | Intf -> [ re; ml; mly; mll ]
+       | Impl -> [ rei; mli; mly; mll ])
     | Ocaml ->
       (match kind with
-       | Intf -> [ ml; mly; mll; eliom; re ]
+       | Intf -> [ ml; mly; mll; eliom; re; mlx ]
        | Impl -> [ mli; mly; mll; eliomi; rei ])
     | Reason ->
       (match kind with
-       | Intf -> [ re; ml ]
+       | Intf -> [ re; ml; mlx ]
        | Impl -> [ rei; mli ])
     | Ocamllex -> [ mli; rei ]
     | Menhir -> [ mli; rei ]
