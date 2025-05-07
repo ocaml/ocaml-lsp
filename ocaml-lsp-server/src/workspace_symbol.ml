@@ -218,6 +218,7 @@ let outline_kind kind : SymbolKind.t =
   | `Type -> String
   | `Exn -> Constructor
   | `Class -> Class
+  | `ClassType -> Interface
   | `Method -> Method
 ;;
 
