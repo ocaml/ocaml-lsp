@@ -22,7 +22,14 @@ property type: `boolean`
 ## Request
 
 - method: `ocamllsp/inferIntf`
-- params: `DocumentUri` (see [`DocumentUri`](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#uri) in LSP specification)
+- params:
+
+```json
+{
+  "uri": DocumentUri,
+}
+```
+(see [`DocumentUri`](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#uri) in LSP specification)
 
 ## Response
 
