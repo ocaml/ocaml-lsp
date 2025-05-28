@@ -2,7 +2,7 @@
 
 ## Description
 
-This custom request allows Merlin-type code navigation in a source buffer.
+This custom request allows Merlin-type code navigation in a source buffer. It will fetch all the possible jump targets and return them.
 
 ## Server capability
 
@@ -12,20 +12,7 @@ This custom request allows Merlin-type code navigation in a source buffer.
 ## Request
 
 - method: `ocamllsp/jump`
-- params: `JumpParams`  extends [TextDocumentPositionParams](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentPositionParams) and is defined as follows:
-
-```js
-export interface JumpParams extends TextDocumentPositionParams
-{
-    /**
-     * The requested target of the jump, one of `fun`, `let`, `module`,
-     * `module-type`, `match`, `match-next-case`, `match-prev-case`.
-     *
-     * If omitted, all valid targets will be considered.
-     */
-    target?: string;
-}
-```
+- params: [TextDocumentPositionParams](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentPositionParams)
 
 ## Response
 

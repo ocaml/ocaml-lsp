@@ -4,43 +4,6 @@ module TextDocumentPositionParams = Lsp.Types.TextDocumentPositionParams
 let meth = "ocamllsp/jump"
 let capability = "handleJump", `Bool true
 
-module JumpParams = struct
-  let targets =
-    [ "fun"
-    ; "match"
-    ; "let"
-    ; "module"
-    ; "module-type"
-    ; "match-next-case"
-    ; "match-prev-case"
-    ]
-  ;;
-
-  type t =
-    { textDocument : TextDocumentIdentifier.t
-    ; position : Position.t
-    ; target : string option
-    }
-
-  let t_of_yojson json =
-    let open Yojson.Safe.Util in
-    { textDocument = json |> member "textDocument" |> TextDocumentIdentifier.t_of_yojson
-    ; position = json |> member "position" |> Position.t_of_yojson
-    ; target = json |> member "target" |> to_string_option
-    }
-  ;;
-
-  let yojson_of_t { textDocument; position; target } =
-    let target =
-      Option.value_map target ~default:[] ~f:(fun v -> [ "target", `String v ])
-    in
-    `Assoc
-      (("textDocument", TextDocumentIdentifier.yojson_of_t textDocument)
-       :: ("position", Position.yojson_of_t position)
-       :: target)
-  ;;
-end
-
 module Jump = struct
   type t = (string * Position.t) list
 
@@ -58,47 +21,37 @@ end
 type t = Jump.t
 
 module Request_params = struct
-  type t = JumpParams.t
+  type t = TextDocumentPositionParams.t
 
-  let yojson_of_t t = JumpParams.yojson_of_t t
+  let yojson_of_t t = TextDocumentPositionParams.yojson_of_t t
 
-  let create ~uri ~position ~target =
-    { JumpParams.textDocument = TextDocumentIdentifier.create ~uri; position; target }
+  let create ~uri ~position =
+    TextDocumentPositionParams.create
+      ~position
+      ~textDocument:(TextDocumentIdentifier.create ~uri)
   ;;
 end
 
-let dispatch ~merlin ~position ~target =
+let dispatch ~merlin ~position =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-    let pposition = Position.logical position in
-    let query = Query_protocol.Jump (target, pposition) in
-    Query_commands.dispatch pipeline query)
+    let position = Mpipeline.get_lexing_pos pipeline position in
+    let typedtree = Mpipeline.typer_result pipeline |> Mtyper.get_typedtree in
+    Merlin_analysis.Jump.get_all typedtree position)
 ;;
 
 let on_request ~params state =
   let open Fiber.O in
   Fiber.of_thunk (fun () ->
     let params = (Option.value ~default:(`Assoc []) params :> Yojson.Safe.t) in
-    let params = JumpParams.t_of_yojson params in
+    let params = TextDocumentPositionParams.t_of_yojson params in
     let uri = params.textDocument.uri in
-    let position = params.position in
+    let position = Position.logical params.position in
     let doc = Document_store.get state.State.store uri in
     match Document.kind doc with
     | `Other -> Fiber.return `Null
     | `Merlin merlin ->
-      let targets =
-        match params.target with
-        | None -> JumpParams.targets
-        | Some target -> [ target ]
-      in
-      let+ results =
-        Fiber.parallel_map targets ~f:(fun target ->
-          dispatch ~merlin ~position ~target
-          |> Fiber.map ~f:(function
-            | `Error _ -> None
-            | `Found pos ->
-              (match Position.of_lexical_position pos with
-               | None -> None
-               | Some position -> Some (target, position))))
-      in
-      Jump.yojson_of_t (List.filter_map results ~f:Fun.id))
+      let+ res = dispatch ~merlin ~position in
+      Jump.yojson_of_t
+        (List.filter_map res ~f:(fun (target, position) ->
+           Option.map ~f:(fun pos -> target, pos) (Position.of_lexical_position position))))
 ;;
