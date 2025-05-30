@@ -64,10 +64,7 @@ module Json = struct
     | `Bool f -> Bool f
     | `Assoc o -> Record (List.map o ~f:(fun (k, v) -> k, to_dyn v))
     | `List l -> List (List.map l ~f:to_dyn)
-    | `Tuple args -> Tuple (List.map args ~f:to_dyn)
     | `Null -> Dyn.Variant ("Null", [])
-    | `Variant (name, Some arg) -> Variant (name, [ to_dyn arg ])
-    | `Variant (name, None) -> Variant (name, [])
     | `Intlit s -> String s
   ;;
 end

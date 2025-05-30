@@ -18,8 +18,6 @@ module Json = struct
     | `List of t list
     | `Null
     | `String of string
-    | `Tuple of t list
-    | `Variant of string * t option
     ]
 
   exception Of_json of (string * t)
