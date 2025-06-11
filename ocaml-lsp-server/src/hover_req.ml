@@ -101,8 +101,8 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   in
   (* Hover a value declaration in a signature *)
   let value_description
-    (self : Ast_iterator.iterator)
-    (desc : Parsetree.value_description)
+        (self : Ast_iterator.iterator)
+        (desc : Parsetree.value_description)
     =
     if is_at_cursor desc.pval_name.loc then result := Some `Type_enclosing;
     Ast_iterator.default_iterator.value_description self desc
@@ -136,7 +136,10 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
       | Pmod_ident { loc; _ } -> if is_at_cursor loc then result := Some `Type_enclosing
       | Pmod_structure _ ->
         let is_at_keyword =
-          let keyword_len = 6 (* struct *) in
+          let keyword_len =
+            6
+            (* struct *)
+          in
           let pos_cnum = expr.pmod_loc.loc_start.pos_cnum + keyword_len in
           is_at_cursor
             { loc_start = expr.pmod_loc.loc_start
@@ -203,11 +206,11 @@ let format_as_code_block ~highlighter strings =
 ;;
 
 let format_type_enclosing
-  ~syntax
-  ~markdown
-  ~typ
-  ~doc
-  ~(syntax_doc : Query_protocol.syntax_doc_result option)
+      ~syntax
+      ~markdown
+      ~typ
+      ~doc
+      ~(syntax_doc : Query_protocol.syntax_doc_result option)
   =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -245,13 +248,13 @@ let format_ppx_expansion ~ppx ~expansion =
 ;;
 
 let type_enclosing_hover
-  ~(server : State.t Server.t)
-  ~(doc : Document.t)
-  ~with_syntax_doc
-  ~merlin
-  ~mode
-  ~uri
-  ~position
+      ~(server : State.t Server.t)
+      ~(doc : Document.t)
+      ~with_syntax_doc
+      ~merlin
+      ~mode
+      ~uri
+      ~position
   =
   let state = Server.state server in
   let verbosity =
@@ -324,9 +327,9 @@ let type_enclosing_hover
 ;;
 
 let ppx_expression_hover
-  ~ppx_parsetree
-  ~(expr : Parsetree.expression)
-  ~(ppx : string Asttypes.loc)
+      ~ppx_parsetree
+      ~(expr : Parsetree.expression)
+      ~(ppx : string Asttypes.loc)
   =
   let expanded_ppx = ref None in
   let at_expr_location (loc : Ocaml_parsing.Location.t) =
@@ -361,9 +364,9 @@ let ppx_expression_hover
 ;;
 
 let typedef_attribute_hover
-  ~ppx_parsetree
-  ~(decl : Parsetree.type_declaration)
-  ~(attr : Parsetree.attribute)
+      ~ppx_parsetree
+      ~(decl : Parsetree.type_declaration)
+      ~(attr : Parsetree.attribute)
   =
   match attr.attr_name.txt with
   | "deriving" ->

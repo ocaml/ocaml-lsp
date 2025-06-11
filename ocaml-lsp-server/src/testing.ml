@@ -3,3 +3,4 @@
 module Compl = Compl
 module Merlin_kernel = Merlin_kernel
 module Prefix_parser = Prefix_parser
+module Range = Range

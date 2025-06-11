@@ -1,11 +1,11 @@
 open Test.Import
 
 let iter_completions
-  ?prep
-  ?path
-  ?(triggerCharacter = "")
-  ?(triggerKind = CompletionTriggerKind.Invoked)
-  ~position
+      ?prep
+      ?path
+      ?(triggerCharacter = "")
+      ?(triggerKind = CompletionTriggerKind.Invoked)
+      ~position
   =
   let makeRequest textDocument =
     let context = CompletionContext.create ~triggerCharacter ~triggerKind () in
@@ -16,12 +16,12 @@ let iter_completions
 ;;
 
 let print_completions
-  ?(prep = fun _ -> Fiber.return ())
-  ?(path = "foo.ml")
-  ?(limit = 10)
-  ?(pre_print = fun x -> x)
-  source
-  position
+      ?(prep = fun _ -> Fiber.return ())
+      ?(path = "foo.ml")
+      ?(limit = 10)
+      ?(pre_print = fun x -> x)
+      source
+      position
   =
   iter_completions ~prep ~path ~source ~position (function
     | None -> print_endline "No completion Items"
@@ -287,8 +287,10 @@ let%expect_test "can start completion in dot chain with tab" =
 ;;
 
 let%expect_test "can start completion in dot chain with newline" =
-  let source = {ocaml|[1;2] |> List.
-ma|ocaml} in
+  let source =
+    {ocaml|[1;2] |> List.
+ma|ocaml}
+  in
   let position = Position.create ~line:1 ~character:2 in
   print_completions source position;
   [%expect
@@ -386,8 +388,10 @@ let%expect_test "can start completion in dot chain with space" =
 ;;
 
 let%expect_test "can start completion after dereference" =
-  let source = {ocaml|let apple=ref 10 in
-!ap|ocaml} in
+  let source =
+    {ocaml|let apple=ref 10 in
+!ap|ocaml}
+  in
   let position = Position.create ~line:1 ~character:3 in
   print_completions source position;
   [%expect
@@ -410,8 +414,10 @@ let%expect_test "can start completion after dereference" =
 ;;
 
 let%expect_test "can complete symbol passed as a named argument" =
-  let source = {ocaml|let g ~f = f 0 in
-g ~f:ig|ocaml} in
+  let source =
+    {ocaml|let g ~f = f 0 in
+g ~f:ig|ocaml}
+  in
   let position = Position.create ~line:1 ~character:7 in
   print_completions source position;
   [%expect
@@ -461,10 +467,12 @@ g ~f:M.ig|ocaml}
 ;;
 
 let%expect_test "can complete symbol passed as an optional argument" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let g ?f = f in
 g ?f:ig
-    |ocaml} in
+    |ocaml}
+  in
   let position = Position.create ~line:2 ~character:7 in
   print_completions source position;
   [%expect
@@ -559,10 +567,12 @@ let x = Test.
 ;;
 
 let%expect_test "completes infix operators" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let (>>|) = (+)
 let y = 1 >
-|ocaml} in
+|ocaml}
+  in
   let position = Position.create ~line:2 ~character:11 in
   print_completions source position;
   [%expect
@@ -788,11 +798,13 @@ let u = f `In
 ;;
 
 let%expect_test "works for polymorphic variants" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type t = [ `Int | `String ]
 
 let x : t = `I
-  |ocaml} in
+  |ocaml}
+  in
   let position = Position.create ~line:3 ~character:15 in
   print_completions source position;
   [%expect
@@ -1096,9 +1108,11 @@ let%expect_test "completion doesn't autocomplete record fields" =
 ;;
 
 let%expect_test "completion for `in` keyword - no prefix" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let foo param1 =
-  let bar = param1 |ocaml} in
+  let bar = param1 |ocaml}
+  in
   let position = Position.create ~line:2 ~character:19 in
   print_completions ~limit:3 source position;
   [%expect
@@ -1145,10 +1159,12 @@ let foo param1 =
 ;;
 
 let%expect_test "completion for `in` keyword - prefix i" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let foo param1 =
   let bar = param1 i
-|ocaml} in
+|ocaml}
+  in
   let position = Position.create ~line:2 ~character:20 in
   print_completions ~limit:3 source position;
   [%expect
@@ -1195,10 +1211,12 @@ let foo param1 =
 ;;
 
 let%expect_test "completion for `in` keyword - prefix in" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let foo param1 =
   let bar = param1 in
-|ocaml} in
+|ocaml}
+  in
   let position = Position.create ~line:2 ~character:21 in
   print_completions ~limit:3 source position;
   [%expect

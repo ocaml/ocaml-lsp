@@ -191,7 +191,7 @@ module Expr : sig
   (** toplevel declartion (without the name) *)
   type toplevel =
     { pat : (string Arg.t * Type.t) list
-    (** paterns and their types. types should be optional but they really
+      (** paterns and their types. types should be optional but they really
         help the error messages if the generated code is incorrect *)
     ; type_ : Type.t (** useful to annotate the return types *)
     ; body : t

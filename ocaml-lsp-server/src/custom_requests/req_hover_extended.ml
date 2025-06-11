@@ -14,10 +14,6 @@ module Request_params = struct
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
-  let create ?verbosity ~text_document ~cursor_position () =
-    { text_document; cursor_position; verbosity }
-  ;;
-
   let _ = fun (_ : t) -> ()
 
   let t_of_yojson =
@@ -141,6 +137,10 @@ module Request_params = struct
   let _ = yojson_of_t
 
   [@@@end]
+
+  let create ?verbosity ~text_document ~cursor_position () =
+    { text_document; cursor_position; verbosity }
+  ;;
 
   let params_schema =
     `Assoc

@@ -38,7 +38,7 @@ let style_inline ~meta (style : Odoc_parser.Ast.style) inline =
 ;;
 
 let rec inline_element_to_inline
-  (inline : Odoc_parser.Ast.inline_element Odoc_parser.Loc.with_location)
+          (inline : Odoc_parser.Ast.inline_element Odoc_parser.Loc.with_location)
   : Inline.t
   =
   match inline with
@@ -96,7 +96,8 @@ and inline_element_list_to_inlines inlines =
 ;;
 
 let rec nestable_block_element_to_block
-  (nestable : Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
+          (nestable :
+            Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
   =
   match nestable with
   | { value = `Paragraph text; location } ->
@@ -227,7 +228,7 @@ let rec nestable_block_element_to_block
     Block.Ext_math_block (code_block, meta)
 
 and nestable_block_element_to_inlines
-  (nestable : Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
+      (nestable : Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
   =
   match nestable with
   | { value = `Paragraph text; location = _ } -> inline_element_list_to_inlines text
@@ -382,7 +383,7 @@ let tag_to_block ~meta (tag : Odoc_parser.Ast.tag) =
 ;;
 
 let rec block_element_to_block
-  (block_element : Odoc_parser.Ast.block_element Odoc_parser.Loc.with_location)
+          (block_element : Odoc_parser.Ast.block_element Odoc_parser.Loc.with_location)
   =
   match block_element with
   | { value = `Heading (level, _, content); location } ->

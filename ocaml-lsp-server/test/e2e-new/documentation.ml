@@ -131,7 +131,8 @@ let%expect_test "Documentation when List module is shadowed" =
   let character = 12 in
   let identifier = "Base.List.iter" in
   Util.test ~line ~character ~identifier source;
-  [%expect {|
+  [%expect
+    {|
   { "doc": { "kind": "plaintext", "value": "Base.List.iter" } } |}]
 ;;
 
