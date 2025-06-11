@@ -52,7 +52,7 @@ jobs:
 
       # Remove this pin once a compatible version of Merlin has been released
       - name: Pin dev Merlin
-        run: opam pin https://github.com/voodoos/merlin.git#414-4.19-backports
+        run: opam pin --with-version 4.19-414 https://github.com/voodoos/merlin.git#414-4.19-backports
 
       - name: Build and install dependencies
         run: opam install .
