@@ -48,7 +48,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "5.2"
+          ocaml-compiler: matrix.ocaml-compiler
 
       # Remove this pin once a compatible version of Merlin has been released
       - name: Pin dev Merlin
