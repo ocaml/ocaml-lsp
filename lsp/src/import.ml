@@ -168,12 +168,12 @@ module Json = struct
     ;;
 
     let literal_field
-          (type a)
-          (name : string)
-          (k : string)
-          (v : string)
-          (f : t -> a)
-          (json : t)
+      (type a)
+      (name : string)
+      (k : string)
+      (v : string)
+      (f : t -> a)
+      (json : t)
       : a
       =
       match json with

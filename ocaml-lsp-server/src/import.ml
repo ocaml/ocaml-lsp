@@ -6,6 +6,8 @@ include struct
   module Code_error = Code_error
   module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
+  module Fdecl = Fdecl
+  module Fpath = Path
   module Int = Int
   module Table = Table
   module Tuple = Tuple
@@ -64,50 +66,20 @@ module Option = struct
 end
 
 module String = struct
-  type t = string
+  include Stdune.String
 
-  include struct
-    open Stdune.String
-    module Map = Map
-  end
-
-  let to_dyn = Dyn.string
+  let strip = trim
 
   include struct
     open Base.String
 
-    let unsafe_get = unsafe_get
-    let get = get
-    let split_lines = split_lines
-    let sub = sub
-    let equal = equal
-    let rsplit2 = rsplit2
-    let concat = concat
-    let length = length
-    let strip = strip
-    let trim = strip
-    let drop = drop_prefix
-    let hash = hash
-    let drop_prefix = chop_prefix
-    let is_prefix = is_prefix
-    let map = map
-    let lowercase_ascii = lowercase
-    let capitalize_ascii = capitalize
-    let capitalize = capitalize
-    let split_on_char t ~sep = split t ~on:sep
-    let is_empty = is_empty
-    let split = split
     let chop_prefix_if_exists = chop_prefix_if_exists
     let chop_suffix_if_exists = chop_suffix_if_exists
-    let drop_prefix_if_exists = chop_prefix_if_exists
-    let take = prefix
     let substr_index_exn = substr_index_exn
     let substr_index = substr_index
     let prefix = prefix
     let lfindi = lfindi
     let filter = filter
-    let is_suffix = is_suffix
-    let extract_words = Stdune.String.extract_words
   end
 
   let findi =
@@ -160,16 +132,16 @@ include struct
     include Uri
 
     let to_dyn t = Dyn.string (to_string t)
-
-    module Map = Stdlib.Map.Make (Uri)
   end
 end
 
 (* Misc modules *)
-module Drpc = Dune_rpc.V1
+module Drpc = Dune_rpc
 
 (* OCaml frontend *)
 module Ast_iterator = Ocaml_parsing.Ast_iterator
+module Ast_helper = Ocaml_parsing.Ast_helper
+module Ast_mapper = Ocaml_parsing.Ast_mapper
 module Asttypes = Ocaml_parsing.Asttypes
 module Cmt_format = Ocaml_typing.Cmt_format
 module Ident = Ocaml_typing.Ident
@@ -242,7 +214,6 @@ module Format = Merlin_utils.Std.Format
 include struct
   open Lsp_fiber
   module Log = Private.Log
-  module Fdecl = Private.Fdecl
   module Reply = Rpc.Reply
   module Server = Server
   module Lazy_fiber = Lsp_fiber.Lazy_fiber
@@ -269,6 +240,12 @@ include struct
     ;;
   end
 
+  module CallHierarchyIncomingCall = CallHierarchyIncomingCall
+  module CallHierarchyIncomingCallsParams = CallHierarchyIncomingCallsParams
+  module CallHierarchyItem = CallHierarchyItem
+  module CallHierarchyOutgoingCallsParams = CallHierarchyOutgoingCallsParams
+  module CallHierarchyOutgoingCall = CallHierarchyOutgoingCall
+  module CallHierarchyPrepareParams = CallHierarchyPrepareParams
   module CodeAction = CodeAction
   module CodeActionKind = CodeActionKind
   module CodeActionOptions = CodeActionOptions

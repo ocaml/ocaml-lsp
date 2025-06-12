@@ -1,45 +1,79 @@
 (library
  (name ocaml_lsp_server)
  (libraries
-  dyn
-  xdg
-  unix
-  dune-build-info
-  fiber
+  async
+  async_log
+  base
   chrome-trace
-  lev
-  lev_fiber
-  lev_fiber_csexp
+  cmarkit
+  core
+  core_unix
+  csexp
+  dune-build-info
+  dune-rpc
+  dyn
+  fiber
+  fiber_async
   jsonrpc
-  spawn
+  lev_fiber_async
   lsp
   lsp_fiber
-  merlin-lib.dot_protocol
   merlin-lib.analysis
+  merlin-lib.commands
+  merlin-lib.dot_protocol
+  merlin-lib.extend
   merlin-lib.kernel
-  merlin-lib.ocaml_parsing
-  merlin-lib.query_commands
-  merlin-lib.query_protocol
   merlin-lib.ocaml_merlin_specific
+  merlin-lib.ocaml_parsing
+  merlin-lib.ocaml_preprocess
   merlin-lib.ocaml_typing
   merlin-lib.ocaml_utils
+  merlin-lib.query_commands
+  merlin-lib.query_protocol
   merlin-lib.utils
-  merlin-lib.extend
-  merlin-lib.commands
-  cmarkit
-  odoc_parser
-  ppx_yojson_conv_lib
-  re
-  stdune
-  ordering
-  csexp
-  yojson
-  dune-rpc
-  ocamlformat-rpc-lib
   ocamlc-loc
-  base)
- (lint
-  (pps ppx_yojson_conv))
+  ocamlformat-rpc-lib
+  odoc-parser
+  ordering
+  ppx_string
+  ppx_yojson_conv_lib
+  ppxlib
+  re
+  re2
+  spawn
+  stdune
+  unix
+  yojson)
+ (preprocess (
+  pps
+  ppx_let
+  ppx_log
+  ppx_yojson_conv
+  -no-locations-check
+  ppx_expect
+  ppx_here
+  ppx_sexp_conv
+  ppx_sexp_message))
+;; (preprocess
+;;  (pps ppx_let ppx_log ppx_yojson_conv ppx_sexp_conv))
+  (flags (
+    :standard
+    -open
+    Cmarkit
+    -open
+    Lev_fiber_async
+    -open
+    Ocaml_preprocess
+    -open
+    Query_protocol
+    -open
+    Query_commands
+    -open
+    Ppx_yojson_conv_lib.Yojson_conv
+    -alert
+    -unstable
+    -w
+    -60))
  (instrumentation
   (backend bisect_ppx)))
 

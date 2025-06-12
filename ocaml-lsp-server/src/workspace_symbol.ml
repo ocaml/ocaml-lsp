@@ -71,7 +71,7 @@ end = struct
   open Browse_tree
 
   let id_of_patt = function
-    | { pat_desc = Tpat_var (id, _, _); _ } -> Some id
+    | { pat_desc = Tpat_var (id, _, _, _); _ } -> Some id
     | _ -> None
   ;;
 
@@ -299,9 +299,9 @@ let find_cm_files dir =
 ;;
 
 let run
-      ({ query; _ } : WorkspaceSymbolParams.t)
-      (workspace_folders : WorkspaceFolder.t list)
-      (cancel : Fiber.Cancel.t option)
+  ({ query; _ } : WorkspaceSymbolParams.t)
+  (workspace_folders : WorkspaceFolder.t list)
+  (cancel : Fiber.Cancel.t option)
   =
   let filter =
     match query with
@@ -375,7 +375,7 @@ let run server (state : State.t) (params : WorkspaceSymbolParams.t) =
       let msg =
         let message =
           List.map errors ~f:(function Build_dir_not_found workspace_name ->
-              workspace_name)
+            workspace_name)
           |> String.concat ~sep:", "
           |> sprintf "No build directory found in workspace(s): %s"
         in

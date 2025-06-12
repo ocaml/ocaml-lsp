@@ -7,7 +7,6 @@ type t =
   ; authority : string
   ; path : string
   ; query: string option
-  ; fragment: string option
   }
 
 let int_of_hex_char c =
@@ -85,8 +84,7 @@ and uri = parse
 ([^':' '/' '?' '#']+ as scheme ':') ?
 ("//" ([^ '/' '?' '#']* as authority)) ?
 ([^ '?' '#']* as path)
-('?' ([^ '#']* as raw_query)) ?
-('#' (_ * as fragment)) ?
+(('?' ([^ '#']* as raw_query) '#'?)) ?
 {
   let scheme = scheme |> Option.value ~default:"file" in
   let authority =
@@ -104,15 +102,15 @@ and uri = parse
     | None -> None
     | Some c -> Some (query (Buffer.create (String.length c)) (Lexing.from_string c))
   in
-  { scheme; authority; path; query; fragment }
+  { scheme; authority; path; query }
 }
 
 and path = parse
-| "" { { scheme = "file"; authority = ""; path = "/"; query = None; fragment = None } }
-| "//" ([^ '/']* as authority) (['/']_* as path) { { scheme = "file"; authority; path ; query = None ; fragment = None } }
-| "//" ([^ '/']* as authority) { { scheme = "file"; authority; path = "/" ; query = None ; fragment = None } }
-| ("/" _* as path) { { scheme = "file"; authority = ""; path ; query = None ; fragment = None } }
-| (_* as path) { { scheme = "file"; authority = ""; path = "/" ^ path ; query = None ; fragment = None } }
+| "" { { scheme = "file"; authority = ""; path = "/"; query = None } }
+| "//" ([^ '/']* as authority) (['/']_* as path) { { scheme = "file"; authority; path ; query = None } }
+| "//" ([^ '/']* as authority) { { scheme = "file"; authority; path = "/" ; query = None } }
+| ("/" _* as path) { { scheme = "file"; authority = ""; path ; query = None } }
+| (_* as path) { { scheme = "file"; authority = ""; path = "/" ^ path ; query = None } }
 
 {
   let of_string s =

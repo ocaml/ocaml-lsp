@@ -87,35 +87,35 @@ let%expect_test "goto line" =
     line 2: "foo\nX\n|Y"
     line 1: "foo\n|X\nY"
     line 0: "|foo\nX\nY"
-    line 0: "|foo\nX\nY" |}];
+    line 0: "|foo\nX\nY"
+    |}];
   test `String (String_zipper.of_string "") [ `Goto_line 100; `Goto_line 0 ];
   [%expect
     {|
     line 0: "|"
-    line 0: "|" |}];
+    line 0: "|"
+    |}];
   test `String foo [ `Insert "baz"; `Goto_line 1; `Insert "1" ];
   [%expect
     {|
     line 0: "|bazfoo\nX\nY"
     line 1: "bazfoo\n|X\nY"
-    line 1: "bazfoo\n|1X\nY" |}]
+    line 1: "bazfoo\n|1X\nY"
+    |}]
 ;;
 
 let%expect_test "insertions" =
   let foo = String_zipper.of_string "foo" in
   test `String foo [ `Insert "" ];
-  [%expect
-    {|
-    line 0: "|foo" |}];
+  [%expect {| line 0: "|foo" |}];
   test `String foo [ `Insert "a" ];
-  [%expect
-    {|
-    line 0: "|afoo" |}];
+  [%expect {| line 0: "|afoo" |}];
   test `String foo [ `Insert "a"; `Insert "b" ];
   [%expect
     {|
     line 0: "|afoo"
-    line 0: "|bafoo" |}]
+    line 0: "|bafoo"
+    |}]
 ;;
 
 let%expect_test "mixed insert goto" =
@@ -125,7 +125,8 @@ let%expect_test "mixed insert goto" =
     {|
     line 0: "|XXXfoo"
     line 0: "|YYYXXXfoo"
-    line 0: "|zzzYYYXXXfoo" |}]
+    line 0: "|zzzYYYXXXfoo"
+    |}]
 ;;
 
 let%expect_test "drop_until" =
@@ -134,16 +135,12 @@ let%expect_test "drop_until" =
   let t' = String_zipper.goto_line t 2 in
   let t = String_zipper.drop_until t t' in
   printfn "%S" (String_zipper.to_string_debug t);
-  [%expect
-    {|
-    "foo\n|xxx" |}];
+  [%expect {| "foo\n|xxx" |}];
   let t = String_zipper.of_string "foo\nbar\n" in
   let t = String_zipper.goto_line t 2 in
   let t = String_zipper.drop_until t t in
   printfn "%S" (String_zipper.to_string_debug t);
-  [%expect
-    {|
-    "foo\nbar\n|" |}];
+  [%expect {| "foo\nbar\n|" |}];
   let t = String_zipper.of_string "123\n" in
   let t = String_zipper.goto_line t 1 in
   let t = String_zipper.drop_until t t in
@@ -158,9 +155,7 @@ let%expect_test "squashing" =
   let t, str' = String_zipper.squash t in
   assert (String.equal str str');
   printfn "squashing: %S" (String_zipper.to_string_debug t);
-  [%expect
-    {|
-    squashing: "foo\n|bar" |}]
+  [%expect {| squashing: "foo\n|bar" |}]
 ;;
 
 let%expect_test "add buffer between" =
@@ -170,9 +165,7 @@ let%expect_test "add buffer between" =
   let b = Buffer.create 0 in
   String_zipper.add_buffer_between b t t';
   printfn "result: %S" (Buffer.contents b);
-  [%expect
-    {|
-    result: "foo\n" |}]
+  [%expect {| result: "foo\n" |}]
 ;;
 
 let%expect_test "drop_until bug" =
@@ -181,11 +174,7 @@ let%expect_test "drop_until bug" =
   let t = String_zipper.goto_line t 2 in
   let t = String_zipper.drop_until t t' in
   printfn "%S" (String_zipper.to_string_debug t);
-  [%expect
-    {|
-    "foo\nbar\n|" |}];
+  [%expect {| "foo\nbar\n|" |}];
   printfn "abs_pos: %d" (String_zipper.Private.reflect t).abs_pos;
-  [%expect
-    {|
-    abs_pos: 8 |}]
+  [%expect {| abs_pos: 8 |}]
 ;;

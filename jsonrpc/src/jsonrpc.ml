@@ -146,6 +146,23 @@ module Response = struct
         | Other code -> code
       ;;
 
+      let to_string = function
+        | ParseError -> "ParseError"
+        | InvalidRequest -> "InvalidRequest"
+        | MethodNotFound -> "MethodNotFound"
+        | InvalidParams -> "InvalidParams"
+        | InternalError -> "InternalError"
+        | ServerErrorStart -> "ServerErrorStart"
+        | ServerErrorEnd -> "ServerErrorEnd"
+        | ServerNotInitialized -> "ServerNotInitialized"
+        | UnknownErrorCode -> "UnknownErrorCode"
+        | RequestCancelled -> "RequestCancelled"
+        | ContentModified -> "ContentModified"
+        | ServerCancelled -> "ServerCancelled"
+        | RequestFailed -> "RequestFailed"
+        | Other _ -> "Other"
+      ;;
+
       let t_of_yojson json =
         match json with
         | `Int i -> of_int i
@@ -182,6 +199,24 @@ module Response = struct
     ;;
 
     exception E of t
+
+    let () =
+      (Printexc.register_printer [@ocaml.alert "-unsafe_multidomain"]) (function
+        | E { code; message; data } ->
+          let data =
+            match data with
+            | None -> ""
+            | Some data -> "\n" ^ Yojson.Safe.pretty_to_string data
+          in
+          Some
+            (Printf.sprintf
+               "%s(%d): %s%s"
+               (Code.to_string code)
+               (Code.to_int code)
+               message
+               data)
+        | _ -> None)
+    ;;
 
     let raise t = raise (E t)
     let make ?data ~code ~message () = { data; code; message }
@@ -247,8 +282,8 @@ module Packet = struct
     | Batch_call r ->
       `List
         (List.map r ~f:(function
-           | `Request r -> Request.yojson_of_t r
-           | `Notification r -> Notification.yojson_of_t r))
+          | `Request r -> Request.yojson_of_t r
+          | `Notification r -> Notification.yojson_of_t r))
   ;;
 
   let t_of_fields (fields : (string * Json.t) list) =

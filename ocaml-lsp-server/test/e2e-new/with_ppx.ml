@@ -1,3 +1,4 @@
+open Async
 open! Test.Import
 
 let path = Filename.concat (Sys.getcwd ()) "for_ppx.ml"
@@ -39,7 +40,7 @@ let%expect_test "with-ppx" =
     in
     Client.Handler.make ~on_notification ()
   in
-  let output =
+  let%map output =
     Test.run ~handler
     @@ fun client ->
     let run_client () =
@@ -76,11 +77,11 @@ let%expect_test "with-ppx" =
     Received 0 diagnostics
     {
       "contents": {
-        "value": "(* ppx expect expansion *)\nPpx_expect_runtime.Current_file.unset ()",
+        "value": "(* ppx expect expansion *)\nPpx_module_timer_runtime.record_until Ppx_module_timer_runtime.__MODULE__",
         "language": "ocaml"
       },
       "range": {
-        "end": { "character": 16, "line": 2 },
+        "end": { "character": 17, "line": 2 },
         "start": { "character": 4, "line": 2 }
       }
     }

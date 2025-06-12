@@ -1,3 +1,4 @@
+open Async
 open Test.Import
 
 let semantic_tokens_full_debug = "ocamllsp/textDocument/semanticTokens/full"
@@ -80,21 +81,21 @@ let test
     src:string
     -> (SemanticTokensParams.t -> resp Client.out_request)
     -> (resp req_ctx -> unit Fiber.t)
-    -> unit
+    -> unit Deferred.t
   =
   fun ~src req consume_resp ->
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
       ~on_notification:(fun client -> function
-         | Lsp.Server_notification.PublishDiagnostics _ ->
-           (* we don't want to close the connection from client-side before we
+        | Lsp.Server_notification.PublishDiagnostics _ ->
+          (* we don't want to close the connection from client-side before we
              process diagnostics arrived on the channel. TODO: would a better
              solution be to simply flush on closing the connection because now
              semantic tokens tests is coupled to diagnostics *)
-           let+ () = Fiber.Ivar.fill wait_for_diagnostics () in
-           Client.state client
-         | _ -> Fiber.return ())
+          let+ () = Fiber.Ivar.fill wait_for_diagnostics () in
+          Client.state client
+        | _ -> Fiber.return ())
       ()
   in
   Test.run ~handler (fun client ->
@@ -103,6 +104,10 @@ let test
     in
     let run () =
       let* (initializeResult : InitializeResult.t) = Client.initialized client in
+      let* () =
+        let settings = `Assoc [ "merlinDiagnostics", `Assoc [ "enable", `Bool true ] ] in
+        Client.notification client (ChangeConfiguration { settings })
+      in
       let uri = DocumentUri.of_path "test.ml" in
       let textDocument =
         TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:src
@@ -154,8 +159,9 @@ let test_semantic_tokens_full src =
   test ~src (fun p -> SemanticTokensFull p) print_resp
 ;;
 
+(* This test hangs in external builds; skipping for now.
 let%expect_test "tokens for ocaml_lsp_server.ml" =
-  test_semantic_tokens_full Semantic_hl_data.src0;
+  let%map.Deferred () = test_semantic_tokens_full Semantic_hl_data.src0 in
   [%expect
     {|
     module <namespace|definition-0>Moo</0> : sig
@@ -208,24 +214,27 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         { <property|-68>foo</68> : <namespace|-69>Moo</69>.<type|-70>t</70>
         ; <property|-71>bar</71> : <type|-72>int</72>
         }
-    end) |}]
+    end)
+    |}]
 ;;
+*)
 
 let test_semantic_tokens_full_debug src =
   test
     ~src
     (fun p ->
-       UnknownRequest
-         { meth = semantic_tokens_full_debug
-         ; params =
-             Some (SemanticTokensParams.yojson_of_t p |> Jsonrpc.Structured.t_of_yojson)
-         })
+      UnknownRequest
+        { meth = semantic_tokens_full_debug
+        ; params =
+            Some (SemanticTokensParams.yojson_of_t p |> Jsonrpc.Structured.t_of_yojson)
+        })
     (fun { resp; _ } ->
-       resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline |> Fiber.return)
+      resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline |> Fiber.return)
 ;;
 
+(* This test hangs in external builds; skipping for now.
 let%expect_test "tokens for ocaml_lsp_server.ml" =
-  test_semantic_tokens_full_debug Semantic_hl_data.src0;
+  let%map.Deferred () = test_semantic_tokens_full_debug Semantic_hl_data.src0 in
   [%expect
     {|
     [
@@ -667,28 +676,34 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "type": "type",
         "modifiers": []
       }
-    ] |}]
+    ]
+    |}]
 ;;
+*)
 
 let%expect_test "highlighting longidents with space between identifiers" =
-  test_semantic_tokens_full
-  @@ String.trim
-       {|
+  let%map.Deferred () =
+    test_semantic_tokens_full
+    @@ String.trim
+         {|
 let foo = Bar.jar
 
 let joo = Bar.   jar
-  |};
+  |}
+  in
   [%expect
     {|
     let <variable|-0>foo</0> = <namespace|-1>Bar</1>.<variable|-2>jar</2>
 
-    let <variable|-3>joo</3> = <namespace|-4>Bar</4>.   <variable|-5>jar</5> |}]
+    let <variable|-3>joo</3> = <namespace|-4>Bar</4>.   <variable|-5>jar</5>
+    |}]
 ;;
 
 let%expect_test "highlighting longidents with space between identifiers and infix fns" =
-  test_semantic_tokens_full
-  @@ String.trim
-       {|
+  let%map.Deferred () =
+    test_semantic_tokens_full
+    @@ String.trim
+         {|
 Bar.(+) ;;
 
 Bar.( + ) ;;
@@ -696,7 +711,8 @@ Bar.( + ) ;;
 Bar. (+) ;;
 
 Bar. ( + ) ;;
-    |};
+    |}
+  in
   [%expect
     {|
     <namespace|-0>Bar</0>.<variable|-1>(+)</1> ;;
@@ -705,50 +721,96 @@ Bar. ( + ) ;;
 
     <namespace|-6>Bar</6>. <variable|-7>(+)</7> ;;
 
-    <namespace|-8>Bar</8>. <namespace|-9>(</9> <namespace|-10>+</10> <variable|-11>)</11> ;; |}]
+    <namespace|-8>Bar</8>. <namespace|-9>(</9> <namespace|-10>+</10> <variable|-11>)</11> ;;
+    |}]
 ;;
 
 let%expect_test "longidents in records" =
-  test_semantic_tokens_full
-  @@ String.trim
-       {|
+  let%map.Deferred () =
+    test_semantic_tokens_full
+    @@ String.trim
+         {|
 module M = struct type r = { foo : int ; bar : string } end
 
 let x = { M . foo = 0 ; bar = "bar"}
-      |};
+      |}
+  in
   [%expect
     {|
     module <namespace|definition-0>M</0> = struct type <struct|definition-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
 
-    let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>} |}]
+    let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = "bar"}
+    |}]
+;;
+
+let%expect_test "ppx_string highlighting" =
+  (* Demonstates highlighting of interpolated ints, floats, identifiers, function
+     applications, polymorphic variants, and field acceses. Also shows that interpolated
+     highlighting is not applied in the presence of escaped quotes, since ppxlib doesn't
+     provide precise locations in that case. *)
+  let%map.Deferred () =
+    test_semantic_tokens_full
+    @@ String.trim
+         {|
+open Core
+
+let x = 10
+let a = "17"
+let s1 = [%string "x = %{x#Int}"]
+let s2 = [%string "%{s1} is a string"]
+let s2 = [%string "\"%{s1}\" is a string"]
+let s3 = [%string "y = %{max (x + 2) (Int.of_string a)#Int}"]
+let s4 = [%string "%{((x, 17.2), Some 42, None)#Foo}"]
+let s5 = [%string "%{`A (x + x)#Bar} %{q.field1 ^ q.field2}"]
+      |}
+  in
+  [%expect
+    {|
+    open <namespace|-0>Core</0>
+
+    let <variable|-1>x</1> = <number|-2>10</2>
+    let <variable|-3>a</3> = "17"
+    let <variable|-4>s1</4> = [%string "x = %{<variable|-5>x</5>#Int}"]
+    let <variable|-6>s2</6> = [%string "%{<variable|-7>s1</7>} is a string"]
+    let <variable|-8>s2</8> = [%string "\"%{s1}\" is a string"]
+    let <variable|-9>s3</9> = [%string "y = %{<function|-10>max</10> (<variable|-11>x</11> <function|-12>+</12> <number|-13>2</13>) (<namespace|-14>Int</14>.<function|-15>of_string</15> <variable|-16>a</16>)#Int}"]
+    let <variable|-17>s4</17> = [%string "%{((<variable|-18>x</18>, <number|-19>17.2</19>), <enumMember|-20>Some</20> <number|-21>42</21>, <enumMember|-22>None</22>)#Foo}"]
+    let <variable|-23>s5</23> = [%string "%{`A (<variable|-24>x</24> <function|-25>+</25> <variable|-26>x</26>)#Bar} %{<variable|-27>q</27>.<property|-28>field1</28> <function|-29>^</29> <variable|-30>q</30>.<property|-31>field2</31>}"]
+    |}]
 ;;
 
 let%expect_test "operators" =
-  test_semantic_tokens_full
-  @@ String.trim
-       {|
+  let%map () =
+    test_semantic_tokens_full
+    @@ String.trim
+         {|
 let x = 1.0 *. 2.0
 let y = 1 * 2
 let z = 0 >>= 1
-      |};
+      |}
+  in
   [%expect
     {|
     let <variable|-0>x</0> = <number|-1>1.0</1> <function|-2>*.</2> <number|-3>2.0</3>
     let <variable|-4>y</4> = <number|-5>1</5> <function|-6>*</6> <number|-7>2</7>
-    let <variable|-8>z</8> = <number|-9>0</9> <function|-10>>>=</10> <number|-11>1</11> |}]
+    let <variable|-8>z</8> = <number|-9>0</9> <function|-10>>>=</10> <number|-11>1</11>
+    |}]
 ;;
 
 let%expect_test "comment in unit" =
-  test_semantic_tokens_full
-  @@ String.trim
-       {|
+  let%map () =
+    test_semantic_tokens_full
+    @@ String.trim
+         {|
 let y = (* comment *) 0
 let x = ((* comment *))
 let ((*comment*)) = ()
-      |};
+      |}
+  in
   [%expect
     {|
     let <variable|-0>y</0> = (* comment *) <number|-1>0</1>
     let <variable|-2>x</2> = ((* comment *))
-    let ((*comment*)) = () |}]
+    let ((*comment*)) = ()
+    |}]
 ;;

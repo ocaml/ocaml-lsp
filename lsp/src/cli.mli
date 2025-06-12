@@ -17,16 +17,15 @@ module Arg : sig
   (** [create ()] create a new record for arguments *)
   val create : unit -> t
 
-  (** [spec t] returns the spec that should be provided to [Stdlib.Arg] to
-      populate [t] using the interpreted cli args *)
+  (** [spec t] returns the spec that should be provided to [Stdlib.Arg] to populate [t]
+      using the interpreted cli args *)
   val spec : t -> (string * Arg.spec * string) list
 
-  (** [channel t] return the channel if correctly supplied. An error if the
-      arguments were provided incorrectly. *)
+  (** [channel t] return the channel if correctly supplied. An error if the arguments were
+      provided incorrectly. *)
   val channel : t -> (Channel.t, string) result
 
-  (** Return the process id of the client used to run the lsp server if it was
-      provided *)
+  (** Return the process id of the client used to run the lsp server if it was provided *)
   val clientProcessId : t -> int option
 end
 

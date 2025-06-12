@@ -1,3 +1,4 @@
+open Async
 open Test.Import
 open Lsp_helpers
 
@@ -11,11 +12,11 @@ let iter_code_actions ?prep ?path ?(diagnostics = []) ~source range =
 ;;
 
 let print_code_actions
-      ?(prep = fun _ -> Fiber.return ())
-      ?(path = "foo.ml")
-      ?(filter = fun _ -> true)
-      source
-      range
+  ?(prep = fun _ -> Fiber.return ())
+  ?(path = "foo.ml")
+  ?(filter = fun _ -> true)
+  source
+  range
   =
   iter_code_actions ~prep ~path ~source range (function
     | None -> print_endline "No code actions"
@@ -37,7 +38,8 @@ let print_code_actions
 
 let find_action action_name action =
   match action with
-  | `CodeAction { CodeAction.kind = Some (Other name); _ } -> name = action_name
+  | `CodeAction { CodeAction.kind = Some (Other name); _ } ->
+    Core.String.is_prefix ~prefix:action_name name
   | _ -> false
 ;;
 
@@ -55,7 +57,7 @@ let foo = 123
     let end_ = Position.create ~line:1 ~character:7 in
     Range.create ~start ~end_
   in
-  print_code_actions source range;
+  let%map.Deferred () = print_code_actions source range in
   [%expect
     {|
     Code actions:
@@ -80,18 +82,7 @@ let foo = 123
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    } |}]
+    |}]
 ;;
 
 let%expect_test "can type-annotate a function argument" =
@@ -106,7 +97,7 @@ let f x = Foo x
     let end_ = Position.create ~line:2 ~character:7 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect
     {|
     Code actions:
@@ -130,7 +121,8 @@ let f x = Foo x
       "isPreferred": false,
       "kind": "type-annotate",
       "title": "Type-annotate"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "can type-annotate a toplevel value" =
@@ -144,7 +136,7 @@ let iiii = 3 + 4
     let end_ = Position.create ~line:1 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range;
+  let%map.Deferred () = print_code_actions source range in
   [%expect
     {|
     Code actions:
@@ -169,19 +161,7 @@ let iiii = 3 + 4
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    }
-     |}]
+    |}]
 ;;
 
 let%expect_test "does not type-annotate function" =
@@ -195,7 +175,7 @@ let my_fun x y = 1
     let end_ = Position.create ~line:1 ~character:6 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect {| No code actions |}]
 ;;
 
@@ -213,7 +193,7 @@ let () =
     let end_ = Position.create ~line:1 ~character:8 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect
     {|
     Code actions:
@@ -237,7 +217,8 @@ let () =
       "isPreferred": false,
       "kind": "type-annotate",
       "title": "Type-annotate"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "can type-annotate a variant with its name only" =
@@ -253,7 +234,7 @@ let f (x : t) = x
     let end_ = Position.create ~line:3 ~character:17 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect
     {|
     Code actions:
@@ -277,7 +258,8 @@ let f (x : t) = x
       "isPreferred": false,
       "kind": "type-annotate",
       "title": "Type-annotate"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "does not type-annotate in a non expression context" =
@@ -293,7 +275,7 @@ type x =
     let end_ = Position.create ~line:3 ~character:6 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect {| No code actions |}]
 ;;
 
@@ -308,7 +290,7 @@ let f (x : int) = 1
     let end_ = Position.create ~line:1 ~character:8 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect {| No code actions |}]
 ;;
 
@@ -323,7 +305,7 @@ let f x = (1 : int)
     let end_ = Position.create ~line:1 ~character:12 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect {| No code actions |}]
 ;;
 
@@ -338,7 +320,7 @@ let f x = (1 : int :> int)
     let end_ = Position.create ~line:1 ~character:12 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_annotate_action;
+  let%map.Deferred () = print_code_actions source range ~filter:find_annotate_action in
   [%expect {| No code actions |}]
 ;;
 
@@ -354,7 +336,9 @@ let f (x : t) = Foo x
     let end_ = Position.create ~line:2 ~character:8 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+  let%map.Deferred () =
+    print_code_actions source range ~filter:find_remove_annotation_action
+  in
   [%expect
     {|
     Code actions:
@@ -378,7 +362,8 @@ let f (x : t) = Foo x
       "isPreferred": false,
       "kind": "remove type annotation",
       "title": "Remove type annotation"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "can remove type annotation from a toplevel value" =
@@ -392,7 +377,9 @@ let (iiii : int) = 3 + 4
     let end_ = Position.create ~line:1 ~character:6 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+  let%map.Deferred () =
+    print_code_actions source range ~filter:find_remove_annotation_action
+  in
   [%expect
     {|
     Code actions:
@@ -416,7 +403,8 @@ let (iiii : int) = 3 + 4
       "isPreferred": false,
       "kind": "remove type annotation",
       "title": "Remove type annotation"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "can remove type annotation from an argument in a function call" =
@@ -433,7 +421,9 @@ let f (x : int) = x + 1
     let end_ = Position.create ~line:1 ~character:8 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+  let%map.Deferred () =
+    print_code_actions source range ~filter:find_remove_annotation_action
+  in
   [%expect
     {|
     Code actions:
@@ -457,7 +447,8 @@ let f (x : int) = x + 1
       "isPreferred": false,
       "kind": "remove type annotation",
       "title": "Remove type annotation"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "can remove type annotation from a coerced expression" =
@@ -471,7 +462,9 @@ let x = (7 : int :> int)
     let end_ = Position.create ~line:1 ~character:10 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+  let%map.Deferred () =
+    print_code_actions source range ~filter:find_remove_annotation_action
+  in
   [%expect
     {|
     Code actions:
@@ -495,7 +488,8 @@ let x = (7 : int :> int)
       "isPreferred": false,
       "kind": "remove type annotation",
       "title": "Remove type annotation"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "does not remove type annotation from function" =
@@ -509,7 +503,9 @@ let my_fun x y : int = 1
     let end_ = Position.create ~line:1 ~character:6 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+  let%map.Deferred () =
+    print_code_actions source range ~filter:find_remove_annotation_action
+  in
   [%expect {| No code actions |}]
 ;;
 
@@ -525,7 +521,9 @@ let f (x : t) = x
     let end_ = Position.create ~line:2 ~character:17 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct (enumerate cases)")
+  in
   [%expect
     {|
     Code actions:
@@ -565,10 +563,9 @@ let f (x:bool) =
     let end_ = Position.create ~line:2 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
     Code actions:
@@ -607,10 +604,9 @@ let%expect_test "can destruct match-with line" =
     let end_ = Position.create ~line:1 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
     Code actions:
@@ -624,6 +620,89 @@ let%expect_test "can destruct match-with line" =
                 "range": {
                   "end": { "character": 21, "line": 1 },
                   "start": { "character": 4, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+;;
+
+let%expect_test "can destruct match-with line with parentheses" =
+  let source =
+    {ocaml|
+    (match 0 with)
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:0 in
+    let end_ = Position.create ~line:1 ~character:0 in
+    Range.create ~start ~end_
+  in
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match 0 with\n    | 0 -> _\n    | _ -> _",
+                "range": {
+                  "end": { "character": 17, "line": 1 },
+                  "start": { "character": 5, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+;;
+
+let%expect_test "can destruct match line with let =" =
+  let source =
+    {ocaml|
+    let x = (match (Ok 0)
+    )
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:1 ~character:0 in
+    let end_ = Position.create ~line:1 ~character:0 in
+    Range.create ~start ~end_
+  in
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match Ok 0 with\n    | Ok _ -> _\n    | Error _ -> _",
+                "range": {
+                  "end": { "character": 25, "line": 1 },
+                  "start": { "character": 13, "line": 1 }
                 }
               }
             ],
@@ -656,10 +735,9 @@ let f (x: q) =
     let end_ = Position.create ~line:8 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
     Code actions:
@@ -700,10 +778,9 @@ let zip (type a b) (xs : a list) (ys : b list) : (a * b) list =
     let end_ = Position.create ~line:3 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
     Code actions:
@@ -749,10 +826,9 @@ let f (x: q) =
     let end_ = Position.create ~line:8 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
     Code actions:
@@ -798,10 +874,9 @@ let f (x: q) =
     let end_ = Position.create ~line:8 ~character:2 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
     Code actions:
@@ -846,35 +921,34 @@ let f (x: t) =
     let end_ = Position.create ~line:7 ~character:7 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
-      Code actions:
-      {
-        "edit": {
-          "documentChanges": [
-            {
-              "edits": [
-                {
-                  "newText": "match x with\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_use_multiple_lines -> _\n  | Almost_as_long_name_for_for_the_second_case -> _\n  | Another_long_name_for_for_the_third_case -> _",
-                  "range": {
-                    "end": { "character": 14, "line": 7 },
-                    "start": { "character": 2, "line": 7 }
-                  }
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match x with\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_use_multiple_lines -> _\n  | Almost_as_long_name_for_for_the_second_case -> _\n  | Another_long_name_for_for_the_third_case -> _",
+                "range": {
+                  "end": { "character": 14, "line": 7 },
+                  "start": { "character": 2, "line": 7 }
                 }
-              ],
-              "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-            }
-          ]
-        },
-        "isPreferred": false,
-        "kind": "destruct-line (enumerate cases, use existing match)",
-        "title": "Destruct-line (enumerate cases, use existing match)"
-      }
-      |}]
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
 ;;
 
 let%expect_test "destruct strips parentheses even on long lines" =
@@ -896,52 +970,9 @@ let f (x: q) =
     let end_ = Position.create ~line:9 ~character:22 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    source
-    range
-    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
-  [%expect
-    {|
-      Code actions:
-      {
-        "edit": {
-          "documentChanges": [
-            {
-              "edits": [
-                {
-                  "newText": "\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_be_forced_to_use_multiple_lines -> _\n  | Another_long_name_for_for_the_third_case -> _\n  | Very_long_name_for_for_the_last_case_so_that_we_can_make_sure_we_handle_both_parens_and_line_breaks\n     _ -> _",
-                  "range": {
-                    "end": { "character": 52, "line": 9 },
-                    "start": { "character": 52, "line": 9 }
-                  }
-                }
-              ],
-              "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-            }
-          ]
-        },
-        "isPreferred": false,
-        "kind": "destruct-line (enumerate cases, use existing match)",
-        "title": "Destruct-line (enumerate cases, use existing match)"
-      }
-      |}]
-;;
-
-let%expect_test "can destruct on sub-expression" =
-  let source =
-    {ocaml|
-let defered_peek x = if x >= 0 then Some (`Foo x) else None
-let job_reader = 10
-
-let _ = defered_peek job_reader
-|ocaml}
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
   in
-  let range =
-    let start = Position.create ~line:4 ~character:8 in
-    let end_ = Position.create ~line:4 ~character:31 in
-    Range.create ~start ~end_
-  in
-  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
   [%expect
     {|
     Code actions:
@@ -951,10 +982,10 @@ let _ = defered_peek job_reader
           {
             "edits": [
               {
-                "newText": "match defered_peek job_reader with | None -> _ | Some _ -> _",
+                "newText": "\n  | Very_long_name_for_for_the_first_case_so_that_merlin_will_be_forced_to_use_multiple_lines -> _\n  | Another_long_name_for_for_the_third_case -> _\n  | Very_long_name_for_for_the_last_case_so_that_we_can_make_sure_we_handle_both_parens_and_line_breaks      _ -> _",
                 "range": {
-                  "end": { "character": 31, "line": 4 },
-                  "start": { "character": 8, "line": 4 }
+                  "end": { "character": 52, "line": 9 },
+                  "start": { "character": 52, "line": 9 }
                 }
               }
             ],
@@ -963,27 +994,32 @@ let _ = defered_peek job_reader
         ]
       },
       "isPreferred": false,
-      "kind": "destruct (enumerate cases)",
-      "title": "Destruct (enumerate cases)"
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
 ;;
 
-let%expect_test "can destruct on sub-expression that need parenthesis" =
+let%expect_test "destruct-line preserves necessary parentheses" =
   let source =
     {ocaml|
-let defered_peek x = if x >= 0 then Some (`Foo x) else None
-let job_reader = 10
+type _t =
+  | A of int * int
+  | B of string
+;;
 
-let _ = defered_peek job_reader
+let f (x:_t) =
+  match x with
 |ocaml}
   in
   let range =
-    let start = Position.create ~line:4 ~character:21 in
-    let end_ = Position.create ~line:4 ~character:31 in
+    let start = Position.create ~line:7 ~character:2 in
+    let end_ = Position.create ~line:7 ~character:2 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "destruct-line")
+  in
   [%expect
     {|
     Code actions:
@@ -993,10 +1029,10 @@ let _ = defered_peek job_reader
           {
             "edits": [
               {
-                "newText": "(match job_reader with | 0 -> _ | _ -> _)",
+                "newText": "match x with\n  | A (_, _) -> _\n  | B _ -> _",
                 "range": {
-                  "end": { "character": 31, "line": 4 },
-                  "start": { "character": 21, "line": 4 }
+                  "end": { "character": 14, "line": 7 },
+                  "start": { "character": 2, "line": 7 }
                 }
               }
             ],
@@ -1005,8 +1041,8 @@ let _ = defered_peek job_reader
         ]
       },
       "isPreferred": false,
-      "kind": "destruct (enumerate cases)",
-      "title": "Destruct (enumerate cases)"
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
     }
     |}]
 ;;
@@ -1026,12 +1062,14 @@ let f (x : t) = x
     let end_ = Position.create ~line:0 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    intf_source
-    range
-    ~prep
-    ~path:"foo.mli"
-    ~filter:(find_action "inferred_intf");
+  let%map.Deferred () =
+    print_code_actions
+      intf_source
+      range
+      ~prep
+      ~path:"foo.mli"
+      ~filter:(find_action "inferred_intf")
+  in
   [%expect
     {|
     Code actions:
@@ -1041,7 +1079,7 @@ let f (x : t) = x
           {
             "edits": [
               {
-                "newText": "type t = Foo of int | Bar of bool\n\nval f : t -> t\n",
+                "newText": "type t = Foo of int | Bar of bool\nval f : t -> t\n",
                 "range": {
                   "end": { "character": 0, "line": 0 },
                   "start": { "character": 0, "line": 0 }
@@ -1055,7 +1093,8 @@ let f (x : t) = x
       "isPreferred": false,
       "kind": "inferred_intf",
       "title": "Insert inferred interface"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "inferred interface excludes existing names" =
@@ -1077,12 +1116,14 @@ val f : t -> t
     let end_ = Position.create ~line:0 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    intf_source
-    range
-    ~prep
-    ~path:"foo.mli"
-    ~filter:(find_action "inferred_intf");
+  let%map.Deferred () =
+    print_code_actions
+      intf_source
+      range
+      ~prep
+      ~path:"foo.mli"
+      ~filter:(find_action "inferred_intf")
+  in
   [%expect
     {|
     Code actions:
@@ -1133,12 +1174,14 @@ val f : t -> bool
     let end_ = Position.create ~line:2 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    intf_source
-    range
-    ~prep
-    ~path:"foo.mli"
-    ~filter:(find_action "update_intf");
+  let%map.Deferred () =
+    print_code_actions
+      intf_source
+      range
+      ~prep
+      ~path:"foo.mli"
+      ~filter:(find_action "update_intf")
+  in
   [%expect
     {|
     Code actions:
@@ -1185,37 +1228,39 @@ val f : int -> string -> 'a list -> bool -> bool
     let end_ = Position.create ~line:1 ~character:10 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    intf_source
-    range
-    ~prep
-    ~path:"foo.mli"
-    ~filter:(find_action "update_intf");
+  let%map.Deferred () =
+    print_code_actions
+      intf_source
+      range
+      ~prep
+      ~path:"foo.mli"
+      ~filter:(find_action "update_intf")
+  in
   [%expect
     {|
-  Code actions:
-  {
-    "edit": {
-      "documentChanges": [
-        {
-          "edits": [
-            {
-              "newText": "val f : int -> string -> bool -> bool\n",
-              "range": {
-                "end": { "character": 48, "line": 1 },
-                "start": { "character": 0, "line": 1 }
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "val f : int -> string -> bool -> bool\n",
+                "range": {
+                  "end": { "character": 48, "line": 1 },
+                  "start": { "character": 0, "line": 1 }
+                }
               }
-            }
-          ],
-          "textDocument": { "uri": "file:///foo.mli", "version": 0 }
-        }
-      ]
-    },
-    "isPreferred": false,
-    "kind": "update_intf",
-    "title": "Update signature(s) to match implementation"
-  }
-  |}]
+            ],
+            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "update_intf",
+      "title": "Update signature(s) to match implementation"
+    }
+    |}]
 ;;
 
 let%expect_test "update-signatures updates parameter types" =
@@ -1237,12 +1282,14 @@ val f : int -> string -> 'a list -> bool -> bool
     let end_ = Position.create ~line:1 ~character:12 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    intf_source
-    range
-    ~prep
-    ~path:"foo.mli"
-    ~filter:(find_action "update_intf");
+  let%map.Deferred () =
+    print_code_actions
+      intf_source
+      range
+      ~prep
+      ~path:"foo.mli"
+      ~filter:(find_action "update_intf")
+  in
   [%expect
     {|
     Code actions:
@@ -1301,12 +1348,14 @@ val h : int -> bool
     let end_ = Position.create ~line:10 ~character:19 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    intf_source
-    range
-    ~prep
-    ~path:"foo.mli"
-    ~filter:(find_action "update_intf");
+  let%map.Deferred () =
+    print_code_actions
+      intf_source
+      range
+      ~prep
+      ~path:"foo.mli"
+      ~filter:(find_action "update_intf")
+  in
   [%expect
     {|
     Code actions:
@@ -1369,12 +1418,14 @@ module M : sig type t = I of int | B of bool end
     let end_ = Position.create ~line:1 ~character:0 in
     Range.create ~start ~end_
   in
-  print_code_actions
-    intf_source
-    range
-    ~prep
-    ~path:"foo.mli"
-    ~filter:(find_action "update_intf");
+  let%map.Deferred () =
+    print_code_actions
+      intf_source
+      range
+      ~prep
+      ~path:"foo.mli"
+      ~filter:(find_action "update_intf")
+  in
   [%expect
     {|
     Code actions:
@@ -1402,333 +1453,6 @@ module M : sig type t = I of int | B of bool end
     |}]
 ;;
 
-let activate_jump client =
-  let config =
-    DidChangeConfigurationParams.create
-      ~settings:(`Assoc [ "merlinJumpCodeActions", `Assoc [ "enable", `Bool true ] ])
-  in
-  change_config ~client config
-;;
-
-let%expect_test "can jump to match target" =
-  let source =
-    {ocaml|
-type t = Foo of int | Bar of bool
-let square x = x * x
-let f (x : t) (d : bool) =
-  match x with
-  |Bar x -> x
-  |Foo _ -> d
-|ocaml}
-  in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-match");
-  [%expect
-    {|
-    Code actions:
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 2, "line": 4 },
-            "start": { "character": 2, "line": 4 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Match jump"
-      },
-      "kind": "merlin-jump-match",
-      "title": "Match jump"
-    }
-
-       |}]
-;;
-
-let%expect_test "can jump to match-next-case target" =
-  let source =
-    {ocaml|
-type t = Foo of int | Bar of bool
-let square x = x * x
-let f (x : t) (d : bool) =
-  match x with
-  |Bar x -> x
-  |Foo _ -> d
-|ocaml}
-  in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-next-case");
-  [%expect
-    {|
-    Code actions:
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 3, "line": 6 },
-            "start": { "character": 3, "line": 6 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Next-case jump"
-      },
-      "kind": "merlin-jump-next-case",
-      "title": "Next-case jump"
-    } |}]
-;;
-
-let%expect_test "can jump to  match-prev-case target" =
-  let source =
-    {ocaml|
-type t = Foo of int | Bar of bool
-let square x = x * x
-let f (x : t) (d : bool) =
-  match x with
-  |Bar x -> x
-  |Foo _ -> d
-|ocaml}
-  in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-prev-case");
-  [%expect
-    {|
-    Code actions:
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 3, "line": 5 },
-            "start": { "character": 3, "line": 5 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Prev-case jump"
-      },
-      "kind": "merlin-jump-prev-case",
-      "title": "Prev-case jump"
-    } |}]
-;;
-
-let%expect_test "can jump to let target" =
-  let source =
-    {ocaml|
-type t = Foo of int | Bar of bool
-let square x = x * x
-let f (x : t) (d : bool) =
-  match x with
-  |Bar x -> x
-  |Foo _ -> d
-|ocaml}
-  in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-let");
-  [%expect
-    {|
-    Code actions:
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 0, "line": 3 },
-            "start": { "character": 0, "line": 3 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Let jump"
-      },
-      "kind": "merlin-jump-let",
-      "title": "Let jump"
-    } |}]
-;;
-
-let%expect_test "can jump to fun target" =
-  let source =
-    {ocaml|
-type t = Foo of int | Bar of bool
-let square x = x * x
-let f (x : t) (d : bool) =
-  match x with
-  |Bar x -> x
-  |Foo _ -> d
-|ocaml}
-  in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-fun");
-  [%expect
-    {|
-    Code actions:
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 0, "line": 3 },
-            "start": { "character": 0, "line": 3 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Fun jump"
-      },
-      "kind": "merlin-jump-fun",
-      "title": "Fun jump"
-    } |}]
-;;
-
-let%expect_test "can jump to module target" =
-  let source =
-    {ocaml|
-module FooBar = struct
-  type t = Foo of int | Bar of bool
-end
-let f (x : t) (d : bool) =
-  match x with
-  |Bar x -> x
-  |Foo _ -> d
-|ocaml}
-  in
-  let range =
-    let start = Position.create ~line:2 ~character:5 in
-    let end_ = Position.create ~line:2 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-module");
-  [%expect
-    {|
-    Code actions:
-    {
-      "command": {
-        "arguments": [
-          "file:///foo.ml",
-          {
-            "end": { "character": 0, "line": 1 },
-            "start": { "character": 0, "line": 1 }
-          }
-        ],
-        "command": "ocamllsp/merlin-jump-to-target",
-        "title": "Module jump"
-      },
-      "kind": "merlin-jump-module",
-      "title": "Module jump"
-    } |}]
-;;
-
-let%expect_test "can jump to module-type target" =
-  let source =
-    {ocaml|
-  module type ORDER = sig
-    type t
-    val leq : t -> t -> bool
-    val equal : t -> t -> bool
-  end
-
-  let f (x : t) (d : bool) =
-    match x with
-    |Bar x -> x
-    |Foo _ -> d
-  |ocaml}
-  in
-  let range =
-    let start = Position.create ~line:4 ~character:5 in
-    let end_ = Position.create ~line:4 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-module-type");
-  [%expect
-    {|
-      Code actions:
-      {
-        "command": {
-          "arguments": [
-            "file:///foo.ml",
-            {
-              "end": { "character": 2, "line": 1 },
-              "start": { "character": 2, "line": 1 }
-            }
-          ],
-          "command": "ocamllsp/merlin-jump-to-target",
-          "title": "Module-type jump"
-        },
-        "kind": "merlin-jump-module-type",
-        "title": "Module-type jump"
-      } |}]
-;;
-
-let%expect_test "shouldn't find the jump target on the same line" =
-  let source =
-    {ocaml|
-  let square x = x * x
-  let f (x : t) (d : bool) =
-    match x with
-    |Bar x -> x
-    |Foo _ -> d
-  |ocaml}
-  in
-  let range =
-    let start = Position.create ~line:0 ~character:5 in
-    let end_ = Position.create ~line:0 ~character:5 in
-    Range.create ~start ~end_
-  in
-  print_code_actions
-    ~prep:activate_jump
-    source
-    range
-    ~filter:(find_action "merlin-jump-fun");
-  [%expect
-    {|
-      No code actions |}]
-;;
-
 let%expect_test "can combine cases with multiple RHSes" =
   let source =
     {ocaml|
@@ -1745,7 +1469,9 @@ let%expect_test "can combine cases with multiple RHSes" =
     let end_ = Position.create ~line:6 ~character:6 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "combine-cases");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "combine-cases")
+  in
   [%expect
     {|
     Code actions:
@@ -1789,7 +1515,9 @@ let%expect_test "can combine cases with one unique RHS" =
     let end_ = Position.create ~line:4 ~character:4 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "combine-cases");
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "combine-cases")
+  in
   [%expect
     {|
     Code actions:
@@ -1813,6 +1541,224 @@ let%expect_test "can combine cases with one unique RHS" =
       "isPreferred": false,
       "kind": "combine-cases",
       "title": "Combine-cases"
+    }
+    |}]
+;;
+
+let%expect_test "can construct" =
+  let source =
+    {ocaml|
+let rec zip_shortest (xs : 'a list) (ys : 'b list) : ('a * 'b) list =
+  match (xs, ys) with
+  | ([], _) | (_, []) -> []
+  | (x::xs, y::ys) -> _
+;;
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:23 in
+    let end_ = Position.create ~line:4 ~character:23 in
+    Range.create ~start ~end_
+  in
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "construct")
+  in
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "[]",
+                "range": {
+                  "end": { "character": 23, "line": 4 },
+                  "start": { "character": 22, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: []"
+    }
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(_ :: _)",
+                "range": {
+                  "end": { "character": 23, "line": 4 },
+                  "start": { "character": 22, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: (_ :: _)"
+    }
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(zip_shortest _ _)",
+                "range": {
+                  "end": { "character": 23, "line": 4 },
+                  "start": { "character": 22, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: (zip_shortest _ _)"
+    }
+    |}]
+;;
+
+(* NOTE: This test is currently demonstrating a bug with Merlin-construct.
+   It should be updated to remove [x] from the options once that bug is fixed. *)
+let%expect_test "can construct with local variables" =
+  let source =
+    {ocaml|
+let rec zip_shortest (xs : 'a list) (ys : 'b list) : ('a * 'b) list =
+  match (xs, ys) with
+  | ([], _) | (_, []) -> []
+  | (x::xs, y::ys) -> ((x, y) :: (zip_shortest _ _))
+;;
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:50 in
+    let end_ = Position.create ~line:4 ~character:50 in
+    Range.create ~start ~end_
+  in
+  let%map.Deferred () =
+    print_code_actions source range ~filter:(find_action "construct")
+  in
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "[]",
+                "range": {
+                  "end": { "character": 50, "line": 4 },
+                  "start": { "character": 49, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: []"
+    }
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(_ :: _)",
+                "range": {
+                  "end": { "character": 50, "line": 4 },
+                  "start": { "character": 49, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: (_ :: _)"
+    }
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "x",
+                "range": {
+                  "end": { "character": 50, "line": 4 },
+                  "start": { "character": 49, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: x"
+    }
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "xs",
+                "range": {
+                  "end": { "character": 50, "line": 4 },
+                  "start": { "character": 49, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: xs"
+    }
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "ys",
+                "range": {
+                  "end": { "character": 50, "line": 4 },
+                  "start": { "character": 49, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "construct",
+      "title": "Construct: ys"
     }
     |}]
 ;;
@@ -1859,7 +1805,9 @@ let apply_code_action ?diagnostics title source range =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
-  iter_code_actions ?diagnostics ~source range (fun ca -> code_actions := Some ca);
+  let%map () =
+    iter_code_actions ?diagnostics ~source range (fun ca -> code_actions := Some ca)
+  in
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
   let* edit =
@@ -1880,5 +1828,6 @@ let apply_code_action ?diagnostics title source range =
 
 let code_action_test ~title source =
   let src, range = parse_selection source in
-  Option.iter (apply_code_action title src range) ~f:print_string
+  let%map result = apply_code_action title src range in
+  Option.iter result ~f:print_string
 ;;

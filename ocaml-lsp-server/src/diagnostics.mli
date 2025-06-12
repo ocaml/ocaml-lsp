@@ -8,27 +8,21 @@ type t
 val create
   :  PublishDiagnosticsClientCapabilities.t option
   -> (PublishDiagnosticsParams.t list -> unit Fiber.t)
-  -> report_dune_diagnostics:bool
+  -> display_merlin_diagnostics:bool
   -> shorten_merlin_diagnostics:bool
+  -> client_name:string
   -> t
 
 val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
 
-module Dune : sig
-  type t
-
-  val gen : Pid.t -> t
-end
-
 val set
   :  t
-  -> [ `Dune of Dune.t * Drpc.Diagnostic.Id.t * Uri.t * Diagnostic.t
+  -> [ `Dune of Drpc.V1.Diagnostic.Id.t * Uri.t * Diagnostic.t
      | `Merlin of Uri.t * Diagnostic.t list
      ]
   -> unit
 
-val remove : t -> [ `Dune of Dune.t * Drpc.Diagnostic.Id.t | `Merlin of Uri.t ] -> unit
-val disconnect : t -> Dune.t -> unit
+val remove : t -> [ `Dune of Drpc.V1.Diagnostic.Id.t | `Merlin of Uri.t ] -> unit
 
 val tags_of_message
   :  t
@@ -36,9 +30,22 @@ val tags_of_message
   -> string
   -> DiagnosticTag.t list option
 
-val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
-val set_report_dune_diagnostics : t -> report_dune_diagnostics:bool -> unit Fiber.t
-val set_shorten_merlin_diagnostics : t -> shorten_merlin_diagnostics:bool -> unit Fiber.t
+(** Queries Merlin for diagnostics if [display_merlin_diagnostics] has been set to true
+    either in [create] or with [set_display_merlin_diagnostics]; otherwise, acts as if
+    Merlin returns [] *)
+val merlin_diagnostics
+  :  log_info:Lsp_timing_logger.t
+  -> t
+  -> Document.Merlin.t
+  -> unit Fiber.t
+
+val set_display_merlin_diagnostics : t -> display_merlin_diagnostics:bool -> unit
+
+(** Checks if there was a previous call to [set] with this [t] that returned a nonempty
+    list of [Diagnostic.t]s. *)
+val has_cached_errors : t -> Document.Merlin.t -> bool
+
+val set_shorten_merlin_diagnostics : t -> shorten_merlin_diagnostics:bool -> unit
 
 (** Exposed for testing *)
 

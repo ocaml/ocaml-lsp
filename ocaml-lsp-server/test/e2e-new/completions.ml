@@ -1,8 +1,9 @@
 open Test.Import
+open Async
 
 let print_completion
-      (completions :
-        [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option)
+  (completions :
+    [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option)
   =
   let print_items (items : CompletionItem.t list) =
     List.map items ~f:(fun item ->
@@ -50,11 +51,11 @@ let foo_value = foo ?a
      type. The LSP could filter these to exclude those that don't match the [?] prefix,
      but since the LSP already relies on the clients to do filtering, it feels weird to
      add filtering to the LSP. *)
-  Helpers.test source req;
+  let%map () = Helpers.test source req in
   [%expect
     {|
     {
-      "detail": "'a",
+      "detail": "'a option",
       "kind": 5,
       "label": "~aaa",
       "sortText": "0000",
@@ -67,7 +68,7 @@ let foo_value = foo ?a
       }
     }
     {
-      "detail": "'b",
+      "detail": "'b option",
       "kind": 5,
       "label": "~aab",
       "sortText": "0001",
@@ -94,7 +95,7 @@ let foo_value = foo ?a
     }
     ****************************************
     {
-      "detail": "'a",
+      "detail": "'a option",
       "kind": 5,
       "label": "?aaa",
       "sortText": "0000",
@@ -107,7 +108,7 @@ let foo_value = foo ?a
       }
     }
     {
-      "detail": "'b",
+      "detail": "'b option",
       "kind": 5,
       "label": "?aab",
       "sortText": "0001",

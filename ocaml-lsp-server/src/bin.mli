@@ -1,1 +1,3 @@
-val which : string -> string option
+open Import
+
+val which : string -> Fpath.t option

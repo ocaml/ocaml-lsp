@@ -1,7 +1,8 @@
 open Import
 
 val run
-  :  [ `Definition | `Declaration | `Type_definition ]
+  :  log_info:Lsp_timing_logger.t
+  -> [ `Definition | `Declaration | `Type_definition ]
   -> State.t
   -> Uri.t
   -> Position.t

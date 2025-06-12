@@ -19,14 +19,14 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
   in
   let iterator =
     let type_declaration
-          (_self : Ast_iterator.iterator)
-          (typ_decl : Parsetree.type_declaration)
+      (_self : Ast_iterator.iterator)
+      (typ_decl : Parsetree.type_declaration)
       =
       Range.of_loc typ_decl.ptype_loc |> push
     in
     let type_extension
-          (_self : Ast_iterator.iterator)
-          (typ_ext : Parsetree.type_extension)
+      (_self : Ast_iterator.iterator)
+      (typ_ext : Parsetree.type_extension)
       =
       let loc = typ_ext.ptyext_path.loc in
       let last_constr = List.last typ_ext.ptyext_constructors in
@@ -38,8 +38,8 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       Range.of_loc loc |> push
     in
     let module_type_declaration
-          (self : Ast_iterator.iterator)
-          (mod_typ_decl : Parsetree.module_type_declaration)
+      (self : Ast_iterator.iterator)
+      (mod_typ_decl : Parsetree.module_type_declaration)
       =
       Range.of_loc mod_typ_decl.pmtd_loc |> push;
       Option.iter mod_typ_decl.pmtd_type ~f:(fun mod_typ -> self.module_type self mod_typ)
@@ -50,12 +50,13 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         let range = Range.of_loc module_type.pmty_loc in
         push range;
         Ast_iterator.default_iterator.module_type self module_type
-      | Pmty_ident _ | Pmty_with _ | Pmty_typeof _ | Pmty_extension _ | Pmty_alias _ ->
+      | Pmty_ident _ | Pmty_with _ | Pmty_typeof _ | Pmty_extension _ | Pmty_alias _
+      | Pmty_strengthen (_, _) ->
         Ast_iterator.default_iterator.module_type self module_type
     in
     let module_declaration
-          (self : Ast_iterator.iterator)
-          (module_declaration : Parsetree.module_declaration)
+      (self : Ast_iterator.iterator)
+      (module_declaration : Parsetree.module_declaration)
       =
       let range = Range.of_loc module_declaration.pmd_loc in
       push range;
@@ -73,15 +74,15 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         Ast_iterator.default_iterator.module_expr self module_expr
     in
     let class_declaration
-          (self : Ast_iterator.iterator)
-          (class_decl : Parsetree.class_declaration)
+      (self : Ast_iterator.iterator)
+      (class_decl : Parsetree.class_declaration)
       =
       class_decl.Parsetree.pci_loc |> Range.of_loc |> push;
       self.class_expr self class_decl.pci_expr
     in
     let class_description
-          (self : Ast_iterator.iterator)
-          (class_desc : Parsetree.class_description)
+      (self : Ast_iterator.iterator)
+      (class_desc : Parsetree.class_description)
       =
       class_desc.pci_loc |> Range.of_loc |> push;
       self.class_type self class_desc.pci_expr
@@ -99,22 +100,22 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       Ast_iterator.default_iterator.class_type self class_type
     in
     let class_type_declaration
-          (self : Ast_iterator.iterator)
-          (class_type_decl : Parsetree.class_type_declaration)
+      (self : Ast_iterator.iterator)
+      (class_type_decl : Parsetree.class_type_declaration)
       =
       Range.of_loc class_type_decl.pci_loc |> push;
       Ast_iterator.default_iterator.class_type_declaration self class_type_decl
     in
     let class_type_field
-          (self : Ast_iterator.iterator)
-          (class_type_field : Parsetree.class_type_field)
+      (self : Ast_iterator.iterator)
+      (class_type_field : Parsetree.class_type_field)
       =
       Range.of_loc class_type_field.pctf_loc |> push;
       Ast_iterator.default_iterator.class_type_field self class_type_field
     in
     let value_binding
-          (self : Ast_iterator.iterator)
-          (value_binding : Parsetree.value_binding)
+      (self : Ast_iterator.iterator)
+      (value_binding : Parsetree.value_binding)
       =
       let range = Range.of_loc value_binding.pvb_loc in
       push range;
@@ -137,17 +138,14 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let pat (self : Ast_iterator.iterator) (p : Parsetree.pattern) =
       let open Parsetree in
       match p.ppat_desc with
-      | Ppat_record (bdgs, _) ->
+      | Ppat_record (bdgs, _) | Ppat_record_unboxed_product (bdgs, _) ->
         Range.of_loc p.ppat_loc |> push;
         List.iter bdgs ~f:(fun (lident, pat) ->
           let lident_range = Range.of_loc lident.Asttypes.loc in
           let pat_range = Range.of_loc pat.Parsetree.ppat_loc in
           push { Range.start = lident_range.end_; end_ = pat_range.end_ })
-      | Ppat_var _
-      | Ppat_alias _
-      | Ppat_constant _
-      | Ppat_interval _
-      | Ppat_tuple _
+      | Ppat_var _ | Ppat_alias _ | Ppat_constant _ | Ppat_interval _ | Ppat_tuple _
+      | Ppat_unboxed_tuple (_, _)
       | Ppat_construct _
       | Ppat_variant _
       | Ppat_array _
@@ -159,8 +157,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Ppat_exception _
       | Ppat_extension _
       | Ppat_open _
-      | Ppat_any
-      | _ -> Ast_iterator.default_iterator.pat self p
+      | Ppat_any -> Ast_iterator.default_iterator.pat self p
     in
     let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
       match expr.pexp_desc with
@@ -174,7 +171,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         let range = Range.of_loc letop.let_.pbop_loc in
         push range;
         Ast_iterator.default_iterator.expr self expr
-      | Pexp_record (bdgs, old_record) ->
+      | Pexp_record (bdgs, old_record) | Pexp_record_unboxed_product (bdgs, old_record) ->
         Range.of_loc expr.pexp_loc |> push;
         Option.iter old_record ~f:(self.expr self);
         List.iter bdgs ~f:(fun (lident, expr) ->
@@ -205,11 +202,13 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_lazy _
       | Pexp_letexception _
       | Pexp_tuple _
+      | Pexp_unboxed_tuple _
       | Pexp_construct _
       | Pexp_ident _
       | Pexp_constant _
       | Pexp_variant _
       | Pexp_field _
+      | Pexp_unboxed_field _
       | Pexp_setfield _
       | Pexp_array _
       | Pexp_coerce _
@@ -218,25 +217,29 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_setinstvar _
       | Pexp_override _
       | Pexp_assert _
-      | Pexp_unreachable -> Ast_iterator.default_iterator.expr self expr
+      | Pexp_stack _
+      | Pexp_comprehension _
+      | Pexp_unreachable
+      | Pexp_hole
+      | Pexp_overwrite _ -> Ast_iterator.default_iterator.expr self expr
     in
     let module_binding
-          (self : Ast_iterator.iterator)
-          (module_binding : Parsetree.module_binding)
+      (self : Ast_iterator.iterator)
+      (module_binding : Parsetree.module_binding)
       =
       Range.of_loc module_binding.pmb_loc |> push;
       self.module_expr self module_binding.pmb_expr
     in
     let open_declaration
-          (self : Ast_iterator.iterator)
-          (open_decl : Parsetree.open_declaration)
+      (self : Ast_iterator.iterator)
+      (open_decl : Parsetree.open_declaration)
       =
       Range.of_loc open_decl.popen_loc |> push;
       self.module_expr self open_decl.popen_expr
     in
     let value_description
-          (_self : Ast_iterator.iterator)
-          (value_desc : Parsetree.value_description)
+      (_self : Ast_iterator.iterator)
+      (value_desc : Parsetree.value_description)
       =
       Range.of_loc value_desc.pval_loc |> push
     in
@@ -246,6 +249,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_class _
       | Pstr_modtype _
       | Pstr_type _
+      | Pstr_kind_abbrev _
       | Pstr_module _
       | Pstr_eval _
       | Pstr_recmodule _
@@ -255,7 +259,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pstr_extension _ ->
         Range.of_loc structure_item.pstr_loc |> push;
         Ast_iterator.default_iterator.structure_item self structure_item
-      | Pstr_include { pincl_loc; pincl_mod; pincl_attributes } ->
+      | Pstr_include { pincl_loc; pincl_mod; pincl_attributes; pincl_kind = _ } ->
         push @@ Range.of_loc pincl_loc;
         self.module_expr self pincl_mod;
         self.attributes self pincl_attributes
@@ -294,14 +298,14 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
   List.rev_map !ranges ~f:folding_range
 ;;
 
-let compute (state : State.t) (params : FoldingRangeParams.t) =
+let compute ~log_info (state : State.t) (params : FoldingRangeParams.t) =
   Fiber.of_thunk (fun () ->
     let doc = Document_store.get state.store params.textDocument.uri in
     match Document.kind doc with
     | `Other -> Fiber.return None
     | `Merlin m ->
       let+ ranges =
-        Document.Merlin.with_pipeline_exn ~name:"folding range" m (fun pipeline ->
+        Document.Merlin.with_pipeline_exn ~log_info m (fun pipeline ->
           let parsetree = Mpipeline.reader_parsetree pipeline in
           fold_over_parsetree parsetree)
       in

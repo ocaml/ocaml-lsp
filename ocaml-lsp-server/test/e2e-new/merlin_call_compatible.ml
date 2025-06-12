@@ -1,3 +1,4 @@
+open Async
 open Test.Import
 module Req = Ocaml_lsp_server.Custom_request.Merlin_call_compatible
 
@@ -27,13 +28,14 @@ let f ({a; b} : t) = assert false|}
     let+ response = call_merlin_compatible client "case-analysis" args false in
     Test.print_result response
   in
-  Helpers.test source request;
+  let%map () = Helpers.test source request in
   [%expect
     {|
     {
       "resultAsSexp": false,
       "result": "{\"class\":\"return\",\"value\":[{\"start\":{\"line\":2,\"col\":8},\"end\":{\"line\":2,\"col\":9}},\"a = (_, _)\"]}"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "case-analysis on empty example" =
@@ -45,13 +47,14 @@ let%expect_test "case-analysis on empty example" =
     let () = Test.print_result response in
     Fiber.return ()
   in
-  Helpers.test source request;
+  let%map () = Helpers.test source request in
   [%expect
     {|
     {
       "resultAsSexp": false,
-      "result": "{\"class\":\"exception\",\"value\":\"Merlin_analysis.Destruct.Nothing_to_do\"}"
-    } |}]
+      "result": "{\"class\":\"exception\",\"value\":\"Merlin_analysis__Destruct.Nothing_to_do\"}"
+    }
+    |}]
 ;;
 
 let%expect_test "case-analysis on simple example with result as sexp" =
@@ -66,13 +69,14 @@ let f ({a; b} : t) = assert false|}
     let () = Test.print_result response in
     Fiber.return ()
   in
-  Helpers.test source request;
+  let%map () = Helpers.test source request in
   [%expect
     {|
     {
       "resultAsSexp": true,
       "result": "((assoc) (class . \"return\") (value ((assoc) (start (assoc) (line . 2) (col . 8)) (end (assoc) (line . 2) (col . 9))) \"a = (_, _)\"))"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "errors: warning is shown" =
@@ -84,13 +88,14 @@ let%expect_test "errors: warning is shown" =
     let () = Test.print_result response in
     Fiber.return ()
   in
-  Helpers.test source request;
+  let%map () = Helpers.test source request in
   [%expect
     {|
     {
       "resultAsSexp": false,
       "result": "{\"class\":\"return\",\"value\":[{\"start\":{\"line\":1,\"col\":9},\"end\":{\"line\":1,\"col\":39},\"type\":\"warning\",\"sub\":[],\"valid\":true,\"message\":\"Warning 8: this pattern-matching is not exhaustive.\\nHere is an example of a case that is not matched:\\nSome _\"}]}"
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "errors: warning is disabled" =
@@ -102,8 +107,7 @@ let%expect_test "errors: warning is disabled" =
     let () = Test.print_result response in
     Fiber.return ()
   in
-  Helpers.test source request;
+  let%map () = Helpers.test source request in
   [%expect
-    {|
-    { "resultAsSexp": false, "result": "{\"class\":\"return\",\"value\":[]}" } |}]
+    {| { "resultAsSexp": false, "result": "{\"class\":\"return\",\"value\":[]}" } |}]
 ;;

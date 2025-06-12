@@ -25,5 +25,9 @@ type t =
   | NotebookDocumentDidClose of DidCloseNotebookDocumentParams.t
   | UnknownNotification of Jsonrpc.Notification.t
 
+(** This is a to_string function. It's exposed for use in logging. *)
+val method_ : t -> string
+
 val of_jsonrpc : Jsonrpc.Notification.t -> (t, string) result
 val to_jsonrpc : t -> Jsonrpc.Notification.t
+val all_uris : t -> Uri0.t list

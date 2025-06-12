@@ -1,5 +1,0 @@
-(ocamllex lexer)
-
-(library
- (name odoc_parser)
- (libraries astring camlp-streams))

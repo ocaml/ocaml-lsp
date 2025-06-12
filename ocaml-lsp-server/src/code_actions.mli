@@ -1,6 +1,7 @@
 open Import
 
 val compute
-  :  State.t Server.t
+  :  log_info:Lsp_timing_logger.t
+  -> State.t Server.t
   -> CodeActionParams.t
   -> ([> `CodeAction of CodeAction.t ] list option Reply.t * State.t) Fiber.t

@@ -2,8 +2,8 @@ open Import
 open Fiber.O
 module Printtyp = Merlin_analysis.Type_utils.Printtyp
 
-let get_typer doc =
-  Document.Merlin.with_pipeline_exn ~name:"infer interface" doc (fun pipeline ->
+let get_typer ~log_info doc =
+  Document.Merlin.with_pipeline_exn ~log_info doc (fun pipeline ->
     Mpipeline.typer_result pipeline)
 ;;
 
@@ -15,7 +15,7 @@ let get_doc_signature typer =
 ;;
 
 (** Called by the code action for insert-interface. *)
-let infer_missing_intf_for_impl impl_doc intf_doc =
+let infer_missing_intf_for_impl ~log_info impl_doc intf_doc =
   match Document.kind impl_doc, Document.kind intf_doc with
   | `Merlin impl, `Merlin intf
     when Document.Merlin.kind impl = Impl && Document.Merlin.kind intf = Intf ->
@@ -27,7 +27,7 @@ let infer_missing_intf_for_impl impl_doc intf_doc =
           not (List.mem existing_ids id ~equal:Ident.equal))
         full_sig
     in
-    let* typers = Fiber.parallel_map ~f:get_typer [ impl; intf ] in
+    let* typers = Fiber.parallel_map ~f:(get_typer ~log_info) [ impl; intf ] in
     (match typers with
      | [ impl_typer; intf_typer ] ->
        let full_sig = get_doc_signature impl_typer in
@@ -45,14 +45,14 @@ let infer_missing_intf_for_impl impl_doc intf_doc =
 
 (* No longer involved in the insert-interface code action, but still used by the
    [ocamllsp/inferIntf] custom request. *)
-let infer_intf_for_impl doc =
+let infer_intf_for_impl ~log_info doc =
   match Document.kind doc with
   | `Other ->
     Code_error.raise "expected an implementation document, got a non merlin document" []
   | `Merlin m when Document.Merlin.kind m = Intf ->
     Code_error.raise "expected an implementation document, got an interface instead" []
   | `Merlin doc ->
-    Document.Merlin.with_pipeline_exn ~name:"infer-interface" doc (fun pipeline ->
+    Document.Merlin.with_pipeline_exn ~log_info doc (fun pipeline ->
       let typer = Mpipeline.typer_result pipeline in
       let sig_ : Types.signature =
         let typedtree = Mtyper.get_typedtree typer in
@@ -66,41 +66,7 @@ let infer_intf_for_impl doc =
         Format.asprintf "%a@." Printtyp.signature sig_))
 ;;
 
-let language_id_of_fname s =
-  match Filename.extension s with
-  | ".mli" | ".eliomi" -> "ocaml.interface"
-  | ".ml" | ".eliom" -> "ocaml"
-  | ".rei" | ".re" -> "reason"
-  | ".mll" -> "ocaml.ocamllex"
-  | ".mly" -> "ocaml.menhir"
-  | ext -> Code_error.raise "unsupported file extension" [ "extension", String ext ]
-;;
-
-let open_document_from_file (state : State.t) uri =
-  let filename = Uri.to_path uri in
-  Fiber.of_thunk (fun () ->
-    match Io.String_path.read_file filename with
-    | exception Sys_error _ ->
-      Log.log ~section:"debug" (fun () ->
-        Log.msg "Unable to open file" [ "filename", `String filename ]);
-      Fiber.return None
-    | text ->
-      let languageId = language_id_of_fname filename in
-      let text_document = TextDocumentItem.create ~uri ~languageId ~version:0 ~text in
-      let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
-      let+ doc =
-        let position_encoding = State.position_encoding state in
-        Document.make
-          ~position_encoding
-          (State.wheel state)
-          state.merlin_config
-          state.merlin
-          params
-      in
-      Some doc)
-;;
-
-let infer_intf (state : State.t) intf_doc =
+let infer_intf ~log_info (state : State.t) intf_doc =
   match Document.kind intf_doc with
   | `Other -> Code_error.raise "the provided document is not a merlin source." []
   | `Merlin m when Document.Merlin.kind m = Impl ->
@@ -114,34 +80,47 @@ let infer_intf (state : State.t) intf_doc =
       let* impl_opt =
         match Document_store.get_opt state.store impl_uri with
         | Some impl -> Fiber.return (Some impl)
-        | None -> open_document_from_file state impl_uri
+        | None -> Util.open_document_from_file state impl_uri
       in
       match impl_opt with
       | None -> Fiber.return None
       | Some impl_doc ->
-        let+ res = infer_missing_intf_for_impl impl_doc intf_doc in
+        let+ res = infer_missing_intf_for_impl ~log_info impl_doc intf_doc in
         Some res)
 ;;
 
-(** Extracts an [Ident.t] from all variants that have one at the top level. For
-    many of the other variants, it would be possible to extract a list of IDs,
-    but that's not needed for the update-signatures code action. *)
-let top_level_id item =
-  match Merlin_analysis.Typedtree_utils.extract_toplevel_identifier item with
-  | [ ident ] -> Some ident
-  | _ -> None
+(** Extracts an [Ident.t] from all variants that have one at the top level. For many of
+    the other variants, it would be possible to extract a list of IDs, but that's not
+    needed for the update-signatures code action. *)
+let top_level_id (item : Typedtree.signature_item) =
+  match item.sig_desc with
+  | Typedtree.Tsig_value { val_id; _ } -> Some val_id
+  | Typedtree.Tsig_module { md_id; _ } -> md_id
+  | Typedtree.Tsig_modsubst { ms_id; _ } -> Some ms_id
+  | Typedtree.Tsig_modtype { mtd_id; _ } -> Some mtd_id
+  | Typedtree.Tsig_modtypesubst { mtd_id; _ } -> Some mtd_id
+  | Typedtree.Tsig_type _
+  | Typedtree.Tsig_typesubst _
+  | Typedtree.Tsig_typext _
+  | Typedtree.Tsig_exception _
+  | Typedtree.Tsig_recmodule _
+  | Typedtree.Tsig_open _
+  | Typedtree.Tsig_include _
+  | Typedtree.Tsig_class _
+  | Typedtree.Tsig_class_type _
+  | Typedtree.Tsig_attribute _ -> None
 ;;
 
-(** Represents an item that's present in the existing interface and has a
-    (possibly differing) signature inferred from the implementation. *)
+(** Represents an item that's present in the existing interface and has a (possibly
+    differing) signature inferred from the implementation. *)
 type shared_signature =
   { range : Range.t (* location in the interface *)
   ; old_sig : Types.signature_item (* found in the interface *)
   ; new_sig : Types.signature_item (* inferred from the implementation *)
   }
 
-(** Try to make a [shared_signature], if an ID can be extracted from the
-    [tree_item] and a matching ID can be found in both signature lists. *)
+(** Try to make a [shared_signature], if an ID can be extracted from the [tree_item] and a
+    matching ID can be found in both signature lists. *)
 let find_shared_signature tree_item ~old_sigs ~new_sigs =
   let open Option.O in
   let* id = top_level_id tree_item in
@@ -152,15 +131,14 @@ let find_shared_signature tree_item ~old_sigs ~new_sigs =
   Some { range; old_sig; new_sig }
 ;;
 
-(** Slices out the signatures between [first] and [last] to speed up future
-    searches. This assumes that [first] and [last] came from the [sig_items]
-    field on a [Typedtree.signature], and [sig_type_list] is the [sig_type]
-    field on the same [Typedtree.signature], meaning that the lists will be in
-    the same order. *)
+(** Slices out the signatures between [first] and [last] to speed up future searches. This
+    assumes that [first] and [last] came from the [sig_items] field on a
+    [Typedtree.signature], and [sig_type_list] is the [sig_type] field on the same
+    [Typedtree.signature], meaning that the lists will be in the same order. *)
 let select_matching_range ~first ~last sig_type_list =
   let index_of item =
     let open Option.O in
-    let* item in
+    let* item = item in
     let* id = top_level_id item in
     let* i, _ =
       List.findi sig_type_list ~f:(fun _ item ->
@@ -175,14 +153,13 @@ let select_matching_range ~first ~last sig_type_list =
   List.sub sig_type_list ~pos:start_index ~len:(end_index + 1 - start_index)
 ;;
 
-(** Formats both the old and new signatures as they would appear in the
-    interface. If they differ, create a text edit that updates to the new
-    signature. *)
+(** Formats both the old and new signatures as they would appear in the interface. If they
+    differ, create a text edit that updates to the new signature. *)
 let text_edit_opt shared_signature ~formatter =
-  (* CR-someday bwiedenbeck: We're relying on string equivalence of how the two signatures
-     are printed to decide if there's been an update. It'd be nice to check some sort of
-     logical equivalence on the actual types and then only format the ones that differ,
-     but that's not practical with the type information we have easy access to. *)
+  (* NOTE: We're relying on string equivalence of how the two signatures are printed to
+     decide if there's been an update. It'd be nice to check some sort of logical
+     equivalence on the actual types and then only format the ones that differ, but that's
+     not practical with the type information we have easy access to. *)
   let+ sig_strings =
     Fiber.parallel_map ~f:formatter [ shared_signature.old_sig; shared_signature.new_sig ]
   in
@@ -192,17 +169,16 @@ let text_edit_opt shared_signature ~formatter =
   | _ -> None
 ;;
 
-(** Produces text edits for every signature where the [formatter] produces a
-    different string on the [signature_item]s from the old interface and the new
-    implementation. *)
+(** Produces text edits for every signature where the [formatter] produces a different
+    string on the [signature_item]s from the old interface and the new implementation. *)
 let build_signature_edits
-      ~(old_intf : Typedtree.signature)
-      ~(* Extracted by Merlin from the interface. *)
-      (range : Range.t)
-      ~(* Selected range in the interface. *)
-      (new_sigs : Types.signature)
-      ~(* Inferred by Merlin from the implementation. *)
-      (formatter : Types.signature_item -> string Fiber.t)
+  ~(old_intf : Typedtree.signature)
+  ~((* Extracted by Merlin from the interface. *)
+   range : Range.t)
+  ~((* Selected range in the interface. *)
+   new_sigs : Types.signature)
+  ~((* Inferred by Merlin from the implementation. *)
+   formatter : Types.signature_item -> string Fiber.t)
   =
   (* These are [Typedtree.signature_item]s, and we need them for the location. *)
   let in_range_tree_items =
@@ -232,10 +208,11 @@ let build_signature_edits
 
 (** Called by the code action for update-signatures. *)
 let update_signatures
-      ~(state : State.t)
-      ~(intf_merlin : Document.Merlin.t)
-      ~(doc : Document.t)
-      ~(range : Range.t)
+  ~log_info
+  ~(state : State.t)
+  ~(intf_merlin : Document.Merlin.t)
+  ~(doc : Document.t)
+  ~(range : Range.t)
   =
   Fiber.of_thunk (fun () ->
     let intf_uri = Document.uri doc in
@@ -245,20 +222,22 @@ let update_signatures
     let* impl_doc =
       match Document_store.get_opt state.store impl_uri with
       | Some impl -> Fiber.return (Some impl)
-      | None -> open_document_from_file state impl_uri
+      | None -> Util.open_document_from_file state impl_uri
     in
     match impl_doc with
     | None -> Fiber.return []
     | Some impl_doc ->
       let impl_merlin = Document.merlin_exn impl_doc in
-      (* CR-someday bwiedenbeck: These calls to Merlin to get the type information (and
-         the subsequent processing we do with it) are expensive on large documents.
-         This can cause problems if someone is trying to invoke some other code action,
-         because the LSP currently determines which CAs are possible by trying them all.
-         We've decided for now to allow slow code actions (especially since users are
-         less likely to be doing lots of little CAs in the mli file) and think more
-         about the broader CA protocol in the future. *)
-      let* typers = Fiber.parallel_map [ intf_merlin; impl_merlin ] ~f:get_typer in
+      (* NOTE: These calls to Merlin to get the type information (and the subsequent
+         processing we do with it) are expensive on large documents. This can cause
+         problems if someone is trying to invoke some other code action, because the LSP
+         currently determines which CAs are possible by trying them all. We've decided for
+         now to allow slow code actions (especially since users are less likely to be
+         doing lots of little CAs in the mli file) and think more about the broader CA
+         protocol in the future. *)
+      let* typers =
+        Fiber.parallel_map [ intf_merlin; impl_merlin ] ~f:(get_typer ~log_info)
+      in
       let intf_typer = List.hd_exn typers in
       let impl_typer = List.nth_exn typers 1 in
       (match Mtyper.get_typedtree intf_typer with

@@ -1,0 +1,6 @@
+(library
+  (name fiber_async)
+  (inline_tests)
+  (libraries async async_kernel base core fiber stdune)
+  (preprocess
+    (pps ppx_jane)))

@@ -35,7 +35,7 @@ end
 exception Stopped of Request.t
 
 let () =
-  Printexc.register_printer (function
+  (Printexc.register_printer [@ocaml.alert "-unsafe_multidomain"]) (function
     | Stopped req ->
       let json = Request.yojson_of_t req in
       Some ("Session closed. Request will not be answered. " ^ Json.to_pretty_string json)
@@ -137,11 +137,11 @@ struct
   ;;
 
   let create
-        ?(on_request = on_request_fail)
-        ?(on_notification = on_notification_fail)
-        ~name
-        chan
-        state
+    ?(on_request = on_request_fail)
+    ?(on_notification = on_notification_fail)
+    ~name
+    chan
+    state
     =
     let pending = Id.Table.create 10 in
     { chan
@@ -274,8 +274,8 @@ struct
       let* () =
         Fiber.fork_and_join_unit
           (fun () ->
-             let* () = loop () in
-             Fiber.Pool.stop later)
+            let* () = loop () in
+            Fiber.Pool.stop later)
           (fun () -> Fiber.Pool.run later)
       in
       close t)

@@ -56,9 +56,9 @@ let run_command cancel prog stdin_value args =
           Lev_fiber.Io.close stdin_o;
           Fiber.return ())
         (fun () ->
-           Lev_fiber.Io.with_write stdin_o ~f:(fun w ->
-             Lev_fiber.Io.Writer.add_string w stdin_value;
-             Lev_fiber.Io.Writer.flush w))
+          Lev_fiber.Io.with_write stdin_o ~f:(fun w ->
+            Lev_fiber.Io.Writer.add_string w stdin_value;
+            Lev_fiber.Io.Writer.flush w))
     in
     let read from () =
       Fiber.finalize
@@ -71,8 +71,8 @@ let run_command cancel prog stdin_value args =
       Fiber.fork_and_join
         (fun () -> Lev_fiber.waitpid ~pid:(Pid.to_int pid))
         (fun () ->
-           Fiber.fork_and_join_unit stdin (fun () ->
-             Fiber.fork_and_join (read stdout_i) (read stderr_i)))
+          Fiber.fork_and_join_unit stdin (fun () ->
+            Fiber.fork_and_join (read stdout_i) (read stderr_i)))
     in
     { stdout; stderr; status })
 ;;
@@ -136,7 +136,8 @@ let formatter doc =
           | `Other -> Code_error.raise "unable to format non merlin document" []))
 ;;
 
-let exec cancel refmt args stdin =
+let exec cancel bin args stdin =
+  let refmt = Fpath.to_string bin in
   let+ res, cancel = run_command cancel refmt stdin args in
   match cancel with
   | Cancelled () ->

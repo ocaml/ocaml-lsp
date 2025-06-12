@@ -46,18 +46,31 @@ let update t { DidChangeConfigurationParams.settings } =
         let* () = Lev_fiber.Timer.Wheel.set_delay t.wheel ~delay in
         Fiber.return t.wheel
   in
-  let data = Config_data.t_of_yojson settings in
+  let data =
+    let new_data = Config_data.t_of_yojson settings in
+    let merge x y = Option.merge x y ~f:(fun _ y -> y) in
+    { Config_data.codelens = merge t.data.codelens new_data.codelens
+    ; extended_hover = merge t.data.extended_hover new_data.extended_hover
+    ; merlin_diagnostics = merge t.data.merlin_diagnostics new_data.merlin_diagnostics
+    ; inlay_hints = merge t.data.inlay_hints new_data.inlay_hints
+    ; syntax_documentation =
+        merge t.data.syntax_documentation new_data.syntax_documentation
+    ; shorten_merlin_diagnostics =
+        merge t.data.shorten_merlin_diagnostics new_data.shorten_merlin_diagnostics
+    ; ppx_css_colors = merge t.data.ppx_css_colors new_data.ppx_css_colors
+    }
+  in
   Fiber.return { wheel; data }
 ;;
 
-let report_dune_diagnostics t =
-  match t.data.dune_diagnostics with
-  | Some { enable = true } | None -> true
-  | Some { enable = false } -> false
+let display_merlin_diagnostics t =
+  match t.data.merlin_diagnostics with
+  | Some { enable = true } -> true
+  | Some { enable = false } | None -> false
 ;;
 
 let shorten_merlin_diagnostics t =
   match t.data.shorten_merlin_diagnostics with
-  | Some { enable = true } -> true
-  | Some { enable = false } | None -> false
+  | Some { enable = true } | None -> true
+  | Some { enable = false } -> false
 ;;

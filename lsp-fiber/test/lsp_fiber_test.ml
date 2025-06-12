@@ -1,3 +1,4 @@
+open Async
 open Fiber.O
 open Lsp
 open Lsp.Types
@@ -6,11 +7,11 @@ open Lsp_fiber
 module Test = struct
   module Client = struct
     let run
-          ?(capabilities = ClientCapabilities.create ())
-          ?on_request
-          ?on_notification
-          state
-          (in_, out)
+      ?(capabilities = ClientCapabilities.create ())
+      ?on_request
+      ?on_notification
+      state
+      (in_, out)
       =
       let initialize = InitializeParams.create ~capabilities () in
       let client =
@@ -38,7 +39,7 @@ let pipe () = Lev_fiber.Io.pipe ~cloexec:true ()
 
 let test make_client make_server =
   Printexc.record_backtrace false;
-  let run () =
+  let fiber =
     let* client_in, server_out = pipe () in
     let* server_in, client_out = pipe () in
     let server () = make_server (server_in, server_out) in
@@ -46,7 +47,7 @@ let test make_client make_server =
     let+ () = Fiber.fork_and_join_unit server client in
     print_endline "Successful termination of test"
   in
-  Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
+  let%map () = Fiber_async.deferred_of_fiber fiber () in
   print_endline "[TEST] finished"
 ;;
 
@@ -193,7 +194,7 @@ module End_to_end_server = struct
 end
 
 let%expect_test "end to end run of lsp tests" =
-  test End_to_end_client.run End_to_end_server.run;
+  let%map.Deferred () = test End_to_end_client.run End_to_end_server.run in
   [%expect
     {|
     client: waiting for initialization
@@ -219,5 +220,6 @@ let%expect_test "end to end run of lsp tests" =
     "successful execution"
     client: sending request to shutdown
     Successful termination of test
-    [TEST] finished |}]
+    [TEST] finished
+    |}]
 ;;

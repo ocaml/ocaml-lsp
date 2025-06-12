@@ -25,7 +25,7 @@ module Json = struct
   exception Of_json of (string * t)
 
   let () =
-    Printexc.register_printer (function
+    (Printexc.register_printer [@ocaml.alert "-unsafe_multidomain"]) (function
       | Of_json (msg, _) -> Some ("Jsonrpc: json conversion failed: " ^ msg)
       | _ -> None)
   ;;

@@ -48,34 +48,41 @@ module Merlin : sig
   val source : t -> Msource.t
   val timer : t -> Lev_fiber.Timer.Wheel.task
 
-  (** uses a single pipeline, provisioned by the configuration attached to the
-      merlin document (via {!type:t}). *)
-  val with_pipeline_exn : ?name:string -> t -> (Mpipeline.t -> 'a) -> 'a Fiber.t
+  (** uses a single pipeline, provisioned by the configuration attached to the merlin
+      document (via {!type:t}). *)
+  val with_pipeline_exn
+    :  log_info:Lsp_timing_logger.t
+    -> t
+    -> (Mpipeline.t -> 'a)
+    -> 'a Fiber.t
 
-  (** Like {!val:with_pipeline_exn} but where the merlin configuration is
-      supplied manually. If, for example, it is computed outside the execution
-      of the pipeline.*)
+  (** Like {!val:with_pipeline_exn} but where the merlin configuration is supplied
+      manually. If, for example, it is computed outside the execution of the pipeline. *)
   val with_configurable_pipeline_exn
-    :  ?name:string
+    :  log_info:Lsp_timing_logger.t
     -> config:Mconfig.t
     -> t
     -> (Mpipeline.t -> 'a)
     -> 'a Fiber.t
 
   val dispatch
-    :  ?name:string
+    :  log_info:Lsp_timing_logger.t
     -> t
     -> 'a Query_protocol.t
     -> ('a, Exn_with_backtrace.t) result Fiber.t
 
-  val dispatch_exn : ?name:string -> t -> 'a Query_protocol.t -> 'a Fiber.t
+  val dispatch_exn
+    :  log_info:Lsp_timing_logger.t
+    -> t
+    -> 'a Query_protocol.t
+    -> 'a Fiber.t
 
   val doc_comment
-    :  ?name:string
+    :  log_info:Lsp_timing_logger.t
     -> t
     -> Msource.position
     -> (* doc string *)
-    string option Fiber.t
+       string option Fiber.t
 
   val syntax_doc
     :  Mpipeline.t
@@ -86,11 +93,12 @@ module Merlin : sig
     { loc : Loc.t
     ; typ : string
     ; doc : string option
+    ; stack_or_heap : string option
     ; syntax_doc : Query_protocol.syntax_doc_result option
     }
 
   val type_enclosing
-    :  ?name:string
+    :  log_info:Lsp_timing_logger.t
     -> t
     -> Msource.position
     -> (* verbosity *) int
@@ -108,18 +116,18 @@ val version : t -> int
 val update_text : ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t
 val close : t -> unit Fiber.t
 
-(** [get_impl_intf_counterparts uri] returns the implementation/interface
-    counterparts for the URI [uri].
+(** [get_impl_intf_counterparts uri] returns the implementation/interface counterparts for
+    the URI [uri].
 
     For instance, the counterparts of the file [/file.ml] are [/file.mli]. *)
 val get_impl_intf_counterparts : Merlin.t option -> Uri.t -> Uri.t list
 
-(** [edits t edits] creates a [WorkspaceEdit.t] that applies edits [edits] to
-    the document [t]. *)
+(** [edits t edits] creates a [WorkspaceEdit.t] that applies edits [edits] to the document
+    [t]. *)
 val edit : t -> TextEdit.t list -> WorkspaceEdit.t
 
-(** [substring t range] returns the substring of the document [t] that
-    corresponds to the range [range].
+(** [substring t range] returns the substring of the document [t] that corresponds to the
+    range [range].
 
     Returns [None] when there is no corresponding substring. *)
 val substring : t -> Range.t -> string option

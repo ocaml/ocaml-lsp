@@ -59,17 +59,11 @@ let%expect_test "rsplit_at" =
   in
   let s = Substring.of_string "foo|bar" in
   test s 0;
-  [%expect
-    {|
-    "foo|bar" "" |}];
+  [%expect {| "foo|bar" "" |}];
   test s 4;
-  [%expect
-    {|
-    "foo" "|bar" |}];
+  [%expect {| "foo" "|bar" |}];
   test s 7;
-  [%expect
-    {|
-    "" "foo|bar" |}]
+  [%expect {| "" "foo|bar" |}]
 ;;
 
 let test f sub ~pos ~len =
@@ -94,27 +88,32 @@ let%expect_test "move_left" =
   [%expect
     {|
     [definitive]
-    newlines = 0 consumed = 2 |}];
+    newlines = 0 consumed = 2
+    |}];
   test "foobar" ~pos:3 ~len:0;
   [%expect
     {|
     [definitive]
-    newlines = 0 consumed = 0 |}];
+    newlines = 0 consumed = 0
+    |}];
   test "fo\no\nbar" ~pos:4 ~len:3;
   [%expect
     {|
     [definitive]
-    newlines = 1 consumed = 3 |}];
+    newlines = 1 consumed = 3
+    |}];
   test "fo\no\nbar" ~pos:4 ~len:2;
   [%expect
     {|
     [definitive]
-    newlines = 1 consumed = 2 |}];
+    newlines = 1 consumed = 2
+    |}];
   test "fo" ~pos:1 ~len:2;
   [%expect
     {|
     [definitive]
-    newlines = 0 consumed = 1 |}]
+    newlines = 0 consumed = 1
+    |}]
 ;;
 
 let%expect_test "move_right" =
@@ -123,22 +122,26 @@ let%expect_test "move_right" =
   [%expect
     {|
     [definitive]
-    newlines = 0 consumed = 2 |}];
+    newlines = 0 consumed = 2
+    |}];
   test "foobar" ~pos:3 ~len:0;
   [%expect
     {|
     [definitive]
-    newlines = 0 consumed = 0 |}];
+    newlines = 0 consumed = 0
+    |}];
   test "\n\nf" ~pos:2 ~len:3;
   [%expect
     {|
     [definitive]
-    newlines = 0 consumed = 1 |}];
+    newlines = 0 consumed = 1
+    |}];
   test "fo\no\nbar" ~pos:4 ~len:2;
   [%expect
     {|
     [definitive]
-    newlines = 1 consumed = 2 |}]
+    newlines = 1 consumed = 2
+    |}]
 ;;
 
 let%expect_test "rindex_from" =
@@ -168,41 +171,49 @@ let%expect_test "rindex_from" =
   test "foo" 0;
   [%expect
     {|
-  [definitive]
-  not found |}];
+    [definitive]
+    not found
+    |}];
   test "foo" 1;
   [%expect
     {|
-  [definitive]
-  not found |}];
+    [definitive]
+    not found
+    |}];
   test "\nfoo" 1;
   [%expect
     {|
     [definitive]
-    0 |}];
+    0
+    |}];
   test "\nfoo" 2;
   [%expect
     {|
     [definitive]
-    0 |}];
+    0
+    |}];
   test "\nfoo" 4;
   [%expect
     {|
     [definitive]
-    0 |}];
+    0
+    |}];
   test "\nfoo" 5;
   [%expect
     {|
     [definitive]
-    exception: Invalid_argument("Substring.rindex_from: out of bounds") |}];
+    exception: Invalid_argument("Substring.rindex_from: out of bounds")
+    |}];
   test "" 0;
   [%expect
     {|
     [definitive]
-    not found |}];
+    not found
+    |}];
   test "" 1;
   [%expect
     {|
     [definitive]
-    exception: Invalid_argument("Substring.rindex_from: out of bounds") |}]
+    exception: Invalid_argument("Substring.rindex_from: out of bounds")
+    |}]
 ;;

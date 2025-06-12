@@ -159,3 +159,31 @@ let to_jsonrpc t =
   let params = yojson_of_t t |> Option.map Jsonrpc.Structured.t_of_yojson in
   { Jsonrpc.Notification.params; method_ }
 ;;
+
+let all_uris = function
+  | TextDocumentDidOpen t -> [ t.textDocument.uri ]
+  | TextDocumentDidClose t -> [ t.textDocument.uri ]
+  | TextDocumentDidChange t -> [ t.textDocument.uri ]
+  | DidSaveTextDocument t -> [ t.textDocument.uri ]
+  | WillSaveTextDocument t -> [ t.textDocument.uri ]
+  | DidChangeWatchedFiles t -> List.map ~f:(fun (c : FileEvent.t) -> c.uri) t.changes
+  | DidCreateFiles t ->
+    List.map ~f:(fun (f : FileCreate.t) -> f.uri |> Uri0.of_path) t.files
+  | DidDeleteFiles t ->
+    List.map ~f:(fun (f : FileDelete.t) -> f.uri |> Uri0.of_path) t.files
+  | DidRenameFiles t ->
+    List.map ~f:(fun (f : FileRename.t) -> f.newUri |> Uri0.of_path) t.files
+  | NotebookDocumentDidOpen t -> [ t.notebookDocument.uri ]
+  | NotebookDocumentDidChange t -> [ t.notebookDocument.uri ]
+  | NotebookDocumentDidSave t -> [ t.notebookDocument.uri ]
+  | NotebookDocumentDidClose t -> [ t.notebookDocument.uri ]
+  | ChangeWorkspaceFolders _
+  | ChangeConfiguration _
+  | Initialized
+  | Exit
+  | CancelRequest _
+  | WorkDoneProgressCancel _
+  | SetTrace _
+  | WorkDoneProgress _
+  | UnknownNotification _ -> []
+;;

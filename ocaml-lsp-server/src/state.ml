@@ -5,7 +5,6 @@ type init =
   | Initialized of
       { params : InitializeParams.t
       ; workspaces : Workspaces.t
-      ; dune : Dune.t
       ; exp_client_caps : Client.Experimental_capabilities.t
       ; diagnostics : Diagnostics.t
       ; position_encoding : [ `UTF16 | `UTF8 ]
@@ -25,9 +24,17 @@ type t =
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
+  ; mutable event_index : int
   }
 
-let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~symbols_thread ~wheel
+let create
+  ~store
+  ~merlin
+  ~detached
+  ~configuration
+  ~ocamlformat_rpc
+  ~symbols_thread
+  ~wheel
   =
   { init = Uninitialized
   ; merlin_config = Merlin_config.DB.create ()
@@ -40,6 +47,7 @@ let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~symbols_thr
   ; symbols_thread
   ; wheel
   ; hover_extended = { history = None }
+  ; event_index = 0
   }
 ;;
 
@@ -66,12 +74,6 @@ let workspace_root t =
      | Some uri -> uri)
 ;;
 
-let dune t =
-  match t.init with
-  | Uninitialized -> assert false
-  | Initialized init -> init.dune
-;;
-
 let position_encoding t =
   match t.init with
   | Uninitialized -> assert false
@@ -84,21 +86,13 @@ let diagnostics t =
   | Initialized init -> init.diagnostics
 ;;
 
-let initialize
-      t
-      ~position_encoding
-      (params : InitializeParams.t)
-      workspaces
-      dune
-      diagnostics
-  =
+let initialize t ~position_encoding (params : InitializeParams.t) workspaces diagnostics =
   assert (t.init = Uninitialized);
   { t with
     init =
       Initialized
         { params
         ; workspaces
-        ; dune
         ; diagnostics
         ; position_encoding
         ; exp_client_caps =
@@ -129,4 +123,14 @@ let log_msg server ~type_ ~message =
   task_if_running state.detached ~f:(fun () ->
     let log = LogMessageParams.create ~type_ ~message in
     Server.notification server (Server_notification.LogMessage log))
+;;
+
+(* extracts editor name and version *)
+let get_editor (state : t) =
+  match state.init with
+  | Uninitialized -> "unknown", "unknown"
+  | Initialized s ->
+    (match s.params.clientInfo with
+     | None -> "unknown", "unknown"
+     | Some i -> InitializeParams.get_editor i)
 ;;

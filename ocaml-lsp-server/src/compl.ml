@@ -95,11 +95,11 @@ let sortText_of_index idx = Printf.sprintf "%04d" idx
 
 module Complete_by_prefix = struct
   let completionItem_of_completion_entry
-        idx
-        (entry : Query_protocol.Compl.entry)
-        ~compl_params
-        ~range
-        ~deprecated
+    idx
+    (entry : Query_protocol.Compl.entry)
+    ~compl_params
+    ~range
+    ~deprecated
     =
     let kind = completion_kind entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
@@ -122,12 +122,12 @@ module Complete_by_prefix = struct
   ;;
 
   let process_dispatch_resp
-        ~deprecated
-        ~resolve
-        ~prefix
-        doc
-        pos
-        (completion : Query_protocol.completions)
+    ~deprecated
+    ~resolve
+    ~prefix
+    doc
+    pos
+    (completion : Query_protocol.completions)
     =
     let range =
       let logical_pos = Position.logical pos in
@@ -181,9 +181,9 @@ module Complete_by_prefix = struct
           ~label:"in"
           ~textEdit:
             (`TextEdit
-                (TextEdit.create
-                   ~newText:"in"
-                   ~range:(range_prefix completion_position prefix)))
+              (TextEdit.create
+                 ~newText:"in"
+                 ~range:(range_prefix completion_position prefix)))
           ~kind:CompletionItemKind.Keyword
           ()
       in
@@ -191,13 +191,10 @@ module Complete_by_prefix = struct
     | _ -> []
   ;;
 
-  let complete doc prefix pos ~deprecated ~resolve =
+  let complete ~log_info doc prefix pos ~deprecated ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
-      Document.Merlin.with_pipeline_exn
-        ~name:"completion-prefix"
-        doc
-        (dispatch_cmd ~prefix logical_pos)
+      Document.Merlin.with_pipeline_exn ~log_info doc (dispatch_cmd ~prefix logical_pos)
     in
     let keyword_completionItems =
       (* we complete only keyword 'in' for now *)
@@ -227,10 +224,9 @@ module Complete_with_construct = struct
     | Some (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
       let deparen_constr_expr expr =
-        if
-          (not (String.equal expr "()"))
-          && String.is_prefix expr ~prefix:"("
-          && String.is_suffix expr ~suffix:")"
+        if (not (String.equal expr "()"))
+           && String.is_prefix expr ~prefix:"("
+           && String.is_suffix expr ~suffix:")"
         then String.sub expr ~pos:1 ~len:(String.length expr - 2)
         else expr
       in
@@ -261,8 +257,9 @@ module Complete_with_construct = struct
 end
 
 let complete
-      (state : State.t)
-      ({ textDocument = { uri }; position = pos; context; _ } : CompletionParams.t)
+  ~log_info
+  (state : State.t)
+  ({ textDocument = { uri }; position = pos; context; _ } : CompletionParams.t)
   =
   Fiber.of_thunk (fun () ->
     let doc = Document_store.get state.store uri in
@@ -291,7 +288,7 @@ let complete
           (match context.triggerKind with
            | TriggerCharacter ->
              let+ inside_comment =
-               Check_for_comments.position_in_comment ~position:pos ~merlin
+               Check_for_comments.position_in_comment ~log_info ~position:pos ~merlin
              in
              (match inside_comment with
               | true -> `Ignore
@@ -315,8 +312,9 @@ let complete
                 let* item = completion_item_capability in
                 item.deprecatedSupport)
            in
-           if not (Merlin_analysis.Typed_hole.can_be_hole prefix)
-           then Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
+           if not (Typed_hole.can_be_hole prefix)
+           then
+             Complete_by_prefix.complete merlin ~log_info prefix pos ~resolve ~deprecated
            else (
              let reindex_sortText completion_items =
                List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
@@ -337,17 +335,14 @@ let complete
                      { ci with CompletionItem.preselect = Some true } :: rest)
              in
              let+ construct_cmd_resp, compl_by_prefix_resp =
-               Document.Merlin.with_pipeline_exn
-                 ~name:"completion"
-                 merlin
-                 (fun pipeline ->
-                    let construct_cmd_resp =
-                      Complete_with_construct.dispatch_cmd position pipeline
-                    in
-                    let compl_by_prefix_resp =
-                      Complete_by_prefix.dispatch_cmd ~prefix position pipeline
-                    in
-                    construct_cmd_resp, compl_by_prefix_resp)
+               Document.Merlin.with_pipeline_exn ~log_info merlin (fun pipeline ->
+                 let construct_cmd_resp =
+                   Complete_with_construct.dispatch_cmd position pipeline
+                 in
+                 let compl_by_prefix_resp =
+                   Complete_by_prefix.dispatch_cmd ~prefix position pipeline
+                 in
+                 construct_cmd_resp, compl_by_prefix_resp)
              in
              let construct_completionItems =
                let supportsJumpToNextHole =

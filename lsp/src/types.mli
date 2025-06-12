@@ -31,19 +31,44 @@ module ProgressParams : sig
   include Json.Jsonable.S1 with type 'a t := 'a t
 end
 
+module NotebookDocumentFilter : sig
+  (* This type isn't exactly correct. At least one of the fields must be defined.
+     https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocumentFilter
+  *)
+  type t =
+    { notebookType : string option
+    ; scheme : string option
+    ; pattern : string option
+    }
+
+  include Json.Jsonable.S with type t := t
+end
+
+module NotebookSelector : sig
+  type cell = { language : string }
+
+  (* This type isn't exactly correct. At least one of the fields must be defined.
+     https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocumentSyncOptions
+  *)
+  type t =
+    { notebook :
+        [ `Notebook of string | `NotebookDocumentFilter of NotebookDocumentFilter.t ]
+          option
+    ; cells : cell list option
+    }
+end
+
 module NotebookDocumentSyncOptions : sig
-  type t = unit
+  type t =
+    { notebookSelector :
+        [ `NotebookSelector of NotebookSelector.t | `List of NotebookSelector.t list ]
+    ; save : bool option
+    }
 
   include Json.Jsonable.S with type t := t
 end
 
 module NotebookDocumentSyncRegistrationOptions : sig
-  type t = unit
-
-  include Json.Jsonable.S with type t := t
-end
-
-module NotebookDocumentFilter : sig
   type t = unit
 
   include Json.Jsonable.S with type t := t
@@ -2053,13 +2078,13 @@ end
 
 module Color : sig
   type t =
-    { alpha : int
-    ; blue : int
-    ; green : int
-    ; red : int
+    { alpha : float
+    ; blue : float
+    ; green : float
+    ; red : float
     }
 
-  val create : alpha:int -> blue:int -> green:int -> red:int -> t
+  val create : alpha:float -> blue:float -> green:float -> red:float -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -3053,7 +3078,7 @@ module DocumentDiagnosticReport : sig
   type t =
     [ `RelatedFullDocumentDiagnosticReport of RelatedFullDocumentDiagnosticReport.t
     | `RelatedUnchangedDocumentDiagnosticReport of
-        RelatedUnchangedDocumentDiagnosticReport.t
+      RelatedUnchangedDocumentDiagnosticReport.t
     ]
 
   include Json.Jsonable.S with type t := t
@@ -3739,6 +3764,7 @@ module InitializeParams : sig
     }
 
   val create_clientInfo : name:string -> ?version:string -> unit -> clientInfo
+  val get_editor : clientInfo -> string * string
 
   type t =
     { capabilities : ClientCapabilities.t
@@ -4201,7 +4227,7 @@ module ServerCapabilities : sig
         [ `Bool of bool
         | `LinkedEditingRangeOptions of LinkedEditingRangeOptions.t
         | `LinkedEditingRangeRegistrationOptions of
-            LinkedEditingRangeRegistrationOptions.t
+          LinkedEditingRangeRegistrationOptions.t
         ]
           option
     ; monikerProvider :
@@ -4213,7 +4239,7 @@ module ServerCapabilities : sig
     ; notebookDocumentSync :
         [ `NotebookDocumentSyncOptions of NotebookDocumentSyncOptions.t
         | `NotebookDocumentSyncRegistrationOptions of
-            NotebookDocumentSyncRegistrationOptions.t
+          NotebookDocumentSyncRegistrationOptions.t
         ]
           option
     ; positionEncoding : PositionEncodingKind.t option
@@ -4320,7 +4346,7 @@ module ServerCapabilities : sig
          [ `Bool of bool
          | `LinkedEditingRangeOptions of LinkedEditingRangeOptions.t
          | `LinkedEditingRangeRegistrationOptions of
-             LinkedEditingRangeRegistrationOptions.t
+           LinkedEditingRangeRegistrationOptions.t
          ]
     -> ?monikerProvider:
          [ `Bool of bool
@@ -4330,7 +4356,7 @@ module ServerCapabilities : sig
     -> ?notebookDocumentSync:
          [ `NotebookDocumentSyncOptions of NotebookDocumentSyncOptions.t
          | `NotebookDocumentSyncRegistrationOptions of
-             NotebookDocumentSyncRegistrationOptions.t
+           NotebookDocumentSyncRegistrationOptions.t
          ]
     -> ?positionEncoding:PositionEncodingKind.t
     -> ?referencesProvider:[ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ]
@@ -5563,7 +5589,7 @@ module WorkspaceDocumentDiagnosticReport : sig
   type t =
     [ `WorkspaceFullDocumentDiagnosticReport of WorkspaceFullDocumentDiagnosticReport.t
     | `WorkspaceUnchangedDocumentDiagnosticReport of
-        WorkspaceUnchangedDocumentDiagnosticReport.t
+      WorkspaceUnchangedDocumentDiagnosticReport.t
     ]
 
   include Json.Jsonable.S with type t := t

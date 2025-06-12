@@ -7,5 +7,4 @@ module Json = Import.Json
 
 module Private = struct
   module Log = Import.Log
-  module Fdecl = Import.Fdecl
 end

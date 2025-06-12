@@ -3,8 +3,8 @@
 (library
  (name lsp)
  (public_name lsp)
- (libraries jsonrpc ppx_yojson_conv_lib uutf yojson)
- (lint
+ (libraries base jsonrpc ppx_yojson_conv_lib uutf yojson)
+ (preprocess
   (pps ppx_yojson_conv))
  (instrumentation
   (backend bisect_ppx)))

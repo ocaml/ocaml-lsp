@@ -1,6 +1,7 @@
 open! Test.Import
-open Lsp_helpers
+open Async
 
+let change_config client params = Client.notification client (ChangeConfiguration params)
 let uri = DocumentUri.of_path "test.ml"
 let create_postion line character = Position.create ~line ~character
 
@@ -69,13 +70,13 @@ type color = Red|Blue
   in
   let position = create_postion 1 9 in
   let req client =
-    let* () = change_config ~client activate_syntax_doc in
+    let* () = change_config client activate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
   in
   let (_ : string) = [%expect.output] in
-  run_test source req;
+  let%map () = run_test source req in
   [%expect
     {|
     {
@@ -87,7 +88,8 @@ type color = Red|Blue
         "end": { "character": 21, "line": 1 },
         "start": { "character": 0, "line": 1 }
       }
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "syntax doc should not display" =
@@ -98,12 +100,12 @@ type color = Red|Blue
   in
   let position = create_postion 1 9 in
   let req client =
-    let* () = change_config ~client deactivate_syntax_doc in
+    let* () = change_config client deactivate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
   in
-  run_test source req;
+  let%map () = run_test source req in
   [%expect
     {|
     {
@@ -112,7 +114,8 @@ type color = Red|Blue
         "end": { "character": 21, "line": 1 },
         "start": { "character": 0, "line": 1 }
       }
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "syntax doc should print" =
@@ -123,12 +126,12 @@ type t = ..
   in
   let position = create_postion 1 5 in
   let req client =
-    let* () = change_config ~client activate_syntax_doc in
+    let* () = change_config client activate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
   in
-  run_test source req;
+  let%map () = run_test source req in
   [%expect
     {|
     {
@@ -140,7 +143,8 @@ type t = ..
         "end": { "character": 11, "line": 1 },
         "start": { "character": 0, "line": 1 }
       }
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "should receive no hover response" =
@@ -151,11 +155,11 @@ let%expect_test "should receive no hover response" =
   in
   let position = create_postion 1 5 in
   let req client =
-    let* () = change_config ~client activate_syntax_doc in
+    let* () = change_config client activate_syntax_doc in
     let* resp = hover_req client position in
     let () = print_hover resp in
     Fiber.return ()
   in
-  run_test source req;
+  let%map () = run_test source req in
   [%expect {| no hover response |}]
 ;;

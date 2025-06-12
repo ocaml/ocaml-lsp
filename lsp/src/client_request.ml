@@ -704,3 +704,92 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | WillRenameFiles _ -> None
   | UnknownRequest { meth; params } -> f ~meth ~params
 ;;
+
+let all_uris (type a) (t : a t) ~fallback : Uri0.t list =
+  match t with
+  | TextDocumentLinkResolve r -> r.target |> Option.to_list
+  | CodeActionResolve r ->
+    (match Option.bind r.edit (fun (e : WorkspaceEdit.t) -> e.changes) with
+     | None -> []
+     | Some changes -> List.map ~f:fst changes)
+  | WorkspaceSymbolResolve r -> [ r.location.uri ]
+  | WillCreateFiles r -> List.map r.files ~f:(fun { FileCreate.uri } -> Uri0.of_path uri)
+  | WillDeleteFiles r -> List.map r.files ~f:(fun { FileDelete.uri } -> Uri0.of_path uri)
+  | WillRenameFiles r ->
+    List.map r.files ~f:(fun { FileRename.newUri; _ } -> Uri0.of_path newUri)
+  | _ as req ->
+    text_document req fallback
+    |> Option.to_list
+    |> List.map ~f:(fun { TextDocumentIdentifier.uri } -> uri)
+;;
+
+let positions (type a) (t : a t) ~fallback : Position.t list =
+  match t with
+  | CompletionItemResolve r ->
+    (match r.textEdit with
+     | None -> []
+     | Some (`InsertReplaceEdit { insert; _ }) -> [ insert.end_ ]
+     | Some (`TextEdit { range; _ }) -> [ range.end_ ])
+  | TextDocumentLinkResolve r -> [ r.range.end_ ]
+  | TextDocumentCodeLensResolve r -> [ r.range.end_ ]
+  | TextDocumentHover r -> [ r.position ]
+  | TextDocumentDefinition r -> [ r.position ]
+  | TextDocumentDeclaration r -> [ r.position ]
+  | TextDocumentTypeDefinition r -> [ r.position ]
+  | TextDocumentImplementation r -> [ r.position ]
+  | TextDocumentCompletion r -> [ r.position ]
+  | TextDocumentPrepareCallHierarchy r -> [ r.position ]
+  | TextDocumentPrepareTypeHierarchy r -> [ r.position ]
+  | TextDocumentPrepareRename r -> [ r.position ]
+  | TextDocumentRangeFormatting r -> [ r.range.end_ ]
+  | TextDocumentRangesFormatting r ->
+    List.map r.ranges ~f:(fun (range : Range.t) -> range.end_)
+  | TextDocumentRename r -> [ r.position ]
+  | DebugTextDocumentGet r -> [ r.position ]
+  | TextDocumentReferences r -> [ r.position ]
+  | TextDocumentHighlight r -> [ r.position ]
+  | TextDocumentMoniker r -> [ r.position ]
+  | SignatureHelp r -> [ r.position ]
+  | CodeAction r -> [ r.range.end_ ]
+  | CodeActionResolve r ->
+    (match Option.bind r.edit (fun (e : WorkspaceEdit.t) -> e.changes) with
+     | None -> []
+     | Some changes ->
+       List.map ~f:snd changes
+       |> List.concat
+       |> List.map ~f:(fun (e : TextEdit.t) -> e.range.end_))
+  | TextDocumentOnTypeFormatting r -> [ r.position ]
+  | TextDocumentColorPresentation r -> [ r.range.end_ ]
+  | SelectionRange r -> r.positions
+  | SemanticTokensRange r -> [ r.range.end_ ]
+  | LinkedEditingRange r -> [ r.position ]
+  | InlayHint r -> [ r.range.end_ ]
+  | TextDocumentInlineCompletion r -> [ r.position ]
+  | TextDocumentInlineValue r -> [ r.range.end_ ]
+  | WorkspaceSymbolResolve r -> [ r.location.range.end_ ]
+  | InlayHintResolve r -> [ r.position ]
+  | ExecuteCommand _
+  | WorkspaceSymbol _
+  | DebugEcho _
+  | Shutdown
+  | Initialize _
+  | TextDocumentCodeLens _
+  | TextDocumentLink _
+  | DocumentSymbol _
+  | TextDocumentFoldingRange _
+  | WillSaveWaitUntilTextDocument _
+  | TextDocumentFormatting _
+  | TextDocumentColor _
+  | SemanticTokensFull _
+  | SemanticTokensDelta _
+  | TextDocumentDiagnostic _
+  | TypeHierarchySubtypes _
+  | TypeHierarchySupertypes _
+  | WorkspaceDiagnostic _
+  | CallHierarchyIncomingCalls _
+  | CallHierarchyOutgoingCalls _
+  | WillCreateFiles _
+  | WillDeleteFiles _
+  | WillRenameFiles _ -> []
+  | UnknownRequest { meth; params } -> fallback ~meth ~params
+;;

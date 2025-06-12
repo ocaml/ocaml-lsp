@@ -1,31 +1,8 @@
 module List = Stdlib.ListLabels
 module Code_error = Stdune.Code_error
+module Fdecl = Stdune.Fdecl
 module Header = Lsp.Header
 module Io = Lsp.Io
-
-module Fdecl : sig
-  type 'a t
-
-  val get : 'a t -> 'a
-  val set : 'a t -> 'a -> unit
-  val create : unit -> 'a t
-end = struct
-  type 'a t = 'a option ref
-
-  let create () = ref None
-
-  let set t x =
-    match !t with
-    | Some _ -> invalid_arg "Fdecl.create: already set"
-    | None -> t := Some x
-  ;;
-
-  let get t =
-    match !t with
-    | None -> invalid_arg "Fdecl.get: not set"
-    | Some t -> t
-  ;;
-end
 
 module Json = struct
   include Lsp.Import.Json
@@ -97,7 +74,7 @@ module Log = struct
   ;;
 end
 
-let sprintf = Printf.sprintf
+let sprintf = Stdune.sprintf
 
 module Types = Lsp.Types
 module Client_request = Lsp.Client_request

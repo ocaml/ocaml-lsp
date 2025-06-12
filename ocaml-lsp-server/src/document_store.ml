@@ -8,14 +8,14 @@ type semantic_tokens_cache =
   ; tokens : int array
   }
 
-(** The following code attempts to resolve the issue of displaying code actions
-    for unopened document.
+(** The following code attempts to resolve the issue of displaying code actions for
+    unopened document.
 
-    Unopened documents require a dynamic registration (DR) for code actions,
-    while open documents do not.
+    Unopened documents require a dynamic registration (DR) for code actions, while open
+    documents do not.
 
-    Here are the four states of the documents and the DR status they require.
-    "X" marks that DR is required while "O" marks that no Dr should be present
+    Here are the four states of the documents and the DR status they require. "X" marks
+    that DR is required while "O" marks that no Dr should be present
 
     {v
                           | Open | Closed |
@@ -24,8 +24,8 @@ type semantic_tokens_cache =
       No Promotions       |  O   |   O    |
     v}
 
-    From the above, we see that we need to unregister when transitioning from X
-    to O and to register while transitioning from X to O. *)
+    From the above, we see that we need to unregister when transitioning from X to O and
+    to register while transitioning from O to X. *)
 
 type doc =
   { (* invariant: if [document <> None], then no promotions are active *)
@@ -197,12 +197,28 @@ let get_semantic_tokens_cache : t -> Uri.t -> semantic_tokens_cache option =
   !doc.semantic_tokens_cache
 ;;
 
-let parallel_iter t ~f =
-  let all = Table.fold ~init:[] t.db ~f:(fun doc acc -> doc :: acc) in
-  Fiber.parallel_iter all ~f:(fun doc ->
-    match !doc.document with
-    | None -> Fiber.return ()
-    | Some document -> f document)
+let docs_to_iter ?max_docs ~filter t =
+  (* NOTE: it would be nice to also have a criterion to sort the list by. That could be
+     used to ensure that when we refresh diagnositics on a subset of documents, we
+     prioritize the most-recently updated ones. But there's not much point in adding the
+     sort-criterion here without also doing the larger refactor to track recency. *)
+  let docs : Document.t list =
+    Table.fold ~init:[] t.db ~f:(fun doc acc -> !doc.document :: acc)
+    |> Core.List.filter_map ~f:(function
+      | Some doc as d when filter doc -> d
+      | _ -> None)
+  in
+  match max_docs with
+  | None -> docs
+  | Some m -> Core.List.take docs m
+;;
+
+let parallel_iter ?max_docs ?(filter = fun _ -> true) t ~f =
+  Fiber.parallel_iter (docs_to_iter ?max_docs ~filter t) ~f
+;;
+
+let sequential_iter ?max_docs ?(filter = fun _ -> true) t ~f =
+  Fiber.sequential_iter (docs_to_iter ?max_docs ~filter t) ~f
 ;;
 
 let fold t ~init ~f =

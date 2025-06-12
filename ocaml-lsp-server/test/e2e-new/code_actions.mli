@@ -1,3 +1,4 @@
+open Async
 open Test.Import
 
 val iter_code_actions
@@ -7,7 +8,7 @@ val iter_code_actions
   -> source:string
   -> Range.t
   -> (CodeActionResult.t -> unit)
-  -> unit
+  -> unit Deferred.t
 
 val parse_selection : string -> string * Range.t
 
@@ -16,8 +17,8 @@ val apply_code_action
   -> string
   -> string
   -> Range.t
-  -> string option
+  -> string option Deferred.t
 
-(** [code_action_test title source] runs the code action with title [title] and
-    prints the resulting source. *)
-val code_action_test : title:string -> string -> unit
+(** [code_action_test title source] runs the code action with title [title] and prints the
+    resulting source. *)
+val code_action_test : title:string -> string -> unit Deferred.t

@@ -1,47 +1,48 @@
 open Import
+open Core
+include Merlin_analysis.Typed_hole
 
-let in_range range holes =
-  match range with
-  | None -> holes
-  | Some range -> List.filter ~f:(Range.contains range) holes
+let next_hole_cmd ~state ~(edit : TextEdit.t) =
+  let supportsJumpToNextHole =
+    State.experimental_client_capabilities state
+    |> Client.Experimental_capabilities.supportsJumpToNextHole
+  in
+  if supportsJumpToNextHole
+  then
+    Some
+      (Client.Custom_commands.next_hole
+         ~in_range:(Range.resize_for_edit edit)
+         ~notify_if_no_hole:false
+         ())
+  else None
 ;;
 
-let find_prev ~range ~position holes =
-  let holes = in_range range holes in
-  Base.List.fold_until
-    ~init:None
-    ~f:(fun prev hole ->
-      match Position.compare hole.end_ position with
-      | Lt -> Continue (Some hole)
-      | Gt | Eq -> Stop prev)
-    ~finish:Fun.id
-    holes
-  |> function
-  | None -> Base.List.last holes
-  | hole -> hole
+let next_hole ~(holes : Range.t list) ~(cursor : Position.t) =
+  (* Find the first hole after the cursor, or default to the first *)
+  let hole =
+    List.find holes ~f:(fun hole ->
+      match Position.compare hole.start cursor with
+      | Lt | Eq -> false
+      | Gt -> true)
+  in
+  match hole with
+  | None -> List.hd holes
+  | Some _ as hole -> hole
 ;;
 
-let find_next ~range ~position holes =
-  let holes = in_range range holes in
-  List.find
-    ~f:(fun hole ->
-      match Position.compare hole.start position with
-      | Gt -> true
-      | Lt | Eq -> false)
-    holes
-  |> function
-  | None -> Base.List.hd holes
-  | hole -> hole
-;;
-
-let find ~range ~position ~direction holes =
-  match direction with
-  | `Prev -> find_prev ~range ~position holes
-  | `Next -> find_next ~range ~position holes
-;;
-
-let all ?(pipeline_name = "typed-holes") merlin =
-  Holes
-  |> Document.Merlin.dispatch_exn ~name:pipeline_name merlin
-  |> Fiber.map ~f:(List.map ~f:(fun (loc, _ty) -> Range.of_loc loc))
+let prev_hole ~(holes : Range.t list) ~(cursor : Position.t) =
+  (* Find the last hole before the cursor, or default to the last *)
+  let hole =
+    List.fold_until
+      holes
+      ~init:None
+      ~f:(fun prev_hole hole ->
+        match Position.compare hole.end_ cursor with
+        | Lt -> Continue (Some hole)
+        | Gt | Eq -> Stop prev_hole)
+      ~finish:Fn.id
+  in
+  match hole with
+  | None -> List.last holes (* still only one scan, since we stopped on the first hole *)
+  | Some _ as hole -> hole
 ;;

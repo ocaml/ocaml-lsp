@@ -122,3 +122,19 @@ val text_document
       -> params:Jsonrpc.Structured.t option
       -> TextDocumentIdentifier.t option)
   -> TextDocumentIdentifier.t option
+
+val all_uris
+  :  _ t
+  -> fallback:
+       (meth:string
+        -> params:Jsonrpc.Structured.t option
+        -> Types.TextDocumentIdentifier.t option)
+  -> Uri0.t list
+
+val positions
+  :  _ t
+  -> fallback:(meth:string -> params:Jsonrpc.Structured.t option -> Position.t list)
+  -> Position.t list
+
+(** This is a to_string function. It's exposed for use in logging. *)
+val method_ : 'a t -> string

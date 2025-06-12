@@ -42,7 +42,6 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
              ~f:(fun (c : Code_action.t) -> c.kind)
              [ Action_type_annotate.t
              ; Action_remove_type_annotation.t
-             ; Action_construct.t
              ; Action_refactor_open.unqualify
              ; Action_refactor_open.qualify
              ; Action_add_rec.t
@@ -89,34 +88,28 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_switch_impl_intf.capability
               ; Req_infer_intf.capability
               ; Req_typed_holes.capability
-              ; Req_jump_to_typed_hole.capability
+              ; Req_typed_holes.jump_capability
               ; Req_wrapping_ast_node.capability
-              ; Dune.view_promotion_capability
               ; Req_hover_extended.capability
               ; Req_merlin_call_compatible.capability
               ; Req_type_enclosing.capability
               ; Req_get_documentation.capability
-              ; Req_construct.capability
-              ; Req_type_search.capability
-              ; Req_merlin_jump.capability
               ] )
         ]
     in
     let executeCommandProvider =
       let commands =
-        if
-          Action_open_related.available
-            (let open Option.O in
-             let* window = client_capabilities.window in
-             window.showDocument)
+        if Action_open_related.available
+             (let open Option.O in
+              let* window = client_capabilities.window in
+              window.showDocument)
         then
-          view_metrics_command_name
-          :: Action_open_related.command_name
-          :: Action_jump.command_name
-          :: Document_text_command.command_name
-          :: Merlin_config_command.command_name
-          :: Dune.commands
-        else Dune.commands
+          [ view_metrics_command_name
+          ; Action_open_related.command_name
+          ; Document_text_command.command_name
+          ; Merlin_config_command.command_name
+          ]
+        else []
       in
       ExecuteCommandOptions.create ~commands ()
     in
@@ -135,6 +128,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
           Option.some_if (List.mem options ~equal:Poly.equal encoding) encoding)
     in
     ServerCapabilities.create
+      ~callHierarchyProvider:(`Bool true)
       ~textDocumentSync
       ~hoverProvider:(`Bool true)
       ~declarationProvider:(`Bool true)
@@ -146,7 +140,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~codeLensProvider
       ~referencesProvider:(`Bool true)
       ~documentHighlightProvider:(`Bool true)
-      ~documentFormattingProvider:(`Bool true)
+      ~documentFormattingProvider:(`Bool false)
       ~selectionRangeProvider:(`Bool true)
       ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true)
@@ -157,6 +151,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~inlayHintProvider:(`Bool true)
       ~workspace
       ~executeCommandProvider
+      ~colorProvider:(`Bool true)
       ?positionEncoding
       ()
   in
@@ -169,59 +164,85 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
 
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
-let set_diagnostics detached diagnostics doc =
+(** The debounce flag controls whether to include delay (250ms with default config). This
+    delay appears to have been implemented to avoid spamming updates while typing, but
+    shouldn't be necessary on file open/save. *)
+let set_diagnostics ?(debounce = false) ~(log_info : Lsp_timing_logger.t) state doc =
+  let diagnostics = State.diagnostics state in
+  let detached = state.detached in
   let uri = Document.uri doc in
   match Document.kind doc with
   | `Other -> Fiber.return ()
   | `Merlin merlin ->
-    let async send =
-      let+ () =
-        task_if_running detached ~f:(fun () ->
-          let timer = Document.Merlin.timer merlin in
-          let* () = Lev_fiber.Timer.Wheel.cancel timer in
-          let* () = Lev_fiber.Timer.Wheel.reset timer in
-          let* res = Lev_fiber.Timer.Wheel.await timer in
-          match res with
-          | `Cancelled -> Fiber.return ()
-          | `Ok -> send ())
+    let send_with_debounce ~update_diagnostics =
+      let log_info = { log_info with action = log_info.action ^ "-sending" } in
+      let send () =
+        Lsp_timing_logger.with_fiber_logging
+          ~f:(fun () ->
+            let* () = update_diagnostics () in
+            Diagnostics.send diagnostics (`One uri))
+          log_info
       in
-      ()
+      match debounce with
+      | false -> send ()
+      | true ->
+        let log_info = { log_info with action = log_info.action ^ "-waiting" } in
+        task_if_running detached ~f:(fun () ->
+          Lsp_timing_logger.with_fiber_logging
+            ~f:(fun () ->
+              let timer = Document.Merlin.timer merlin in
+              let* () = Lev_fiber.Timer.Wheel.cancel timer in
+              let* () = Lev_fiber.Timer.Wheel.reset timer in
+              let* res = Lev_fiber.Timer.Wheel.await timer in
+              match res with
+              | `Cancelled -> Fiber.return ()
+              | `Ok -> send ())
+            log_info)
     in
     (match Document.syntax doc with
      | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
      | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
-       let no_reason_merlin =
-         let message =
-           `String
-             (sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason)
+       let update_diagnostics () =
+         let no_reason_merlin =
+           let message =
+             `String
+               (sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason)
+           in
+           Diagnostic.create
+             ~source:Diagnostics.ocamllsp_source
+             ~range:Range.first_line
+             ~message
+             ()
          in
-         Diagnostic.create
-           ~source:Diagnostics.ocamllsp_source
-           ~range:Range.first_line
-           ~message
-           ()
+         Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
+         Fiber.return ()
        in
-       Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
-       async (fun () -> Diagnostics.send diagnostics (`One uri))
+       send_with_debounce ~update_diagnostics
      | Reason | Ocaml ->
-       async (fun () ->
-         let* () = Diagnostics.merlin_diagnostics diagnostics merlin in
-         Diagnostics.send diagnostics (`One uri)))
+       let update_diagnostics () =
+         Diagnostics.merlin_diagnostics ~log_info diagnostics merlin
+       in
+       send_with_debounce ~update_diagnostics)
 ;;
 
 let on_initialize server (ip : InitializeParams.t) =
+  let client_name, _ =
+    Option.map ip.clientInfo ~f:InitializeParams.get_editor
+    |> Option.value ~default:("", "")
+  in
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
   let diagnostics =
-    let report_dune_diagnostics =
-      Configuration.report_dune_diagnostics state.configuration
+    let display_merlin_diagnostics =
+      Configuration.display_merlin_diagnostics state.configuration
     in
     let shorten_merlin_diagnostics =
       Configuration.shorten_merlin_diagnostics state.configuration
     in
     Diagnostics.create
-      ~report_dune_diagnostics
+      ~display_merlin_diagnostics
       ~shorten_merlin_diagnostics
+      ~client_name
       (let open Option.O in
        let* td = ip.capabilities.textDocument in
        td.publishDiagnostics)
@@ -235,27 +256,6 @@ let on_initialize server (ip : InitializeParams.t) =
               Server.Batch.notification batch (PublishDiagnostics d));
             Server.Batch.submit batch))
   in
-  let+ dune =
-    let progress =
-      Progress.create
-        ip.capabilities
-        ~report_progress:(fun progress ->
-          Server.notification server (Server_notification.WorkDoneProgress progress))
-        ~create_task:(fun task ->
-          Server.request server (Server_request.WorkDoneProgressCreate task))
-    in
-    let dune =
-      Dune.create
-        workspaces
-        ip.capabilities
-        diagnostics
-        progress
-        state.store
-        ~log:(State.log_msg server)
-    in
-    let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
-    dune
-  in
   let initialize_info = initialize_info ip.capabilities in
   let state =
     let position_encoding =
@@ -264,7 +264,7 @@ let on_initialize server (ip : InitializeParams.t) =
       | Some UTF8 -> `UTF8
       | Some UTF32 | Some (Other _) -> assert false
     in
-    State.initialize state ~position_encoding ip workspaces dune diagnostics
+    State.initialize state ~position_encoding ip workspaces diagnostics
   in
   let state =
     match ip.trace with
@@ -302,7 +302,7 @@ let on_initialize server (ip : InitializeParams.t) =
         Server.request server (Server_request.ClientRegisterCapability register))
     | _ -> Reply.now initialize_info
   in
-  resp, state
+  Fiber.return (resp, state)
 ;;
 
 module Formatter = struct
@@ -317,7 +317,6 @@ module Formatter = struct
   ;;
 
   let run rpc doc =
-    let state : State.t = Server.state rpc in
     match Document.kind doc with
     | `Merlin _ ->
       let* res =
@@ -337,40 +336,22 @@ module Formatter = struct
              Server.notification rpc (ShowMessage msg))
          in
          Jsonrpc.Response.Error.raise (jsonrpc_error e))
-    | `Other ->
-      (match Dune.for_doc (State.dune state) doc with
-       | [] ->
-         let message =
-           sprintf
-             "No dune instance found. Please run dune in watch mode for %s"
-             (Uri.to_path (Document.uri doc))
-         in
-         Jsonrpc.Response.Error.raise (make_error ~code:InvalidRequest ~message ())
-       | dune :: rest ->
-         let* () =
-           match rest with
-           | [] -> Fiber.return ()
-           | _ :: _ ->
-             let message =
-               sprintf
-                 "More than one dune instance detected for %s. Selecting one at random"
-                 (Uri.to_path (Document.uri doc))
-             in
-             State.log_msg rpc ~type_:MessageType.Warning ~message
-         in
-         let+ to_ = Dune.Instance.format_dune_file dune doc in
-         Some (Diff.edit ~from:(Document.text doc) ~to_))
+    | `Other -> Fiber.return None
   ;;
 end
 
-let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }; _ } =
+let text_document_lens
+  ~log_info
+  (state : State.t)
+  { CodeLensParams.textDocument = { uri }; _ }
+  =
   let store = state.store in
   let doc = Document_store.get store uri in
   match Document.kind doc with
   | `Other -> Fiber.return []
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return []
-  | `Merlin doc ->
-    let+ outline = Document.Merlin.dispatch_exn ~name:"outline" doc Outline in
+  | `Merlin merlin_doc ->
+    let+ outline = Document.Merlin.dispatch_exn ~log_info merlin_doc Outline in
     let rec symbol_info_of_outline_item (item : Query_protocol.item) =
       let children = List.concat_map item.children ~f:symbol_info_of_outline_item in
       match item.outline_type with
@@ -388,60 +369,79 @@ let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }
 ;;
 
 let selection_range
-      (state : State.t)
-      { SelectionRangeParams.textDocument = { uri }; positions; _ }
+  ~log_info
+  (state : State.t)
+  { SelectionRangeParams.textDocument = { uri }; positions; _ }
   =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return []
   | `Merlin merlin ->
-    let selection_range_of_enclosings (enclosings : Warnings.loc list)
+    let selection_range_of_shapes
+      (cursor_position : Position.t)
+      (shapes : Query_protocol.shape list)
       : SelectionRange.t option
       =
-      let ranges_of_enclosing parent (enclosing : Warnings.loc) =
-        let range = Range.of_loc enclosing in
-        { SelectionRange.range; parent }
+      let rec ranges_of_shape parent (s : Query_protocol.shape) =
+        let selectionRange =
+          let range = Range.of_loc s.shape_loc in
+          { SelectionRange.range; parent }
+        in
+        match s.shape_sub with
+        | [] -> [ selectionRange ]
+        | xs -> List.concat_map xs ~f:(ranges_of_shape (Some selectionRange))
       in
-      List.fold_left
-        ~f:(fun parent enclosing -> Some (ranges_of_enclosing parent enclosing))
-        ~init:None
-      @@ List.rev enclosings
+      (* try to find the nearest range inside first, then outside *)
+      let nearest_range =
+        let ranges = List.concat_map ~f:(ranges_of_shape None) shapes in
+        List.min ranges ~f:(fun r1 r2 ->
+          let inc (r : SelectionRange.t) =
+            Position.compare_inclusion cursor_position r.range
+          in
+          match inc r1, inc r2 with
+          | `Outside x, `Outside y -> Position.compare x y
+          | `Outside _, `Inside -> Gt
+          | `Inside, `Outside _ -> Lt
+          | `Inside, `Inside -> Range.compare_size r1.range r2.range)
+      in
+      nearest_range
     in
     let+ ranges =
-      Fiber.sequential_map positions ~f:(fun x ->
-        let+ enclosings =
-          Document.Merlin.dispatch_exn
-            ~name:"shape"
-            merlin
-            (Enclosing (Position.logical x))
+      Fiber.sequential_map positions ~f:(fun p ->
+        let+ shapes =
+          Document.Merlin.dispatch_exn ~log_info merlin (Shape (Position.logical p))
         in
-        selection_range_of_enclosings enclosings)
+        selection_range_of_shapes p shapes)
     in
     List.filter_opt ranges
 ;;
 
 let references
-      rpc
-      (state : State.t)
-      { ReferenceParams.textDocument = { uri }; position; _ }
+  rpc
+  ~log_info
+  (state : State.t)
+  { ReferenceParams.textDocument = { uri }; position; _ }
   =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
-  | `Merlin doc ->
-    let* occurrences, synced =
+  | `Merlin merlin_doc ->
+    let* locs, synced =
       Document.Merlin.dispatch_exn
-        ~name:"occurrences"
-        doc
+        ~log_info
+        merlin_doc
         (Occurrences (`Ident_at (Position.logical position), `Project))
     in
     let+ () =
+      (* NOTE: I have not been able to trigger this when I know the index is out-of-date,
+         so it's not entirely clear what the best error message would be, or what merlin
+         is actually doing. For now I'm updating the message to just not be actively wrong
+         for internal users. *)
       match synced with
       | `Out_of_sync _ ->
         let msg =
           let message =
-            "The index might be out-of-sync.  If you use Dune you can build the target \
-             `@ocaml-index` to refresh the index."
+            "The index might be out-of-sync. Make sure you are building the index file."
           in
           ShowMessageParams.create ~message ~type_:Warning
         in
@@ -450,42 +450,40 @@ let references
       | _ -> Fiber.return ()
     in
     Some
-      (List.filter_map occurrences ~f:(function
-         | { loc = _; is_stale = true } -> None
-         | { loc; is_stale = false } ->
-           let range = Range.of_loc loc in
-           let uri =
-             match loc.loc_start.pos_fname with
-             | "" -> uri
-             | path -> Uri.of_path path
-           in
-           Log.log ~section:"debug" (fun () ->
-             Log.msg
-               "merlin returned fname %a"
-               [ "pos_fname", `String loc.loc_start.pos_fname
-               ; "uri", `String (Uri.to_string uri)
-               ]);
-           Some { Location.uri; range }))
+      (List.map locs ~f:(fun loc ->
+         let range = Range.of_loc loc in
+         let uri =
+           match loc.loc_start.pos_fname with
+           | "" -> uri
+           | path -> Uri.of_path path
+         in
+         Log.log ~section:"debug" (fun () ->
+           Log.msg
+             "merlin returned fname %a"
+             [ "pos_fname", `String loc.loc_start.pos_fname
+             ; "uri", `String (Uri.to_string uri)
+             ]);
+         { Location.uri; range }))
 ;;
 
 let highlight
-      (state : State.t)
-      { DocumentHighlightParams.textDocument = { uri }; position; _ }
+  ~log_info
+  (state : State.t)
+  { DocumentHighlightParams.textDocument = { uri }; position; _ }
   =
   let store = state.store in
   let doc = Document_store.get store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m ->
-    let+ occurrences, _synced =
+    let+ locs, _synced =
       Document.Merlin.dispatch_exn
-        ~name:"occurrences"
+        ~log_info
         m
         (Occurrences (`Ident_at (Position.logical position), `Buffer))
     in
     let lsp_locs =
-      List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
-        let loc = occurrence.loc in
+      List.filter_map locs ~f:(fun loc ->
         let range = Range.of_loc loc in
         (* filter out multi-line ranges, since those are very noisy and happen
            a lot with certain PPXs *)
@@ -499,13 +497,56 @@ let highlight
     Some lsp_locs
 ;;
 
-let document_symbol (state : State.t) uri =
+let document_symbol ~log_info (state : State.t) uri =
   let doc =
     let store = state.store in
     Document_store.get store uri
   in
   let client_capabilities = State.client_capabilities state in
-  Document_symbol.run client_capabilities doc uri
+  Document_symbol.run ~log_info client_capabilities doc uri
+;;
+
+let unkown_request_uri ~(meth : string) ~(params : Jsonrpc.Structured.t option) =
+  let getters =
+    [ Req_switch_impl_intf.meth, Req_switch_impl_intf.get_doc_id
+    ; Req_infer_intf.meth, Req_infer_intf.get_doc_id
+    ; Req_typed_holes.meth, Req_typed_holes.get_doc_id
+    ; Req_typed_holes.jump, Req_typed_holes.get_doc_id
+    ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.get_doc_id
+    ; Req_type_enclosing.meth, Req_type_enclosing.get_doc_id
+    ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.get_doc_id
+    ; ( Semantic_highlighting.Debug.meth_request_full
+      , Semantic_highlighting.Debug.get_doc_id )
+    ; Req_hover_extended.meth, Req_hover_extended.get_doc_id
+    ]
+  in
+  let%bind.Option getter = List.assoc_opt meth getters in
+  getter ~params
+;;
+
+let unkown_request_positions ~(meth : string) ~(params : Jsonrpc.Structured.t option) =
+  let no_pos ~params:_ = None in
+  let getters =
+    [ Req_typed_holes.jump, Req_typed_holes.get_pos
+    ; Req_type_enclosing.meth, Req_type_enclosing.get_pos
+    ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.get_pos
+    ; Req_hover_extended.meth, Req_hover_extended.get_pos
+    ; Req_switch_impl_intf.meth, no_pos
+    ; Req_infer_intf.meth, no_pos
+    ; Req_typed_holes.meth, no_pos
+    ; Req_merlin_call_compatible.meth, no_pos
+    ; Semantic_highlighting.Debug.meth_request_full, no_pos
+    ]
+  in
+  match List.assoc_opt meth getters with
+  | None -> []
+  | Some getter -> getter ~params |> Option.to_list
+;;
+
+let get_texts store uris =
+  List.map ~f:(fun uri -> Document_store.get_opt store uri) uris
+  |> List.filter_opt
+  |> List.map ~f:Document.text
 ;;
 
 let on_request
@@ -515,12 +556,31 @@ let on_request
   fun server req ->
   let rpc = server in
   let state : State.t = Server.state server in
+  state.event_index <- state.event_index + 1;
+  let uris = Client_request.all_uris req ~fallback:unkown_request_uri in
   let store = state.store in
-  let now res = Fiber.return (Reply.now res, state) in
+  let texts = get_texts store uris in
+  let positions = Client_request.positions req ~fallback:unkown_request_positions in
+  let log_info =
+    Lsp_timing_logger.make
+      ~event_index:state.event_index
+      ~action:[%string "request:%{Client_request.method_ req}"]
+      ~uris
+      ~texts
+      ~positions
+      ()
+  in
+  Lsp_timing_logger.log_event_start log_info;
+  let now res =
+    Fiber.return
+      (Lsp_timing_logger.with_logging ~f:(fun () -> Reply.now res) log_info, state)
+  in
   let later f req =
     Fiber.return
       ( Reply.later (fun k ->
-          let* resp = f state req in
+          let* resp =
+            Lsp_timing_logger.with_fiber_logging ~f:(fun () -> f state req) log_info
+          in
           k resp)
       , state )
   in
@@ -531,20 +591,17 @@ let on_request
          , fun ~params state ->
              Fiber.of_thunk (fun () ->
                Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
-       ; Req_infer_intf.meth, Req_infer_intf.on_request
-       ; Req_typed_holes.meth, Req_typed_holes.on_request
-       ; Req_jump_to_typed_hole.meth, Req_jump_to_typed_hole.on_request
-       ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
-       ; Req_type_enclosing.meth, Req_type_enclosing.on_request
-       ; Req_get_documentation.meth, Req_get_documentation.on_request
-       ; Req_merlin_jump.meth, Req_merlin_jump.on_request
-       ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
-       ; Req_type_search.meth, Req_type_search.on_request
-       ; Req_construct.meth, Req_construct.on_request
+       ; Req_infer_intf.meth, Req_infer_intf.on_request ~log_info
+       ; Req_typed_holes.meth, Req_typed_holes.on_request ~log_info
+       ; Req_typed_holes.jump, Req_typed_holes.on_jump_request ~log_info
+       ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request ~log_info
+       ; Req_type_enclosing.meth, Req_type_enclosing.on_request ~log_info
+       ; Req_get_documentation.meth, Req_get_documentation.on_request ~log_info
+       ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request ~log_info
        ; ( Semantic_highlighting.Debug.meth_request_full
-         , Semantic_highlighting.Debug.on_request_full )
+         , Semantic_highlighting.Debug.on_request_full ~log_info )
        ; ( Req_hover_extended.meth
-         , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
+         , fun ~params _ -> Req_hover_extended.on_request ~log_info ~params rpc )
        ]
        |> List.assoc_opt meth
      with
@@ -558,16 +615,20 @@ let on_request
      | Some handler ->
        Fiber.return
          ( Reply.later (fun send ->
-             let* res = handler ~params state in
+             let* res =
+               Lsp_timing_logger.with_fiber_logging
+                 ~f:(fun () -> handler ~params state)
+                 log_info
+             in
              send res)
          , state ))
-  | Initialize ip ->
-    let+ res, state = on_initialize server ip in
-    res, state
+  | Initialize ip -> on_initialize server ip
   | DebugTextDocumentGet { textDocument = { uri }; position = _ } ->
     (match Document_store.get_opt store uri with
      | None -> now None
-     | Some doc -> now (Some (Msource.text (Document.source doc))))
+     | Some doc ->
+       let text = Msource.text (Document.source doc) in
+       now (Some text))
   | DebugEcho params -> now params
   | Shutdown -> Fiber.return (Reply.now (), state)
   | WorkspaceSymbol req ->
@@ -577,136 +638,138 @@ let on_request
     if String.equal command.command Merlin_config_command.command_name
     then
       later
-        (fun state server ->
-           let store = state.store in
-           let+ () = Merlin_config_command.command_run server store in
-           `Null)
+        (fun _state server ->
+          let+ () = Merlin_config_command.command_run server store in
+          `Null)
         server
     else if String.equal command.command Document_text_command.command_name
     then
       later
         (fun state server ->
-           let store = state.store in
-           let+ () = Document_text_command.command_run server store command.arguments in
-           `Null)
+          let store = state.store in
+          let+ () = Document_text_command.command_run server store command.arguments in
+          `Null)
         server
     else if String.equal command.command view_metrics_command_name
     then later (fun _state server -> view_metrics server) server
     else if String.equal command.command Action_open_related.command_name
     then
       later (fun _state server -> Action_open_related.command_run server command) server
-    else if String.equal command.command Action_jump.command_name
-    then later (fun _state server -> Action_jump.command_run server command) server
     else
-      later
-        (fun state () ->
-           let dune = State.dune state in
-           Dune.on_command dune command)
-        ()
+      Jsonrpc.Response.Error.raise
+        (make_error
+           ~code:RequestFailed
+           ~message:"Unknown command"
+           ~data:(`String command.command)
+           ())
   | CompletionItemResolve ci ->
     later
       (fun state () ->
-         let markdown =
-           ClientCapabilities.markdown_support
-             (State.client_capabilities state)
-             ~field:(fun d ->
-               let open Option.O in
-               let+ completion = d.completion in
-               let* completion_item = completion.completionItem in
-               completion_item.documentationFormat)
-         in
-         let resolve = Compl.Resolve.of_completion_item ci in
-         match resolve with
-         | None -> Fiber.return ci
-         | Some resolve ->
-           let doc =
-             let uri = Compl.Resolve.uri resolve in
-             Document_store.get state.store uri
-           in
-           (match Document.kind doc with
-            | `Other -> Fiber.return ci
-            | `Merlin doc ->
-              Compl.resolve
-                doc
-                ci
-                resolve
-                (Document.Merlin.doc_comment ~name:"completion-resolve")
-                ~markdown))
+        let markdown =
+          ClientCapabilities.markdown_support
+            (State.client_capabilities state)
+            ~field:(fun d ->
+              let open Option.O in
+              let+ completion = d.completion in
+              let* completion_item = completion.completionItem in
+              completion_item.documentationFormat)
+        in
+        let resolve = Compl.Resolve.of_completion_item ci in
+        match resolve with
+        | None -> Fiber.return ci
+        | Some resolve ->
+          let doc =
+            let uri = Compl.Resolve.uri resolve in
+            Document_store.get state.store uri
+          in
+          (match Document.kind doc with
+           | `Other -> Fiber.return ci
+           | `Merlin doc ->
+             Compl.resolve
+               doc
+               ci
+               resolve
+               (Document.Merlin.doc_comment ~log_info)
+               ~markdown))
       ()
-  | CodeAction params -> Code_actions.compute server params
-  | InlayHint params -> later (fun state () -> Inlay_hints.compute state params) ()
+  | CodeAction params ->
+    Lsp_timing_logger.with_fiber_logging
+      ~f:(fun () -> Code_actions.compute ~log_info server params)
+      log_info
+  | InlayHint params ->
+    later (fun state () -> Inlay_hints.compute ~log_info state params) ()
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
-    (match state.configuration.data.standard_hover with
-     | Some { enable = false } -> now None
-     | Some { enable = true } | None ->
-       let mode =
-         match state.configuration.data.extended_hover with
-         | Some { enable = true } -> Hover_req.Extended_variable
-         | Some _ | None -> Hover_req.Default
-       in
-       later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ())
-  | TextDocumentReferences req -> later (references rpc) req
+    later (fun (_ : State.t) () -> Hover_req.handle ~log_info rpc req) ()
+  | TextDocumentReferences req -> later (references rpc ~log_info) req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req ->
     (match state.configuration.data.codelens with
-     | Some { enable = true } -> later text_document_lens req
+     | Some { enable = true } -> later (text_document_lens ~log_info) req
      | _ -> now [])
-  | TextDocumentHighlight req -> later highlight req
-  | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
+  | TextDocumentHighlight req -> later (highlight ~log_info) req
+  | DocumentSymbol { textDocument = { uri }; _ } -> later (document_symbol ~log_info) uri
   | TextDocumentDeclaration { textDocument = { uri }; position } ->
-    later (fun state () -> Definition_query.run `Declaration state uri position) ()
+    later
+      (fun state () -> Definition_query.run ~log_info `Declaration state uri position)
+      ()
   | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
-    later (fun state () -> Definition_query.run `Definition state uri position) ()
+    later
+      (fun state () -> Definition_query.run ~log_info `Definition state uri position)
+      ()
   | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
-    later (fun state () -> Definition_query.run `Type_definition state uri position) ()
-  | TextDocumentCompletion params -> later (fun _ () -> Compl.complete state params) ()
+    later
+      (fun state () -> Definition_query.run ~log_info `Type_definition state uri position)
+      ()
+  | TextDocumentCompletion params ->
+    later (fun _ () -> Compl.complete ~log_info state params) ()
   | TextDocumentPrepareRename { textDocument = { uri }; position; workDoneToken = _ } ->
     later
       (fun _ () ->
-         let doc = Document_store.get store uri in
-         match Document.kind doc with
-         | `Other -> Fiber.return None
-         | `Merlin doc ->
-           let+ occurrences, _synced =
-             Document.Merlin.dispatch_exn
-               ~name:"occurrences"
-               doc
-               (Occurrences (`Ident_at (Position.logical position), `Buffer))
-           in
-           let loc =
-             List.find_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
-               let loc = occurrence.loc in
-               let range = Range.of_loc loc in
-               match occurrence.is_stale, Position.compare_inclusion position range with
-               | false, `Inside -> Some loc
-               | true, _ | _, `Outside _ -> None)
-           in
-           Option.map loc ~f:Range.of_loc)
+        let doc = Document_store.get store uri in
+        match Document.kind doc with
+        | `Other -> Fiber.return None
+        | `Merlin merlin_doc ->
+          let+ locs, _synced =
+            Document.Merlin.dispatch_exn
+              ~log_info
+              merlin_doc
+              (Occurrences (`Ident_at (Position.logical position), `Buffer))
+          in
+          let loc =
+            List.find_opt locs ~f:(fun loc ->
+              let range = Range.of_loc loc in
+              Position.compare_inclusion position range = `Inside)
+          in
+          Option.map loc ~f:Range.of_loc)
       ()
-  | TextDocumentRename req -> later Rename.rename req
-  | TextDocumentFoldingRange req -> later Folding_range.compute req
-  | SignatureHelp req -> later Signature_help.run req
+  | TextDocumentRename req -> later (Rename.rename ~log_info) req
+  | TextDocumentFoldingRange req -> later (Folding_range.compute ~log_info) req
+  | SignatureHelp req -> later (Signature_help.run ~log_info) req
   | TextDocumentLinkResolve l -> now l
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None
   | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later
       (fun _ () ->
-         let doc = Document_store.get store uri in
-         Formatter.run rpc doc)
+        let doc = Document_store.get store uri in
+        Formatter.run rpc doc)
       ()
   | TextDocumentOnTypeFormatting _ -> now None
-  | SelectionRange req -> later selection_range req
+  | SelectionRange req -> later (selection_range ~log_info) req
   | TextDocumentImplementation _ -> not_supported ()
-  | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
-  | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p
+  | SemanticTokensFull p -> later (Semantic_highlighting.on_request_full ~log_info) p
+  | SemanticTokensDelta p ->
+    later (Semantic_highlighting.on_request_full_delta ~log_info) p
   | TextDocumentMoniker _ -> not_supported ()
-  | TextDocumentPrepareCallHierarchy _ -> not_supported ()
+  | TextDocumentPrepareCallHierarchy req ->
+    later (fun (_ : State.t) () -> Call_hierarchy.handle_prepare ~log_info rpc req) ()
   | TextDocumentRangeFormatting _ -> not_supported ()
-  | CallHierarchyIncomingCalls _ -> not_supported ()
-  | CallHierarchyOutgoingCalls _ -> not_supported ()
+  | CallHierarchyIncomingCalls req ->
+    later (fun (_ : State.t) () -> Call_hierarchy.handle_incoming ~log_info rpc req) ()
+  | CallHierarchyOutgoingCalls req ->
+    later (fun (_ : State.t) () -> Call_hierarchy.handle_outgoing ~log_info rpc req) ()
   | SemanticTokensRange _ -> not_supported ()
   | LinkedEditingRange _ -> not_supported ()
   | WillCreateFiles _ -> not_supported ()
@@ -726,94 +789,138 @@ let on_request
 
 let on_notification server (notification : Client_notification.t) : State.t Fiber.t =
   let state : State.t = Server.state server in
+  state.event_index <- state.event_index + 1;
   let store = state.store in
-  match notification with
-  | TextDocumentDidOpen params ->
-    let* doc =
-      let position_encoding = State.position_encoding state in
-      Document.make
-        ~position_encoding
-        (State.wheel state)
-        state.merlin_config
-        state.merlin
-        params
-    in
-    let* () = Document_store.open_document store doc in
-    let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
-    state
-  | TextDocumentDidClose { textDocument = { uri } } ->
-    let+ () =
-      Diagnostics.remove (State.diagnostics state) (`Merlin uri);
-      let* () = Document_store.close_document store uri in
-      task_if_running state.detached ~f:(fun () ->
-        Diagnostics.send (State.diagnostics state) (`One uri))
-    in
-    state
-  | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
-    let doc =
-      Document_store.change_document store uri ~f:(fun prev_doc ->
-        Document.update_text ~version prev_doc contentChanges)
-    in
-    let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
-    state
-  | CancelRequest _ -> Fiber.return state
-  | ChangeConfiguration req ->
-    let* configuration = Configuration.update state.configuration req in
-    let* () =
-      let report_dune_diagnostics = Configuration.report_dune_diagnostics configuration in
-      Diagnostics.set_report_dune_diagnostics
-        ~report_dune_diagnostics
-        (State.diagnostics state)
-    in
-    let+ () =
+  let uris = Client_notification.all_uris notification in
+  let texts = get_texts store uris in
+  let analyze_files =
+    match notification with
+    | Client_notification.NotebookDocumentDidOpen _
+    | Client_notification.NotebookDocumentDidSave _
+    | Client_notification.NotebookDocumentDidClose _ -> true
+    | _ -> false
+  in
+  let log_info =
+    Lsp_timing_logger.make
+      ~event_index:state.event_index
+      ~action:[%string "notification:%{Client_notification.method_ notification}"]
+      ~uris
+      ~texts
+      ~positions:[]
+      ~analyze_files
+      ()
+  in
+  Lsp_timing_logger.log_event_start log_info;
+  Lsp_timing_logger.with_fiber_logging log_info ~f:(fun () ->
+    match notification with
+    | TextDocumentDidOpen params ->
+      let* doc =
+        let position_encoding = State.position_encoding state in
+        Document.make
+          ~position_encoding
+          (State.wheel state)
+          state.merlin_config
+          state.merlin
+          params
+      in
+      let* () = Document_store.open_document store doc in
+      let+ () = set_diagnostics ~log_info state doc in
+      state
+    | TextDocumentDidClose { textDocument = { uri } } ->
+      let+ () =
+        Diagnostics.remove (State.diagnostics state) (`Merlin uri);
+        let* () = Document_store.close_document store uri in
+        task_if_running state.detached ~f:(fun () ->
+          Diagnostics.send (State.diagnostics state) (`One uri))
+      in
+      state
+    | TextDocumentDidChange { textDocument = { uri; version }; contentChanges } ->
+      let doc =
+        Document_store.change_document store uri ~f:(fun prev_doc ->
+          Document.update_text ~version prev_doc contentChanges)
+      in
+      let+ () = set_diagnostics ~log_info ~debounce:true state doc in
+      state
+    | CancelRequest _ -> Fiber.return state
+    | ChangeConfiguration req ->
+      let prev_merlin_diagnostics = state.configuration.data.merlin_diagnostics in
+      let prev_shorten_merlin =
+        match state.configuration.data.shorten_merlin_diagnostics with
+        | None -> false
+        | Some { enable } -> enable
+      in
+      let* configuration = Configuration.update state.configuration req in
+      let display_merlin_diagnostics =
+        Configuration.display_merlin_diagnostics configuration
+      in
       let shorten_merlin_diagnostics =
         Configuration.shorten_merlin_diagnostics configuration
       in
-      Diagnostics.set_shorten_merlin_diagnostics
-        ~shorten_merlin_diagnostics
-        (State.diagnostics state)
-    in
-    { state with configuration }
-  | DidSaveTextDocument { textDocument = { uri }; _ } ->
-    let state = Server.state server in
-    (match Document_store.get_opt state.store uri with
-     | None ->
-       (Log.log ~section:"on receive DidSaveTextDocument"
-        @@ fun () -> Log.msg "saved document is not in the store" []);
-       Fiber.return state
-     | Some doc ->
-       let+ () = set_diagnostics state.detached (State.diagnostics state) doc in
-       state)
-  | ChangeWorkspaceFolders change ->
-    let state =
-      State.modify_workspaces state ~f:(fun ws -> Workspaces.on_change ws change)
-    in
-    Dune.update_workspaces (State.dune state) (State.workspaces state);
-    Fiber.return state
-  | DidChangeWatchedFiles _
-  | DidCreateFiles _
-  | DidDeleteFiles _
-  | DidRenameFiles _
-  | WillSaveTextDocument _
-  | Initialized
-  | WorkDoneProgressCancel _
-  | WorkDoneProgress _
-  | NotebookDocumentDidOpen _
-  | NotebookDocumentDidChange _
-  | NotebookDocumentDidSave _
-  | NotebookDocumentDidClose _
-  | Exit -> Fiber.return state
-  | SetTrace { value } -> Fiber.return { state with trace = value }
-  | UnknownNotification req ->
-    let+ () =
-      State.log_msg server ~type_:Error ~message:("Unknown notication " ^ req.method_)
-    in
-    state
+      let shorten_merlin_changed = prev_shorten_merlin <> shorten_merlin_diagnostics in
+      let merlin_enabled_changed =
+        match prev_merlin_diagnostics, configuration.data.merlin_diagnostics with
+        | None, None
+        | Some { enable = true }, Some { enable = true }
+        | Some { enable = false }, Some { enable = false } -> false
+        | _ -> true
+      in
+      let () =
+        Diagnostics.set_display_merlin_diagnostics
+          ~display_merlin_diagnostics
+          (State.diagnostics state)
+      in
+      let () =
+        Diagnostics.set_shorten_merlin_diagnostics
+          ~shorten_merlin_diagnostics
+          (State.diagnostics state)
+      in
+      let state = { state with configuration } in
+      if shorten_merlin_changed || merlin_enabled_changed
+      then
+        let+ () =
+          Document_store.parallel_iter store ~f:(set_diagnostics ~log_info state)
+        in
+        state
+      else Fiber.return state
+    | DidSaveTextDocument { textDocument = { uri }; _ } ->
+      let state = Server.state server in
+      (match Document_store.get_opt state.store uri with
+       | None ->
+         (Log.log ~section:"on receive DidSaveTextDocument"
+          @@ fun () -> Log.msg "saved document is not in the store" []);
+         Fiber.return state
+       | Some doc ->
+         let+ () = set_diagnostics ~log_info state doc in
+         state)
+    | ChangeWorkspaceFolders change ->
+      let state =
+        State.modify_workspaces state ~f:(fun ws -> Workspaces.on_change ws change)
+      in
+      Fiber.return state
+    | DidChangeWatchedFiles _
+    | DidCreateFiles _
+    | DidDeleteFiles _
+    | DidRenameFiles _
+    | WillSaveTextDocument _
+    | Initialized
+    | WorkDoneProgressCancel _
+    | WorkDoneProgress _
+    | NotebookDocumentDidOpen _
+    | NotebookDocumentDidChange _
+    | NotebookDocumentDidSave _
+    | NotebookDocumentDidClose _
+    | Exit -> Fiber.return state
+    | SetTrace { value } -> Fiber.return { state with trace = value }
+    | UnknownNotification req ->
+      let+ () =
+        State.log_msg server ~type_:Error ~message:("Unknown notication " ^ req.method_)
+      in
+      state)
 ;;
 
 let start stream =
   let detached = Fiber.Pool.create () in
-  let server = Fdecl.create () in
+  let server = Fdecl.create Dyn.opaque in
   let store = Document_store.make server detached in
   let handler =
     let on_request = { Server.Handler.on_request } in
@@ -843,10 +950,7 @@ let start stream =
   let state = Server.state server in
   let with_log_errors what f =
     let+ (_ : (unit, unit) result) =
-      Fiber.map_reduce_errors
-        (module Monoid.Unit)
-        f
-        ~on_error:(fun exn ->
+      Fiber.map_reduce_errors (module Monoid.Unit) f ~on_error:(fun exn ->
           Format.eprintf "%s: %a@." what Exn_with_backtrace.pp_uncaught exn;
           Fiber.return ())
     in
@@ -888,11 +992,6 @@ let start stream =
                Lev_fiber.Thread.close merlin;
                Fiber.return ())
            ]
-         in
-         let finalize =
-           match (Server.state server).init with
-           | Uninitialized -> finalize
-           | Initialized init -> Dune.stop init.dune :: finalize
          in
          Fiber.all_concurrently_unit finalize)
       ; with_log_errors "ocamlformat-rpc" run_ocamlformat_rpc
@@ -978,7 +1077,6 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr (
   in
   Unix.close stdin;
   if should_close_stdout then Unix.close stdout;
-  Option.iter stderr ~f:Unix.close;
   `Finished res
 ;;
 
@@ -988,15 +1086,17 @@ let run_in_directory =
   fun () -> if Sys.win32 then for_windows else run_in_directory
 ;;
 
-let run channel ~read_dot_merlin () =
+let run channel ~dot_merlin =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
-  Merlin_config.should_read_dot_merlin := read_dot_merlin;
+  Merlin_config.dot_merlin := dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
-  Lev_fiber.run ~sigpipe:`Ignore (fun () ->
-    let* input, output = stream_of_channel channel in
-    start (Lsp_fiber.Fiber_io.make input output))
-  |> Lev_fiber.Error.ok_exn
+  let main =
+    Fiber.of_thunk (fun () ->
+      let* input, output = stream_of_channel channel in
+      start (Lsp_fiber.Fiber_io.make input output))
+  in
+  Fiber_async.deferred_of_fiber main ()
 ;;
 
 module Custom_request = Custom_request

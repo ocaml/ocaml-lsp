@@ -6,6 +6,12 @@ type mode =
   | Extended_fixed of int
   | Extended_variable
 
+type extended_hover =
+  { hover : Hover.t
+  ; verbosity : int
+  ; can_increase_verbosity : bool
+  }
+
 (* possibly overwrite the default mode using an environment variable *)
 let environment_mode =
   match Env_vars._IS_HOVER_EXTENDED () with
@@ -13,21 +19,9 @@ let environment_mode =
   | Some false | None -> Default
 ;;
 
-let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
+let hover_at_cursor parsetree position =
   let result = ref None in
-  let is_at_cursor ({ loc_start; loc_end; _ } : Ocaml_parsing.Location.t) =
-    let start_col = loc_start.pos_cnum - loc_start.pos_bol in
-    let end_col = loc_end.pos_cnum - loc_end.pos_bol in
-    let at_or_after_start =
-      loc_start.pos_lnum < cursor_line
-      || (loc_start.pos_lnum = cursor_line && start_col <= cursor_col)
-    in
-    let before_or_at_end =
-      loc_end.pos_lnum > cursor_line
-      || (loc_end.pos_lnum = cursor_line && end_col >= cursor_col)
-    in
-    at_or_after_start && before_or_at_end
-  in
+  let is_at_cursor = Util.is_at_cursor position in
   (* Hover location matches a variable binding *)
   let pat (self : Ast_iterator.iterator) (pattern : Parsetree.pattern) =
     if is_at_cursor pattern.ppat_loc
@@ -57,39 +51,47 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     if is_at_cursor expr.pexp_loc
     then (
       match expr.pexp_desc with
-      | Pexp_constant _ | Pexp_variant _ | Pexp_pack _ -> result := Some `Type_enclosing
+      | Pexp_constant _ | Pexp_variant _ | Pexp_pack _ | Pexp_record _ ->
+        result := Some `Type_enclosing
       | Pexp_ident { loc; _ } | Pexp_construct ({ loc; _ }, _) | Pexp_field (_, { loc; _ })
         ->
         if is_at_cursor loc
-        then result := Some `Type_enclosing
-        else Ast_iterator.default_iterator.expr self expr
-      | Pexp_record (fields, _) ->
-        (* On a record, each field may be hovered. *)
-        let is_on_field =
-          List.exists fields ~f:(fun (({ loc; _ } : _ Asttypes.loc), _) ->
-            is_at_cursor loc)
-        in
-        if is_on_field
         then result := Some `Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
       | Pexp_function _ | Pexp_lazy _ ->
         (* Anonymous function expressions can be hovered on the keyword [fun] or
            [function]. Lazy expressions can also be hovered on the [lazy]
            keyword. *)
-        let is_at_keyword =
+        let is_at_keyword ~keyword ~(keyword_loc : Loc.t) =
           let keyword_len =
-            match expr.pexp_desc with
-            | Pexp_function _ -> 8
-            | Pexp_lazy _ -> 4
-            | _ -> 0
+            match keyword with
+            | `Fun -> 3
+            | `Function -> 8
+            | `Lazy -> 4
           in
-          let pos_cnum = expr.pexp_loc.loc_start.pos_cnum + keyword_len in
-          let end_of_keyword = { expr.pexp_loc.loc_start with pos_cnum } in
+          let pos_cnum = keyword_loc.loc_start.pos_cnum + keyword_len in
+          let end_of_keyword = { keyword_loc.loc_start with pos_cnum } in
           is_at_cursor
-            { loc_start = expr.pexp_loc.loc_start
+            { loc_start = keyword_loc.loc_start
             ; loc_end = end_of_keyword
             ; loc_ghost = false
             }
+        in
+        let is_at_keyword =
+          match expr.pexp_desc with
+          | Pexp_lazy _ -> is_at_keyword ~keyword:`Lazy ~keyword_loc:expr.pexp_loc
+          | Pexp_function (_, _, body) ->
+            let is_at_fun_keyword =
+              is_at_keyword ~keyword:`Fun ~keyword_loc:expr.pexp_loc
+            in
+            let is_at_function_keyword =
+              match body with
+              | Pfunction_cases (_, cases_loc, _) ->
+                is_at_keyword ~keyword:`Function ~keyword_loc:cases_loc
+              | Pfunction_body _ -> false
+            in
+            is_at_fun_keyword || is_at_function_keyword
+          | _ -> false
         in
         if is_at_keyword
         then result := Some `Type_enclosing
@@ -100,8 +102,8 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   in
   (* Hover a value declaration in a signature *)
   let value_description
-        (self : Ast_iterator.iterator)
-        (desc : Parsetree.value_description)
+    (self : Ast_iterator.iterator)
+    (desc : Parsetree.value_description)
     =
     if is_at_cursor desc.pval_name.loc then result := Some `Type_enclosing;
     Ast_iterator.default_iterator.value_description self desc
@@ -135,10 +137,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
       | Pmod_ident { loc; _ } -> if is_at_cursor loc then result := Some `Type_enclosing
       | Pmod_structure _ ->
         let is_at_keyword =
-          let keyword_len =
-            6
-            (* struct *)
-          in
+          let keyword_len = 6 (* struct *) in
           let pos_cnum = expr.pmod_loc.loc_start.pos_cnum + keyword_len in
           is_at_cursor
             { loc_start = expr.pmod_loc.loc_start
@@ -205,11 +204,12 @@ let format_as_code_block ~highlighter strings =
 ;;
 
 let format_type_enclosing
-      ~syntax
-      ~markdown
-      ~typ
-      ~doc
-      ~(syntax_doc : Query_protocol.syntax_doc_result option)
+  ~syntax
+  ~markdown
+  ~typ
+  ~doc
+  ~stack_or_heap
+  ~(syntax_doc : Query_protocol.syntax_doc_result option)
   =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -221,6 +221,7 @@ let format_type_enclosing
         syntax_doc.description
         syntax_doc.documentation)
   in
+  let stack_or_heap = Option.map ~f:(( ^ ) "Allocation: ") stack_or_heap in
   `MarkupContent
     (if markdown
      then (
@@ -233,11 +234,13 @@ let format_type_enclosing
              | Raw d -> d
              | Markdown d -> d)
          in
-         print_dividers (List.filter_opt [ type_info; syntax_doc; doc ])
+         print_dividers (List.filter_opt [ type_info; syntax_doc; doc; stack_or_heap ])
        in
        { MarkupContent.value; kind = MarkupKind.Markdown })
      else (
-       let value = print_dividers (List.filter_opt [ Some typ; syntax_doc; doc ]) in
+       let value =
+         print_dividers (List.filter_opt [ Some typ; syntax_doc; doc; stack_or_heap ])
+       in
        { MarkupContent.value; kind = MarkupKind.PlainText }))
 ;;
 
@@ -247,13 +250,14 @@ let format_ppx_expansion ~ppx ~expansion =
 ;;
 
 let type_enclosing_hover
-      ~(server : State.t Server.t)
-      ~(doc : Document.t)
-      ~with_syntax_doc
-      ~merlin
-      ~mode
-      ~uri
-      ~position
+  ~log_info
+  ~(server : State.t Server.t)
+  ~(doc : Document.t)
+  ~with_syntax_doc
+  ~merlin
+  ~mode
+  ~uri
+  ~position
   =
   let state = Server.state server in
   let verbosity =
@@ -281,7 +285,7 @@ let type_enclosing_hover
   in
   let* type_enclosing =
     Document.Merlin.type_enclosing
-      ~name:"hover-enclosing"
+      ~log_info
       merlin
       (Position.logical position)
       verbosity
@@ -289,7 +293,7 @@ let type_enclosing_hover
   in
   match type_enclosing with
   | None -> Fiber.return None
-  | Some { Document.Merlin.loc; typ; doc = documentation; syntax_doc } ->
+  | Some { Document.Merlin.loc; typ; doc = documentation; stack_or_heap; syntax_doc } ->
     let syntax = Document.syntax doc in
     let* typ =
       (* We ask Ocamlformat to format this type *)
@@ -318,17 +322,23 @@ let type_enclosing_hover
         ClientCapabilities.markdown_support client_capabilities ~field:(fun td ->
           Option.map td.hover ~f:(fun h -> h.contentFormat))
       in
-      format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation ~syntax_doc
+      format_type_enclosing
+        ~syntax
+        ~markdown
+        ~typ
+        ~doc:documentation
+        ~stack_or_heap
+        ~syntax_doc
     in
     let range = Range.of_loc loc in
     let hover = Hover.create ~contents ~range () in
-    Fiber.return (Some hover)
+    Fiber.return (Some (`Type (typ, verbosity), hover))
 ;;
 
 let ppx_expression_hover
-      ~ppx_parsetree
-      ~(expr : Parsetree.expression)
-      ~(ppx : string Asttypes.loc)
+  ~ppx_parsetree
+  ~(expr : Parsetree.expression)
+  ~(ppx : string Asttypes.loc)
   =
   let expanded_ppx = ref None in
   let at_expr_location (loc : Ocaml_parsing.Location.t) =
@@ -359,13 +369,14 @@ let ppx_expression_hover
         ~ppx:ppx.txt
         ~expansion:(Ocaml_parsing.Pprintast.string_of_expression expr)
     in
-    Hover.create ~contents ~range ())
+    let hover = Hover.create ~contents ~range () in
+    `Ppx, hover)
 ;;
 
 let typedef_attribute_hover
-      ~ppx_parsetree
-      ~(decl : Parsetree.type_declaration)
-      ~(attr : Parsetree.attribute)
+  ~ppx_parsetree
+  ~(decl : Parsetree.type_declaration)
+  ~(attr : Parsetree.attribute)
   =
   match attr.attr_name.txt with
   | "deriving" ->
@@ -410,7 +421,14 @@ let typedef_attribute_hover
       | [], [] -> None
       | signature, [] ->
         ignore (Format.flush_str_formatter ());
-        Pprintast.signature Format.str_formatter (List.rev signature);
+        let modalities =
+          match ppx_parsetree with
+          | `Interface (signature : Parsetree.signature) -> signature.psg_modalities
+          | `Implementation _ -> []
+        in
+        Pprintast.signature
+          Format.str_formatter
+          (Ast_helper.Sg.mk ~modalities (List.rev signature));
         Some (Format.flush_str_formatter ())
       | [], structure -> Some (Pprintast.string_of_structure (List.rev structure))
       | _ :: _, _ :: _ ->
@@ -422,11 +440,17 @@ let typedef_attribute_hover
     Option.map expansion ~f:(fun expansion ->
       let range = Range.of_loc attr.attr_loc in
       let contents = format_ppx_expansion ~ppx:attr.attr_name.txt ~expansion in
-      Hover.create ~contents ~range ())
+      let hover = Hover.create ~contents ~range () in
+      `Deriving, hover)
   | _ -> None
 ;;
 
-let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
+let handle_internal
+  ~log_info
+  server
+  { HoverParams.textDocument = { uri }; position; _ }
+  mode
+  =
   Fiber.of_thunk (fun () ->
     let state : State.t = Server.state server in
     let doc =
@@ -438,11 +462,11 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
     | `Merlin merlin ->
       let* parsetree =
         Document.Merlin.with_pipeline_exn
-          ~name:"hover"
+          ~log_info
           (Document.merlin_exn doc)
           (fun pipeline -> Mpipeline.reader_parsetree pipeline)
       in
-      (match hover_at_cursor parsetree (Position.logical position) with
+      (match hover_at_cursor parsetree position with
        | None -> Fiber.return None
        | Some `Type_enclosing ->
          let with_syntax_doc =
@@ -450,11 +474,19 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
            | Some { enable = true } -> true
            | Some _ | None -> false
          in
-         type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position ~with_syntax_doc
+         type_enclosing_hover
+           ~log_info
+           ~server
+           ~doc
+           ~merlin
+           ~mode
+           ~uri
+           ~position
+           ~with_syntax_doc
        | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
          let+ ppx_parsetree =
            Document.Merlin.with_pipeline_exn
-             ~name:"expand-ppx"
+             ~log_info
              (Document.merlin_exn doc)
              (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
          in
@@ -462,4 +494,45 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
           | `Ppx_expr (expr, ppx) -> ppx_expression_hover ~ppx_parsetree ~expr ~ppx
           | `Ppx_typedef_attr (decl, attr) ->
             typedef_attribute_hover ~ppx_parsetree ~decl ~attr)))
+;;
+
+let handle ~log_info server params =
+  let mode =
+    let { State.configuration; _ } = Server.state server in
+    match configuration.data.extended_hover with
+    | Some { enable = true } -> Extended_variable
+    | Some _ | None -> environment_mode
+  in
+  let+ hover = handle_internal ~log_info server params mode in
+  Option.map hover ~f:snd
+;;
+
+let handle_extended ~log_info server params ~verbosity =
+  let* hover =
+    let mode =
+      match verbosity with
+      | Some verbosity -> Extended_fixed verbosity
+      | None -> Extended_variable
+    in
+    handle_internal ~log_info server params mode
+  in
+  match hover with
+  | Some (`Type (unformatted_hover_text, verbosity), hover) ->
+    let+ can_increase_verbosity =
+      let next_verbosity = verbosity + 1 in
+      let state = Server.state server in
+      let hover_history = state.hover_extended.history in
+      let+ hover_next =
+        handle_internal ~log_info server params (Extended_fixed next_verbosity)
+      in
+      state.hover_extended.history <- hover_history;
+      match hover_next with
+      | Some (`Type (more_verbose_text, _), _) ->
+        not (String.equal unformatted_hover_text more_verbose_text)
+      | _ -> false
+    in
+    Some { hover; verbosity; can_increase_verbosity }
+  | Some (_, hover) ->
+    Fiber.return (Some { hover; verbosity = 0; can_increase_verbosity = false })
+  | None -> Fiber.return None
 ;;

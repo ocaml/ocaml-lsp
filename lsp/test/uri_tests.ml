@@ -52,7 +52,8 @@ let%expect_test "test uri parsing" =
     http://xxx? -> \?
     query:
     http://xyz?ab%3D1%23 -> \?ab=1#
-    query: ab=1# |}]
+    query: ab=1#
+    |}]
 ;;
 
 let uri_of_path =
@@ -72,7 +73,8 @@ let%expect_test "uri of path" =
     foo/bar.mli -> file:///foo/bar.mli
     Windows:
     /foo/bar.ml -> file:///foo/bar.ml
-    foo/bar.mli -> file:///foo/bar.mli |}]
+    foo/bar.mli -> file:///foo/bar.mli
+    |}]
 ;;
 
 let%expect_test "of_path -> to_string" =
@@ -255,7 +257,7 @@ let%expect_test "of_string -> to_string" =
   [%expect
     {|
     Unix:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/#l12
+    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
     file://sh%c3%a4res/path -> file://sh%C3%A4res/path
     untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
     untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
@@ -267,7 +269,7 @@ let%expect_test "of_string -> to_string" =
     file:///pro%2Fjects/ -> file:///pro/jects/
     vscode://mount/test.ml -> vscode://mount/test.ml
     Windows:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/#l12
+    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/
     file://sh%c3%a4res/path -> file://sh%C3%A4res/path
     untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
     untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
@@ -298,17 +300,17 @@ let%expect_test "of_string -> to_path" =
     ];
   [%expect
     {|
-      Unix:
-      file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> /
-      file://shares/pröjects/c%23/#l12 -> //shares/pröjects/c#/
-      file:///_:/path -> /_:/path
-       -> /
-      file://LöC%2FAL/host:8080/projects/ -> //LöC/AL/host:8080/projects/
-      Windows:
-      file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> \
-      file://shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
-      file:///_:/path -> \_:\path
-       -> \
-      file://LöC%2FAL/host:8080/projects/ -> \\LöC\AL\host:8080\projects\
-      |}]
+    Unix:
+    file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> /
+    file://shares/pröjects/c%23/#l12 -> //shares/pröjects/c#/
+    file:///_:/path -> /_:/path
+     -> /
+    file://LöC%2FAL/host:8080/projects/ -> //LöC/AL/host:8080/projects/
+    Windows:
+    file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp -> \
+    file://shares/pröjects/c%23/#l12 -> \\shares\pröjects\c#\
+    file:///_:/path -> \_:\path
+     -> \
+    file://LöC%2FAL/host:8080/projects/ -> \\LöC\AL\host:8080\projects\
+    |}]
 ;;

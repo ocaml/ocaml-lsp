@@ -1,4 +1,4 @@
-(**WARNING: This is for internal use in testing only *)
+(** WARNING: This is for internal use in testing only *)
 
 module Compl = Compl
 module Merlin_kernel = Merlin_kernel

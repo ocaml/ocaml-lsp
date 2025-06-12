@@ -38,7 +38,7 @@ let style_inline ~meta (style : Odoc_parser.Ast.style) inline =
 ;;
 
 let rec inline_element_to_inline
-          (inline : Odoc_parser.Ast.inline_element Odoc_parser.Loc.with_location)
+  (inline : Odoc_parser.Ast.inline_element Odoc_parser.Loc.with_location)
   : Inline.t
   =
   match inline with
@@ -96,8 +96,7 @@ and inline_element_list_to_inlines inlines =
 ;;
 
 let rec nestable_block_element_to_block
-          (nestable :
-            Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
+  (nestable : Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
   =
   match nestable with
   | { value = `Paragraph text; location } ->
@@ -107,39 +106,6 @@ let rec nestable_block_element_to_block
     in
     let meta = loc_to_meta location in
     Block.Paragraph (paragraph, meta)
-  | { value = `Table ((grid, alignment), _); location } ->
-    let meta = loc_to_meta location in
-    let tbl =
-      let rows =
-        let alignment_row =
-          match alignment with
-          | None -> []
-          | Some alignment ->
-            let alignment =
-              List.map ~f:(fun x -> (x, 1 (* nb of separator *)), Meta.none) alignment
-            in
-            [ (`Sep alignment, Meta.none), "" ]
-        in
-        let cell ((c, _) : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.cell) =
-          let c = nestable_block_element_list_to_inlines c in
-          c, (" ", " ")
-          (* Initial and trailing blanks *)
-        in
-        let data_row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row) =
-          let row = List.map ~f:cell row in
-          (`Data row, Meta.none), ""
-        in
-        let header_row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row) =
-          let row = List.map ~f:cell row in
-          (`Header row, Meta.none), ""
-        in
-        match grid with
-        | [] -> assert false
-        | h :: t -> (header_row h :: alignment_row) @ List.map ~f:data_row t
-      in
-      Block.Table.make rows
-    in
-    Block.Ext_table (tbl, meta)
   | { value = `List (kind, style, xs); location } ->
     let l =
       let list_items =
@@ -182,22 +148,14 @@ let rec nestable_block_element_to_block
     in
     let meta = loc_to_meta location in
     Block.List (l, meta)
-  | { value =
-        `Code_block
-          { meta = metadata
-          ; delimiter = _
-          ; content = { value = code; location = code_loc }
-          ; output
-          }
-    ; location
-    } ->
+  | { value = `Code_block (metadata, { value = code; location = code_loc }); location } ->
     let meta = loc_to_meta location in
     let main_block =
       let code_block =
         let info_string =
           match metadata with
           | None -> Some ("ocaml", loc_to_meta code_loc)
-          | Some { language = { value = lang; location = lang_log }; tags = _ } ->
+          | Some ({ value = lang; location = lang_log }, _env) ->
             Some (lang, loc_to_meta lang_log)
         in
         let block_line = Block_line.list_of_string code in
@@ -205,12 +163,7 @@ let rec nestable_block_element_to_block
       in
       Block.Code_block (code_block, meta)
     in
-    let output_block =
-      match output with
-      | None -> []
-      | Some output -> [ nestable_block_element_list_to_block output ]
-    in
-    Block.Blocks (main_block :: output_block, meta)
+    Block.Blocks ([ main_block ], meta)
   | { value = `Verbatim code; location } ->
     let code_block =
       let info_string = Some ("verb", Meta.none) in
@@ -226,62 +179,6 @@ let rec nestable_block_element_to_block
     in
     let meta = loc_to_meta location in
     Block.Ext_math_block (code_block, meta)
-
-and nestable_block_element_to_inlines
-      (nestable : Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
-  =
-  match nestable with
-  | { value = `Paragraph text; location = _ } -> inline_element_list_to_inlines text
-  | { value = `Table ((grid, _), _); location } ->
-    let meta = loc_to_meta location in
-    let cell ((c, _) : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.cell) =
-      nestable_block_element_list_to_inlines c
-    in
-    let row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row) =
-      let sep = Inline.Text (" | ", Meta.none) in
-      sep :: List.concat_map ~f:(fun c -> [ cell c; sep ]) row
-    in
-    let rows = List.concat_map ~f:row grid in
-    Inline.Inlines (rows, meta)
-  | { value = `List (_, _, xs); location } ->
-    let meta = loc_to_meta location in
-    let items =
-      let item i = nestable_block_element_list_to_inlines i in
-      let sep = Inline.Text (" - ", Meta.none) in
-      List.concat_map ~f:(fun i -> [ sep; item i ]) xs
-    in
-    Inline.Inlines (items, meta)
-  | { value = `Modules modules; location } ->
-    let meta = loc_to_meta location in
-    let s = List.map ~f:(fun x -> x.Odoc_parser.Loc.value) modules in
-    Inline.Text ("modules: " ^ String.concat ~sep:" " s, meta)
-  | { value =
-        `Code_block
-          { meta = _
-          ; delimiter = _
-          ; content = { value = code; location = code_loc }
-          ; output = _
-          }
-    ; location
-    } ->
-    let meta = loc_to_meta location in
-    let code_span =
-      let meta_code = loc_to_meta code_loc in
-      Inline.Code_span.make ~backtick_count:1 [ "", (code, meta_code) ]
-    in
-    Inline.Code_span (code_span, meta)
-  | { value = `Verbatim code; location } ->
-    let meta = loc_to_meta location in
-    let code_span = Inline.Code_span.make ~backtick_count:1 [ "", (code, Meta.none) ] in
-    Inline.Code_span (code_span, meta)
-  | { value = `Math_block code; location } ->
-    let meta = loc_to_meta location in
-    let code_span = Inline.Math_span.make ~display:true [ "", (code, Meta.none) ] in
-    Inline.Ext_math_span (code_span, meta)
-
-and nestable_block_element_list_to_inlines l =
-  let inlines = List.map ~f:nestable_block_element_to_inlines l in
-  Inline.Inlines (inlines, Meta.none)
 
 and nestable_block_element_list_to_block nestables =
   let blocks = List.map ~f:nestable_block_element_to_block nestables in
@@ -379,11 +276,10 @@ let tag_to_block ~meta (tag : Odoc_parser.Ast.tag) =
   | `Inline -> format_tag_empty "@inline"
   | `Open -> format_tag_empty "@open"
   | `Closed -> format_tag_empty "@closed"
-  | `Hidden -> format_tag_empty "@hidden"
 ;;
 
 let rec block_element_to_block
-          (block_element : Odoc_parser.Ast.block_element Odoc_parser.Loc.with_location)
+  (block_element : Odoc_parser.Ast.block_element Odoc_parser.Loc.with_location)
   =
   match block_element with
   | { value = `Heading (level, _, content); location } ->
@@ -397,13 +293,7 @@ let rec block_element_to_block
     let meta = loc_to_meta location in
     tag_to_block ~meta t
   | { value =
-        ( `Paragraph _
-        | `List _
-        | `Modules _
-        | `Code_block _
-        | `Verbatim _
-        | `Table _
-        | `Math_block _ )
+        `Paragraph _ | `List _ | `Modules _ | `Code_block _ | `Verbatim _ | `Math_block _
     ; location = _
     } as nestable -> nestable_block_element_to_block nestable
 

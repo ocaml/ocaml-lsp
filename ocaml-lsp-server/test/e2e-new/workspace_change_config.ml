@@ -1,3 +1,4 @@
+open Async
 open Test.Import
 
 let change_config client params = Client.notification client (ChangeConfiguration params)
@@ -27,7 +28,7 @@ let string = "Hello"
     print_endline ("CodeLens found: " ^ string_of_int (List.length resp_codelens_disabled));
     Fiber.return ()
   in
-  Helpers.test source req;
+  let%map.Deferred () = Helpers.test source req in
   [%expect {| CodeLens found: 0 |}]
 ;;
 
@@ -56,7 +57,7 @@ let foo_value : foo = Some 1
     let () = Hover_extended.print_hover resp in
     Fiber.return ()
   in
-  Helpers.test source req;
+  let%map.Deferred () = Helpers.test source req in
   [%expect
     {|
     {
@@ -72,5 +73,6 @@ let foo_value : foo = Some 1
         "end": { "character": 13, "line": 3 },
         "start": { "character": 4, "line": 3 }
       }
-    } |}]
+    }
+    |}]
 ;;

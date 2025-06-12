@@ -31,9 +31,7 @@ let test ~from ~to_ =
 
 let%expect_test "empty strings" =
   test ~from:"" ~to_:"";
-  [%expect
-    {|
-    [] |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "from empty" =
@@ -48,7 +46,8 @@ let%expect_test "from empty" =
           "start": { "character": 0, "line": 0 }
         }
       }
-    ] |}];
+    ]
+    |}];
   test ~from:"\n" ~to_:"foobar";
   [%expect
     {|
@@ -60,22 +59,24 @@ let%expect_test "from empty" =
           "start": { "character": 0, "line": 0 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "from empty - with newline" =
   test ~from:"" ~to_:"foobar\n";
   [%expect
     {|
-  [
-    {
-      "newText": "foobar\n",
-      "range": {
-        "end": { "character": 0, "line": 0 },
-        "start": { "character": 0, "line": 0 }
+    [
+      {
+        "newText": "foobar\n",
+        "range": {
+          "end": { "character": 0, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        }
       }
-    }
-  ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "to empty" =
@@ -90,14 +91,13 @@ let%expect_test "to empty" =
           "start": { "character": 0, "line": 0 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "no change" =
   test ~from:"foobar" ~to_:"foobar";
-  [%expect
-    {|
-    [] |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "multiline" =
@@ -112,7 +112,8 @@ let%expect_test "multiline" =
           "start": { "character": 0, "line": 0 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "change a character" =
@@ -127,7 +128,8 @@ let%expect_test "change a character" =
           "start": { "character": 0, "line": 0 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "delete empty line" =
@@ -142,7 +144,8 @@ let%expect_test "delete empty line" =
           "start": { "character": 0, "line": 1 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "regerssion test 1" =
@@ -176,7 +179,8 @@ z
           "start": { "character": 0, "line": 3 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "regerssion test 2" =
@@ -198,7 +202,8 @@ let%expect_test "regerssion test 2" =
           "start": { "character": 0, "line": 1 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "regression test 3" =
@@ -221,7 +226,8 @@ let%expect_test "regression test 3" =
           "start": { "character": 0, "line": 3 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "regression test 4" =
@@ -244,7 +250,8 @@ let%expect_test "regression test 4" =
           "start": { "character": 0, "line": 3 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "regression test 5" =
@@ -266,5 +273,6 @@ let%expect_test "regression test 5" =
           "start": { "character": 0, "line": 2 }
         }
       }
-    ] |}]
+    ]
+    |}]
 ;;

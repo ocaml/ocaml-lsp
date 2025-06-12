@@ -129,16 +129,16 @@ module Single_pipeline : sig
   val create : Lev_fiber.Thread.t -> t
 
   val use
-    :  ?name:string
-    -> t
+    :  t
+    -> log_info:Lsp_timing_logger.t
     -> doc:Text_document.t
     -> config:Merlin_config.t
     -> f:(Mpipeline.t -> 'a)
     -> ('a, Exn_with_backtrace.t) result Fiber.t
 
   val use_with_config
-    :  ?name:string
-    -> t
+    :  t
+    -> log_info:Lsp_timing_logger.t
     -> doc:Text_document.t
     -> config:Mconfig.t
     -> f:(Mpipeline.t -> 'a)
@@ -148,7 +148,7 @@ end = struct
 
   let create thread = { thread }
 
-  let use_with_config ?name t ~doc ~config ~f =
+  let use_with_config t ~(log_info : Lsp_timing_logger.t) ~doc ~config ~f =
     let make_pipeline =
       let source = Msource.make (Text_document.text doc) in
       fun () -> Mpipeline.make config source
@@ -156,11 +156,11 @@ end = struct
     let task =
       match
         Lev_fiber.Thread.task t.thread ~f:(fun () ->
-          let start = Unix.time () in
+          let start = Unix.gettimeofday () in
           let pipeline = make_pipeline () in
           let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
-          let stop = Unix.time () in
-          res, start, stop)
+          let stop = Unix.gettimeofday () in
+          res, start, stop, Mpipeline.timing_information pipeline)
       with
       | Error `Stopped -> assert false
       | Ok task -> task
@@ -168,27 +168,33 @@ end = struct
     let* res = await task in
     match res with
     | Error exn -> Fiber.return (Error exn)
-    | Ok (res, start, stop) ->
+    | Ok (res, start, stop, timing_breakdown) ->
       let event =
         let module Event = Chrome_trace.Event in
         let dur = Event.Timestamp.of_float_seconds (stop -. start) in
         let fields =
-          let name = Option.value name ~default:"unknown" in
           Event.common_fields
             ~cat:[ "merlin" ]
             ~ts:(Event.Timestamp.of_float_seconds start)
-            ~name
+            ~name:log_info.action
             ()
         in
         Event.complete ~dur fields
+      in
+      (* Convert the total time to milliseconds to be consistent with the merlin timing *)
+      let () =
+        Lsp_timing_logger.log_merlin_timing
+          ~wall_time:((stop -. start) *. 1000.)
+          ~timing_breakdown
+          log_info
       in
       let+ () = Metrics.report event in
       Ok res
   ;;
 
-  let use ?name t ~doc ~config ~f =
+  let use t ~log_info ~doc ~config ~f =
     let* config = Merlin_config.config config in
-    use_with_config ?name t ~doc ~config ~f
+    use_with_config t ~log_info ~doc ~config ~f
   ;;
 end
 
@@ -291,36 +297,37 @@ module Merlin = struct
     | None -> Kind.unsupported (Text_document.documentUri t.tdoc)
   ;;
 
-  let with_pipeline ?name (t : t) f =
-    Single_pipeline.use ?name t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
+  let with_pipeline ~log_info (t : t) f =
+    Single_pipeline.use ~log_info t.pipeline ~doc:t.tdoc ~config:t.merlin_config ~f
   ;;
 
-  let with_configurable_pipeline ?name ~config (t : t) f =
-    Single_pipeline.use_with_config ?name t.pipeline ~doc:t.tdoc ~config ~f
+  let with_configurable_pipeline ~log_info ~config (t : t) f =
+    Single_pipeline.use_with_config ~log_info t.pipeline ~doc:t.tdoc ~config ~f
   ;;
 
   let mconfig (t : t) = Merlin_config.config t.merlin_config
 
-  let with_pipeline_exn ?name doc f =
-    let+ res = with_pipeline ?name doc f in
+  let with_pipeline_exn ~log_info doc f =
+    let+ res = with_pipeline ~log_info doc f in
     match res with
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
-  let with_configurable_pipeline_exn ?name ~config doc f =
-    let+ res = with_configurable_pipeline ?name ~config doc f in
+  let with_configurable_pipeline_exn ~log_info ~config doc f =
+    let+ res = with_configurable_pipeline ~log_info ~config doc f in
     match res with
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
-  let dispatch ?name t command =
-    with_pipeline ?name t (fun pipeline -> Query_commands.dispatch pipeline command)
+  let dispatch ~log_info t command =
+    with_pipeline ~log_info t (fun pipeline -> Query_commands.dispatch pipeline command)
   ;;
 
-  let dispatch_exn ?name t command =
-    with_pipeline_exn ?name t (fun pipeline -> Query_commands.dispatch pipeline command)
+  let dispatch_exn ~log_info t command =
+    with_pipeline_exn ~log_info t (fun pipeline ->
+      Query_commands.dispatch pipeline command)
   ;;
 
   let doc_comment pipeline pos =
@@ -333,6 +340,10 @@ module Merlin = struct
     | _ -> None
   ;;
 
+  (* TODO: If we actually start using this, we should update this function to call
+     log_merlin_timing (and refactor Single_pipeline.use_with_config to pull out the code
+     that grabs the timing info so this can call it). Right now this it's only being used
+     in the type_enclosing call below, so we just log it there. *)
   let syntax_doc pipeline pos =
     let res =
       let command = Query_protocol.Syntax_document pos in
@@ -343,15 +354,31 @@ module Merlin = struct
     | `No_documentation -> None
   ;;
 
+  let stack_or_heap_enclosing pipeline pos loc =
+    let res =
+      (* passing [true] here makes the request in "lsp compatibility" mode, which adjusts
+         some ranges to better align with type-enclosing behavior *)
+      let command = Query_protocol.Stack_or_heap_enclosing (pos, true, Some 0) in
+      Query_commands.dispatch pipeline command
+    in
+    List.find_map res ~f:(fun (loc', stack_or_heap) ->
+      match Loc.compare loc loc', stack_or_heap with
+      | 0, `String msg ->
+        (* matches type-enclosing range and has a stack-or-heap message*)
+        Some msg
+      | _ -> None)
+  ;;
+
   type type_enclosing =
     { loc : Loc.t
     ; typ : string
     ; doc : string option
+    ; stack_or_heap : string option
     ; syntax_doc : Query_protocol.syntax_doc_result option
     }
 
-  let type_enclosing ?name doc pos verbosity ~with_syntax_doc =
-    with_pipeline_exn ?name doc (fun pipeline ->
+  let type_enclosing ~(log_info : Lsp_timing_logger.t) doc pos verbosity ~with_syntax_doc =
+    with_pipeline_exn ~log_info doc (fun pipeline ->
       let command = Query_protocol.Type_enclosing (None, pos, Some 0) in
       let pipeline =
         match verbosity with
@@ -369,16 +396,17 @@ module Merlin = struct
       | [] | (_, `Index _, _) :: _ -> None
       | (loc, `String typ, _) :: _ ->
         let doc = doc_comment pipeline pos in
+        let stack_or_heap = stack_or_heap_enclosing pipeline pos loc in
         let syntax_doc =
           match with_syntax_doc with
           | true -> syntax_doc pipeline pos
           | false -> None
         in
-        Some { loc; typ; doc; syntax_doc })
+        Some { loc; typ; doc; stack_or_heap; syntax_doc })
   ;;
 
-  let doc_comment ?name doc pos =
-    with_pipeline_exn ?name doc (fun pipeline -> doc_comment pipeline pos)
+  let doc_comment ~(log_info : Lsp_timing_logger.t) doc pos =
+    with_pipeline_exn ~log_info doc (fun pipeline -> doc_comment pipeline pos)
   ;;
 end
 

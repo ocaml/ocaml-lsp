@@ -8,7 +8,7 @@ type invalid_utf =
 exception Invalid_utf of invalid_utf
 
 let () =
-  Printexc.register_printer (function
+  (Printexc.register_printer [@ocaml.alert "-unsafe_multidomain"]) (function
     | Invalid_utf (Malformed s) -> Some (sprintf "malformed %S" s)
     | Invalid_utf Insufficient_input -> Some "insufficient input"
     | _ -> None)
@@ -20,9 +20,8 @@ module T = struct
     ; rel_pos : int (** the cursor's position inside [current] *)
     ; abs_pos : int (** the total length of strings in [left] *)
     ; current : Substring.t
-      (** [current] needed to prevent fragmentation of the substring. E.g.
-        so that moving inside the substring doesn't create unnecessary
-        splits *)
+    (** [current] needed to prevent fragmentation of the substring. E.g. so that moving
+        inside the substring doesn't create unnecessary splits *)
     ; line : int (** the number of '\n' characters traversed past the current position *)
     ; right : Substring.t list
     }

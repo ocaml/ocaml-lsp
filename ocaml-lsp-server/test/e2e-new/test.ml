@@ -74,23 +74,31 @@ module T : sig
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> (unit Client.t -> 'a Fiber.t)
-    -> Unix.process_status * 'a
+    -> (Unix.process_status * 'a) Async.Deferred.t
 
   val run
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> (unit Client.t -> 'a Fiber.t)
-    -> 'a
+    -> 'a Async.Deferred.t
 end = struct
   let _PATH = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
   let bin = Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
+
+  let add_testing_framework env =
+    (* [am_running_test] checks for the presence of the TESTING_FRAMEWORK environment
+       variable. When building with external dune, we have to add it manually. *)
+    if Array.exists env ~f:(fun v -> String.starts_with v ~prefix:"TESTING_FRAMEWORK")
+    then env
+    else Array.append env [| "TESTING_FRAMEWORK=unknown" |]
+  ;;
 
   let run_with_status ?(extra_env = []) ?handler f =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
       let env =
-        let current = Unix.environment () in
+        let current = Unix.environment () |> add_testing_framework in
         Array.to_list current @ extra_env |> Spawn.Env.of_list
       in
       Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ()
@@ -104,7 +112,7 @@ end = struct
     in
     let init =
       let blockity =
-        if Sys.win32
+        if Stdlib.Sys.win32
         then `Blocking
         else (
           Unix.set_nonblock stdout_i;
@@ -129,32 +137,36 @@ end = struct
       let cancelled = ref false in
       Fiber.fork_and_join_unit
         (fun () ->
-           Lev_fiber.Timer.Wheel.await timeout
-           >>| function
-           | `Cancelled -> ()
-           | `Ok ->
-             Unix.kill pid Sys.sigkill;
-             cancelled := true)
+          Lev_fiber.Timer.Wheel.await timeout
+          >>| function
+          | `Cancelled -> ()
+          | `Ok ->
+            Unix.kill pid Stdlib.Sys.sigkill;
+            cancelled := true)
         (fun () ->
-           let* (server_exit_status : Unix.process_status) = Lev_fiber.waitpid ~pid in
-           let+ () =
-             if !cancelled then Fiber.return () else Lev_fiber.Timer.Wheel.cancel timeout
-           in
-           server_exit_status)
+          let* (server_exit_status : Unix.process_status) = Lev_fiber.waitpid ~pid in
+          let+ () =
+            if !cancelled then Fiber.return () else Lev_fiber.Timer.Wheel.cancel timeout
+          in
+          server_exit_status)
     in
-    Lev_fiber.run (fun () ->
-      let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in
-      let+ res = init
-      and+ status =
-        Fiber.fork_and_join_unit
-          (fun () -> Lev_fiber.Timer.Wheel.run wheel)
-          (fun () -> waitpid wheel)
-      in
-      status, res)
-    |> Lev_fiber.Error.ok_exn
+    let fiber =
+      Fiber.of_thunk (fun () ->
+        let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in
+        let+ res = init
+        and+ status =
+          Fiber.fork_and_join_unit
+            (fun () -> Lev_fiber.Timer.Wheel.run wheel)
+            (fun () -> waitpid wheel)
+        in
+        status, res)
+    in
+    Fiber_async.deferred_of_fiber fiber ()
   ;;
 
-  let run ?extra_env ?handler f = snd @@ run_with_status ?extra_env ?handler f
+  let run ?extra_env ?handler f =
+    Async.Deferred.map (run_with_status ?extra_env ?handler f) ~f:snd
+  ;;
 end
 
 include T

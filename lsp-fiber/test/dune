@@ -4,26 +4,32 @@
  (name lsp_fiber_tests)
  (inline_tests)
  (preprocess
-  (pps ppx_expect))
+  (pps ppx_let ppx_expect))
  (enabled_if
   (>= %{ocaml_version} 4.08))
  (libraries
+  async
+  async_kernel
   base
   fiber
+  fiber_async
   fiber_test
-  lev
-  lev_fiber
+  lev_fiber_async
   jsonrpc
   jsonrpc_fiber
   lsp
   lsp_fiber
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
-  ppx_expect
   ppx_expect.config
   ppx_expect.config_types
+  ppx_expect.runtime_types
   ppx_inline_test.config
   ppx_yojson_conv_lib
   stdune
   threads.posix
-  yojson))
+  yojson)
+ (flags (
+  :standard
+  -open
+  Lev_fiber_async)))

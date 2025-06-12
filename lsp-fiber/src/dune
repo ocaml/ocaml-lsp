@@ -3,7 +3,7 @@
  (libraries
   dyn
   fiber
-  lev_fiber
+  lev_fiber_async
   jsonrpc
   jsonrpc_fiber
   lsp
@@ -11,4 +11,8 @@
   stdune
   yojson)
  (instrumentation
-  (backend bisect_ppx)))
+  (backend bisect_ppx))
+ (flags (
+   :standard
+   -open
+   Lev_fiber_async)))

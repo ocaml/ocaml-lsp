@@ -25,5 +25,23 @@ val update_semantic_tokens_cache
 val get_semantic_tokens_cache : t -> Uri.t -> semantic_tokens_cache option
 val close_document : t -> Uri.t -> unit Fiber.t
 val fold : t -> init:'acc -> f:(Document.t -> 'acc -> 'acc) -> 'acc
-val parallel_iter : t -> f:(Document.t -> unit Fiber.t) -> unit Fiber.t
+
+(** Since iterating over all documents can be a source of slowness, we allow the caller to
+    specify a way of filtering and a max number of documents to iterate over. *)
+val docs_to_iter : ?max_docs:int -> filter:(Document.t -> bool) -> t -> Document.t list
+
+val parallel_iter
+  :  ?max_docs:int
+  -> ?filter:(Document.t -> bool)
+  -> t
+  -> f:(Document.t -> unit Fiber.t)
+  -> unit Fiber.t
+
+val sequential_iter
+  :  ?max_docs:int
+  -> ?filter:(Document.t -> bool)
+  -> t
+  -> f:(Document.t -> unit Fiber.t)
+  -> unit Fiber.t
+
 val close_all : t -> unit Fiber.t

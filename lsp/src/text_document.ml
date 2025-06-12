@@ -29,10 +29,10 @@ type t =
 let position_encoding t = t.position_encoding
 
 let make
-      ~position_encoding
-      { DidOpenTextDocumentParams.textDocument =
-          { TextDocumentItem.languageId; text; uri; version }
-      }
+  ~position_encoding
+  { DidOpenTextDocumentParams.textDocument =
+      { TextDocumentItem.languageId; text; uri; version }
+  }
   =
   let zipper = String_zipper.of_string text in
   { text = Some text; position_encoding; zipper; uri; version; languageId }

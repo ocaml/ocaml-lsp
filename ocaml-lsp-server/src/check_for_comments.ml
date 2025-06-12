@@ -1,6 +1,6 @@
 open Import
 
-let position_in_comment ~position ~merlin =
+let position_in_comment ~log_info ~position ~merlin =
   let loc_contains_position (_, (loc : Loc.t)) =
     let start = Position.of_lexical_position loc.loc_start in
     let end_ = Position.of_lexical_position loc.loc_end in
@@ -12,6 +12,6 @@ let position_in_comment ~position ~merlin =
        | `Outside _ -> false)
     | None -> false
   in
-  Document.Merlin.with_pipeline_exn ~name:"get-comments" merlin (fun pipeline ->
+  Document.Merlin.with_pipeline_exn ~log_info merlin (fun pipeline ->
     Mpipeline.reader_comments pipeline |> List.exists ~f:loc_contains_position)
 ;;

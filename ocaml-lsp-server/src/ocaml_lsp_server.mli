@@ -1,4 +1,6 @@
-val run : Lsp.Cli.Channel.t -> read_dot_merlin:bool -> unit -> unit
+open Async
+
+val run : Lsp.Cli.Channel.t -> dot_merlin:string option -> unit Deferred.t
 
 module Diagnostics = Diagnostics
 module Version = Version

@@ -16,5 +16,12 @@ let%expect_test "eat_message tests" =
   test "foobar" "foo bar" false;
   [%expect {| [PASS] |}];
   test "foo bar" "foo Bar" false;
+  [%expect {| [PASS] |}];
+  (* Make sure errnos get filtered out *)
+  test "Error (warning 123123): foo" "foo" true;
+  [%expect {| [PASS] |}];
+  test "foo" "Error (warning 123123): foo" true;
+  [%expect {| [PASS] |}];
+  test "foo: bar" "bar" false;
   [%expect {| [PASS] |}]
 ;;

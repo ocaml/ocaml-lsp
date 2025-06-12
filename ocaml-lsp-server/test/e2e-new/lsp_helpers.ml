@@ -1,7 +1,5 @@
 open Test.Import
 
-let change_config ~client params = Client.notification client (ChangeConfiguration params)
-
 let open_document ~client ~uri ~source =
   let textDocument =
     TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
@@ -11,15 +9,18 @@ let open_document ~client ~uri ~source =
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
 ;;
 
-let create_handler_with_diagnostics_callbacks ~got_diagnostics ~diagnostics_callback =
-  Client.Handler.make ~on_notification:(fun _ -> function
-    | PublishDiagnostics diagnostics ->
-      let () = diagnostics_callback diagnostics in
-      let* diag = Fiber.Ivar.peek got_diagnostics in
-      (match diag with
-       | Some _ -> Fiber.return ()
-       | None -> Fiber.Ivar.fill got_diagnostics ())
-    | _ -> Fiber.return ())
+let create_handler_with_diagnostics_callback ~got_diagnostics ~diagnostics_callback =
+  (* Calls [diagnostics_callback] and fills [got_diagnostics] when receiving diagnostics. *)
+  Client.Handler.make
+    ~on_notification:(fun _ -> function
+      | PublishDiagnostics diagnostics ->
+        diagnostics_callback diagnostics;
+        let* diag = Fiber.Ivar.peek got_diagnostics in
+        (match diag with
+         | Some _ -> Fiber.return ()
+         | None -> Fiber.Ivar.fill got_diagnostics ())
+      | _ -> Fiber.return ())
+    ()
 ;;
 
 let create_client client =
@@ -37,7 +38,7 @@ let create_client client =
 ;;
 
 let open_document_with_client ~prep ~path ~source client =
-  let* _ = Client.initialized client in
+  let* (_ : InitializeResult.t) = Client.initialized client in
   let* () =
     let settings = `Assoc [ "merlinDiagnostics", `Assoc [ "enable", `Bool true ] ] in
     Client.notification client (ChangeConfiguration { settings })
@@ -48,42 +49,25 @@ let open_document_with_client ~prep ~path ~source client =
 ;;
 
 let iter_lsp_response
-      ?(prep = fun _ -> Fiber.return ())
-      ?(path = "foo.ml")
-      ~makeRequest
-      ~source
-      k
+  ?(prep = fun _ -> Fiber.return ())
+  ?(path = "foo.ml")
+  ~makeRequest
+  ~source
+  k
   =
   let got_diagnostics = Fiber.Ivar.create () in
   let handler =
-    Client.Handler.make
-      ~on_notification:(fun _ -> function
-         | PublishDiagnostics _ ->
-           let* diag = Fiber.Ivar.peek got_diagnostics in
-           (match diag with
-            | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill got_diagnostics ())
-         | _ -> Fiber.return ())
-      ()
+    create_handler_with_diagnostics_callback
+      ~got_diagnostics
+      ~diagnostics_callback:(fun _ -> ())
   in
   Test.run ~handler
   @@ fun client ->
-  let run_client () =
-    let capabilities =
-      let window =
-        let showDocument = ShowDocumentClientCapabilities.create ~support:true in
-        WindowClientCapabilities.create ~showDocument ()
-      in
-      ClientCapabilities.create ~window ()
-    in
-    Client.start client (InitializeParams.create ~capabilities ())
-  in
+  let run_client = create_client client in
   let run =
-    let* (_ : InitializeResult.t) = Client.initialized client in
-    let uri = DocumentUri.of_path path in
-    let* () = prep client in
-    let* () = open_document ~client ~uri ~source in
+    let* () = open_document_with_client ~prep ~path ~source client in
     let+ resp =
+      let uri = DocumentUri.of_path path in
       let request =
         let textDocument = TextDocumentIdentifier.create ~uri in
         makeRequest textDocument
@@ -97,15 +81,15 @@ let iter_lsp_response
 ;;
 
 let open_document_with_diagnostics_callback
-      ?(prep = fun _ -> Fiber.return ())
-      ?(path = "foo.ml")
-      ~source
-      ~diagnostics_callback
-      ()
+  ?(prep = fun _ -> Fiber.return ())
+  ?(path = "foo.ml")
+  ~source
+  ~diagnostics_callback
+  ()
   =
   let got_diagnostics = Fiber.Ivar.create () in
   let handler =
-    create_handler_with_diagnostics_callbacks ~got_diagnostics ~diagnostics_callback ()
+    create_handler_with_diagnostics_callback ~got_diagnostics ~diagnostics_callback
   in
   Test.run ~handler
   @@ fun client ->

@@ -10,18 +10,19 @@
   (enabled_if
    (= %{os_type} Unix))
   (deps
-   %{bin:ocamlformat-rpc}
+;   %{bin:ocamlformat-rpc}
    for_ppx.ml
-   for_pp.ml
    (package ocaml-lsp-server)))
  (libraries
-  unix
-  stdune
+  async
+  async_kernel
+  base
+  core
+  expectree
   fiber
+  fiber_async
   yojson
-  ppx_yojson_conv_lib
-  lev_fiber
-  lev
+  lev_fiber_async
   ocaml_lsp_server
   spawn
   jsonrpc
@@ -29,45 +30,15 @@
   lsp_fiber
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
-  base
-  ppx_expect
   ppx_expect.config
   ppx_expect.config_types
-  ppx_inline_test.config)
- (preprocess
-  (per_module
-   ((action
-     (run sed "s/world/universe/g" %{input-file}))
-    for_pp)
-   ((pps ppx_expect)
-    action_extract
-    action_inline
-    action_mark_remove
-    code_actions
-    completion
-    completions
-    construct
-    doc_to_md
-    document_flow
-    exit_notification
-    for_ppx
-    hover_extended
-    inlay_hints
-    jump_to_typed_hole
-    merlin_call_compatible
-    diagnostics_filter
-    metrics
-    semantic_hl_data
-    semantic_hl_helpers
-    semantic_hl_tests
-    start_stop
-    syntax_doc_tests
-    test
-    type_enclosing
-    documentation
-    document_symbol
-    merlin_jump
-    type_search
-    with_pp
-    with_ppx
-    workspace_change_config))))
+  ppx_expect.runtime_types
+  ppx_inline_test.config
+  ppx_yojson_conv_lib
+  stdune
+  unix)
+ (preprocess (pps ppx_jane))
+ (flags (
+   :standard
+   -open
+   Lev_fiber_async)))

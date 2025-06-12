@@ -34,10 +34,10 @@ let modifiers ~(legend : string array) (encoded_mods : int) =
 ;;
 
 let annotate_src_with_tokens
-      ~(legend : SemanticTokensLegend.t)
-      ~(encoded_tokens : int array)
-      ~(annot_mods : bool)
-      (src : string)
+  ~(legend : SemanticTokensLegend.t)
+  ~(encoded_tokens : int array)
+  ~(annot_mods : bool)
+  (src : string)
   : string
   =
   let token_types = legend.SemanticTokensLegend.tokenTypes |> Array.of_list in
@@ -111,5 +111,6 @@ let jar = dar|}
   [%expect
     {|
     let <var-0>foo</0> = <var-1>bar</1>
-    let <var-2>jar</2> = <mod-3>dar</3> |}]
+    let <var-2>jar</2> = <mod-3>dar</3>
+    |}]
 ;;

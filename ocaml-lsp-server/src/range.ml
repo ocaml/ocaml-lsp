@@ -7,6 +7,8 @@ let compare (x : t) (y : t) =
   | Ordering.Eq -> Position.compare x.end_ y.end_
 ;;
 
+let equal x y = Ordering.is_eq (compare x y)
+
 let to_dyn { start; end_ } =
   Dyn.record [ "start", Position.to_dyn start; "end_", Position.to_dyn end_ ]
 ;;

@@ -41,9 +41,7 @@ let%expect_test "start and stop server" =
     Fiber.fork_and_join_unit (fun () -> run) (fun () -> Jrpc.stop jrpc)
   in
   let () = Fiber_test.test Dyn.opaque run in
-  [%expect
-    {|
-    <opaque> |}]
+  [%expect {| <opaque> |}]
 ;;
 
 let%expect_test "server accepts notifications" =
@@ -66,7 +64,8 @@ let%expect_test "server accepts notifications" =
   [%expect
     {|
     received notification
-    <opaque> |}]
+    <opaque>
+    |}]
 ;;
 
 let of_ref ref =
@@ -104,7 +103,8 @@ let%expect_test "serving requests" =
   [%expect
     {|
     { "id": 1, "jsonrpc": "2.0", "result": "response" }
-    <opaque> |}]
+    <opaque>
+    |}]
 ;;
 
 (* The current client/server implement has no concurrent handling of requests.
@@ -191,7 +191,8 @@ let%expect_test "concurrent requests" =
     { "id": "initial", "jsonrpc": "2.0", "result": null }
     waiter: received response:
     { "id": 100, "jsonrpc": "2.0", "result": 42 }
-    [FAIL] unexpected Never raised |}]
+    [FAIL] unexpected Never raised
+    |}]
 ;;
 
 let%expect_test "test from jsonrpc_test.ml" =
@@ -260,7 +261,8 @@ let%expect_test "test from jsonrpc_test.ml" =
     [ { exn = "Failure(\"special failure\")"; backtrace = "" } ]
     <opaque>
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
-    { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
+    { "id": "testing", "jsonrpc": "2.0", "result": 2 }
+    |}]
 ;;
 
 let%expect_test "cancellation" =
@@ -338,5 +340,6 @@ let%expect_test "cancellation" =
     client: got server ack, cancelling request
     request has been cancelled
     server: got client ack, sending response
-    <opaque> |}]
+    <opaque>
+    |}]
 ;;

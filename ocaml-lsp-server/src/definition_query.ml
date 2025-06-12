@@ -2,20 +2,19 @@ open Import
 open Fiber.O
 
 let location_of_merlin_loc uri : _ -> (_, string) result = function
-  | `At_origin -> Error "Already at definition point"
-  | `Builtin s ->
-    Error (sprintf "%S is a builtin, it is not possible to jump to its definition" s)
+  | `At_origin -> Ok None
+  | `Builtin _ -> Ok None
   | `File_not_found s -> Error (sprintf "File_not_found: %s" s)
-  | `Invalid_context -> Error "Not a valid identifier"
+  | `Invalid_context -> Ok None
   | `Not_found (ident, where) ->
     let msg =
-      let msg = sprintf "%S not found." ident in
+      let msg = sprintf "%s not found." ident in
       match where with
       | None -> msg
       | Some w -> sprintf "%s last looked in %s" msg w
     in
     Error msg
-  | `Not_in_env m -> Error (sprintf "Not in environment: %s" m)
+  | `Not_in_env m -> Error (sprintf "not in environment: %s" m)
   | `Found (path, lex_position) ->
     Ok
       (Position.of_lexical_position lex_position
@@ -30,20 +29,20 @@ let location_of_merlin_loc uri : _ -> (_, string) result = function
          `Location locs))
 ;;
 
-let run kind (state : State.t) uri position =
+let run ~log_info kind (state : State.t) uri position =
   let* () = Fiber.return () in
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc ->
-    let command, name =
+    let command =
       let pos = Position.logical position in
       match kind with
-      | `Definition -> Query_protocol.Locate (None, `ML, pos), "definition"
-      | `Declaration -> Query_protocol.Locate (None, `MLI, pos), "declaration"
-      | `Type_definition -> Query_protocol.Locate_type pos, "type definition"
+      | `Definition -> Query_protocol.Locate (None, `ML, pos, None)
+      | `Declaration -> Query_protocol.Locate (None, `MLI, pos, None)
+      | `Type_definition -> Query_protocol.Locate_type pos
     in
-    let* result = Document.Merlin.dispatch_exn ~name doc command in
+    let* result = Document.Merlin.dispatch_exn ~log_info doc command in
     (match location_of_merlin_loc uri result with
      | Ok s -> Fiber.return s
      | Error err_msg ->
@@ -57,6 +56,7 @@ let run kind (state : State.t) uri position =
          (Jsonrpc.Response.Error.make
             ~code:Jsonrpc.Response.Error.Code.RequestFailed
             ~message:(sprintf "Request \"Jump to %s\" failed." kind)
-            ~data:(`String (sprintf "Locate: %s" err_msg))
+            ~data:
+              (`String (sprintf "'Locate' query to merlin returned error: %s" err_msg))
             ()))
 ;;

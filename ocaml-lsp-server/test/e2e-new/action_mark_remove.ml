@@ -1,14 +1,16 @@
+open Async
 open Test.Import
 
 let run_test ~title ~message source =
   let src, range = Code_actions.parse_selection source in
-  Option.iter
-    (Code_actions.apply_code_action
-       ~diagnostics:[ Diagnostic.create ~message:(`String message) ~range () ]
-       title
-       src
-       range)
-    ~f:print_string
+  let%map result =
+    Code_actions.apply_code_action
+      ~diagnostics:[ Diagnostic.create ~message:(`String message) ~range () ]
+      title
+      src
+      range
+  in
+  Option.iter result ~f:print_string
 ;;
 
 let mark_test = function
@@ -31,61 +33,73 @@ let remove_test = function
 ;;
 
 let%expect_test "mark value in let" =
-  mark_test
-    `Value
-    {|
+  let%map () =
+    mark_test
+      `Value
+      {|
 let f =
   let $x$ = 1 in
   0
-|};
+|}
+  in
   [%expect
     {|
     let f =
       let _x = 1 in
-      0 |}]
+      0
+    |}]
 ;;
 
 (* todo *)
 let%expect_test "mark value in top level let" =
-  mark_test
-    `Value
-    {|
+  let%map () =
+    mark_test
+      `Value
+      {|
 let $f$ =
   let x = 1 in
   0
-|};
+|}
+  in
   [%expect
     {|
     let _f =
       let x = 1 in
-      0 |}]
+      0
+    |}]
 ;;
 
 let%expect_test "mark value in match" =
-  mark_test
-    `Value
-    {|
+  let%map () =
+    mark_test
+      `Value
+      {|
 let f = function
   | $x$ -> 0
-|};
+|}
+  in
   [%expect
     {|
     let f = function
-      | _x -> 0 |}]
+      | _x -> 0
+    |}]
 ;;
 
 let%expect_test "remove value in let" =
-  remove_test
-    `Value
-    {|
+  let%map () =
+    remove_test
+      `Value
+      {|
 let f =
   let $x$ = 1 in
   0
-|};
+|}
+  in
   [%expect
     {|
     let f =
-      0 |}]
+      0
+    |}]
 ;;
 
 (* todo *)
@@ -100,38 +114,45 @@ let $f$ =
 ;;
 
 let%expect_test "mark open" =
-  mark_test
-    `Open
-    {|
+  let%map () =
+    mark_test
+      `Open
+      {|
 $open M$
-|};
+|}
+  in
   [%expect {| open! M |}]
 ;;
 
 let%expect_test "mark for loop index" =
-  mark_test
-    `For_loop_index
-    {|
+  let%map () =
+    mark_test
+      `For_loop_index
+      {|
 let () =
   for $i$ = 0 to 10 do
     ()
   done
-|};
+|}
+  in
   [%expect
     {|
     let () =
       for _i = 0 to 10 do
         ()
-      done |}]
+      done
+    |}]
 ;;
 
 let%expect_test "remove open" =
-  remove_test
-    `Open
-    {|
+  let%map () =
+    remove_test
+      `Open
+      {|
 open A
 $open B$
-|};
+|}
+  in
   [%expect {| open A |}]
 ;;
 
@@ -145,97 +166,117 @@ $open! B$
 ;;
 
 let%expect_test "remove type" =
-  remove_test
-    `Type
-    {|
+  let%map () =
+    remove_test
+      `Type
+      {|
 $type t = int$
 type s = bool
-|};
+|}
+  in
   [%expect {| type s = bool |}]
 ;;
 
 let%expect_test "remove module" =
-  remove_test
-    `Module
-    {|
+  let%map () =
+    remove_test
+      `Module
+      {|
 $module A = struct end$
 module B = struct end
-|};
+|}
+  in
   [%expect {| module B = struct end |}]
 ;;
 
 let%expect_test "remove case" =
-  remove_test
-    `Case
-    {|
+  let%map () =
+    remove_test
+      `Case
+      {|
 let f = function
  | 0 -> 0
  | $0 -> 1$
-|};
+|}
+  in
   [%expect
     {|
     let f = function
-     | 0 -> 0 |}]
+     | 0 -> 0
+    |}]
 ;;
 
 let%expect_test "remove rec flag" =
-  remove_test
-    `Rec
-    {|
+  let%map () =
+    remove_test
+      `Rec
+      {|
 let rec $f$ = 0
-|};
+|}
+  in
   [%expect {| let  f = 0 |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test
-    `Constructor
-    {|
+  let%map () =
+    remove_test
+      `Constructor
+      {|
 type t = A $| B$
-|};
+|}
+  in
   [%expect {| type t = A |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test
-    `Constructor
-    {|
+  let%map () =
+    remove_test
+      `Constructor
+      {|
 type t =
   | A
  $| B$
-|};
+|}
+  in
   [%expect
     {|
     type t =
-      | A |}]
+      | A
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test
-    `Constructor
-    {|
+  let%map () =
+    remove_test
+      `Constructor
+      {|
 type t =
  $| A$
  | B
-|};
+|}
+  in
   [%expect
     {|
     type t =
 
-     | B |}]
+     | B
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test
-    `Constructor
-    {|
+  let%map () =
+    remove_test
+      `Constructor
+      {|
 type t =
  $A$
  | B
-|};
+|}
+  in
   [%expect
     {|
     type t =
 
-     | B |}]
+     | B
+    |}]
 ;;
