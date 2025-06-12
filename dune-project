@@ -1,6 +1,7 @@
 (lang dune 3.0)
 (using cinaps 1.0)
 (name lsp)
+(version "1.19.0+jst")
 
 (implicit_transitive_deps false)
 
@@ -38,7 +39,7 @@ possible and does not make any assumptions about IO.
   (uutf (>= 1.0.2))
   (odoc :with-doc)
   (ocaml (>= 4.14))
-  (ppx_yojson_conv :with-dev-setup)))
+  ppx_yojson_conv))
 
 (package
  (name ocaml-lsp-server)
@@ -56,7 +57,7 @@ possible and does not make any assumptions about IO.
   dyn
   stdune
   (fiber (and (>= 3.1.1) (< 4.0.0)))
-  (ocaml (and (>= 5.3) (< 5.4)))
+  ocaml
   xdg
   ordering
   dune-build-info
@@ -70,8 +71,12 @@ possible and does not make any assumptions about IO.
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (merlin-lib (and (>= 5.4) (< 6.0)))
-  (ppx_yojson_conv :with-dev-setup)))
+  (odoc-parser (= 2.0.0))
+  (merlin-lib (= "5.2.1-502+jst"))
+  ppx_yojson_conv
+  core_unix
+  async
+  cmarkit))
 
 (package
  (name jsonrpc)
@@ -79,4 +84,5 @@ possible and does not make any assumptions about IO.
  (description "See https://www.jsonrpc.org/specification")
  (depends
   (ocaml (>= 4.08))
-  (odoc :with-doc)))
+  (odoc :with-doc)
+  (yojson (and (>= 2.0.0) (< 3.0.0)))))
