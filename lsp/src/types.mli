@@ -3053,7 +3053,7 @@ module DocumentDiagnosticReport : sig
   type t =
     [ `RelatedFullDocumentDiagnosticReport of RelatedFullDocumentDiagnosticReport.t
     | `RelatedUnchangedDocumentDiagnosticReport of
-      RelatedUnchangedDocumentDiagnosticReport.t
+        RelatedUnchangedDocumentDiagnosticReport.t
     ]
 
   include Json.Jsonable.S with type t := t
@@ -4201,7 +4201,7 @@ module ServerCapabilities : sig
         [ `Bool of bool
         | `LinkedEditingRangeOptions of LinkedEditingRangeOptions.t
         | `LinkedEditingRangeRegistrationOptions of
-          LinkedEditingRangeRegistrationOptions.t
+            LinkedEditingRangeRegistrationOptions.t
         ]
           option
     ; monikerProvider :
@@ -4213,7 +4213,7 @@ module ServerCapabilities : sig
     ; notebookDocumentSync :
         [ `NotebookDocumentSyncOptions of NotebookDocumentSyncOptions.t
         | `NotebookDocumentSyncRegistrationOptions of
-          NotebookDocumentSyncRegistrationOptions.t
+            NotebookDocumentSyncRegistrationOptions.t
         ]
           option
     ; positionEncoding : PositionEncodingKind.t option
@@ -4320,7 +4320,7 @@ module ServerCapabilities : sig
          [ `Bool of bool
          | `LinkedEditingRangeOptions of LinkedEditingRangeOptions.t
          | `LinkedEditingRangeRegistrationOptions of
-           LinkedEditingRangeRegistrationOptions.t
+             LinkedEditingRangeRegistrationOptions.t
          ]
     -> ?monikerProvider:
          [ `Bool of bool
@@ -4330,7 +4330,7 @@ module ServerCapabilities : sig
     -> ?notebookDocumentSync:
          [ `NotebookDocumentSyncOptions of NotebookDocumentSyncOptions.t
          | `NotebookDocumentSyncRegistrationOptions of
-           NotebookDocumentSyncRegistrationOptions.t
+             NotebookDocumentSyncRegistrationOptions.t
          ]
     -> ?positionEncoding:PositionEncodingKind.t
     -> ?referencesProvider:[ `Bool of bool | `ReferenceOptions of ReferenceOptions.t ]
@@ -5563,7 +5563,7 @@ module WorkspaceDocumentDiagnosticReport : sig
   type t =
     [ `WorkspaceFullDocumentDiagnosticReport of WorkspaceFullDocumentDiagnosticReport.t
     | `WorkspaceUnchangedDocumentDiagnosticReport of
-      WorkspaceUnchangedDocumentDiagnosticReport.t
+        WorkspaceUnchangedDocumentDiagnosticReport.t
     ]
 
   include Json.Jsonable.S with type t := t

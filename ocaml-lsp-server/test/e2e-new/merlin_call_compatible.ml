@@ -17,8 +17,10 @@ let call_merlin_compatible client command args result_as_sexp =
 ;;
 
 let%expect_test "case-analysis on simple example" =
-  let source = {|type t = {a: int * int; b: string}
-let f ({a; b} : t) = assert false|} in
+  let source =
+    {|type t = {a: int * int; b: string}
+let f ({a; b} : t) = assert false|}
+  in
   let request client =
     let open Fiber.O in
     let args = [ "-start"; "2:9"; "-end"; "2:9" ] in
@@ -53,8 +55,10 @@ let%expect_test "case-analysis on empty example" =
 ;;
 
 let%expect_test "case-analysis on simple example with result as sexp" =
-  let source = {|type t = {a: int * int; b: string}
-let f ({a; b} : t) = assert false|} in
+  let source =
+    {|type t = {a: int * int; b: string}
+let f ({a; b} : t) = assert false|}
+  in
   let request client =
     let open Fiber.O in
     let args = [ "-start"; "2:9"; "-end"; "2:9" ] in

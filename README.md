@@ -182,7 +182,7 @@ Semantic highlighting support is enabled by default.
 > since OCaml-LSP 1.14.0
 
 OCaml-LSP implements experimental semantic highlighting support (also known as
-semantic tokens support). The support can be activated by passing an evironment
+semantic tokens support). The support can be activated by passing an environment
 variable to OCaml-LSP:
 
 - To enable non-incremental (expectedly slower but more stable) version, pass
@@ -245,7 +245,7 @@ type t = A | B of string option
 let f (v : t) = match v with | A -> _ | B (None) | B (Some _) -> _
 ```
 
-Importantly, note the undescores in place of expressions in each branch of the
+Importantly, note the underscores in place of expressions in each branch of the
 pattern match above. The underscores that occur in place of expressions are
 called "typed holes" - a concept explained below.
 

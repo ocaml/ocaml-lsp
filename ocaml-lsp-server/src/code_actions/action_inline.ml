@@ -324,10 +324,10 @@ let inline_edits pipeline task =
   in
   (* inlining into an argument context has some special cases *)
   let arg_iter
-    env
-    (iter : I.iterator)
-    (label : Asttypes.arg_label)
-    (m_arg_expr : Typedtree.expression option)
+        env
+        (iter : I.iterator)
+        (label : Asttypes.arg_label)
+        (m_arg_expr : Typedtree.expression option)
     =
     match label, m_arg_expr with
     (* handle the labeled argument shorthand `f ~x` when inlining `x` *)

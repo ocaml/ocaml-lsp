@@ -59,13 +59,16 @@ let%expect_test "rsplit_at" =
   in
   let s = Substring.of_string "foo|bar" in
   test s 0;
-  [%expect {|
+  [%expect
+    {|
     "foo|bar" "" |}];
   test s 4;
-  [%expect {|
+  [%expect
+    {|
     "foo" "|bar" |}];
   test s 7;
-  [%expect {|
+  [%expect
+    {|
     "" "foo|bar" |}]
 ;;
 
@@ -88,23 +91,28 @@ let test f sub ~pos ~len =
 let%expect_test "move_left" =
   let test = test Substring.move_left in
   test "foobar" ~pos:3 ~len:2;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 0 consumed = 2 |}];
   test "foobar" ~pos:3 ~len:0;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 0 consumed = 0 |}];
   test "fo\no\nbar" ~pos:4 ~len:3;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 1 consumed = 3 |}];
   test "fo\no\nbar" ~pos:4 ~len:2;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 1 consumed = 2 |}];
   test "fo" ~pos:1 ~len:2;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 0 consumed = 1 |}]
 ;;
@@ -112,19 +120,23 @@ let%expect_test "move_left" =
 let%expect_test "move_right" =
   let test = test Substring.move_right in
   test "foobar" ~pos:3 ~len:2;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 0 consumed = 2 |}];
   test "foobar" ~pos:3 ~len:0;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 0 consumed = 0 |}];
   test "\n\nf" ~pos:2 ~len:3;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 0 consumed = 1 |}];
   test "fo\no\nbar" ~pos:4 ~len:2;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     newlines = 1 consumed = 2 |}]
 ;;
@@ -154,23 +166,28 @@ let%expect_test "rindex_from" =
         print res'))
   in
   test "foo" 0;
-  [%expect {|
+  [%expect
+    {|
   [definitive]
   not found |}];
   test "foo" 1;
-  [%expect {|
+  [%expect
+    {|
   [definitive]
   not found |}];
   test "\nfoo" 1;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     0 |}];
   test "\nfoo" 2;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     0 |}];
   test "\nfoo" 4;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     0 |}];
   test "\nfoo" 5;
@@ -179,7 +196,8 @@ let%expect_test "rindex_from" =
     [definitive]
     exception: Invalid_argument("Substring.rindex_from: out of bounds") |}];
   test "" 0;
-  [%expect {|
+  [%expect
+    {|
     [definitive]
     not found |}];
   test "" 1;

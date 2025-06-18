@@ -108,8 +108,8 @@ let ocaml =
     (Metamodel_lsp.t ()
      |> preprocess_metamodel#t
      |> (fun metamodel ->
-          let db = Metamodel.Entity.DB.create metamodel in
-          expand_superclasses db metamodel)
+     let db = Metamodel.Entity.DB.create metamodel in
+     expand_superclasses db metamodel)
      |> Typescript.of_metamodel
      |> Ocaml.of_typescript)
 ;;

@@ -86,16 +86,15 @@ let test
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
-      ~on_notification:(fun client ->
-        function
-        | Lsp.Server_notification.PublishDiagnostics _ ->
-          (* we don't want to close the connection from client-side before we
+      ~on_notification:(fun client -> function
+         | Lsp.Server_notification.PublishDiagnostics _ ->
+           (* we don't want to close the connection from client-side before we
              process diagnostics arrived on the channel. TODO: would a better
              solution be to simply flush on closing the connection because now
              semantic tokens tests is coupled to diagnostics *)
-          let+ () = Fiber.Ivar.fill wait_for_diagnostics () in
-          Client.state client
-        | _ -> Fiber.return ())
+           let+ () = Fiber.Ivar.fill wait_for_diagnostics () in
+           Client.state client
+         | _ -> Fiber.return ())
       ()
   in
   Test.run ~handler (fun client ->
@@ -216,13 +215,13 @@ let test_semantic_tokens_full_debug src =
   test
     ~src
     (fun p ->
-      UnknownRequest
-        { meth = semantic_tokens_full_debug
-        ; params =
-            Some (SemanticTokensParams.yojson_of_t p |> Jsonrpc.Structured.t_of_yojson)
-        })
+       UnknownRequest
+         { meth = semantic_tokens_full_debug
+         ; params =
+             Some (SemanticTokensParams.yojson_of_t p |> Jsonrpc.Structured.t_of_yojson)
+         })
     (fun { resp; _ } ->
-      resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline |> Fiber.return)
+       resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline |> Fiber.return)
 ;;
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =
@@ -672,7 +671,9 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
 ;;
 
 let%expect_test "highlighting longidents with space between identifiers" =
-  test_semantic_tokens_full @@ String.trim {|
+  test_semantic_tokens_full
+  @@ String.trim
+       {|
 let foo = Bar.jar
 
 let joo = Bar.   jar
@@ -686,7 +687,8 @@ let joo = Bar.   jar
 
 let%expect_test "highlighting longidents with space between identifiers and infix fns" =
   test_semantic_tokens_full
-  @@ String.trim {|
+  @@ String.trim
+       {|
 Bar.(+) ;;
 
 Bar.( + ) ;;
@@ -723,7 +725,8 @@ let x = { M . foo = 0 ; bar = "bar"}
 
 let%expect_test "operators" =
   test_semantic_tokens_full
-  @@ String.trim {|
+  @@ String.trim
+       {|
 let x = 1.0 *. 2.0
 let y = 1 * 2
 let z = 0 >>= 1

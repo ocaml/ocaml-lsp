@@ -28,8 +28,9 @@ module Util = struct
   ;;
 end
 
-let%expect_test "Polarity Search for a simple query that takes an int and returns a \
-                 string with documentation"
+let%expect_test
+    "Polarity Search for a simple query that takes an int and returns a string with \
+     documentation"
   =
   let source = "" in
   let line = 1 in
@@ -85,8 +86,9 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
     |}]
 ;;
 
-let%expect_test "Polarity Search for a simple query that takes an int and returns a \
-                 string with no documentation"
+let%expect_test
+    "Polarity Search for a simple query that takes an int and returns a string with no \
+     documentation"
   =
   let source = "" in
   let line = 1 in
@@ -131,8 +133,9 @@ let%expect_test "Polarity Search for a simple query that takes an int and return
     ] |}]
 ;;
 
-let%expect_test "Type Search for a simple query that takes an int and returns a string \
-                 with no documentation"
+let%expect_test
+    "Type Search for a simple query that takes an int and returns a string with no \
+     documentation"
   =
   let source = "" in
   let line = 1 in
@@ -177,8 +180,9 @@ let%expect_test "Type Search for a simple query that takes an int and returns a 
     ] |}]
 ;;
 
-let%expect_test "Type Search for a simple query that takes an int and returns a string \
-                 with documentation"
+let%expect_test
+    "Type Search for a simple query that takes an int and returns a string with \
+     documentation"
   =
   let source = "" in
   let line = 1 in

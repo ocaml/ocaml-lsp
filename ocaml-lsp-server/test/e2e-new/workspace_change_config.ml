@@ -10,9 +10,11 @@ let codelens client textDocument =
 ;;
 
 let%expect_test "disable codelens" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let string = "Hello"
-|ocaml} in
+|ocaml}
+  in
   let req client =
     let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let* () =
@@ -30,11 +32,13 @@ let string = "Hello"
 ;;
 
 let%expect_test "enable hover extended" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type foo = int option
 
 let foo_value : foo = Some 1
-|ocaml} in
+|ocaml}
+  in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = Hover_extended.hover client position in

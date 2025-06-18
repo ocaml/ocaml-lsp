@@ -62,9 +62,9 @@ let process_jump_request ~merlin ~position ~target =
 ;;
 
 let code_actions
-  (doc : Document.t)
-  (params : CodeActionParams.t)
-  (capabilities : ShowDocumentClientCapabilities.t option)
+      (doc : Document.t)
+      (params : CodeActionParams.t)
+      (capabilities : ShowDocumentClientCapabilities.t option)
   =
   match Document.kind doc with
   | `Merlin merlin when available capabilities ->

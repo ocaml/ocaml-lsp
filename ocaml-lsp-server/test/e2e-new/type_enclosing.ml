@@ -65,8 +65,9 @@ let%expect_test "Application of function without range end" =
     } |}]
 ;;
 
-let%expect_test "Application of function with range end (including the current \
-                 enclosing) it should not change the result"
+let%expect_test
+    "Application of function with range end (including the current enclosing) it should \
+     not change the result"
   =
   let source = "string_of_int 42" in
   let line = 0
@@ -120,7 +121,8 @@ let%expect_test "Application of function with range end (excluding the current e
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   The cursor is positioned on [x].
 
   We expect to have the type [string] and no other enclosings
@@ -148,7 +150,8 @@ let%expect_test {|
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   The cursor is positioned on [string_of_int] and we do not give a range.
 |}
   =
@@ -180,7 +183,8 @@ let%expect_test {|
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   The cursor is positioned on [2002].
 
   We expect to have the type [int] and to have two enclosings:
@@ -213,7 +217,8 @@ let%expect_test {|
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   The cursor is still positioned on [2002] but we ask for
   the index [1] (the second enclosing).
 
@@ -248,7 +253,8 @@ let%expect_test {|
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   First, let's locate on [A.z], we expect the type [t], but we
   will increase the verbosity in order to get the full expansion of
   [type t]. And we will have 3 enclosings:
@@ -304,7 +310,8 @@ end|}
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   Now, let's use our enclosing to jump to the index [2], in order
   to get the type of [module A], our enclosings will no change.
   0 : [16:06 - 16:07], the [z] expr.
@@ -359,7 +366,8 @@ end|}
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   Now, let's jump on the [10] inside of [A.B.x]. We expect
   to have the type [int]. And we get a huge list of enclosings!
   0. [10:18 - 10:20] the [10] expr.
@@ -428,7 +436,8 @@ end|}
     } |}]
 ;;
 
-let%expect_test {|
+let%expect_test
+    {|
   Now, let's jump on the [10] inside of [A.B.x] and ask for index [1].
   We expect to have the type [b * int]. And we keep our list of enclosings!
   0. [10:18 - 10:20] the [10] expr.

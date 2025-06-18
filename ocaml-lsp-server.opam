@@ -20,7 +20,7 @@ homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "dune" {>= "3.0"}
-  "yojson"
+  "yojson" {< "3.0.0"}
   "base" {>= "v0.16.0"}
   "lsp" {= version}
   "jsonrpc" {= version}
@@ -39,13 +39,14 @@ depends: [
   "astring"
   "camlp-streams"
   "ppx_expect" {>= "v0.15.0" & < "0.17.0" & with-test}
-  "ocamlformat" {with-test & = "0.26.2"}
+  "ocamlformat" {with-test & = "0.27.0"}
   "ocamlc-loc" {>= "3.7.0"}
   "pp" {>= "1.1.2"}
   "csexp" {>= "1.5"}
   "ocamlformat-rpc-lib" {>= "0.21.0"}
   "odoc" {with-doc}
   "merlin-lib" {>= "4.18" & < "5.0"}
+  "ppx_yojson_conv" {with-dev-setup}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
@@ -61,3 +62,5 @@ build: [
     "@doc" {with-doc}
   ]
 ]
+
+x-maintenance-intent: [ "(latest)" ]

@@ -89,6 +89,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_switch_impl_intf.capability
               ; Req_infer_intf.capability
               ; Req_typed_holes.capability
+              ; Req_jump_to_typed_hole.capability
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
               ; Req_hover_extended.capability
@@ -103,10 +104,11 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
     in
     let executeCommandProvider =
       let commands =
-        if Action_open_related.available
-             (let open Option.O in
-              let* window = client_capabilities.window in
-              window.showDocument)
+        if
+          Action_open_related.available
+            (let open Option.O in
+             let* window = client_capabilities.window in
+             window.showDocument)
         then
           view_metrics_command_name
           :: Action_open_related.command_name
@@ -214,8 +216,12 @@ let on_initialize server (ip : InitializeParams.t) =
     let report_dune_diagnostics =
       Configuration.report_dune_diagnostics state.configuration
     in
+    let shorten_merlin_diagnostics =
+      Configuration.shorten_merlin_diagnostics state.configuration
+    in
     Diagnostics.create
       ~report_dune_diagnostics
+      ~shorten_merlin_diagnostics
       (let open Option.O in
        let* td = ip.capabilities.textDocument in
        td.publishDiagnostics)
@@ -382,8 +388,8 @@ let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }
 ;;
 
 let selection_range
-  (state : State.t)
-  { SelectionRangeParams.textDocument = { uri }; positions; _ }
+      (state : State.t)
+      { SelectionRangeParams.textDocument = { uri }; positions; _ }
   =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
@@ -433,8 +439,8 @@ let references (state : State.t) { ReferenceParams.textDocument = { uri }; posit
 ;;
 
 let highlight
-  (state : State.t)
-  { DocumentHighlightParams.textDocument = { uri }; position; _ }
+      (state : State.t)
+      { DocumentHighlightParams.textDocument = { uri }; position; _ }
   =
   let store = state.store in
   let doc = Document_store.get store uri in
@@ -496,6 +502,7 @@ let on_request
                Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
        ; Req_infer_intf.meth, Req_infer_intf.on_request
        ; Req_typed_holes.meth, Req_typed_holes.on_request
+       ; Req_jump_to_typed_hole.meth, Req_jump_to_typed_hole.on_request
        ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
        ; Req_type_enclosing.meth, Req_type_enclosing.on_request
        ; Req_get_documentation.meth, Req_get_documentation.on_request
@@ -540,17 +547,17 @@ let on_request
     then
       later
         (fun state server ->
-          let store = state.store in
-          let+ () = Merlin_config_command.command_run server store in
-          `Null)
+           let store = state.store in
+           let+ () = Merlin_config_command.command_run server store in
+           `Null)
         server
     else if String.equal command.command Document_text_command.command_name
     then
       later
         (fun state server ->
-          let store = state.store in
-          let+ () = Document_text_command.command_run server store command.arguments in
-          `Null)
+           let store = state.store in
+           let+ () = Document_text_command.command_run server store command.arguments in
+           `Null)
         server
     else if String.equal command.command view_metrics_command_name
     then later (fun _state server -> view_metrics server) server
@@ -562,50 +569,53 @@ let on_request
     else
       later
         (fun state () ->
-          let dune = State.dune state in
-          Dune.on_command dune command)
+           let dune = State.dune state in
+           Dune.on_command dune command)
         ()
   | CompletionItemResolve ci ->
     later
       (fun state () ->
-        let markdown =
-          ClientCapabilities.markdown_support
-            (State.client_capabilities state)
-            ~field:(fun d ->
-              let open Option.O in
-              let+ completion = d.completion in
-              let* completion_item = completion.completionItem in
-              completion_item.documentationFormat)
-        in
-        let resolve = Compl.Resolve.of_completion_item ci in
-        match resolve with
-        | None -> Fiber.return ci
-        | Some resolve ->
-          let doc =
-            let uri = Compl.Resolve.uri resolve in
-            Document_store.get state.store uri
-          in
-          (match Document.kind doc with
-           | `Other -> Fiber.return ci
-           | `Merlin doc ->
-             Compl.resolve
-               doc
-               ci
-               resolve
-               (Document.Merlin.doc_comment ~name:"completion-resolve")
-               ~markdown))
+         let markdown =
+           ClientCapabilities.markdown_support
+             (State.client_capabilities state)
+             ~field:(fun d ->
+               let open Option.O in
+               let+ completion = d.completion in
+               let* completion_item = completion.completionItem in
+               completion_item.documentationFormat)
+         in
+         let resolve = Compl.Resolve.of_completion_item ci in
+         match resolve with
+         | None -> Fiber.return ci
+         | Some resolve ->
+           let doc =
+             let uri = Compl.Resolve.uri resolve in
+             Document_store.get state.store uri
+           in
+           (match Document.kind doc with
+            | `Other -> Fiber.return ci
+            | `Merlin doc ->
+              Compl.resolve
+                doc
+                ci
+                resolve
+                (Document.Merlin.doc_comment ~name:"completion-resolve")
+                ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
   | InlayHint params -> later (fun state () -> Inlay_hints.compute state params) ()
   | TextDocumentColor _ -> now []
   | TextDocumentColorPresentation _ -> now []
   | TextDocumentHover req ->
-    let mode =
-      match state.configuration.data.extended_hover with
-      | Some { enable = true } -> Hover_req.Extended_variable
-      | Some _ | None -> Hover_req.Default
-    in
-    later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ()
+    (match state.configuration.data.standard_hover with
+     | Some { enable = false } -> now None
+     | Some { enable = true } | None ->
+       let mode =
+         match state.configuration.data.extended_hover with
+         | Some { enable = true } -> Hover_req.Extended_variable
+         | Some _ | None -> Hover_req.Default
+       in
+       later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ())
   | TextDocumentReferences req -> later references req
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req ->
@@ -624,22 +634,22 @@ let on_request
   | TextDocumentPrepareRename { textDocument = { uri }; position; workDoneToken = _ } ->
     later
       (fun _ () ->
-        let doc = Document_store.get store uri in
-        match Document.kind doc with
-        | `Other -> Fiber.return None
-        | `Merlin doc ->
-          let+ locs, _status =
-            Document.Merlin.dispatch_exn
-              ~name:"occurrences"
-              doc
-              (Occurrences (`Ident_at (Position.logical position), `Buffer))
-          in
-          let loc =
-            List.find_opt locs ~f:(fun loc ->
-              let range = Range.of_loc loc in
-              Position.compare_inclusion position range = `Inside)
-          in
-          Option.map loc ~f:Range.of_loc)
+         let doc = Document_store.get store uri in
+         match Document.kind doc with
+         | `Other -> Fiber.return None
+         | `Merlin doc ->
+           let+ locs, _status =
+             Document.Merlin.dispatch_exn
+               ~name:"occurrences"
+               doc
+               (Occurrences (`Ident_at (Position.logical position), `Buffer))
+           in
+           let loc =
+             List.find_opt locs ~f:(fun loc ->
+               let range = Range.of_loc loc in
+               Position.compare_inclusion position range = `Inside)
+           in
+           Option.map loc ~f:Range.of_loc)
       ()
   | TextDocumentRename req -> later Rename.rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
@@ -650,8 +660,8 @@ let on_request
   | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later
       (fun _ () ->
-        let doc = Document_store.get store uri in
-        Formatter.run rpc doc)
+         let doc = Document_store.get store uri in
+         Formatter.run rpc doc)
       ()
   | TextDocumentOnTypeFormatting _ -> now None
   | SelectionRange req -> later selection_range req
@@ -715,10 +725,18 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
     let* configuration = Configuration.update state.configuration req in
-    let+ () =
+    let* () =
       let report_dune_diagnostics = Configuration.report_dune_diagnostics configuration in
       Diagnostics.set_report_dune_diagnostics
         ~report_dune_diagnostics
+        (State.diagnostics state)
+    in
+    let+ () =
+      let shorten_merlin_diagnostics =
+        Configuration.shorten_merlin_diagnostics configuration
+      in
+      Diagnostics.set_shorten_merlin_diagnostics
+        ~shorten_merlin_diagnostics
         (State.diagnostics state)
     in
     { state with configuration }
