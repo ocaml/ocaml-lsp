@@ -1,18 +1,25 @@
-# unreleased
+# 1.21.0
 
 ## Features
 
 - Make `inlay-hint` for function parameters configurable (#1515)
+
 - Add custom `ocamllsp/jumpToTypedHole` to navigate through typed holes (#1516)
+
 - Add a code-action for combining pattern cases (just relaying on regex) (#1514)
+
 - Allow (by configuration) shortening of diagnostics (just highlighting the first line) (#1513)
+
 - Fix `yojson_of_t` for `Nullable_option`: serialize `None` as `Null` instead of asserting false (#1525 fixes #1524)
 
 ## Fixes
 
 - Support for `class`, `class type`, `method` and `property` for `DocumentSymbol` query (#1487 fixes #1449)
+
 - Fix `inlay-hint` for function parameters (#1515)
+
 - More precise diagnostics in the event of a failed identifier search (`Definition_query`) (#1518)
+
 - Remove `ocamlformat` application after `destruct` (that remove some useful parenthesis) (#1519)
 
 - Add a new server option `standardHover`, that can be used by clients to
