@@ -94,7 +94,7 @@ and field { Metamodel.name; optional; doc = _; type_ } : Ts_types.Unresolved.fie
 ;;
 
 let structure
-  ({ doc = _; extends = _; mixins = _; name; properties } : Metamodel.structure)
+      ({ doc = _; extends = _; mixins = _; name; properties } : Metamodel.structure)
   : Ts_types.Unresolved.t
   =
   let interface : Ts_types.Unresolved.interface =

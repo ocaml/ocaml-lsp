@@ -34,10 +34,10 @@ let modifiers ~(legend : string array) (encoded_mods : int) =
 ;;
 
 let annotate_src_with_tokens
-  ~(legend : SemanticTokensLegend.t)
-  ~(encoded_tokens : int array)
-  ~(annot_mods : bool)
-  (src : string)
+      ~(legend : SemanticTokensLegend.t)
+      ~(encoded_tokens : int array)
+      ~(annot_mods : bool)
+      (src : string)
   : string
   =
   let token_types = legend.SemanticTokensLegend.tokenTypes |> Array.of_list in

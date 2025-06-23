@@ -46,9 +46,7 @@ end
 
 type t = Range.t list
 
-let yojson_of_t holes =
-  Json.yojson_of_list (fun (loc, _type) -> loc |> Range.of_loc |> Range.yojson_of_t) holes
-;;
+let yojson_of_t holes = Json.yojson_of_list Range.yojson_of_t holes
 
 let t_of_yojson list =
   let open Yojson.Safe.Util in
@@ -72,7 +70,7 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
            ()
     | Some doc ->
       let+ holes =
-        Document.Merlin.dispatch_exn ~name:"typed-holes" (Document.merlin_exn doc) Holes
+        Typed_hole.all ~pipeline_name:"typed-holes" (Document.merlin_exn doc)
       in
       yojson_of_t holes)
 ;;

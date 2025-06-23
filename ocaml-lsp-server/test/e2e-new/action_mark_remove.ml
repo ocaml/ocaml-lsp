@@ -31,12 +31,15 @@ let remove_test = function
 ;;
 
 let%expect_test "mark value in let" =
-  mark_test `Value {|
+  mark_test
+    `Value
+    {|
 let f =
   let $x$ = 1 in
   0
 |};
-  [%expect {|
+  [%expect
+    {|
     let f =
       let _x = 1 in
       0 |}]
@@ -44,41 +47,52 @@ let f =
 
 (* todo *)
 let%expect_test "mark value in top level let" =
-  mark_test `Value {|
+  mark_test
+    `Value
+    {|
 let $f$ =
   let x = 1 in
   0
 |};
-  [%expect {|
+  [%expect
+    {|
     let _f =
       let x = 1 in
       0 |}]
 ;;
 
 let%expect_test "mark value in match" =
-  mark_test `Value {|
+  mark_test
+    `Value
+    {|
 let f = function
   | $x$ -> 0
 |};
-  [%expect {|
+  [%expect
+    {|
     let f = function
       | _x -> 0 |}]
 ;;
 
 let%expect_test "remove value in let" =
-  remove_test `Value {|
+  remove_test
+    `Value
+    {|
 let f =
   let $x$ = 1 in
   0
 |};
-  [%expect {|
+  [%expect
+    {|
     let f =
       0 |}]
 ;;
 
 (* todo *)
 let%expect_test "remove value in top level let" =
-  remove_test `Value {|
+  remove_test
+    `Value
+    {|
 let $f$ =
   let x = 1 in
   0
@@ -86,20 +100,25 @@ let $f$ =
 ;;
 
 let%expect_test "mark open" =
-  mark_test `Open {|
+  mark_test
+    `Open
+    {|
 $open M$
 |};
   [%expect {| open! M |}]
 ;;
 
 let%expect_test "mark for loop index" =
-  mark_test `For_loop_index {|
+  mark_test
+    `For_loop_index
+    {|
 let () =
   for $i$ = 0 to 10 do
     ()
   done
 |};
-  [%expect {|
+  [%expect
+    {|
     let () =
       for _i = 0 to 10 do
         ()
@@ -107,20 +126,28 @@ let () =
 ;;
 
 let%expect_test "remove open" =
-  remove_test `Open {|
+  remove_test
+    `Open
+    {|
 open A
 $open B$
 |};
   [%expect {| open A |}]
 ;;
 
-let%expect_test "remove open!" = remove_test `Open_bang {|
+let%expect_test "remove open!" =
+  remove_test
+    `Open_bang
+    {|
 open A
 $open! B$
 |}
+;;
 
 let%expect_test "remove type" =
-  remove_test `Type {|
+  remove_test
+    `Type
+    {|
 $type t = int$
 type s = bool
 |};
@@ -128,7 +155,9 @@ type s = bool
 ;;
 
 let%expect_test "remove module" =
-  remove_test `Module {|
+  remove_test
+    `Module
+    {|
 $module A = struct end$
 module B = struct end
 |};
@@ -136,60 +165,76 @@ module B = struct end
 ;;
 
 let%expect_test "remove case" =
-  remove_test `Case {|
+  remove_test
+    `Case
+    {|
 let f = function
  | 0 -> 0
  | $0 -> 1$
 |};
-  [%expect {|
+  [%expect
+    {|
     let f = function
      | 0 -> 0 |}]
 ;;
 
 let%expect_test "remove rec flag" =
-  remove_test `Rec {|
+  remove_test
+    `Rec
+    {|
 let rec $f$ = 0
 |};
   [%expect {| let  f = 0 |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test `Constructor {|
+  remove_test
+    `Constructor
+    {|
 type t = A $| B$
 |};
   [%expect {| type t = A |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test `Constructor {|
+  remove_test
+    `Constructor
+    {|
 type t =
   | A
  $| B$
 |};
-  [%expect {|
+  [%expect
+    {|
     type t =
       | A |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test `Constructor {|
+  remove_test
+    `Constructor
+    {|
 type t =
  $| A$
  | B
 |};
-  [%expect {|
+  [%expect
+    {|
     type t =
 
      | B |}]
 ;;
 
 let%expect_test "remove constructor" =
-  remove_test `Constructor {|
+  remove_test
+    `Constructor
+    {|
 type t =
  $A$
  | B
 |};
-  [%expect {|
+  [%expect
+    {|
     type t =
 
      | B |}]

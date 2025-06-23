@@ -88,8 +88,10 @@ module ProgressParams = struct
   let _ = fun (_ : 'a t) -> ()
 
   let t_of_yojson
-    : 'a.
-    (Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a) -> Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a t
+    :  'a.
+       (Ppx_yojson_conv_lib.Yojson.Safe.t -> 'a)
+    -> Ppx_yojson_conv_lib.Yojson.Safe.t
+    -> 'a t
     =
     let _tp_loc = "lsp/src/types.ml.ProgressParams.t" in
     fun _of_a -> function
@@ -161,8 +163,10 @@ module ProgressParams = struct
   let _ = t_of_yojson
 
   let yojson_of_t
-    : 'a.
-    ('a -> Ppx_yojson_conv_lib.Yojson.Safe.t) -> 'a t -> Ppx_yojson_conv_lib.Yojson.Safe.t
+    :  'a.
+       ('a -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+    -> 'a t
+    -> Ppx_yojson_conv_lib.Yojson.Safe.t
     =
     fun _of_a -> function
     | { token = v_token; value = v_value } ->
@@ -1680,9 +1684,9 @@ module AnnotatedTextEdit = struct
   [@@@end]
 
   let create
-    ~(annotationId : ChangeAnnotationIdentifier.t)
-    ~(newText : string)
-    ~(range : Range.t)
+        ~(annotationId : ChangeAnnotationIdentifier.t)
+        ~(newText : string)
+        ~(range : Range.t)
     : t
     =
     { annotationId; newText; range }
@@ -1692,7 +1696,7 @@ end
 module DeleteFileOptions = struct
   type t =
     { ignoreIfNotExists : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; recursive : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -1806,9 +1810,9 @@ end
 module DeleteFile = struct
   type t =
     { annotationId : ChangeAnnotationIdentifier.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; options : DeleteFileOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; uri : DocumentUri.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -1947,10 +1951,10 @@ module DeleteFile = struct
   [@@@end]
 
   let create
-    ?(annotationId : ChangeAnnotationIdentifier.t option)
-    ?(options : DeleteFileOptions.t option)
-    ~(uri : DocumentUri.t)
-    (() : unit)
+        ?(annotationId : ChangeAnnotationIdentifier.t option)
+        ?(options : DeleteFileOptions.t option)
+        ~(uri : DocumentUri.t)
+        (() : unit)
     : t
     =
     { annotationId; options; uri }
@@ -1966,7 +1970,7 @@ end
 module RenameFileOptions = struct
   type t =
     { ignoreIfExists : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; overwrite : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -2077,11 +2081,11 @@ end
 module RenameFile = struct
   type t =
     { annotationId : ChangeAnnotationIdentifier.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; newUri : DocumentUri.t
     ; oldUri : DocumentUri.t
     ; options : RenameFileOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -2242,11 +2246,11 @@ module RenameFile = struct
   [@@@end]
 
   let create
-    ?(annotationId : ChangeAnnotationIdentifier.t option)
-    ~(newUri : DocumentUri.t)
-    ~(oldUri : DocumentUri.t)
-    ?(options : RenameFileOptions.t option)
-    (() : unit)
+        ?(annotationId : ChangeAnnotationIdentifier.t option)
+        ~(newUri : DocumentUri.t)
+        ~(oldUri : DocumentUri.t)
+        ?(options : RenameFileOptions.t option)
+        (() : unit)
     : t
     =
     { annotationId; newUri; oldUri; options }
@@ -2262,7 +2266,7 @@ end
 module CreateFileOptions = struct
   type t =
     { ignoreIfExists : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; overwrite : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -2373,9 +2377,9 @@ end
 module CreateFile = struct
   type t =
     { annotationId : ChangeAnnotationIdentifier.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; options : CreateFileOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; uri : DocumentUri.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -2514,10 +2518,10 @@ module CreateFile = struct
   [@@@end]
 
   let create
-    ?(annotationId : ChangeAnnotationIdentifier.t option)
-    ?(options : CreateFileOptions.t option)
-    ~(uri : DocumentUri.t)
-    (() : unit)
+        ?(annotationId : ChangeAnnotationIdentifier.t option)
+        ?(options : CreateFileOptions.t option)
+        ~(uri : DocumentUri.t)
+        (() : unit)
     : t
     =
     { annotationId; options; uri }
@@ -2867,8 +2871,8 @@ module TextDocumentEdit = struct
   [@@@end]
 
   let create
-    ~(edits : edits_pvar list)
-    ~(textDocument : OptionalVersionedTextDocumentIdentifier.t)
+        ~(edits : edits_pvar list)
+        ~(textDocument : OptionalVersionedTextDocumentIdentifier.t)
     : t
     =
     { edits; textDocument }
@@ -2878,10 +2882,10 @@ end
 module ChangeAnnotation = struct
   type t =
     { description : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; label : string
     ; needsConfirmation : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3015,10 +3019,10 @@ module ChangeAnnotation = struct
   [@@@end]
 
   let create
-    ?(description : string option)
-    ~(label : string)
-    ?(needsConfirmation : bool option)
-    (() : unit)
+        ?(description : string option)
+        ~(label : string)
+        ?(needsConfirmation : bool option)
+        (() : unit)
     : t
     =
     { description; label; needsConfirmation }
@@ -3058,11 +3062,11 @@ module WorkspaceEdit = struct
     { changeAnnotations :
         (ChangeAnnotationIdentifier.t, ChangeAnnotation.t) Json.Assoc.t
           Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; changes : (DocumentUri.t, TextEdit.t list) Json.Assoc.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentChanges : documentChanges_pvar list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3217,11 +3221,11 @@ module WorkspaceEdit = struct
   [@@@end]
 
   let create
-    ?(changeAnnotations :
-       (ChangeAnnotationIdentifier.t, ChangeAnnotation.t) Json.Assoc.t option)
-    ?(changes : (DocumentUri.t, TextEdit.t list) Json.Assoc.t option)
-    ?(documentChanges : documentChanges_pvar list option)
-    (() : unit)
+        ?(changeAnnotations :
+           (ChangeAnnotationIdentifier.t, ChangeAnnotation.t) Json.Assoc.t option)
+        ?(changes : (DocumentUri.t, TextEdit.t list) Json.Assoc.t option)
+        ?(documentChanges : documentChanges_pvar list option)
+        (() : unit)
     : t
     =
     { changeAnnotations; changes; documentChanges }
@@ -3343,9 +3347,9 @@ module ApplyWorkspaceEditResult = struct
   type t =
     { applied : bool
     ; failedChange : int Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; failureReason : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3479,10 +3483,10 @@ module ApplyWorkspaceEditResult = struct
   [@@@end]
 
   let create
-    ~(applied : bool)
-    ?(failedChange : int option)
-    ?(failureReason : string option)
-    (() : unit)
+        ~(applied : bool)
+        ?(failedChange : int option)
+        ?(failureReason : string option)
+        (() : unit)
     : t
     =
     { applied; failedChange; failureReason }
@@ -3492,11 +3496,11 @@ end
 module BaseSymbolInformation = struct
   type t =
     { containerName : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; kind : SymbolKind.t
     ; name : string
     ; tags : SymbolTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3651,11 +3655,11 @@ module BaseSymbolInformation = struct
   [@@@end]
 
   let create
-    ?(containerName : string option)
-    ~(kind : SymbolKind.t)
-    ~(name : string)
-    ?(tags : SymbolTag.t list option)
-    (() : unit)
+        ?(containerName : string option)
+        ~(kind : SymbolKind.t)
+        ~(name : string)
+        ?(tags : SymbolTag.t list option)
+        (() : unit)
     : t
     =
     { containerName; kind; name; tags }
@@ -3665,7 +3669,7 @@ end
 module CallHierarchyClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -3760,7 +3764,7 @@ module CallHierarchyItem = struct
     ; range : Range.t
     ; selectionRange : Range.t
     ; tags : SymbolTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; uri : DocumentUri.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -3998,15 +4002,15 @@ module CallHierarchyItem = struct
   [@@@end]
 
   let create
-    ?(data : Json.t option)
-    ?(detail : string option)
-    ~(kind : SymbolKind.t)
-    ~(name : string)
-    ~(range : Range.t)
-    ~(selectionRange : Range.t)
-    ?(tags : SymbolTag.t list option)
-    ~(uri : DocumentUri.t)
-    (() : unit)
+        ?(data : Json.t option)
+        ?(detail : string option)
+        ~(kind : SymbolKind.t)
+        ~(name : string)
+        ~(range : Range.t)
+        ~(selectionRange : Range.t)
+        ?(tags : SymbolTag.t list option)
+        ~(uri : DocumentUri.t)
+        (() : unit)
     : t
     =
     { data; detail; kind; name; range; selectionRange; tags; uri }
@@ -4122,9 +4126,9 @@ module CallHierarchyIncomingCallsParams = struct
   type t =
     { item : CallHierarchyItem.t
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4265,10 +4269,10 @@ module CallHierarchyIncomingCallsParams = struct
   [@@@end]
 
   let create
-    ~(item : CallHierarchyItem.t)
-    ?(partialResultToken : ProgressToken.t option)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(item : CallHierarchyItem.t)
+        ?(partialResultToken : ProgressToken.t option)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { item; partialResultToken; workDoneToken }
@@ -4278,7 +4282,7 @@ end
 module CallHierarchyOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4471,9 +4475,9 @@ module CallHierarchyOutgoingCallsParams = struct
   type t =
     { item : CallHierarchyItem.t
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4614,10 +4618,10 @@ module CallHierarchyOutgoingCallsParams = struct
   [@@@end]
 
   let create
-    ~(item : CallHierarchyItem.t)
-    ?(partialResultToken : ProgressToken.t option)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(item : CallHierarchyItem.t)
+        ?(partialResultToken : ProgressToken.t option)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { item; partialResultToken; workDoneToken }
@@ -4708,7 +4712,7 @@ module CallHierarchyPrepareParams = struct
     { position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -4839,10 +4843,10 @@ module CallHierarchyPrepareParams = struct
   [@@@end]
 
   let create
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { position; textDocument; workDoneToken }
@@ -4874,7 +4878,7 @@ module NotebookCellTextDocumentFilter = struct
 
   type t =
     { language : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; notebook : notebook_pvar
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -5033,10 +5037,10 @@ end
 module CallHierarchyRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -5172,10 +5176,10 @@ module CallHierarchyRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -5263,7 +5267,7 @@ end
 module WorkspaceEditClientCapabilities = struct
   type changeAnnotationSupport =
     { groupsOnLabel : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -5350,15 +5354,15 @@ module WorkspaceEditClientCapabilities = struct
 
   type t =
     { changeAnnotationSupport : changeAnnotationSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentChanges : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; failureHandling : FailureHandlingKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; normalizesLineEndings : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resourceOperations : ResourceOperationKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -5560,12 +5564,12 @@ module WorkspaceEditClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(changeAnnotationSupport : changeAnnotationSupport option)
-    ?(documentChanges : bool option)
-    ?(failureHandling : FailureHandlingKind.t option)
-    ?(normalizesLineEndings : bool option)
-    ?(resourceOperations : ResourceOperationKind.t list option)
-    (() : unit)
+        ?(changeAnnotationSupport : changeAnnotationSupport option)
+        ?(documentChanges : bool option)
+        ?(failureHandling : FailureHandlingKind.t option)
+        ?(normalizesLineEndings : bool option)
+        ?(resourceOperations : ResourceOperationKind.t list option)
+        (() : unit)
     : t
     =
     { changeAnnotationSupport
@@ -5658,7 +5662,7 @@ module WorkspaceSymbolClientCapabilities = struct
 
   type symbolKind =
     { valueSet : SymbolKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -5824,13 +5828,13 @@ module WorkspaceSymbolClientCapabilities = struct
 
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveSupport : resolveSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; symbolKind : symbolKind Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tagSupport : tagSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -5995,11 +5999,11 @@ module WorkspaceSymbolClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(resolveSupport : resolveSupport option)
-    ?(symbolKind : symbolKind option)
-    ?(tagSupport : tagSupport option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(resolveSupport : resolveSupport option)
+        ?(symbolKind : symbolKind option)
+        ?(tagSupport : tagSupport option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; resolveSupport; symbolKind; tagSupport }
@@ -6009,7 +6013,7 @@ end
 module SemanticTokensWorkspaceClientCapabilities = struct
   type t =
     { refreshSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6092,7 +6096,7 @@ end
 module InlineValueWorkspaceClientCapabilities = struct
   type t =
     { refreshSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6175,7 +6179,7 @@ end
 module InlayHintWorkspaceClientCapabilities = struct
   type t =
     { refreshSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6258,7 +6262,7 @@ end
 module FoldingRangeWorkspaceClientCapabilities = struct
   type t =
     { refreshSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6344,13 +6348,13 @@ module FileOperationClientCapabilities = struct
     ; didDelete : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; didRename : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; willCreate : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; willDelete : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; willRename : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6584,14 +6588,14 @@ module FileOperationClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(didCreate : bool option)
-    ?(didDelete : bool option)
-    ?(didRename : bool option)
-    ?(dynamicRegistration : bool option)
-    ?(willCreate : bool option)
-    ?(willDelete : bool option)
-    ?(willRename : bool option)
-    (() : unit)
+        ?(didCreate : bool option)
+        ?(didDelete : bool option)
+        ?(didRename : bool option)
+        ?(dynamicRegistration : bool option)
+        ?(willCreate : bool option)
+        ?(willDelete : bool option)
+        ?(willRename : bool option)
+        (() : unit)
     : t
     =
     { didCreate
@@ -6608,7 +6612,7 @@ end
 module ExecuteCommandClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6697,9 +6701,9 @@ end
 module DidChangeWatchedFilesClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; relativePatternSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6808,9 +6812,9 @@ module DidChangeWatchedFilesClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(relativePatternSupport : bool option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(relativePatternSupport : bool option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; relativePatternSupport }
@@ -6820,7 +6824,7 @@ end
 module DidChangeConfigurationClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6909,7 +6913,7 @@ end
 module DiagnosticWorkspaceClientCapabilities = struct
   type t =
     { refreshSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -6992,7 +6996,7 @@ end
 module CodeLensWorkspaceClientCapabilities = struct
   type t =
     { refreshSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -7076,35 +7080,35 @@ module WorkspaceClientCapabilities = struct
   type t =
     { applyEdit : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; codeLens : CodeLensWorkspaceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; configuration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; diagnostics : DiagnosticWorkspaceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; didChangeConfiguration :
         DidChangeConfigurationClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; didChangeWatchedFiles :
         DidChangeWatchedFilesClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; executeCommand : ExecuteCommandClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; fileOperations : FileOperationClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; foldingRange : FoldingRangeWorkspaceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlayHint : InlayHintWorkspaceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlineValue : InlineValueWorkspaceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; semanticTokens : SemanticTokensWorkspaceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; symbol : WorkspaceSymbolClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspaceEdit : WorkspaceEditClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspaceFolders : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -7610,22 +7614,22 @@ module WorkspaceClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(applyEdit : bool option)
-    ?(codeLens : CodeLensWorkspaceClientCapabilities.t option)
-    ?(configuration : bool option)
-    ?(diagnostics : DiagnosticWorkspaceClientCapabilities.t option)
-    ?(didChangeConfiguration : DidChangeConfigurationClientCapabilities.t option)
-    ?(didChangeWatchedFiles : DidChangeWatchedFilesClientCapabilities.t option)
-    ?(executeCommand : ExecuteCommandClientCapabilities.t option)
-    ?(fileOperations : FileOperationClientCapabilities.t option)
-    ?(foldingRange : FoldingRangeWorkspaceClientCapabilities.t option)
-    ?(inlayHint : InlayHintWorkspaceClientCapabilities.t option)
-    ?(inlineValue : InlineValueWorkspaceClientCapabilities.t option)
-    ?(semanticTokens : SemanticTokensWorkspaceClientCapabilities.t option)
-    ?(symbol : WorkspaceSymbolClientCapabilities.t option)
-    ?(workspaceEdit : WorkspaceEditClientCapabilities.t option)
-    ?(workspaceFolders : bool option)
-    (() : unit)
+        ?(applyEdit : bool option)
+        ?(codeLens : CodeLensWorkspaceClientCapabilities.t option)
+        ?(configuration : bool option)
+        ?(diagnostics : DiagnosticWorkspaceClientCapabilities.t option)
+        ?(didChangeConfiguration : DidChangeConfigurationClientCapabilities.t option)
+        ?(didChangeWatchedFiles : DidChangeWatchedFilesClientCapabilities.t option)
+        ?(executeCommand : ExecuteCommandClientCapabilities.t option)
+        ?(fileOperations : FileOperationClientCapabilities.t option)
+        ?(foldingRange : FoldingRangeWorkspaceClientCapabilities.t option)
+        ?(inlayHint : InlayHintWorkspaceClientCapabilities.t option)
+        ?(inlineValue : InlineValueWorkspaceClientCapabilities.t option)
+        ?(semanticTokens : SemanticTokensWorkspaceClientCapabilities.t option)
+        ?(symbol : WorkspaceSymbolClientCapabilities.t option)
+        ?(workspaceEdit : WorkspaceEditClientCapabilities.t option)
+        ?(workspaceFolders : bool option)
+        (() : unit)
     : t
     =
     { applyEdit
@@ -7650,7 +7654,7 @@ end
 module ShowMessageRequestClientCapabilities = struct
   type messageActionItem =
     { additionalPropertiesSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -7743,7 +7747,7 @@ module ShowMessageRequestClientCapabilities = struct
 
   type t =
     { messageActionItem : messageActionItem Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -7914,11 +7918,11 @@ end
 module WindowClientCapabilities = struct
   type t =
     { showDocument : ShowDocumentClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; showMessage : ShowMessageRequestClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -8060,10 +8064,10 @@ module WindowClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(showDocument : ShowDocumentClientCapabilities.t option)
-    ?(showMessage : ShowMessageRequestClientCapabilities.t option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(showDocument : ShowDocumentClientCapabilities.t option)
+        ?(showMessage : ShowMessageRequestClientCapabilities.t option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { showDocument; showMessage; workDoneProgress }
@@ -8073,7 +8077,7 @@ end
 module TypeHierarchyClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -8162,9 +8166,9 @@ end
 module TypeDefinitionClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; linkSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -8279,10 +8283,10 @@ module TextDocumentSyncClientCapabilities = struct
   type t =
     { didSave : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; willSave : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; willSaveWaitUntil : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -8443,11 +8447,11 @@ module TextDocumentSyncClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(didSave : bool option)
-    ?(dynamicRegistration : bool option)
-    ?(willSave : bool option)
-    ?(willSaveWaitUntil : bool option)
-    (() : unit)
+        ?(didSave : bool option)
+        ?(dynamicRegistration : bool option)
+        ?(willSave : bool option)
+        ?(willSaveWaitUntil : bool option)
+        (() : unit)
     : t
     =
     { didSave; dynamicRegistration; willSave; willSaveWaitUntil }
@@ -8457,7 +8461,7 @@ end
 module SignatureHelpClientCapabilities = struct
   type parameterInformation =
     { labelOffsetSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -8548,13 +8552,13 @@ module SignatureHelpClientCapabilities = struct
 
   type signatureInformation =
     { documentationFormat : MarkupKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; parameterInformation : parameterInformation Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; activeParameterSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; noActiveParameterSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -8727,11 +8731,11 @@ module SignatureHelpClientCapabilities = struct
   [@@@end]
 
   let create_signatureInformation
-    ?(documentationFormat : MarkupKind.t list option)
-    ?(parameterInformation : parameterInformation option)
-    ?(activeParameterSupport : bool option)
-    ?(noActiveParameterSupport : bool option)
-    (() : unit)
+        ?(documentationFormat : MarkupKind.t list option)
+        ?(parameterInformation : parameterInformation option)
+        ?(activeParameterSupport : bool option)
+        ?(noActiveParameterSupport : bool option)
+        (() : unit)
     : signatureInformation
     =
     { documentationFormat
@@ -8743,11 +8747,11 @@ module SignatureHelpClientCapabilities = struct
 
   type t =
     { contextSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; signatureInformation : signatureInformation Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -8886,10 +8890,10 @@ module SignatureHelpClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(contextSupport : bool option)
-    ?(dynamicRegistration : bool option)
-    ?(signatureInformation : signatureInformation option)
-    (() : unit)
+        ?(contextSupport : bool option)
+        ?(dynamicRegistration : bool option)
+        ?(signatureInformation : signatureInformation option)
+        (() : unit)
     : t
     =
     { contextSupport; dynamicRegistration; signatureInformation }
@@ -9108,17 +9112,17 @@ module SemanticTokensClientCapabilities = struct
 
   type t =
     { augmentsSyntaxTokens : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; formats : TokenFormat.t list
     ; multilineTokenSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; overlappingTokenSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; requests : requests
     ; serverCancelSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tokenModifiers : string list
     ; tokenTypes : string list
     }
@@ -9397,16 +9401,16 @@ module SemanticTokensClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(augmentsSyntaxTokens : bool option)
-    ?(dynamicRegistration : bool option)
-    ~(formats : TokenFormat.t list)
-    ?(multilineTokenSupport : bool option)
-    ?(overlappingTokenSupport : bool option)
-    ~(requests : requests)
-    ?(serverCancelSupport : bool option)
-    ~(tokenModifiers : string list)
-    ~(tokenTypes : string list)
-    (() : unit)
+        ?(augmentsSyntaxTokens : bool option)
+        ?(dynamicRegistration : bool option)
+        ~(formats : TokenFormat.t list)
+        ?(multilineTokenSupport : bool option)
+        ?(overlappingTokenSupport : bool option)
+        ~(requests : requests)
+        ?(serverCancelSupport : bool option)
+        ~(tokenModifiers : string list)
+        ~(tokenTypes : string list)
+        (() : unit)
     : t
     =
     { augmentsSyntaxTokens
@@ -9425,7 +9429,7 @@ end
 module SelectionRangeClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -9514,14 +9518,14 @@ end
 module RenameClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; honorsChangeAnnotations : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; prepareSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; prepareSupportDefaultBehavior :
         PrepareSupportDefaultBehavior.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -9688,11 +9692,11 @@ module RenameClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(honorsChangeAnnotations : bool option)
-    ?(prepareSupport : bool option)
-    ?(prepareSupportDefaultBehavior : PrepareSupportDefaultBehavior.t option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(honorsChangeAnnotations : bool option)
+        ?(prepareSupport : bool option)
+        ?(prepareSupportDefaultBehavior : PrepareSupportDefaultBehavior.t option)
+        (() : unit)
     : t
     =
     { dynamicRegistration
@@ -9706,7 +9710,7 @@ end
 module ReferenceClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -9795,9 +9799,9 @@ end
 module DocumentRangeFormattingClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; rangesSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -9902,9 +9906,9 @@ module DocumentRangeFormattingClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(rangesSupport : bool option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(rangesSupport : bool option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; rangesSupport }
@@ -9992,15 +9996,15 @@ module PublishDiagnosticsClientCapabilities = struct
 
   type t =
     { codeDescriptionSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; dataSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; relatedInformation : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tagSupport : tagSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; versionSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10188,12 +10192,12 @@ module PublishDiagnosticsClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(codeDescriptionSupport : bool option)
-    ?(dataSupport : bool option)
-    ?(relatedInformation : bool option)
-    ?(tagSupport : tagSupport option)
-    ?(versionSupport : bool option)
-    (() : unit)
+        ?(codeDescriptionSupport : bool option)
+        ?(dataSupport : bool option)
+        ?(relatedInformation : bool option)
+        ?(tagSupport : tagSupport option)
+        ?(versionSupport : bool option)
+        (() : unit)
     : t
     =
     { codeDescriptionSupport
@@ -10208,7 +10212,7 @@ end
 module DocumentOnTypeFormattingClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10297,7 +10301,7 @@ end
 module MonikerClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10386,7 +10390,7 @@ end
 module LinkedEditingRangeClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10475,7 +10479,7 @@ end
 module InlineValueClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10564,7 +10568,7 @@ end
 module InlineCompletionClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10731,9 +10735,9 @@ module InlayHintClientCapabilities = struct
 
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveSupport : resolveSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10841,9 +10845,9 @@ module InlayHintClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(resolveSupport : resolveSupport option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(resolveSupport : resolveSupport option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; resolveSupport }
@@ -10853,9 +10857,9 @@ end
 module ImplementationClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; linkSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -10969,9 +10973,9 @@ end
 module HoverClientCapabilities = struct
   type t =
     { contentFormat : MarkupKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -11081,9 +11085,9 @@ module HoverClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(contentFormat : MarkupKind.t list option)
-    ?(dynamicRegistration : bool option)
-    (() : unit)
+        ?(contentFormat : MarkupKind.t list option)
+        ?(dynamicRegistration : bool option)
+        (() : unit)
     : t
     =
     { contentFormat; dynamicRegistration }
@@ -11093,7 +11097,7 @@ end
 module DocumentFormattingClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -11182,7 +11186,7 @@ end
 module FoldingRangeClientCapabilities = struct
   type foldingRangeKind =
     { valueSet : FoldingRangeKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -11273,7 +11277,7 @@ module FoldingRangeClientCapabilities = struct
 
   type foldingRange =
     { collapsedText : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -11356,13 +11360,13 @@ module FoldingRangeClientCapabilities = struct
 
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; foldingRange : foldingRange Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; foldingRangeKind : foldingRangeKind Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; lineFoldingOnly : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; rangeLimit : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -11556,12 +11560,12 @@ module FoldingRangeClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(foldingRange : foldingRange option)
-    ?(foldingRangeKind : foldingRangeKind option)
-    ?(lineFoldingOnly : bool option)
-    ?(rangeLimit : int option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(foldingRange : foldingRange option)
+        ?(foldingRangeKind : foldingRangeKind option)
+        ?(lineFoldingOnly : bool option)
+        ?(rangeLimit : int option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; foldingRange; foldingRangeKind; lineFoldingOnly; rangeLimit }
@@ -11649,7 +11653,7 @@ module DocumentSymbolClientCapabilities = struct
 
   type symbolKind =
     { valueSet : SymbolKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -11737,15 +11741,15 @@ module DocumentSymbolClientCapabilities = struct
 
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; hierarchicalDocumentSymbolSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; labelSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; symbolKind : symbolKind Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tagSupport : tagSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -11939,12 +11943,12 @@ module DocumentSymbolClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(hierarchicalDocumentSymbolSupport : bool option)
-    ?(labelSupport : bool option)
-    ?(symbolKind : symbolKind option)
-    ?(tagSupport : tagSupport option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(hierarchicalDocumentSymbolSupport : bool option)
+        ?(labelSupport : bool option)
+        ?(symbolKind : symbolKind option)
+        ?(tagSupport : tagSupport option)
+        (() : unit)
     : t
     =
     { dynamicRegistration
@@ -11959,9 +11963,9 @@ end
 module DocumentLinkClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tooltipSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -12067,9 +12071,9 @@ module DocumentLinkClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(tooltipSupport : bool option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(tooltipSupport : bool option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; tooltipSupport }
@@ -12079,7 +12083,7 @@ end
 module DocumentHighlightClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -12168,11 +12172,11 @@ end
 module DiagnosticClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; markupMessageSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; relatedDocumentSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -12310,10 +12314,10 @@ module DiagnosticClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(markupMessageSupport : bool option)
-    ?(relatedDocumentSupport : bool option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(markupMessageSupport : bool option)
+        ?(relatedDocumentSupport : bool option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; markupMessageSupport; relatedDocumentSupport }
@@ -12323,9 +12327,9 @@ end
 module DefinitionClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; linkSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -12439,9 +12443,9 @@ end
 module DeclarationClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; linkSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -12555,7 +12559,7 @@ end
 module CompletionClientCapabilities = struct
   type completionList =
     { itemDefaults : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -12645,7 +12649,7 @@ module CompletionClientCapabilities = struct
 
   type completionItemKind =
     { valueSet : CompletionItemKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -12978,25 +12982,25 @@ module CompletionClientCapabilities = struct
 
   type completionItem =
     { snippetSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; commitCharactersSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentationFormat : MarkupKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; deprecatedSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; preselectSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tagSupport : tagSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertReplaceSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveSupport : resolveSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertTextModeSupport : insertTextModeSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; labelDetailsSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -13327,17 +13331,17 @@ module CompletionClientCapabilities = struct
   [@@@end]
 
   let create_completionItem
-    ?(snippetSupport : bool option)
-    ?(commitCharactersSupport : bool option)
-    ?(documentationFormat : MarkupKind.t list option)
-    ?(deprecatedSupport : bool option)
-    ?(preselectSupport : bool option)
-    ?(tagSupport : tagSupport option)
-    ?(insertReplaceSupport : bool option)
-    ?(resolveSupport : resolveSupport option)
-    ?(insertTextModeSupport : insertTextModeSupport option)
-    ?(labelDetailsSupport : bool option)
-    (() : unit)
+        ?(snippetSupport : bool option)
+        ?(commitCharactersSupport : bool option)
+        ?(documentationFormat : MarkupKind.t list option)
+        ?(deprecatedSupport : bool option)
+        ?(preselectSupport : bool option)
+        ?(tagSupport : tagSupport option)
+        ?(insertReplaceSupport : bool option)
+        ?(resolveSupport : resolveSupport option)
+        ?(insertTextModeSupport : insertTextModeSupport option)
+        ?(labelDetailsSupport : bool option)
+        (() : unit)
     : completionItem
     =
     { snippetSupport
@@ -13355,17 +13359,17 @@ module CompletionClientCapabilities = struct
 
   type t =
     { completionItem : completionItem Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; completionItemKind : completionItemKind Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; completionList : completionList Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; contextSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertTextMode : InsertTextMode.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -13588,13 +13592,13 @@ module CompletionClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(completionItem : completionItem option)
-    ?(completionItemKind : completionItemKind option)
-    ?(completionList : completionList option)
-    ?(contextSupport : bool option)
-    ?(dynamicRegistration : bool option)
-    ?(insertTextMode : InsertTextMode.t option)
-    (() : unit)
+        ?(completionItem : completionItem option)
+        ?(completionItemKind : completionItemKind option)
+        ?(completionList : completionList option)
+        ?(contextSupport : bool option)
+        ?(dynamicRegistration : bool option)
+        ?(insertTextMode : InsertTextMode.t option)
+        (() : unit)
     : t
     =
     { completionItem
@@ -13610,7 +13614,7 @@ end
 module DocumentColorClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -13699,7 +13703,7 @@ end
 module CodeLensClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -14030,19 +14034,19 @@ module CodeActionClientCapabilities = struct
 
   type t =
     { codeActionLiteralSupport : codeActionLiteralSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; dataSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; disabledSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; honorsChangeAnnotations : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; isPreferredSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveSupport : resolveSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -14289,14 +14293,14 @@ module CodeActionClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(codeActionLiteralSupport : codeActionLiteralSupport option)
-    ?(dataSupport : bool option)
-    ?(disabledSupport : bool option)
-    ?(dynamicRegistration : bool option)
-    ?(honorsChangeAnnotations : bool option)
-    ?(isPreferredSupport : bool option)
-    ?(resolveSupport : resolveSupport option)
-    (() : unit)
+        ?(codeActionLiteralSupport : codeActionLiteralSupport option)
+        ?(dataSupport : bool option)
+        ?(disabledSupport : bool option)
+        ?(dynamicRegistration : bool option)
+        ?(honorsChangeAnnotations : bool option)
+        ?(isPreferredSupport : bool option)
+        ?(resolveSupport : resolveSupport option)
+        (() : unit)
     : t
     =
     { codeActionLiteralSupport
@@ -14313,68 +14317,68 @@ end
 module TextDocumentClientCapabilities = struct
   type t =
     { callHierarchy : CallHierarchyClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; codeAction : CodeActionClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; codeLens : CodeLensClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; colorProvider : DocumentColorClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; completion : CompletionClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; declaration : DeclarationClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; definition : DefinitionClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; diagnostic : DiagnosticClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentHighlight : DocumentHighlightClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentLink : DocumentLinkClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentSymbol : DocumentSymbolClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; foldingRange : FoldingRangeClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; formatting : DocumentFormattingClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; hover : HoverClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; implementation : ImplementationClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlayHint : InlayHintClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlineCompletion : InlineCompletionClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlineValue : InlineValueClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; linkedEditingRange : LinkedEditingRangeClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; moniker : MonikerClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; onTypeFormatting :
         DocumentOnTypeFormattingClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; publishDiagnostics : PublishDiagnosticsClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; rangeFormatting : DocumentRangeFormattingClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; references : ReferenceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; rename : RenameClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; selectionRange : SelectionRangeClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; semanticTokens : SemanticTokensClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; signatureHelp : SignatureHelpClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; synchronization : TextDocumentSyncClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; typeDefinition : TypeDefinitionClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; typeHierarchy : TypeHierarchyClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -15378,38 +15382,38 @@ module TextDocumentClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(callHierarchy : CallHierarchyClientCapabilities.t option)
-    ?(codeAction : CodeActionClientCapabilities.t option)
-    ?(codeLens : CodeLensClientCapabilities.t option)
-    ?(colorProvider : DocumentColorClientCapabilities.t option)
-    ?(completion : CompletionClientCapabilities.t option)
-    ?(declaration : DeclarationClientCapabilities.t option)
-    ?(definition : DefinitionClientCapabilities.t option)
-    ?(diagnostic : DiagnosticClientCapabilities.t option)
-    ?(documentHighlight : DocumentHighlightClientCapabilities.t option)
-    ?(documentLink : DocumentLinkClientCapabilities.t option)
-    ?(documentSymbol : DocumentSymbolClientCapabilities.t option)
-    ?(foldingRange : FoldingRangeClientCapabilities.t option)
-    ?(formatting : DocumentFormattingClientCapabilities.t option)
-    ?(hover : HoverClientCapabilities.t option)
-    ?(implementation : ImplementationClientCapabilities.t option)
-    ?(inlayHint : InlayHintClientCapabilities.t option)
-    ?(inlineCompletion : InlineCompletionClientCapabilities.t option)
-    ?(inlineValue : InlineValueClientCapabilities.t option)
-    ?(linkedEditingRange : LinkedEditingRangeClientCapabilities.t option)
-    ?(moniker : MonikerClientCapabilities.t option)
-    ?(onTypeFormatting : DocumentOnTypeFormattingClientCapabilities.t option)
-    ?(publishDiagnostics : PublishDiagnosticsClientCapabilities.t option)
-    ?(rangeFormatting : DocumentRangeFormattingClientCapabilities.t option)
-    ?(references : ReferenceClientCapabilities.t option)
-    ?(rename : RenameClientCapabilities.t option)
-    ?(selectionRange : SelectionRangeClientCapabilities.t option)
-    ?(semanticTokens : SemanticTokensClientCapabilities.t option)
-    ?(signatureHelp : SignatureHelpClientCapabilities.t option)
-    ?(synchronization : TextDocumentSyncClientCapabilities.t option)
-    ?(typeDefinition : TypeDefinitionClientCapabilities.t option)
-    ?(typeHierarchy : TypeHierarchyClientCapabilities.t option)
-    (() : unit)
+        ?(callHierarchy : CallHierarchyClientCapabilities.t option)
+        ?(codeAction : CodeActionClientCapabilities.t option)
+        ?(codeLens : CodeLensClientCapabilities.t option)
+        ?(colorProvider : DocumentColorClientCapabilities.t option)
+        ?(completion : CompletionClientCapabilities.t option)
+        ?(declaration : DeclarationClientCapabilities.t option)
+        ?(definition : DefinitionClientCapabilities.t option)
+        ?(diagnostic : DiagnosticClientCapabilities.t option)
+        ?(documentHighlight : DocumentHighlightClientCapabilities.t option)
+        ?(documentLink : DocumentLinkClientCapabilities.t option)
+        ?(documentSymbol : DocumentSymbolClientCapabilities.t option)
+        ?(foldingRange : FoldingRangeClientCapabilities.t option)
+        ?(formatting : DocumentFormattingClientCapabilities.t option)
+        ?(hover : HoverClientCapabilities.t option)
+        ?(implementation : ImplementationClientCapabilities.t option)
+        ?(inlayHint : InlayHintClientCapabilities.t option)
+        ?(inlineCompletion : InlineCompletionClientCapabilities.t option)
+        ?(inlineValue : InlineValueClientCapabilities.t option)
+        ?(linkedEditingRange : LinkedEditingRangeClientCapabilities.t option)
+        ?(moniker : MonikerClientCapabilities.t option)
+        ?(onTypeFormatting : DocumentOnTypeFormattingClientCapabilities.t option)
+        ?(publishDiagnostics : PublishDiagnosticsClientCapabilities.t option)
+        ?(rangeFormatting : DocumentRangeFormattingClientCapabilities.t option)
+        ?(references : ReferenceClientCapabilities.t option)
+        ?(rename : RenameClientCapabilities.t option)
+        ?(selectionRange : SelectionRangeClientCapabilities.t option)
+        ?(semanticTokens : SemanticTokensClientCapabilities.t option)
+        ?(signatureHelp : SignatureHelpClientCapabilities.t option)
+        ?(synchronization : TextDocumentSyncClientCapabilities.t option)
+        ?(typeDefinition : TypeDefinitionClientCapabilities.t option)
+        ?(typeHierarchy : TypeHierarchyClientCapabilities.t option)
+        (() : unit)
     : t
     =
     { callHierarchy
@@ -15450,9 +15454,9 @@ end
 module NotebookDocumentSyncClientCapabilities = struct
   type t =
     { dynamicRegistration : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; executionSummarySupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -15561,9 +15565,9 @@ module NotebookDocumentSyncClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(dynamicRegistration : bool option)
-    ?(executionSummarySupport : bool option)
-    (() : unit)
+        ?(dynamicRegistration : bool option)
+        ?(executionSummarySupport : bool option)
+        (() : unit)
     : t
     =
     { dynamicRegistration; executionSummarySupport }
@@ -15768,7 +15772,7 @@ end
 module MarkdownClientCapabilities = struct
   type t =
     { allowedTags : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; parser : string
     ; version : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
@@ -15904,10 +15908,10 @@ module MarkdownClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(allowedTags : string list option)
-    ~(parser : string)
-    ?(version : string option)
-    (() : unit)
+        ?(allowedTags : string list option)
+        ~(parser : string)
+        ?(version : string option)
+        (() : unit)
     : t
     =
     { allowedTags; parser; version }
@@ -16024,13 +16028,13 @@ module GeneralClientCapabilities = struct
 
   type t =
     { markdown : MarkdownClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; positionEncodings : PositionEncodingKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; regularExpressions : RegularExpressionsClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; staleRequestSupport : staleRequestSupport Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -16209,11 +16213,11 @@ module GeneralClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(markdown : MarkdownClientCapabilities.t option)
-    ?(positionEncodings : PositionEncodingKind.t list option)
-    ?(regularExpressions : RegularExpressionsClientCapabilities.t option)
-    ?(staleRequestSupport : staleRequestSupport option)
-    (() : unit)
+        ?(markdown : MarkdownClientCapabilities.t option)
+        ?(positionEncodings : PositionEncodingKind.t list option)
+        ?(regularExpressions : RegularExpressionsClientCapabilities.t option)
+        ?(staleRequestSupport : staleRequestSupport option)
+        (() : unit)
     : t
     =
     { markdown; positionEncodings; regularExpressions; staleRequestSupport }
@@ -16224,15 +16228,15 @@ module ClientCapabilities = struct
   type t =
     { experimental : Json.t option [@yojson.option]
     ; general : GeneralClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; notebookDocument : NotebookDocumentClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; window : WindowClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspace : WorkspaceClientCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -16460,13 +16464,13 @@ module ClientCapabilities = struct
   [@@@end]
 
   let create
-    ?(experimental : Json.t option)
-    ?(general : GeneralClientCapabilities.t option)
-    ?(notebookDocument : NotebookDocumentClientCapabilities.t option)
-    ?(textDocument : TextDocumentClientCapabilities.t option)
-    ?(window : WindowClientCapabilities.t option)
-    ?(workspace : WorkspaceClientCapabilities.t option)
-    (() : unit)
+        ?(experimental : Json.t option)
+        ?(general : GeneralClientCapabilities.t option)
+        ?(notebookDocument : NotebookDocumentClientCapabilities.t option)
+        ?(textDocument : TextDocumentClientCapabilities.t option)
+        ?(window : WindowClientCapabilities.t option)
+        ?(workspace : WorkspaceClientCapabilities.t option)
+        (() : unit)
     : t
     =
     { experimental; general; notebookDocument; textDocument; window; workspace }
@@ -16884,19 +16888,19 @@ module Diagnostic = struct
 
   type t =
     { code : Jsonrpc.Id.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; codeDescription : CodeDescription.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     ; message : message_pvar
     ; range : Range.t
     ; relatedInformation : DiagnosticRelatedInformation.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; severity : DiagnosticSeverity.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; source : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; tags : DiagnosticTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -17188,16 +17192,16 @@ module Diagnostic = struct
   [@@@end]
 
   let create
-    ?(code : Jsonrpc.Id.t option)
-    ?(codeDescription : CodeDescription.t option)
-    ?(data : Json.t option)
-    ~(message : message_pvar)
-    ~(range : Range.t)
-    ?(relatedInformation : DiagnosticRelatedInformation.t list option)
-    ?(severity : DiagnosticSeverity.t option)
-    ?(source : string option)
-    ?(tags : DiagnosticTag.t list option)
-    (() : unit)
+        ?(code : Jsonrpc.Id.t option)
+        ?(codeDescription : CodeDescription.t option)
+        ?(data : Json.t option)
+        ~(message : message_pvar)
+        ~(range : Range.t)
+        ?(relatedInformation : DiagnosticRelatedInformation.t list option)
+        ?(severity : DiagnosticSeverity.t option)
+        ?(source : string option)
+        ?(tags : DiagnosticTag.t list option)
+        (() : unit)
     : t
     =
     { code
@@ -17216,7 +17220,7 @@ end
 module Command = struct
   type t =
     { arguments : Json.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; command : string
     ; title : string
     }
@@ -17347,10 +17351,10 @@ module Command = struct
   [@@@end]
 
   let create
-    ?(arguments : Json.t list option)
-    ~(command : string)
-    ~(title : string)
-    (() : unit)
+        ?(arguments : Json.t list option)
+        ~(command : string)
+        ~(title : string)
+        (() : unit)
     : t
     =
     { arguments; command; title }
@@ -17437,18 +17441,18 @@ module CodeAction = struct
 
   type t =
     { command : Command.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     ; diagnostics : Diagnostic.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; disabled : disabled Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; edit : WorkspaceEdit.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; isPreferred : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; kind : CodeActionKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; title : string
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -17714,15 +17718,15 @@ module CodeAction = struct
   [@@@end]
 
   let create
-    ?(command : Command.t option)
-    ?(data : Json.t option)
-    ?(diagnostics : Diagnostic.t list option)
-    ?(disabled : disabled option)
-    ?(edit : WorkspaceEdit.t option)
-    ?(isPreferred : bool option)
-    ?(kind : CodeActionKind.t option)
-    ~(title : string)
-    (() : unit)
+        ?(command : Command.t option)
+        ?(data : Json.t option)
+        ?(diagnostics : Diagnostic.t list option)
+        ?(disabled : disabled option)
+        ?(edit : WorkspaceEdit.t option)
+        ?(isPreferred : bool option)
+        ?(kind : CodeActionKind.t option)
+        ~(title : string)
+        (() : unit)
     : t
     =
     { command; data; diagnostics; disabled; edit; isPreferred; kind; title }
@@ -17733,9 +17737,9 @@ module CodeActionContext = struct
   type t =
     { diagnostics : Diagnostic.t list
     ; only : CodeActionKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerKind : CodeActionTriggerKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -17875,10 +17879,10 @@ module CodeActionContext = struct
   [@@@end]
 
   let create
-    ~(diagnostics : Diagnostic.t list)
-    ?(only : CodeActionKind.t list option)
-    ?(triggerKind : CodeActionTriggerKind.t option)
-    (() : unit)
+        ~(diagnostics : Diagnostic.t list)
+        ?(only : CodeActionKind.t list option)
+        ?(triggerKind : CodeActionTriggerKind.t option)
+        (() : unit)
     : t
     =
     { diagnostics; only; triggerKind }
@@ -17888,11 +17892,11 @@ end
 module CodeActionOptions = struct
   type t =
     { codeActionKinds : CodeActionKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -18031,10 +18035,10 @@ module CodeActionOptions = struct
   [@@@end]
 
   let create
-    ?(codeActionKinds : CodeActionKind.t list option)
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(codeActionKinds : CodeActionKind.t list option)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { codeActionKinds; resolveProvider; workDoneProgress }
@@ -18045,11 +18049,11 @@ module CodeActionParams = struct
   type t =
     { context : CodeActionContext.t
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; range : Range.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -18230,12 +18234,12 @@ module CodeActionParams = struct
   [@@@end]
 
   let create
-    ~(context : CodeActionContext.t)
-    ?(partialResultToken : ProgressToken.t option)
-    ~(range : Range.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(context : CodeActionContext.t)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(range : Range.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { context; partialResultToken; range; textDocument; workDoneToken }
@@ -18245,13 +18249,13 @@ end
 module CodeActionRegistrationOptions = struct
   type t =
     { codeActionKinds : CodeActionKind.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -18423,11 +18427,11 @@ module CodeActionRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(codeActionKinds : CodeActionKind.t list option)
-    ?(documentSelector : DocumentSelector.t option)
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(codeActionKinds : CodeActionKind.t list option)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { codeActionKinds; documentSelector; resolveProvider; workDoneProgress }
@@ -18437,7 +18441,7 @@ end
 module CodeLens = struct
   type t =
     { command : Command.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     ; range : Range.t
     }
@@ -18561,10 +18565,10 @@ module CodeLens = struct
   [@@@end]
 
   let create
-    ?(command : Command.t option)
-    ?(data : Json.t option)
-    ~(range : Range.t)
-    (() : unit)
+        ?(command : Command.t option)
+        ?(data : Json.t option)
+        ~(range : Range.t)
+        (() : unit)
     : t
     =
     { command; data; range }
@@ -18574,9 +18578,9 @@ end
 module CodeLensOptions = struct
   type t =
     { resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -18683,9 +18687,9 @@ module CodeLensOptions = struct
   [@@@end]
 
   let create
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { resolveProvider; workDoneProgress }
@@ -18695,10 +18699,10 @@ end
 module CodeLensParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -18839,10 +18843,10 @@ module CodeLensParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; textDocument; workDoneToken }
@@ -18852,11 +18856,11 @@ end
 module CodeLensRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -18994,10 +18998,10 @@ module CodeLensRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; resolveProvider; workDoneProgress }
@@ -19257,10 +19261,10 @@ end
 module ColorPresentation = struct
   type t =
     { additionalTextEdits : TextEdit.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; label : string
     ; textEdit : TextEdit.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -19397,10 +19401,10 @@ module ColorPresentation = struct
   [@@@end]
 
   let create
-    ?(additionalTextEdits : TextEdit.t list option)
-    ~(label : string)
-    ?(textEdit : TextEdit.t option)
-    (() : unit)
+        ?(additionalTextEdits : TextEdit.t list option)
+        ~(label : string)
+        ?(textEdit : TextEdit.t option)
+        (() : unit)
     : t
     =
     { additionalTextEdits; label; textEdit }
@@ -19411,11 +19415,11 @@ module ColorPresentationParams = struct
   type t =
     { color : Color.t
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; range : Range.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -19596,12 +19600,12 @@ module ColorPresentationParams = struct
   [@@@end]
 
   let create
-    ~(color : Color.t)
-    ?(partialResultToken : ProgressToken.t option)
-    ~(range : Range.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(color : Color.t)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(range : Range.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { color; partialResultToken; range; textDocument; workDoneToken }
@@ -19611,7 +19615,7 @@ end
 module CompletionContext = struct
   type t =
     { triggerCharacter : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerKind : CompletionTriggerKind.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -19719,9 +19723,9 @@ module CompletionContext = struct
   [@@@end]
 
   let create
-    ?(triggerCharacter : string option)
-    ~(triggerKind : CompletionTriggerKind.t)
-    (() : unit)
+        ?(triggerCharacter : string option)
+        ~(triggerKind : CompletionTriggerKind.t)
+        (() : unit)
     : t
     =
     { triggerCharacter; triggerKind }
@@ -19858,7 +19862,7 @@ end
 module CompletionItemLabelDetails = struct
   type t =
     { description : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; detail : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -20010,39 +20014,39 @@ module CompletionItem = struct
 
   type t =
     { additionalTextEdits : TextEdit.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; command : Command.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; commitCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     ; deprecated : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; detail : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; documentation : documentation_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; filterText : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertText : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertTextFormat : InsertTextFormat.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertTextMode : InsertTextMode.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; kind : CompletionItemKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; label : string
     ; labelDetails : CompletionItemLabelDetails.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; preselect : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; sortText : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tags : CompletionItemTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textEdit : textEdit_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textEditText : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -20611,26 +20615,26 @@ module CompletionItem = struct
   [@@@end]
 
   let create
-    ?(additionalTextEdits : TextEdit.t list option)
-    ?(command : Command.t option)
-    ?(commitCharacters : string list option)
-    ?(data : Json.t option)
-    ?(deprecated : bool option)
-    ?(detail : string option)
-    ?(documentation : documentation_pvar option)
-    ?(filterText : string option)
-    ?(insertText : string option)
-    ?(insertTextFormat : InsertTextFormat.t option)
-    ?(insertTextMode : InsertTextMode.t option)
-    ?(kind : CompletionItemKind.t option)
-    ~(label : string)
-    ?(labelDetails : CompletionItemLabelDetails.t option)
-    ?(preselect : bool option)
-    ?(sortText : string option)
-    ?(tags : CompletionItemTag.t list option)
-    ?(textEdit : textEdit_pvar option)
-    ?(textEditText : string option)
-    (() : unit)
+        ?(additionalTextEdits : TextEdit.t list option)
+        ?(command : Command.t option)
+        ?(commitCharacters : string list option)
+        ?(data : Json.t option)
+        ?(deprecated : bool option)
+        ?(detail : string option)
+        ?(documentation : documentation_pvar option)
+        ?(filterText : string option)
+        ?(insertText : string option)
+        ?(insertTextFormat : InsertTextFormat.t option)
+        ?(insertTextMode : InsertTextMode.t option)
+        ?(kind : CompletionItemKind.t option)
+        ~(label : string)
+        ?(labelDetails : CompletionItemLabelDetails.t option)
+        ?(preselect : bool option)
+        ?(sortText : string option)
+        ?(tags : CompletionItemTag.t list option)
+        ?(textEdit : textEdit_pvar option)
+        ?(textEditText : string option)
+        (() : unit)
     : t
     =
     { additionalTextEdits
@@ -20782,13 +20786,13 @@ module CompletionList = struct
 
   type itemDefaults =
     { commitCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; editRange : editRange_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertTextFormat : InsertTextFormat.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertTextMode : InsertTextMode.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -20983,12 +20987,12 @@ module CompletionList = struct
   [@@@end]
 
   let create_itemDefaults
-    ?(commitCharacters : string list option)
-    ?(editRange : editRange_pvar option)
-    ?(insertTextFormat : InsertTextFormat.t option)
-    ?(insertTextMode : InsertTextMode.t option)
-    ?(data : Json.t option)
-    (() : unit)
+        ?(commitCharacters : string list option)
+        ?(editRange : editRange_pvar option)
+        ?(insertTextFormat : InsertTextFormat.t option)
+        ?(insertTextMode : InsertTextMode.t option)
+        ?(data : Json.t option)
+        (() : unit)
     : itemDefaults
     =
     { commitCharacters; editRange; insertTextFormat; insertTextMode; data }
@@ -20997,7 +21001,7 @@ module CompletionList = struct
   type t =
     { isIncomplete : bool
     ; itemDefaults : itemDefaults Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; items : CompletionItem.t list
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -21125,10 +21129,10 @@ module CompletionList = struct
   [@@@end]
 
   let create
-    ~(isIncomplete : bool)
-    ?(itemDefaults : itemDefaults option)
-    ~(items : CompletionItem.t list)
-    (() : unit)
+        ~(isIncomplete : bool)
+        ?(itemDefaults : itemDefaults option)
+        ~(items : CompletionItem.t list)
+        (() : unit)
     : t
     =
     { isIncomplete; itemDefaults; items }
@@ -21138,7 +21142,7 @@ end
 module CompletionOptions = struct
   type completionItem =
     { labelDetailsSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -21227,15 +21231,15 @@ module CompletionOptions = struct
 
   type t =
     { allCommitCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; completionItem : completionItem Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -21433,12 +21437,12 @@ module CompletionOptions = struct
   [@@@end]
 
   let create
-    ?(allCommitCharacters : string list option)
-    ?(completionItem : completionItem option)
-    ?(resolveProvider : bool option)
-    ?(triggerCharacters : string list option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(allCommitCharacters : string list option)
+        ?(completionItem : completionItem option)
+        ?(resolveProvider : bool option)
+        ?(triggerCharacters : string list option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { allCommitCharacters
@@ -21453,13 +21457,13 @@ end
 module CompletionParams = struct
   type t =
     { context : CompletionContext.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -21649,12 +21653,12 @@ module CompletionParams = struct
   [@@@end]
 
   let create
-    ?(context : CompletionContext.t option)
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(context : CompletionContext.t option)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { context; partialResultToken; position; textDocument; workDoneToken }
@@ -21664,7 +21668,7 @@ end
 module CompletionRegistrationOptions = struct
   type completionItem =
     { labelDetailsSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -21753,17 +21757,17 @@ module CompletionRegistrationOptions = struct
 
   type t =
     { allCommitCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; completionItem : completionItem Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -21991,13 +21995,13 @@ module CompletionRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(allCommitCharacters : string list option)
-    ?(completionItem : completionItem option)
-    ?(documentSelector : DocumentSelector.t option)
-    ?(resolveProvider : bool option)
-    ?(triggerCharacters : string list option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(allCommitCharacters : string list option)
+        ?(completionItem : completionItem option)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(resolveProvider : bool option)
+        ?(triggerCharacters : string list option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { allCommitCharacters
@@ -22013,7 +22017,7 @@ end
 module ConfigurationItem = struct
   type t =
     { scopeUri : DocumentUri.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; section : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -22387,7 +22391,7 @@ end
 module LocationLink = struct
   type t =
     { originSelectionRange : Range.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; targetRange : Range.t
     ; targetSelectionRange : Range.t
     ; targetUri : DocumentUri.t
@@ -22539,11 +22543,11 @@ module LocationLink = struct
   [@@@end]
 
   let create
-    ?(originSelectionRange : Range.t option)
-    ~(targetRange : Range.t)
-    ~(targetSelectionRange : Range.t)
-    ~(targetUri : DocumentUri.t)
-    (() : unit)
+        ?(originSelectionRange : Range.t option)
+        ~(targetRange : Range.t)
+        ~(targetSelectionRange : Range.t)
+        ~(targetUri : DocumentUri.t)
+        (() : unit)
     : t
     =
     { originSelectionRange; targetRange; targetSelectionRange; targetUri }
@@ -22565,7 +22569,7 @@ end
 module DeclarationOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -22652,11 +22656,11 @@ end
 module DeclarationParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -22817,11 +22821,11 @@ module DeclarationParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; position; textDocument; workDoneToken }
@@ -22831,10 +22835,10 @@ end
 module DeclarationRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -22970,10 +22974,10 @@ module DeclarationRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -23017,7 +23021,7 @@ end
 module DefinitionOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -23104,11 +23108,11 @@ end
 module DefinitionParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -23269,11 +23273,11 @@ module DefinitionParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; position; textDocument; workDoneToken }
@@ -23283,9 +23287,9 @@ end
 module DefinitionRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -23395,9 +23399,9 @@ module DefinitionRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; workDoneProgress }
@@ -23564,10 +23568,10 @@ end
 module DiagnosticOptions = struct
   type t =
     { identifier : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; interFileDependencies : bool
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspaceDiagnostics : bool
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -23722,11 +23726,11 @@ module DiagnosticOptions = struct
   [@@@end]
 
   let create
-    ?(identifier : string option)
-    ~(interFileDependencies : bool)
-    ?(workDoneProgress : bool option)
-    ~(workspaceDiagnostics : bool)
-    (() : unit)
+        ?(identifier : string option)
+        ~(interFileDependencies : bool)
+        ?(workDoneProgress : bool option)
+        ~(workspaceDiagnostics : bool)
+        (() : unit)
     : t
     =
     { identifier; interFileDependencies; workDoneProgress; workspaceDiagnostics }
@@ -23736,13 +23740,13 @@ end
 module DiagnosticRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; identifier : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; interFileDependencies : bool
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspaceDiagnostics : bool
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -23952,13 +23956,13 @@ module DiagnosticRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(identifier : string option)
-    ~(interFileDependencies : bool)
-    ?(workDoneProgress : bool option)
-    ~(workspaceDiagnostics : bool)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(identifier : string option)
+        ~(interFileDependencies : bool)
+        ?(workDoneProgress : bool option)
+        ~(workspaceDiagnostics : bool)
+        (() : unit)
     : t
     =
     { documentSelector
@@ -24154,7 +24158,7 @@ module DidChangeConfigurationRegistrationOptions = struct
 
   type t =
     { section : section_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -24343,7 +24347,7 @@ module TextDocumentContentChangeEvent = struct
   type t =
     { range : Range.t Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; rangeLength : int Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; text : string
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -24472,10 +24476,10 @@ module TextDocumentContentChangeEvent = struct
   [@@@end]
 
   let create
-    ?(range : Range.t option)
-    ?(rangeLength : int option)
-    ~(text : string)
-    (() : unit)
+        ?(range : Range.t option)
+        ?(rangeLength : int option)
+        ~(text : string)
+        (() : unit)
     : t
     =
     { range; rangeLength; text }
@@ -24700,10 +24704,10 @@ module NotebookCell = struct
   type t =
     { document : DocumentUri.t
     ; executionSummary : ExecutionSummary.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; kind : NotebookCellKind.t
     ; metadata : Json.Object.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -24862,11 +24866,11 @@ module NotebookCell = struct
   [@@@end]
 
   let create
-    ~(document : DocumentUri.t)
-    ?(executionSummary : ExecutionSummary.t option)
-    ~(kind : NotebookCellKind.t)
-    ?(metadata : Json.Object.t option)
-    (() : unit)
+        ~(document : DocumentUri.t)
+        ?(executionSummary : ExecutionSummary.t option)
+        ~(kind : NotebookCellKind.t)
+        ?(metadata : Json.Object.t option)
+        (() : unit)
     : t
     =
     { document; executionSummary; kind; metadata }
@@ -25016,10 +25020,10 @@ module TextDocumentItem = struct
   [@@@end]
 
   let create
-    ~(languageId : string)
-    ~(text : string)
-    ~(uri : DocumentUri.t)
-    ~(version : int)
+        ~(languageId : string)
+        ~(text : string)
+        ~(uri : DocumentUri.t)
+        ~(version : int)
     : t
     =
     { languageId; text; uri; version }
@@ -25029,7 +25033,7 @@ end
 module NotebookCellArrayChange = struct
   type t =
     { cells : NotebookCell.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; deleteCount : int
     ; start : int
     }
@@ -25160,10 +25164,10 @@ module NotebookCellArrayChange = struct
   [@@@end]
 
   let create
-    ?(cells : NotebookCell.t list option)
-    ~(deleteCount : int)
-    ~(start : int)
-    (() : unit)
+        ?(cells : NotebookCell.t list option)
+        ~(deleteCount : int)
+        ~(start : int)
+        (() : unit)
     : t
     =
     { cells; deleteCount; start }
@@ -25273,8 +25277,8 @@ module NotebookDocumentChangeEvent = struct
   [@@@end]
 
   let create_textContent
-    ~(document : VersionedTextDocumentIdentifier.t)
-    ~(changes : TextDocumentContentChangeEvent.t list)
+        ~(document : VersionedTextDocumentIdentifier.t)
+        ~(changes : TextDocumentContentChangeEvent.t list)
     : textContent
     =
     { document; changes }
@@ -25283,9 +25287,9 @@ module NotebookDocumentChangeEvent = struct
   type structure =
     { array : NotebookCellArrayChange.t
     ; didOpen : TextDocumentItem.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; didClose : TextDocumentIdentifier.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -25425,10 +25429,10 @@ module NotebookDocumentChangeEvent = struct
   [@@@end]
 
   let create_structure
-    ~(array : NotebookCellArrayChange.t)
-    ?(didOpen : TextDocumentItem.t list option)
-    ?(didClose : TextDocumentIdentifier.t list option)
-    (() : unit)
+        ~(array : NotebookCellArrayChange.t)
+        ?(didOpen : TextDocumentItem.t list option)
+        ?(didClose : TextDocumentIdentifier.t list option)
+        (() : unit)
     : structure
     =
     { array; didOpen; didClose }
@@ -25436,11 +25440,11 @@ module NotebookDocumentChangeEvent = struct
 
   type cells =
     { structure : structure Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; data : NotebookCell.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textContent : textContent list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -25576,10 +25580,10 @@ module NotebookDocumentChangeEvent = struct
   [@@@end]
 
   let create_cells
-    ?(structure : structure option)
-    ?(data : NotebookCell.t list option)
-    ?(textContent : textContent list option)
-    (() : unit)
+        ?(structure : structure option)
+        ?(data : NotebookCell.t list option)
+        ?(textContent : textContent list option)
+        (() : unit)
     : cells
     =
     { structure; data; textContent }
@@ -25588,7 +25592,7 @@ module NotebookDocumentChangeEvent = struct
   type t =
     { cells : cells Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; metadata : Json.Object.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -25800,8 +25804,8 @@ module DidChangeNotebookDocumentParams = struct
   [@@@end]
 
   let create
-    ~(change : NotebookDocumentChangeEvent.t)
-    ~(notebookDocument : VersionedNotebookDocumentIdentifier.t)
+        ~(change : NotebookDocumentChangeEvent.t)
+        ~(notebookDocument : VersionedNotebookDocumentIdentifier.t)
     : t
     =
     { change; notebookDocument }
@@ -25915,8 +25919,8 @@ module DidChangeTextDocumentParams = struct
   [@@@end]
 
   let create
-    ~(contentChanges : TextDocumentContentChangeEvent.t list)
-    ~(textDocument : VersionedTextDocumentIdentifier.t)
+        ~(contentChanges : TextDocumentContentChangeEvent.t list)
+        ~(textDocument : VersionedTextDocumentIdentifier.t)
     : t
     =
     { contentChanges; textDocument }
@@ -26348,7 +26352,7 @@ module FileSystemWatcher = struct
   type t =
     { globPattern : GlobPattern.t
     ; kind : WatchKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -26909,8 +26913,8 @@ module DidCloseNotebookDocumentParams = struct
   [@@@end]
 
   let create
-    ~(cellTextDocuments : TextDocumentIdentifier.t list)
-    ~(notebookDocument : NotebookDocumentIdentifier.t)
+        ~(cellTextDocuments : TextDocumentIdentifier.t list)
+        ~(notebookDocument : NotebookDocumentIdentifier.t)
     : t
     =
     { cellTextDocuments; notebookDocument }
@@ -27001,7 +27005,7 @@ module NotebookDocument = struct
   type t =
     { cells : NotebookCell.t list
     ; metadata : Json.Object.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; notebookType : string
     ; uri : DocumentUri.t
     ; version : int
@@ -27173,12 +27177,12 @@ module NotebookDocument = struct
   [@@@end]
 
   let create
-    ~(cells : NotebookCell.t list)
-    ?(metadata : Json.Object.t option)
-    ~(notebookType : string)
-    ~(uri : DocumentUri.t)
-    ~(version : int)
-    (() : unit)
+        ~(cells : NotebookCell.t list)
+        ?(metadata : Json.Object.t option)
+        ~(notebookType : string)
+        ~(uri : DocumentUri.t)
+        ~(version : int)
+        (() : unit)
     : t
     =
     { cells; metadata; notebookType; uri; version }
@@ -27289,8 +27293,8 @@ module DidOpenNotebookDocumentParams = struct
   [@@@end]
 
   let create
-    ~(cellTextDocuments : TextDocumentItem.t list)
-    ~(notebookDocument : NotebookDocument.t)
+        ~(cellTextDocuments : TextDocumentItem.t list)
+        ~(notebookDocument : NotebookDocument.t)
     : t
     =
     { cellTextDocuments; notebookDocument }
@@ -27564,9 +27568,9 @@ module DidSaveTextDocumentParams = struct
   [@@@end]
 
   let create
-    ?(text : string option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    (() : unit)
+        ?(text : string option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        (() : unit)
     : t
     =
     { text; textDocument }
@@ -27576,7 +27580,7 @@ end
 module DocumentColorOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -27663,10 +27667,10 @@ end
 module DocumentColorParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -27807,10 +27811,10 @@ module DocumentColorParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; textDocument; workDoneToken }
@@ -27820,10 +27824,10 @@ end
 module DocumentColorRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -27959,10 +27963,10 @@ module DocumentColorRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -27972,14 +27976,14 @@ end
 module DocumentDiagnosticParams = struct
   type t =
     { identifier : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; previousResultId : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -28172,12 +28176,12 @@ module DocumentDiagnosticParams = struct
   [@@@end]
 
   let create
-    ?(identifier : string option)
-    ?(partialResultToken : ProgressToken.t option)
-    ?(previousResultId : string option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(identifier : string option)
+        ?(partialResultToken : ProgressToken.t option)
+        ?(previousResultId : string option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { identifier; partialResultToken; previousResultId; textDocument; workDoneToken }
@@ -28275,7 +28279,7 @@ module FullDocumentDiagnosticReport = struct
   type t =
     { items : Diagnostic.t list
     ; resultId : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -28419,7 +28423,7 @@ module RelatedUnchangedDocumentDiagnosticReport = struct
   type t =
     { relatedDocuments :
         (DocumentUri.t, relatedDocuments_pvar) Json.Assoc.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resultId : string
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -28534,9 +28538,9 @@ module RelatedUnchangedDocumentDiagnosticReport = struct
   [@@@end]
 
   let create
-    ?(relatedDocuments : (DocumentUri.t, relatedDocuments_pvar) Json.Assoc.t option)
-    ~(resultId : string)
-    (() : unit)
+        ?(relatedDocuments : (DocumentUri.t, relatedDocuments_pvar) Json.Assoc.t option)
+        ~(resultId : string)
+        (() : unit)
     : t
     =
     { relatedDocuments; resultId }
@@ -28582,9 +28586,9 @@ module RelatedFullDocumentDiagnosticReport = struct
     { items : Diagnostic.t list
     ; relatedDocuments :
         (DocumentUri.t, relatedDocuments_pvar) Json.Assoc.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resultId : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -28724,10 +28728,10 @@ module RelatedFullDocumentDiagnosticReport = struct
   [@@@end]
 
   let create
-    ~(items : Diagnostic.t list)
-    ?(relatedDocuments : (DocumentUri.t, relatedDocuments_pvar) Json.Assoc.t option)
-    ?(resultId : string option)
-    (() : unit)
+        ~(items : Diagnostic.t list)
+        ?(relatedDocuments : (DocumentUri.t, relatedDocuments_pvar) Json.Assoc.t option)
+        ?(resultId : string option)
+        (() : unit)
     : t
     =
     { items; relatedDocuments; resultId }
@@ -28744,7 +28748,7 @@ module DocumentDiagnosticReport = struct
   type t =
     [ `RelatedFullDocumentDiagnosticReport of RelatedFullDocumentDiagnosticReport.t
     | `RelatedUnchangedDocumentDiagnosticReport of
-      RelatedUnchangedDocumentDiagnosticReport.t
+        RelatedUnchangedDocumentDiagnosticReport.t
     ]
 
   let t_of_yojson (json : Json.t) : t =
@@ -28891,7 +28895,7 @@ end
 module DocumentFormattingOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -28978,13 +28982,13 @@ end
 module FormattingOptions = struct
   type t =
     { insertFinalNewline : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertSpaces : bool
     ; tabSize : int
     ; trimFinalNewlines : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; trimTrailingWhitespace : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -29167,12 +29171,12 @@ module FormattingOptions = struct
   [@@@end]
 
   let create
-    ?(insertFinalNewline : bool option)
-    ~(insertSpaces : bool)
-    ~(tabSize : int)
-    ?(trimFinalNewlines : bool option)
-    ?(trimTrailingWhitespace : bool option)
-    (() : unit)
+        ?(insertFinalNewline : bool option)
+        ~(insertSpaces : bool)
+        ~(tabSize : int)
+        ?(trimFinalNewlines : bool option)
+        ?(trimTrailingWhitespace : bool option)
+        (() : unit)
     : t
     =
     { insertFinalNewline
@@ -29189,7 +29193,7 @@ module DocumentFormattingParams = struct
     { options : FormattingOptions.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -29320,10 +29324,10 @@ module DocumentFormattingParams = struct
   [@@@end]
 
   let create
-    ~(options : FormattingOptions.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(options : FormattingOptions.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { options; textDocument; workDoneToken }
@@ -29333,9 +29337,9 @@ end
 module DocumentFormattingRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -29445,9 +29449,9 @@ module DocumentFormattingRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; workDoneProgress }
@@ -29457,7 +29461,7 @@ end
 module DocumentHighlight = struct
   type t =
     { kind : DocumentHighlightKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; range : Range.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -29573,7 +29577,7 @@ end
 module DocumentHighlightOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -29660,11 +29664,11 @@ end
 module DocumentHighlightParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -29825,11 +29829,11 @@ module DocumentHighlightParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; position; textDocument; workDoneToken }
@@ -29839,9 +29843,9 @@ end
 module DocumentHighlightRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -29951,9 +29955,9 @@ module DocumentHighlightRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; workDoneProgress }
@@ -29965,7 +29969,7 @@ module DocumentLink = struct
     { data : Json.t option [@yojson.option]
     ; range : Range.t
     ; target : DocumentUri.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tooltip : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -30116,11 +30120,11 @@ module DocumentLink = struct
   [@@@end]
 
   let create
-    ?(data : Json.t option)
-    ~(range : Range.t)
-    ?(target : DocumentUri.t option)
-    ?(tooltip : string option)
-    (() : unit)
+        ?(data : Json.t option)
+        ~(range : Range.t)
+        ?(target : DocumentUri.t option)
+        ?(tooltip : string option)
+        (() : unit)
     : t
     =
     { data; range; target; tooltip }
@@ -30130,9 +30134,9 @@ end
 module DocumentLinkOptions = struct
   type t =
     { resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -30239,9 +30243,9 @@ module DocumentLinkOptions = struct
   [@@@end]
 
   let create
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { resolveProvider; workDoneProgress }
@@ -30251,10 +30255,10 @@ end
 module DocumentLinkParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -30395,10 +30399,10 @@ module DocumentLinkParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; textDocument; workDoneToken }
@@ -30408,11 +30412,11 @@ end
 module DocumentLinkRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -30550,10 +30554,10 @@ module DocumentLinkRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; resolveProvider; workDoneProgress }
@@ -30564,7 +30568,7 @@ module DocumentOnTypeFormattingOptions = struct
   type t =
     { firstTriggerCharacter : string
     ; moreTriggerCharacter : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -30676,9 +30680,9 @@ module DocumentOnTypeFormattingOptions = struct
   [@@@end]
 
   let create
-    ~(firstTriggerCharacter : string)
-    ?(moreTriggerCharacter : string list option)
-    (() : unit)
+        ~(firstTriggerCharacter : string)
+        ?(moreTriggerCharacter : string list option)
+        (() : unit)
     : t
     =
     { firstTriggerCharacter; moreTriggerCharacter }
@@ -30832,10 +30836,10 @@ module DocumentOnTypeFormattingParams = struct
   [@@@end]
 
   let create
-    ~(ch : string)
-    ~(options : FormattingOptions.t)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
+        ~(ch : string)
+        ~(options : FormattingOptions.t)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
     : t
     =
     { ch; options; position; textDocument }
@@ -30845,10 +30849,10 @@ end
 module DocumentOnTypeFormattingRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; firstTriggerCharacter : string
     ; moreTriggerCharacter : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -30990,10 +30994,10 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ~(firstTriggerCharacter : string)
-    ?(moreTriggerCharacter : string list option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ~(firstTriggerCharacter : string)
+        ?(moreTriggerCharacter : string list option)
+        (() : unit)
     : t
     =
     { documentSelector; firstTriggerCharacter; moreTriggerCharacter }
@@ -31003,9 +31007,9 @@ end
 module DocumentRangeFormattingOptions = struct
   type t =
     { rangesSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -31122,7 +31126,7 @@ module DocumentRangeFormattingParams = struct
     ; range : Range.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -31273,11 +31277,11 @@ module DocumentRangeFormattingParams = struct
   [@@@end]
 
   let create
-    ~(options : FormattingOptions.t)
-    ~(range : Range.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(options : FormattingOptions.t)
+        ~(range : Range.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { options; range; textDocument; workDoneToken }
@@ -31287,11 +31291,11 @@ end
 module DocumentRangeFormattingRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; rangesSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -31427,10 +31431,10 @@ module DocumentRangeFormattingRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(rangesSupport : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(rangesSupport : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; rangesSupport; workDoneProgress }
@@ -31443,7 +31447,7 @@ module DocumentRangesFormattingParams = struct
     ; ranges : Range.t list
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -31594,11 +31598,11 @@ module DocumentRangesFormattingParams = struct
   [@@@end]
 
   let create
-    ~(options : FormattingOptions.t)
-    ~(ranges : Range.t list)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(options : FormattingOptions.t)
+        ~(ranges : Range.t list)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { options; ranges; textDocument; workDoneToken }
@@ -31608,16 +31612,16 @@ end
 module DocumentSymbol = struct
   type t =
     { children : t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; deprecated : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; detail : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; kind : SymbolKind.t
     ; name : string
     ; range : Range.t
     ; selectionRange : Range.t
     ; tags : SymbolTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -31868,15 +31872,15 @@ module DocumentSymbol = struct
   [@@@end]
 
   let create
-    ?(children : t list option)
-    ?(deprecated : bool option)
-    ?(detail : string option)
-    ~(kind : SymbolKind.t)
-    ~(name : string)
-    ~(range : Range.t)
-    ~(selectionRange : Range.t)
-    ?(tags : SymbolTag.t list option)
-    (() : unit)
+        ?(children : t list option)
+        ?(deprecated : bool option)
+        ?(detail : string option)
+        ~(kind : SymbolKind.t)
+        ~(name : string)
+        ~(range : Range.t)
+        ~(selectionRange : Range.t)
+        ?(tags : SymbolTag.t list option)
+        (() : unit)
     : t
     =
     { children; deprecated; detail; kind; name; range; selectionRange; tags }
@@ -31887,7 +31891,7 @@ module DocumentSymbolOptions = struct
   type t =
     { label : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -31999,10 +32003,10 @@ end
 module DocumentSymbolParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -32143,10 +32147,10 @@ module DocumentSymbolParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; textDocument; workDoneToken }
@@ -32156,10 +32160,10 @@ end
 module DocumentSymbolRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; label : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -32295,10 +32299,10 @@ module DocumentSymbolRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(label : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(label : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; label; workDoneProgress }
@@ -32309,7 +32313,7 @@ module ExecuteCommandOptions = struct
   type t =
     { commands : string list
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -32422,10 +32426,10 @@ end
 module ExecuteCommandParams = struct
   type t =
     { arguments : Json.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; command : string
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -32564,10 +32568,10 @@ module ExecuteCommandParams = struct
   [@@@end]
 
   let create
-    ?(arguments : Json.t list option)
-    ~(command : string)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(arguments : Json.t list option)
+        ~(command : string)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { arguments; command; workDoneToken }
@@ -32578,7 +32582,7 @@ module ExecuteCommandRegistrationOptions = struct
   type t =
     { commands : string list
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -32691,7 +32695,7 @@ end
 module FileOperationPatternOptions = struct
   type t =
     { ignoreCase : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -32775,9 +32779,9 @@ module FileOperationPattern = struct
   type t =
     { glob : string
     ; matches : FileOperationPatternKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; options : FileOperationPatternOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -32915,10 +32919,10 @@ module FileOperationPattern = struct
   [@@@end]
 
   let create
-    ~(glob : string)
-    ?(matches : FileOperationPatternKind.t option)
-    ?(options : FileOperationPatternOptions.t option)
-    (() : unit)
+        ~(glob : string)
+        ?(matches : FileOperationPatternKind.t option)
+        ?(options : FileOperationPatternOptions.t option)
+        (() : unit)
     : t
     =
     { glob; matches; options }
@@ -33122,17 +33126,17 @@ end
 module FileOperationOptions = struct
   type t =
     { didCreate : FileOperationRegistrationOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; didDelete : FileOperationRegistrationOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; didRename : FileOperationRegistrationOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; willCreate : FileOperationRegistrationOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; willDelete : FileOperationRegistrationOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; willRename : FileOperationRegistrationOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -33375,13 +33379,13 @@ module FileOperationOptions = struct
   [@@@end]
 
   let create
-    ?(didCreate : FileOperationRegistrationOptions.t option)
-    ?(didDelete : FileOperationRegistrationOptions.t option)
-    ?(didRename : FileOperationRegistrationOptions.t option)
-    ?(willCreate : FileOperationRegistrationOptions.t option)
-    ?(willDelete : FileOperationRegistrationOptions.t option)
-    ?(willRename : FileOperationRegistrationOptions.t option)
-    (() : unit)
+        ?(didCreate : FileOperationRegistrationOptions.t option)
+        ?(didDelete : FileOperationRegistrationOptions.t option)
+        ?(didRename : FileOperationRegistrationOptions.t option)
+        ?(willCreate : FileOperationRegistrationOptions.t option)
+        ?(willDelete : FileOperationRegistrationOptions.t option)
+        ?(willRename : FileOperationRegistrationOptions.t option)
+        (() : unit)
     : t
     =
     { didCreate; didDelete; didRename; willCreate; willDelete; willRename }
@@ -33494,14 +33498,14 @@ end
 module FoldingRange = struct
   type t =
     { collapsedText : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; endCharacter : int Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; endLine : int
     ; kind : FoldingRangeKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; startCharacter : int Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; startLine : int
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -33710,13 +33714,13 @@ module FoldingRange = struct
   [@@@end]
 
   let create
-    ?(collapsedText : string option)
-    ?(endCharacter : int option)
-    ~(endLine : int)
-    ?(kind : FoldingRangeKind.t option)
-    ?(startCharacter : int option)
-    ~(startLine : int)
-    (() : unit)
+        ?(collapsedText : string option)
+        ?(endCharacter : int option)
+        ~(endLine : int)
+        ?(kind : FoldingRangeKind.t option)
+        ?(startCharacter : int option)
+        ~(startLine : int)
+        (() : unit)
     : t
     =
     { collapsedText; endCharacter; endLine; kind; startCharacter; startLine }
@@ -33726,7 +33730,7 @@ end
 module FoldingRangeOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -33813,10 +33817,10 @@ end
 module FoldingRangeParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -33957,10 +33961,10 @@ module FoldingRangeParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; textDocument; workDoneToken }
@@ -33970,10 +33974,10 @@ end
 module FoldingRangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -34109,10 +34113,10 @@ module FoldingRangeRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -34256,7 +34260,7 @@ end
 module HoverOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -34345,7 +34349,7 @@ module HoverParams = struct
     { position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -34476,10 +34480,10 @@ module HoverParams = struct
   [@@@end]
 
   let create
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { position; textDocument; workDoneToken }
@@ -34489,9 +34493,9 @@ end
 module HoverRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -34601,9 +34605,9 @@ module HoverRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; workDoneProgress }
@@ -34613,7 +34617,7 @@ end
 module ImplementationOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -34700,11 +34704,11 @@ end
 module ImplementationParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -34865,11 +34869,11 @@ module ImplementationParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; position; textDocument; workDoneToken }
@@ -34879,10 +34883,10 @@ end
 module ImplementationRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -35018,10 +35022,10 @@ module ImplementationRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -35221,21 +35225,21 @@ module InitializeParams = struct
   type t =
     { capabilities : ClientCapabilities.t
     ; clientInfo : clientInfo Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; initializationOptions : Json.t option [@yojson.option]
     ; locale : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; processId : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; rootPath : string Json.Nullable_option.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; rootUri : DocumentUri.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; trace : TraceValues.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspaceFolders :
         WorkspaceFolder.t list Json.Nullable_option.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -35559,17 +35563,17 @@ module InitializeParams = struct
   [@@@end]
 
   let create
-    ~(capabilities : ClientCapabilities.t)
-    ?(clientInfo : clientInfo option)
-    ?(initializationOptions : Json.t option)
-    ?(locale : string option)
-    ?(processId : int option)
-    ?(rootPath : string option option)
-    ?(rootUri : DocumentUri.t option)
-    ?(trace : TraceValues.t option)
-    ?(workDoneToken : ProgressToken.t option)
-    ?(workspaceFolders : WorkspaceFolder.t list option option)
-    (() : unit)
+        ~(capabilities : ClientCapabilities.t)
+        ?(clientInfo : clientInfo option)
+        ?(initializationOptions : Json.t option)
+        ?(locale : string option)
+        ?(processId : int option)
+        ?(rootPath : string option option)
+        ?(rootUri : DocumentUri.t option)
+        ?(trace : TraceValues.t option)
+        ?(workDoneToken : ProgressToken.t option)
+        ?(workspaceFolders : WorkspaceFolder.t list option option)
+        (() : unit)
     : t
     =
     { capabilities
@@ -35589,9 +35593,9 @@ end
 module WorkspaceSymbolOptions = struct
   type t =
     { resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -35698,9 +35702,9 @@ module WorkspaceSymbolOptions = struct
   [@@@end]
 
   let create
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { resolveProvider; workDoneProgress }
@@ -35721,7 +35725,7 @@ module WorkspaceFoldersServerCapabilities = struct
   ;;
 
   let yojson_of_changeNotifications_pvar
-    (changeNotifications_pvar : changeNotifications_pvar)
+        (changeNotifications_pvar : changeNotifications_pvar)
     : Json.t
     =
     match changeNotifications_pvar with
@@ -35731,7 +35735,7 @@ module WorkspaceFoldersServerCapabilities = struct
 
   type t =
     { changeNotifications : changeNotifications_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; supported : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -35840,9 +35844,9 @@ module WorkspaceFoldersServerCapabilities = struct
   [@@@end]
 
   let create
-    ?(changeNotifications : changeNotifications_pvar option)
-    ?(supported : bool option)
-    (() : unit)
+        ?(changeNotifications : changeNotifications_pvar option)
+        ?(supported : bool option)
+        (() : unit)
     : t
     =
     { changeNotifications; supported }
@@ -35852,10 +35856,10 @@ end
 module TypeHierarchyRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -35991,10 +35995,10 @@ module TypeHierarchyRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -36004,7 +36008,7 @@ end
 module TypeHierarchyOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -36091,10 +36095,10 @@ end
 module TypeDefinitionRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -36230,10 +36234,10 @@ module TypeDefinitionRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -36243,7 +36247,7 @@ end
 module TypeDefinitionOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -36330,7 +36334,7 @@ end
 module SaveOptions = struct
   type t =
     { includeText : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -36434,12 +36438,12 @@ module TextDocumentSyncOptions = struct
 
   type t =
     { change : TextDocumentSyncKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; openClose : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; save : save_pvar Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; willSave : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; willSaveWaitUntil : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -36627,12 +36631,12 @@ module TextDocumentSyncOptions = struct
   [@@@end]
 
   let create
-    ?(change : TextDocumentSyncKind.t option)
-    ?(openClose : bool option)
-    ?(save : save_pvar option)
-    ?(willSave : bool option)
-    ?(willSaveWaitUntil : bool option)
-    (() : unit)
+        ?(change : TextDocumentSyncKind.t option)
+        ?(openClose : bool option)
+        ?(save : save_pvar option)
+        ?(willSave : bool option)
+        ?(willSaveWaitUntil : bool option)
+        (() : unit)
     : t
     =
     { change; openClose; save; willSave; willSaveWaitUntil }
@@ -36642,11 +36646,11 @@ end
 module SignatureHelpOptions = struct
   type t =
     { retriggerCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -36790,10 +36794,10 @@ module SignatureHelpOptions = struct
   [@@@end]
 
   let create
-    ?(retriggerCharacters : string list option)
-    ?(triggerCharacters : string list option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(retriggerCharacters : string list option)
+        ?(triggerCharacters : string list option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { retriggerCharacters; triggerCharacters; workDoneProgress }
@@ -37008,13 +37012,13 @@ module SemanticTokensRegistrationOptions = struct
 
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; full : full_pvar Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; legend : SemanticTokensLegend.t
     ; range : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -37228,13 +37232,13 @@ module SemanticTokensRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(full : full_pvar option)
-    ?(id : string option)
-    ~(legend : SemanticTokensLegend.t)
-    ?(range : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(full : full_pvar option)
+        ?(id : string option)
+        ~(legend : SemanticTokensLegend.t)
+        ?(range : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; full; id; legend; range; workDoneProgress }
@@ -37347,7 +37351,7 @@ module SemanticTokensOptions = struct
     ; legend : SemanticTokensLegend.t
     ; range : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -37506,11 +37510,11 @@ module SemanticTokensOptions = struct
   [@@@end]
 
   let create
-    ?(full : full_pvar option)
-    ~(legend : SemanticTokensLegend.t)
-    ?(range : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(full : full_pvar option)
+        ~(legend : SemanticTokensLegend.t)
+        ?(range : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { full; legend; range; workDoneProgress }
@@ -37520,10 +37524,10 @@ end
 module SelectionRangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -37659,10 +37663,10 @@ module SelectionRangeRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -37672,7 +37676,7 @@ end
 module SelectionRangeOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -37759,9 +37763,9 @@ end
 module RenameOptions = struct
   type t =
     { prepareProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -37868,9 +37872,9 @@ module RenameOptions = struct
   [@@@end]
 
   let create
-    ?(prepareProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(prepareProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { prepareProvider; workDoneProgress }
@@ -37880,7 +37884,7 @@ end
 module ReferenceOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -37967,9 +37971,9 @@ end
 module MonikerRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38079,9 +38083,9 @@ module MonikerRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; workDoneProgress }
@@ -38091,7 +38095,7 @@ end
 module MonikerOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38178,10 +38182,10 @@ end
 module LinkedEditingRangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38317,10 +38321,10 @@ module LinkedEditingRangeRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -38330,7 +38334,7 @@ end
 module LinkedEditingRangeOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38417,10 +38421,10 @@ end
 module InlineValueRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38556,10 +38560,10 @@ module InlineValueRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -38569,7 +38573,7 @@ end
 module InlineValueOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38656,7 +38660,7 @@ end
 module InlineCompletionOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38743,12 +38747,12 @@ end
 module InlayHintRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -38914,11 +38918,11 @@ module InlayHintRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; resolveProvider; workDoneProgress }
@@ -38928,9 +38932,9 @@ end
 module InlayHintOptions = struct
   type t =
     { resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -39037,9 +39041,9 @@ module InlayHintOptions = struct
   [@@@end]
 
   let create
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { resolveProvider; workDoneProgress }
@@ -39049,9 +39053,9 @@ end
 module ServerCapabilities = struct
   type workspace =
     { workspaceFolders : WorkspaceFoldersServerCapabilities.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; fileOperations : FileOperationOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -39165,9 +39169,9 @@ module ServerCapabilities = struct
   [@@@end]
 
   let create_workspace
-    ?(workspaceFolders : WorkspaceFoldersServerCapabilities.t option)
-    ?(fileOperations : FileOperationOptions.t option)
-    (() : unit)
+        ?(workspaceFolders : WorkspaceFoldersServerCapabilities.t option)
+        ?(fileOperations : FileOperationOptions.t option)
+        (() : unit)
     : workspace
     =
     { workspaceFolders; fileOperations }
@@ -39175,7 +39179,7 @@ module ServerCapabilities = struct
 
   type diagnostic =
     { markupMessageSupport : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -39262,7 +39266,7 @@ module ServerCapabilities = struct
 
   type textDocument =
     { diagnostic : diagnostic Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -39366,7 +39370,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_callHierarchyProvider_pvar
-    (callHierarchyProvider_pvar : callHierarchyProvider_pvar)
+        (callHierarchyProvider_pvar : callHierarchyProvider_pvar)
     : Json.t
     =
     match callHierarchyProvider_pvar with
@@ -39392,7 +39396,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_codeActionProvider_pvar
-    (codeActionProvider_pvar : codeActionProvider_pvar)
+        (codeActionProvider_pvar : codeActionProvider_pvar)
     : Json.t
     =
     match codeActionProvider_pvar with
@@ -39449,7 +39453,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_declarationProvider_pvar
-    (declarationProvider_pvar : declarationProvider_pvar)
+        (declarationProvider_pvar : declarationProvider_pvar)
     : Json.t
     =
     match declarationProvider_pvar with
@@ -39474,7 +39478,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_definitionProvider_pvar
-    (definitionProvider_pvar : definitionProvider_pvar)
+        (definitionProvider_pvar : definitionProvider_pvar)
     : Json.t
     =
     match definitionProvider_pvar with
@@ -39498,7 +39502,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_diagnosticProvider_pvar
-    (diagnosticProvider_pvar : diagnosticProvider_pvar)
+        (diagnosticProvider_pvar : diagnosticProvider_pvar)
     : Json.t
     =
     match diagnosticProvider_pvar with
@@ -39526,7 +39530,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_documentFormattingProvider_pvar
-    (documentFormattingProvider_pvar : documentFormattingProvider_pvar)
+        (documentFormattingProvider_pvar : documentFormattingProvider_pvar)
     : Json.t
     =
     match documentFormattingProvider_pvar with
@@ -39554,7 +39558,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_documentHighlightProvider_pvar
-    (documentHighlightProvider_pvar : documentHighlightProvider_pvar)
+        (documentHighlightProvider_pvar : documentHighlightProvider_pvar)
     : Json.t
     =
     match documentHighlightProvider_pvar with
@@ -39583,7 +39587,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_documentRangeFormattingProvider_pvar
-    (documentRangeFormattingProvider_pvar : documentRangeFormattingProvider_pvar)
+        (documentRangeFormattingProvider_pvar : documentRangeFormattingProvider_pvar)
     : Json.t
     =
     match documentRangeFormattingProvider_pvar with
@@ -39607,7 +39611,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_documentSymbolProvider_pvar
-    (documentSymbolProvider_pvar : documentSymbolProvider_pvar)
+        (documentSymbolProvider_pvar : documentSymbolProvider_pvar)
     : Json.t
     =
     match documentSymbolProvider_pvar with
@@ -39636,7 +39640,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_foldingRangeProvider_pvar
-    (foldingRangeProvider_pvar : foldingRangeProvider_pvar)
+        (foldingRangeProvider_pvar : foldingRangeProvider_pvar)
     : Json.t
     =
     match foldingRangeProvider_pvar with
@@ -39687,7 +39691,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_implementationProvider_pvar
-    (implementationProvider_pvar : implementationProvider_pvar)
+        (implementationProvider_pvar : implementationProvider_pvar)
     : Json.t
     =
     match implementationProvider_pvar with
@@ -39745,7 +39749,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_inlineCompletionProvider_pvar
-    (inlineCompletionProvider_pvar : inlineCompletionProvider_pvar)
+        (inlineCompletionProvider_pvar : inlineCompletionProvider_pvar)
     : Json.t
     =
     match inlineCompletionProvider_pvar with
@@ -39774,7 +39778,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_inlineValueProvider_pvar
-    (inlineValueProvider_pvar : inlineValueProvider_pvar)
+        (inlineValueProvider_pvar : inlineValueProvider_pvar)
     : Json.t
     =
     match inlineValueProvider_pvar with
@@ -39807,7 +39811,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_linkedEditingRangeProvider_pvar
-    (linkedEditingRangeProvider_pvar : linkedEditingRangeProvider_pvar)
+        (linkedEditingRangeProvider_pvar : linkedEditingRangeProvider_pvar)
     : Json.t
     =
     match linkedEditingRangeProvider_pvar with
@@ -39848,7 +39852,7 @@ module ServerCapabilities = struct
   type notebookDocumentSync_pvar =
     [ `NotebookDocumentSyncOptions of NotebookDocumentSyncOptions.t
     | `NotebookDocumentSyncRegistrationOptions of
-      NotebookDocumentSyncRegistrationOptions.t
+        NotebookDocumentSyncRegistrationOptions.t
     ]
 
   let notebookDocumentSync_pvar_of_yojson (json : Json.t) : notebookDocumentSync_pvar =
@@ -39864,7 +39868,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_notebookDocumentSync_pvar
-    (notebookDocumentSync_pvar : notebookDocumentSync_pvar)
+        (notebookDocumentSync_pvar : notebookDocumentSync_pvar)
     : Json.t
     =
     match notebookDocumentSync_pvar with
@@ -39889,7 +39893,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_referencesProvider_pvar
-    (referencesProvider_pvar : referencesProvider_pvar)
+        (referencesProvider_pvar : referencesProvider_pvar)
     : Json.t
     =
     match referencesProvider_pvar with
@@ -39939,7 +39943,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_selectionRangeProvider_pvar
-    (selectionRangeProvider_pvar : selectionRangeProvider_pvar)
+        (selectionRangeProvider_pvar : selectionRangeProvider_pvar)
     : Json.t
     =
     match selectionRangeProvider_pvar with
@@ -39966,7 +39970,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_semanticTokensProvider_pvar
-    (semanticTokensProvider_pvar : semanticTokensProvider_pvar)
+        (semanticTokensProvider_pvar : semanticTokensProvider_pvar)
     : Json.t
     =
     match semanticTokensProvider_pvar with
@@ -40018,7 +40022,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_typeDefinitionProvider_pvar
-    (typeDefinitionProvider_pvar : typeDefinitionProvider_pvar)
+        (typeDefinitionProvider_pvar : typeDefinitionProvider_pvar)
     : Json.t
     =
     match typeDefinitionProvider_pvar with
@@ -40049,7 +40053,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_typeHierarchyProvider_pvar
-    (typeHierarchyProvider_pvar : typeHierarchyProvider_pvar)
+        (typeHierarchyProvider_pvar : typeHierarchyProvider_pvar)
     : Json.t
     =
     match typeHierarchyProvider_pvar with
@@ -40078,7 +40082,7 @@ module ServerCapabilities = struct
   ;;
 
   let yojson_of_workspaceSymbolProvider_pvar
-    (workspaceSymbolProvider_pvar : workspaceSymbolProvider_pvar)
+        (workspaceSymbolProvider_pvar : workspaceSymbolProvider_pvar)
     : Json.t
     =
     match workspaceSymbolProvider_pvar with
@@ -40088,80 +40092,80 @@ module ServerCapabilities = struct
 
   type t =
     { callHierarchyProvider : callHierarchyProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; codeActionProvider : codeActionProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; codeLensProvider : CodeLensOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; colorProvider : colorProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; completionProvider : CompletionOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; declarationProvider : declarationProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; definitionProvider : definitionProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; diagnosticProvider : diagnosticProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentFormattingProvider : documentFormattingProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentHighlightProvider : documentHighlightProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentLinkProvider : DocumentLinkOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentOnTypeFormattingProvider :
         DocumentOnTypeFormattingOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentRangeFormattingProvider :
         documentRangeFormattingProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentSymbolProvider : documentSymbolProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; executeCommandProvider : ExecuteCommandOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; experimental : Json.t option [@yojson.option]
     ; foldingRangeProvider : foldingRangeProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; hoverProvider : hoverProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; implementationProvider : implementationProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlayHintProvider : inlayHintProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlineCompletionProvider : inlineCompletionProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; inlineValueProvider : inlineValueProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; linkedEditingRangeProvider : linkedEditingRangeProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; monikerProvider : monikerProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; notebookDocumentSync : notebookDocumentSync_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; positionEncoding : PositionEncodingKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; referencesProvider : referencesProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; renameProvider : renameProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; selectionRangeProvider : selectionRangeProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; semanticTokensProvider : semanticTokensProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; signatureHelpProvider : SignatureHelpOptions.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : textDocument Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocumentSync : textDocumentSync_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; typeDefinitionProvider : typeDefinitionProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; typeHierarchyProvider : typeHierarchyProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspace : workspace Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workspaceSymbolProvider : workspaceSymbolProvider_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -41316,44 +41320,44 @@ module ServerCapabilities = struct
   [@@@end]
 
   let create
-    ?(callHierarchyProvider : callHierarchyProvider_pvar option)
-    ?(codeActionProvider : codeActionProvider_pvar option)
-    ?(codeLensProvider : CodeLensOptions.t option)
-    ?(colorProvider : colorProvider_pvar option)
-    ?(completionProvider : CompletionOptions.t option)
-    ?(declarationProvider : declarationProvider_pvar option)
-    ?(definitionProvider : definitionProvider_pvar option)
-    ?(diagnosticProvider : diagnosticProvider_pvar option)
-    ?(documentFormattingProvider : documentFormattingProvider_pvar option)
-    ?(documentHighlightProvider : documentHighlightProvider_pvar option)
-    ?(documentLinkProvider : DocumentLinkOptions.t option)
-    ?(documentOnTypeFormattingProvider : DocumentOnTypeFormattingOptions.t option)
-    ?(documentRangeFormattingProvider : documentRangeFormattingProvider_pvar option)
-    ?(documentSymbolProvider : documentSymbolProvider_pvar option)
-    ?(executeCommandProvider : ExecuteCommandOptions.t option)
-    ?(experimental : Json.t option)
-    ?(foldingRangeProvider : foldingRangeProvider_pvar option)
-    ?(hoverProvider : hoverProvider_pvar option)
-    ?(implementationProvider : implementationProvider_pvar option)
-    ?(inlayHintProvider : inlayHintProvider_pvar option)
-    ?(inlineCompletionProvider : inlineCompletionProvider_pvar option)
-    ?(inlineValueProvider : inlineValueProvider_pvar option)
-    ?(linkedEditingRangeProvider : linkedEditingRangeProvider_pvar option)
-    ?(monikerProvider : monikerProvider_pvar option)
-    ?(notebookDocumentSync : notebookDocumentSync_pvar option)
-    ?(positionEncoding : PositionEncodingKind.t option)
-    ?(referencesProvider : referencesProvider_pvar option)
-    ?(renameProvider : renameProvider_pvar option)
-    ?(selectionRangeProvider : selectionRangeProvider_pvar option)
-    ?(semanticTokensProvider : semanticTokensProvider_pvar option)
-    ?(signatureHelpProvider : SignatureHelpOptions.t option)
-    ?(textDocument : textDocument option)
-    ?(textDocumentSync : textDocumentSync_pvar option)
-    ?(typeDefinitionProvider : typeDefinitionProvider_pvar option)
-    ?(typeHierarchyProvider : typeHierarchyProvider_pvar option)
-    ?(workspace : workspace option)
-    ?(workspaceSymbolProvider : workspaceSymbolProvider_pvar option)
-    (() : unit)
+        ?(callHierarchyProvider : callHierarchyProvider_pvar option)
+        ?(codeActionProvider : codeActionProvider_pvar option)
+        ?(codeLensProvider : CodeLensOptions.t option)
+        ?(colorProvider : colorProvider_pvar option)
+        ?(completionProvider : CompletionOptions.t option)
+        ?(declarationProvider : declarationProvider_pvar option)
+        ?(definitionProvider : definitionProvider_pvar option)
+        ?(diagnosticProvider : diagnosticProvider_pvar option)
+        ?(documentFormattingProvider : documentFormattingProvider_pvar option)
+        ?(documentHighlightProvider : documentHighlightProvider_pvar option)
+        ?(documentLinkProvider : DocumentLinkOptions.t option)
+        ?(documentOnTypeFormattingProvider : DocumentOnTypeFormattingOptions.t option)
+        ?(documentRangeFormattingProvider : documentRangeFormattingProvider_pvar option)
+        ?(documentSymbolProvider : documentSymbolProvider_pvar option)
+        ?(executeCommandProvider : ExecuteCommandOptions.t option)
+        ?(experimental : Json.t option)
+        ?(foldingRangeProvider : foldingRangeProvider_pvar option)
+        ?(hoverProvider : hoverProvider_pvar option)
+        ?(implementationProvider : implementationProvider_pvar option)
+        ?(inlayHintProvider : inlayHintProvider_pvar option)
+        ?(inlineCompletionProvider : inlineCompletionProvider_pvar option)
+        ?(inlineValueProvider : inlineValueProvider_pvar option)
+        ?(linkedEditingRangeProvider : linkedEditingRangeProvider_pvar option)
+        ?(monikerProvider : monikerProvider_pvar option)
+        ?(notebookDocumentSync : notebookDocumentSync_pvar option)
+        ?(positionEncoding : PositionEncodingKind.t option)
+        ?(referencesProvider : referencesProvider_pvar option)
+        ?(renameProvider : renameProvider_pvar option)
+        ?(selectionRangeProvider : selectionRangeProvider_pvar option)
+        ?(semanticTokensProvider : semanticTokensProvider_pvar option)
+        ?(signatureHelpProvider : SignatureHelpOptions.t option)
+        ?(textDocument : textDocument option)
+        ?(textDocumentSync : textDocumentSync_pvar option)
+        ?(typeDefinitionProvider : typeDefinitionProvider_pvar option)
+        ?(typeHierarchyProvider : typeHierarchyProvider_pvar option)
+        ?(workspace : workspace option)
+        ?(workspaceSymbolProvider : workspaceSymbolProvider_pvar option)
+        (() : unit)
     : t
     =
     { callHierarchyProvider
@@ -41512,7 +41516,7 @@ module InitializeResult = struct
   type t =
     { capabilities : ServerCapabilities.t
     ; serverInfo : serverInfo Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -41618,9 +41622,9 @@ module InitializeResult = struct
   [@@@end]
 
   let create
-    ~(capabilities : ServerCapabilities.t)
-    ?(serverInfo : serverInfo option)
-    (() : unit)
+        ~(capabilities : ServerCapabilities.t)
+        ?(serverInfo : serverInfo option)
+        (() : unit)
     : t
     =
     { capabilities; serverInfo }
@@ -41742,18 +41746,18 @@ module InitializedParams_ = struct
   type t =
     { capabilities : ClientCapabilities.t
     ; clientInfo : clientInfo Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; initializationOptions : Json.t option [@yojson.option]
     ; locale : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; processId : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; rootPath : string Json.Nullable_option.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; rootUri : DocumentUri.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; trace : TraceValues.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -42044,16 +42048,16 @@ module InitializedParams_ = struct
   [@@@end]
 
   let create
-    ~(capabilities : ClientCapabilities.t)
-    ?(clientInfo : clientInfo option)
-    ?(initializationOptions : Json.t option)
-    ?(locale : string option)
-    ?(processId : int option)
-    ?(rootPath : string option option)
-    ?(rootUri : DocumentUri.t option)
-    ?(trace : TraceValues.t option)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(capabilities : ClientCapabilities.t)
+        ?(clientInfo : clientInfo option)
+        ?(initializationOptions : Json.t option)
+        ?(locale : string option)
+        ?(processId : int option)
+        ?(rootPath : string option option)
+        ?(rootUri : DocumentUri.t option)
+        ?(trace : TraceValues.t option)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { capabilities
@@ -42093,11 +42097,11 @@ module InlayHintLabelPart = struct
 
   type t =
     { command : Command.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; location : Location.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tooltip : tooltip_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; value : string
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -42257,11 +42261,11 @@ module InlayHintLabelPart = struct
   [@@@end]
 
   let create
-    ?(command : Command.t option)
-    ?(location : Location.t option)
-    ?(tooltip : tooltip_pvar option)
-    ~(value : string)
-    (() : unit)
+        ?(command : Command.t option)
+        ?(location : Location.t option)
+        ?(tooltip : tooltip_pvar option)
+        ~(value : string)
+        (() : unit)
     : t
     =
     { command; location; tooltip; value }
@@ -42314,17 +42318,17 @@ module InlayHint = struct
   type t =
     { data : Json.t option [@yojson.option]
     ; kind : InlayHintKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; label : label_pvar
     ; paddingLeft : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; paddingRight : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textEdits : TextEdit.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; tooltip : tooltip_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -42582,15 +42586,15 @@ module InlayHint = struct
   [@@@end]
 
   let create
-    ?(data : Json.t option)
-    ?(kind : InlayHintKind.t option)
-    ~(label : label_pvar)
-    ?(paddingLeft : bool option)
-    ?(paddingRight : bool option)
-    ~(position : Position.t)
-    ?(textEdits : TextEdit.t list option)
-    ?(tooltip : tooltip_pvar option)
-    (() : unit)
+        ?(data : Json.t option)
+        ?(kind : InlayHintKind.t option)
+        ~(label : label_pvar)
+        ?(paddingLeft : bool option)
+        ?(paddingRight : bool option)
+        ~(position : Position.t)
+        ?(textEdits : TextEdit.t list option)
+        ?(tooltip : tooltip_pvar option)
+        (() : unit)
     : t
     =
     { data; kind; label; paddingLeft; paddingRight; position; textEdits; tooltip }
@@ -42602,7 +42606,7 @@ module InlayHintParams = struct
     { range : Range.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -42731,10 +42735,10 @@ module InlayHintParams = struct
   [@@@end]
 
   let create
-    ~(range : Range.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(range : Range.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { range; textDocument; workDoneToken }
@@ -42847,7 +42851,7 @@ end
 module InlineCompletionContext = struct
   type t =
     { selectedCompletionInfo : SelectedCompletionInfo.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerKind : InlineCompletionTriggerKind.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -42959,9 +42963,9 @@ module InlineCompletionContext = struct
   [@@@end]
 
   let create
-    ?(selectedCompletionInfo : SelectedCompletionInfo.t option)
-    ~(triggerKind : InlineCompletionTriggerKind.t)
-    (() : unit)
+        ?(selectedCompletionInfo : SelectedCompletionInfo.t option)
+        ~(triggerKind : InlineCompletionTriggerKind.t)
+        (() : unit)
     : t
     =
     { selectedCompletionInfo; triggerKind }
@@ -43075,9 +43079,9 @@ module InlineCompletionItem = struct
 
   type t =
     { command : Command.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; filterText : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; insertText : insertText_pvar
     ; range : Range.t Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
@@ -43236,11 +43240,11 @@ module InlineCompletionItem = struct
   [@@@end]
 
   let create
-    ?(command : Command.t option)
-    ?(filterText : string option)
-    ~(insertText : insertText_pvar)
-    ?(range : Range.t option)
-    (() : unit)
+        ?(command : Command.t option)
+        ?(filterText : string option)
+        ~(insertText : insertText_pvar)
+        ?(range : Range.t option)
+        (() : unit)
     : t
     =
     { command; filterText; insertText; range }
@@ -43334,7 +43338,7 @@ module InlineCompletionParams = struct
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -43485,11 +43489,11 @@ module InlineCompletionParams = struct
   [@@@end]
 
   let create
-    ~(context : InlineCompletionContext.t)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(context : InlineCompletionContext.t)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { context; position; textDocument; workDoneToken }
@@ -43499,10 +43503,10 @@ end
 module InlineCompletionRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -43638,10 +43642,10 @@ module InlineCompletionRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(id : string option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(id : string option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; id; workDoneProgress }
@@ -43651,7 +43655,7 @@ end
 module InlineValueEvaluatableExpression = struct
   type t =
     { expression : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; range : Range.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -43765,7 +43769,7 @@ module InlineValueVariableLookup = struct
     { caseSensitiveLookup : bool
     ; range : Range.t
     ; variableName : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -43892,10 +43896,10 @@ module InlineValueVariableLookup = struct
   [@@@end]
 
   let create
-    ~(caseSensitiveLookup : bool)
-    ~(range : Range.t)
-    ?(variableName : string option)
-    (() : unit)
+        ~(caseSensitiveLookup : bool)
+        ~(range : Range.t)
+        ?(variableName : string option)
+        (() : unit)
     : t
     =
     { caseSensitiveLookup; range; variableName }
@@ -44145,7 +44149,7 @@ module InlineValueParams = struct
     ; range : Range.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -44296,11 +44300,11 @@ module InlineValueParams = struct
   [@@@end]
 
   let create
-    ~(context : InlineValueContext.t)
-    ~(range : Range.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(context : InlineValueContext.t)
+        ~(range : Range.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { context; range; textDocument; workDoneToken }
@@ -44312,7 +44316,7 @@ module LinkedEditingRangeParams = struct
     { position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -44443,10 +44447,10 @@ module LinkedEditingRangeParams = struct
   [@@@end]
 
   let create
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { position; textDocument; workDoneToken }
@@ -44457,7 +44461,7 @@ module LinkedEditingRanges = struct
   type t =
     { ranges : Range.t list
     ; wordPattern : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -44861,7 +44865,7 @@ module Moniker = struct
   type t =
     { identifier : string
     ; kind : MonikerKind.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; scheme : string
     ; unique : UniquenessLevel.t
     }
@@ -45007,11 +45011,11 @@ module Moniker = struct
   [@@@end]
 
   let create
-    ~(identifier : string)
-    ?(kind : MonikerKind.t option)
-    ~(scheme : string)
-    ~(unique : UniquenessLevel.t)
-    (() : unit)
+        ~(identifier : string)
+        ?(kind : MonikerKind.t option)
+        ~(scheme : string)
+        ~(unique : UniquenessLevel.t)
+        (() : unit)
     : t
     =
     { identifier; kind; scheme; unique }
@@ -45021,11 +45025,11 @@ end
 module MonikerParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -45186,11 +45190,11 @@ module MonikerParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; position; textDocument; workDoneToken }
@@ -45242,7 +45246,7 @@ module ParameterInformation = struct
 
   type t =
     { documentation : documentation_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; label : label_pvar
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -45352,9 +45356,9 @@ module ParameterInformation = struct
   [@@@end]
 
   let create
-    ?(documentation : documentation_pvar option)
-    ~(label : label_pvar)
-    (() : unit)
+        ?(documentation : documentation_pvar option)
+        ~(label : label_pvar)
+        (() : unit)
     : t
     =
     { documentation; label }
@@ -45364,7 +45368,7 @@ end
 module PartialResultParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -45458,7 +45462,7 @@ module PrepareRenameParams = struct
     { position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -45589,10 +45593,10 @@ module PrepareRenameParams = struct
   [@@@end]
 
   let create
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { position; textDocument; workDoneToken }
@@ -45829,10 +45833,10 @@ module PublishDiagnosticsParams = struct
   [@@@end]
 
   let create
-    ~(diagnostics : Diagnostic.t list)
-    ~(uri : DocumentUri.t)
-    ?(version : int option)
-    (() : unit)
+        ~(diagnostics : Diagnostic.t list)
+        ~(uri : DocumentUri.t)
+        ?(version : int option)
+        (() : unit)
     : t
     =
     { diagnostics; uri; version }
@@ -45923,11 +45927,11 @@ module ReferenceParams = struct
   type t =
     { context : ReferenceContext.t
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -46108,12 +46112,12 @@ module ReferenceParams = struct
   [@@@end]
 
   let create
-    ~(context : ReferenceContext.t)
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(context : ReferenceContext.t)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { context; partialResultToken; position; textDocument; workDoneToken }
@@ -46123,9 +46127,9 @@ end
 module ReferenceRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -46235,9 +46239,9 @@ module ReferenceRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; workDoneProgress }
@@ -46367,10 +46371,10 @@ module Registration = struct
   [@@@end]
 
   let create
-    ~(id : string)
-    ~(method_ : string)
-    ?(registerOptions : Json.t option)
-    (() : unit)
+        ~(id : string)
+        ~(method_ : string)
+        ?(registerOptions : Json.t option)
+        (() : unit)
     : t
     =
     { id; method_; registerOptions }
@@ -46542,7 +46546,7 @@ module RenameParams = struct
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -46693,11 +46697,11 @@ module RenameParams = struct
   [@@@end]
 
   let create
-    ~(newName : string)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(newName : string)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { newName; position; textDocument; workDoneToken }
@@ -46707,11 +46711,11 @@ end
 module RenameRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; prepareProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -46849,10 +46853,10 @@ module RenameRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(prepareProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(prepareProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; prepareProvider; workDoneProgress }
@@ -46862,7 +46866,7 @@ end
 module ResourceOperation = struct
   type t =
     { annotationId : ChangeAnnotationIdentifier.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; kind : string
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -46972,9 +46976,9 @@ module ResourceOperation = struct
   [@@@end]
 
   let create
-    ?(annotationId : ChangeAnnotationIdentifier.t option)
-    ~(kind : string)
-    (() : unit)
+        ?(annotationId : ChangeAnnotationIdentifier.t option)
+        ~(kind : string)
+        (() : unit)
     : t
     =
     { annotationId; kind }
@@ -47093,11 +47097,11 @@ end
 module SelectionRangeParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; positions : Position.t list
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -47258,11 +47262,11 @@ module SelectionRangeParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(positions : Position.t list)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(positions : Position.t list)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; positions; textDocument; workDoneToken }
@@ -47273,7 +47277,7 @@ module SemanticTokens = struct
   type t =
     { data : int array
     ; resultId : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -47523,7 +47527,7 @@ module SemanticTokensDelta = struct
   type t =
     { edits : SemanticTokensEdit.t list
     ; resultId : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -47638,11 +47642,11 @@ end
 module SemanticTokensDeltaParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; previousResultId : string
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -47803,11 +47807,11 @@ module SemanticTokensDeltaParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(previousResultId : string)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(previousResultId : string)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; previousResultId; textDocument; workDoneToken }
@@ -47898,10 +47902,10 @@ end
 module SemanticTokensParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -48042,10 +48046,10 @@ module SemanticTokensParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; textDocument; workDoneToken }
@@ -48133,11 +48137,11 @@ end
 module SemanticTokensRangeParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; range : Range.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -48298,11 +48302,11 @@ module SemanticTokensRangeParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(range : Range.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(range : Range.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; range; textDocument; workDoneToken }
@@ -48391,9 +48395,9 @@ end
 module ShowDocumentParams = struct
   type t =
     { external_ : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )] [@key "external"]
+          [@default None] [@yojson_drop_default ( = )] [@key "external"]
     ; selection : Range.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; takeFocus : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; uri : DocumentUri.t
     }
@@ -48552,11 +48556,11 @@ module ShowDocumentParams = struct
   [@@@end]
 
   let create
-    ?(external_ : bool option)
-    ?(selection : Range.t option)
-    ?(takeFocus : bool option)
-    ~(uri : DocumentUri.t)
-    (() : unit)
+        ?(external_ : bool option)
+        ?(selection : Range.t option)
+        ?(takeFocus : bool option)
+        ~(uri : DocumentUri.t)
+        (() : unit)
     : t
     =
     { external_; selection; takeFocus; uri }
@@ -48748,7 +48752,7 @@ end
 module ShowMessageRequestParams = struct
   type t =
     { actions : MessageActionItem.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; message : string
     ; type_ : MessageType.t [@key "type"]
     }
@@ -48880,10 +48884,10 @@ module ShowMessageRequestParams = struct
   [@@@end]
 
   let create
-    ?(actions : MessageActionItem.t list option)
-    ~(message : string)
-    ~(type_ : MessageType.t)
-    (() : unit)
+        ?(actions : MessageActionItem.t list option)
+        ~(message : string)
+        ~(type_ : MessageType.t)
+        (() : unit)
     : t
     =
     { actions; message; type_ }
@@ -48914,12 +48918,12 @@ module SignatureInformation = struct
 
   type t =
     { activeParameter : int Json.Nullable_option.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; documentation : documentation_pvar Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; label : string
     ; parameters : ParameterInformation.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -49093,11 +49097,11 @@ module SignatureInformation = struct
   [@@@end]
 
   let create
-    ?(activeParameter : int option option)
-    ?(documentation : documentation_pvar option)
-    ~(label : string)
-    ?(parameters : ParameterInformation.t list option)
-    (() : unit)
+        ?(activeParameter : int option option)
+        ?(documentation : documentation_pvar option)
+        ~(label : string)
+        ?(parameters : ParameterInformation.t list option)
+        (() : unit)
     : t
     =
     { activeParameter; documentation; label; parameters }
@@ -49107,9 +49111,9 @@ end
 module SignatureHelp = struct
   type t =
     { activeParameter : int Json.Nullable_option.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; activeSignature : int Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; signatures : SignatureInformation.t list
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -49250,10 +49254,10 @@ module SignatureHelp = struct
   [@@@end]
 
   let create
-    ?(activeParameter : int option option)
-    ?(activeSignature : int option)
-    ~(signatures : SignatureInformation.t list)
-    (() : unit)
+        ?(activeParameter : int option option)
+        ?(activeSignature : int option)
+        ~(signatures : SignatureInformation.t list)
+        (() : unit)
     : t
     =
     { activeParameter; activeSignature; signatures }
@@ -49263,10 +49267,10 @@ end
 module SignatureHelpContext = struct
   type t =
     { activeSignatureHelp : SignatureHelp.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; isRetrigger : bool
     ; triggerCharacter : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerKind : SignatureHelpTriggerKind.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -49426,11 +49430,11 @@ module SignatureHelpContext = struct
   [@@@end]
 
   let create
-    ?(activeSignatureHelp : SignatureHelp.t option)
-    ~(isRetrigger : bool)
-    ?(triggerCharacter : string option)
-    ~(triggerKind : SignatureHelpTriggerKind.t)
-    (() : unit)
+        ?(activeSignatureHelp : SignatureHelp.t option)
+        ~(isRetrigger : bool)
+        ?(triggerCharacter : string option)
+        ~(triggerKind : SignatureHelpTriggerKind.t)
+        (() : unit)
     : t
     =
     { activeSignatureHelp; isRetrigger; triggerCharacter; triggerKind }
@@ -49440,11 +49444,11 @@ end
 module SignatureHelpParams = struct
   type t =
     { context : SignatureHelpContext.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -49604,11 +49608,11 @@ module SignatureHelpParams = struct
   [@@@end]
 
   let create
-    ?(context : SignatureHelpContext.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(context : SignatureHelpContext.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { context; position; textDocument; workDoneToken }
@@ -49618,13 +49622,13 @@ end
 module SignatureHelpRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; retriggerCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; triggerCharacters : string list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -49798,11 +49802,11 @@ module SignatureHelpRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(retriggerCharacters : string list option)
-    ?(triggerCharacters : string list option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(retriggerCharacters : string list option)
+        ?(triggerCharacters : string list option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; retriggerCharacters; triggerCharacters; workDoneProgress }
@@ -49893,14 +49897,14 @@ end
 module SymbolInformation = struct
   type t =
     { containerName : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; deprecated : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; kind : SymbolKind.t
     ; location : Location.t
     ; name : string
     ; tags : SymbolTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -50104,13 +50108,13 @@ module SymbolInformation = struct
   [@@@end]
 
   let create
-    ?(containerName : string option)
-    ?(deprecated : bool option)
-    ~(kind : SymbolKind.t)
-    ~(location : Location.t)
-    ~(name : string)
-    ?(tags : SymbolTag.t list option)
-    (() : unit)
+        ?(containerName : string option)
+        ?(deprecated : bool option)
+        ~(kind : SymbolKind.t)
+        ~(location : Location.t)
+        ~(name : string)
+        ?(tags : SymbolTag.t list option)
+        (() : unit)
     : t
     =
     { containerName; deprecated; kind; location; name; tags }
@@ -50120,7 +50124,7 @@ end
 module TextDocumentChangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; syncKind : TextDocumentSyncKind.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -50230,9 +50234,9 @@ module TextDocumentChangeRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ~(syncKind : TextDocumentSyncKind.t)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ~(syncKind : TextDocumentSyncKind.t)
+        (() : unit)
     : t
     =
     { documentSelector; syncKind }
@@ -50347,7 +50351,7 @@ end
 module TextDocumentRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -50439,9 +50443,9 @@ end
 module TextDocumentSaveRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; includeText : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -50549,9 +50553,9 @@ module TextDocumentSaveRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(documentSelector : DocumentSelector.t option)
-    ?(includeText : bool option)
-    (() : unit)
+        ?(documentSelector : DocumentSelector.t option)
+        ?(includeText : bool option)
+        (() : unit)
     : t
     =
     { documentSelector; includeText }
@@ -50561,11 +50565,11 @@ end
 module TypeDefinitionParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -50726,11 +50730,11 @@ module TypeDefinitionParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; position; textDocument; workDoneToken }
@@ -50746,7 +50750,7 @@ module TypeHierarchyItem = struct
     ; range : Range.t
     ; selectionRange : Range.t
     ; tags : SymbolTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; uri : DocumentUri.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -50984,15 +50988,15 @@ module TypeHierarchyItem = struct
   [@@@end]
 
   let create
-    ?(data : Json.t option)
-    ?(detail : string option)
-    ~(kind : SymbolKind.t)
-    ~(name : string)
-    ~(range : Range.t)
-    ~(selectionRange : Range.t)
-    ?(tags : SymbolTag.t list option)
-    ~(uri : DocumentUri.t)
-    (() : unit)
+        ?(data : Json.t option)
+        ?(detail : string option)
+        ~(kind : SymbolKind.t)
+        ~(name : string)
+        ~(range : Range.t)
+        ~(selectionRange : Range.t)
+        ?(tags : SymbolTag.t list option)
+        ~(uri : DocumentUri.t)
+        (() : unit)
     : t
     =
     { data; detail; kind; name; range; selectionRange; tags; uri }
@@ -51004,7 +51008,7 @@ module TypeHierarchyPrepareParams = struct
     { position : Position.t
     ; textDocument : TextDocumentIdentifier.t
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -51135,10 +51139,10 @@ module TypeHierarchyPrepareParams = struct
   [@@@end]
 
   let create
-    ~(position : Position.t)
-    ~(textDocument : TextDocumentIdentifier.t)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(position : Position.t)
+        ~(textDocument : TextDocumentIdentifier.t)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { position; textDocument; workDoneToken }
@@ -51149,9 +51153,9 @@ module TypeHierarchySubtypesParams = struct
   type t =
     { item : TypeHierarchyItem.t
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -51292,10 +51296,10 @@ module TypeHierarchySubtypesParams = struct
   [@@@end]
 
   let create
-    ~(item : TypeHierarchyItem.t)
-    ?(partialResultToken : ProgressToken.t option)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(item : TypeHierarchyItem.t)
+        ?(partialResultToken : ProgressToken.t option)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { item; partialResultToken; workDoneToken }
@@ -51306,9 +51310,9 @@ module TypeHierarchySupertypesParams = struct
   type t =
     { item : TypeHierarchyItem.t
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -51449,10 +51453,10 @@ module TypeHierarchySupertypesParams = struct
   [@@@end]
 
   let create
-    ~(item : TypeHierarchyItem.t)
-    ?(partialResultToken : ProgressToken.t option)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ~(item : TypeHierarchyItem.t)
+        ?(partialResultToken : ProgressToken.t option)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { item; partialResultToken; workDoneToken }
@@ -51743,8 +51747,8 @@ module WillSaveTextDocumentParams = struct
   [@@@end]
 
   let create
-    ~(reason : TextDocumentSaveReason.t)
-    ~(textDocument : TextDocumentIdentifier.t)
+        ~(reason : TextDocumentSaveReason.t)
+        ~(textDocument : TextDocumentIdentifier.t)
     : t
     =
     { reason; textDocument }
@@ -51754,7 +51758,7 @@ end
 module WorkDoneProgressBegin = struct
   type t =
     { cancellable : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; message : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; percentage : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; title : string
@@ -51914,11 +51918,11 @@ module WorkDoneProgressBegin = struct
   [@@@end]
 
   let create
-    ?(cancellable : bool option)
-    ?(message : string option)
-    ?(percentage : int option)
-    ~(title : string)
-    (() : unit)
+        ?(cancellable : bool option)
+        ?(message : string option)
+        ?(percentage : int option)
+        ~(title : string)
+        (() : unit)
     : t
     =
     { cancellable; message; percentage; title }
@@ -52179,7 +52183,7 @@ end
 module WorkDoneProgressOptions = struct
   type t =
     { workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -52266,7 +52270,7 @@ end
 module WorkDoneProgressParams = struct
   type t =
     { workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -52353,7 +52357,7 @@ end
 module WorkDoneProgressReport = struct
   type t =
     { cancellable : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; message : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; percentage : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
@@ -52481,10 +52485,10 @@ module WorkDoneProgressReport = struct
   [@@@end]
 
   let create
-    ?(cancellable : bool option)
-    ?(message : string option)
-    ?(percentage : int option)
-    (() : unit)
+        ?(cancellable : bool option)
+        ?(message : string option)
+        ?(percentage : int option)
+        (() : unit)
     : t
     =
     { cancellable; message; percentage }
@@ -52500,12 +52504,12 @@ end
 module WorkspaceDiagnosticParams = struct
   type t =
     { identifier : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; previousResultIds : PreviousResultId.t list
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -52671,11 +52675,11 @@ module WorkspaceDiagnosticParams = struct
   [@@@end]
 
   let create
-    ?(identifier : string option)
-    ?(partialResultToken : ProgressToken.t option)
-    ~(previousResultIds : PreviousResultId.t list)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(identifier : string option)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(previousResultIds : PreviousResultId.t list)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { identifier; partialResultToken; previousResultIds; workDoneToken }
@@ -52810,10 +52814,10 @@ module WorkspaceUnchangedDocumentDiagnosticReport = struct
   [@@@end]
 
   let create
-    ~(resultId : string)
-    ~(uri : DocumentUri.t)
-    ?(version : int option)
-    (() : unit)
+        ~(resultId : string)
+        ~(uri : DocumentUri.t)
+        ?(version : int option)
+        (() : unit)
     : t
     =
     { resultId; uri; version }
@@ -52832,7 +52836,7 @@ module WorkspaceFullDocumentDiagnosticReport = struct
   type t =
     { items : Diagnostic.t list
     ; resultId : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; uri : DocumentUri.t
     ; version : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     }
@@ -52982,11 +52986,11 @@ module WorkspaceFullDocumentDiagnosticReport = struct
   [@@@end]
 
   let create
-    ~(items : Diagnostic.t list)
-    ?(resultId : string option)
-    ~(uri : DocumentUri.t)
-    ?(version : int option)
-    (() : unit)
+        ~(items : Diagnostic.t list)
+        ?(resultId : string option)
+        ~(uri : DocumentUri.t)
+        ?(version : int option)
+        (() : unit)
     : t
     =
     { items; resultId; uri; version }
@@ -53003,7 +53007,7 @@ module WorkspaceDocumentDiagnosticReport = struct
   type t =
     [ `WorkspaceFullDocumentDiagnosticReport of WorkspaceFullDocumentDiagnosticReport.t
     | `WorkspaceUnchangedDocumentDiagnosticReport of
-      WorkspaceUnchangedDocumentDiagnosticReport.t
+        WorkspaceUnchangedDocumentDiagnosticReport.t
     ]
 
   let t_of_yojson (json : Json.t) : t =
@@ -53198,7 +53202,7 @@ module WorkspaceFoldersInitializeParams = struct
   type t =
     { workspaceFolders :
         WorkspaceFolder.t list Json.Nullable_option.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -53293,13 +53297,13 @@ end
 module WorkspaceSymbol = struct
   type t =
     { containerName : string Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
     ; kind : SymbolKind.t
     ; location : Location.t
     ; name : string
     ; tags : SymbolTag.t list Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -53498,13 +53502,13 @@ module WorkspaceSymbol = struct
   [@@@end]
 
   let create
-    ?(containerName : string option)
-    ?(data : Json.t option)
-    ~(kind : SymbolKind.t)
-    ~(location : Location.t)
-    ~(name : string)
-    ?(tags : SymbolTag.t list option)
-    (() : unit)
+        ?(containerName : string option)
+        ?(data : Json.t option)
+        ~(kind : SymbolKind.t)
+        ~(location : Location.t)
+        ~(name : string)
+        ?(tags : SymbolTag.t list option)
+        (() : unit)
     : t
     =
     { containerName; data; kind; location; name; tags }
@@ -53514,10 +53518,10 @@ end
 module WorkspaceSymbolParams = struct
   type t =
     { partialResultToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; query : string
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -53658,10 +53662,10 @@ module WorkspaceSymbolParams = struct
   [@@@end]
 
   let create
-    ?(partialResultToken : ProgressToken.t option)
-    ~(query : string)
-    ?(workDoneToken : ProgressToken.t option)
-    (() : unit)
+        ?(partialResultToken : ProgressToken.t option)
+        ~(query : string)
+        ?(workDoneToken : ProgressToken.t option)
+        (() : unit)
     : t
     =
     { partialResultToken; query; workDoneToken }
@@ -53671,9 +53675,9 @@ end
 module WorkspaceSymbolRegistrationOptions = struct
   type t =
     { resolveProvider : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
-         [@default None] [@yojson_drop_default ( = )]
+          [@default None] [@yojson_drop_default ( = )]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -53780,9 +53784,9 @@ module WorkspaceSymbolRegistrationOptions = struct
   [@@@end]
 
   let create
-    ?(resolveProvider : bool option)
-    ?(workDoneProgress : bool option)
-    (() : unit)
+        ?(resolveProvider : bool option)
+        ?(workDoneProgress : bool option)
+        (() : unit)
     : t
     =
     { resolveProvider; workDoneProgress }

@@ -135,11 +135,68 @@ let module_binding_document_symbol (pmod : Parsetree.module_binding) ~children =
     ()
 ;;
 
+let visit_class_sig (desc : Parsetree.class_type) =
+  match desc.pcty_desc with
+  | Pcty_signature cs ->
+    List.filter_map
+      ~f:(fun field ->
+        match field.pctf_desc with
+        | Pctf_val (label, _, _, _) ->
+          DocumentSymbol.create
+            ~name:label.txt
+            ~kind:Property
+            ~range:(Range.of_loc field.pctf_loc)
+            ~selectionRange:(Range.of_loc label.loc)
+            ()
+          |> Option.some
+        | Pctf_method (label, _, _, _) ->
+          DocumentSymbol.create
+            ~name:label.txt
+            ~kind:Method
+            ~range:(Range.of_loc field.pctf_loc)
+            ~selectionRange:(Range.of_loc label.loc)
+            ()
+          |> Option.some
+        | _ -> None)
+      cs.pcsig_fields
+  | _ -> []
+;;
+
+let class_description_symbol (decl : Parsetree.class_description) =
+  DocumentSymbol.create
+    ~name:decl.pci_name.txt
+    ~kind:Class
+    ~range:(Range.of_loc decl.pci_loc)
+    ~selectionRange:(Range.of_loc decl.pci_name.loc)
+    ~children:(visit_class_sig decl.pci_expr)
+    ()
+;;
+
+let class_declaration_symbol (decl : Parsetree.class_declaration) ~children =
+  DocumentSymbol.create
+    ~name:decl.pci_name.txt
+    ~kind:Class
+    ~range:(Range.of_loc decl.pci_loc)
+    ~selectionRange:(Range.of_loc decl.pci_name.loc)
+    ~children
+    ()
+;;
+
+let class_type_declaration_symbol (decl : Parsetree.class_type_declaration) =
+  DocumentSymbol.create
+    ~name:decl.pci_name.txt
+    ~kind:Interface
+    ~range:(Range.of_loc decl.pci_loc)
+    ~selectionRange:(Range.of_loc decl.pci_name.loc)
+    ~children:(visit_class_sig decl.pci_expr)
+    ()
+;;
+
 let binding_document_symbol
-  (binding : Parsetree.value_binding)
-  ~ppx
-  ~is_top_level
-  ~children
+      (binding : Parsetree.value_binding)
+      ~ppx
+      ~is_top_level
+      ~children
   =
   let variables_in_pattern (pattern : Parsetree.pattern) =
     let symbols = ref [] in
@@ -205,8 +262,8 @@ let binding_document_symbol
 let symbols_from_parsetree parsetree =
   let current = ref [] in
   let descend
-    (iter : unit -> unit)
-    (get_current_symbol : children:DocumentSymbol.t list -> DocumentSymbol.t)
+        (iter : unit -> unit)
+        (get_current_symbol : children:DocumentSymbol.t list -> DocumentSymbol.t)
     =
     let outer = !current in
     current := [];
@@ -228,12 +285,16 @@ let symbols_from_parsetree parsetree =
       descend
         (fun () -> Ast_iterator.default_iterator.module_type_declaration iterator decl)
         (module_type_decl_symbol decl)
+    | Psig_class classes ->
+      current := !current @ List.map classes ~f:class_description_symbol
+    | Psig_class_type classes ->
+      current := !current @ List.map classes ~f:class_type_declaration_symbol
     | _ -> Ast_iterator.default_iterator.signature_item iterator item
   in
   let rec structure_item
-    ~ppx
-    (iterator : Ast_iterator.iterator)
-    (item : Parsetree.structure_item)
+            ~ppx
+            (iterator : Ast_iterator.iterator)
+            (item : Parsetree.structure_item)
     =
     match item.pstr_desc with
     | Pstr_type (_, decls) -> current := !current @ List.map decls ~f:type_document_symbol
@@ -257,10 +318,57 @@ let symbols_from_parsetree parsetree =
            binding_document_symbol binding ~ppx ~is_top_level:true ~children:!current)
     | Pstr_extension ((name, PStr items), _) ->
       List.iter items ~f:(fun item -> structure_item ~ppx:(Some name.txt) iterator item)
+    | Pstr_class classes ->
+      List.iter
+        ~f:(fun (klass : Parsetree.class_declaration) ->
+          descend
+            (fun () ->
+               match klass.pci_expr.pcl_desc with
+               | Pcl_structure cs ->
+                 Ast_iterator.default_iterator.class_structure iterator cs
+               | _ -> ())
+            (class_declaration_symbol klass))
+        classes
+    | Pstr_class_type classes ->
+      current := !current @ List.map classes ~f:class_type_declaration_symbol
     | _ -> Ast_iterator.default_iterator.structure_item iterator item
+  in
+  let class_structure
+        (iterator : Ast_iterator.iterator)
+        (item : Parsetree.class_structure)
+    =
+    List.iter ~f:(Ast_iterator.default_iterator.class_field iterator) item.pcstr_fields
+  in
+  let class_field (iterator : Ast_iterator.iterator) (item : Parsetree.class_field) =
+    let mk_symbol ?children ~kind (label : string Asttypes.loc) =
+      DocumentSymbol.create
+        ~name:label.txt
+        ~kind
+        ~range:(Range.of_loc item.pcf_loc)
+        ~selectionRange:(Range.of_loc label.loc)
+        ?children
+        ()
+    in
+    match item.pcf_desc with
+    | Pcf_val (label, _, Parsetree.Cfk_virtual _) ->
+      let symbol = mk_symbol ~kind:Property label in
+      current := !current @ [ symbol ]
+    | Pcf_val (label, _, Parsetree.Cfk_concrete (_, expr)) ->
+      descend
+        (fun () -> Ast_iterator.default_iterator.expr iterator expr)
+        (fun ~children -> mk_symbol ~kind:Property label ~children)
+    | Pcf_method (label, _, Parsetree.Cfk_virtual _) ->
+      let symbol = mk_symbol ~kind:Method label in
+      current := !current @ [ symbol ]
+    | Pcf_method (label, _, Parsetree.Cfk_concrete (_, expr)) ->
+      descend
+        (fun () -> Ast_iterator.default_iterator.expr iterator expr)
+        (fun ~children -> mk_symbol ~kind:Method label ~children)
+    | _ -> Ast_iterator.default_iterator.class_field iterator item
   in
   let expr (iterator : Ast_iterator.iterator) (item : Parsetree.expression) =
     match item.pexp_desc with
+    | Pexp_object cs -> Ast_iterator.default_iterator.class_structure iterator cs
     | Pexp_let (_, bindings, inner) ->
       let outer = !current in
       let bindings =
@@ -277,6 +385,8 @@ let symbols_from_parsetree parsetree =
     { Ast_iterator.default_iterator with
       signature_item
     ; structure_item = structure_item ~ppx:None
+    ; class_structure
+    ; class_field
     ; expr
     }
   in

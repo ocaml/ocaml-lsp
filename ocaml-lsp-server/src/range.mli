@@ -25,3 +25,5 @@ val resize_for_edit : TextEdit.t -> t
 
 (** [overlaps r1 r2] is true if [r1] and [r2] overlap. *)
 val overlaps : t -> t -> bool
+
+val to_string : t -> string

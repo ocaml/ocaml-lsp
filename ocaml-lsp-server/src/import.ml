@@ -1,5 +1,4 @@
-(* All modules from [Stdune] should be in the struct below. The modules are
-   listed alphabetically. Try to keep the order. *)
+(* The modules are listed alphabetically. Try to keep the order. *)
 
 include struct
   open Stdune
@@ -53,31 +52,79 @@ module List = struct
 end
 
 module Result = struct
-  module O = Stdune.Result.O
+  module O = struct
+    let ( let+ ) x f = Result.map f x
+    let ( let* ) x f = Result.bind x f
+  end
+
   include Base.Result
 end
 
 module Option = struct
-  module O = Stdune.Option.O
-  module List = Stdune.Option.List
+  module O = struct
+    let ( let+ ) x f = Option.map f x
+    let ( let* ) x f = Option.bind x f
+  end
+
+  module List = struct
+    let all =
+      let rec loop acc = function
+        | [] -> Some (List.rev acc)
+        | None :: _ -> None
+        | Some x :: xs -> loop (x :: acc) xs
+      in
+      fun xs -> loop [] xs
+    ;;
+  end
+
   include Base.Option
 end
 
 module String = struct
-  include Stdune.String
+  type t = string
 
-  let strip = trim
+  include struct
+    open Stdune.String
+    module Map = Map
+  end
+
+  let to_dyn = Dyn.string
 
   include struct
     open Base.String
 
+    let unsafe_get = unsafe_get
+    let get = get
+    let split_lines = split_lines
+    let sub = sub
+    let equal = equal
+    let rsplit2 = rsplit2
+    let concat = concat
+    let length = length
+    let strip = strip
+    let trim = strip
+    let drop = drop_prefix
+    let hash = hash
+    let drop_prefix = chop_prefix
+    let is_prefix = is_prefix
+    let map = map
+    let lowercase_ascii = lowercase
+    let capitalize_ascii = capitalize
+    let capitalize = capitalize
+    let split_on_char t ~sep = split t ~on:sep
+    let is_empty = is_empty
+    let split = split
     let chop_prefix_if_exists = chop_prefix_if_exists
     let chop_suffix_if_exists = chop_suffix_if_exists
+    let drop_prefix_if_exists = chop_prefix_if_exists
+    let take = prefix
     let substr_index_exn = substr_index_exn
     let substr_index = substr_index
     let prefix = prefix
     let lfindi = lfindi
     let filter = filter
+    let is_suffix = is_suffix
+    let extract_words = Stdune.String.extract_words
   end
 
   let findi =

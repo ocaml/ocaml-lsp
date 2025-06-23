@@ -218,6 +218,7 @@ let outline_kind kind : SymbolKind.t =
   | `Type -> String
   | `Exn -> Constructor
   | `Class -> Class
+  | `ClassType -> Interface
   | `Method -> Method
 ;;
 
@@ -299,9 +300,9 @@ let find_cm_files dir =
 ;;
 
 let run
-  ({ query; _ } : WorkspaceSymbolParams.t)
-  (workspace_folders : WorkspaceFolder.t list)
-  (cancel : Fiber.Cancel.t option)
+      ({ query; _ } : WorkspaceSymbolParams.t)
+      (workspace_folders : WorkspaceFolder.t list)
+      (cancel : Fiber.Cancel.t option)
   =
   let filter =
     match query with
@@ -375,7 +376,7 @@ let run server (state : State.t) (params : WorkspaceSymbolParams.t) =
       let msg =
         let message =
           List.map errors ~f:(function Build_dir_not_found workspace_name ->
-            workspace_name)
+              workspace_name)
           |> String.concat ~sep:", "
           |> sprintf "No build directory found in workspace(s): %s"
         in

@@ -85,12 +85,12 @@ let diagnostics t =
 ;;
 
 let initialize
-  t
-  ~position_encoding
-  (params : InitializeParams.t)
-  workspaces
-  dune
-  diagnostics
+      t
+      ~position_encoding
+      (params : InitializeParams.t)
+      workspaces
+      dune
+      diagnostics
   =
   assert (t.init = Uninitialized);
   { t with

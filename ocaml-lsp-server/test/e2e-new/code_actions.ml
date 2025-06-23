@@ -11,11 +11,11 @@ let iter_code_actions ?prep ?path ?(diagnostics = []) ~source range =
 ;;
 
 let print_code_actions
-  ?(prep = fun _ -> Fiber.return ())
-  ?(path = "foo.ml")
-  ?(filter = fun _ -> true)
-  source
-  range
+      ?(prep = fun _ -> Fiber.return ())
+      ?(path = "foo.ml")
+      ?(filter = fun _ -> true)
+      source
+      range
   =
   iter_code_actions ~prep ~path ~source range (function
     | None -> print_endline "No code actions"
@@ -45,9 +45,11 @@ let find_annotate_action = find_action "type-annotate"
 let find_remove_annotation_action = find_action "remove type annotation"
 
 let%expect_test "code actions" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let foo = 123
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:5 in
     let end_ = Position.create ~line:1 ~character:7 in
@@ -93,10 +95,12 @@ let foo = 123
 ;;
 
 let%expect_test "can type-annotate a function argument" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type t = Foo of int | Bar of bool
 let f x = Foo x
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:2 ~character:6 in
     let end_ = Position.create ~line:2 ~character:7 in
@@ -130,9 +134,11 @@ let f x = Foo x
 ;;
 
 let%expect_test "can type-annotate a toplevel value" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let iiii = 3 + 4
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:4 in
     let end_ = Position.create ~line:1 ~character:5 in
@@ -179,9 +185,11 @@ let iiii = 3 + 4
 ;;
 
 let%expect_test "does not type-annotate function" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let my_fun x y = 1
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:5 in
     let end_ = Position.create ~line:1 ~character:6 in
@@ -233,11 +241,13 @@ let () =
 ;;
 
 let%expect_test "can type-annotate a variant with its name only" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type t = Foo of int | Bar of bool
 
 let f (x : t) = x
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:3 ~character:16 in
     let end_ = Position.create ~line:3 ~character:17 in
@@ -271,11 +281,13 @@ let f (x : t) = x
 ;;
 
 let%expect_test "does not type-annotate in a non expression context" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type x =
    | Foo of int
    | Baz of string
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:3 ~character:5 in
     let end_ = Position.create ~line:3 ~character:6 in
@@ -286,9 +298,11 @@ type x =
 ;;
 
 let%expect_test "does not type-annotate already annotated argument" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let f (x : int) = 1
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:7 in
     let end_ = Position.create ~line:1 ~character:8 in
@@ -299,9 +313,11 @@ let f (x : int) = 1
 ;;
 
 let%expect_test "does not type-annotate already annotated expression" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let f x = (1 : int)
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:11 in
     let end_ = Position.create ~line:1 ~character:12 in
@@ -312,9 +328,11 @@ let f x = (1 : int)
 ;;
 
 let%expect_test "does not type-annotate already annotated and coerced expression" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let f x = (1 : int :> int)
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:11 in
     let end_ = Position.create ~line:1 ~character:12 in
@@ -325,10 +343,12 @@ let f x = (1 : int :> int)
 ;;
 
 let%expect_test "can remove type annotation from a function argument" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = Foo x
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:2 ~character:7 in
     let end_ = Position.create ~line:2 ~character:8 in
@@ -362,9 +382,11 @@ let f (x : t) = Foo x
 ;;
 
 let%expect_test "can remove type annotation from a toplevel value" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let (iiii : int) = 3 + 4
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:5 in
     let end_ = Position.create ~line:1 ~character:6 in
@@ -439,9 +461,11 @@ let f (x : int) = x + 1
 ;;
 
 let%expect_test "can remove type annotation from a coerced expression" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let x = (7 : int :> int)
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:9 in
     let end_ = Position.create ~line:1 ~character:10 in
@@ -475,9 +499,11 @@ let x = (7 : int :> int)
 ;;
 
 let%expect_test "does not remove type annotation from function" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let my_fun x y : int = 1
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:5 in
     let end_ = Position.create ~line:1 ~character:6 in
@@ -488,10 +514,12 @@ let my_fun x y : int = 1
 ;;
 
 let%expect_test "can destruct sum types" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = x
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:2 ~character:16 in
     let end_ = Position.create ~line:2 ~character:17 in
@@ -507,7 +535,7 @@ let f (x : t) = x
           {
             "edits": [
               {
-                "newText": "match x with Foo _ -> _ | Bar _ -> _\n",
+                "newText": "match x with | Foo _ -> _ | Bar _ -> _",
                 "range": {
                   "end": { "character": 17, "line": 2 },
                   "start": { "character": 16, "line": 2 }
@@ -526,10 +554,12 @@ let f (x : t) = x
 ;;
 
 let%expect_test "can destruct match line" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
 let f (x:bool) =
   match x
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:2 ~character:5 in
     let end_ = Position.create ~line:2 ~character:5 in
@@ -567,9 +597,11 @@ let f (x:bool) =
 ;;
 
 let%expect_test "can destruct match-with line" =
-  let source = {ocaml|
+  let source =
+    {ocaml|
     match (Ok 0) with
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:0 in
     let end_ = Position.create ~line:1 ~character:0 in
@@ -895,11 +927,97 @@ let f (x: q) =
       |}]
 ;;
 
+let%expect_test "can destruct on sub-expression" =
+  let source =
+    {ocaml|
+let defered_peek x = if x >= 0 then Some (`Foo x) else None
+let job_reader = 10
+
+let _ = defered_peek job_reader
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:8 in
+    let end_ = Position.create ~line:4 ~character:31 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match defered_peek job_reader with | None -> _ | Some _ -> _",
+                "range": {
+                  "end": { "character": 31, "line": 4 },
+                  "start": { "character": 8, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct (enumerate cases)",
+      "title": "Destruct (enumerate cases)"
+    }
+    |}]
+;;
+
+let%expect_test "can destruct on sub-expression that need parenthesis" =
+  let source =
+    {ocaml|
+let defered_peek x = if x >= 0 then Some (`Foo x) else None
+let job_reader = 10
+
+let _ = defered_peek job_reader
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:4 ~character:21 in
+    let end_ = Position.create ~line:4 ~character:31 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(match job_reader with | 0 -> _ | _ -> _)",
+                "range": {
+                  "end": { "character": 31, "line": 4 },
+                  "start": { "character": 21, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct (enumerate cases)",
+      "title": "Destruct (enumerate cases)"
+    }
+    |}]
+;;
+
 let%expect_test "can infer module interfaces" =
-  let impl_source = {ocaml|
+  let impl_source =
+    {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = x
-|ocaml} in
+|ocaml}
+  in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
   let intf_source = "" in
@@ -941,15 +1059,19 @@ let f (x : t) = x
 ;;
 
 let%expect_test "inferred interface excludes existing names" =
-  let impl_source = {ocaml|
+  let impl_source =
+    {ocaml|
 type t = Foo of int | Bar of bool
 let f (x : t) = x
-|ocaml} in
+|ocaml}
+  in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source = {ocaml|
+  let intf_source =
+    {ocaml|
 val f : t -> t
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:0 ~character:0 in
     let end_ = Position.create ~line:0 ~character:0 in
@@ -1000,10 +1122,12 @@ let f (x : t) (d : bool) =
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source = {ocaml|
+  let intf_source =
+    {ocaml|
 type t = Foo of int | Bar of bool
 val f : t -> bool
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:2 ~character:0 in
     let end_ = Position.create ~line:2 ~character:0 in
@@ -1051,9 +1175,11 @@ let f i s b =
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source = {ocaml|
+  let intf_source =
+    {ocaml|
 val f : int -> string -> 'a list -> bool -> bool
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:10 in
     let end_ = Position.create ~line:1 ~character:10 in
@@ -1101,9 +1227,11 @@ let f i s l b =
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source = {ocaml|
+  let intf_source =
+    {ocaml|
 val f : int -> string -> 'a list -> bool -> bool
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:1 in
     let end_ = Position.create ~line:1 ~character:12 in
@@ -1231,9 +1359,11 @@ end
   in
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
-  let intf_source = {ocaml|
+  let intf_source =
+    {ocaml|
 module M : sig type t = I of int | B of bool end
-|ocaml} in
+|ocaml}
+  in
   let range =
     let start = Position.create ~line:1 ~character:0 in
     let end_ = Position.create ~line:1 ~character:0 in
@@ -1272,6 +1402,14 @@ module M : sig type t = I of int | B of bool end
     |}]
 ;;
 
+let activate_jump client =
+  let config =
+    DidChangeConfigurationParams.create
+      ~settings:(`Assoc [ "merlinJumpCodeActions", `Assoc [ "enable", `Bool true ] ])
+  in
+  change_config ~client config
+;;
+
 let%expect_test "can jump to match target" =
   let source =
     {ocaml|
@@ -1288,7 +1426,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-match");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-match");
   [%expect
     {|
     Code actions:
@@ -1327,7 +1469,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-next-case");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-next-case");
   [%expect
     {|
     Code actions:
@@ -1364,7 +1510,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-prev-case");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-prev-case");
   [%expect
     {|
     Code actions:
@@ -1401,7 +1551,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-let");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-let");
   [%expect
     {|
     Code actions:
@@ -1438,7 +1592,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:5 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-fun");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-fun");
   [%expect
     {|
     Code actions:
@@ -1476,7 +1634,11 @@ let f (x : t) (d : bool) =
     let end_ = Position.create ~line:2 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-module");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-module");
   [%expect
     {|
     Code actions:
@@ -1517,7 +1679,11 @@ let%expect_test "can jump to module-type target" =
     let end_ = Position.create ~line:4 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-module-type");
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-module-type");
   [%expect
     {|
       Code actions:
@@ -1553,9 +1719,102 @@ let%expect_test "shouldn't find the jump target on the same line" =
     let end_ = Position.create ~line:0 ~character:5 in
     Range.create ~start ~end_
   in
-  print_code_actions source range ~filter:(find_action "merlin-jump-fun");
-  [%expect {|
+  print_code_actions
+    ~prep:activate_jump
+    source
+    range
+    ~filter:(find_action "merlin-jump-fun");
+  [%expect
+    {|
       No code actions |}]
+;;
+
+let%expect_test "can combine cases with multiple RHSes" =
+  let source =
+    {ocaml|
+    match card with
+    | Ace -> _
+    | King -> _
+    | Queen -> "Face card!"
+    | Jack -> "Face card?"
+    | Number _ -> _
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:3 ~character:3 in
+    let end_ = Position.create ~line:6 ~character:6 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "combine-cases");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "    | King | Queen | Jack | Number _ -> _\n",
+                "range": {
+                  "end": { "character": 0, "line": 7 },
+                  "start": { "character": 0, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "combine-cases",
+      "title": "Combine-cases"
+    }
+    |}]
+;;
+
+let%expect_test "can combine cases with one unique RHS" =
+  let source =
+    {ocaml|
+    match card with
+    | Ace -> _
+    | King -> _
+    | Queen -> "Face card!"
+    | Jack -> "Face card?"
+    | Number _ -> _
+|ocaml}
+  in
+  let range =
+    let start = Position.create ~line:3 ~character:3 in
+    let end_ = Position.create ~line:4 ~character:4 in
+    Range.create ~start ~end_
+  in
+  print_code_actions source range ~filter:(find_action "combine-cases");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "    | King | Queen -> \"Face card!\"\n",
+                "range": {
+                  "end": { "character": 0, "line": 5 },
+                  "start": { "character": 0, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "combine-cases",
+      "title": "Combine-cases"
+    }
+    |}]
 ;;
 
 let position_of_offset src x =

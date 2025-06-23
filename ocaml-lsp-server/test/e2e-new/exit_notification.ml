@@ -25,8 +25,8 @@ let test run =
     Fiber.fork_and_join_unit run_client (run client))
 ;;
 
-let%expect_test "ocamllsp process exits with code 0 after Shutdown and Exit \
-                 notifications are sent"
+let%expect_test
+    "ocamllsp process exits with code 0 after Shutdown and Exit notifications are sent"
   =
   let run client () =
     let* (_ : InitializeResult.t) = Client.initialized client in
@@ -34,7 +34,8 @@ let%expect_test "ocamllsp process exits with code 0 after Shutdown and Exit \
     Client.notification client Exit
   in
   test run;
-  [%expect {|
+  [%expect
+    {|
     ocamllsp finished with code = 0  |}]
 ;;
 
@@ -44,18 +45,20 @@ let%expect_test "ocamllsp does not exit if only Shutdown notification is sent" =
     Client.request client Shutdown
   in
   test run;
-  [%expect {|
+  [%expect
+    {|
     ocamllsp killed with signal = -7  |}]
 ;;
 
-let%expect_test "ocamllsp process exits with code 0 after Exit notification is sent \
-                 (should be 1)"
+let%expect_test
+    "ocamllsp process exits with code 0 after Exit notification is sent (should be 1)"
   =
   let run client () =
     let* (_ : InitializeResult.t) = Client.initialized client in
     Client.notification client Exit
   in
   test run;
-  [%expect {|
+  [%expect
+    {|
     ocamllsp finished with code = 0  |}]
 ;;

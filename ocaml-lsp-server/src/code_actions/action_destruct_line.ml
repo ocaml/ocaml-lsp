@@ -58,8 +58,8 @@ let is_hole (case_line : string) (cursor_pos : int) =
   let arrow_pos = String.substr_index_exn case_line ~pattern:"->" in
   if cursor_pos <= 0 || cursor_pos >= arrow_pos
   then false (* We're only looking for '_' if the cursor is between "|" and "->". *)
-  else if Char.equal case_line.[cursor_pos] '_'
-          || Char.equal case_line.[cursor_pos - 1] '_'
+  else if
+    Char.equal case_line.[cursor_pos] '_' || Char.equal case_line.[cursor_pos - 1] '_'
   then true
   else false
 ;;

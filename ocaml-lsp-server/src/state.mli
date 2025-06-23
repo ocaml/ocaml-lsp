@@ -14,7 +14,7 @@ type init =
 (** State specific to the hoverExtended request. *)
 type hover_extended =
   { mutable history : (Uri.t * Position.t * int) option
-  (** File, position, and verbosity level of the last call to
+    (** File, position, and verbosity level of the last call to
       hoverExtended. This value is used to pick a verbosity level when it
       is not specific by the client. *)
   }
