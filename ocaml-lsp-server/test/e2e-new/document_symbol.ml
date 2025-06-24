@@ -272,8 +272,8 @@ let%expect_test "documentOutline with recursive definition and methods" =
         "kind": 13,
         "location": {
           "range": {
-            "end": { "character": 12, "line": 3 },
-            "start": { "character": 9, "line": 3 }
+            "end": { "character": 17, "line": 3 },
+            "start": { "character": 5, "line": 3 }
           },
           "uri": "file:///test.ml"
         },
@@ -284,8 +284,8 @@ let%expect_test "documentOutline with recursive definition and methods" =
         "kind": 6,
         "location": {
           "range": {
-            "end": { "character": 15, "line": 4 },
-            "start": { "character": 12, "line": 4 }
+            "end": { "character": 40, "line": 4 },
+            "start": { "character": 5, "line": 4 }
           },
           "uri": "file:///test.ml"
         },
@@ -386,8 +386,8 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "kind": 13,
         "location": {
           "range": {
-            "end": { "character": 10, "line": 2 },
-            "start": { "character": 9, "line": 2 }
+            "end": { "character": 8, "line": 6 },
+            "start": { "character": 5, "line": 2 }
           },
           "uri": "file:///test.ml"
         },
@@ -398,8 +398,8 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "kind": 6,
         "location": {
           "range": {
-            "end": { "character": 22, "line": 3 },
-            "start": { "character": 12, "line": 3 }
+            "end": { "character": 16, "line": 5 },
+            "start": { "character": 5, "line": 3 }
           },
           "uri": "file:///test.ml"
         },
@@ -433,8 +433,8 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "kind": 13,
         "location": {
           "range": {
-            "end": { "character": 12, "line": 9 },
-            "start": { "character": 9, "line": 9 }
+            "end": { "character": 17, "line": 9 },
+            "start": { "character": 5, "line": 9 }
           },
           "uri": "file:///test.ml"
         },
@@ -445,8 +445,8 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "kind": 6,
         "location": {
           "range": {
-            "end": { "character": 15, "line": 10 },
-            "start": { "character": 12, "line": 10 }
+            "end": { "character": 40, "line": 10 },
+            "start": { "character": 5, "line": 10 }
           },
           "uri": "file:///test.ml"
         },
@@ -525,8 +525,8 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "kind": 6,
         "location": {
           "range": {
-            "end": { "character": 32, "line": 16 },
-            "start": { "character": 29, "line": 16 }
+            "end": { "character": 37, "line": 16 },
+            "start": { "character": 22, "line": 16 }
           },
           "uri": "file:///test.ml"
         },
