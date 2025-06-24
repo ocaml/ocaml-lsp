@@ -14,12 +14,14 @@ let symbol_kind_of_outline_kind = function
 
 let rec items_to_symbols items =
   List.rev_map
-    ~f:(fun { Query_protocol.outline_name; outline_kind; location; children; _ } ->
+    ~f:
+      (fun
+        { Query_protocol.outline_name; outline_kind; location; selection; children; _ } ->
       DocumentSymbol.create
         ~name:outline_name
         ~kind:(symbol_kind_of_outline_kind outline_kind)
         ~range:(Range.of_loc location)
-        ~selectionRange:(Range.of_loc location)
+        ~selectionRange:(Range.of_loc selection)
         ~children:(items_to_symbols children)
         ())
     items

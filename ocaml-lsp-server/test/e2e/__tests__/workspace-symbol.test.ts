@@ -85,11 +85,11 @@ describe("workspace/symbol", () => {
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
 [
   "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
-  "size 6 /workspace_symbol_A/bin/a.ml 64:11 64:15",
-  "peek 6 /workspace_symbol_A/bin/a.ml 62:11 62:15",
-  "pop 6 /workspace_symbol_A/bin/a.ml 57:11 57:14",
-  "push 6 /workspace_symbol_A/bin/a.ml 55:11 55:15",
-  "the_list 12 /workspace_symbol_A/bin/a.ml 53:16 53:24",
+  "size 6 /workspace_symbol_A/bin/a.ml 64:4 64:38",
+  "peek 6 /workspace_symbol_A/bin/a.ml 62:4 62:34",
+  "pop 6 /workspace_symbol_A/bin/a.ml 57:4 60:12",
+  "push 6 /workspace_symbol_A/bin/a.ml 55:4 55:45",
+  "the_list 12 /workspace_symbol_A/bin/a.ml 53:4 53:40",
   "Foo 9 /workspace_symbol_A/bin/a.ml 49:0 49:23",
   "Increment 2 /workspace_symbol_A/bin/a.ml 45:0 47:3",
   "increment_x 12 /workspace_symbol_A/bin/a.ml 46:2 46:27",
@@ -164,11 +164,11 @@ describe("workspace/symbol", () => {
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
 [
   "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
-  "size 6 /workspace_symbol_A/bin/a.ml 64:11 64:15",
-  "peek 6 /workspace_symbol_A/bin/a.ml 62:11 62:15",
-  "pop 6 /workspace_symbol_A/bin/a.ml 57:11 57:14",
-  "push 6 /workspace_symbol_A/bin/a.ml 55:11 55:15",
-  "the_list 12 /workspace_symbol_A/bin/a.ml 53:16 53:24",
+  "size 6 /workspace_symbol_A/bin/a.ml 64:4 64:38",
+  "peek 6 /workspace_symbol_A/bin/a.ml 62:4 62:34",
+  "pop 6 /workspace_symbol_A/bin/a.ml 57:4 60:12",
+  "push 6 /workspace_symbol_A/bin/a.ml 55:4 55:45",
+  "the_list 12 /workspace_symbol_A/bin/a.ml 53:4 53:40",
   "Foo 9 /workspace_symbol_A/bin/a.ml 49:0 49:23",
   "Increment 2 /workspace_symbol_A/bin/a.ml 45:0 47:3",
   "increment_x 12 /workspace_symbol_A/bin/a.ml 46:2 46:27",
