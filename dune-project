@@ -31,7 +31,7 @@ possible and does not make any assumptions about IO.
 ")
  (depends
   (jsonrpc (= :version))
-  (yojson (>= 3))
+  yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
   (cinaps :with-test)
   (ppx_expect (and (>= v0.17.0) :with-test))
@@ -45,7 +45,7 @@ possible and does not make any assumptions about IO.
  (synopsis "LSP Server for OCaml")
  (description "An LSP server for OCaml.")
  (depends
-  (yojson (>= 3))
+  yojson
   (base (>= v0.16.0))
   (lsp (= :version))
   (jsonrpc (= :version))
@@ -75,8 +75,9 @@ possible and does not make any assumptions about IO.
 
 (package
  (name jsonrpc)
- (synopsis "Jsonrpc protocol implemenation")
+ (synopsis "Jsonrpc protocol implementation")
  (description "See https://www.jsonrpc.org/specification")
  (depends
+  yojson
   (ocaml (>= 4.08))
   (odoc :with-doc)))

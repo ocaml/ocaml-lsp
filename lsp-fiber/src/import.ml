@@ -66,6 +66,7 @@ module Json = struct
     | `List l -> List (List.map l ~f:to_dyn)
     | `Null -> Dyn.Variant ("Null", [])
     | `Intlit s -> String s
+    | _ -> Dyn.Variant ("Unsupported", [])
   ;;
 end
 
