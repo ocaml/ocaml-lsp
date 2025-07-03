@@ -67,6 +67,8 @@ module Json = struct
     | `Null -> Dyn.Variant ("Null", [])
     | `Intlit s -> String s
     | _ -> Dyn.Variant ("Unsupported", [])
+    (* This last case is unused with Yojson >= 3 *)
+  [@@warning "-11"]
   ;;
 end
 
