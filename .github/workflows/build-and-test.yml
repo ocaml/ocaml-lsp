@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - 414-LTS
+      - master
   schedule:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
@@ -20,8 +20,6 @@ jobs:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-        ocaml-compiler:
-          - "4.14"
 
     runs-on: ${{ matrix.os }}
 
@@ -42,36 +40,33 @@ jobs:
           node-version: lts/*
 
       - name: Install npm packages
-        run: yarn --frozen-lockfile
-        working-directory: ocaml-lsp-server/test/e2e
+        run: yarn install --frozen-lockfile
 
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          ocaml-compiler: "ocaml-base-compiler.5.3.0"
 
       # Remove this pin once a compatible version of Merlin has been released
       - name: Pin dev Merlin
-        run: opam pin --with-version 4.19-414 https://github.com/voodoos/merlin.git#414-4.19-backports
+        run: opam --cli=2.1 pin --with-version=5.5-503 https://github.com/ocaml/merlin.git#main
 
       - name: Build and install dependencies
         run: opam install .
 
-      # the makefile explains why we don't use test dependencies
+      # the makefile explains why we don't use --with-test
+      # ppx expect is not yet compatible with 5.1 and test output vary from one
+      # compiler to another. We only test on 4.14.
       - name: Install test dependencies
-        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make install-test-deps
 
       - name: Run build @all
-        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make all
 
       - name: Run the unit tests
-        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make test-ocaml
 
       - name: Run the template integration tests
-        if: matrix.ocaml-compiler == '4.14'
         run: opam exec -- make test-e2e
 
   coverage:
@@ -86,12 +81,16 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "4.14"
+          ocaml-compiler: "ocaml-base-compiler.5.3.0"
 
       - name: Set git user
         run: |
           git config --global user.name github-actions[bot]
           git config --global user.email github-actions[bot]@users.noreply.github.com
+
+      # Remove this pin once a compatible version of Merlin has been released
+      - name: Pin dev Merlin
+        run: opam --cli=2.1 pin --with-version=5.5-503 https://github.com/ocaml/merlin.git#main
 
       - name: Install dependencies
         run: |

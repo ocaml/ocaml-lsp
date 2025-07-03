@@ -21,6 +21,7 @@
 - More precise diagnostics in the event of a failed identifier search (`Definition_query`) (#1518)
 
 - Remove `ocamlformat` application after `destruct` (that remove some useful parenthesis) (#1519)
+- Make compatible with Yojson 3.x by removing `Tuple` and `Variant` (#1534)
 
 - Add a new server option `standardHover`, that can be used by clients to
   disable the default hover provider.  When `standardHover = false`
