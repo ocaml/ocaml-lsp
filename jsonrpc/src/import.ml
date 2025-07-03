@@ -9,18 +9,7 @@ module Option = struct
 end
 
 module Json = struct
-  type t =
-    [ `Assoc of (string * t) list
-    | `Bool of bool
-    | `Float of float
-    | `Int of int
-    | `Intlit of string
-    | `List of t list
-    | `Null
-    | `String of string
-    | `Tuple of t list
-    | `Variant of string * t option
-    ]
+  type t = Yojson.Safe.t
 
   exception Of_json of (string * t)
 
