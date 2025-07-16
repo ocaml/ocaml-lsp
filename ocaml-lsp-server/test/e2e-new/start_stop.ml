@@ -96,6 +96,7 @@ let%expect_test "start/stop" =
             "handleGetDocumentation": true,
             "handleConstruct": true,
             "handleTypeSearch": true,
+            "refactorExtract": true,
             "handleJump": true
           }
         },

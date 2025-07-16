@@ -57,6 +57,7 @@
     merlin_call_compatible
     diagnostics_filter
     metrics
+    refactor_extract
     semantic_hl_data
     semantic_hl_helpers
     semantic_hl_tests
