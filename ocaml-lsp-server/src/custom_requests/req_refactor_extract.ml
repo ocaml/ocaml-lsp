@@ -1,6 +1,6 @@
 open Import
 
-let capability = "refactorExtract", `Bool true
+let capability = "handleRefactorExtract", `Bool true
 let meth = "ocamllsp/refactorExtract"
 
 module Request_params = struct

@@ -102,7 +102,7 @@ let%expect_test "start/stop" =
             "handleLocate": true,
             "handleDestruct": true,
             "handleLocateTypes": true,
-            "refactorExtract": true
+            "handleRefactorExtract": true
           }
         },
         "foldingRangeProvider": true,
