@@ -20,7 +20,7 @@ There is no client capability relative to this request.
 
   ```json
   {
-    "uri": TextDocumentIdentifier,
+    "uri": textDocument,
     "start": Position,
     "stop": Position,
     "extract_name?": string,
