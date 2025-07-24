@@ -34,14 +34,13 @@ let code_action doc (params : CodeActionParams.t) =
         let enclosing =
           Mbrowse.enclosing
             (Mpipeline.get_lexing_pos pipeline start)
-            [ Mbrowse.of_typedtree typedtree ]
+            [ Mbrowse.of_structure structure ]
         in
         if
           Merlin_analysis.Refactor_extract_region.is_region_extractable
             ~start:(Mpipeline.get_lexing_pos pipeline start)
             ~stop:(Mpipeline.get_lexing_pos pipeline stop)
             enclosing
-            structure
         then (
           let substitution = dispatch_command pipeline doc ~start ~stop in
           let edit = make_edit params doc substitution in
