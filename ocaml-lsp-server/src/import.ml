@@ -86,6 +86,8 @@ module String = struct
   include struct
     open Stdune.String
     module Map = Map
+
+    let extract_words = extract_words
   end
 
   let to_dyn = Dyn.string
@@ -124,7 +126,6 @@ module String = struct
     let lfindi = lfindi
     let filter = filter
     let is_suffix = is_suffix
-    let extract_words = Stdune.String.extract_words
   end
 
   let findi =
