@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Add custom [`ocamllsp/refactorExtract`](https://github.com/ocaml/ocaml-lsp/blob/ocaml-lsp-server/docs/ocamllsp/refactorExtract-spec.md) request (#1545)
+
 # 1.23.0
 
 ## Features

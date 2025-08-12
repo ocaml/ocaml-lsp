@@ -98,6 +98,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_get_documentation.capability
               ; Req_construct.capability
               ; Req_type_search.capability
+              ; Req_refactor_extract.capability
               ; Req_merlin_jump.capability
               ] )
         ]
@@ -541,6 +542,7 @@ let on_request
        ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
        ; Req_type_search.meth, Req_type_search.on_request
        ; Req_construct.meth, Req_construct.on_request
+       ; Req_refactor_extract.meth, Req_refactor_extract.on_request
        ; ( Semantic_highlighting.Debug.meth_request_full
          , Semantic_highlighting.Debug.on_request_full )
        ; ( Req_hover_extended.meth
