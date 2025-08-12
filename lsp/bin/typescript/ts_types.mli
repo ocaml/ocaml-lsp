@@ -86,7 +86,9 @@ module Unresolved : sig
 end
 
 module Ident : sig
-  module Id : Id.S
+  module Id : sig
+    type t
+  end
 
   type t =
     { id : Id.t
@@ -96,13 +98,11 @@ module Ident : sig
   val to_dyn : t -> Dyn.t
   val make : string -> t
 
-  module Top_closure : sig
-    val top_closure
-      :  key:('a -> t)
-      -> deps:('a -> 'a list)
-      -> 'a list
-      -> ('a list, 'a list) result
-  end
+  val top_closure
+    :  key:('a -> t)
+    -> deps:('a -> 'a list)
+    -> 'a list
+    -> ('a list, 'a list) result
 end
 
 module Prim : sig
