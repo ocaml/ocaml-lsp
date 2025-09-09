@@ -30,5 +30,13 @@ let f (o : <  g : int -> unit >) = o#g 4
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| no hover response |}]
+  [%expect {|
+    {
+      "contents": { "kind": "plaintext", "value": "int -> unit" },
+      "range": {
+        "end": { "character": 38, "line": 1 },
+        "start": { "character": 35, "line": 1 }
+      }
+    }
+    |}]
 ;;
