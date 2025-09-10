@@ -30,7 +30,8 @@ let f (o : <  g : int -> unit >) = o#g 4
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {|
+  [%expect
+    {|
     {
       "contents": { "kind": "plaintext", "value": "int -> unit" },
       "range": {
