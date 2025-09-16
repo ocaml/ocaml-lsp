@@ -51,6 +51,7 @@
     document_flow
     exit_notification
     for_ppx
+    hover
     hover_extended
     inlay_hints
     jump_to_typed_hole
