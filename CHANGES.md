@@ -1,3 +1,9 @@
+# unreleased
+
+## Fixes
+
+- Fix hover on method calls not showing the type. (#1553, fixes #1552)
+
 # 1.23.0
 
 ## Features
