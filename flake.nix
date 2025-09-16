@@ -3,7 +3,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nix-ocaml/nix-overlays";
     merlin5_3 = {
-      url = "github:liam923/merlin/rename-holes";
+      url = "github:ocaml/merlin";
       flake = false;
     };
     merlin5_2 = {
@@ -15,7 +15,7 @@
   outputs = { self, flake-utils, nixpkgs, ... }@inputs:
     let
       package = "ocaml-lsp-server";
-      ocamlformat = pkgs: pkgs.ocamlformat_0_26_2;
+      ocamlformat = pkgs: pkgs.ocamlformat_0_27_0;
       basePackage = {
         duneVersion = "3";
         version = "n/a";
@@ -59,7 +59,7 @@
           jsonrpc = buildDunePackage (basePackage // {
             pname = "jsonrpc";
             doCheck = false;
-            propagatedBuildInputs = with pkgs.ocamlPackages; [ ];
+            propagatedBuildInputs = with pkgs.ocamlPackages; [ yojson ];
           });
 
           lsp = buildDunePackage (basePackage // {

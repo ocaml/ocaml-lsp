@@ -99,7 +99,7 @@ describe("textDocument/documentSymbol", () => {
   },
   {
     "containerName": "M",
-    "kind": 12,
+    "kind": 13,
     "location": {
       "range": {
         "end": {
@@ -216,7 +216,7 @@ describe("textDocument/documentSymbol", () => {
     "children": [
       {
         "children": [],
-        "kind": 12,
+        "kind": 13,
         "name": "m",
         "range": {
           "end": {

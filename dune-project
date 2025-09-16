@@ -70,13 +70,14 @@ possible and does not make any assumptions about IO.
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (merlin-lib (and (>= 5.4) (< 6.0)))
+  (merlin-lib (and (>= 5.5) (< 6.0)))
   (ppx_yojson_conv :with-dev-setup)))
 
 (package
  (name jsonrpc)
- (synopsis "Jsonrpc protocol implemenation")
+ (synopsis "Jsonrpc protocol implementation")
  (description "See https://www.jsonrpc.org/specification")
  (depends
+  yojson
   (ocaml (>= 4.08))
   (odoc :with-doc)))
