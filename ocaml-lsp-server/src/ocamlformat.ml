@@ -104,7 +104,7 @@ type formatter =
 
 let args = function
   | Ocaml uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
-  | Mlx uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-"; "--impl" ]
+  | Mlx uri -> [ "--impl"; sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Reason kind ->
     [ "--parse"; "re"; "--print"; "re" ]
     @
