@@ -8,7 +8,7 @@ module Kind = struct
 
   let of_fname_opt p =
     match Filename.extension p with
-    | ".ml" | ".eliom" | ".re" -> Some Impl
+    | ".ml" | ".eliom" | ".re" | ".mlx" -> Some Impl
     | ".mli" | ".eliomi" | ".rei" -> Some Intf
     | _ -> None
   ;;
