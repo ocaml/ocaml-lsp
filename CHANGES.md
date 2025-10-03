@@ -4,6 +4,7 @@
 
 - Fix hover on method calls not showing the type. (#1553, fixes #1552)
 - Fix error on opening `.mll` files (#1557)
+- Ensure compatibility with both yojson 2.0 and 3.0. (#1534)
 
 # 1.23.0
 
