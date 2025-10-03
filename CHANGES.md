@@ -1,4 +1,4 @@
-# unreleased
+# 1.23.1
 
 ## Fixes
 
@@ -22,7 +22,6 @@
 - Fix `inlay-hint` for function parameters (#1515)
 - More precise diagnostics in the event of a failed identifier search (`Definition_query`) (#1518)
 - Remove `ocamlformat` application after `destruct` (that remove some useful parenthesis) (#1519)
-- Make compatible with Yojson 3.x by removing `Tuple` and `Variant` (#1534)
 
 # 1.22.0
 
