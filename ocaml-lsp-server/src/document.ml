@@ -442,8 +442,8 @@ let get_impl_intf_counterparts m uri =
     | Dune | Cram -> []
     | Mlx ->
       (match kind with
-       | Intf -> [ re; ml; mly; mll; mlx ]
-       | Impl -> [ rei; mli; mly; mll; mlx ])
+       | Intf -> [ ml; mly; mll; mlx; re ]
+       | Impl -> [ rei; mli; mly; mll; rei ])
     | Ocaml ->
       (match kind with
        | Intf -> [ ml; mly; mll; eliom; re; mlx ]
