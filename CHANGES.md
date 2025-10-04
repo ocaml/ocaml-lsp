@@ -1,3 +1,9 @@
+# 1.24.0
+
+## Features
+
+- Support for OCaml 5.4 (#1559)
+
 # 1.23.1
 
 ## Fixes

@@ -238,6 +238,7 @@ include struct
   module Path = Path
   module Typedtree = Typedtree
   module Types = Types
+  module Data_types = Data_types
 end
 
 include struct

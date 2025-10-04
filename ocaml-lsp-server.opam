@@ -31,7 +31,7 @@ depends: [
   "dyn"
   "stdune"
   "fiber" {>= "3.1.1" & < "4.0.0"}
-  "ocaml" {>= "5.3" & < "5.4"}
+  "ocaml" {>= "5.4" & < "5.5"}
   "xdg"
   "ordering"
   "dune-build-info"
@@ -45,7 +45,8 @@ depends: [
   "csexp" {>= "1.5"}
   "ocamlformat-rpc-lib" {>= "0.21.0"}
   "odoc" {with-doc}
-  "merlin-lib" {>= "5.5" & < "5.7"}
+  "merlin-lib" {>= "5.6" & < "5.7"}
+  "ocaml-index" {post}
   "ppx_yojson_conv" {with-dev-setup}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"

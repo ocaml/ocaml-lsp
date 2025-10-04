@@ -160,7 +160,7 @@ end = struct
     let pat_iter (type k) (iter : I.iterator) (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
       | Tpat_var (id, { loc; _ }, _) -> paths := Loc.Map.set !paths loc (Pident id)
-      | Tpat_alias (pat, id, { loc; _ }, _) ->
+      | Tpat_alias (pat, id, { loc; _ }, _, _) ->
         paths := Loc.Map.set !paths loc (Pident id);
         I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
@@ -217,9 +217,12 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
       if is_pure arg then body else with_let ()
     | Ppat_var param | Ppat_constraint ({ ppat_desc = Ppat_var param; _ }, _) ->
       if is_pure arg then with_subst param else with_let ()
-    | Ppat_tuple pats ->
+    | Ppat_tuple ( pats, _) ->
+      let pats = List.map ~f:snd pats in
       (match arg.pexp_desc with
-       | Pexp_tuple args -> List.fold_left2 ~f:beta_reduce_arg ~init:body pats args
+       | Pexp_tuple args ->
+        let args = List.map ~f:snd args in
+        List.fold_left2 ~f:beta_reduce_arg ~init:body pats args
        | _ -> with_let ())
     | _ -> with_let ()
   in
@@ -275,16 +278,16 @@ let inline_edits pipeline task =
         env
         (iter : I.iterator)
         (label : Asttypes.arg_label)
-        (m_arg_expr : Typedtree.expression option)
+        (m_arg_expr : Typedtree.apply_arg)
     =
     match label, m_arg_expr with
     (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
-    | Labelled name, Some { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ }
+    | Labelled name, Arg { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ }
     (* inlining is allowed for optional arguments that are being passed a Some
        parameter, i.e. `x` may be inlined in `let x = 1 in (fun ?(x = 0) -> x)
        ~x` *)
     | ( Optional name
-      , Some
+      , Arg
           { exp_desc =
               (* construct is part of desugaring, assumed to be Some *)
               Texp_construct
@@ -294,13 +297,14 @@ let inline_edits pipeline task =
       when Ident.same task.inlined_var id && not_shadowed env ->
       let newText = sprintf "%s:%s" name newText in
       insert_edit newText loc
-    | Optional _, Some ({ exp_desc = Texp_construct _; _ } as arg_expr) ->
+    | Optional _, Arg ({ exp_desc = Texp_construct _; _ } as arg_expr) ->
       iter.expr iter arg_expr
     (* inlining is _not_ allowed for optional arguments that are being passed an
        optional parameter i.e. `x` may _not_ be inlined in `let x = Some 1 in
        (fun ?(x = 0) -> x) ?x` *)
-    | Optional _, Some _ -> ()
-    | _, _ -> Option.iter m_arg_expr ~f:(iter.expr iter)
+    | Optional _, Arg _ -> ()
+    | _, Arg arg -> iter.expr iter arg
+    | _, _ -> ()
   in
   let paths = Paths.of_typedtree task.inlined_expr in
   let inlined_pexpr = find_parsetree_loc_exn pipeline task.inlined_expr.exp_loc in
