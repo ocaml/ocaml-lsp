@@ -125,7 +125,7 @@ let compute server (params : CodeActionParams.t) =
     (match Document.syntax doc with
      | Ocamllex | Menhir | Cram | Dune ->
        Fiber.return (Reply.now (actions (dune_actions @ open_related)), state)
-     | Ocaml | Reason ->
+     | Ocaml | Reason | Mlx ->
        let reply () =
          let+ code_action_results = compute_ocaml_code_actions params state doc in
          List.concat [ code_action_results; dune_actions; open_related; merlin_jumps ]
