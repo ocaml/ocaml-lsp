@@ -205,8 +205,10 @@ module Complete_by_prefix = struct
       | Intf -> []
       | Impl -> complete_keywords pos prefix
     in
-    keyword_completionItems
+    let items = keyword_completionItems
     @ process_dispatch_resp ~deprecated ~resolve ~prefix doc pos completion
+    in
+    (items, completion.context)
   ;;
 end
 
@@ -259,6 +261,22 @@ module Complete_with_construct = struct
       List.mapi constructed_exprs ~f:completionItem_of_constructed_expr
   ;;
 end
+
+(* Helper functions for type checking *)
+let is_polymorphic_type argument_type =
+  String.is_prefix ~prefix:"'" argument_type
+;;
+
+let is_primitive_type argument_type =
+  let primitives = [
+    "int"; "float"; "string"; "char"; "bool"; "unit"; "int32"; "int64"; "nativeint"; "bytes"
+  ] in
+  List.mem primitives argument_type ~equal:String.equal
+;;
+
+let is_relevant_for_argument_completion (item : CompletionItem.t) =
+  not (String.equal item.label "::" || String.equal item.label ":=")
+;;
 
 let complete
       (state : State.t)
@@ -316,7 +334,41 @@ let complete
                 item.deprecatedSupport)
            in
            if not (Merlin_analysis.Typed_hole.can_be_hole prefix)
-           then Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
+           then (
+             let* (completions, context) =
+               Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
+             in
+             (* Check if we should generate construct completions *)
+             let+ construct_completionItems =
+               match context with
+               | `Application { Query_protocol.Compl.labels = _; argument_type }
+                 when not (is_polymorphic_type argument_type)
+                   && not (is_primitive_type argument_type) ->
+                 let+ construct_response =
+                   Document.Merlin.with_pipeline_exn
+                     ~name:"completion-construct-variant"
+                     merlin
+                     (fun pipeline ->
+                       Complete_with_construct.dispatch_cmd position pipeline)
+                 in
+                 Complete_with_construct.process_dispatch_resp
+                   ~supportsJumpToNextHole:(
+                     state
+                     |> State.experimental_client_capabilities
+                     |> Client.Experimental_capabilities.supportsJumpToNextHole
+                   )
+                   construct_response
+               | _ ->
+                 Fiber.return []
+             in
+             let prefix_completionItems  =
+               match context with
+               | `Application _ ->
+                 (* When in application context try to filter out irrelevant operators e.g. `::`, or `:=` *)
+                 completions |> List.filter ~f:is_relevant_for_argument_completion
+               | _ -> completions
+             in
+             construct_completionItems @ prefix_completionItems)
            else (
              let reindex_sortText completion_items =
                List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
