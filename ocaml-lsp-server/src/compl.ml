@@ -262,7 +262,6 @@ module Complete_with_construct = struct
   ;;
 end
 
-(* Helper functions for type checking *)
 let is_polymorphic_type argument_type =
   String.is_prefix ~prefix:"'" argument_type
 ;;
