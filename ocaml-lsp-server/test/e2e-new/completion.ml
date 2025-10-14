@@ -1317,3 +1317,146 @@ let%expect_test "completion for object methods" =
       }
     } |}]
 ;;
+
+let%expect_test "completes variant constructors for labeled arguments" =
+  let source = {ocaml|
+type color = Red | Green | Blue | Rgb of int * int * int
+let make_color ~(color: color) = color
+let c = make_color ~color:
+|ocaml}
+  in
+  print_completions source (Position.create ~line:5 ~character:26);
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "color",
+      "kind": 4,
+      "label": "Blue",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "Blue",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "color",
+      "kind": 4,
+      "label": "Green",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "Green",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "color",
+      "kind": 4,
+      "label": "Red",
+      "sortText": "0002",
+      "textEdit": {
+        "newText": "Red",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "int * int * int -> color",
+      "kind": 4,
+      "label": "Rgb",
+      "sortText": "0003",
+      "textEdit": {
+        "newText": "Rgb",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "color:color -> color",
+      "kind": 12,
+      "label": "make_color",
+      "sortText": "0004",
+      "textEdit": {
+        "newText": "make_color",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "'a ref -> 'a",
+      "kind": 12,
+      "label": "!",
+      "sortText": "0005",
+      "textEdit": {
+        "newText": "!",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "int -> 'a",
+      "kind": 12,
+      "label": "exit",
+      "sortText": "0006",
+      "textEdit": {
+        "newText": "exit",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "string -> 'a",
+      "kind": 12,
+      "label": "failwith",
+      "sortText": "0007",
+      "textEdit": {
+        "newText": "failwith",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "'a * 'b -> 'a",
+      "kind": 12,
+      "label": "fst",
+      "sortText": "0008",
+      "textEdit": {
+        "newText": "fst",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    .............
+    |}]
+;;
