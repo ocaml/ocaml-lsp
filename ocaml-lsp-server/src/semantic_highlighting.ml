@@ -518,10 +518,10 @@ end = struct
 
   let pexp_apply (self : Ast_iterator.iterator) (expr : Parsetree.expression) args =
     match expr.pexp_desc with
-    | Pexp_ident { txt = Ldot (Lident "Array", "set"); _ }
-    | Pexp_ident { txt = Ldot (Lident "Array", "get"); _ }
-    | Pexp_ident { txt = Ldot (Lident "String", "set"); _ }
-    | Pexp_ident { txt = Ldot (Lident "String", "get"); _ } ->
+    | Pexp_ident { txt = Ldot ({ txt = Lident "Array"; _ }, { txt = "set"; _ }); _ }
+    | Pexp_ident { txt = Ldot ({ txt = Lident "Array"; _ }, { txt = "get"; _ }); _ }
+    | Pexp_ident { txt = Ldot ({ txt = Lident "String"; _ }, { txt = "set"; _ }); _ }
+    | Pexp_ident { txt = Ldot ({ txt = Lident "String"; _ }, { txt = "get"; _ }); _ } ->
       List.iter args ~f:(fun ((_ : Asttypes.arg_label), e) -> self.expr self e);
       `Custom_iterator
     | Pexp_ident lid ->
