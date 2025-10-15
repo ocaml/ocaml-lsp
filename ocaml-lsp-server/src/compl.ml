@@ -273,8 +273,18 @@ let is_primitive_type argument_type =
   List.mem primitives argument_type ~equal:String.equal
 ;;
 
-let is_relevant_for_argument_completion (item : CompletionItem.t) =
-  not (String.equal item.label "::" || String.equal item.label ":=")
+let is_value_not_operator (item : CompletionItem.t) =
+  let irrelevant_operators = [
+    (* OCaml *)
+    "::"   (* list cons operator, not a value *)
+    ; ":=" (* mutable reference assignment operator *)
+    ; ":"  (* type annotation separator *)
+
+    (* Reason *)
+    ; "==" (* physical equality operator *)
+    ; "="  (* structural equality / let binding operator *)
+  ] in
+  not (List.mem irrelevant_operators item.label ~equal:String.equal)
 ;;
 
 let complete
@@ -363,8 +373,9 @@ let complete
              let prefix_completionItems  =
                match context with
                | `Application _ ->
-                 (* When in application context try to filter out irrelevant operators e.g. `::`, or `:=` *)
-                 completions |> List.filter ~f:is_relevant_for_argument_completion
+                 (* When in application context try to filter out non-values that are suggested because of string match.
+                    For example, it's not helpful to suggest e.g. `:` or `:=` after `:` *)
+                 completions |> List.filter ~f:is_value_not_operator
                | `Unknown ->
                  completions
              in
