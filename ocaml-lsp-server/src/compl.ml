@@ -345,7 +345,7 @@ let complete
                    && not (is_primitive_type argument_type) ->
                  let+ construct_response =
                    Document.Merlin.with_pipeline_exn
-                     ~name:"completion-construct-variant"
+                     ~name:"completion-construct"
                      merlin
                      (fun pipeline ->
                        Complete_with_construct.dispatch_cmd position pipeline)
@@ -365,7 +365,8 @@ let complete
                | `Application _ ->
                  (* When in application context try to filter out irrelevant operators e.g. `::`, or `:=` *)
                  completions |> List.filter ~f:is_relevant_for_argument_completion
-               | _ -> completions
+               | `Unknown ->
+                 completions
              in
              construct_completionItems @ prefix_completionItems)
            else (
