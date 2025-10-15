@@ -1,5 +1,10 @@
 # unreleased
 
+## Features
+
+- Add support for `.mlx` files, including formatting via `ocamlformat-mlx` and
+  most OCaml LSP features (diagnostics, code actions, hover, etc.) (#1528)
+
 ## Fixes
 
 - Fix hover on method calls not showing the type. (#1553, fixes #1552)
