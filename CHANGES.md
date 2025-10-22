@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Make `code-lens` for toplevel let binding configurable (#1567)
+
 # 1.24.0
 
 ## Features

@@ -15,12 +15,21 @@ interface config {
   */
   extendedHover: { enable : boolean }
 
-  /**
-  * Enable/Disable CodeLens
-  * @default false
-  * @since 1.16
-  */
-  codelens: { enable : boolean }
+  codelens: {
+    /**
+    * Enable/Disable CodeLens
+    * @default false
+    * @since 1.16
+    */
+    enable : boolean,
+
+    /**
+    * Enable CodeLens only for toplevel let binding
+    * @default false
+    * @since 1.24
+    */
+    only_toplevel
+  }
 
   /**
   * Enable/Disable Dune diagnostics

@@ -363,7 +363,11 @@ module Formatter = struct
   ;;
 end
 
-let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }; _ } =
+let text_document_lens
+      (state : State.t)
+      { CodeLensParams.textDocument = { uri }; _ }
+      ~only_toplevel
+  =
   let store = state.store in
   let doc = Document_store.get store uri in
   match Document.kind doc with
@@ -371,20 +375,31 @@ let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return []
   | `Merlin doc ->
     let+ outline = Document.Merlin.dispatch_exn ~name:"outline" doc Outline in
-    let rec symbol_info_of_outline_item (item : Query_protocol.item) =
-      let children = List.concat_map item.children ~f:symbol_info_of_outline_item in
-      match item.outline_type with
-      | None -> children
-      | Some typ ->
-        let loc = item.location in
-        let info =
+    if only_toplevel
+    then
+      List.filter_map outline ~f:(fun item ->
+        match item.outline_type with
+        | None -> None
+        | Some typ ->
+          let loc = item.location in
           let range = Range.of_loc loc in
           let command = Command.create ~title:typ ~command:"" () in
-          CodeLens.create ~range ~command ()
-        in
-        info :: children
-    in
-    List.concat_map ~f:symbol_info_of_outline_item outline
+          Some (CodeLens.create ~range ~command ()))
+    else (
+      let rec symbol_info_of_outline_item (item : Query_protocol.item) =
+        let children = List.concat_map item.children ~f:symbol_info_of_outline_item in
+        match item.outline_type with
+        | None -> children
+        | Some typ ->
+          let loc = item.location in
+          let info =
+            let range = Range.of_loc loc in
+            let command = Command.create ~title:typ ~command:"" () in
+            CodeLens.create ~range ~command ()
+          in
+          info :: children
+      in
+      List.concat_map ~f:symbol_info_of_outline_item outline)
 ;;
 
 let selection_range
@@ -651,7 +666,8 @@ let on_request
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req ->
     (match state.configuration.data.codelens with
-     | Some { enable = true } -> later text_document_lens req
+     | Some { enable = true; only_toplevel } ->
+       later (text_document_lens ~only_toplevel) req
      | _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
