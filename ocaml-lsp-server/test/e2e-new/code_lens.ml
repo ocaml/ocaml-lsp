@@ -9,6 +9,8 @@ let codelens client textDocument =
        { textDocument; workDoneToken = None; partialResultToken = None })
 ;;
 
+let json_of_codelens cs = `List (List.map ~f:CodeLens.yojson_of_t cs)
+
 let%expect_test "enable only codelens for toplevel let binding 1" =
   let source =
     {ocaml|
@@ -31,11 +33,35 @@ let f x =
            ~settings:(`Assoc [ "codelens", `Assoc [ "only_toplevel", `Bool true ] ]))
     in
     let* resp_codelens_toplevel = codelens client text_document in
-    print_endline ("CodeLens found: " ^ string_of_int (List.length resp_codelens_toplevel));
+    Test.print_result (json_of_codelens resp_codelens_toplevel);
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| CodeLens found: 3 |}]
+  [%expect {|
+    [
+      {
+        "command": { "command": "", "title": "int -> int" },
+        "range": {
+          "end": { "character": 11, "line": 8 },
+          "start": { "character": 0, "line": 5 }
+        }
+      },
+      {
+        "command": { "command": "", "title": "'a -> 'a" },
+        "range": {
+          "end": { "character": 14, "line": 3 },
+          "start": { "character": 0, "line": 3 }
+        }
+      },
+      {
+        "command": { "command": "", "title": "string" },
+        "range": {
+          "end": { "character": 22, "line": 1 },
+          "start": { "character": 0, "line": 1 }
+        }
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "enable only codelens for toplevel let binding 2" =
@@ -57,9 +83,19 @@ let () = ()
            ~settings:(`Assoc [ "codelens", `Assoc [ "only_toplevel", `Bool true ] ]))
     in
     let* resp_codelens_toplevel = codelens client text_document in
-    print_endline ("CodeLens found: " ^ string_of_int (List.length resp_codelens_toplevel));
+    Test.print_result (json_of_codelens resp_codelens_toplevel);
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| CodeLens found: 1 |}]
+  [%expect {|
+    [
+      {
+        "command": { "command": "", "title": "string" },
+        "range": {
+          "end": { "character": 9, "line": 3 },
+          "start": { "character": 0, "line": 1 }
+        }
+      }
+    ]
+    |}]
 ;;
