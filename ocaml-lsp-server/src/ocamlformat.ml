@@ -100,9 +100,11 @@ let message = function
 type formatter =
   | Reason of Document.Kind.t
   | Ocaml of Uri.t
+  | Mlx of Uri.t
 
 let args = function
   | Ocaml uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
+  | Mlx uri -> [ "--impl"; sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Reason kind ->
     [ "--parse"; "re"; "--print"; "re" ]
     @
@@ -114,6 +116,7 @@ let args = function
 let binary_name t =
   match t with
   | Ocaml _ -> "ocamlformat"
+  | Mlx _ -> "ocamlformat-mlx"
   | Reason _ -> "refmt"
 ;;
 
@@ -128,6 +131,7 @@ let formatter doc =
   match Document.syntax doc with
   | (Dune | Cram | Ocamllex | Menhir) as s -> Error (Unsupported_syntax s)
   | Ocaml -> Ok (Ocaml (Document.uri doc))
+  | Mlx -> Ok (Mlx (Document.uri doc))
   | Reason ->
     Ok
       (Reason

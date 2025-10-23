@@ -203,7 +203,7 @@ let set_diagnostics detached diagnostics doc =
        in
        Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
        async (fun () -> Diagnostics.send diagnostics (`One uri))
-     | Reason | Ocaml ->
+     | Reason | Ocaml | Mlx ->
        async (fun () ->
          let* () = Diagnostics.merlin_diagnostics diagnostics merlin in
          Diagnostics.send diagnostics (`One uri)))
