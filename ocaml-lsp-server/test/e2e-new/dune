@@ -44,6 +44,7 @@
     action_inline
     action_mark_remove
     code_actions
+    code_lens
     completion
     completions
     construct
