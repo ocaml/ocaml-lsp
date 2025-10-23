@@ -1,3 +1,10 @@
+# Unreleased
+
+## Fixes
+
+- Fallback on `.merlin` configuration if no `dune-project` file is found and if
+  `dot-merlin-reader` is installed. (#1563, fixes #1522)
+
 # 1.24.0
 
 ## Features
