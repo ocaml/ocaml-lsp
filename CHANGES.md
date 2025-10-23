@@ -4,6 +4,10 @@
 
 - Make `code-lens` for nested let bindings configurable (#1567)
 
+## Fixes
+
+- Improve precision of collected metrics timestamps. (#1565)
+
 # 1.24.0
 
 ## Features
