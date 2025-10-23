@@ -366,7 +366,7 @@ end
 let text_document_lens
       (state : State.t)
       { CodeLensParams.textDocument = { uri }; _ }
-      ~only_toplevel
+      ~for_nested_bindings
   =
   let store = state.store in
   let doc = Document_store.get store uri in
@@ -377,9 +377,9 @@ let text_document_lens
     let+ outline = Document.Merlin.dispatch_exn ~name:"outline" doc Outline in
     let rec symbol_info_of_outline_item (item : Query_protocol.item) =
       let children =
-        if only_toplevel
-        then []
-        else List.concat_map item.children ~f:symbol_info_of_outline_item
+        if for_nested_bindings
+        then List.concat_map item.children ~f:symbol_info_of_outline_item
+        else []
       in
       match item.outline_type with
       | None -> children
@@ -659,8 +659,8 @@ let on_request
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req ->
     (match state.configuration.data.codelens with
-     | Some { enable = true; only_toplevel } ->
-       later (text_document_lens ~only_toplevel) req
+     | Some { enable = true; for_nested_bindings } ->
+       later (text_document_lens ~for_nested_bindings) req
      | _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri

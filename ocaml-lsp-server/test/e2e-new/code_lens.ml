@@ -11,7 +11,7 @@ let codelens client textDocument =
 
 let json_of_codelens cs = `List (List.map ~f:CodeLens.yojson_of_t cs)
 
-let%expect_test "enable only codelens for toplevel let binding 1" =
+let%expect_test "enable codelens for nested let bindings" =
   let source =
     {ocaml|
 let toplevel = "Hello"
@@ -30,20 +30,35 @@ let f x =
       change_config
         client
         (DidChangeConfigurationParams.create
-           ~settings:(`Assoc [ "codelens", `Assoc [ "only_toplevel", `Bool true ] ]))
+           ~settings:(`Assoc [ "codelens", `Assoc [ "for_nested_bindings", `Bool true ] ]))
     in
     let* resp_codelens_toplevel = codelens client text_document in
     Test.print_result (json_of_codelens resp_codelens_toplevel);
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {|
+  [%expect
+    {|
     [
       {
         "command": { "command": "", "title": "int -> int" },
         "range": {
           "end": { "character": 11, "line": 8 },
           "start": { "character": 0, "line": 5 }
+        }
+      },
+      {
+        "command": { "command": "", "title": "int" },
+        "range": {
+          "end": { "character": 12, "line": 6 },
+          "start": { "character": 2, "line": 6 }
+        }
+      },
+      {
+        "command": { "command": "", "title": "int" },
+        "range": {
+          "end": { "character": 11, "line": 7 },
+          "start": { "character": 2, "line": 7 }
         }
       },
       {
@@ -64,7 +79,7 @@ let f x =
     |}]
 ;;
 
-let%expect_test "enable only codelens for toplevel let binding 2" =
+let%expect_test "enable codelens (default settings disable it for nested let binding)" =
   let source =
     {ocaml|
 let x =
@@ -80,14 +95,15 @@ let () = ()
       change_config
         client
         (DidChangeConfigurationParams.create
-           ~settings:(`Assoc [ "codelens", `Assoc [ "only_toplevel", `Bool true ] ]))
+           ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool true ] ]))
     in
     let* resp_codelens_toplevel = codelens client text_document in
     Test.print_result (json_of_codelens resp_codelens_toplevel);
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {|
+  [%expect
+    {|
     [
       {
         "command": { "command": "", "title": "string" },

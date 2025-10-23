@@ -24,11 +24,11 @@ interface config {
     enable : boolean,
 
     /**
-    * Enable CodeLens only for toplevel let binding
+    * Enable CodeLens for nested let bindings
     * @default false
     * @since 1.25
     */
-    only_toplevel : boolean
+    for_nested_bindings : boolean
   }
 
   /**

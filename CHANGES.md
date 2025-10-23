@@ -2,7 +2,7 @@
 
 ## Fixes
 
-- Make `code-lens` for toplevel let binding configurable (#1567)
+- Make `code-lens` for nested let bindings configurable (#1567)
 
 # 1.24.0
 
