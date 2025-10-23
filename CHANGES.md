@@ -1,5 +1,9 @@
 # Unreleased
 
+## Features
+
+- Make `code-lens` for nested let bindings configurable (#1567)
+
 ## Fixes
 
 - Fix hover on method calls not showing the type. (#1553, fixes #1552)
