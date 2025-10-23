@@ -1,6 +1,6 @@
 # Unreleased
 
-## Fixes
+## Features
 
 - Make `code-lens` for nested let bindings configurable (#1567)
 
