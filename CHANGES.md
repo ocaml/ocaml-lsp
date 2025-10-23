@@ -6,6 +6,7 @@
 
 ## Fixes
 
+- Improve precision of collected metrics timestamps. (#1565)
 - Fix hover on method calls not showing the type. (#1553, fixes #1552)
 - Fix error on opening `.mll` files (#1557)
 
