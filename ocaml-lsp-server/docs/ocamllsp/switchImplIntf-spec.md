@@ -25,11 +25,16 @@ property type: `boolean`
 ## Request
 
 - method: `ocamllsp/switchImplIntf`
-- params: `DocumentUri` (see [`DocumentUri`](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#uri) in LSP specification)
+- params:
+
+```json
+{
+  "uri": DocumentUri,
+}
+```
+(see [`DocumentUri`](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#uri) in LSP specification)
 
 ## Response
 
 - result: DocumentUri[] (non-empty)
 - error: code and message set in case an exception happens during the `ocamllsp/switchImplIntf` request.
-
-
