@@ -26,9 +26,9 @@ interface config {
     /**
     * Enable CodeLens only for toplevel let binding
     * @default false
-    * @since 1.24
+    * @since 1.25
     */
-    only_toplevel
+    only_toplevel : boolean
   }
 
   /**
