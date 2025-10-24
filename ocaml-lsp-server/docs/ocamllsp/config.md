@@ -28,7 +28,7 @@ interface config {
     * @default false
     * @since 1.25
     */
-    for_nested_bindings : boolean
+    forNestedBindings : boolean
   }
 
   /**
