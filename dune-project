@@ -64,7 +64,7 @@ possible and does not make any assumptions about IO.
   astring
   camlp-streams
   (ppx_expect (and (>= v0.17.0) :with-test))
-  (ocamlformat (and :with-test (= 0.27.0)))
+  (ocamlformat (and :with-test (= 0.28.1)))
   (ocamlc-loc (>= 3.7.0))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
