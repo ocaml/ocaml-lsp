@@ -30,7 +30,7 @@ let f x =
       change_config
         client
         (DidChangeConfigurationParams.create
-           ~settings:(`Assoc [ "codelens", `Assoc [ "for_nested_bindings", `Bool true ] ]))
+           ~settings:(`Assoc [ "codelens", `Assoc [ "forNestedBindings", `Bool true ] ]))
     in
     let* resp_codelens_toplevel = codelens client text_document in
     Test.print_result (json_of_codelens resp_codelens_toplevel);

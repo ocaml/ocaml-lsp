@@ -194,90 +194,89 @@ end
 module Lens = struct
   type t =
     { enable : bool [@default true]
-    ; for_nested_bindings : bool [@default false]
+    ; for_nested_bindings : bool [@key "forNestedBindings"] [@default false]
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
 
-  let t_of_yojson =
-    (let _tp_loc = "ocaml-lsp-server/src/config_data.ml.Lens.t" in
-     function
-     | `Assoc field_yojsons as yojson ->
+  
+let t_of_yojson =
+  (let _tp_loc = "ocaml-lsp-server/src/config_data.ml.Lens.t" in
+   function
+   | `Assoc field_yojsons as yojson ->
        let enable_field = ref Ppx_yojson_conv_lib.Option.None
        and for_nested_bindings_field = ref Ppx_yojson_conv_lib.Option.None
        and duplicates = ref []
        and extra = ref [] in
-       let rec iter = function
-         | (field_name, _field_yojson) :: tail ->
-           (match field_name with
-            | "enable" ->
-              (match Ppx_yojson_conv_lib.( ! ) enable_field with
-               | Ppx_yojson_conv_lib.Option.None ->
-                 let fvalue = bool_of_yojson _field_yojson in
-                 enable_field := Ppx_yojson_conv_lib.Option.Some fvalue
-               | Ppx_yojson_conv_lib.Option.Some _ ->
-                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-            | "for_nested_bindings" ->
-              (match Ppx_yojson_conv_lib.( ! ) for_nested_bindings_field with
-               | Ppx_yojson_conv_lib.Option.None ->
-                 let fvalue = bool_of_yojson _field_yojson in
-                 for_nested_bindings_field := Ppx_yojson_conv_lib.Option.Some fvalue
-               | Ppx_yojson_conv_lib.Option.Some _ ->
-                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-            | _ -> ());
-           iter tail
-         | [] -> ()
-       in
-       iter field_yojsons;
-       (match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
-            _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] ->
-          (match Ppx_yojson_conv_lib.( ! ) extra with
-           | _ :: _ ->
-             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
-               _tp_loc
-               (Ppx_yojson_conv_lib.( ! ) extra)
-               yojson
-           | [] ->
-             let enable_value, for_nested_bindings_value =
-               ( Ppx_yojson_conv_lib.( ! ) enable_field
-               , Ppx_yojson_conv_lib.( ! ) for_nested_bindings_field )
-             in
-             { enable =
-                 (match enable_value with
-                  | Ppx_yojson_conv_lib.Option.None -> true
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; for_nested_bindings =
-                 (match for_nested_bindings_value with
-                  | Ppx_yojson_conv_lib.Option.None -> false
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
-     | _ as yojson ->
-       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
-     : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+       let rec iter =
+         function
+         | (field_name, _field_yojson)::tail ->
+             ((match field_name with
+               | "enable" ->
+                   (match Ppx_yojson_conv_lib.(!) enable_field with
+                    | Ppx_yojson_conv_lib.Option.None ->
+                        let fvalue = bool_of_yojson _field_yojson in
+                        enable_field :=
+                          (Ppx_yojson_conv_lib.Option.Some fvalue)
+                    | Ppx_yojson_conv_lib.Option.Some _ ->
+                        duplicates := (field_name ::
+                          (Ppx_yojson_conv_lib.(!) duplicates)))
+               | "forNestedBindings" ->
+                   (match Ppx_yojson_conv_lib.(!) for_nested_bindings_field
+                    with
+                    | Ppx_yojson_conv_lib.Option.None ->
+                        let fvalue = bool_of_yojson _field_yojson in
+                        for_nested_bindings_field :=
+                          (Ppx_yojson_conv_lib.Option.Some fvalue)
+                    | Ppx_yojson_conv_lib.Option.Some _ ->
+                        duplicates := (field_name ::
+                          (Ppx_yojson_conv_lib.(!) duplicates)))
+               | _ -> ());
+              iter tail)
+         | [] -> () in
+       (iter field_yojsons;
+        (match Ppx_yojson_conv_lib.(!) duplicates with
+         | _::_ ->
+             Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+               _tp_loc (Ppx_yojson_conv_lib.(!) duplicates) yojson
+         | [] ->
+             (match Ppx_yojson_conv_lib.(!) extra with
+              | _::_ ->
+                  Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+                    _tp_loc (Ppx_yojson_conv_lib.(!) extra) yojson
+              | [] ->
+                  let (enable_value, for_nested_bindings_value) =
+                    ((Ppx_yojson_conv_lib.(!) enable_field),
+                      (Ppx_yojson_conv_lib.(!) for_nested_bindings_field)) in
+                  {
+                    enable =
+                      ((match enable_value with
+                        | Ppx_yojson_conv_lib.Option.None -> true
+                        | Ppx_yojson_conv_lib.Option.Some v -> v));
+                    for_nested_bindings =
+                      ((match for_nested_bindings_value with
+                        | Ppx_yojson_conv_lib.Option.None -> false
+                        | Ppx_yojson_conv_lib.Option.Some v -> v))
+                  })))
+   | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc
+         yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
   ;;
 
   let _ = t_of_yojson
 
-  let yojson_of_t =
-    (function
-     | { enable = v_enable; for_nested_bindings = v_for_nested_bindings } ->
+  
+let yojson_of_t =
+  (function
+   | { enable = v_enable; for_nested_bindings = v_for_nested_bindings } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
          let arg = yojson_of_bool v_for_nested_bindings in
-         ("for_nested_bindings", arg) :: bnds
-       in
+         ("forNestedBindings", arg) :: bnds in
        let bnds =
-         let arg = yojson_of_bool v_enable in
-         ("enable", arg) :: bnds
-       in
-       `Assoc bnds
-     : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+         let arg = yojson_of_bool v_enable in ("enable", arg) :: bnds in
+       `Assoc bnds : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
   ;;
 
   let _ = yojson_of_t
