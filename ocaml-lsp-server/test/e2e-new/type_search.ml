@@ -58,8 +58,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": {
           "kind": "markdown",
@@ -72,8 +72,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": {
           "kind": "markdown",
@@ -112,8 +112,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": null,
         "cost": 4,
@@ -123,14 +123,15 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": null,
         "cost": 4,
         "constructible": "string_of_int _"
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test
@@ -159,8 +160,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": null,
         "cost": 0,
@@ -170,14 +171,15 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": null,
         "cost": 0,
         "constructible": "string_of_int _"
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test
@@ -209,8 +211,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": {
           "kind": "plaintext",
@@ -223,8 +225,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 740 },
-          "start": { "character": 0, "line": 740 }
+          "end": { "character": 33, "line": 709 },
+          "start": { "character": 0, "line": 709 }
         },
         "doc": {
           "kind": "plaintext",

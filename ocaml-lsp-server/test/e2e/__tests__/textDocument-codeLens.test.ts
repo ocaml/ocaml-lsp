@@ -56,22 +56,6 @@ describe("textDocument/references", () => {
   {
     "command": {
       "command": "",
-      "title": "int -> int -> int",
-    },
-    "range": {
-      "end": {
-        "character": 19,
-        "line": 4,
-      },
-      "start": {
-        "character": 2,
-        "line": 4,
-      },
-    },
-  },
-  {
-    "command": {
-      "command": "",
       "title": "string",
     },
     "range": {

@@ -217,12 +217,12 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
       if is_pure arg then body else with_let ()
     | Ppat_var param | Ppat_constraint ({ ppat_desc = Ppat_var param; _ }, _) ->
       if is_pure arg then with_subst param else with_let ()
-    | Ppat_tuple ( pats, _) ->
+    | Ppat_tuple (pats, _) ->
       let pats = List.map ~f:snd pats in
       (match arg.pexp_desc with
        | Pexp_tuple args ->
-        let args = List.map ~f:snd args in
-        List.fold_left2 ~f:beta_reduce_arg ~init:body pats args
+         let args = List.map ~f:snd args in
+         List.fold_left2 ~f:beta_reduce_arg ~init:body pats args
        | _ -> with_let ())
     | _ -> with_let ()
   in
