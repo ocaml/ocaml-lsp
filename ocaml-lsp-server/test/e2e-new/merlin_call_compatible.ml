@@ -89,8 +89,9 @@ let%expect_test "errors: warning is shown" =
     {|
     {
       "resultAsSexp": false,
-      "result": "{\"class\":\"return\",\"value\":[{\"start\":{\"line\":1,\"col\":9},\"end\":{\"line\":1,\"col\":39},\"type\":\"warning\",\"sub\":[],\"valid\":true,\"message\":\"Warning 8: this pattern-matching is not exhaustive.\\nHere is an example of a case that is not matched:\\nSome _\"}]}"
-    } |}]
+      "result": "{\"class\":\"return\",\"value\":[{\"start\":{\"line\":1,\"col\":9},\"end\":{\"line\":1,\"col\":39},\"type\":\"warning\",\"sub\":[],\"valid\":true,\"message\":\"Warning 8: this pattern-matching is not exhaustive.\\n  Here is an example of a case that is not matched: Some _\"}]}"
+    }
+    |}]
 ;;
 
 let%expect_test "errors: warning is disabled" =
