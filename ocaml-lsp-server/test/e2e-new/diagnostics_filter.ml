@@ -58,8 +58,7 @@ let%expect_test "shorten diagnostics - true" =
     unit
     ((1, 18), (2, 0))
     , Warning 8: this pattern-matching is not exhaustive.
-    Here is an example of a case that is not matched:
-    true
+      Here is an example of a case that is not matched: true
     ((8, 12), (9, 0))
     |}]
 ;;
@@ -94,8 +93,7 @@ let%expect_test "shorten diagnostics - false" =
     unit
     ((1, 18), (6, 5))
     , Warning 8: this pattern-matching is not exhaustive.
-    Here is an example of a case that is not matched:
-    true
+      Here is an example of a case that is not matched: true
     ((8, 12), (10, 16))
     |}]
 ;;

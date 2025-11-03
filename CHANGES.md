@@ -1,4 +1,20 @@
-# unreleased
+# Unreleased
+
+## Features
+
+- Make `code-lens` for nested let bindings configurable (#1567)
+
+## Fixes
+
+- Improve precision of collected metrics timestamps. (#1565)
+
+# 1.24.0
+
+## Features
+
+- Support for OCaml 5.4 (#1559)
+
+# 1.23.1
 
 ## Features
 
@@ -9,6 +25,7 @@
 
 - Fix hover on method calls not showing the type. (#1553, fixes #1552)
 - Fix error on opening `.mll` files (#1557)
+- Ensure compatibility with both yojson 2.0 and 3.0. (#1534)
 
 # 1.23.0
 
@@ -26,7 +43,6 @@
 - Fix `inlay-hint` for function parameters (#1515)
 - More precise diagnostics in the event of a failed identifier search (`Definition_query`) (#1518)
 - Remove `ocamlformat` application after `destruct` (that remove some useful parenthesis) (#1519)
-- Make compatible with Yojson 3.x by removing `Tuple` and `Variant` (#1534)
 
 # 1.22.0
 

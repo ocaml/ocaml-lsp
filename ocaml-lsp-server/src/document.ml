@@ -160,10 +160,10 @@ end = struct
     let task =
       match
         Lev_fiber.Thread.task t.thread ~f:(fun () ->
-          let start = Unix.time () in
+          let start = Unix.gettimeofday () in
           let pipeline = make_pipeline () in
           let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
-          let stop = Unix.time () in
+          let stop = Unix.gettimeofday () in
           res, start, stop)
       with
       | Error `Stopped -> assert false
