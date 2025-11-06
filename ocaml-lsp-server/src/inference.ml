@@ -71,6 +71,7 @@ let language_id_of_fname s =
   | ".mli" | ".eliomi" -> "ocaml.interface"
   | ".ml" | ".eliom" -> "ocaml"
   | ".rei" | ".re" -> "reason"
+  | ".mlx" -> "ocaml.mlx"
   | ".mll" -> "ocaml.ocamllex"
   | ".mly" -> "ocaml.menhir"
   | ext -> Code_error.raise "unsupported file extension" [ "extension", String ext ]
