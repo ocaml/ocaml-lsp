@@ -3,6 +3,7 @@
 ## Features
 
 - Make `code-lens` for nested let bindings configurable (#1567)
+- Add support for `.mlx` files, including formatting via `ocamlformat-mlx` and most OCaml LSP features (diagnostics, code actions, hover, etc.) (#1528)
 
 ## Fixes
 
