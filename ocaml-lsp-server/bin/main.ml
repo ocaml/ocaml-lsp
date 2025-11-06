@@ -13,8 +13,8 @@ let () =
       , "deprecated, same as --prefer-dot-merlin" )
     ; ( "--prefer-dot-merlin"
       , Arg.Set prefer_dot_merlin
-      , "always read Merlin config from existing .merlin files. \
-         The `dot-merlin-reader` package must be installed" )
+      , "always read Merlin config from existing .merlin files. The `dot-merlin-reader` \
+         package must be installed" )
     ]
     @ Cli.Arg.spec arg
   in
