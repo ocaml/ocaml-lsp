@@ -124,3 +124,9 @@ val edit : t -> TextEdit.t list -> WorkspaceEdit.t
 
     Returns [None] when there is no corresponding substring. *)
 val substring : t -> Range.t -> string option
+
+(** [get_source_text t loc] returns the substring of the document [t] that corresponds to
+    the location [loc].
+
+    Returns [None] when there is no corresponding substring. *)
+val get_source_text : t -> Loc.t -> string option
