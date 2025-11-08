@@ -49,8 +49,7 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       ; Action_mark_remove_unused.mark
       ; Action_mark_remove_unused.remove
       ; Action_inline.t
-      ; Action_extract.local
-      ; Action_extract.function_
+      ; Action_refactor_extract.t
       ]
   in
   let batchable, non_batchable =
