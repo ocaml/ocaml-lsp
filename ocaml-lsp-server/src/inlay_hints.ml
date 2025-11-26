@@ -29,22 +29,12 @@ let compute (state : State.t) { InlayHintParams.range; textDocument = { uri }; _
           c.hint_pattern_variables)
         |> Option.value ~default:false
       in
-      let hint_function_params =
-        Option.map state.configuration.data.inlay_hints ~f:(fun c ->
-          c.hint_function_params)
-        |> Option.value ~default:false
-      in
       Document.Merlin.with_pipeline_exn ~name:"inlay-hints" doc (fun pipeline ->
         let start = range.start |> Position.logical
         and stop = range.end_ |> Position.logical in
         let command =
           Query_protocol.Inlay_hints
-            ( start
-            , stop
-            , hint_let_bindings
-            , hint_pattern_variables
-            , hint_function_params
-            , not inside_test )
+            (start, stop, hint_let_bindings, hint_pattern_variables, not inside_test)
         in
         let hints = Query_commands.dispatch pipeline command in
         List.filter_map

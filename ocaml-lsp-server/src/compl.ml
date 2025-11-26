@@ -315,7 +315,7 @@ let complete
                 let* item = completion_item_capability in
                 item.deprecatedSupport)
            in
-           if not (Merlin_analysis.Typed_hole.can_be_hole prefix)
+           if not (Typed_hole.can_be_hole prefix)
            then Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
            else (
              let reindex_sortText completion_items =
