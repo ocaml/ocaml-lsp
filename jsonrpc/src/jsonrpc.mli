@@ -1,18 +1,7 @@
 (** Jsonrpc implementation *)
 
 module Json : sig
-  type t =
-    [ `Assoc of (string * t) list
-    | `Bool of bool
-    | `Float of float
-    | `Int of int
-    | `Intlit of string
-    | `List of t list
-    | `Null
-    | `String of string
-    | `Tuple of t list
-    | `Variant of string * t option
-    ]
+  type t = Yojson.Safe.t
 
   (** Raised when conversions from json fail *)
   exception Of_json of (string * t)

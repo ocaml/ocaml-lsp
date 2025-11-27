@@ -8,7 +8,7 @@ module Kind = struct
 
   let of_fname_opt p =
     match Filename.extension p with
-    | ".ml" | ".eliom" | ".re" -> Some Impl
+    | ".ml" | ".eliom" | ".re" | ".mll" | ".mly" | ".mlx" -> Some Impl
     | ".mli" | ".eliomi" | ".rei" -> Some Intf
     | _ -> None
   ;;
@@ -32,6 +32,7 @@ module Syntax = struct
     | Menhir
     | Cram
     | Dune
+    | Mlx
 
   let human_name = function
     | Ocaml -> "OCaml"
@@ -40,6 +41,7 @@ module Syntax = struct
     | Menhir -> "Menhir/ocamlyacc"
     | Cram -> "Cram"
     | Dune -> "Dune"
+    | Mlx -> "OCaml.mlx"
   ;;
 
   let all =
@@ -52,6 +54,7 @@ module Syntax = struct
     ; "dune", Dune
     ; "dune-project", Dune
     ; "dune-workspace", Dune
+    ; "ocaml.mlx", Mlx
     ]
   ;;
 
@@ -61,6 +64,7 @@ module Syntax = struct
       | s ->
         (match Filename.extension s with
          | ".eliomi" | ".eliom" | ".mli" | ".ml" -> Ok Ocaml
+         | ".mlx" -> Ok Mlx
          | ".rei" | ".re" -> Ok Reason
          | ".mll" -> Ok Ocamllex
          | ".mly" -> Ok Menhir
@@ -156,10 +160,10 @@ end = struct
     let task =
       match
         Lev_fiber.Thread.task t.thread ~f:(fun () ->
-          let start = Unix.time () in
+          let start = Unix.gettimeofday () in
           let pipeline = make_pipeline () in
           let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
-          let stop = Unix.time () in
+          let stop = Unix.gettimeofday () in
           res, start, stop)
       with
       | Error `Stopped -> assert false
@@ -252,7 +256,7 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) ~position_enc
     let tdoc = Text_document.make ~position_encoding doc in
     let syntax = Syntax.of_text_document tdoc in
     match syntax with
-    | Ocaml | Reason -> make_merlin wheel config pipeline tdoc syntax
+    | Ocaml | Reason | Mlx -> make_merlin wheel config pipeline tdoc syntax
     | Ocamllex | Menhir | Cram | Dune -> Fiber.return (Other { tdoc; syntax }))
 ;;
 
@@ -421,8 +425,8 @@ let close t =
 let get_impl_intf_counterparts m uri =
   let fpath = Uri.to_path uri in
   let fname = Filename.basename fpath in
-  let ml, mli, eliom, eliomi, re, rei, mll, mly =
-    "ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly"
+  let ml, mli, eliom, eliomi, re, rei, mll, mly, mlx =
+    "ml", "mli", "eliom", "eliomi", "re", "rei", "mll", "mly", "mlx"
   in
   let exts_to_switch_to =
     let kind =
@@ -436,13 +440,17 @@ let get_impl_intf_counterparts m uri =
     in
     match Syntax.of_fname fname with
     | Dune | Cram -> []
+    | Mlx ->
+      (match kind with
+       | Intf -> [ ml; mly; mll; mlx; re ]
+       | Impl -> [ rei; mli; mly; mll; rei ])
     | Ocaml ->
       (match kind with
-       | Intf -> [ ml; mly; mll; eliom; re ]
+       | Intf -> [ ml; mly; mll; eliom; re; mlx ]
        | Impl -> [ mli; mly; mll; eliomi; rei ])
     | Reason ->
       (match kind with
-       | Intf -> [ re; ml ]
+       | Intf -> [ re; ml; mlx ]
        | Impl -> [ rei; mli ])
     | Ocamllex -> [ mli; rei ]
     | Menhir -> [ mli; rei ]

@@ -262,7 +262,19 @@ module Unresolved = struct
 end
 
 module Ident = struct
-  module Id = Stdune.Id.Make ()
+  module Id = struct
+    type t = int
+
+    let counter = ref 0
+
+    let gen () =
+      incr counter;
+      !counter
+    ;;
+
+    let compare = Int.compare
+    let to_dyn = Dyn.int
+  end
 
   module T = struct
     type t =
@@ -282,9 +294,44 @@ module Ident = struct
 
   let make name = { name; id = Id.gen () }
 
-  module C = Comparable.Make (T)
-  module Set = C.Set
-  module Top_closure = Top_closure.Make (Set) (Stdune.Monad.Id)
+  module Keys = struct
+    include MoreLabels.Set.Make (T)
+
+    let add x y = add y x
+    let mem x y = mem y x
+  end
+
+  let top_closure ~key ~deps elements =
+    let rec loop res visited elt ~temporarily_marked =
+      let key = key elt in
+      if Keys.mem temporarily_marked key
+      then Error [ elt ]
+      else if not (Keys.mem visited key)
+      then (
+        let visited = Keys.add visited key in
+        let temporarily_marked = Keys.add temporarily_marked key in
+        deps elt
+        |> iter_elts res visited ~temporarily_marked
+        |> function
+        | Error l -> Error (elt :: l)
+        | Ok (res, visited) ->
+          let res = elt :: res in
+          Ok (res, visited))
+      else Ok (res, visited)
+    and iter_elts res visited elts ~temporarily_marked =
+      match elts with
+      | [] -> Ok (res, visited)
+      | elt :: elts ->
+        loop res visited elt ~temporarily_marked
+        |> (function
+         | Error _ as result -> result
+         | Ok (res, visited) -> iter_elts res visited elts ~temporarily_marked)
+    in
+    iter_elts [] Keys.empty elements ~temporarily_marked:Keys.empty
+    |> function
+    | Ok (res, _visited) -> Ok (List.rev res)
+    | Error elts -> Error elts
+  ;;
 end
 
 module Prim = struct
@@ -345,15 +392,15 @@ let subst unresolved =
     method inside s = {<inside = Some s>}
 
     method resolve n =
-      match String.Map.find params n with
+      match String.Map.find_opt n params with
       | Some [] -> assert false
       | Some (x :: _) -> `Resolved x
       | None ->
-        if inside = Some n then `Self else `Unresolved (String.Map.find_exn unresolved n)
+        if inside = Some n then `Self else `Unresolved (String.Map.find n unresolved)
 
     method push x y =
       let params =
-        String.Map.update params x ~f:(function
+        String.Map.update params ~key:x ~f:(function
           | None -> Some [ y ]
           | Some [] -> assert false
           | Some (y' :: xs) -> if y = y' then Some xs else Some (y :: y' :: xs))
@@ -362,9 +409,9 @@ let subst unresolved =
 
     method pop x =
       let params =
-        String.Map.update params x ~f:(function
+        String.Map.update params ~key:x ~f:(function
           | None ->
-            ignore (String.Map.find_exn params x);
+            ignore (String.Map.find x params);
             None
           | Some [] -> assert false
           | Some (_ :: xs) -> Some xs)

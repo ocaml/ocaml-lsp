@@ -14,7 +14,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
       let src = Document.source doc in
       Compl.prefix_of_position ~short_path:false src pos
     in
-    if not (Merlin_analysis.Typed_hole.can_be_hole prefix)
+    if not (Typed_hole.can_be_hole prefix)
     then None
     else (
       let structures =
@@ -25,7 +25,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
         let pos = Mpipeline.get_lexing_pos pipeline pos in
         Mbrowse.enclosing pos [ Mbrowse.of_typedtree typedtree ]
       in
-      if not (Merlin_analysis.Typed_hole.is_a_hole structures)
+      if not (Typed_hole.is_a_hole structures)
       then None
       else (
         (* ocaml-lsp can provide [Construct] values as completion entries, so

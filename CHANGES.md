@@ -1,3 +1,29 @@
+# Unreleased
+
+## Features
+
+- Make `code-lens` for nested let bindings configurable (#1567)
+- Add support for `.mlx` files, including formatting via `ocamlformat-mlx` and most OCaml LSP features (diagnostics, code actions, hover, etc.) (#1528)
+
+## Fixes
+
+- Improve precision of collected metrics timestamps. (#1565)
+- Fallback on `.merlin` configuration if no `dune-project` file is found and if
+  `dot-merlin-reader` is installed. (#1563, fixes #1522)
+
+# 1.24.0
+
+## Features
+
+- Support for OCaml 5.4 (#1559)
+
+# 1.23.1
+
+## Fixes
+
+- Fix hover on method calls not showing the type. (#1553, fixes #1552)
+- Fix error on opening `.mll` files (#1557)
+
 # 1.21.0
 
 ## Features
@@ -21,6 +47,7 @@
 - More precise diagnostics in the event of a failed identifier search (`Definition_query`) (#1518)
 
 - Remove `ocamlformat` application after `destruct` (that remove some useful parenthesis) (#1519)
+- Make compatible with Yojson 3.x by removing `Tuple` and `Variant` (#1534)
 
 - Add a new server option `standardHover`, that can be used by clients to
   disable the default hover provider.  When `standardHover = false`

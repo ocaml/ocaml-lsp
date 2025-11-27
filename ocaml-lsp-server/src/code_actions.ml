@@ -54,12 +54,10 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       ]
   in
   let batchable, non_batchable =
-    List.partition_map
-      ~f:(fun ca ->
-        match ca.run with
-        | `Batchable f -> Left f
-        | `Non_batchable f -> Right f)
-      enabled_actions
+    List.partition_map enabled_actions ~f:(fun ca ->
+      match ca.run with
+      | `Batchable f -> Base.Either.First f
+      | `Non_batchable f -> Second f)
   in
   let* batch_results =
     if List.is_empty batchable
@@ -125,7 +123,7 @@ let compute server (params : CodeActionParams.t) =
     (match Document.syntax doc with
      | Ocamllex | Menhir | Cram | Dune ->
        Fiber.return (Reply.now (actions (dune_actions @ open_related)), state)
-     | Ocaml | Reason ->
+     | Ocaml | Reason | Mlx ->
        let reply () =
          let+ code_action_results = compute_ocaml_code_actions params state doc in
          List.concat [ code_action_results; dune_actions; open_related; merlin_jumps ]
