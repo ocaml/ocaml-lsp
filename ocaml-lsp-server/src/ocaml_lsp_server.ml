@@ -963,10 +963,10 @@ let run_in_directory =
   fun () -> if Sys.win32 then for_windows else run_in_directory
 ;;
 
-let run channel ~read_dot_merlin () =
+let run channel ~prefer_dot_merlin () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
-  Merlin_config.should_read_dot_merlin := read_dot_merlin;
+  Merlin_config.prefer_dot_merlin := prefer_dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->
     let* input, output = stream_of_channel channel in

@@ -119,7 +119,7 @@ module Dot_protocol_io =
       let write t x = write t [ x ]
     end)
 
-let should_read_dot_merlin = ref false
+let prefer_dot_merlin = ref false
 
 type db =
   { running : (string, entry) Table.t
@@ -299,13 +299,13 @@ let config (t : t) : Mconfig.t Fiber.t =
     t.entry <- Some entry
   in
   let* () = Fiber.return () in
-  if !should_read_dot_merlin
+  if !prefer_dot_merlin
   then Fiber.return (Mconfig.get_external_config t.path t.initial)
   else (
     match find_project_context t.directory with
     | None ->
       let+ () = destroy t in
-      t.initial
+      Mconfig.get_external_config t.path t.initial
     | Some (ctx, config_path) ->
       let* entry = get_process t.db ~dir:ctx.process_dir in
       let* () =

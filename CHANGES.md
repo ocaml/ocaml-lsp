@@ -8,6 +8,19 @@
 ## Fixes
 
 - Improve precision of collected metrics timestamps. (#1565)
+- Fallback on `.merlin` configuration if no `dune-project` file is found and if
+  `dot-merlin-reader` is installed. (#1563, fixes #1522)
+
+# 1.24.0
+
+## Features
+
+- Support for OCaml 5.4 (#1559)
+
+# 1.23.1
+
+## Fixes
+
 - Fix hover on method calls not showing the type. (#1553, fixes #1552)
 - Fix error on opening `.mll` files (#1557)
 
