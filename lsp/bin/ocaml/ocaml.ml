@@ -79,9 +79,7 @@ module Expanded = struct
              | None -> init
              | Some data ->
                let new_record = { f with data } in
-               if List.mem ~equal:Poly.equal init new_record
-               then init
-               else new_record :: init)
+               if List.mem ~set:init new_record then init else new_record :: init)
         in
         super#field f ~init
     end
@@ -274,18 +272,18 @@ module Entities = struct
   type t = (Ident.t * Resolved.t) list
 
   let find db e : _ Named.t =
-    match List.assoc db e with
+    match List.assoc_opt e db with
     | Some s -> s
     | None -> Code_error.raise "Entities.find: unable to find" [ "e", Ident.to_dyn e ]
   ;;
 
   let of_map map ts =
-    List.map ts ~f:(fun (r : Resolved.t) -> String.Map.find_exn map r.name, r)
+    List.map ts ~f:(fun (r : Resolved.t) -> String.Map.find r.name map, r)
   ;;
 
   let rev_find (db : t) (resolved : Resolved.t) : Ident.t =
     match
-      List.filter_map db ~f:(fun (id, r) ->
+      List.filter_map db ~f:(fun (id, (r : Resolved.t)) ->
         if r.name = resolved.name then Some id else None)
     with
     | [] -> Code_error.raise "rev_find: resolved not found" []
@@ -327,17 +325,17 @@ end = struct
       [ Prim.Null; String; Bool; Number; Object; List ]
       |> List.map ~f:(fun s -> Resolved.Ident s)
     in
-    fun set -> List.for_all constrs ~f:(fun e -> List.mem set e ~equal:Poly.equal)
+    fun set -> List.for_all constrs ~f:(List.mem ~set)
   ;;
 
   let id = Type.name "Jsonrpc.Id.t"
 
   let is_same_as_id =
-    let sort = List.sort ~compare:Poly.compare in
+    let sort = List.sort ~cmp:Poly.compare in
     let constrs =
       [ Prim.String; Number ] |> List.map ~f:(fun s -> Resolved.Ident s) |> sort
     in
-    fun cs -> List.equal ( = ) constrs (sort cs)
+    fun cs -> List.equal ~eq:( = ) constrs (sort cs)
   ;;
 
   (* Any type that includes null needs to be extracted to be converted to an
@@ -585,7 +583,7 @@ end = struct
         let literal_wrapper =
           match literal_wrapper with
           | None -> []
-          | Some { field_name; literal_value } ->
+          | Some { Mapper.field_name; literal_value } ->
             Json_gen.make_literal_wrapper_conv
               ~field_name
               ~literal_value
@@ -626,7 +624,7 @@ let resolve_typescript (ts : Unresolved.t list) =
   let db = Entities.of_map db ts in
   match
     let idents = new name_idents in
-    Ident.Top_closure.top_closure
+    Ident.top_closure
       ts
       ~key:(fun x -> Entities.rev_find db x)
       ~deps:(fun x -> idents#t x ~init:[] |> List.map ~f:(Entities.find db))
@@ -640,7 +638,7 @@ let resolve_typescript (ts : Unresolved.t list) =
 let of_resolved_typescript db (ts : Resolved.t list) =
   let simple_enums, everything_else =
     List.filter_partition_map ts ~f:(fun (t : Resolved.t) ->
-      if List.mem skipped_ts_decls t.name ~equal:String.equal
+      if List.mem ~set:skipped_ts_decls t.name
       then Skip
       else (
         match t.data with
@@ -650,7 +648,7 @@ let of_resolved_typescript db (ts : Resolved.t list) =
   let simple_enums =
     List.map simple_enums ~f:(fun (t : _ Named.t) ->
       (* "open" enums need an `Other constructor *)
-      let allow_other = List.mem ~equal:String.equal with_custom_values t.name in
+      let allow_other = List.mem ~set:with_custom_values t.name in
       let data =
         List.filter_map t.data ~f:(fun (constr, v) ->
           match (v : Ts_types.Enum.case) with
