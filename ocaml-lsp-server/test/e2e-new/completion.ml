@@ -1317,3 +1317,138 @@ let%expect_test "completion for object methods" =
       }
     } |}]
 ;;
+
+let%expect_test "completes variant constructors for labeled arguments" =
+  let source = {ocaml|
+type color = Red | Green | Blue | Rgb of int * int * int
+let make_color ~(color: color) = color
+let _ = make_color ~color:
+|ocaml}
+  in
+  print_completions ~limit:5 source (Position.create ~line:5 ~character:26);
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "color",
+      "kind": 4,
+      "label": "Blue",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "Blue",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "color",
+      "kind": 4,
+      "label": "Green",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "Green",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "color",
+      "kind": 4,
+      "label": "Red",
+      "sortText": "0002",
+      "textEdit": {
+        "newText": "Red",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    {
+      "detail": "int * int * int -> color",
+      "kind": 4,
+      "label": "Rgb",
+      "sortText": "0003",
+      "textEdit": {
+        "newText": "Rgb",
+        "range": {
+          "end": { "character": 26, "line": 5 },
+          "start": { "character": 26, "line": 5 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "does not complete constructors for primitive types" =
+  let source = {ocaml|
+let make_int ~(v:int) = v
+let x = make_int ~v:
+|ocaml}
+  in
+  print_completions source (Position.create ~line:2 ~character:20);
+  [%expect {| No completions |}]
+;;
+
+let%expect_test "does not complete for polymorphic types" =
+  let source = {ocaml|
+let identity ~(x:'a) = x
+let _ = identity ~x:
+|ocaml}
+  in
+  print_completions source (Position.create ~line:2 ~character:20);
+  [%expect {| No completions |}]
+;;
+
+let%expect_test "completes option type variants" =
+  let source = {ocaml|
+let process ~(value:int option) = value
+let _ = process ~value:
+|ocaml}
+  in
+  print_completions source (Position.create ~line:2 ~character:23);
+  [%expect {|
+Completions:
+{
+  "filterText": "_None",
+  "kind": 1,
+  "label": "None",
+  "sortText": "0000",
+  "textEdit": {
+    "newText": "None",
+    "range": {
+      "end": { "character": 23, "line": 2 },
+      "start": { "character": 23, "line": 2 }
+    }
+  }
+}
+{
+  "filterText": "_(Some _)",
+  "kind": 1,
+  "label": "Some _",
+  "sortText": "0001",
+  "textEdit": {
+    "newText": "(Some _)",
+    "range": {
+      "end": { "character": 23, "line": 2 },
+      "start": { "character": 23, "line": 2 }
+    }
+  }
+}
+|}]
+;;
