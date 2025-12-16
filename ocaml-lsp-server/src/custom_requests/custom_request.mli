@@ -12,3 +12,6 @@ module Wrapping_ast_node = Req_wrapping_ast_node
 module Get_documentation = Req_get_documentation
 module Type_search = Req_type_search
 module Merlin_jump = Req_merlin_jump
+module Phrase = Req_phrase
+module Type_expression = Req_type_expression
+module Locate = Req_locate
