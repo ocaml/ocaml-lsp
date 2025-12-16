@@ -4,6 +4,9 @@
 
 - Make `code-lens` for nested let bindings configurable (#1567)
 - Add support for `.mlx` files, including formatting via `ocamlformat-mlx` and most OCaml LSP features (diagnostics, code actions, hover, etc.) (#1528)
+- Add `typeExpression` custom request (#1576)
+- Add `locate` custom request (#1576)
+- Add `phrase` custom request (#1576)
 
 ## Fixes
 
