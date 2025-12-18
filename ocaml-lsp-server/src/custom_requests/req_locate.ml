@@ -43,7 +43,7 @@ module Request_params = struct
     |> to_string_option
     |> Option.map ~f:String.lowercase_ascii
     |> function
-    | Some ("type-definition" | "type_definition" | "typedefinition") -> `Type_definition
+    | Some "type-definition" -> `Type_definition
     | Some "declaration" -> `Declaration
     | _ -> `Definition
   ;;
