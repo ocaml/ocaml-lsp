@@ -16,12 +16,32 @@ module Util = struct
     Client.request client req
   ;;
 
+  let sanitize_path = function
+    | `List ranges ->
+      `List
+        (List.map
+           ~f:(function
+             | `Assoc [ range; ("uri", `String value) ] ->
+               let new_value =
+                 value
+                 |> String.split_on_char ~sep:'/'
+                 |> List.last
+                 |> function
+                 | None -> "unknown"
+                 | Some x -> "file:///" ^ x
+               in
+               `Assoc [ range; "uri", `String new_value ]
+             | x -> x)
+           ranges)
+    | x -> x
+  ;;
+
   let test ?prefix ?(kind = `Definition) ~line ~character source =
     let position = Position.create ~line ~character in
     let request client =
       let open Fiber.O in
       let+ response = call_locate ?prefix ~kind ~position client in
-      Test.print_result response
+      Test.print_result (sanitize_path response)
     in
     Helpers.test source request
   ;;
@@ -78,7 +98,7 @@ let%expect_test "Locate identifier - 3" =
           "end": { "character": 24, "line": 81 },
           "start": { "character": 24, "line": 81 }
         },
-        "uri": "file:///home/xvw/Projects/tarides/ocaml-lsp/_opam/lib/ocaml/list.ml"
+        "uri": "file:///list.ml"
       }
     ]
     |}]
