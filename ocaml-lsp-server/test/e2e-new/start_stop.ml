@@ -96,7 +96,10 @@ let%expect_test "start/stop" =
             "handleGetDocumentation": true,
             "handleConstruct": true,
             "handleTypeSearch": true,
-            "handleJump": true
+            "handleJump": true,
+            "handlePhrase": true,
+            "handleTypeExpression": true,
+            "handleLocate": true
           }
         },
         "foldingRangeProvider": true,
