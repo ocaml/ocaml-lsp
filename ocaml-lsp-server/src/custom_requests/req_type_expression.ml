@@ -39,7 +39,7 @@ let t_of_yojson = Yojson.Safe.Util.to_string
 let with_pipeline state uri f =
   let doc = Document_store.get state.State.store uri in
   match Document.kind doc with
-  | `Other -> Fiber.return `Null
+  | `Other -> Fiber.return None
   | `Merlin merlin -> Document.Merlin.with_pipeline_exn merlin f
 ;;
 
@@ -51,14 +51,22 @@ let dispatch_type_expr position expression pipeline =
   let position = Position.logical position in
   let command = make_type_expr_command position expression in
   let result = Query_commands.dispatch pipeline command in
-  `String result
+  Some result
 ;;
 
 let on_request ~params state =
+  let open Fiber.O in
   Fiber.of_thunk (fun () ->
     let Request_params.{ text_document = { uri }; position; expression } =
       (Option.value ~default:(`Assoc []) params :> Yojson.Safe.t)
       |> Request_params.t_of_yojson
     in
-    with_pipeline state uri @@ dispatch_type_expr position expression)
+    let* typ = with_pipeline state uri (dispatch_type_expr position expression) in
+    match typ with
+    | Some typ ->
+      let* result = Ocamlformat_rpc.format_type ~typ state.ocamlformat_rpc in
+      (match result with
+       | Error _ -> Fiber.return (`String typ)
+       | Ok typ -> Fiber.return (`String (String.trim ~drop:(Char.equal '\n') typ)))
+    | None -> Fiber.return `Null)
 ;;
