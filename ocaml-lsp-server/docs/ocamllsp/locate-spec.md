@@ -32,8 +32,8 @@ There is no client capability relative to this request.
 ## Response
 
 ```json
-{
-  "range": Range,
-  "uri": DocumentIdentifier 
-}
+[
+    { "range": Range,
+      "uri": DocumentIdentifier  }
+]
 ```

@@ -63,7 +63,7 @@ type t = Location.t
 let t_of_yojson = Location.t_of_yojson
 
 let yojson_of_t = function
-  | Some (`Location [ loc ]) -> Location.yojson_of_t loc
+  | Some (`Location locs) -> `List (List.map ~f:Location.yojson_of_t locs)
   | _ -> `Null
 ;;
 

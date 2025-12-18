@@ -34,13 +34,15 @@ let%expect_test "Locate identifier - 1" =
   Util.test ~line ~character ~prefix:"x" source;
   [%expect
     {|
-    {
-      "range": {
-        "end": { "character": 5, "line": 0 },
-        "start": { "character": 5, "line": 0 }
-      },
-      "uri": "file:///test.ml"
-    }
+    [
+      {
+        "range": {
+          "end": { "character": 5, "line": 0 },
+          "start": { "character": 5, "line": 0 }
+        },
+        "uri": "file:///test.ml"
+      }
+    ]
     |}]
 ;;
 
@@ -51,13 +53,15 @@ let%expect_test "Locate identifier - 2" =
   Util.test ~line ~character ~prefix:"y" source;
   [%expect
     {|
-    {
-      "range": {
-        "end": { "character": 16, "line": 0 },
-        "start": { "character": 16, "line": 0 }
-      },
-      "uri": "file:///test.ml"
-    }
+    [
+      {
+        "range": {
+          "end": { "character": 16, "line": 0 },
+          "start": { "character": 16, "line": 0 }
+        },
+        "uri": "file:///test.ml"
+      }
+    ]
     |}]
 ;;
 
@@ -68,12 +72,14 @@ let%expect_test "Locate identifier - 3" =
   Util.test ~line ~character ~prefix:"List.map" source;
   [%expect
     {|
-    {
-      "range": {
-        "end": { "character": 24, "line": 81 },
-        "start": { "character": 24, "line": 81 }
-      },
-      "uri": "file:///home/xvw/Projects/tarides/ocaml-lsp/_opam/lib/ocaml/list.ml"
-    }
+    [
+      {
+        "range": {
+          "end": { "character": 24, "line": 81 },
+          "start": { "character": 24, "line": 81 }
+        },
+        "uri": "file:///home/xvw/Projects/tarides/ocaml-lsp/_opam/lib/ocaml/list.ml"
+      }
+    ]
     |}]
 ;;
