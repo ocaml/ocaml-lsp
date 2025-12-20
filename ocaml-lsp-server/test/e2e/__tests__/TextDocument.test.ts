@@ -1,13 +1,13 @@
 import outdent from "outdent";
-import * as LanguageServer from "./../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "./../src/LanguageServer";
 
 describe("TextDocument: incremental sync", () => {
   let languageServer: LanguageServer.LanguageServer;
 
   async function getDoc(languageServer: LanguageServer.LanguageServer) {
-    let result: string = await languageServer.sendRequest(
+    const result: string = await languageServer.sendRequest(
       "debug/textDocument/get",
       {
         textDocument: Types.TextDocumentIdentifier.create(
@@ -309,7 +309,7 @@ describe("TextDocument", () => {
         },
       );
 
-      let result: string = await languageServer.sendRequest(
+      const result: string = await languageServer.sendRequest(
         "debug/textDocument/get",
         {
           textDocument: Types.TextDocumentIdentifier.create(
@@ -349,7 +349,7 @@ describe("TextDocument", () => {
         },
       );
 
-      let result: string = await languageServer.sendRequest(
+      const result: string = await languageServer.sendRequest(
         "debug/textDocument/get",
         {
           textDocument: Types.TextDocumentIdentifier.create(

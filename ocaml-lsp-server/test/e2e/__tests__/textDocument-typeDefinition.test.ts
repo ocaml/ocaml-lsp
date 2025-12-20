@@ -1,9 +1,9 @@
 import outdent from "outdent";
-import * as LanguageServer from "./../src/LanguageServer";
-import * as Types from "vscode-languageserver-types";
-import { testUri } from "./../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
+import * as Types from "vscode-languageserver-types";
 import { isNotNullable } from "../src/utils";
+import * as LanguageServer from "./../src/LanguageServer";
+import { testUri } from "./../src/LanguageServer";
 
 describe("textDocument/definition", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -56,17 +56,17 @@ describe("textDocument/definition", () => {
       let x = T 43
     `);
 
-    let result = await queryDefinition(Types.Position.create(3, 4));
+    const result = await queryDefinition(Types.Position.create(3, 4));
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchInlineSnapshot(`
-Object {
-  "end": Object {
-    "character": 0,
+{
+  "end": {
+    "character": 5,
     "line": 1,
   },
-  "start": Object {
-    "character": 0,
+  "start": {
+    "character": 5,
     "line": 1,
   },
 }
@@ -83,17 +83,17 @@ Object {
       let x = T 43
     `);
 
-    let result = await queryDefinition(Types.Position.create(4, 4));
+    const result = await queryDefinition(Types.Position.create(4, 4));
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchInlineSnapshot(`
-Object {
-  "end": Object {
-    "character": 0,
+{
+  "end": {
+    "character": 5,
     "line": 1,
   },
-  "start": Object {
-    "character": 0,
+  "start": {
+    "character": 5,
     "line": 1,
   },
 }
@@ -109,17 +109,17 @@ Object {
       let t = T 42
     `);
 
-    let result = await queryDefinition(Types.Position.create(3, 4));
+    const result = await queryDefinition(Types.Position.create(3, 4));
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchInlineSnapshot(`
-Object {
-  "end": Object {
-    "character": 0,
+{
+  "end": {
+    "character": 5,
     "line": 1,
   },
-  "start": Object {
-    "character": 0,
+  "start": {
+    "character": 5,
     "line": 1,
   },
 }

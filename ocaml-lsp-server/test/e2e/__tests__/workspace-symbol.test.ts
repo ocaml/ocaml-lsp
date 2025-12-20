@@ -1,15 +1,15 @@
-import * as path from "path";
-import * as child_process from "child_process";
-import * as Types from "vscode-languageserver-types";
+import * as child_process from "node:child_process";
+import * as path from "node:path";
 import * as Protocol from "vscode-languageserver-protocol";
-import * as LanguageServer from "./../src/LanguageServer";
+import * as Types from "vscode-languageserver-types";
 import { URI } from "vscode-uri";
+import * as LanguageServer from "./../src/LanguageServer";
 
-let createWorkspaces = (names: string[]) => {
-  let createSingleWorkspace = (name: string) => {
-    let workspacePath = path.join(__dirname, name);
-    let uri = LanguageServer.toURI(workspacePath);
-    let folder: Protocol.WorkspaceFolder = { name, uri };
+const createWorkspaces = (names: string[]) => {
+  const createSingleWorkspace = (name: string) => {
+    const workspacePath = path.join(__dirname, name);
+    const uri = LanguageServer.toURI(workspacePath);
+    const folder: Protocol.WorkspaceFolder = { name, uri };
     return {
       name,
       path: workspacePath,
@@ -18,9 +18,9 @@ let createWorkspaces = (names: string[]) => {
     };
   };
 
-  let workspaces = names.map(createSingleWorkspace);
+  const workspaces = names.map(createSingleWorkspace);
 
-  let toTestResult = (
+  const toTestResult = (
     symbol: Types.SymbolInformation | Types.WorkspaceSymbol,
   ) => {
     const location = Types.Location.is(symbol.location)
@@ -46,14 +46,14 @@ let createWorkspaces = (names: string[]) => {
   };
 };
 
-let buildProject = (cwd: string): void => {
+const buildProject = (cwd: string): void => {
   child_process.execSync("dune build --root . @check", { cwd: cwd });
 };
 
 describe("workspace/symbol", () => {
   let languageServer: LanguageServer.LanguageServer;
 
-  let {
+  const {
     workspaces: [workspaceA, workspaceB],
     toTestResult,
   } = createWorkspaces(["workspace_symbol_A", "workspace_symbol_B"]);
@@ -78,52 +78,51 @@ describe("workspace/symbol", () => {
 
     buildProject(workspaceA.path);
 
-    let symbols = await queryWorkspaceSymbol({
+    const symbols = await queryWorkspaceSymbol({
       query: "",
     });
 
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
-      Array [
-        "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
-        "size 6 /workspace_symbol_A/bin/a.ml 64:11 64:15",
-        "peek 6 /workspace_symbol_A/bin/a.ml 62:11 62:15",
-        "pop 6 /workspace_symbol_A/bin/a.ml 57:11 57:14",
-        "push 6 /workspace_symbol_A/bin/a.ml 55:11 55:15",
-        "the_list 12 /workspace_symbol_A/bin/a.ml 53:16 53:24",
-        "Foo 9 /workspace_symbol_A/bin/a.ml 49:0 49:23",
-        "Increment 2 /workspace_symbol_A/bin/a.ml 45:0 47:3",
-        "increment_x 12 /workspace_symbol_A/bin/a.ml 46:2 46:27",
-        "X_int 2 /workspace_symbol_A/bin/a.ml 41:0 43:3",
-        "x 12 /workspace_symbol_A/bin/a.ml 42:2 42:13",
-        "A_Mod 2 /workspace_symbol_A/bin/a.ml 29:0 39:3",
-        "compare 12 /workspace_symbol_A/bin/a.ml 38:2 38:30",
-        "private_mod_fn 12 /workspace_symbol_A/bin/a.ml 36:2 36:33",
-        "t 15 /workspace_symbol_A/bin/a.ml 34:2 34:14",
-        "My_string 2 /workspace_symbol_A/bin/a.ml 27:0 27:25",
-        "StringMap 2 /workspace_symbol_A/bin/a.ml 26:0 26:36",
-        "a_i 12 /workspace_symbol_A/bin/a.ml 22:0 24:7",
-        "a_arr 12 /workspace_symbol_A/bin/a.ml 18:0 18:14",
-        "a_u 12 /workspace_symbol_A/bin/a.ml 16:0 16:15",
-        "user 15 /workspace_symbol_A/bin/a.ml 12:0 14:12",
-        "NotAdmin 9 /workspace_symbol_A/bin/a.ml 14:2 14:12",
-        "Admin 9 /workspace_symbol_A/bin/a.ml 13:2 13:9",
-        "a_d 12 /workspace_symbol_A/bin/a.ml 7:0 10:14",
-        "A_B 2 /workspace_symbol_A/bin/a.ml 2:0 5:3",
-        "a_b 12 /workspace_symbol_A/bin/a.ml 4:2 4:19",
-        "a_b_t 15 /workspace_symbol_A/bin/a.ml 3:2 3:21",
-        "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
-        "main_y 12 /workspace_symbol_A/bin/main.ml 0:0 0:22",
-        "vendored_x 12 /workspace_symbol_A/lib/lib.ml 14:0 14:31",
-        "lib_type 12 /workspace_symbol_A/lib/lib.ml 12:0 12:38",
-        "lib_private_fn 12 /workspace_symbol_A/lib/lib.ml 10:0 10:38",
-        "hd 12 /workspace_symbol_A/lib/lib.ml 8:0 8:16",
-        "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",
-        "user 15 /workspace_symbol_A/lib/lib.ml 3:0 5:1",
-        "name 7 /workspace_symbol_A/lib/lib.ml 4:2 4:14",
-        "t 15 /workspace_symbol_A/lib/LibTypes.mli 0:0 0:15",
-        "x 12 /workspace_symbol_A/vendor/vendored_lib.ml 0:0 0:9",
-      ]
-    `);
+[
+  "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
+  "size 6 /workspace_symbol_A/bin/a.ml 64:4 64:38",
+  "peek 6 /workspace_symbol_A/bin/a.ml 62:4 62:34",
+  "pop 6 /workspace_symbol_A/bin/a.ml 57:4 60:12",
+  "push 6 /workspace_symbol_A/bin/a.ml 55:4 55:45",
+  "the_list 12 /workspace_symbol_A/bin/a.ml 53:4 53:40",
+  "Foo 9 /workspace_symbol_A/bin/a.ml 49:0 49:23",
+  "Increment 2 /workspace_symbol_A/bin/a.ml 45:0 47:3",
+  "increment_x 12 /workspace_symbol_A/bin/a.ml 46:2 46:27",
+  "X_int 2 /workspace_symbol_A/bin/a.ml 41:0 43:3",
+  "x 12 /workspace_symbol_A/bin/a.ml 42:2 42:13",
+  "A_Mod 2 /workspace_symbol_A/bin/a.ml 29:0 39:3",
+  "compare 12 /workspace_symbol_A/bin/a.ml 38:2 38:30",
+  "private_mod_fn 12 /workspace_symbol_A/bin/a.ml 36:2 36:33",
+  "t 15 /workspace_symbol_A/bin/a.ml 34:2 34:14",
+  "My_string 2 /workspace_symbol_A/bin/a.ml 27:0 27:25",
+  "StringMap 2 /workspace_symbol_A/bin/a.ml 26:0 26:36",
+  "a_i 12 /workspace_symbol_A/bin/a.ml 22:0 24:7",
+  "a_arr 12 /workspace_symbol_A/bin/a.ml 18:0 18:14",
+  "a_u 12 /workspace_symbol_A/bin/a.ml 16:0 16:15",
+  "user 15 /workspace_symbol_A/bin/a.ml 12:0 14:12",
+  "NotAdmin 9 /workspace_symbol_A/bin/a.ml 14:2 14:12",
+  "Admin 9 /workspace_symbol_A/bin/a.ml 13:2 13:9",
+  "a_d 12 /workspace_symbol_A/bin/a.ml 7:0 10:14",
+  "A_B 2 /workspace_symbol_A/bin/a.ml 2:0 5:3",
+  "a_b 12 /workspace_symbol_A/bin/a.ml 4:2 4:19",
+  "a_b_t 15 /workspace_symbol_A/bin/a.ml 3:2 3:21",
+  "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
+  "main_y 12 /workspace_symbol_A/bin/main.ml 0:0 0:22",
+  "vendored_x 12 /workspace_symbol_A/lib/lib.ml 14:0 14:31",
+  "lib_private_fn 12 /workspace_symbol_A/lib/lib.ml 10:0 10:38",
+  "hd 12 /workspace_symbol_A/lib/lib.ml 8:0 8:16",
+  "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",
+  "user 15 /workspace_symbol_A/lib/lib.ml 3:0 5:1",
+  "name 7 /workspace_symbol_A/lib/lib.ml 4:2 4:14",
+  "t 15 /workspace_symbol_A/lib/LibTypes.mli 0:0 0:15",
+  "x 12 /workspace_symbol_A/vendor/vendored_lib.ml 0:0 0:9",
+]
+`);
   });
 
   it("returns filtered symbols from workspace", async () => {
@@ -133,21 +132,21 @@ describe("workspace/symbol", () => {
 
     buildProject(workspaceA.path);
 
-    let symbols = await queryWorkspaceSymbol({
+    const symbols = await queryWorkspaceSymbol({
       query: "a_",
     });
 
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
-      Array [
-        "a_i 12 /workspace_symbol_A/bin/a.ml 22:0 24:7",
-        "a_arr 12 /workspace_symbol_A/bin/a.ml 18:0 18:14",
-        "a_u 12 /workspace_symbol_A/bin/a.ml 16:0 16:15",
-        "a_d 12 /workspace_symbol_A/bin/a.ml 7:0 10:14",
-        "a_b 12 /workspace_symbol_A/bin/a.ml 4:2 4:19",
-        "a_b_t 15 /workspace_symbol_A/bin/a.ml 3:2 3:21",
-        "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
-      ]
-    `);
+[
+  "a_i 12 /workspace_symbol_A/bin/a.ml 22:0 24:7",
+  "a_arr 12 /workspace_symbol_A/bin/a.ml 18:0 18:14",
+  "a_u 12 /workspace_symbol_A/bin/a.ml 16:0 16:15",
+  "a_d 12 /workspace_symbol_A/bin/a.ml 7:0 10:14",
+  "a_b 12 /workspace_symbol_A/bin/a.ml 4:2 4:19",
+  "a_b_t 15 /workspace_symbol_A/bin/a.ml 3:2 3:21",
+  "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
+]
+`);
   });
 
   it("handles mutiple wokspaces", async () => {
@@ -158,53 +157,52 @@ describe("workspace/symbol", () => {
     buildProject(workspaceA.path);
     buildProject(workspaceB.path);
 
-    let symbols = await queryWorkspaceSymbol({
+    const symbols = await queryWorkspaceSymbol({
       query: "",
     });
 
     expect(symbols.map(toTestResult)).toMatchInlineSnapshot(`
-      Array [
-        "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
-        "size 6 /workspace_symbol_A/bin/a.ml 64:11 64:15",
-        "peek 6 /workspace_symbol_A/bin/a.ml 62:11 62:15",
-        "pop 6 /workspace_symbol_A/bin/a.ml 57:11 57:14",
-        "push 6 /workspace_symbol_A/bin/a.ml 55:11 55:15",
-        "the_list 12 /workspace_symbol_A/bin/a.ml 53:16 53:24",
-        "Foo 9 /workspace_symbol_A/bin/a.ml 49:0 49:23",
-        "Increment 2 /workspace_symbol_A/bin/a.ml 45:0 47:3",
-        "increment_x 12 /workspace_symbol_A/bin/a.ml 46:2 46:27",
-        "X_int 2 /workspace_symbol_A/bin/a.ml 41:0 43:3",
-        "x 12 /workspace_symbol_A/bin/a.ml 42:2 42:13",
-        "A_Mod 2 /workspace_symbol_A/bin/a.ml 29:0 39:3",
-        "compare 12 /workspace_symbol_A/bin/a.ml 38:2 38:30",
-        "private_mod_fn 12 /workspace_symbol_A/bin/a.ml 36:2 36:33",
-        "t 15 /workspace_symbol_A/bin/a.ml 34:2 34:14",
-        "My_string 2 /workspace_symbol_A/bin/a.ml 27:0 27:25",
-        "StringMap 2 /workspace_symbol_A/bin/a.ml 26:0 26:36",
-        "a_i 12 /workspace_symbol_A/bin/a.ml 22:0 24:7",
-        "a_arr 12 /workspace_symbol_A/bin/a.ml 18:0 18:14",
-        "a_u 12 /workspace_symbol_A/bin/a.ml 16:0 16:15",
-        "user 15 /workspace_symbol_A/bin/a.ml 12:0 14:12",
-        "NotAdmin 9 /workspace_symbol_A/bin/a.ml 14:2 14:12",
-        "Admin 9 /workspace_symbol_A/bin/a.ml 13:2 13:9",
-        "a_d 12 /workspace_symbol_A/bin/a.ml 7:0 10:14",
-        "A_B 2 /workspace_symbol_A/bin/a.ml 2:0 5:3",
-        "a_b 12 /workspace_symbol_A/bin/a.ml 4:2 4:19",
-        "a_b_t 15 /workspace_symbol_A/bin/a.ml 3:2 3:21",
-        "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
-        "main_y 12 /workspace_symbol_A/bin/main.ml 0:0 0:22",
-        "vendored_x 12 /workspace_symbol_A/lib/lib.ml 14:0 14:31",
-        "lib_type 12 /workspace_symbol_A/lib/lib.ml 12:0 12:38",
-        "lib_private_fn 12 /workspace_symbol_A/lib/lib.ml 10:0 10:38",
-        "hd 12 /workspace_symbol_A/lib/lib.ml 8:0 8:16",
-        "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",
-        "user 15 /workspace_symbol_A/lib/lib.ml 3:0 5:1",
-        "name 7 /workspace_symbol_A/lib/lib.ml 4:2 4:14",
-        "t 15 /workspace_symbol_A/lib/LibTypes.mli 0:0 0:15",
-        "x 12 /workspace_symbol_A/vendor/vendored_lib.ml 0:0 0:9",
-        "workspace_B 12 /workspace_symbol_B/main.ml 0:0 0:31",
-      ]
-    `);
+[
+  "stack_of_ints 5 /workspace_symbol_A/bin/a.ml 51:0 65:5",
+  "size 6 /workspace_symbol_A/bin/a.ml 64:4 64:38",
+  "peek 6 /workspace_symbol_A/bin/a.ml 62:4 62:34",
+  "pop 6 /workspace_symbol_A/bin/a.ml 57:4 60:12",
+  "push 6 /workspace_symbol_A/bin/a.ml 55:4 55:45",
+  "the_list 12 /workspace_symbol_A/bin/a.ml 53:4 53:40",
+  "Foo 9 /workspace_symbol_A/bin/a.ml 49:0 49:23",
+  "Increment 2 /workspace_symbol_A/bin/a.ml 45:0 47:3",
+  "increment_x 12 /workspace_symbol_A/bin/a.ml 46:2 46:27",
+  "X_int 2 /workspace_symbol_A/bin/a.ml 41:0 43:3",
+  "x 12 /workspace_symbol_A/bin/a.ml 42:2 42:13",
+  "A_Mod 2 /workspace_symbol_A/bin/a.ml 29:0 39:3",
+  "compare 12 /workspace_symbol_A/bin/a.ml 38:2 38:30",
+  "private_mod_fn 12 /workspace_symbol_A/bin/a.ml 36:2 36:33",
+  "t 15 /workspace_symbol_A/bin/a.ml 34:2 34:14",
+  "My_string 2 /workspace_symbol_A/bin/a.ml 27:0 27:25",
+  "StringMap 2 /workspace_symbol_A/bin/a.ml 26:0 26:36",
+  "a_i 12 /workspace_symbol_A/bin/a.ml 22:0 24:7",
+  "a_arr 12 /workspace_symbol_A/bin/a.ml 18:0 18:14",
+  "a_u 12 /workspace_symbol_A/bin/a.ml 16:0 16:15",
+  "user 15 /workspace_symbol_A/bin/a.ml 12:0 14:12",
+  "NotAdmin 9 /workspace_symbol_A/bin/a.ml 14:2 14:12",
+  "Admin 9 /workspace_symbol_A/bin/a.ml 13:2 13:9",
+  "a_d 12 /workspace_symbol_A/bin/a.ml 7:0 10:14",
+  "A_B 2 /workspace_symbol_A/bin/a.ml 2:0 5:3",
+  "a_b 12 /workspace_symbol_A/bin/a.ml 4:2 4:19",
+  "a_b_t 15 /workspace_symbol_A/bin/a.ml 3:2 3:21",
+  "a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11",
+  "main_y 12 /workspace_symbol_A/bin/main.ml 0:0 0:22",
+  "vendored_x 12 /workspace_symbol_A/lib/lib.ml 14:0 14:31",
+  "lib_private_fn 12 /workspace_symbol_A/lib/lib.ml 10:0 10:38",
+  "hd 12 /workspace_symbol_A/lib/lib.ml 8:0 8:16",
+  "lib_x 12 /workspace_symbol_A/lib/lib.ml 6:0 6:14",
+  "user 15 /workspace_symbol_A/lib/lib.ml 3:0 5:1",
+  "name 7 /workspace_symbol_A/lib/lib.ml 4:2 4:14",
+  "t 15 /workspace_symbol_A/lib/LibTypes.mli 0:0 0:15",
+  "x 12 /workspace_symbol_A/vendor/vendored_lib.ml 0:0 0:9",
+  "workspace_B 12 /workspace_symbol_B/main.ml 0:0 0:31",
+]
+`);
   });
 
   it("shows a notification message if no build directory found", async () => {
@@ -217,7 +215,7 @@ describe("workspace/symbol", () => {
 
     type StarNotificationHandlerParams =
       Parameters<Protocol.StarNotificationHandler>;
-    let receivedNotification: Promise<{
+    const receivedNotification: Promise<{
       method: StarNotificationHandlerParams[0];
       params: StarNotificationHandlerParams[1];
     }> = new Promise((resolve, _reject) =>
@@ -230,7 +228,7 @@ describe("workspace/symbol", () => {
       query: "",
     });
 
-    let notification = await receivedNotification;
+    const notification = await receivedNotification;
     expect(notification.method).toBe(
       Protocol.ShowMessageNotification.type.method,
     );

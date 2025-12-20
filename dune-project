@@ -45,7 +45,7 @@ possible and does not make any assumptions about IO.
  (synopsis "LSP Server for OCaml")
  (description "An LSP server for OCaml.")
  (depends
-  (yojson (< 3.0.0))
+  yojson
   (base (>= v0.16.0))
   (lsp (= :version))
   (jsonrpc (= :version))
@@ -63,7 +63,7 @@ possible and does not make any assumptions about IO.
   spawn
   astring
   camlp-streams
-  (ppx_expect (and (>= v0.15.0) (< 0.17.0) :with-test))
+  (ppx_expect (and (>= v0.17.0) :with-test))
   (ocamlformat (and :with-test (= 0.27.0)))
   (ocamlc-loc (>= 3.7.0))
   (pp (>= 1.1.2))
@@ -75,8 +75,9 @@ possible and does not make any assumptions about IO.
 
 (package
  (name jsonrpc)
- (synopsis "Jsonrpc protocol implemenation")
+ (synopsis "Jsonrpc protocol implementation")
  (description "See https://www.jsonrpc.org/specification")
  (depends
+  (yojson (>= 2.0))
   (ocaml (>= 4.08))
   (odoc :with-doc)))

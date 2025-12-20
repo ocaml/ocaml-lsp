@@ -1,8 +1,8 @@
 import outdent from "outdent";
-import * as rpc from "vscode-jsonrpc/node";
-import * as LanguageServer from "../src/LanguageServer";
+import type * as rpc from "vscode-jsonrpc/node";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("textDocument/diagnostics", () => {
   let languageServer: rpc.MessageConnection;
@@ -30,51 +30,51 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("has related diagnostics", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
-                "message": "This comment contains an unterminated string literal",
-                "range": Object {
-                  "end": Object {
-                    "character": 2,
-                    "line": 0,
-                  },
-                  "start": Object {
-                    "character": 0,
-                    "line": 0,
-                  },
-                },
-                "relatedInformation": Array [
-                  Object {
-                    "location": Object {
-                      "range": Object {
-                        "end": Object {
-                          "character": 4,
-                          "line": 0,
-                        },
-                        "start": Object {
-                          "character": 3,
-                          "line": 0,
-                        },
-                      },
-                      "uri": "file:///test.ml",
-                    },
-                    "message": "String literal begins here",
-                  },
-                ],
-                "severity": 1,
-                "source": "ocamllsp",
+{
+  "diagnostics": [
+    {
+      "message": "This comment contains an unterminated string literal",
+      "range": {
+        "end": {
+          "character": 2,
+          "line": 0,
+        },
+        "start": {
+          "character": 0,
+          "line": 0,
+        },
+      },
+      "relatedInformation": [
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 4,
+                "line": 0,
               },
-            ],
+              "start": {
+                "character": 3,
+                "line": 0,
+              },
+            },
             "uri": "file:///test.ml",
-          }
-        `);
+          },
+          "message": "String literal begins here",
+        },
+      ],
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );
@@ -85,33 +85,33 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("unused values have diagnostic tags", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
-                "message": "Warning 26: unused variable x.",
-                "range": Object {
-                  "end": Object {
-                    "character": 7,
-                    "line": 1,
-                  },
-                  "start": Object {
-                    "character": 6,
-                    "line": 1,
-                  },
-                },
-                "severity": 2,
-                "source": "ocamllsp",
-              },
-            ],
-            "uri": "file:///test.ml",
-          }
-        `);
+{
+  "diagnostics": [
+    {
+      "message": "Warning 26: unused variable x.",
+      "range": {
+        "end": {
+          "character": 7,
+          "line": 1,
+        },
+        "start": {
+          "character": 6,
+          "line": 1,
+        },
+      },
+      "severity": 2,
+      "source": "ocamllsp",
+    },
+  ],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );
@@ -124,34 +124,34 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("deprecated values have diganostic tags", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
-                "message": "Alert deprecated: X.x
-          do not use",
-                "range": Object {
-                  "end": Object {
-                    "character": 19,
-                    "line": 6,
-                  },
-                  "start": Object {
-                    "character": 16,
-                    "line": 6,
-                  },
-                },
-                "severity": 2,
-                "source": "ocamllsp",
-              },
-            ],
-            "uri": "file:///test.ml",
-          }
-        `);
+{
+  "diagnostics": [
+    {
+      "message": "Alert deprecated: X.x
+do not use",
+      "range": {
+        "end": {
+          "character": 19,
+          "line": 6,
+        },
+        "start": {
+          "character": 16,
+          "line": 6,
+        },
+      },
+      "severity": 2,
+      "source": "ocamllsp",
+    },
+  ],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );
@@ -168,73 +168,73 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("related diagnostics for mismatched signatures", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
-                "message": "Signature mismatch:
-          Modules do not match:
-            sig val x : int end
-          is not included in
-            sig val x : unit end
-          Values do not match: val x : int is not included in val x : unit
-          The type int is not compatible with the type unit",
-                "range": Object {
-                  "end": Object {
-                    "character": 3,
-                    "line": 4,
-                  },
-                  "start": Object {
-                    "character": 6,
-                    "line": 2,
-                  },
-                },
-                "relatedInformation": Array [
-                  Object {
-                    "location": Object {
-                      "range": Object {
-                        "end": Object {
-                          "character": 14,
-                          "line": 2,
-                        },
-                        "start": Object {
-                          "character": 2,
-                          "line": 2,
-                        },
-                      },
-                      "uri": "file:///test.ml",
-                    },
-                    "message": "Expected declaration",
-                  },
-                  Object {
-                    "location": Object {
-                      "range": Object {
-                        "end": Object {
-                          "character": 7,
-                          "line": 4,
-                        },
-                        "start": Object {
-                          "character": 6,
-                          "line": 4,
-                        },
-                      },
-                      "uri": "file:///test.ml",
-                    },
-                    "message": "Actual declaration",
-                  },
-                ],
-                "severity": 1,
-                "source": "ocamllsp",
+{
+  "diagnostics": [
+    {
+      "message": "Signature mismatch:
+Modules do not match:
+  sig val x : int end
+is not included in
+  sig val x : unit end
+Values do not match: val x : int is not included in val x : unit
+The type int is not compatible with the type unit",
+      "range": {
+        "end": {
+          "character": 3,
+          "line": 4,
+        },
+        "start": {
+          "character": 6,
+          "line": 2,
+        },
+      },
+      "relatedInformation": [
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 14,
+                "line": 2,
               },
-            ],
+              "start": {
+                "character": 2,
+                "line": 2,
+              },
+            },
             "uri": "file:///test.ml",
-          }
-        `);
+          },
+          "message": "Expected declaration",
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 7,
+                "line": 4,
+              },
+              "start": {
+                "character": 6,
+                "line": 4,
+              },
+            },
+            "uri": "file:///test.ml",
+          },
+          "message": "Actual declaration",
+        },
+      ],
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );
@@ -249,17 +249,17 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("no diagnostics for valid files", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [],
-            "uri": "file:///test.ml",
-          }
-        `);
+{
+  "diagnostics": [],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );
@@ -272,34 +272,34 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("should have diagnostics for a hole only", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
-                "code": "hole",
-                "message": "This typed hole should be replaced with an expression of type int",
-                "range": Object {
-                  "end": Object {
-                    "character": 15,
-                    "line": 0,
-                  },
-                  "start": Object {
-                    "character": 14,
-                    "line": 0,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-            ],
-            "uri": "file:///test.ml",
-          }
-        `);
+{
+  "diagnostics": [
+    {
+      "code": "hole",
+      "message": "This typed hole should be replaced with an expression of type int",
+      "range": {
+        "end": {
+          "character": 15,
+          "line": 0,
+        },
+        "start": {
+          "character": 14,
+          "line": 0,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );
@@ -312,81 +312,81 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("should have diagnostics for holes only", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
-                "code": "hole",
-                "message": "This typed hole should be replaced with an expression of type int",
-                "range": Object {
-                  "end": Object {
-                    "character": 16,
-                    "line": 0,
-                  },
-                  "start": Object {
-                    "character": 15,
-                    "line": 0,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-              Object {
-                "message": "Warning 26: unused variable b.",
-                "range": Object {
-                  "end": Object {
-                    "character": 5,
-                    "line": 1,
-                  },
-                  "start": Object {
-                    "character": 4,
-                    "line": 1,
-                  },
-                },
-                "severity": 2,
-                "source": "ocamllsp",
-              },
-              Object {
-                "code": "hole",
-                "message": "This typed hole should be replaced with an expression of type string",
-                "range": Object {
-                  "end": Object {
-                    "character": 44,
-                    "line": 1,
-                  },
-                  "start": Object {
-                    "character": 43,
-                    "line": 1,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-              Object {
-                "code": "hole",
-                "message": "This typed hole should be replaced with an expression of type string",
-                "range": Object {
-                  "end": Object {
-                    "character": 58,
-                    "line": 1,
-                  },
-                  "start": Object {
-                    "character": 57,
-                    "line": 1,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-            ],
-            "uri": "file:///test.ml",
-          }
-        `);
+{
+  "diagnostics": [
+    {
+      "code": "hole",
+      "message": "This typed hole should be replaced with an expression of type int",
+      "range": {
+        "end": {
+          "character": 16,
+          "line": 0,
+        },
+        "start": {
+          "character": 15,
+          "line": 0,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+    {
+      "message": "Warning 26: unused variable b.",
+      "range": {
+        "end": {
+          "character": 5,
+          "line": 1,
+        },
+        "start": {
+          "character": 4,
+          "line": 1,
+        },
+      },
+      "severity": 2,
+      "source": "ocamllsp",
+    },
+    {
+      "code": "hole",
+      "message": "This typed hole should be replaced with an expression of type string",
+      "range": {
+        "end": {
+          "character": 44,
+          "line": 1,
+        },
+        "start": {
+          "character": 43,
+          "line": 1,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+    {
+      "code": "hole",
+      "message": "This typed hole should be replaced with an expression of type string",
+      "range": {
+        "end": {
+          "character": 58,
+          "line": 1,
+        },
+        "start": {
+          "character": 57,
+          "line": 1,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );
@@ -401,80 +401,80 @@ describe("textDocument/diagnostics", () => {
   });
 
   it("different diagnostics, including holes, sorted by range", async () => {
-    let receivedDiganostics = new Promise((resolve, _reject) =>
+    const receivedDiganostics = new Promise((resolve, _reject) =>
       languageServer.onNotification((method, params) => {
         expect(method).toMatchInlineSnapshot(
           `"textDocument/publishDiagnostics"`,
         );
         expect(params).toMatchInlineSnapshot(`
-          Object {
-            "diagnostics": Array [
-              Object {
-                "message": "This expression has type unit but an expression was expected of type int",
-                "range": Object {
-                  "end": Object {
-                    "character": 42,
-                    "line": 1,
-                  },
-                  "start": Object {
-                    "character": 40,
-                    "line": 1,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-              Object {
-                "code": "hole",
-                "message": "This typed hole should be replaced with an expression of type 'a",
-                "range": Object {
-                  "end": Object {
-                    "character": 12,
-                    "line": 3,
-                  },
-                  "start": Object {
-                    "character": 11,
-                    "line": 3,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-              Object {
-                "code": "hole",
-                "message": "This typed hole should be replaced with an expression of type 'a",
-                "range": Object {
-                  "end": Object {
-                    "character": 12,
-                    "line": 4,
-                  },
-                  "start": Object {
-                    "character": 11,
-                    "line": 4,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-              Object {
-                "message": "This expression has type string but an expression was expected of type int",
-                "range": Object {
-                  "end": Object {
-                    "character": 9,
-                    "line": 5,
-                  },
-                  "start": Object {
-                    "character": 6,
-                    "line": 5,
-                  },
-                },
-                "severity": 1,
-                "source": "ocamllsp",
-              },
-            ],
-            "uri": "file:///test.ml",
-          }
-        `);
+{
+  "diagnostics": [
+    {
+      "message": "The constructor () has type unit but an expression was expected of type int",
+      "range": {
+        "end": {
+          "character": 42,
+          "line": 1,
+        },
+        "start": {
+          "character": 40,
+          "line": 1,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+    {
+      "code": "hole",
+      "message": "This typed hole should be replaced with an expression of type 'a",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3,
+        },
+        "start": {
+          "character": 11,
+          "line": 3,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+    {
+      "code": "hole",
+      "message": "This typed hole should be replaced with an expression of type 'a",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 4,
+        },
+        "start": {
+          "character": 11,
+          "line": 4,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+    {
+      "message": "This constant has type string but an expression was expected of type int",
+      "range": {
+        "end": {
+          "character": 9,
+          "line": 5,
+        },
+        "start": {
+          "character": 6,
+          "line": 5,
+        },
+      },
+      "severity": 1,
+      "source": "ocamllsp",
+    },
+  ],
+  "uri": "file:///test.ml",
+}
+`);
         resolve(null);
       }),
     );

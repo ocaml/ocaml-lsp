@@ -40,7 +40,7 @@ let%expect_test "documentOutline with a module" =
     {|
     module T = struct
       type t = int
-    end              
+    end
   |}
   in
   let request client =
@@ -223,6 +223,7 @@ let%expect_test "documentOutline with recursive definition" =
     |}]
 ;;
 
+(* FIXME: requires fix in Merlin 4.14 LTS *)
 let%expect_test "documentOutline with recursive definition and methods" =
   let source =
     {|
@@ -346,7 +347,7 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
      class a = object
      val b = object
      method inside_a_b () =
-     val x_inside_a_b = 10 in
+     let x_inside_a_b = 10 in
      print_int x
      end
      end
@@ -374,7 +375,7 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "kind": 5,
         "location": {
           "range": {
-            "end": { "character": 8, "line": 6 },
+            "end": { "character": 8, "line": 7 },
             "start": { "character": 5, "line": 1 }
           },
           "uri": "file:///test.ml"
@@ -386,7 +387,7 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "kind": 7,
         "location": {
           "range": {
-            "end": { "character": 16, "line": 5 },
+            "end": { "character": 8, "line": 6 },
             "start": { "character": 5, "line": 2 }
           },
           "uri": "file:///test.ml"
@@ -395,19 +396,7 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
       },
       {
         "containerName": "b",
-        "kind": 6,
-        "location": {
-          "range": {
-            "end": { "character": 27, "line": 3 },
-            "start": { "character": 5, "line": 3 }
-          },
-          "uri": "file:///test.ml"
-        },
-        "name": "inside_a_b"
-      },
-      {
-        "containerName": "b",
-        "kind": 7,
+        "kind": 13,
         "location": {
           "range": {
             "end": { "character": 26, "line": 4 },

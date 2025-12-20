@@ -10,6 +10,7 @@ module Syntax : sig
     | Menhir
     | Cram
     | Dune
+    | Mlx
 
   val human_name : t -> string
   val markdown_name : t -> string

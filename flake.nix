@@ -11,7 +11,7 @@
   outputs = { self, flake-utils, nixpkgs, ... }@inputs:
     let
       package = "ocaml-lsp-server";
-      ocamlformat = pkgs: pkgs.ocamlformat_0_26_2;
+      ocamlformat = pkgs: pkgs.ocamlformat_0_27_0;
       basePackage = {
         duneVersion = "3";
         version = "n/a";
@@ -31,7 +31,7 @@
             fixPreBuild = o: {
               propagatedBuildInputs = o.propagatedBuildInputs ++ [ oself.pp ];
               preBuild = ''
-                rm -r vendor/csexp vendor/pp
+                rm -rf vendor/csexp vendor/pp
               '';
             };
           in {
@@ -48,7 +48,7 @@
           });
       };
       ocamlVersionOverlay =
-        (ocaml: self: super: { ocamlPackages = ocaml super.ocaml-ng; });
+        (ocaml: self: super: { ocamlPackages = super.ocaml-ng.${ocaml}; });
       makeLocalPackages = pkgs:
         let buildDunePackage = pkgs.ocamlPackages.buildDunePackage;
         in rec {

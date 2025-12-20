@@ -9,13 +9,37 @@ include struct
   module Table = Table
   module Tuple = Tuple
   module Unix_env = Env
-  module Io = Io
   module Map = Map
   module Monoid = Monoid
   module Pid = Pid
   module Poly = Poly
 
   let sprintf = sprintf
+end
+
+module Io = struct
+  open Base
+
+  let read_file f =
+    Base.Result.try_with (fun () ->
+      let fd = Unix.openfile f [ O_CLOEXEC; O_RDONLY ] 0 in
+      Exn.protect
+        ~finally:(fun () -> Unix.close fd)
+        ~f:(fun () ->
+          match Unix.fstat fd with
+          | { Unix.st_size; _ } ->
+            let buf = Bytes.create st_size in
+            let rec loop pos remains =
+              if remains > 0
+              then (
+                let read = Unix.read fd buf pos remains in
+                if read = 0
+                then failwith (sprintf "unable to read all of %s" f)
+                else loop (pos + read) (remains - read))
+            in
+            loop 0 st_size;
+            Stdlib.Bytes.unsafe_to_string buf))
+  ;;
 end
 
 include struct
@@ -37,13 +61,34 @@ include struct
 end
 
 module List = struct
-  include Stdune.List
-  open Base.List
+  include Base.List
 
+  let compare xs ys ~compare =
+    Base.List.compare (fun x y -> Ordering.to_int (compare x y)) xs ys
+  ;;
+
+  let sort xs ~compare = sort xs ~compare:(fun x y -> Ordering.to_int (compare x y))
+  let fold_left2 xs ys ~init ~f = Stdlib.List.fold_left2 f init xs ys
+  let assoc xs key = Assoc.find ~equal:Poly.equal xs key
+  let assoc_opt xs key = assoc xs key
+  let mem t x ~equal = mem t x ~equal
+  let map t ~f = map t ~f
+  let concat_map t ~f = concat_map t ~f
+  let flatten t = Stdlib.List.flatten t
+  let filter_map t ~f = filter_map t ~f
+  let fold_left t ~init ~f = fold_left t ~init ~f
   let findi xs ~f = findi xs ~f
+  let find_opt xs ~f = find xs ~f
+
+  let sort_uniq xs ~compare =
+    Stdlib.List.sort_uniq (fun x y -> Ordering.to_int (compare x y)) xs
+  ;;
+
+  let for_all xs ~f = for_all xs ~f
   let find_mapi xs ~f = find_mapi xs ~f
   let sub xs ~pos ~len = sub xs ~pos ~len
   let hd_exn t = hd_exn t
+  let hd_opt t = hd t
   let nth_exn t n = nth_exn t n
   let hd t = hd t
   let filter t ~f = filter t ~f
@@ -86,6 +131,8 @@ module String = struct
   include struct
     open Stdune.String
     module Map = Map
+
+    let extract_words = extract_words
   end
 
   let to_dyn = Dyn.string
@@ -124,7 +171,6 @@ module String = struct
     let lfindi = lfindi
     let filter = filter
     let is_suffix = is_suffix
-    let extract_words = Stdune.String.extract_words
   end
 
   let findi =
@@ -177,6 +223,8 @@ include struct
     include Uri
 
     let to_dyn t = Dyn.string (to_string t)
+
+    module Map = Stdlib.Map.Make (Uri)
   end
 end
 
