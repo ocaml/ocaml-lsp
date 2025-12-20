@@ -64,6 +64,33 @@ To add the language server to an esy project, run in terminal:
 $ esy add @opam/ocaml-lsp-server
 ```
 
+#### Dune
+
+If you are using [Dune for package
+management](https://dune.readthedocs.io/en/stable/explanation/package-management.html)
+on the [latest nightly build](https://preview.dune.build/) or version 3.21 or
+later, you can install `ocamllsp` locally within the current project by
+running:
+```sh
+$ dune tools install ocamllsp
+```
+
+This will compile `ocamllsp` with the same OCaml compiler as the project itself -
+a requirement for `ocamllsp` to be able to analyze the code in the project.
+
+To make sure your editor sees the correct instance of `ocamllsp` for the
+project, run `eval $(dune tools env)` from your shell before launching your
+editor from the same shell. This can be automated by adding `eval $(dune tools
+env)` to a `.envrc` file in the project's root directory and using
+[direnv](https://direnv.net). Editors that aren't launched from the terminal
+require plugin support to locate the appropriate `ocamllsp` executable
+installed by Dune. For VSCode use the [OCaml
+Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform)
+plugin, and for Emacs use the
+[ocaml-eglot](https://github.com/tarides/ocaml-eglot) package and follow
+[these](https://github.com/tarides/ocaml-eglot?tab=readme-ov-file#usage-with-dune-pkg)
+instructions.
+
 ### Installing from sources
 
 This project uses submodules to handle dependencies. This is done so that users
@@ -415,9 +442,3 @@ date. Also, both servers seem deprecated.
   use merlin which means that it supports fewer versions of OCaml and offers less
   "smart" functionality - especially in the face of sources that do not yet
   compile.
-
-- [ocaml-language-server](https://github.com/ocaml-lsp/ocaml-language-server)
-  This project is extremely similar in the functionality it provides because it
-  also reuses merlin on the backend. The essential difference is that this
-  project is written in typescript, while our server is in OCaml. We feel that
-  it's best to use OCaml to maximize the contributor pool.

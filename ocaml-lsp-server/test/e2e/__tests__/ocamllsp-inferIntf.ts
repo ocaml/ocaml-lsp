@@ -1,8 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
-
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("ocamllsp/inferIntf", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -45,7 +44,7 @@ let f (x : t) = x
 `,
       "test.ml",
     );
-    let actions = await inferIntf("test.ml");
+    const actions = await inferIntf("test.ml");
     expect(actions).toEqual(
       "type t = Foo of int | Bar of bool\nval f : t -> t\n",
     );

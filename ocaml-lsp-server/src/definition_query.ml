@@ -30,7 +30,7 @@ let location_of_merlin_loc uri : _ -> (_, string) result = function
          `Location locs))
 ;;
 
-let run kind (state : State.t) uri position =
+let run kind (state : State.t) ?prefix uri position =
   let* () = Fiber.return () in
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
@@ -39,8 +39,8 @@ let run kind (state : State.t) uri position =
     let command, name =
       let pos = Position.logical position in
       match kind with
-      | `Definition -> Query_protocol.Locate (None, `ML, pos), "definition"
-      | `Declaration -> Query_protocol.Locate (None, `MLI, pos), "declaration"
+      | `Definition -> Query_protocol.Locate (prefix, `ML, pos), "definition"
+      | `Declaration -> Query_protocol.Locate (prefix, `MLI, pos), "declaration"
       | `Type_definition -> Query_protocol.Locate_type pos, "type definition"
     in
     let* result = Document.Merlin.dispatch_exn ~name doc command in

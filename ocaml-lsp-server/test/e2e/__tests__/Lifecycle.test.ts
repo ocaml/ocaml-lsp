@@ -1,25 +1,24 @@
 import * as Protocol from "vscode-languageserver-protocol";
-
 import * as LanguageServer from "./../src/LanguageServer";
 
 test("basic", async () => {
-  let languageServer = LanguageServer.start();
+  const languageServer = LanguageServer.start();
   await LanguageServer.exit(languageServer);
 });
 
 test("initialize with empty capabilities", async () => {
-  let languageServer = LanguageServer.start();
+  const languageServer = LanguageServer.start();
 
-  let capabilities: Protocol.ClientCapabilities = {};
+  const capabilities: Protocol.ClientCapabilities = {};
 
-  let initializeParameters: Protocol.InitializeParams = {
+  const initializeParameters: Protocol.InitializeParams = {
     processId: process.pid,
     rootUri: LanguageServer.toURI(__dirname),
     capabilities: capabilities,
     workspaceFolders: [],
   };
 
-  let result = await languageServer.sendRequest(
+  const result = await languageServer.sendRequest(
     Protocol.InitializeRequest.type,
     initializeParameters,
   );

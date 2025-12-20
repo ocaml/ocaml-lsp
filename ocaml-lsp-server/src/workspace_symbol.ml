@@ -70,17 +70,17 @@ end = struct
   open Browse_raw
   open Browse_tree
 
-  let id_of_patt = function
-    | { pat_desc = Tpat_var (id, _); _ } -> Some id
+  let name_of_patt = function
+    | { pat_desc = Tpat_var (_, name); _ } -> Some name
     | _ -> None
   ;;
 
-  let mk ?(children = []) ~location ~deprecated outline_kind id =
+  let mk ?(children = []) ~location ~deprecated outline_kind (id : string Location.loc) =
     { Query_protocol.outline_kind
     ; outline_type = None
     ; location
     ; children
-    ; outline_name = Ident.name id
+    ; outline_name = id.txt
     ; deprecated
     }
   ;;
@@ -96,30 +96,30 @@ end = struct
     match node.t_node with
     | Value_binding vb ->
       let deprecated = Type_utils.is_deprecated vb.vb_attributes in
-      (match id_of_patt vb.vb_pat with
+      (match name_of_patt vb.vb_pat with
        | None -> None
-       | Some ident -> Some (mk ~location ~deprecated `Value ident))
+       | Some name -> Some (mk ~location ~deprecated `Value name))
     | Value_description vd ->
       let deprecated = Type_utils.is_deprecated vd.val_attributes in
-      Some (mk ~location ~deprecated `Value vd.val_id)
+      Some (mk ~location ~deprecated `Value vd.val_name)
     | Module_declaration md ->
       let children = get_mod_children node in
-      (match md.md_id with
-       | None -> None
-       | Some id ->
+      (match md.md_name with
+       | { txt = None; _ } -> None
+       | { txt = Some txt; loc } ->
          let deprecated = Type_utils.is_deprecated md.md_attributes in
-         Some (mk ~children ~location ~deprecated `Module id))
+         Some (mk ~children ~location ~deprecated `Module { txt; loc }))
     | Module_binding mb ->
       let children = get_mod_children node in
-      (match mb.mb_id with
-       | None -> None
-       | Some id ->
+      (match mb.mb_name with
+       | { txt = None; _ } -> None
+       | { txt = Some txt; loc } ->
          let deprecated = Type_utils.is_deprecated mb.mb_attributes in
-         Some (mk ~children ~location ~deprecated `Module id))
+         Some (mk ~children ~location ~deprecated `Module { txt; loc }))
     | Module_type_declaration mtd ->
       let children = get_mod_children node in
       let deprecated = Type_utils.is_deprecated mtd.mtd_attributes in
-      Some (mk ~deprecated ~children ~location `Modtype mtd.mtd_id)
+      Some (mk ~deprecated ~children ~location `Modtype mtd.mtd_name)
     | Type_declaration td ->
       let children =
         List.concat_map (Lazy.force node.t_children) ~f:(fun child ->
@@ -129,16 +129,16 @@ end = struct
               match x.t_node with
               | Constructor_declaration c ->
                 let deprecated = Type_utils.is_deprecated c.cd_attributes in
-                mk `Constructor c.cd_id ~deprecated ~location:c.cd_loc
+                mk `Constructor c.cd_name ~deprecated ~location:c.cd_loc
               | Label_declaration ld ->
                 let deprecated = Type_utils.is_deprecated ld.ld_attributes in
-                mk `Label ld.ld_id ~deprecated ~location:ld.ld_loc
+                mk `Label ld.ld_name ~deprecated ~location:ld.ld_loc
               | _ -> assert false
               (* ! *))
           | _ -> [])
       in
       let deprecated = Type_utils.is_deprecated td.typ_attributes in
-      Some (mk ~children ~location ~deprecated `Type td.typ_id)
+      Some (mk ~children ~location ~deprecated `Type td.typ_name)
     | Type_extension te ->
       let name = Path.name te.tyext_path in
       let children =
@@ -156,11 +156,11 @@ end = struct
         }
     | Extension_constructor ec ->
       let deprecated = Type_utils.is_deprecated ec.ext_attributes in
-      Some (mk ~location `Exn ec.ext_id ~deprecated)
+      Some (mk ~location `Exn ec.ext_name ~deprecated)
     | Class_declaration cd ->
       let children = List.concat_map (Lazy.force node.t_children) ~f:get_class_elements in
       let deprecated = Type_utils.is_deprecated cd.ci_attributes in
-      Some (mk ~children ~location `Class cd.ci_id_class_type ~deprecated)
+      Some (mk ~children ~location `Class cd.ci_id_name ~deprecated)
     | _ -> None
 
   and get_class_elements node =
@@ -177,7 +177,7 @@ end = struct
                { Query_protocol.outline_name = str_loc.Location.txt
                ; outline_kind
                ; outline_type = None
-               ; location = str_loc.Location.loc
+               ; location = cf.cf_loc
                ; children = []
                ; deprecated
                }
@@ -365,9 +365,7 @@ let run server (state : State.t) (params : WorkspaceSymbolParams.t) =
          | Error `Cancelled -> assert false
          | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
     in
-    List.partition_map symbols_results ~f:(function
-      | Ok r -> Left r
-      | Error e -> Right e)
+    List.partition_result symbols_results
   in
   let+ () =
     match errors with

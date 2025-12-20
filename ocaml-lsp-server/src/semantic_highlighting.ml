@@ -427,8 +427,7 @@ end = struct
 
   let value_binding
         (self : Ast_iterator.iterator)
-        ({ pvb_pat; pvb_expr; pvb_attributes; pvb_loc = _ } as vb :
-          Parsetree.value_binding)
+        ({ pvb_pat; pvb_expr; pvb_attributes; _ } as vb : Parsetree.value_binding)
     =
     match
       match pvb_pat.ppat_desc, pvb_expr.pexp_desc with

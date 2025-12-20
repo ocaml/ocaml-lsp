@@ -7,7 +7,7 @@ let preprocess_metamodel =
     method! or_ path (types : Metamodel.type_ list) =
       match
         List.filter_map types ~f:(function
-          | Literal (Record []) -> None
+          | Metamodel.Literal (Record []) -> None
           | _ as t -> Some (self#type_ path t))
       with
       | [] -> assert false
@@ -17,10 +17,13 @@ let preprocess_metamodel =
          | Top (Alias s) when s.name = "TextDocumentContentChangeEvent" ->
            let t =
              let union_fields l1 l2 ~f =
-               let of_map =
-                 String.Map.of_list_map_exn ~f:(fun (x : Metamodel.property) -> x.name, x)
+               let of_map xs =
+                 List.map xs ~f:(fun (x : Metamodel.property) -> x.name, x)
+                 |> String.Map.of_list
                in
-               String.Map.merge (of_map l1) (of_map l2) ~f |> String.Map.values
+               String.Map.merge (of_map l1) (of_map l2) ~f
+               |> String.Map.bindings
+               |> List.map ~f:snd
              in
              union_fields f1 f2 ~f:(fun k t1 t2 ->
                if k = "text"
@@ -81,8 +84,9 @@ let expand_superclasses db (m : Metamodel.t) =
   let structures =
     let uniquify_fields fields =
       List.fold_left fields ~init:String.Map.empty ~f:(fun acc (f : Metamodel.property) ->
-        String.Map.set acc f.name f)
-      |> String.Map.values
+        String.Map.add acc ~key:f.name ~data:f)
+      |> String.Map.bindings
+      |> List.map ~f:snd
     in
     let rec fields_of_type (t : Metamodel.type_) =
       match t with

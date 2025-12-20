@@ -99,6 +99,9 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_construct.capability
               ; Req_type_search.capability
               ; Req_merlin_jump.capability
+              ; Req_phrase.capability
+              ; Req_type_expression.capability
+              ; Req_locate.capability
               ] )
         ]
     in
@@ -203,7 +206,7 @@ let set_diagnostics detached diagnostics doc =
        in
        Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
        async (fun () -> Diagnostics.send diagnostics (`One uri))
-     | Reason | Ocaml ->
+     | Reason | Ocaml | Mlx ->
        async (fun () ->
          let* () = Diagnostics.merlin_diagnostics diagnostics merlin in
          Diagnostics.send diagnostics (`One uri)))
@@ -363,7 +366,11 @@ module Formatter = struct
   ;;
 end
 
-let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }; _ } =
+let text_document_lens
+      (state : State.t)
+      { CodeLensParams.textDocument = { uri }; _ }
+      ~for_nested_bindings
+  =
   let store = state.store in
   let doc = Document_store.get store uri in
   match Document.kind doc with
@@ -372,7 +379,11 @@ let text_document_lens (state : State.t) { CodeLensParams.textDocument = { uri }
   | `Merlin doc ->
     let+ outline = Document.Merlin.dispatch_exn ~name:"outline" doc Outline in
     let rec symbol_info_of_outline_item (item : Query_protocol.item) =
-      let children = List.concat_map item.children ~f:symbol_info_of_outline_item in
+      let children =
+        if for_nested_bindings
+        then List.concat_map item.children ~f:symbol_info_of_outline_item
+        else []
+      in
       match item.outline_type with
       | None -> children
       | Some typ ->
@@ -496,26 +507,30 @@ let on_request
   match req with
   | Client_request.UnknownRequest { meth; params } ->
     (match
-       [ ( Req_switch_impl_intf.meth
-         , fun ~params state ->
-             Fiber.of_thunk (fun () ->
-               Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
-       ; Req_infer_intf.meth, Req_infer_intf.on_request
-       ; Req_typed_holes.meth, Req_typed_holes.on_request
-       ; Req_jump_to_typed_hole.meth, Req_jump_to_typed_hole.on_request
-       ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
-       ; Req_type_enclosing.meth, Req_type_enclosing.on_request
-       ; Req_get_documentation.meth, Req_get_documentation.on_request
-       ; Req_merlin_jump.meth, Req_merlin_jump.on_request
-       ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
-       ; Req_type_search.meth, Req_type_search.on_request
-       ; Req_construct.meth, Req_construct.on_request
-       ; ( Semantic_highlighting.Debug.meth_request_full
-         , Semantic_highlighting.Debug.on_request_full )
-       ; ( Req_hover_extended.meth
-         , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
-       ]
-       |> List.assoc_opt meth
+       List.assoc
+         [ ( Req_switch_impl_intf.meth
+           , fun ~params state ->
+               Fiber.of_thunk (fun () ->
+                 Fiber.return (Req_switch_impl_intf.on_request ~params state)) )
+         ; Req_infer_intf.meth, Req_infer_intf.on_request
+         ; Req_typed_holes.meth, Req_typed_holes.on_request
+         ; Req_jump_to_typed_hole.meth, Req_jump_to_typed_hole.on_request
+         ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
+         ; Req_type_enclosing.meth, Req_type_enclosing.on_request
+         ; Req_get_documentation.meth, Req_get_documentation.on_request
+         ; Req_merlin_jump.meth, Req_merlin_jump.on_request
+         ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
+         ; Req_type_search.meth, Req_type_search.on_request
+         ; Req_construct.meth, Req_construct.on_request
+         ; ( Semantic_highlighting.Debug.meth_request_full
+           , Semantic_highlighting.Debug.on_request_full )
+         ; ( Req_hover_extended.meth
+           , fun ~params _ -> Req_hover_extended.on_request ~params rpc )
+         ; Req_phrase.meth, Req_phrase.on_request
+         ; Req_type_expression.meth, Req_type_expression.on_request
+         ; Req_locate.meth, Req_locate.on_request
+         ]
+         meth
      with
      | None ->
        Jsonrpc.Response.Error.raise
@@ -620,7 +635,8 @@ let on_request
   | TextDocumentCodeLensResolve codeLens -> now codeLens
   | TextDocumentCodeLens req ->
     (match state.configuration.data.codelens with
-     | Some { enable = true } -> later text_document_lens req
+     | Some { enable = true; for_nested_bindings } ->
+       later (text_document_lens ~for_nested_bindings) req
      | _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
@@ -954,10 +970,10 @@ let run_in_directory =
   fun () -> if Sys.win32 then for_windows else run_in_directory
 ;;
 
-let run channel ~read_dot_merlin () =
+let run channel ~prefer_dot_merlin () =
   Merlin_utils.Lib_config.set_program_name "ocamllsp";
   Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
-  Merlin_config.should_read_dot_merlin := read_dot_merlin;
+  Merlin_config.prefer_dot_merlin := prefer_dot_merlin;
   Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->
     let* input, output = stream_of_channel channel in

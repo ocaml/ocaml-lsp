@@ -130,7 +130,8 @@ let%expect_test
         "cost": 4,
         "constructible": "string_of_int _"
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test
@@ -177,7 +178,8 @@ let%expect_test
         "cost": 0,
         "constructible": "string_of_int _"
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test

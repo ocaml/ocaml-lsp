@@ -192,7 +192,10 @@ module InlayHints = struct
 end
 
 module Lens = struct
-  type t = { enable : bool [@default true] }
+  type t =
+    { enable : bool [@default true]
+    ; for_nested_bindings : bool [@key "forNestedBindings"] [@default false]
+    }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
@@ -202,6 +205,7 @@ module Lens = struct
      function
      | `Assoc field_yojsons as yojson ->
        let enable_field = ref Ppx_yojson_conv_lib.Option.None
+       and for_nested_bindings_field = ref Ppx_yojson_conv_lib.Option.None
        and duplicates = ref []
        and extra = ref [] in
        let rec iter = function
@@ -212,6 +216,13 @@ module Lens = struct
                | Ppx_yojson_conv_lib.Option.None ->
                  let fvalue = bool_of_yojson _field_yojson in
                  enable_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
+                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+            | "forNestedBindings" ->
+              (match Ppx_yojson_conv_lib.( ! ) for_nested_bindings_field with
+               | Ppx_yojson_conv_lib.Option.None ->
+                 let fvalue = bool_of_yojson _field_yojson in
+                 for_nested_bindings_field := Ppx_yojson_conv_lib.Option.Some fvalue
                | Ppx_yojson_conv_lib.Option.Some _ ->
                  duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
             | _ -> ());
@@ -233,10 +244,17 @@ module Lens = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let enable_value = Ppx_yojson_conv_lib.( ! ) enable_field in
+             let enable_value, for_nested_bindings_value =
+               ( Ppx_yojson_conv_lib.( ! ) enable_field
+               , Ppx_yojson_conv_lib.( ! ) for_nested_bindings_field )
+             in
              { enable =
                  (match enable_value with
                   | Ppx_yojson_conv_lib.Option.None -> true
+                  | Ppx_yojson_conv_lib.Option.Some v -> v)
+             ; for_nested_bindings =
+                 (match for_nested_bindings_value with
+                  | Ppx_yojson_conv_lib.Option.None -> false
                   | Ppx_yojson_conv_lib.Option.Some v -> v)
              }))
      | _ as yojson ->
@@ -248,8 +266,12 @@ module Lens = struct
 
   let yojson_of_t =
     (function
-     | { enable = v_enable } ->
+     | { enable = v_enable; for_nested_bindings = v_for_nested_bindings } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         let arg = yojson_of_bool v_for_nested_bindings in
+         ("forNestedBindings", arg) :: bnds
+       in
        let bnds =
          let arg = yojson_of_bool v_enable in
          ("enable", arg) :: bnds
@@ -921,7 +943,7 @@ let _ = yojson_of_t
 [@@@end]
 
 let default =
-  { codelens = Some { enable = false }
+  { codelens = Some { enable = false; for_nested_bindings = false }
   ; extended_hover = Some { enable = false }
   ; standard_hover = Some { enable = true }
   ; inlay_hints =

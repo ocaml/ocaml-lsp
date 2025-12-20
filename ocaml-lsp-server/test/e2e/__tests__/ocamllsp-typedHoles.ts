@@ -1,7 +1,7 @@
 import outdent from "outdent";
-import * as LanguageServer from "../src/LanguageServer";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
+import * as LanguageServer from "../src/LanguageServer";
 
 describe("ocamllsp/typedHoles", () => {
   let languageServer: LanguageServer.LanguageServer;
@@ -41,8 +41,8 @@ let u = 1
 `,
     );
 
-    let r = await sendTypedHolesReq();
-    expect(r).toMatchInlineSnapshot(`Array []`);
+    const r = await sendTypedHolesReq();
+    expect(r).toMatchInlineSnapshot("[]");
   });
 
   it("one hole", async () => {
@@ -52,21 +52,21 @@ let k = match () with () -> _
 `,
     );
 
-    let r = await sendTypedHolesReq();
+    const r = await sendTypedHolesReq();
     expect(r).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "end": Object {
-            "character": 29,
-            "line": 0,
-          },
-          "start": Object {
-            "character": 28,
-            "line": 0,
-          },
-        },
-      ]
-    `);
+[
+  {
+    "end": {
+      "character": 29,
+      "line": 0,
+    },
+    "start": {
+      "character": 28,
+      "line": 0,
+    },
+  },
+]
+`);
   });
 
   it("several holes", async () => {
@@ -78,40 +78,40 @@ let u =
   ()
       `,
     );
-    let r = await sendTypedHolesReq();
+    const r = await sendTypedHolesReq();
     expect(r).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "end": Object {
-            "character": 31,
-            "line": 2,
-          },
-          "start": Object {
-            "character": 30,
-            "line": 2,
-          },
-        },
-        Object {
-          "end": Object {
-            "character": 37,
-            "line": 1,
-          },
-          "start": Object {
-            "character": 36,
-            "line": 1,
-          },
-        },
-        Object {
-          "end": Object {
-            "character": 49,
-            "line": 1,
-          },
-          "start": Object {
-            "character": 48,
-            "line": 1,
-          },
-        },
-      ]
-    `);
+[
+  {
+    "end": {
+      "character": 31,
+      "line": 2,
+    },
+    "start": {
+      "character": 30,
+      "line": 2,
+    },
+  },
+  {
+    "end": {
+      "character": 37,
+      "line": 1,
+    },
+    "start": {
+      "character": 36,
+      "line": 1,
+    },
+  },
+  {
+    "end": {
+      "character": 49,
+      "line": 1,
+    },
+    "start": {
+      "character": 48,
+      "line": 1,
+    },
+  },
+]
+`);
   });
 });

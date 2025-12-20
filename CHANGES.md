@@ -1,3 +1,23 @@
+# 1.25.0
+
+## Features
+
+- Make `code-lens` for nested let bindings configurable (#1567)
+- Add support for `.mlx` files, including formatting via `ocamlformat-mlx` and most OCaml LSP features (diagnostics, code actions, hover, etc.) (#1528)
+- Add `typeExpression` custom request (#1576)
+- Add `locate` custom request (#1576)
+- Add `phrase` custom request (#1576)
+
+## Fixes
+
+- Improve precision of collected metrics timestamps. (#1565)
+- Fallback on `.merlin` configuration if no `dune-project` file is found and if
+  `dot-merlin-reader` is installed. (#1563, fixes #1522)
+
+- Fix hover on method calls not showing the type. (#1553, fixes #1552)
+- Fix error on opening `.mll` files (#1557)
+- Ensure compatibility with both yojson 2.0 and 3.0. (#1534)
+
 # 1.21.0
 
 ## Features
@@ -42,6 +62,7 @@
   [`ocamllsp/typeSearch`](/ocaml-lsp-server/docs/ocamllsp/typeSearch-spec.md) request (#1369)
 
 - Make MerlinJump code action configurable (#1376)
+- Add support for OCaml 5.3 (#1386)
 
 - Add custom [`ocamllsp/jump`](/ocaml-lsp-server/docs/ocamllsp/merlinJump-spec.md) request (#1374)
 

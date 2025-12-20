@@ -110,7 +110,7 @@ let%expect_test "function params" =
     {| let f a$: int$ b$: int$ c$: string$ d$: bool$ = (a + b, c ^ string_of_bool d) |}]
 ;;
 
-(* Fixme: options doesn't work on 414 LTS *)
+(* Fixme: options doesn't work on Merlin 414 LTS *)
 let%expect_test "function params (deactivated)" =
   let source = "let f a b c d = (a + b, c ^ string_of_bool d)" in
   apply_inlay_hints ~hint_function_params:false ~source ();
