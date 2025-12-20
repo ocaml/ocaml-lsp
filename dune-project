@@ -79,6 +79,6 @@ possible and does not make any assumptions about IO.
  (synopsis "Jsonrpc protocol implementation")
  (description "See https://www.jsonrpc.org/specification")
  (depends
-  yojson
+  (yojson (>= 2.0))
   (ocaml (>= 4.08))
   (odoc :with-doc)))

@@ -20,7 +20,7 @@ homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
   "dune" {>= "3.0"}
-  "yojson"
+  "yojson" {>= "2.0"}
   "ocaml" {>= "4.08"}
   "odoc" {with-doc}
 ]
