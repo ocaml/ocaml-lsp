@@ -21,6 +21,7 @@
 ## Fixes
 
 - Enable "hover" on more locations, notably class and object related (#1599)
+- do not force `-short-paths` (#1579)
 
 # 1.25.0
 
