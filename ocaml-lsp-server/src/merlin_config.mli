@@ -1,4 +1,4 @@
-(** Fetch merlin configuration with dune subprocesses *)
+(** Fetch merlin configuration from a project build system (usually dune) *)
 
 open Import
 
