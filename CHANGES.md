@@ -8,6 +8,16 @@
 
 - Add `destruct` custom request (#1583)
 
+- Allow to configure merlin using build systems other than dune.
+
+  If `$OCAMLLSP_PROJECT_BUILD_SYSTEM` environment variable is set then OCaml
+  LSP will execute `$OCAMLLSP_PROJECT_BUILD_SYSTEM ocaml-merlin` command to get
+  merlin configuration for a module. It is expected the command to communicate
+  using `merlin-dot-protocol`.
+
+  If `$OCAMLLSP_PROJECT_ROOT` environment variable is set then OCaml LSP will
+  use it as a project root directory.
+
 # 1.25.0
 
 ## Features
