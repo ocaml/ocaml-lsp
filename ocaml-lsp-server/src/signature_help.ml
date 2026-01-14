@@ -63,19 +63,61 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
          sprintf "%s : " fun_name
        in
        let offset = String.length prefix in
-       let+ doc =
+       let* doc =
          Document.Merlin.doc_comment
            ~name:"signature help-position"
            merlin
            application_signature.function_position
        in
+       let+ formatted_signature =
+         let typ = application_signature.signature in
+         let+ result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
+         match result with
+         | Ok v -> String.trim v
+         | Error _ -> typ
+       in
        let info =
          let parameters =
-           List.map
-             application_signature.parameters
-             ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
-               let label = `Offset (offset + p.param_start, offset + p.param_end) in
-               ParameterInformation.create ~label ())
+          (* If the signature was formatted, parameter positions must be recalculated. *)
+           if application_signature.signature = formatted_signature
+           then
+             List.map
+               application_signature.parameters
+               ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
+                 let label = `Offset (offset + p.param_start, offset + p.param_end) in
+                 ParameterInformation.create ~label ())
+           else (
+             let to_chars s = List.init (String.length s) ~f:(fun e -> String.get s e) in
+             (* [parse_formatted_parameters pdepth acc strl res c] returns the updated parameter positions after formatting.
+                  [pdepth] tracks the parenthesis depth nested in a parameter.
+                  [acc] accumulates characters of the current parameter.
+                  [strl] is the formatted signature as a list of characters.
+                  [res] accumulates parameter ranges.
+                  [c] is the current position. *)
+             let rec parse_formatted_parameters pdepth acc strl res c : (int * int) list =
+               (* The last element is the result type, it should not appear as a parameter. *)
+               match strl with
+               | [] -> res
+               | '-' :: '>' :: tl when pdepth = 0 ->
+                 (* A parameter is delimited by a '->' and if there is no open parenthesis. *)
+                 let res = (c - List.length acc, c - 1) :: res in
+                 parse_formatted_parameters pdepth [] tl res (c + 2)
+               | hd :: tl ->
+                 let pdepth = match hd with | '(' -> pdepth + 1 | ')' -> pdepth - 1 | _ -> pdepth in
+                 parse_formatted_parameters
+                   pdepth
+                   (hd :: acc)
+                   tl
+                   res
+                   (c + 1)
+             in
+             let parse_formatted_parameters str offset =
+               List.rev (parse_formatted_parameters 0 [] (to_chars str) [] offset)
+             in
+             let parameters = parse_formatted_parameters formatted_signature offset in
+             List.map parameters ~f:(fun (s, e) ->
+               let label = `Offset (s, e) in
+               ParameterInformation.create ~label ()))
          in
          let documentation =
            let open Option.O in
@@ -90,7 +132,7 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
            in
            format_doc ~markdown ~doc
          in
-         let label = prefix ^ application_signature.signature in
+         let label = prefix ^ formatted_signature in
          SignatureInformation.create ~label ?documentation ~parameters ()
        in
        SignatureHelp.create

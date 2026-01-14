@@ -39,8 +39,8 @@ let _ : int = f
       "activeSignature": 0,
       "signatures": [
         {
-          "label": "f : d:(unit ->\n   unit ->\n   unit ->\n   unit ->\n   unit -> unit -> unit -> unit -> unit -> unit -> unit -> unit -> unit) -> t:'a -> unit",
-          "parameters": [ { "label": [ 4, 120 ] }, { "label": [ 124, 128 ] } ]
+          "label": "f : d:\n  (unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit ->\n  unit) ->\nt:'a ->\nunit",
+          "parameters": [ { "label": [ 4, 135 ] }, { "label": [ 138, 143 ] } ]
         }
       ]
     }
@@ -69,17 +69,17 @@ let _ : int = f 3 5
       "activeSignature": 0,
       "signatures": [
         {
-          "label": "f : int -> int -> int -> int -> int -> f:int -> int -> int -> i:(unit -> int) -> int",
+          "label": "f : int ->\nint ->\nint ->\nint ->\nint ->\nf:int ->\nint ->\nint ->\ni:(unit -> int) ->\nint",
           "parameters": [
             { "label": [ 4, 7 ] },
-            { "label": [ 11, 14 ] },
-            { "label": [ 18, 21 ] },
-            { "label": [ 25, 28 ] },
-            { "label": [ 32, 35 ] },
-            { "label": [ 39, 44 ] },
-            { "label": [ 48, 51 ] },
-            { "label": [ 55, 58 ] },
-            { "label": [ 62, 77 ] }
+            { "label": [ 10, 14 ] },
+            { "label": [ 17, 21 ] },
+            { "label": [ 24, 28 ] },
+            { "label": [ 31, 35 ] },
+            { "label": [ 38, 44 ] },
+            { "label": [ 47, 51 ] },
+            { "label": [ 54, 58 ] },
+            { "label": [ 61, 77 ] }
           ]
         }
       ]
