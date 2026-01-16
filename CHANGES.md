@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Improving the readability of signature_help for long signatures (#1580)
+
 # 1.25.0
 
 ## Features
