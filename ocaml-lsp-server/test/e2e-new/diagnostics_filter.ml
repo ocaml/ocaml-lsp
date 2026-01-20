@@ -97,3 +97,44 @@ let%expect_test "shorten diagnostics - false" =
     ((8, 12), (10, 16))
     |}]
 ;;
+
+let%expect_test "Truncated error messages" =
+  let source =
+    {ocaml|let x = 10
+
+module F
+    (K : Map.OrderedType)
+    (V : sig
+      type value
+    end) =
+struct
+  module S = Map.Make (K)
+
+  type t = V.value S.t
+end
+
+module Val = struct
+  type value = string
+end
+
+module IValMap = F (Val)
+
+|ocaml}
+  in
+  print_diagnostics
+    ~prep:(fun client ->
+      change_config
+        client
+        (DidChangeConfigurationParams.create
+           ~settings:
+             (`Assoc [ "shortenMerlinDiagnostics", `Assoc [ "enable", `Bool false ] ])))
+    source;
+  [%expect
+    {|
+    This application of the functor F is ill-typed.
+    These arguments:
+      Val
+    do not match these parameters:
+      (K : Map.OrderedType) (V : ...) -> ...
+    |}]
+;;
