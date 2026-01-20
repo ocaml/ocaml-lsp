@@ -99,7 +99,8 @@ let%expect_test "start/stop" =
             "handleJump": true,
             "handlePhrase": true,
             "handleTypeExpression": true,
-            "handleLocate": true
+            "handleLocate": true,
+            "handleDestruct": true
           }
         },
         "foldingRangeProvider": true,
