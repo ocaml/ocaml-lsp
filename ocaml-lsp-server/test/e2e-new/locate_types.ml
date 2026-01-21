@@ -27,7 +27,7 @@ module Util = struct
   ;;
 end
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - simple type" =
   let source =
     {|
 type a
@@ -46,6 +46,14 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "a",
@@ -61,7 +69,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - parametrized type" =
   let source =
     {|
 type a
@@ -80,6 +88,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "one_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "one_arg",
@@ -109,7 +131,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - parametrized type 2" =
   let source =
     {|
 type a
@@ -128,6 +150,26 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        },
+        {
+          "type": "two_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 14, "line": 5 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "two_arg",
@@ -170,7 +212,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - arrow type" =
   let source =
     {|
 type a
@@ -189,6 +231,26 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        },
+        {
+          "type": "c",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 3 }
+        }
+      ],
       "data": { "kind": "arrow" },
       "children": [
         {
@@ -235,7 +297,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - arrow type with label" =
   let source =
     {|
 type a
@@ -254,6 +316,26 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        },
+        {
+          "type": "c",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 3 }
+        }
+      ],
       "data": { "kind": "arrow" },
       "children": [
         {
@@ -309,7 +391,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - triple" =
   let source =
     {|
 type a
@@ -328,6 +410,26 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        },
+        {
+          "type": "c",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 3 }
+        }
+      ],
       "data": { "kind": "tuple" },
       "children": [
         {
@@ -374,7 +476,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - pair" =
   let source =
     {|
 type a
@@ -393,6 +495,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        }
+      ],
       "data": { "kind": "tuple" },
       "children": [
         {
@@ -426,7 +542,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - tycon" =
   let source =
     {|
 type a
@@ -445,6 +561,14 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "one_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "one_arg",
@@ -460,7 +584,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - tycon + tyvar" =
   let source =
     {|
 type a
@@ -479,6 +603,14 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "one_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "one_arg",
@@ -494,7 +626,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - objects" =
   let source =
     {|
 type a
@@ -513,6 +645,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        }
+      ],
       "data": { "kind": "object" },
       "children": [
         {
@@ -546,7 +692,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - polyvar 1" =
   let source =
     {|
 type a
@@ -565,6 +711,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        }
+      ],
       "data": { "kind": "poly-variant" },
       "children": [
         {
@@ -598,7 +758,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - polyvar 2" =
   let source =
     {|
 type a
@@ -617,6 +777,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        }
+      ],
       "data": { "kind": "poly-variant" },
       "children": [
         {
@@ -650,7 +824,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - polyvar 3" =
   let source =
     {|
 type a
@@ -669,6 +843,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        }
+      ],
       "data": { "kind": "poly-variant" },
       "children": [
         {
@@ -702,7 +890,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - polyvar 4" =
   let source =
     {|
 type a
@@ -721,6 +909,14 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        }
+      ],
       "data": { "kind": "poly-variant" },
       "children": [
         {
@@ -741,7 +937,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - polyvar 4" =
   let source =
     {|
 type a
@@ -757,7 +953,7 @@ let () =
   and line = 8
   and character = 7 in
   Util.test ~line ~character source;
-  [%expect {| { "data": { "kind": "poly-variant" }, "children": [] } |}]
+  [%expect {| { "set": [], "data": { "kind": "poly-variant" }, "children": [] } |}]
 ;;
 
 let%expect_test "Locate types - 1" =
@@ -776,10 +972,10 @@ let () =
   and line = 8
   and character = 7 in
   Util.test ~line ~character source;
-  [%expect {| { "data": { "kind": "poly-variant" }, "children": [] } |}]
+  [%expect {| { "set": [], "data": { "kind": "poly-variant" }, "children": [] } |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - polyvar of tuples" =
   let source =
     {|
 type a
@@ -798,6 +994,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        }
+      ],
       "data": { "kind": "poly-variant" },
       "children": [
         {
@@ -836,7 +1046,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - builtin" =
   let source =
     {|
 type a
@@ -855,6 +1065,7 @@ let () =
   [%expect
     {|
     {
+      "set": [],
       "data": {
         "kind": "type-ref",
         "type": "string",
@@ -865,7 +1076,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - builtin 2" =
   let source =
     {|
 type a
@@ -884,6 +1095,7 @@ let () =
   [%expect
     {|
     {
+      "set": [],
       "data": {
         "kind": "type-ref",
         "type": "int",
@@ -894,7 +1106,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - builtin + tyvar" =
   let source =
     {|
 type a
@@ -913,6 +1125,14 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "option",
@@ -937,7 +1157,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - builtin + tyvar (list)" =
   let source =
     {|
 type a
@@ -956,6 +1176,14 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "list",
@@ -980,7 +1208,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - builtin + tyvar of builtin" =
   let source =
     {|
 type a
@@ -999,6 +1227,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "one_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "list",
@@ -1046,7 +1288,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - parametrized over tuple" =
   let source =
     {|
 type a
@@ -1065,6 +1307,26 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        },
+        {
+          "type": "one_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "one_arg",
@@ -1112,7 +1374,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - parametrized over tycon and tyvar" =
   let source =
     {|
 type a
@@ -1131,6 +1393,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "two_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 14, "line": 5 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "two_arg",
@@ -1169,7 +1445,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - arrow of tuple" =
   let source =
     {|
 type a
@@ -1188,6 +1464,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        }
+      ],
       "data": { "kind": "arrow" },
       "children": [
         {
@@ -1252,7 +1542,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - nested tycon" =
   let source =
     {|
 type a
@@ -1271,6 +1561,20 @@ let () =
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "one_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      ],
       "data": {
         "kind": "type-ref",
         "type": "option",
@@ -1318,7 +1622,7 @@ let () =
     |}]
 ;;
 
-let%expect_test "Locate types - 1" =
+let%expect_test "Locate types - arrow of nested tycon" =
   let source =
     {|
 type a
@@ -1335,6 +1639,32 @@ let f : a -> (a, b * c) two_arg = fun x -> assert false
   [%expect
     {|
     {
+      "set": [
+        {
+          "type": "a",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        },
+        {
+          "type": "b",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 2 }
+        },
+        {
+          "type": "c",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 3 }
+        },
+        {
+          "type": "two_arg",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 14, "line": 5 }
+        }
+      ],
       "data": { "kind": "arrow" },
       "children": [
         {
