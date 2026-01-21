@@ -13,6 +13,7 @@
 - Add `typeExpression` custom request (#1576)
 - Add `locate` custom request (#1576)
 - Add `phrase` custom request (#1576)
+- Add `locate_types` custom request (#1584)
 
 ## Fixes
 
