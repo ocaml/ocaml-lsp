@@ -103,6 +103,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_type_expression.capability
               ; Req_locate.capability
               ; Req_destruct.capability
+              ; Req_locate_types.capability
               ] )
         ]
     in
@@ -562,6 +563,7 @@ let on_request
          ; Req_type_expression.meth, Req_type_expression.on_request
          ; Req_locate.meth, Req_locate.on_request
          ; Req_destruct.meth, Req_destruct.on_request
+         ; Req_locate_types.meth, Req_locate_types.on_request
          ]
          meth
      with

@@ -1,0 +1,1319 @@
+open Test.Import
+module Req = Ocaml_lsp_server.Custom_request.Locate_types
+
+module Util = struct
+  let call ~position client =
+    let text_document =
+      TextDocumentIdentifier.create ~uri:(DocumentUri.of_path "test.ml")
+    in
+    let params =
+      Req.Request_params.create ~text_document ~position ()
+      |> Req.Request_params.yojson_of_t
+      |> Jsonrpc.Structured.t_of_yojson
+      |> Option.some
+    in
+    let req = Lsp.Client_request.UnknownRequest { meth = Req.meth; params } in
+    Client.request client req
+  ;;
+
+  let test ~line ~character source =
+    let position = Position.create ~line ~character in
+    let request client =
+      let open Fiber.O in
+      let+ response = call ~position client in
+      Test.print_result response
+    in
+    Helpers.test source request
+  ;;
+end
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "a",
+        "result": {
+          "kind": "found",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 5, "line": 1 }
+        }
+      },
+      "children": []
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a one_arg= assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "one_arg",
+        "result": {
+          "kind": "found",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : (a, b) two_arg = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "two_arg",
+        "result": {
+          "kind": "found",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 14, "line": 5 }
+        }
+      },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a -> b -> c = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "arrow" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "c",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 3 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : x:a -> ?y:b -> c = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "arrow" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "option",
+            "result": { "kind": "built-in", "type": "option" }
+          },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "b",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 2 }
+                }
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "c",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 3 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a * b * c = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "tuple" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "c",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 3 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a * b = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "tuple" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : _ one_arg = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "one_arg",
+        "result": {
+          "kind": "found",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      },
+      "children": []
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : 'a one_arg = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "one_arg",
+        "result": {
+          "kind": "found",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      },
+      "children": []
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : <x: a; y: b> = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "object" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : [`A of a | `B of b ] = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "poly-variant" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : [< `A of a | `B of b ] = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "poly-variant" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : [> `A of a | `B of b ] = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "poly-variant" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : [`B | `A of a ] = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "poly-variant" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : [`B | `A ] = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect {| { "data": { "kind": "poly-variant" }, "children": [] } |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : [ ] = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect {| { "data": { "kind": "poly-variant" }, "children": [] } |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : [`S of (a * b) ] = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "poly-variant" },
+      "children": [
+        {
+          "data": { "kind": "tuple" },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "a",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 1 }
+                }
+              },
+              "children": []
+            },
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "b",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 2 }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : string = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "string",
+        "result": { "kind": "built-in", "type": "string" }
+      },
+      "children": []
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : int = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "int",
+        "result": { "kind": "built-in", "type": "int" }
+      },
+      "children": []
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a option = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "option",
+        "result": { "kind": "built-in", "type": "option" }
+      },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a list = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "list",
+        "result": { "kind": "built-in", "type": "list" }
+      },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a option one_arg list = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "list",
+        "result": { "kind": "built-in", "type": "list" }
+      },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "one_arg",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 8, "line": 4 }
+            }
+          },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "option",
+                "result": { "kind": "built-in", "type": "option" }
+              },
+              "children": [
+                {
+                  "data": {
+                    "kind": "type-ref",
+                    "type": "a",
+                    "result": {
+                      "kind": "found",
+                      "has_uri": true,
+                      "uri": "file:///test.ml",
+                      "position": { "character": 5, "line": 1 }
+                    }
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : (a * b) one_arg = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "one_arg",
+        "result": {
+          "kind": "found",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 8, "line": 4 }
+        }
+      },
+      "children": [
+        {
+          "data": { "kind": "tuple" },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "a",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 1 }
+                }
+              },
+              "children": []
+            },
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "b",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 2 }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : (a option, _) two_arg = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "two_arg",
+        "result": {
+          "kind": "found",
+          "has_uri": true,
+          "uri": "file:///test.ml",
+          "position": { "character": 14, "line": 5 }
+        }
+      },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "option",
+            "result": { "kind": "built-in", "type": "option" }
+          },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "a",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 1 }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : a -> b -> (a * b) = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "arrow" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": { "kind": "tuple" },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "a",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 1 }
+                }
+              },
+              "children": []
+            },
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "b",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 2 }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+    |}]
+;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+type aliased = t
+let () =
+  let foo : ((a one_arg) list) option = assert false in
+  ()
+"|}
+  and line = 8
+  and character = 7 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": {
+        "kind": "type-ref",
+        "type": "option",
+        "result": { "kind": "built-in", "type": "option" }
+      },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "list",
+            "result": { "kind": "built-in", "type": "list" }
+          },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "one_arg",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 8, "line": 4 }
+                }
+              },
+              "children": [
+                {
+                  "data": {
+                    "kind": "type-ref",
+                    "type": "a",
+                    "result": {
+                      "kind": "found",
+                      "has_uri": true,
+                      "uri": "file:///test.ml",
+                      "position": { "character": 5, "line": 1 }
+                    }
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    |}]
+;;
