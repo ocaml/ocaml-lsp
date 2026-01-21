@@ -49,10 +49,12 @@ result = {
                   | "poly-variant" 
                   | "type_ref"
            },
-  "children": List of result
+  "children": List of result,
+  "set": List {"type": string, "has_uri": bool, "uri?": DocumentUri, "position": Position}
 }
 ```
 
+`set` is a compacted version of every occured types.
 The `data.kind` field may change the structure of the `data` field in
 the case of `type-ref`:
 

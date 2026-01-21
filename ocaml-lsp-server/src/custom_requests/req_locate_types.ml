@@ -51,6 +51,32 @@ type t =
   ; children : t list
   }
 
+module TySet = Set.Make (struct
+    type t = string * DocumentUri.t option * Position.t
+
+    let compare (ty_a, doc_a, pos_a) (ty_b, doc_b, pos_b) =
+      let c = Option.compare DocumentUri.compare doc_a doc_b in
+      if Int.equal 0 c
+      then (
+        let c = Position.compare pos_a pos_b in
+        if Ordering.is_eq c then compare ty_a ty_b else c |> Ordering.to_int)
+      else c
+    ;;
+  end)
+
+let to_set pl =
+  let on_node set node =
+    match node with
+    | Type_ref { ty; result = `Found (doc, pos) } -> TySet.add (ty, doc, pos) set
+    | _ -> set
+  in
+  let rec aux set { data = node; children } =
+    let set = on_node set node in
+    List.fold_left children ~init:set ~f:aux
+  in
+  aux TySet.empty pl
+;;
+
 let simple constr = `Assoc [ "kind", `String constr ]
 
 let yojson_of_result = function
@@ -97,9 +123,34 @@ let yojson_of_node = function
   | Type_ref p -> yojson_type_ref p
 ;;
 
-let rec yojson_of_t { data; children } =
+let rec yojson_of_t ?set ({ data; children } as pl) =
+  let set =
+    match set with
+    | Some _ -> []
+    | None ->
+      let set = to_set pl in
+      [ ( "set"
+        , `List
+            (TySet.to_list set
+             |> List.map ~f:(fun (ty, doc, pos) ->
+               let uri, has_uri =
+                 match doc with
+                 | Some uri -> DocumentUri.yojson_of_t uri, `Bool true
+                 | None -> `Null, `Bool false
+               in
+               `Assoc
+                 [ "type", `String ty
+                 ; "has_uri", has_uri
+                 ; "uri", uri
+                 ; "position", Position.yojson_of_t pos
+                 ])) )
+      ]
+  in
   `Assoc
-    [ "data", yojson_of_node data; "children", `List (List.map ~f:yojson_of_t children) ]
+    (set
+     @ [ "data", yojson_of_node data
+       ; "children", `List (List.map ~f:(yojson_of_t ~set) children)
+       ])
 ;;
 
 let map_payload P.{ type_; result } =
