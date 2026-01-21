@@ -1317,3 +1317,98 @@ let () =
     }
     |}]
 ;;
+
+let%expect_test "Locate types - 1" =
+  let source =
+    {|
+type a
+type b
+type c
+type 'a one_arg
+type ('a, 'b) two_arg
+
+let f : a -> (a, b * c) two_arg = fun x -> assert false
+"|}
+  and line = 7
+  and character = 4 in
+  Util.test ~line ~character source;
+  [%expect
+    {|
+    {
+      "data": { "kind": "arrow" },
+      "children": [
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "a",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 1 }
+            }
+          },
+          "children": []
+        },
+        {
+          "data": {
+            "kind": "type-ref",
+            "type": "two_arg",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 14, "line": 5 }
+            }
+          },
+          "children": [
+            {
+              "data": {
+                "kind": "type-ref",
+                "type": "a",
+                "result": {
+                  "kind": "found",
+                  "has_uri": true,
+                  "uri": "file:///test.ml",
+                  "position": { "character": 5, "line": 1 }
+                }
+              },
+              "children": []
+            },
+            {
+              "data": { "kind": "tuple" },
+              "children": [
+                {
+                  "data": {
+                    "kind": "type-ref",
+                    "type": "b",
+                    "result": {
+                      "kind": "found",
+                      "has_uri": true,
+                      "uri": "file:///test.ml",
+                      "position": { "character": 5, "line": 2 }
+                    }
+                  },
+                  "children": []
+                },
+                {
+                  "data": {
+                    "kind": "type-ref",
+                    "type": "c",
+                    "result": {
+                      "kind": "found",
+                      "has_uri": true,
+                      "uri": "file:///test.ml",
+                      "position": { "character": 5, "line": 3 }
+                    }
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    |}]
+;;

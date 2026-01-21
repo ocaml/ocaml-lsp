@@ -70,8 +70,15 @@ let yojson_of_result = function
   | `Not_in_env v -> `Assoc [ "kind", `String "not-in-env"; "type", `String v ]
   | `File_not_found uri ->
     `Assoc [ "kind", `String "file-not-found"; "uri", DocumentUri.yojson_of_t uri ]
-  | `Not_found (uri, _) ->
-    `Assoc [ "kind", `String "not-found"; "uri", DocumentUri.yojson_of_t uri ]
+  | `Not_found (uri, ty) ->
+    `Assoc
+      [ "kind", `String "not-found"
+      ; "uri", DocumentUri.yojson_of_t uri
+      ; ( "type"
+        , match ty with
+          | None -> `Null
+          | Some ty -> `String ty )
+      ]
 ;;
 
 let yojson_type_ref payload =
