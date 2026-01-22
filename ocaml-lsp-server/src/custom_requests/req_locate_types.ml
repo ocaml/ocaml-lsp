@@ -44,6 +44,7 @@ type node =
   | Tuple
   | Object
   | Poly_variant
+  | Other of string
   | Type_ref of payload
 
 type t =
@@ -115,11 +116,14 @@ let yojson_type_ref payload =
     ]
 ;;
 
+let other s = `Assoc [ "kind", `String "other"; "result", `String s ]
+
 let yojson_of_node = function
   | Arrow -> simple "arrow"
   | Tuple -> simple "tuple"
   | Object -> simple "object"
   | Poly_variant -> simple "poly-variant"
+  | Other s -> other s
   | Type_ref p -> yojson_type_ref p
 ;;
 
@@ -153,7 +157,7 @@ let rec yojson_of_t ?set ({ data; children } as pl) =
        ])
 ;;
 
-let map_payload P.{ type_; result } =
+let map_payload type_ result =
   { ty = type_
   ; result =
       (match result with
@@ -172,7 +176,8 @@ let map_node = function
   | P.Tree.Tuple -> Tuple
   | P.Tree.Object -> Object
   | P.Tree.Poly_variant -> Poly_variant
-  | P.Tree.Type_ref payload -> Type_ref (map_payload payload)
+  | P.Tree.Other s -> Other s
+  | P.Tree.Type_ref { type_; result } -> Type_ref (map_payload type_ result)
 ;;
 
 let rec map_tree_result result =

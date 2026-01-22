@@ -579,7 +579,9 @@ let () =
           "position": { "character": 8, "line": 4 }
         }
       },
-      "children": []
+      "children": [
+        { "data": { "kind": "other", "result": "'a" }, "children": [] }
+      ]
     }
     |}]
 ;;
@@ -621,7 +623,9 @@ let () =
           "position": { "character": 8, "line": 4 }
         }
       },
-      "children": []
+      "children": [
+        { "data": { "kind": "other", "result": "'a" }, "children": [] }
+      ]
     }
     |}]
 ;;
@@ -1439,7 +1443,8 @@ let () =
               "children": []
             }
           ]
-        }
+        },
+        { "data": { "kind": "other", "result": "'a" }, "children": [] }
       ]
     }
     |}]
