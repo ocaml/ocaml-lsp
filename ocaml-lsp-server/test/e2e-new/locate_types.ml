@@ -354,24 +354,15 @@ let () =
         {
           "data": {
             "kind": "type-ref",
-            "type": "option",
-            "result": { "kind": "built-in", "type": "option" }
-          },
-          "children": [
-            {
-              "data": {
-                "kind": "type-ref",
-                "type": "b",
-                "result": {
-                  "kind": "found",
-                  "has_uri": true,
-                  "uri": "file:///test.ml",
-                  "position": { "character": 5, "line": 2 }
-                }
-              },
-              "children": []
+            "type": "b",
+            "result": {
+              "kind": "found",
+              "has_uri": true,
+              "uri": "file:///test.ml",
+              "position": { "character": 5, "line": 2 }
             }
-          ]
+          },
+          "children": []
         },
         {
           "data": {
