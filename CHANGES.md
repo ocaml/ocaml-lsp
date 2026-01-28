@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Add `destruct` custom request (#1583)
+
 # 1.25.0
 
 ## Features
