@@ -2,8 +2,8 @@
 
 ## Description
 
-Provides a query to performs `case analysis` on pattern matching
-clauses.
+Provides a query that performs `case analysis` to generate or 
+complete pattern matchings. See [Merlin's documentation](https://github.com/ocaml/merlin/blob/main/doc/dev/PROTOCOL.md#case-analysis--start-position--end-position).
 
 ## Client Capability
 
