@@ -1,3 +1,9 @@
+# Unreleased
+
+## Features
+
+- Add `destruct` custom request (#1583)
+
 # 1.25.0
 
 ## Features
@@ -7,7 +13,6 @@
 - Add `typeExpression` custom request (#1576)
 - Add `locate` custom request (#1576)
 - Add `phrase` custom request (#1576)
-- Add `destruct` custom request (#1583)
 
 ## Fixes
 
