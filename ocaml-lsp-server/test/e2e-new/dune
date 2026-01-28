@@ -57,7 +57,6 @@
     inlay_hints
     jump_to_typed_hole
     merlin_call_compatible
-    diagnostics_filter
     destruct
     metrics
     semantic_hl_data
