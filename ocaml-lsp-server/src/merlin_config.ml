@@ -35,6 +35,7 @@ let empty = Mconfig_dot.empty_config
 module Process = struct
   type nonrec t =
     { pid : Pid.t
+    ; prog : string
     ; initial_cwd : string
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
     ; stdout : Lev_fiber.Io.input Lev_fiber.Io.t
@@ -52,8 +53,8 @@ module Process = struct
      | Unix.WEXITED n ->
        (match n with
         | 0 -> ()
-        | n -> Format.eprintf "dune finished with code = %d@.%!" n)
-     | WSIGNALED s -> Format.eprintf "dune finished signal = %d@.%!" s
+        | n -> Format.eprintf "%s finished with code = %d@.%!" t.prog n)
+     | WSIGNALED s -> Format.eprintf "%s finished signal = %d@.%!" t.prog s
      | WSTOPPED _ -> ());
     Format.eprintf "closed merlin process@.%s@." (Dyn.to_string @@ to_dyn t);
     Lev_fiber.Io.close t.stdin;
@@ -61,21 +62,33 @@ module Process = struct
   ;;
 
   let start ~dir =
-    match Bin.which "dune" with
+    let bin, args =
+      (* the convention is that $OCAMLLSP_PROJECT_BUILD_SYSTEM executable has
+         `ocaml-merlin` subcommand to start a merlin configuration server *)
+      match Sys.getenv_opt "OCAMLLSP_PROJECT_BUILD_SYSTEM" with
+      | None -> "dune", [ "ocaml-merlin"; "--no-print-directory" ]
+      | Some bin -> bin, [ "ocaml-merlin" ]
+    in
+    match Bin.which bin with
     | None ->
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make
            ~code:InternalError
-           ~message:"dune binary not found"
+           ~message:(Printf.sprintf "%s binary not found" bin)
            ())
     | Some prog ->
       let stdin_r, stdin_w = Unix.pipe () in
       let stdout_r, stdout_w = Unix.pipe () in
       Unix.set_close_on_exec stdin_w;
       let pid =
-        let argv = [ prog; "ocaml-merlin"; "--no-print-directory" ] in
         Pid.of_int
-          (Spawn.spawn ~cwd:(Path dir) ~prog ~argv ~stdin:stdin_r ~stdout:stdout_w ())
+          (Spawn.spawn
+             ~cwd:(Path dir)
+             ~prog
+             ~argv:(prog :: args)
+             ~stdin:stdin_r
+             ~stdout:stdout_w
+             ())
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
@@ -94,7 +107,7 @@ module Process = struct
       let* stdin = make stdin_w Output in
       let+ stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
-      { pid; initial_cwd = dir; stdin; stdout; session }
+      { prog; pid; initial_cwd = dir; stdin; stdout; session }
   ;;
 end
 
@@ -146,7 +159,8 @@ module Entry = struct
     else (
       Table.remove t.db.running t.process.initial_cwd;
       Format.eprintf
-        "halting dune merlin process@.%s@."
+        "halting %s merlin process@.%s@."
+        t.process.prog
         (Dyn.to_string (Process.to_dyn t.process));
       Dot_protocol_io.Commands.halt t.process.session)
   ;;
@@ -211,10 +225,13 @@ let get_config (p : Process.t) ~workdir path_abs =
     Mconfig_dot.postprocess_config cfg, failures
   | Error (Merlin_dot_protocol.Unexpected_output msg) -> empty, [ msg ]
   | Error (Csexp_parse_error _) ->
-    ( empty
-    , [ "ocamllsp could not load its configuration from the external reader. Building \
-         your project with `dune` might solve this issue."
-      ] )
+    let suggest =
+      Printf.sprintf
+        "ocamllsp could not load its configuration from the external reader. Building \
+         your project with `%s` might solve this issue."
+        p.prog
+    in
+    empty, [ suggest ]
 ;;
 
 let file_exists fname =
@@ -223,7 +240,17 @@ let file_exists fname =
   | s -> s.st_kind <> S_DIR
 ;;
 
-let find_project_context start_dir =
+let check_project_root_markers ~workdir ~dir markers =
+  List.find_map markers ~f:(fun f ->
+    let fname = Filename.concat dir f in
+    if file_exists fname
+    then (
+      let workdir = Misc.canonicalize_filename (Option.value ~default:dir workdir) in
+      Some ({ workdir; process_dir = dir }, fname))
+    else None)
+;;
+
+let find_dune_project_context start_dir =
   (* The workdir is the first directory we find which contains a [dune] file. We
      need to keep track of this folder because [dune ocaml-merlin] might be
      started from a folder that is a parent of the [workdir]. Thus we cannot
@@ -235,15 +262,9 @@ let find_project_context start_dir =
       let fnames = List.map ~f:(Filename.concat dir) [ "dune"; "dune-file" ] in
       if List.exists ~f:file_exists fnames then Some dir else None
   in
-  let rec loop workdir dir =
+  let rec loop ~workdir ~dir =
     match
-      List.find_map [ "dune-project"; "dune-workspace" ] ~f:(fun f ->
-        let fname = Filename.concat dir f in
-        if file_exists fname
-        then (
-          let workdir = Misc.canonicalize_filename (Option.value ~default:dir workdir) in
-          Some ({ workdir; process_dir = dir }, fname))
-        else None)
+      check_project_root_markers [ "dune-project"; "dune-workspace" ] ~workdir ~dir
     with
     | Some s -> Some s
     | None ->
@@ -252,10 +273,23 @@ let find_project_context start_dir =
       then (
         (* Was this directory the workdir ? *)
         let workdir = map_workdir dir workdir in
-        loop workdir parent)
+        loop ~workdir ~dir:parent)
       else None
   in
-  loop None start_dir
+  loop ~workdir:None ~dir:start_dir
+;;
+
+let find_project_context start_dir =
+  match Sys.getenv_opt "OCAMLLSP_PROJECT_ROOT" with
+  | Some dir ->
+    let dir = Misc.canonicalize_filename dir in
+    Some ({ workdir = dir; process_dir = dir }, "<merlin-config>")
+  | None ->
+    (match Sys.getenv_opt "OCAMLLSP_PROJECT_ROOT_MARKERS" with
+     | None -> find_dune_project_context start_dir
+     | Some markers ->
+       let markers = String.split markers ~on:',' |> List.map ~f:String.trim in
+       check_project_root_markers markers ~workdir:None ~dir:start_dir)
 ;;
 
 type nonrec t =
