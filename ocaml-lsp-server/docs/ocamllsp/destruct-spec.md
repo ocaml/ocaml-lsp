@@ -35,4 +35,4 @@ There is no client capability relative to this request.
 }
 ```
 
-Contain the `range` to be substitute and the `content`.
+Contains the `range` to be substituted and the new `content`.
