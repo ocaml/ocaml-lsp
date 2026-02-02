@@ -4,6 +4,10 @@
 
 - Improve the readability of signature-help for long signatures (#1580)
 
+## Features
+
+- Add `destruct` custom request (#1583)
+
 # 1.25.0
 
 ## Features

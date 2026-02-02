@@ -15,3 +15,4 @@ module Merlin_jump = Req_merlin_jump
 module Phrase = Req_phrase
 module Type_expression = Req_type_expression
 module Locate = Req_locate
+module Destruct = Req_destruct
