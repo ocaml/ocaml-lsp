@@ -5,15 +5,13 @@ let meth = "ocamllsp/merlinCallCompatible"
 
 module Request_params = struct
   type t =
-    { text_document : TextDocumentIdentifier.t
+    { uri : Uri.t
     ; result_as_sexp : bool
     ; command : string
     ; args : string list
     }
 
-  let create ~text_document ~result_as_sexp ~command ~args =
-    { text_document; result_as_sexp; command; args }
-  ;;
+  let create ~uri ~result_as_sexp ~command ~args = { uri; result_as_sexp; command; args }
 
   let stringish_of_yojson
     =
@@ -70,18 +68,16 @@ module Request_params = struct
     let result_as_sexp = json |> member "resultAsSexp" |> to_bool in
     let command = json |> member "command" |> to_string in
     let args = args_of_yojson json in
-    let text_document = TextDocumentIdentifier.t_of_yojson json in
-    { text_document; result_as_sexp; command; args }
+    let uri = json |> member "uri" |> Uri.t_of_yojson in
+    { uri; result_as_sexp; command; args }
   ;;
 
-  let yojson_of_t { text_document; result_as_sexp; command; args } =
-    match TextDocumentIdentifier.yojson_of_t text_document with
-    | `Assoc assoc ->
-      let result_as_sexp = "resultAsSexp", `Bool result_as_sexp in
-      let command = "command", `String command in
-      let args = "args", `List (List.map ~f:(fun x -> `String x) args) in
-      `Assoc (result_as_sexp :: command :: args :: assoc)
-    | _ -> (* unreachable *) assert false
+  let yojson_of_t { uri; result_as_sexp; command; args } =
+    let result_as_sexp = "resultAsSexp", `Bool result_as_sexp in
+    let command = "command", `String command in
+    let args = "args", `List (List.map ~f:(fun x -> `String x) args) in
+    let uri = "uri", Uri.yojson_of_t uri in
+    `Assoc [ result_as_sexp; command; args; uri ]
   ;;
 end
 
@@ -142,13 +138,12 @@ let perform_query action params pipeline =
 let on_request ~params state =
   Fiber.of_thunk (fun () ->
     let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
-    let Request_params.{ result_as_sexp; command; args; text_document } =
+    let Request_params.{ result_as_sexp; command; args; uri } =
       Request_params.t_of_yojson params
     in
     match Merlin_commands.New_commands.(find_command command all_commands) with
     | Merlin_commands.New_commands.Command (_name, _doc, specs, params, action) ->
       let open Fiber.O in
-      let uri = text_document.uri in
       let+ json = with_pipeline state uri specs args params @@ perform_query action in
       let result =
         if result_as_sexp
