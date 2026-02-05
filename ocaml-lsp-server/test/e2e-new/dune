@@ -73,6 +73,7 @@
     phrase
     type_expression
     locate
+    locate_types
     type_search
     with_pp
     with_ppx

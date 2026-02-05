@@ -7,6 +7,7 @@
 ## Features
 
 - Add `destruct` custom request (#1583)
+- Add `locate_types` custom request (#1584)
 
 # 1.25.0
 
