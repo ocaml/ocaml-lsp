@@ -1,5 +1,9 @@
 # Unreleased
 
+## Fixes
+
+- Improve the readability of signature-help for long signatures (#1580)
+
 ## Features
 
 - Add `destruct` custom request (#1583)
