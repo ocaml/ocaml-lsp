@@ -65,7 +65,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
   in
   let codeLensProvider = CodeLensOptions.create ~resolveProvider:false () in
   let completionProvider =
-    CompletionOptions.create ~triggerCharacters:[ "."; "#" ] ~resolveProvider:true ()
+    CompletionOptions.create ~triggerCharacters:[ "."; "#"; ":" ] ~resolveProvider:true ()
   in
   let signatureHelpProvider =
     SignatureHelpOptions.create ~triggerCharacters:[ " "; "~"; "?"; ":"; "(" ] ()
