@@ -1855,11 +1855,11 @@ let parse_selection src =
   src', Range.create ~start ~end_
 ;;
 
-let apply_code_action ?diagnostics title source range =
+let apply_code_action ?path ?diagnostics title source range =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
-  iter_code_actions ?diagnostics ~source range (fun ca -> code_actions := Some ca);
+  iter_code_actions ?path ?diagnostics ~source range (fun ca -> code_actions := Some ca);
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
   let* edit =
@@ -1878,7 +1878,7 @@ let apply_code_action ?diagnostics title source range =
   |> Test.apply_edits source
 ;;
 
-let code_action_test ~title source =
+let code_action_test ?path ~title source =
   let src, range = parse_selection source in
-  Option.iter (apply_code_action title src range) ~f:print_string
+  Option.iter (apply_code_action ?path title src range) ~f:print_string
 ;;

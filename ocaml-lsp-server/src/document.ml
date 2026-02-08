@@ -479,3 +479,13 @@ let substring doc range =
   then None
   else Some (String.sub text ~pos:start ~len:(end_ - start))
 ;;
+
+let get_source_text doc (loc : Loc.t) =
+  let open Option.O in
+  let source = source doc in
+  let* start = Position.of_lexical_position loc.loc_start in
+  let+ end_ = Position.of_lexical_position loc.loc_end in
+  let (`Offset start) = Msource.get_offset source (Position.logical start) in
+  let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
+  String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
+;;
