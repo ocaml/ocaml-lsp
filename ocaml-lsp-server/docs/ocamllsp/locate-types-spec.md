@@ -54,9 +54,9 @@ result = {
 }
 ```
 
-`set` is a compacted version of every occured types.
-The `data.kind` field may change the structure of the `data` field in
-the case of `type-ref`:
+`set` is a compact version of all types that appear (without
+preserving the tree structure).  The `data.kind` field may change the
+structure of the `data` field in the case of `type-ref`:
 
 ```json
 { 
