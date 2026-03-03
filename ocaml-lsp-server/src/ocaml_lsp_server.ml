@@ -151,6 +151,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~referencesProvider:(`Bool true)
       ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
+      ~documentRangeFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true)
       ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true)
@@ -364,6 +365,26 @@ module Formatter = struct
          in
          let+ to_ = Dune.Instance.format_dune_file dune doc in
          Some (Diff.edit ~from:(Document.text doc) ~to_))
+  ;;
+
+  let run_range rpc doc range =
+    let* res =
+      let* cancel = Server.cancel_token () in
+      Ocamlformat.run_range doc range cancel
+    in
+    match res with
+    | Ok result -> Fiber.return (Some result)
+    | Error e ->
+      let+ () =
+        let state : State.t = Server.state rpc in
+        let msg =
+          let message = Ocamlformat.message e in
+          ShowMessageParams.create ~message ~type_:Warning
+        in
+        task_if_running state.detached ~f:(fun () ->
+          Server.notification rpc (ShowMessage msg))
+      in
+      Jsonrpc.Response.Error.raise (jsonrpc_error e)
   ;;
 end
 
@@ -715,6 +736,12 @@ let on_request
          let doc = Document_store.get store uri in
          Formatter.run rpc doc)
       ()
+  | TextDocumentRangeFormatting { textDocument = { uri }; range; _ } ->
+    later
+      (fun _ () ->
+         let doc = Document_store.get store uri in
+         Formatter.run_range rpc doc range)
+      ()
   | TextDocumentOnTypeFormatting _ -> now None
   | SelectionRange req -> later selection_range req
   | TextDocumentImplementation _ -> not_supported ()
@@ -722,7 +749,6 @@ let on_request
   | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p
   | TextDocumentMoniker _ -> not_supported ()
   | TextDocumentPrepareCallHierarchy _ -> not_supported ()
-  | TextDocumentRangeFormatting _ -> not_supported ()
   | CallHierarchyIncomingCalls _ -> not_supported ()
   | CallHierarchyOutgoingCalls _ -> not_supported ()
   | SemanticTokensRange _ -> not_supported ()

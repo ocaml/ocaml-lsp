@@ -186,7 +186,7 @@ The server supports the following LSP requests (inexhaustive list):
 - [ ] `textDocument/documentColor`
 - [ ] `textDocument/colorPresentation`
 - [x] `textDocument/formatting`
-- [ ] `textDocument/rangeFormatting`
+- [x] `textDocument/rangeFormatting`
 - [ ] `textDocument/onTypeFormatting`
 - [x] `textDocument/prepareRename`
 - [x] `textDocument/foldingRange`

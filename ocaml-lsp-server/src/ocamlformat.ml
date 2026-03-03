@@ -103,7 +103,14 @@ type formatter =
   | Mlx of Uri.t
 
 let args = function
-  | Ocaml uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
+  | Ocaml uri ->
+    let name = Uri.to_path uri in
+    let flag =
+      if String.is_suffix name ~suffix:".mli" || String.is_suffix name ~suffix:".ml"
+      then []
+      else [ "--impl" ]
+    in
+    flag @ [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Mlx uri -> [ "--impl"; sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Reason kind ->
     [ "--parse"; "re"; "--print"; "re" ]
@@ -140,6 +147,19 @@ let formatter doc =
           | `Other -> Code_error.raise "unable to format non merlin document" []))
 ;;
 
+let range_formatter doc =
+  match Document.syntax doc with
+  | (Dune | Cram) as s -> Error (Unsupported_syntax s)
+  | Ocaml | Ocamllex | Menhir -> Ok (Ocaml (Document.uri doc))
+  | Mlx -> Ok (Mlx (Document.uri doc))
+  | Reason ->
+    Ok
+      (Reason
+         (match Document.kind doc with
+          | `Merlin m -> Document.Merlin.kind m
+          | `Other -> Code_error.raise "unable to format non merlin document" []))
+;;
+
 let exec cancel refmt args stdin =
   let+ res, cancel = run_command cancel refmt stdin args in
   match cancel with
@@ -165,4 +185,30 @@ let run doc cancel : (TextEdit.t list, error) result Fiber.t =
   | Ok (binary, args, contents) ->
     exec cancel binary args contents
     |> Fiber.map ~f:(Result.map ~f:(fun to_ -> Diff.edit ~from:contents ~to_))
+;;
+
+let run_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
+  let res =
+    let open Result.O in
+    let* formatter = range_formatter doc in
+    let args = args formatter in
+    let+ binary = binary formatter in
+    let absolute = Text_document.absolute_range (Document.tdoc doc) range in
+    let contents = Document.source doc |> Msource.text in
+    binary, args, contents, absolute
+  in
+  match res with
+  | Error e -> Fiber.return (Error e)
+  | Ok (binary, args, contents, (start, stop)) ->
+    let prefix, to_format, suffix =
+      ( String.sub contents ~pos:0 ~len:start
+      , String.sub contents ~pos:start ~len:(stop - start)
+      , String.sub contents ~pos:stop ~len:(String.length contents - stop) )
+    in
+    exec cancel binary args to_format
+    |> Fiber.map
+         ~f:
+           (Result.map ~f:(fun r ->
+              let to_ = prefix ^ r ^ suffix in
+              Diff.edit ~from:contents ~to_))
 ;;
