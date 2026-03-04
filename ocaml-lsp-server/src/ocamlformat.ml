@@ -147,19 +147,6 @@ let formatter doc =
           | `Other -> Code_error.raise "unable to format non merlin document" []))
 ;;
 
-let range_formatter doc =
-  match Document.syntax doc with
-  | (Dune | Cram) as s -> Error (Unsupported_syntax s)
-  | Ocaml | Ocamllex | Menhir -> Ok (Ocaml (Document.uri doc))
-  | Mlx -> Ok (Mlx (Document.uri doc))
-  | Reason ->
-    Ok
-      (Reason
-         (match Document.kind doc with
-          | `Merlin m -> Document.Merlin.kind m
-          | `Other -> Code_error.raise "unable to format non merlin document" []))
-;;
-
 let exec cancel refmt args stdin =
   let+ res, cancel = run_command cancel refmt stdin args in
   match cancel with
@@ -168,7 +155,7 @@ let exec cancel refmt args stdin =
     raise (Jsonrpc.Response.Error.E e)
   | Not_cancelled ->
     (match res.status with
-     | Unix.WEXITED 0 -> Result.Ok res.stdout
+     | Unix.WEXITED 0 -> Result.Ok res
      | _ -> Result.Error (Unexpected_result { message = res.stderr }))
 ;;
 
@@ -184,48 +171,97 @@ let run doc cancel : (TextEdit.t list, error) result Fiber.t =
   | Error e -> Fiber.return (Error e)
   | Ok (binary, args, contents) ->
     exec cancel binary args contents
-    |> Fiber.map ~f:(Result.map ~f:(fun to_ -> Diff.edit ~from:contents ~to_))
+    |> Fiber.map
+         ~f:(Result.map ~f:(fun { stdout = to_; _ } -> Diff.edit ~from:contents ~to_))
+;;
+
+(** Tries to access the formatter's configuration to determine the existing
+  margin, and returns an argument which sets the margin to the existing margin
+  minus the offset
+*)
+let compute_modified_margin binary cancel offset formatter =
+  let default = 80 in
+  match formatter with
+  | Ocaml _ | Mlx _ ->
+    exec cancel binary [ "--print-config" ] ""
+    |> Fiber.map ~f:(fun res ->
+      let margin =
+        match res with
+        | Ok { stderr = config; _ } ->
+          config
+          |> String.split_lines
+          |> List.find_map ~f:(fun line ->
+            match String.drop_prefix line ~prefix:"margin=" with
+            | None -> None
+            | Some margin ->
+              String.split margin ~on:' ' |> List.hd |> Option.bind ~f:Int.of_string)
+          |> Option.value ~default
+        | Error _ -> default
+      in
+      let margin = margin - offset in
+      "--margin=" ^ Int.to_string margin)
+  | Reason _ ->
+    let margin =
+      Sys.getenv_opt "REFMT_PRINT_WIDTH"
+      |> Option.bind ~f:Int.of_string
+      |> Option.value ~default
+    in
+    let margin = margin - offset in
+    Fiber.return ("--print-width=" ^ Int.to_string margin)
+;;
+
+let range_formatter doc =
+  match Document.syntax doc with
+  (* to support formatting semantic action snippets in these two files *)
+  | Ocamllex | Menhir -> Ok (Ocaml (Document.uri doc))
+  | _ -> formatter doc
 ;;
 
 let run_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
   let res =
     let open Result.O in
     let* formatter = range_formatter doc in
-    let args = args formatter in
     let+ binary = binary formatter in
-    let contents = Document.source doc |> Msource.text in
-    binary, args, contents
+    binary, formatter
   in
   match res with
   | Error e -> Fiber.return (Error e)
-  | Ok (binary, args, contents) ->
+  | Ok (binary, formatter) ->
+    let contents = Document.source doc |> Msource.text in
     let start, stop = Text_document.absolute_range (Document.tdoc doc) range in
-    let column_offset = range.start.character in
-    let args = ("--margin=" ^ string_of_int (80 - column_offset)) :: args in
+    (* basic idea:
+    - slice out the range to be formatted, send to ocamlformat
+    - whitespace pad the start of lines in the reply based on the selection start
+    - stitch everything back together. *)
     let prefix, to_format, suffix =
       ( String.sub contents ~pos:0 ~len:start
       , String.sub contents ~pos:start ~len:(stop - start)
       , String.sub contents ~pos:stop ~len:(String.length contents - stop) )
     in
+    let args = args formatter in
     let args =
-      if
-        String.is_prefix
-          ~prefix:"in"
-          (String.trim suffix ~drop:(function
-             | ' ' | '\n' | '\r' | '\t' -> true
-             | _ -> false))
+      (* if we're formatting the start of a [let ... in] construct,
+        don't emit [;;] before the [in]! *)
+      let next =
+        String.trim suffix ~drop:(function
+          | ' ' | '\n' | '\r' | '\t' -> true
+          | _ -> false)
+      in
+      if String.is_prefix ~prefix:"in" next || String.is_prefix ~prefix:";;" next
       then "--let-binding-spacing=compact" :: args
       else args
     in
+    let column_offset = range.start.character in
     let pad s =
       let padding = Bytes.make column_offset ' ' |> Bytes.to_string in
       String.concat ~sep:"\n" (List.map (String.split_lines s) ~f:(( ^ ) padding))
       |> String.trim ~drop:(( = ) ' ')
     in
-    exec cancel binary args to_format
-    |> Fiber.map
-         ~f:
-           (Result.map ~f:(fun r ->
-              let to_ = prefix ^ pad r ^ suffix in
-              Diff.edit ~from:contents ~to_))
+    let open Fiber.O in
+    let* margin = compute_modified_margin binary cancel column_offset formatter in
+    let args = margin :: args in
+    let+ r = exec cancel binary args to_format in
+    Result.map r ~f:(fun { stdout = formatted; _ } ->
+      let to_ = prefix ^ pad formatted ^ suffix in
+      Diff.edit ~from:contents ~to_)
 ;;
