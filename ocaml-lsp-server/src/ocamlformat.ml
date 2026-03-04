@@ -193,22 +193,39 @@ let run_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
     let* formatter = range_formatter doc in
     let args = args formatter in
     let+ binary = binary formatter in
-    let absolute = Text_document.absolute_range (Document.tdoc doc) range in
     let contents = Document.source doc |> Msource.text in
-    binary, args, contents, absolute
+    binary, args, contents
   in
   match res with
   | Error e -> Fiber.return (Error e)
-  | Ok (binary, args, contents, (start, stop)) ->
+  | Ok (binary, args, contents) ->
+    let start, stop = Text_document.absolute_range (Document.tdoc doc) range in
+    let column_offset = range.start.character in
+    let args = ("--margin=" ^ string_of_int (80 - column_offset)) :: args in
     let prefix, to_format, suffix =
       ( String.sub contents ~pos:0 ~len:start
       , String.sub contents ~pos:start ~len:(stop - start)
       , String.sub contents ~pos:stop ~len:(String.length contents - stop) )
     in
+    let args =
+      if
+        String.is_prefix
+          ~prefix:"in"
+          (String.trim suffix ~drop:(function
+             | ' ' | '\n' | '\r' | '\t' -> true
+             | _ -> false))
+      then "--let-binding-spacing=compact" :: args
+      else args
+    in
+    let pad s =
+      let padding = Bytes.make column_offset ' ' |> Bytes.to_string in
+      String.concat ~sep:"\n" (List.map (String.split_lines s) ~f:(( ^ ) padding))
+      |> String.trim ~drop:(( = ) ' ')
+    in
     exec cancel binary args to_format
     |> Fiber.map
          ~f:
            (Result.map ~f:(fun r ->
-              let to_ = prefix ^ r ^ suffix in
+              let to_ = prefix ^ pad r ^ suffix in
               Diff.edit ~from:contents ~to_))
 ;;

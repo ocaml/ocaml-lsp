@@ -446,7 +446,7 @@ let selection_range
           Document.Merlin.dispatch_exn
             ~name:"shape"
             merlin
-            (Enclosing (Position.logical x, None))
+            (Enclosing (Position.logical x))
         in
         selection_range_of_enclosings enclosings)
     in
