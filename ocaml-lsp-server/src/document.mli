@@ -108,7 +108,7 @@ val merlin_exn : t -> Merlin.t
 val version : t -> int
 val update_text : ?version:int -> t -> TextDocumentContentChangeEvent.t list -> t
 val close : t -> unit Fiber.t
-val tdoc: t -> Text_document.t
+val text_document : t -> Text_document.t
 
 (** [get_impl_intf_counterparts uri] returns the implementation/interface
     counterparts for the URI [uri].

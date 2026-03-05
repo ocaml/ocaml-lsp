@@ -367,10 +367,10 @@ module Formatter = struct
          Some (Diff.edit ~from:(Document.text doc) ~to_))
   ;;
 
-  let run_range rpc doc range =
+  let run_on_range rpc doc range =
     let* res =
       let* cancel = Server.cancel_token () in
-      Ocamlformat.run_range doc range cancel
+      Ocamlformat.run_on_range doc range cancel
     in
     match res with
     | Ok result -> Fiber.return (Some result)
@@ -740,7 +740,7 @@ let on_request
     later
       (fun _ () ->
          let doc = Document_store.get store uri in
-         Formatter.run_range rpc doc range)
+         Formatter.run_on_range rpc doc range)
       ()
   | TextDocumentOnTypeFormatting _ -> now None
   | SelectionRange req -> later selection_range req

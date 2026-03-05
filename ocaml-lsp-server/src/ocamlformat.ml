@@ -217,7 +217,7 @@ let range_formatter doc =
   | _ -> formatter doc
 ;;
 
-let run_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
+let run_on_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
   let res =
     let open Result.O in
     let* formatter = range_formatter doc in
@@ -228,7 +228,7 @@ let run_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
   | Error e -> Fiber.return (Error e)
   | Ok (binary, formatter) ->
     let contents = Document.source doc |> Msource.text in
-    let start, stop = Text_document.absolute_range (Document.tdoc doc) range in
+    let start, stop = Text_document.absolute_range (Document.text_document doc) range in
     (* basic idea:
     - slice out the range to be formatted, send to ocamlformat
     - whitespace pad the start of lines in the reply based on the selection start
