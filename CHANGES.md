@@ -7,6 +7,7 @@
 ## Features
 
 - Add `destruct` custom request (#1583)
+- Add `locate_types` custom request (#1584)
 
 - Allow to configure merlin using build systems other than dune.
 
