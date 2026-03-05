@@ -174,7 +174,7 @@ The server supports the following LSP requests (inexhaustive list):
 - [x] `textDocument/completion`
 - [x] `completionItem/resolve`
 - [x] `textdocument/hover`
-- [ ] `textDocument/signatureHelp`
+- [x] `textDocument/signatureHelp`
 - [x] `textDocument/declaration`
 - [x] `textDocument/definition`
 - [x] `textDocument/typeDefinition`
