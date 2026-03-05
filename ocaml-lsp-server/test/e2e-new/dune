@@ -47,6 +47,8 @@
     code_lens
     completion
     completions
+    formatting
+    range_formatting
     construct
     doc_to_md
     document_flow

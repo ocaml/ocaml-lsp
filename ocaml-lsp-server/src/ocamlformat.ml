@@ -7,14 +7,14 @@ type command_result =
   ; status : Unix.process_status
   }
 
-let run_command cancel prog stdin_value args =
+let run_command ?(cwd = Spawn.Working_dir.Inherit) cancel prog stdin_value args =
   Fiber.of_thunk (fun () ->
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
     let pid =
       let argv = prog :: args in
-      Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
+      Spawn.spawn ~cwd ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
       |> Stdune.Pid.of_int
     in
     Unix.close stdin_i;
@@ -147,8 +147,8 @@ let formatter doc =
           | `Other -> Code_error.raise "unable to format non merlin document" []))
 ;;
 
-let exec cancel refmt args stdin =
-  let+ res, cancel = run_command cancel refmt stdin args in
+let exec ?cwd cancel refmt args stdin =
+  let+ res, cancel = run_command ?cwd cancel refmt stdin args in
   match cancel with
   | Cancelled () ->
     let e = Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" () in
@@ -182,8 +182,11 @@ let run doc cancel : (TextEdit.t list, error) result Fiber.t =
 let compute_modified_margin binary cancel offset formatter =
   let default = 80 in
   match formatter with
-  | Ocaml _ | Mlx _ ->
-    exec cancel binary [ "--print-config" ] ""
+  | Ocaml uri | Mlx uri ->
+    let path = Uri.to_path uri |> Filename.dirname in
+    (* specifying cwd makes sure ocamlformat finds the correct root,
+       since we're not actually passing any file here *)
+    exec ~cwd:(Spawn.Working_dir.Path path) cancel binary [ "--print-config" ] ""
     |> Fiber.map ~f:(fun res ->
       let margin =
         match res with
@@ -262,6 +265,10 @@ let run_on_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
     let args = margin :: args in
     let+ r = exec cancel binary args to_format in
     Result.map r ~f:(fun { stdout = formatted; _ } ->
-      let to_ = prefix ^ pad formatted ^ suffix in
+      let formatted =
+        (* if the return is unchanged, don't insert extra padding *)
+        if String.equal formatted to_format then to_format else pad formatted
+      in
+      let to_ = prefix ^ formatted ^ suffix in
       Diff.edit ~from:contents ~to_)
 ;;
