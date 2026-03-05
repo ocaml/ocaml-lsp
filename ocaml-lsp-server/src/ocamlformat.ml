@@ -220,6 +220,47 @@ let range_formatter doc =
   | _ -> formatter doc
 ;;
 
+let ( let++ ) x f = Fiber.map x ~f:(Result.map ~f)
+
+(** Formats a snippet of code in a larger string, given the start and stop offsets of the snippet
+    - slice out the range to be formatted, send to ocamlformat
+    - whitespace pad the start of lines in the reply based on [padding]
+    - stitch everything back together. *)
+let format_snippet ~start ~stop ~padding formatter binary cancel contents =
+  let prefix, to_format, suffix =
+    ( String.sub contents ~pos:0 ~len:start
+    , String.sub contents ~pos:start ~len:(stop - start)
+    , String.sub contents ~pos:stop ~len:(String.length contents - stop) )
+  in
+  let args = args formatter in
+  let args =
+    (* if we're formatting the start of a [let ... in] construct,
+        don't emit [;;] before the [in]! *)
+    let next =
+      String.trim suffix ~drop:(function
+        | ' ' | '\n' | '\r' | '\t' -> true
+        | _ -> false)
+    in
+    if String.is_prefix ~prefix:"in" next || String.is_prefix ~prefix:";;" next
+    then "--let-binding-spacing=compact" :: args
+    else args
+  in
+  let pad s =
+    let spaces_pad = Bytes.make padding ' ' |> Bytes.to_string in
+    String.concat ~sep:"\n" (List.map (String.split_lines s) ~f:(( ^ ) spaces_pad))
+    |> String.trim ~drop:(( = ) ' ')
+  in
+  let open Fiber.O in
+  let* margin = compute_modified_margin binary cancel padding formatter in
+  let args = margin :: args in
+  let++ { stdout = formatted; _ } = exec cancel binary args to_format in
+  let formatted =
+    (* if the return is unchanged, don't insert extra padding *)
+    if String.equal formatted to_format then to_format else pad formatted
+  in
+  prefix ^ formatted ^ suffix
+;;
+
 let run_on_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
   let res =
     let open Result.O in
@@ -232,43 +273,7 @@ let run_on_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
   | Ok (binary, formatter) ->
     let contents = Document.source doc |> Msource.text in
     let start, stop = Text_document.absolute_range (Document.text_document doc) range in
-    (* basic idea:
-    - slice out the range to be formatted, send to ocamlformat
-    - whitespace pad the start of lines in the reply based on the selection start
-    - stitch everything back together. *)
-    let prefix, to_format, suffix =
-      ( String.sub contents ~pos:0 ~len:start
-      , String.sub contents ~pos:start ~len:(stop - start)
-      , String.sub contents ~pos:stop ~len:(String.length contents - stop) )
-    in
-    let args = args formatter in
-    let args =
-      (* if we're formatting the start of a [let ... in] construct,
-        don't emit [;;] before the [in]! *)
-      let next =
-        String.trim suffix ~drop:(function
-          | ' ' | '\n' | '\r' | '\t' -> true
-          | _ -> false)
-      in
-      if String.is_prefix ~prefix:"in" next || String.is_prefix ~prefix:";;" next
-      then "--let-binding-spacing=compact" :: args
-      else args
-    in
-    let column_offset = range.start.character in
-    let pad s =
-      let padding = Bytes.make column_offset ' ' |> Bytes.to_string in
-      String.concat ~sep:"\n" (List.map (String.split_lines s) ~f:(( ^ ) padding))
-      |> String.trim ~drop:(( = ) ' ')
-    in
-    let open Fiber.O in
-    let* margin = compute_modified_margin binary cancel column_offset formatter in
-    let args = margin :: args in
-    let+ r = exec cancel binary args to_format in
-    Result.map r ~f:(fun { stdout = formatted; _ } ->
-      let formatted =
-        (* if the return is unchanged, don't insert extra padding *)
-        if String.equal formatted to_format then to_format else pad formatted
-      in
-      let to_ = prefix ^ formatted ^ suffix in
-      Diff.edit ~from:contents ~to_)
+    let padding = range.start.character in
+    let++ to_ = format_snippet formatter binary cancel ~start ~stop ~padding contents in
+    Diff.edit ~from:contents ~to_
 ;;
