@@ -8,6 +8,8 @@
 
 - Add `destruct` custom request (#1583)
 
+- Add support for the `textDocument/rangeFormatting` request (#1591)
+
 - Allow to configure merlin using build systems other than dune.
 
   If `$OCAMLLSP_PROJECT_BUILD_SYSTEM` environment variable is set then OCaml
