@@ -76,12 +76,13 @@ let all_empty l =
         "end": { "character": 5, "line": 7 },
         "start": { "character": 0, "line": 2 }
       },
-      "content": "let fun_name2 = (function | [] -> true | _ -> false)\nlet all_empty l =\n  List.for_all\n    fun_name2 \n    l",
+      "content": "let fun_name2 = (function | [] -> true | _ -> false)\nlet all_empty l =\n  List.for_all\n    (fun_name2 )\n    l",
       "selection_range": {
         "end": { "character": 13, "line": 2 },
         "start": { "character": 4, "line": 2 }
       }
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "Example sample from merlin 3" =
@@ -108,7 +109,7 @@ let test x y =
         "end": { "character": 3, "line": 9 },
         "start": { "character": 0, "line": 3 }
       },
-      "content": "let print_xyz (x) (y) = print_endline (x ^ (y ^ z))\nlet test x y =\n  let fun_name2 = Fun.id in\n  let m =\n    let m = print_xyz x y in\n    m\n  in\n  m",
+      "content": "let print_xyz x y = print_endline (x ^ (y ^ z))\nlet test x y =\n  let fun_name2 = Fun.id in\n  let m =\n    let m = (print_xyz x y) in\n    m\n  in\n  m",
       "selection_range": {
         "end": { "character": 13, "line": 3 },
         "start": { "character": 4, "line": 3 }
@@ -177,7 +178,7 @@ and b = object end
         "end": { "character": 5, "line": 17 },
         "start": { "character": 0, "line": 0 }
       },
-      "content": "let outsider_expr () = let bar = 20 in object method foo = bar end\nclass a =\n  let inner_expr =\n    outsider_expr ()\n  in\n  object\n    method x = (Fun.const 10) ()\n    method y = print_endline\n    method z =\n      let x =\n        object\n          method x = \"foobar\"\n        end\n      in\n      x\n  end",
+      "content": "let outsider_expr () = let bar = 20 in object method foo = bar end\nclass a =\n  let inner_expr =\n    (outsider_expr ())\n  in\n  object\n    method x = (Fun.const 10) ()\n    method y = print_endline\n    method z =\n      let x =\n        object\n          method x = \"foobar\"\n        end\n      in\n      x\n  end",
       "selection_range": {
         "end": { "character": 17, "line": 0 },
         "start": { "character": 4, "line": 0 }
