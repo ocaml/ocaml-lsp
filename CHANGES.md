@@ -6,6 +6,7 @@
 
 ## Features
 
+- Add custom [`ocamllsp/refactorExtract`](https://github.com/ocaml/ocaml-lsp/blob/ocaml-lsp-server/docs/ocamllsp/refactorExtract-spec.md) request (#1545)
 - Add `destruct` custom request (#1583)
 - Add `locate_types` custom request (#1584)
 
