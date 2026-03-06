@@ -6,8 +6,7 @@ module Request_params : sig
   val create
     :  ?extract_name:string
     -> text_document:Lsp.Types.TextDocumentIdentifier.t
-    -> start:Position.t
-    -> stop:Position.t
+    -> range:Range.t
     -> unit
     -> t
 
