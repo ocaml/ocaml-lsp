@@ -184,28 +184,15 @@ let x = _
         {
           "edits": [
             {
-              "newText": "let var_name = _ in
-",
-              "range": {
-                "end": {
-                  "character": 8,
-                  "line": 0,
-                },
-                "start": {
-                  "character": 8,
-                  "line": 0,
-                },
-              },
-            },
-            {
-              "newText": "var_name",
+              "newText": "let fun_name1 () = _
+let x = (fun_name1 ())",
               "range": {
                 "end": {
                   "character": 9,
                   "line": 0,
                 },
                 "start": {
-                  "character": 8,
+                  "character": 0,
                   "line": 0,
                 },
               },
@@ -218,54 +205,8 @@ let x = _
         },
       ],
     },
-    "isPreferred": false,
-    "kind": "refactor.extract",
-    "title": "Extract local",
-  },
-  {
-    "edit": {
-      "documentChanges": [
-        {
-          "edits": [
-            {
-              "newText": "let fun_name () = _
-
-",
-              "range": {
-                "end": {
-                  "character": 0,
-                  "line": 0,
-                },
-                "start": {
-                  "character": 0,
-                  "line": 0,
-                },
-              },
-            },
-            {
-              "newText": "fun_name ()",
-              "range": {
-                "end": {
-                  "character": 9,
-                  "line": 0,
-                },
-                "start": {
-                  "character": 8,
-                  "line": 0,
-                },
-              },
-            },
-          ],
-          "textDocument": {
-            "uri": "file:///test.ml",
-            "version": 0,
-          },
-        },
-      ],
-    },
-    "isPreferred": false,
-    "kind": "refactor.extract",
-    "title": "Extract function",
+    "kind": "refactor-extract (extract an area into a fresh let binding)",
+    "title": "Extract expression",
   },
   {
     "command": {
