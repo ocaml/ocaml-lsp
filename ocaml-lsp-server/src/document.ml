@@ -212,21 +212,21 @@ type t =
       }
   | Merlin of merlin
 
-let tdoc = function
+let text_document = function
   | Other d -> d.tdoc
   | Merlin m -> m.tdoc
 ;;
 
-let uri t = Text_document.documentUri (tdoc t)
+let uri t = Text_document.documentUri (text_document t)
 
 let syntax = function
   | Merlin m -> m.syntax
   | Other t -> t.syntax
 ;;
 
-let text t = Text_document.text (tdoc t)
+let text t = Text_document.text (text_document t)
 let source t = Msource.make (text t)
-let version t = Text_document.version (tdoc t)
+let version t = Text_document.version (text_document t)
 
 let make_merlin wheel merlin_db pipeline tdoc syntax =
   let* timer = Lev_fiber.Timer.Wheel.task wheel in
@@ -261,7 +261,7 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) ~position_enc
 ;;
 
 let update_text ?version t changes =
-  match Text_document.apply_content_changes ?version (tdoc t) changes with
+  match Text_document.apply_content_changes ?version (text_document t) changes with
   | exception Text_document.Invalid_utf error ->
     Log.log ~section:"warning" (fun () ->
       let error =
@@ -473,7 +473,7 @@ let get_impl_intf_counterparts m uri =
 ;;
 
 let substring doc range =
-  let start, end_ = Text_document.absolute_range (tdoc doc) range in
+  let start, end_ = Text_document.absolute_range (text_document doc) range in
   let text = text doc in
   if start < 0 || start > end_ || end_ > String.length text
   then None
