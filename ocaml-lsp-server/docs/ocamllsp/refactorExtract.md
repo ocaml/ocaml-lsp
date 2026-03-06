@@ -21,13 +21,12 @@ There is no client capability relative to this request.
   ```json
   {
     "uri": textDocument,
-    "start": Position,
-    "stop": Position,
+    "range": Range,
     "extract_name?": string,
   }
   ```
 
-`start` and `stop` represents the region to be extracted. The `extract_name` parameter allows choosing the name of the generated let binding. If `extract_name` is not specified, a name not taken in the scope is chosen.
+`range` represents the region to be extracted. The `extract_name` parameter allows choosing the name of the generated let binding. If `extract_name` is not specified, a name not taken in the scope is chosen.
 
 ## Response
 
