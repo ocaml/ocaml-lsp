@@ -61,11 +61,9 @@ let with_pipeline state uri f =
 ;;
 
 let dispatch ~range ~extract_name pipeline =
-  let start = Position.logical range.Range.start   in
-  let end_ = Position.logical range.Range.end_    in
-  let command =
-    Query_protocol.Refactor_extract_region (start, end_, extract_name)
-  in
+  let start = Position.logical range.Range.start in
+  let end_ = Position.logical range.Range.end_ in
+  let command = Query_protocol.Refactor_extract_region (start, end_, extract_name) in
   let { Query_protocol.loc; content; selection_range } =
     Query_commands.dispatch pipeline command
   in

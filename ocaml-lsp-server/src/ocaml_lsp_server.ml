@@ -565,7 +565,7 @@ let on_request
          ; Req_locate.meth, Req_locate.on_request
          ; Req_destruct.meth, Req_destruct.on_request
          ; Req_locate_types.meth, Req_locate_types.on_request
-         ; Req_refactor_extract.meth, Req_refactor_extract.on_request 
+         ; Req_refactor_extract.meth, Req_refactor_extract.on_request
          ]
          meth
      with
