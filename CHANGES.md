@@ -6,6 +6,7 @@
 
 ## Features
 
+- Add `refactorExtract` code action (#1545)
 - Add `destruct` custom request (#1583)
 - Add `locate_types` custom request (#1584)
 
