@@ -98,13 +98,13 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_get_documentation.capability
               ; Req_construct.capability
               ; Req_type_search.capability
-              ; Req_refactor_extract.capability
               ; Req_merlin_jump.capability
               ; Req_phrase.capability
               ; Req_type_expression.capability
               ; Req_locate.capability
               ; Req_destruct.capability
               ; Req_locate_types.capability
+              ; Req_refactor_extract.capability
               ] )
         ]
     in
