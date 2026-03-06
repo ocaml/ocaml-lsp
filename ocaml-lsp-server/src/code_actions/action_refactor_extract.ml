@@ -12,9 +12,8 @@ let make_edit params doc { Query_protocol.loc; content; selection_range = _ } =
   WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
 ;;
 
-let dispatch_command pipeline doc ~start ~stop =
-  let buffer = Document.source doc in
-  let command = Query_protocol.Refactor_extract_region (start, stop, None, buffer) in
+let dispatch_command pipeline ~start ~stop =
+  let command = Query_protocol.Refactor_extract_region (start, stop, None) in
   Query_commands.dispatch pipeline command
 ;;
 
@@ -42,7 +41,7 @@ let code_action doc (params : CodeActionParams.t) =
             ~stop:(Mpipeline.get_lexing_pos pipeline stop)
             enclosing
         then (
-          let substitution = dispatch_command pipeline doc ~start ~stop in
+          let substitution = dispatch_command pipeline ~start ~stop in
           let edit = make_edit params doc substitution in
           let code_action =
             CodeAction.create
