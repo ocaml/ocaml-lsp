@@ -27,8 +27,10 @@ let write_in_file path content =
 ;;
 
 let setup_ocamlformat content =
-  let tmpdir = Filename.temp_dir "ocamllsp-test-" "" in
-  let ocamlformat_path = Filename.concat tmpdir ".ocamlformat" in
+  let tmpdir = Stdlib.Filename.temp_file "ocamllsp-test-" "" in
+  Stdlib.Sys.remove tmpdir;
+  Unix.mkdir tmpdir 0o700;
+  let ocamlformat_path = Stdlib.Filename.concat tmpdir ".ocamlformat" in
   write_in_file ocamlformat_path content;
   tmpdir
 ;;
@@ -64,7 +66,7 @@ let%expect_test "can format an ocaml impl file" =
   | _, _ -> gcd a (b mod a)
 |ocaml}
   in
-  let path = Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml" in
+  let path = Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml" in
   print_formatting source path;
   [%expect
     {|
@@ -90,7 +92,7 @@ let%expect_test "leaves unchanged files alone" =
   | _, _ -> gcd a (b mod a)
 |ocaml}
   in
-  let path = Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml" in
+  let path = Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml" in
   print_formatting source path;
   [%expect {| No formatting needed |}]
 ;;
@@ -105,7 +107,7 @@ let%expect_test "can format an ocaml intf file" =
 end
 |ocaml}
   in
-  let path = Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.mli" in
+  let path = Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.mli" in
   print_formatting source path;
   [%expect
     {|
@@ -132,8 +134,8 @@ let%expect_test "does not format ignored files" =
   in
   let tmpdir = setup_ocamlformat ocamlformat_config in
   let name = "dont_format_me.ml" in
-  write_in_file (Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
-  let path = Filename.concat tmpdir name in
+  write_in_file (Stdlib.Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
+  let path = Stdlib.Filename.concat tmpdir name in
   print_formatting source path;
   [%expect {| No formatting needed |}]
 ;;
