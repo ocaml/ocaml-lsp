@@ -191,19 +191,18 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
       | Pexp_for _
       | Pexp_object _
       | Pexp_pack _
-      | Pexp_letmodule _ ->
+      | Pexp_struct_item ({pstr_desc = Pstr_module _; _}, _) ->
         Range.of_loc expr.pexp_loc |> push;
         Ast_iterator.default_iterator.expr self expr
       | Pexp_extension _
       | Pexp_let _
-      | Pexp_open _
       | Pexp_poly _
       | Pexp_sequence _
       | Pexp_constraint _
       | Pexp_function _
+      | Pexp_struct_item _
       | Pexp_newtype _
       | Pexp_lazy _
-      | Pexp_letexception _
       | Pexp_tuple _
       | Pexp_construct _
       | Pexp_ident _

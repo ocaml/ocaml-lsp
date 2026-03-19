@@ -395,6 +395,7 @@ end = struct
       | Ptyp_package _
       | Ptyp_object _
       | Ptyp_tuple _
+      | Ptyp_functor _
       | Ptyp_open _ -> `Default_iterator
     in
     match iter with
@@ -468,7 +469,7 @@ end = struct
         (self : Ast_iterator.iterator)
         ({ ptype_name
          ; ptype_params
-         ; ptype_cstrs
+         ; ptype_constraints
          ; ptype_kind
          ; ptype_private = _
          ; ptype_manifest
@@ -491,16 +492,20 @@ end = struct
     add_token
       ptype_name.loc
       (match ptype_kind with
-       | Parsetree.Ptype_abstract | Ptype_open -> Token_type.of_builtin Type
+       | Parsetree.Ptype_abstract
+       | Ptype_open
+       | Ptype_external _ -> Token_type.of_builtin Type
        | Ptype_variant _ -> Token_type.of_builtin Enum
        | Ptype_record _ -> Token_type.of_builtin Struct)
       (Token_modifiers_set.singleton Declaration);
-    List.iter ptype_cstrs ~f:(fun (ct0, ct1, (_ : Loc.t)) ->
+    List.iter ptype_constraints ~f:(fun (ct0, ct1, (_ : Loc.t)) ->
       self.typ self ct0;
       self.typ self ct1);
     Option.iter ptype_manifest ~f:(fun ct -> self.typ self ct);
     (match ptype_kind with
-     | Parsetree.Ptype_abstract | Parsetree.Ptype_open -> ()
+     | Parsetree.Ptype_abstract
+     | Parsetree.Ptype_open
+     | Parsetree.Ptype_external _ -> ()
      | Ptype_variant cds ->
        List.iter cds ~f:(fun cd -> self.constructor_declaration self cd)
      | Ptype_record lds -> List.iter lds ~f:(fun ld -> self.label_declaration self ld));
@@ -603,12 +608,6 @@ end = struct
         add_token t.loc (Token_type.of_builtin TypeParameter) Token_modifiers_set.empty;
         self.expr self e;
         `Custom_iterator
-      | Pexp_letmodule (name, me, e) ->
-        add_token name.loc Token_type.module_ Token_modifiers_set.empty;
-        self.module_expr self me;
-        (* ^ handle function applications like this *)
-        self.expr self e;
-        `Custom_iterator
       | Pexp_constant c ->
         const pexp_loc c;
         `Custom_iterator
@@ -637,6 +636,13 @@ end = struct
             then self.expr self pbop_exp);
         self.expr self body;
         `Custom_iterator
+      | Pexp_struct_item
+          ({pstr_desc = Pstr_module
+                {pmb_name = name; pmb_expr = me; _ }; _}, e) ->
+        add_token name.loc Token_type.module_ Token_modifiers_set.empty;
+        self.module_expr self me;
+        self.expr self e;
+        `Custom_iterator
       | Pexp_unreachable -> `Custom_iterator
       | Pexp_array _
       | Pexp_ifthenelse (_, _, _)
@@ -645,11 +651,10 @@ end = struct
       | Pexp_coerce (_, _, _)
       | Pexp_setinstvar (_, _)
       | Pexp_override _
-      | Pexp_letexception (_, _)
       | Pexp_assert _ | Pexp_lazy _
       | Pexp_poly (_, _)
       | Pexp_object _ | Pexp_pack _
-      | Pexp_open (_, _)
+      | Pexp_struct_item _ (* TODO: Handle module case for struct item *)
       | Pexp_extension _ -> `Default_iterator
     with
     | `Default_iterator -> Ast_iterator.default_iterator.expr self exp
@@ -695,7 +700,7 @@ end = struct
         lident lid Token_type.module_ ();
         self.pat self p;
         `Custom_iterator
-      | Ppat_unpack m ->
+      | Ppat_unpack (m, _) ->
         Option.iter m.txt ~f:(fun _ ->
           add_token m.loc Token_type.module_ Token_modifiers_set.empty);
         `Custom_iterator
@@ -790,7 +795,7 @@ end = struct
        | Ptyp_alias (_, _)
        | Ptyp_variant (_, _, _)
        | Ptyp_poly (_, _)
-       | Ptyp_tuple _ | Ptyp_any | Ptyp_var _ | Ptyp_open _ ->
+       | Ptyp_tuple _ | Ptyp_any | Ptyp_var _ | Ptyp_open _ | Ptyp_functor _ ->
          Token_type.of_builtin Variable)
       (Token_modifiers_set.singleton Declaration);
     self.typ self pval_type;
