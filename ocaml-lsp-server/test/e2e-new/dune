@@ -52,6 +52,7 @@
     document_flow
     exit_notification
     for_ppx
+    formatting
     hover
     hover_extended
     inlay_hints
