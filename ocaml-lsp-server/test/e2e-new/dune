@@ -47,6 +47,8 @@
     code_lens
     completion
     completions
+    formatting
+    range_formatting
     construct
     doc_to_md
     document_flow
@@ -59,6 +61,7 @@
     merlin_call_compatible
     destruct
     metrics
+    refactor_extract
     semantic_hl_data
     semantic_hl_helpers
     semantic_hl_tests
@@ -73,6 +76,7 @@
     phrase
     type_expression
     locate
+    locate_types
     type_search
     with_pp
     with_ppx

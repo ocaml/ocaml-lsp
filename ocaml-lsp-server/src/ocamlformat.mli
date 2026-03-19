@@ -13,3 +13,9 @@ type error =
 
 val message : error -> string
 val run : Document.t -> Fiber.Cancel.t option -> (TextEdit.t list, error) result Fiber.t
+
+val run_on_range
+  :  Document.t
+  -> Range.t
+  -> Fiber.Cancel.t option
+  -> (TextEdit.t list, error) result Fiber.t

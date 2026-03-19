@@ -14,3 +14,5 @@ module Phrase = Req_phrase
 module Type_expression = Req_type_expression
 module Locate = Req_locate
 module Destruct = Req_destruct
+module Locate_types = Req_locate_types
+module Refactor_extract = Req_refactor_extract

@@ -7,14 +7,14 @@ type command_result =
   ; status : Unix.process_status
   }
 
-let run_command cancel prog stdin_value args =
+let run_command ?(cwd = Spawn.Working_dir.Inherit) cancel prog stdin_value args =
   Fiber.of_thunk (fun () ->
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let stderr_i, stderr_o = Unix.pipe ~cloexec:true () in
     let pid =
       let argv = prog :: args in
-      Spawn.spawn ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
+      Spawn.spawn ~cwd ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
       |> Stdune.Pid.of_int
     in
     Unix.close stdin_i;
@@ -103,7 +103,14 @@ type formatter =
   | Mlx of Uri.t
 
 let args = function
-  | Ocaml uri -> [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
+  | Ocaml uri ->
+    let name = Uri.to_path uri in
+    let flag =
+      if String.is_suffix name ~suffix:".mli" || String.is_suffix name ~suffix:".ml"
+      then []
+      else [ "--impl" ]
+    in
+    flag @ [ sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Mlx uri -> [ "--impl"; sprintf "--name=%s" (Uri.to_path uri); "-" ]
   | Reason kind ->
     [ "--parse"; "re"; "--print"; "re" ]
@@ -140,15 +147,15 @@ let formatter doc =
           | `Other -> Code_error.raise "unable to format non merlin document" []))
 ;;
 
-let exec cancel refmt args stdin =
-  let+ res, cancel = run_command cancel refmt stdin args in
+let exec ?cwd cancel refmt args stdin =
+  let+ res, cancel = run_command ?cwd cancel refmt stdin args in
   match cancel with
   | Cancelled () ->
     let e = Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" () in
     raise (Jsonrpc.Response.Error.E e)
   | Not_cancelled ->
     (match res.status with
-     | Unix.WEXITED 0 -> Result.Ok res.stdout
+     | Unix.WEXITED 0 -> Result.Ok res
      | _ -> Result.Error (Unexpected_result { message = res.stderr }))
 ;;
 
@@ -164,5 +171,109 @@ let run doc cancel : (TextEdit.t list, error) result Fiber.t =
   | Error e -> Fiber.return (Error e)
   | Ok (binary, args, contents) ->
     exec cancel binary args contents
-    |> Fiber.map ~f:(Result.map ~f:(fun to_ -> Diff.edit ~from:contents ~to_))
+    |> Fiber.map
+         ~f:(Result.map ~f:(fun { stdout = to_; _ } -> Diff.edit ~from:contents ~to_))
+;;
+
+(** Tries to access the formatter's configuration to determine the existing
+  margin, and returns an argument which sets the margin to the existing margin
+  minus the offset
+*)
+let compute_modified_margin binary cancel offset formatter =
+  let default = 80 in
+  match formatter with
+  | Ocaml uri | Mlx uri ->
+    let path = Uri.to_path uri |> Filename.dirname in
+    (* specifying cwd makes sure ocamlformat finds the correct root,
+       since we're not actually passing any file here *)
+    exec ~cwd:(Spawn.Working_dir.Path path) cancel binary [ "--print-config" ] ""
+    |> Fiber.map ~f:(fun res ->
+      let margin =
+        match res with
+        | Ok { stderr = config; _ } ->
+          config
+          |> String.split_lines
+          |> List.find_map ~f:(fun line ->
+            match String.drop_prefix line ~prefix:"margin=" with
+            | None -> None
+            | Some margin ->
+              String.split margin ~on:' ' |> List.hd |> Option.bind ~f:Int.of_string)
+          |> Option.value ~default
+        | Error _ -> default
+      in
+      let margin = margin - offset in
+      "--margin=" ^ Int.to_string margin)
+  | Reason _ ->
+    let margin =
+      Sys.getenv_opt "REFMT_PRINT_WIDTH"
+      |> Option.bind ~f:Int.of_string
+      |> Option.value ~default
+    in
+    let margin = margin - offset in
+    Fiber.return ("--print-width=" ^ Int.to_string margin)
+;;
+
+let range_formatter doc =
+  match Document.syntax doc with
+  (* to support formatting semantic action snippets in these two files *)
+  | Ocamllex | Menhir -> Ok (Ocaml (Document.uri doc))
+  | _ -> formatter doc
+;;
+
+let ( let++ ) x f = Fiber.map x ~f:(Result.map ~f)
+
+(** Formats a snippet of code in a larger string, given the start and stop offsets of the snippet
+    - slice out the range to be formatted, send to ocamlformat
+    - whitespace pad the start of lines in the reply based on [padding]
+    - stitch everything back together. *)
+let format_snippet ~start ~stop ~padding formatter binary cancel contents =
+  let prefix, to_format, suffix =
+    ( String.sub contents ~pos:0 ~len:start
+    , String.sub contents ~pos:start ~len:(stop - start)
+    , String.sub contents ~pos:stop ~len:(String.length contents - stop) )
+  in
+  let args = args formatter in
+  let args =
+    (* if we're formatting the start of a [let ... in] construct,
+        don't emit [;;] before the [in]! *)
+    let next =
+      String.trim suffix ~drop:(function
+        | ' ' | '\n' | '\r' | '\t' -> true
+        | _ -> false)
+    in
+    if String.is_prefix ~prefix:"in" next || String.is_prefix ~prefix:";;" next
+    then "--let-binding-spacing=compact" :: args
+    else args
+  in
+  let pad s =
+    let spaces_pad = Bytes.make padding ' ' |> Bytes.to_string in
+    String.concat ~sep:"\n" (List.map (String.split_lines s) ~f:(( ^ ) spaces_pad))
+    |> String.trim ~drop:(( = ) ' ')
+  in
+  let open Fiber.O in
+  let* margin = compute_modified_margin binary cancel padding formatter in
+  let args = margin :: args in
+  let++ { stdout = formatted; _ } = exec cancel binary args to_format in
+  let formatted =
+    (* if the return is unchanged, don't insert extra padding *)
+    if String.equal formatted to_format then to_format else pad formatted
+  in
+  prefix ^ formatted ^ suffix
+;;
+
+let run_on_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
+  let res =
+    let open Result.O in
+    let* formatter = range_formatter doc in
+    let+ binary = binary formatter in
+    binary, formatter
+  in
+  match res with
+  | Error e -> Fiber.return (Error e)
+  | Ok (binary, formatter) ->
+    let contents = Document.source doc |> Msource.text in
+    let start, stop = Text_document.absolute_range (Document.text_document doc) range in
+    let padding = range.start.character in
+    let++ to_ = format_snippet formatter binary cancel ~start ~stop ~padding contents in
+    Diff.edit ~from:contents ~to_
 ;;

@@ -73,6 +73,7 @@ let%expect_test "start/stop" =
         "definitionProvider": true,
         "documentFormattingProvider": true,
         "documentHighlightProvider": true,
+        "documentRangeFormattingProvider": true,
         "documentSymbolProvider": true,
         "executeCommandProvider": {
           "commands": [
@@ -100,7 +101,9 @@ let%expect_test "start/stop" =
             "handlePhrase": true,
             "handleTypeExpression": true,
             "handleLocate": true,
-            "handleDestruct": true
+            "handleDestruct": true,
+            "handleLocateTypes": true,
+            "handleRefactorExtract": true
           }
         },
         "foldingRangeProvider": true,

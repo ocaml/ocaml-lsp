@@ -6,7 +6,11 @@
 
 ## Features
 
+- Add custom [`ocamllsp/refactorExtract`](https://github.com/ocaml/ocaml-lsp/blob/ocaml-lsp-server/docs/ocamllsp/refactorExtract-spec.md) request (#1545)
 - Add `destruct` custom request (#1583)
+- Add `locate_types` custom request (#1584)
+
+- Add support for the `textDocument/rangeFormatting` request (#1591)
 
 - Allow to configure merlin using build systems other than dune.
 
