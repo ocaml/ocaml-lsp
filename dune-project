@@ -51,7 +51,7 @@ possible and does not make any assumptions about IO.
   (jsonrpc (= :version))
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
-  (dune-rpc (>= 3.4.0))
+  (dune-rpc (>= 3.22.0))
   (chrome-trace (>= 3.3.0))
   dyn
   stdune
