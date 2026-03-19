@@ -70,10 +70,7 @@ let tightest_enclosing_binder_position typedtree range =
       match expr.exp_desc with
       | Texp_let (_, _, body)
       | Texp_while (_, body)
-      | Texp_for (_, _, _, _, _, body)
-      | Texp_letmodule (_, _, _, _, body)
-      | Texp_letexception (_, body)
-      | Texp_open (_, body) -> found_if_expr_contains body
+      | Texp_for (_, _, _, _, _, body)  -> found_if_expr_contains body
       | Texp_letop { body; _ } -> found_if_case_contains [ body ]
       | Texp_function (_, Tfunction_cases { cases; _ }) -> found_if_case_contains cases
       | Texp_match _ ->
