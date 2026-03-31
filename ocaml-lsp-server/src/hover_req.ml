@@ -155,6 +155,8 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     (match field.pcf_desc with
      | (Pcf_val ({ loc; _ }, _, _) | Pcf_method ({ loc; _ }, _, _)) when is_at_cursor loc
        -> result := Some `Type_enclosing
+     | Pcf_inherit (_, _, Some { loc; _ }) when is_at_cursor loc ->
+       result := Some `Type_enclosing
      | _ -> ());
     Ast_iterator.default_iterator.class_field self field
   in
