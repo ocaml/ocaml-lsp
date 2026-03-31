@@ -51,15 +51,15 @@ possible and does not make any assumptions about IO.
   (jsonrpc (= :version))
   (re (>= 1.5.0))
   (ppx_yojson_conv_lib (>= "v0.14"))
-  (dune-rpc (>= 3.4.0))
+  (dune-rpc (>= 3.22.0))
   (chrome-trace (>= 3.3.0))
   dyn
-  stdune
+  (stdune (>= 3.22.0))
   (fiber (and (>= 3.1.1) (< 4.0.0)))
   (ocaml (and (>= 5.4) (< 5.5)))
   xdg
   ordering
-  dune-build-info
+  (dune-build-info (>= 3.22.0))
   spawn
   astring
   camlp-streams
