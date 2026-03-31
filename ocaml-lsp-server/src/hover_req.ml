@@ -28,6 +28,13 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     in
     at_or_after_start && before_or_at_end
   in
+  let is_on_first_or_last_char ({ loc_start; loc_end; _ } : Ocaml_parsing.Location.t) =
+    let start_col = loc_start.pos_cnum - loc_start.pos_bol in
+    let end_col = loc_end.pos_cnum - loc_end.pos_bol in
+    let at_start = loc_start.pos_lnum = cursor_line && start_col = cursor_col in
+    let at_end = loc_end.pos_lnum = cursor_line && end_col = cursor_col + 1 in
+    at_start || at_end
+  in
   (* Hover location matches a variable binding *)
   let pat (self : Ast_iterator.iterator) (pattern : Parsetree.pattern) =
     if is_at_cursor pattern.ppat_loc
@@ -41,7 +48,10 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
           | Some (_, field) -> field.ppat_loc.loc_end
           | None -> pattern.ppat_loc.loc_start
         in
-        if is_at_cursor { pattern.ppat_loc with loc_start = end_of_last_field }
+        let is_on_bracket = is_on_first_or_last_char pattern.ppat_loc in
+        if
+          is_on_bracket
+          || is_at_cursor { pattern.ppat_loc with loc_start = end_of_last_field }
         then result := Some `Type_enclosing
       | Ppat_construct ({ loc; _ }, _)
       | Ppat_var { loc; _ }
@@ -66,12 +76,14 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         then result := Some `Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
       | Pexp_record (fields, _) ->
-        (* On a record, each field may be hovered. *)
+        (* On a record, each field may be hovered, along with the opening or
+        closing brackets. *)
         let is_on_field =
           List.exists fields ~f:(fun (({ loc; _ } : _ Asttypes.loc), _) ->
             is_at_cursor loc)
         in
-        if is_on_field
+        let is_on_bracket = is_on_first_or_last_char expr.pexp_loc in
+        if is_on_field || is_on_bracket
         then result := Some `Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
       | Pexp_function _ | Pexp_lazy _ ->
