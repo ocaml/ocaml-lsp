@@ -129,6 +129,55 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         then result := Some (`Ppx_typedef_attr (decl, attr))
       | None -> Ast_iterator.default_iterator.type_declaration self decl)
   in
+  (* Classes and objects *)
+  let class_declaration
+        (self : Ast_iterator.iterator)
+        (decl : Parsetree.class_declaration)
+    =
+    if is_at_cursor decl.pci_name.loc then result := Some `Type_enclosing;
+    Ast_iterator.default_iterator.class_declaration self decl
+  in
+  let class_type_declaration
+        (self : Ast_iterator.iterator)
+        (decl : Parsetree.class_type_declaration)
+    =
+    if is_at_cursor decl.pci_name.loc then result := Some `Type_enclosing;
+    Ast_iterator.default_iterator.class_type_declaration self decl
+  in
+  let class_description
+        (self : Ast_iterator.iterator)
+        (decl : Parsetree.class_description)
+    =
+    if is_at_cursor decl.pci_name.loc then result := Some `Type_enclosing;
+    Ast_iterator.default_iterator.class_description self decl
+  in
+  let class_field (self : Ast_iterator.iterator) (field : Parsetree.class_field) =
+    (match field.pcf_desc with
+     | (Pcf_val ({ loc; _ }, _, _) | Pcf_method ({ loc; _ }, _, _)) when is_at_cursor loc
+       -> result := Some `Type_enclosing
+     | _ -> ());
+    Ast_iterator.default_iterator.class_field self field
+  in
+  let class_type_field (self : Ast_iterator.iterator) (field : Parsetree.class_type_field)
+    =
+    (match field.pctf_desc with
+     | (Pctf_val ({ loc; _ }, _, _, _) | Pctf_method ({ loc; _ }, _, _, _))
+       when is_at_cursor loc -> result := Some `Type_enclosing
+     | _ -> ());
+    Ast_iterator.default_iterator.class_type_field self field
+  in
+  let class_expr (self : Ast_iterator.iterator) (expr : Parsetree.class_expr) =
+    (match expr.pcl_desc with
+     | Pcl_constr ({ loc; _ }, _) when is_at_cursor loc -> result := Some `Type_enclosing
+     | _ -> ());
+    Ast_iterator.default_iterator.class_expr self expr
+  in
+  let class_type (self : Ast_iterator.iterator) (ct : Parsetree.class_type) =
+    (match ct.pcty_desc with
+     | Pcty_constr ({ loc; _ }, _) when is_at_cursor loc -> result := Some `Type_enclosing
+     | _ -> ());
+    Ast_iterator.default_iterator.class_type self ct
+  in
   (* Hover a module identifier *)
   let module_expr (self : Ast_iterator.iterator) (expr : Parsetree.module_expr) =
     if is_at_cursor expr.pmod_loc
@@ -163,10 +212,11 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   in
   (* Hover structure items *)
   let structure_item (self : Ast_iterator.iterator) (item : Parsetree.structure_item) =
-    match item.pstr_desc with
-    | Pstr_module desc when is_at_cursor desc.pmb_name.loc ->
-      result := Some `Type_enclosing
-    | _ -> Ast_iterator.default_iterator.structure_item self item
+    (match item.pstr_desc with
+     | Pstr_module desc when is_at_cursor desc.pmb_name.loc ->
+       result := Some `Type_enclosing
+     | _ -> ());
+    Ast_iterator.default_iterator.structure_item self item
   in
   (* Hover signature items *)
   let signature_item (self : Ast_iterator.iterator) (item : Parsetree.signature_item) =
@@ -190,6 +240,13 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     ; module_type
     ; structure_item
     ; signature_item
+    ; class_declaration
+    ; class_type_declaration
+    ; class_description
+    ; class_field
+    ; class_type_field
+    ; class_type
+    ; class_expr
     }
   in
   let () =
