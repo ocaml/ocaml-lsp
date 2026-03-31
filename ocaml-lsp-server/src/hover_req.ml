@@ -214,11 +214,10 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   in
   (* Hover structure items *)
   let structure_item (self : Ast_iterator.iterator) (item : Parsetree.structure_item) =
-    (match item.pstr_desc with
-     | Pstr_module desc when is_at_cursor desc.pmb_name.loc ->
-       result := Some `Type_enclosing
-     | _ -> ());
-    Ast_iterator.default_iterator.structure_item self item
+    match item.pstr_desc with
+    | Pstr_module desc when is_at_cursor desc.pmb_name.loc ->
+      result := Some `Type_enclosing
+    | _ -> Ast_iterator.default_iterator.structure_item self item
   in
   (* Hover signature items *)
   let signature_item (self : Ast_iterator.iterator) (item : Parsetree.signature_item) =
