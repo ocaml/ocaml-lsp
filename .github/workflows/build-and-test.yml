@@ -72,6 +72,7 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    if: false # reenable when ppx_bisect is co-instable again
     steps:
       - name: Checkout tree
         uses: actions/checkout@v4
