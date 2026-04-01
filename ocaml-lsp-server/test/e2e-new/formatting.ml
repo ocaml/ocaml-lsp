@@ -66,7 +66,9 @@ let%expect_test "can format an ocaml impl file" =
   | _, _ -> gcd a (b mod a)
 |ocaml}
   in
-  let path = Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml" in
+  let path =
+    Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml"
+  in
   print_formatting source path;
   [%expect
     {|
@@ -92,7 +94,9 @@ let%expect_test "leaves unchanged files alone" =
   | _, _ -> gcd a (b mod a)
 |ocaml}
   in
-  let path = Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml" in
+  let path =
+    Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.ml"
+  in
   print_formatting source path;
   [%expect {| No formatting needed |}]
 ;;
@@ -107,7 +111,9 @@ let%expect_test "can format an ocaml intf file" =
 end
 |ocaml}
   in
-  let path = Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.mli" in
+  let path =
+    Stdlib.Filename.concat (setup_ocamlformat ocamlformat_config) "format_me.mli"
+  in
   print_formatting source path;
   [%expect
     {|

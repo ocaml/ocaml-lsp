@@ -82,7 +82,9 @@ module Client =
       let collect_errors f =
         let open Fiber.O in
         let+ res = Fiber.collect_errors f in
-        Result.map_error res ~f:(List.map ~f:(fun (exn: Exn_with_backtrace.t) -> exn.exn))
+        Result.map_error
+          res
+          ~f:(List.map ~f:(fun (exn : Exn_with_backtrace.t) -> exn.exn))
       ;;
     end)
     (Chan)
