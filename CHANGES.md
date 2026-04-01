@@ -1,9 +1,5 @@
 # Unreleased
 
-## Fixes
-
-- Enable "hover" on more locations, notably class and object related (#1599)
-
 ## Features
 
 - Add custom [`ocamllsp/refactorExtract`](https://github.com/ocaml/ocaml-lsp/blob/ocaml-lsp-server/docs/ocamllsp/refactorExtract-spec.md) request (#1545)
@@ -21,6 +17,10 @@
 
   If `$OCAMLLSP_PROJECT_ROOT` environment variable is set then OCaml LSP will
   use it as a project root directory.
+
+## Fixes
+
+- Enable "hover" on more locations, notably class and object related (#1599)
 
 # 1.25.0
 
