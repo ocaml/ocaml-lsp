@@ -71,7 +71,8 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
       | Pexp_ident { loc; _ }
       | Pexp_construct ({ loc; _ }, _)
       | Pexp_field (_, { loc; _ })
-      | Pexp_send (_, { loc; _ }) ->
+      | Pexp_send (_, { loc; _ })
+      | Pexp_new { loc; _ } ->
         if is_at_cursor loc
         then result := Some `Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
