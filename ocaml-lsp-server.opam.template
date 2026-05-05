@@ -1,0 +1,20 @@
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@doc" {with-doc}
+  ]
+]
+
+pin-depends: [
+  [ "merlin-lib.5.7-504" "git+https://github.com/ocaml/merlin.git#main" ]
+  [ "ocaml-index.5.7-504" "git+https://github.com/ocaml/merlin.git#main" ]
+]
+
+x-maintenance-intent: [ "(latest)" ]
