@@ -37,10 +37,7 @@ let ( - ) ({ line; character } : t) (t : t) : t =
 ;;
 
 let abs ({ line; character } : t) : t = { line = abs line; character = abs character }
-
-let compare ({ line; character } : t) (t : t) : Ordering.t =
-  Stdune.Tuple.T2.compare Int.compare Int.compare (line, character) (t.line, t.character)
-;;
+let compare (x : t) (t : t) : Ordering.t = Poly.compare x t
 
 let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
   match compare t r.start, compare t r.end_ with

@@ -1,5 +1,13 @@
 (* The modules are listed alphabetically. Try to keep the order. *)
 
+module Poly = struct
+  let equal = ( = )
+  let compare x y = Ordering.of_int (compare x y)
+  let hash x = Hashtbl.hash x
+end
+
+let sprintf = Printf.sprintf
+
 include struct
   open Stdune
   module Code_error = Code_error
@@ -7,14 +15,10 @@ include struct
   module Exn_with_backtrace = Exn_with_backtrace
   module Int = Int
   module Table = Table
-  module Tuple = Tuple
   module Unix_env = Env
   module Map = Map
   module Monoid = Monoid
   module Pid = Pid
-  module Poly = Poly
-
-  let sprintf = sprintf
 end
 
 module Io = struct
