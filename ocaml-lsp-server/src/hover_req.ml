@@ -334,6 +334,32 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
       result := Some `Type_enclosing
     | _ -> Ast_iterator.default_iterator.signature_item self item
   in
+  let attribute (self : Ast_iterator.iterator) (attr : Parsetree.attribute) =
+    if is_at_cursor attr.attr_name.loc || is_at_cursor attr.attr_loc
+    then (
+      match attr.attr_name.txt with
+      | "warning" | "warnerror" ->
+        (match attr.attr_payload with
+         | PStr
+             [ { pstr_desc =
+                   Pstr_eval
+                     ( { pexp_desc =
+                           Pexp_constant
+                             { pconst_desc = Pconst_string (payload, _, _); _ }
+                       ; _
+                       }
+                     , _ )
+               ; _
+               }
+             ] ->
+           let actions = parse_warning_payload payload in
+           let markdown_lines = List.map ~f:format_warning_action actions in
+           let markdown = String.concat ~sep:"\n" markdown_lines in
+           if markdown <> "" then result := Some (`Warning_attribute markdown)
+         | _ -> Ast_iterator.default_iterator.attribute self attr)
+      | _ -> Ast_iterator.default_iterator.attribute self attr)
+    else Ast_iterator.default_iterator.attribute self attr
+  in
   let iterator =
     { Ast_iterator.default_iterator with
       pat
@@ -352,6 +378,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     ; class_type_field
     ; class_type
     ; class_expr
+    ; attribute
     }
   in
   let () =
