@@ -318,7 +318,8 @@ let error_to_diagnostics ~diagnostics ~merlin error =
        | Some c -> Some (`Int c)
        | None -> Some (`String s))
     | _ ->
-      (try Scanf.sscanf message "Warning %d" (fun d -> Some (`Int d)) with _ -> None)
+      (try Scanf.sscanf message "Warning %d" (fun d -> Some (`Int d)) with
+       | _ -> None)
   in
   let severity =
     match error.source with
