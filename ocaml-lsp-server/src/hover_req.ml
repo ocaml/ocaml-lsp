@@ -13,6 +13,97 @@ let environment_mode =
   | Some false | None -> Default
 ;;
 
+type warning_action =
+  | Enable of int
+  | Disable of int
+  | Enable_as_error of int
+  | Enable_range of int * int
+  | Disable_range of int * int
+  | Enable_as_error_range of int * int
+  | Enable_letter of char
+  | Disable_letter of char
+  | Enable_as_error_letter of char
+
+let parse_warning_payload s =
+  let len = String.length s in
+  let rec parse i acc =
+    if i >= len
+    then List.rev acc
+    else (
+      let sign = s.[i] in
+      if sign = '+' || sign = '-' || sign = '@'
+      then (
+        let j = ref (i + 1) in
+        while !j < len && s.[!j] >= '0' && s.[!j] <= '9' do
+          incr j
+        done;
+        let num1_str = String.sub s ~pos:(i + 1) ~len:(!j - i - 1) in
+        if num1_str <> ""
+        then (
+          let num1 = int_of_string num1_str in
+          if !j + 1 < len && s.[!j] = '.' && s.[!j + 1] = '.'
+          then (
+            let k = ref (!j + 2) in
+            while !k < len && s.[!k] >= '0' && s.[!k] <= '9' do
+              incr k
+            done;
+            let num2_str = String.sub s ~pos:(!j + 2) ~len:(!k - !j - 2) in
+            if num2_str <> ""
+            then (
+              let num2 = int_of_string num2_str in
+              let action =
+                match sign with
+                | '+' -> Enable_range (num1, num2)
+                | '-' -> Disable_range (num1, num2)
+                | '@' | _ -> Enable_as_error_range (num1, num2)
+              in
+              parse !k (action :: acc))
+            else parse !k acc)
+          else (
+            let action =
+              match sign with
+              | '+' -> Enable num1
+              | '-' -> Disable num1
+              | '@' | _ -> Enable_as_error num1
+            in
+            parse !j (action :: acc)))
+        else if
+          !j < len
+          && ((s.[!j] >= 'a' && s.[!j] <= 'z') || (s.[!j] >= 'A' && s.[!j] <= 'Z'))
+        then (
+          let letter = s.[!j] in
+          let action =
+            match sign with
+            | '+' -> Enable_letter letter
+            | '-' -> Disable_letter letter
+            | '@' | _ -> Enable_as_error_letter letter
+          in
+          parse (!j + 1) (action :: acc))
+        else parse (!j + 1) acc)
+      else parse (i + 1) acc)
+  in
+  parse 0 []
+;;
+
+let format_warning_action action =
+  let get_desc n =
+    match Merlin_analysis.Misc_utils.warning_description n with
+    | Some w -> ": " ^ w.Ocaml_utils.Warnings.description
+    | None -> ""
+  in
+  match action with
+  | Enable n -> Printf.sprintf "Enables warning %d%s" n (get_desc n)
+  | Disable n -> Printf.sprintf "Disables warning %d%s" n (get_desc n)
+  | Enable_as_error n -> Printf.sprintf "Enables warning %d as an error%s" n (get_desc n)
+  | Enable_range (n1, n2) -> Printf.sprintf "Enables warnings %d to %d" n1 n2
+  | Disable_range (n1, n2) -> Printf.sprintf "Disables warnings %d to %d" n1 n2
+  | Enable_as_error_range (n1, n2) ->
+    Printf.sprintf "Enables warnings %d to %d as errors" n1 n2
+  | Enable_letter c -> Printf.sprintf "Enables warning set '%c'" c
+  | Disable_letter c -> Printf.sprintf "Disables warning set '%c'" c
+  | Enable_as_error_letter c -> Printf.sprintf "Enables warning set '%c' as errors" c
+;;
+
 let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   let result = ref None in
   let is_at_cursor ({ loc_start; loc_end; _ } : Ocaml_parsing.Location.t) =
@@ -243,6 +334,32 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
       result := Some `Type_enclosing
     | _ -> Ast_iterator.default_iterator.signature_item self item
   in
+  let attribute (self : Ast_iterator.iterator) (attr : Parsetree.attribute) =
+    if is_at_cursor attr.attr_name.loc || is_at_cursor attr.attr_loc
+    then (
+      match attr.attr_name.txt with
+      | "warning" | "warnerror" ->
+        (match attr.attr_payload with
+         | PStr
+             [ { pstr_desc =
+                   Pstr_eval
+                     ( { pexp_desc =
+                           Pexp_constant
+                             { pconst_desc = Pconst_string (payload, _, _); _ }
+                       ; _
+                       }
+                     , _ )
+               ; _
+               }
+             ] ->
+           let actions = parse_warning_payload payload in
+           let markdown_lines = List.map ~f:format_warning_action actions in
+           let markdown = String.concat ~sep:"\n" markdown_lines in
+           if markdown <> "" then result := Some (`Warning_attribute markdown)
+         | _ -> Ast_iterator.default_iterator.attribute self attr)
+      | _ -> Ast_iterator.default_iterator.attribute self attr)
+    else Ast_iterator.default_iterator.attribute self attr
+  in
   let iterator =
     { Ast_iterator.default_iterator with
       pat
@@ -261,6 +378,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     ; class_type_field
     ; class_type
     ; class_expr
+    ; attribute
     }
   in
   let () =
