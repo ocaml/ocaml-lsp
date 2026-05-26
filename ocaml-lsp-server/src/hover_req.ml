@@ -531,8 +531,9 @@ let type_enclosing_hover
           | Some (`String code_str) ->
             (match int_of_string_opt code_str with
              | Some code ->
-               Option.map (Merlin_analysis.Misc_utils.warning_description code) ~f:(fun w ->
-                 code, w.Ocaml_utils.Warnings.description)
+               Option.map
+                 (Merlin_analysis.Misc_utils.warning_description code)
+                 ~f:(fun w -> code, w.Ocaml_utils.Warnings.description)
              | None -> None)
           | None -> None)
         else None)
@@ -693,6 +694,19 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
            | Some _ | None -> false
          in
          type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position ~with_syntax_doc
+       | Some (`Warning_attribute markdown) ->
+         let contents =
+           let client_capabilities = State.client_capabilities state in
+           let markdown_support =
+             ClientCapabilities.markdown_support client_capabilities ~field:(fun td ->
+               Option.map td.hover ~f:(fun h -> h.contentFormat))
+           in
+           if markdown_support
+           then `MarkupContent (MarkupContent.create ~kind:Markdown ~value:markdown)
+           else `MarkedString { Lsp.Types.MarkedString.value = markdown; language = None }
+         in
+         let range = None in
+         Fiber.return (Some (Hover.create ~contents ?range ()))
        | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
          let+ ppx_parsetree =
            Document.Merlin.with_pipeline_exn
