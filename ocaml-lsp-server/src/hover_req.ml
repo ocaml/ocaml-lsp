@@ -529,15 +529,13 @@ let type_enclosing_hover
         then (
           match d.code with
           | Some (`Int code) ->
-            Option.map (Merlin_analysis.Misc_utils.warning_description code) ~f:(fun w ->
-              code, w.Ocaml_utils.Warnings.description)
+            List.find_map Ocaml_utils.Warnings.descriptions ~f:(fun desc ->
+              if desc.number = code then Some (code, desc.description) else None)
           | Some (`String code_str) ->
-            (match int_of_string_opt code_str with
-             | Some code ->
-               Option.map
-                 (Merlin_analysis.Misc_utils.warning_description code)
-                 ~f:(fun w -> code, w.Ocaml_utils.Warnings.description)
-             | None -> None)
+            List.find_map Ocaml_utils.Warnings.descriptions ~f:(fun desc ->
+              if desc.number = int_of_string code_str
+              then Some (int_of_string code_str, desc.description)
+              else None)
           | None -> None)
         else None)
     in
