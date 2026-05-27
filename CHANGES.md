@@ -1,3 +1,8 @@
+# Unreleased
+
+## Features
+ - Add hover support for warning attributes (#1606)
+
 # 1.27.0
 
 ## Features
