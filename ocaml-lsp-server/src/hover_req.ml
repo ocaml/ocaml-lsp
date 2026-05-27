@@ -87,14 +87,17 @@ let parse_warning_payload s =
 
 let format_warning_action action =
   let get_desc n =
-    match Merlin_analysis.Misc_utils.warning_description n with
-    | Some w -> ": " ^ w.Ocaml_utils.Warnings.description
-    | None -> ""
+    List.find
+      Ocaml_utils.Warnings.descriptions
+      ~f:(fun (description : Ocaml_utils.Warnings.description) -> n = description.number)
+    |> Option.map ~f:(fun d -> d.Ocaml_utils.Warnings.description)
+    |> Option.value ~default:""
   in
   match action with
-  | Enable n -> Printf.sprintf "Enables warning %d%s" n (get_desc n)
-  | Disable n -> Printf.sprintf "Disables warning %d%s" n (get_desc n)
-  | Enable_as_error n -> Printf.sprintf "Enables warning %d as an error%s" n (get_desc n)
+  | Enable n -> Printf.sprintf "Enables warning %d: %s" n (get_desc n)
+  | Disable n -> Printf.sprintf "Disables warning %d: %s" n (get_desc n)
+  | Enable_as_error n ->
+    Printf.sprintf "Enables warning %d as an error: %s" n (get_desc n)
   | Enable_range (n1, n2) -> Printf.sprintf "Enables warnings %d to %d" n1 n2
   | Disable_range (n1, n2) -> Printf.sprintf "Disables warnings %d to %d" n1 n2
   | Enable_as_error_range (n1, n2) ->
