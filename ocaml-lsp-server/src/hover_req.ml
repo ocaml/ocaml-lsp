@@ -87,10 +87,9 @@ let parse_warning_payload s =
 
 let format_warning_action action =
   let get_desc n =
-    List.find
+    List.find_map
       Ocaml_utils.Warnings.descriptions
-      ~f:(fun (description : Ocaml_utils.Warnings.description) -> n = description.number)
-    |> Option.map ~f:(fun d -> d.Ocaml_utils.Warnings.description)
+      ~f:(fun (description : Ocaml_utils.Warnings.description) -> if n = description.number then Some description.description else None)
     |> Option.value ~default:""
   in
   match action with
