@@ -24,6 +24,35 @@ type warning_action =
   | Disable_letter of char
   | Enable_as_error_letter of char
 
+let scan_digits s len start =
+  let j = ref start in
+  while !j < len && s.[!j] >= '0' && s.[!j] <= '9' do
+    incr j
+  done;
+  !j
+;;
+
+let make_range_action sign num1 num2 =
+  match sign with
+  | '+' -> Enable_range (num1, num2)
+  | '-' -> Disable_range (num1, num2)
+  | '@' | _ -> Enable_as_error_range (num1, num2)
+;;
+
+let make_single_action sign num =
+  match sign with
+  | '+' -> Enable num
+  | '-' -> Disable num
+  | '@' | _ -> Enable_as_error num
+;;
+
+let make_letter_action sign letter =
+  match sign with
+  | '+' -> Enable_letter letter
+  | '-' -> Disable_letter letter
+  | '@' | _ -> Enable_as_error_letter letter
+;;
+
 let parse_warning_payload s =
   let len = String.length s in
   let rec parse i acc =
@@ -33,53 +62,31 @@ let parse_warning_payload s =
       let sign = s.[i] in
       if sign = '+' || sign = '-' || sign = '@'
       then (
-        let j = ref (i + 1) in
-        while !j < len && s.[!j] >= '0' && s.[!j] <= '9' do
-          incr j
-        done;
-        let num1_str = String.sub s ~pos:(i + 1) ~len:(!j - i - 1) in
+        let next_idx = i + 1 in
+        let digits_end = scan_digits s len next_idx in
+        let num1_str = String.sub s ~pos:next_idx ~len:(digits_end - next_idx) in
         if num1_str <> ""
         then (
           let num1 = int_of_string num1_str in
-          if !j + 1 < len && s.[!j] = '.' && s.[!j + 1] = '.'
+          if digits_end + 1 < len && s.[digits_end] = '.' && s.[digits_end + 1] = '.'
           then (
-            let k = ref (!j + 2) in
-            while !k < len && s.[!k] >= '0' && s.[!k] <= '9' do
-              incr k
-            done;
-            let num2_str = String.sub s ~pos:(!j + 2) ~len:(!k - !j - 2) in
-            if num2_str <> ""
+            let r_start = digits_end + 2 in
+            let r_end = scan_digits s len r_start in
+            let num2_str = String.sub s ~pos:r_start ~len:(r_end - r_start) in
+            if not (String.equal num2_str "")
             then (
               let num2 = int_of_string num2_str in
-              let action =
-                match sign with
-                | '+' -> Enable_range (num1, num2)
-                | '-' -> Disable_range (num1, num2)
-                | '@' | _ -> Enable_as_error_range (num1, num2)
-              in
-              parse !k (action :: acc))
-            else parse !k acc)
-          else (
-            let action =
-              match sign with
-              | '+' -> Enable num1
-              | '-' -> Disable num1
-              | '@' | _ -> Enable_as_error num1
-            in
-            parse !j (action :: acc)))
+              parse r_end (make_range_action sign num1 num2 :: acc))
+            else parse r_end acc)
+          else parse digits_end (make_single_action sign num1 :: acc))
         else if
-          !j < len
-          && ((s.[!j] >= 'a' && s.[!j] <= 'z') || (s.[!j] >= 'A' && s.[!j] <= 'Z'))
+          digits_end < len
+          && ((s.[digits_end] >= 'a' && s.[digits_end] <= 'z')
+              || (s.[digits_end] >= 'A' && s.[digits_end] <= 'Z'))
         then (
-          let letter = s.[!j] in
-          let action =
-            match sign with
-            | '+' -> Enable_letter letter
-            | '-' -> Disable_letter letter
-            | '@' | _ -> Enable_as_error_letter letter
-          in
-          parse (!j + 1) (action :: acc))
-        else parse (!j + 1) acc)
+          let letter = s.[digits_end] in
+          parse (digits_end + 1) (make_letter_action sign letter :: acc))
+        else parse (digits_end + 1) acc)
       else parse (i + 1) acc)
   in
   parse 0 []
