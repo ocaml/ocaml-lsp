@@ -211,7 +211,8 @@ let () =
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {|
+  [%expect
+    {|
     {
       "contents": "Enables warning 9: Missing fields in a record pattern.\nDisables warning 26: Suspicious unused variable: unused variable that is bound\n    with \"let\" or \"as\", and doesn't start with an underscore (\"_\")\n    character.\nEnables warning 3 as an error: Deprecated synonym for the 'deprecated' alert.\nEnables warnings 10 to 15\nDisables warnings 20 to 25\nEnables warnings 30 to 35 as errors\nEnables warning set 'a'\nDisables warning set 'z'\nEnables warning set 'b' as errors"
     }
@@ -236,3 +237,64 @@ let () =
   [%expect {| { "contents": "Enables warning set 'a'" } |}]
 ;;
 
+let%expect_test "parse_warning_payload unit tests" =
+  let open Ocaml_lsp_server in
+  let show_action = function
+    | Hover_req.Enable n -> Printf.sprintf "Enable %d" n
+    | Disable n -> Printf.sprintf "Disable %d" n
+    | Enable_as_error n -> Printf.sprintf "Enable_as_error %d" n
+    | Enable_range (n1, n2) -> Printf.sprintf "Enable_range (%d, %d)" n1 n2
+    | Disable_range (n1, n2) -> Printf.sprintf "Disable_range (%d, %d)" n1 n2
+    | Enable_as_error_range (n1, n2) ->
+      Printf.sprintf "Enable_as_error_range (%d, %d)" n1 n2
+    | Enable_letter c -> Printf.sprintf "Enable_letter '%c'" c
+    | Disable_letter c -> Printf.sprintf "Disable_letter '%c'" c
+    | Enable_as_error_letter c -> Printf.sprintf "Enable_as_error_letter '%c'" c
+  in
+  let run payload =
+    let actions = Hover_req.parse_warning_payload payload in
+    List.iter actions ~f:(fun act -> print_endline (show_action act))
+  in
+  print_endline "Test 1: Empty and basic inputs";
+  run "";
+  run "+9";
+  run "-26";
+  run "@3";
+  print_endline "Test 2: Ranges";
+  run "+10..15";
+  run "-20..25";
+  run "@30..35";
+  print_endline "Test 3: Letters";
+  run "+a";
+  run "-z";
+  run "@b";
+  print_endline "Test 4: Combined and malformed/ignored parts";
+  run "+9-26@3+10..15-20..25@30..35+a-z@b";
+  run "+-@++1..+ab";
+  [%expect
+    {|
+    Test 1: Empty and basic inputs
+    Enable 9
+    Disable 26
+    Enable_as_error 3
+    Test 2: Ranges
+    Enable_range (10, 15)
+    Disable_range (20, 25)
+    Enable_as_error_range (30, 35)
+    Test 3: Letters
+    Enable_letter 'a'
+    Disable_letter 'z'
+    Enable_as_error_letter 'b'
+    Test 4: Combined and malformed/ignored parts
+    Enable 9
+    Disable 26
+    Enable_as_error 3
+    Enable_range (10, 15)
+    Disable_range (20, 25)
+    Enable_as_error_range (30, 35)
+    Enable_letter 'a'
+    Disable_letter 'z'
+    Enable_as_error_letter 'b'
+    Enable_letter 'a'
+    |}]
+;;
