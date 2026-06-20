@@ -34,7 +34,7 @@ let empty = Mconfig_dot.empty_config
 
 module Process = struct
   type nonrec t =
-    { pid : Pid.t
+    { pid : int
     ; prog : string
     ; initial_cwd : string
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
@@ -44,11 +44,11 @@ module Process = struct
 
   let to_dyn { pid; initial_cwd; _ } =
     let open Dyn in
-    record [ "pid", Pid.to_dyn pid; "initial_cwd", string initial_cwd ]
+    record [ "pid", int pid; "initial_cwd", string initial_cwd ]
   ;;
 
   let waitpid t =
-    let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
+    let+ status = Lev_fiber.waitpid ~pid:t.pid in
     (match status with
      | Unix.WEXITED n ->
        (match n with
@@ -81,14 +81,13 @@ module Process = struct
       let stdout_r, stdout_w = Unix.pipe () in
       Unix.set_close_on_exec stdin_w;
       let pid =
-        Pid.of_int
-          (Spawn.spawn
-             ~cwd:(Path dir)
-             ~prog
-             ~argv:(prog :: args)
-             ~stdin:stdin_r
-             ~stdout:stdout_w
-             ())
+        Spawn.spawn
+          ~cwd:(Path dir)
+          ~prog
+          ~argv:(prog :: args)
+          ~stdin:stdin_r
+          ~stdout:stdout_w
+          ()
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
@@ -369,7 +368,7 @@ module DB = struct
   let stop t =
     let* () = Fiber.return () in
     Table.iter t.running ~f:(fun running ->
-      let pid = Pid.to_int running.process.pid in
+      let pid = running.process.pid in
       Unix.kill pid (if Sys.win32 then Sys.sigkill else Sys.sigterm));
     Fiber.Pool.stop t.pool
   ;;

@@ -24,7 +24,7 @@ module Dune = struct
 
   module T = struct
     type t =
-      { pid : Pid.t
+      { pid : int
       ; id : Id.t
       }
 
@@ -165,7 +165,7 @@ let send =
         if annotate_dune_pid
         then
           fun pid (d : Diagnostic.t) ->
-            let source = Some (sprintf "dune (pid=%d)" (Pid.to_int pid)) in
+            let source = Some (sprintf "dune (pid=%d)" pid) in
             { d with source }
         else fun _pid x -> x
       in
