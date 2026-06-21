@@ -19,7 +19,7 @@ module Ocamlformat_rpc = Ocamlformat_rpc_lib.Make (struct
 module Process : sig
   type t
 
-  val pid : t -> Pid.t
+  val pid : t -> int
   val client : t -> Ocamlformat_rpc.client
 
   val create
@@ -31,7 +31,7 @@ module Process : sig
   val run : t -> unit Fiber.t
 end = struct
   type t =
-    { pid : Pid.t
+    { pid : int
     ; session : Lev_fiber_csexp.Session.t
     ; client : Ocamlformat_rpc.client
     }
@@ -101,7 +101,7 @@ end = struct
       in
       Fiber.return @@ Error `No_process
     | Ok client ->
-      let process = { pid = Pid.of_int pid; session; client } in
+      let process = { pid; session; client } in
       let* () = configure ~logger process in
       let+ () =
         let message = Printf.sprintf "Ocamlformat-RPC server started with PID %i" pid in
@@ -111,7 +111,7 @@ end = struct
   ;;
 
   let run { pid; session; _ } =
-    let+ (_ : Unix.process_status) = Lev_fiber.waitpid ~pid:(Pid.to_int pid) in
+    let+ (_ : Unix.process_status) = Lev_fiber.waitpid ~pid in
     Lev_fiber_csexp.Session.close session
   ;;
 end
@@ -199,7 +199,7 @@ let stop t =
     t := Stopped;
     Fiber.fork_and_join_unit (maybe_fill wait_init) (maybe_fill ask_init)
   | Running process ->
-    let pid = Pid.to_int (Process.pid process) in
+    let pid = Process.pid process in
     t := Stopped;
     Unix.kill pid Sys.sigkill;
     Fiber.return ()

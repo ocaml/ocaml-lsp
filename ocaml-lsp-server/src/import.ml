@@ -11,7 +11,6 @@ include struct
   module Unix_env = Env
   module Map = Map
   module Monoid = Monoid
-  module Pid = Pid
   module Poly = Poly
 
   let sprintf = sprintf
