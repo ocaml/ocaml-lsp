@@ -309,13 +309,23 @@ let error_to_diagnostics ~diagnostics ~merlin error =
     then first_n_lines_of_range original_range 1
     else original_range
   in
+  let make_message ppf m = String.trim (Format.asprintf "%a@." ppf m) in
+  let message = make_message Loc.print_main error in
+  let code =
+    match error.kind with
+    | Report_warning s | Report_warning_as_error s ->
+      (match int_of_string_opt s with
+       | Some c -> Some (`Int c)
+       | None -> Some (`String s))
+    | _ ->
+      (try Scanf.sscanf message "Warning %d" (fun d -> Some (`Int d)) with
+       | _ -> None)
+  in
   let severity =
     match error.source with
     | Warning -> DiagnosticSeverity.Warning
     | _ -> DiagnosticSeverity.Error
   in
-  let make_message ppf m = String.trim (Format.asprintf "%a@." ppf m) in
-  let message = make_message Loc.print_main error in
   let message, related_information =
     match diagnostics.related_information with
     | false -> message, None
@@ -351,6 +361,7 @@ let error_to_diagnostics ~diagnostics ~merlin error =
   create_diagnostic
     ?tags
     ?relatedInformation
+    ?code
     ~range
     ~message:(`String message)
     ~severity
@@ -425,4 +436,14 @@ let set_shorten_merlin_diagnostics t ~shorten_merlin_diagnostics =
       Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
         t.dirty_uris <- Uri_set.add t.dirty_uris uri));
     send t `All)
+;;
+
+let get_diagnostics t uri =
+  let merlin_diags = Table.find t.merlin uri |> Option.value ~default:[] in
+  let dune_diags =
+    Table.fold t.dune ~init:[] ~f:(fun per_dune acc ->
+      Table.fold per_dune ~init:acc ~f:(fun (d_uri, diag) acc ->
+        if Uri.equal d_uri uri then diag :: acc else acc))
+  in
+  merlin_diags @ dune_diags
 ;;

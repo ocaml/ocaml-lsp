@@ -13,6 +13,107 @@ let environment_mode =
   | Some false | None -> Default
 ;;
 
+type warning_action =
+  | Enable of int
+  | Disable of int
+  | Enable_as_error of int
+  | Enable_range of int * int
+  | Disable_range of int * int
+  | Enable_as_error_range of int * int
+  | Enable_letter of char
+  | Disable_letter of char
+  | Enable_as_error_letter of char
+
+let scan_digits s len start =
+  let j = ref start in
+  while !j < len && s.[!j] >= '0' && s.[!j] <= '9' do
+    incr j
+  done;
+  !j
+;;
+
+let make_range_action sign num1 num2 =
+  match sign with
+  | '+' -> Enable_range (num1, num2)
+  | '-' -> Disable_range (num1, num2)
+  | '@' | _ -> Enable_as_error_range (num1, num2)
+;;
+
+let make_single_action sign num =
+  match sign with
+  | '+' -> Enable num
+  | '-' -> Disable num
+  | '@' | _ -> Enable_as_error num
+;;
+
+let make_letter_action sign letter =
+  match sign with
+  | '+' -> Enable_letter letter
+  | '-' -> Disable_letter letter
+  | '@' | _ -> Enable_as_error_letter letter
+;;
+
+let parse_warning_payload s =
+  let len = String.length s in
+  let rec parse i acc =
+    if i >= len
+    then List.rev acc
+    else (
+      let sign = s.[i] in
+      if sign = '+' || sign = '-' || sign = '@'
+      then (
+        let next_idx = i + 1 in
+        let digits_end = scan_digits s len next_idx in
+        let num1_str = String.sub s ~pos:next_idx ~len:(digits_end - next_idx) in
+        if num1_str <> ""
+        then (
+          let num1 = int_of_string num1_str in
+          if digits_end + 1 < len && s.[digits_end] = '.' && s.[digits_end + 1] = '.'
+          then (
+            let r_start = digits_end + 2 in
+            let r_end = scan_digits s len r_start in
+            let num2_str = String.sub s ~pos:r_start ~len:(r_end - r_start) in
+            if not (String.equal num2_str "")
+            then (
+              let num2 = int_of_string num2_str in
+              parse r_end (make_range_action sign num1 num2 :: acc))
+            else parse r_end acc)
+          else parse digits_end (make_single_action sign num1 :: acc))
+        else if
+          digits_end < len
+          && ((s.[digits_end] >= 'a' && s.[digits_end] <= 'z')
+              || (s.[digits_end] >= 'A' && s.[digits_end] <= 'Z'))
+        then (
+          let letter = s.[digits_end] in
+          parse (digits_end + 1) (make_letter_action sign letter :: acc))
+        else parse (digits_end + 1) acc)
+      else parse (i + 1) acc)
+  in
+  parse 0 []
+;;
+
+let format_warning_action action =
+  let get_desc n =
+    List.find_map
+      Ocaml_utils.Warnings.descriptions
+      ~f:(fun (description : Ocaml_utils.Warnings.description) ->
+        if n = description.number then Some description.description else None)
+    |> Option.value ~default:""
+  in
+  match action with
+  | Enable n -> Printf.sprintf "Enables warning %d: %s" n (get_desc n)
+  | Disable n -> Printf.sprintf "Disables warning %d: %s" n (get_desc n)
+  | Enable_as_error n ->
+    Printf.sprintf "Enables warning %d as an error: %s" n (get_desc n)
+  | Enable_range (n1, n2) -> Printf.sprintf "Enables warnings %d to %d" n1 n2
+  | Disable_range (n1, n2) -> Printf.sprintf "Disables warnings %d to %d" n1 n2
+  | Enable_as_error_range (n1, n2) ->
+    Printf.sprintf "Enables warnings %d to %d as errors" n1 n2
+  | Enable_letter c -> Printf.sprintf "Enables warning set '%c'" c
+  | Disable_letter c -> Printf.sprintf "Disables warning set '%c'" c
+  | Enable_as_error_letter c -> Printf.sprintf "Enables warning set '%c' as errors" c
+;;
+
 let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   let result = ref None in
   let is_at_cursor ({ loc_start; loc_end; _ } : Ocaml_parsing.Location.t) =
@@ -243,6 +344,32 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
       result := Some `Type_enclosing
     | _ -> Ast_iterator.default_iterator.signature_item self item
   in
+  let attribute (self : Ast_iterator.iterator) (attr : Parsetree.attribute) =
+    if is_at_cursor attr.attr_name.loc || is_at_cursor attr.attr_loc
+    then (
+      match attr.attr_name.txt with
+      | "warning" | "warnerror" ->
+        (match attr.attr_payload with
+         | PStr
+             [ { pstr_desc =
+                   Pstr_eval
+                     ( { pexp_desc =
+                           Pexp_constant
+                             { pconst_desc = Pconst_string (payload, _, _); _ }
+                       ; _
+                       }
+                     , _ )
+               ; _
+               }
+             ] ->
+           let actions = parse_warning_payload payload in
+           let markdown_lines = List.map ~f:format_warning_action actions in
+           let markdown = String.concat ~sep:"\n" markdown_lines in
+           if markdown <> "" then result := Some (`Warning_attribute markdown)
+         | _ -> Ast_iterator.default_iterator.attribute self attr)
+      | _ -> Ast_iterator.default_iterator.attribute self attr)
+    else Ast_iterator.default_iterator.attribute self attr
+  in
   let iterator =
     { Ast_iterator.default_iterator with
       pat
@@ -261,6 +388,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     ; class_type_field
     ; class_type
     ; class_expr
+    ; attribute
     }
   in
   let () =
@@ -283,6 +411,7 @@ let format_type_enclosing
       ~typ
       ~doc
       ~(syntax_doc : Query_protocol.syntax_doc_result option)
+      ~warnings_doc
   =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -306,11 +435,13 @@ let format_type_enclosing
              | Raw d -> d
              | Markdown d -> d)
          in
-         print_dividers (List.filter_opt [ type_info; syntax_doc; doc ])
+         print_dividers (List.filter_opt [ type_info; syntax_doc; doc; warnings_doc ])
        in
        { MarkupContent.value; kind = MarkupKind.Markdown })
      else (
-       let value = print_dividers (List.filter_opt [ Some typ; syntax_doc; doc ]) in
+       let value =
+         print_dividers (List.filter_opt [ Some typ; syntax_doc; doc; warnings_doc ])
+       in
        { MarkupContent.value; kind = MarkupKind.PlainText }))
 ;;
 
@@ -385,13 +516,60 @@ let type_enclosing_hover
         in
         typ
     in
+    let warnings =
+      let active_diagnostics =
+        Diagnostics.get_diagnostics (State.diagnostics state) uri
+      in
+      List.filter_map active_diagnostics ~f:(fun (d : Diagnostic.t) ->
+        let start_cmp = Position.compare d.range.start position in
+        let end_cmp = Position.compare d.range.end_ position in
+        let contains =
+          (match start_cmp with
+           | Ordering.Lt | Ordering.Eq -> true
+           | Ordering.Gt -> false)
+          &&
+          match end_cmp with
+          | Ordering.Gt | Ordering.Eq -> true
+          | Ordering.Lt -> false
+        in
+        if contains
+        then (
+          match d.code with
+          | Some (`Int code) ->
+            List.find_map Ocaml_utils.Warnings.descriptions ~f:(fun desc ->
+              if desc.number = code then Some (code, desc.description) else None)
+          | Some (`String code_str) ->
+            List.find_map Ocaml_utils.Warnings.descriptions ~f:(fun desc ->
+              if desc.number = int_of_string code_str
+              then Some (int_of_string code_str, desc.description)
+              else None)
+          | None -> None)
+        else None)
+    in
+    let warnings_doc =
+      match warnings with
+      | [] -> None
+      | _ ->
+        let text =
+          List.map warnings ~f:(fun (code, desc) ->
+            sprintf "**Warning %d**: %s" code desc)
+          |> String.concat ~sep:"\n\n"
+        in
+        Some text
+    in
     let contents =
       let markdown =
         let client_capabilities = State.client_capabilities state in
         ClientCapabilities.markdown_support client_capabilities ~field:(fun td ->
           Option.map td.hover ~f:(fun h -> h.contentFormat))
       in
-      format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation ~syntax_doc
+      format_type_enclosing
+        ~syntax
+        ~markdown
+        ~typ
+        ~doc:documentation
+        ~syntax_doc
+        ~warnings_doc
     in
     let range = Range.of_loc loc in
     let hover = Hover.create ~contents ~range () in
@@ -524,6 +702,19 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
            | Some _ | None -> false
          in
          type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position ~with_syntax_doc
+       | Some (`Warning_attribute markdown) ->
+         let contents =
+           let client_capabilities = State.client_capabilities state in
+           let markdown_support =
+             ClientCapabilities.markdown_support client_capabilities ~field:(fun td ->
+               Option.map td.hover ~f:(fun h -> h.contentFormat))
+           in
+           if markdown_support
+           then `MarkupContent (MarkupContent.create ~kind:Markdown ~value:markdown)
+           else `MarkedString { Lsp.Types.MarkedString.value = markdown; language = None }
+         in
+         let range = None in
+         Fiber.return (Some (Hover.create ~contents ?range ()))
        | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
          let+ ppx_parsetree =
            Document.Merlin.with_pipeline_exn

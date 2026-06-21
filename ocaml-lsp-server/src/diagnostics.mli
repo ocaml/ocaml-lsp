@@ -39,6 +39,7 @@ val tags_of_message
 val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
 val set_report_dune_diagnostics : t -> report_dune_diagnostics:bool -> unit Fiber.t
 val set_shorten_merlin_diagnostics : t -> shorten_merlin_diagnostics:bool -> unit Fiber.t
+val get_diagnostics : t -> Uri.t -> Diagnostic.t list
 
 (** Exposed for testing *)
 
