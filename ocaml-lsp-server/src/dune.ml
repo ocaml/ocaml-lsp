@@ -459,7 +459,7 @@ end = struct
       ; finish
       ; promotions = String.Map.empty
       ; client = None
-      ; diagnostics_id = Diagnostics.Dune.gen (Pid.of_int (Registry.Dune.pid source))
+      ; diagnostics_id = Diagnostics.Dune.gen (Registry.Dune.pid source)
       ; id = Id.gen ()
       }
     in

@@ -15,7 +15,6 @@ let run_command ?(cwd = Spawn.Working_dir.Inherit) cancel prog stdin_value args 
     let pid =
       let argv = prog :: args in
       Spawn.spawn ~cwd ~prog ~argv ~stdin:stdin_i ~stdout:stdout_o ~stderr:stderr_o ()
-      |> Stdune.Pid.of_int
     in
     Unix.close stdin_i;
     Unix.close stdout_o;
@@ -28,7 +27,7 @@ let run_command ?(cwd = Spawn.Working_dir.Inherit) cancel prog stdin_value args 
           res, Fiber.Cancel.Not_cancelled
       | Some token ->
         let on_cancel () =
-          Unix.kill (Pid.to_int pid) Sys.sigterm;
+          Unix.kill pid Sys.sigterm;
           Fiber.return ()
         in
         fun f -> Fiber.Cancel.with_handler token ~on_cancel f
@@ -69,7 +68,7 @@ let run_command ?(cwd = Spawn.Working_dir.Inherit) cancel prog stdin_value args 
     in
     let+ status, (stdout, stderr) =
       Fiber.fork_and_join
-        (fun () -> Lev_fiber.waitpid ~pid:(Pid.to_int pid))
+        (fun () -> Lev_fiber.waitpid ~pid)
         (fun () ->
            Fiber.fork_and_join_unit stdin (fun () ->
              Fiber.fork_and_join (read stdout_i) (read stderr_i)))
