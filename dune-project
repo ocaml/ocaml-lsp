@@ -70,7 +70,7 @@ possible and does not make any assumptions about IO.
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (merlin-lib (= 5.7-505~preview))
+  (merlin-lib (and (>= 5.8) (< 5.9)))
   (ocaml-index :post)
   (ppx_yojson_conv :with-dev-setup)))
 

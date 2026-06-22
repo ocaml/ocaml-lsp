@@ -28,7 +28,7 @@
 open Import
 open Fiber.O
 module Std = Merlin_utils.Std
-module Misc = Merlin_utils.Misc
+module Misc = Ocaml_utils.Misc
 
 let empty = Mconfig_dot.empty_config
 
