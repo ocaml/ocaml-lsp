@@ -725,12 +725,12 @@ let () =
         {
           "data": {
             "kind": "type-ref",
-            "type": "b",
+            "type": "a",
             "result": {
               "kind": "found",
               "has_uri": true,
               "uri": "file:///test.ml",
-              "position": { "character": 5, "line": 2 }
+              "position": { "character": 5, "line": 1 }
             }
           },
           "children": []
@@ -738,12 +738,12 @@ let () =
         {
           "data": {
             "kind": "type-ref",
-            "type": "a",
+            "type": "b",
             "result": {
               "kind": "found",
               "has_uri": true,
               "uri": "file:///test.ml",
-              "position": { "character": 5, "line": 1 }
+              "position": { "character": 5, "line": 2 }
             }
           },
           "children": []
@@ -791,12 +791,12 @@ let () =
         {
           "data": {
             "kind": "type-ref",
-            "type": "b",
+            "type": "a",
             "result": {
               "kind": "found",
               "has_uri": true,
               "uri": "file:///test.ml",
-              "position": { "character": 5, "line": 2 }
+              "position": { "character": 5, "line": 1 }
             }
           },
           "children": []
@@ -804,12 +804,12 @@ let () =
         {
           "data": {
             "kind": "type-ref",
-            "type": "a",
+            "type": "b",
             "result": {
               "kind": "found",
               "has_uri": true,
               "uri": "file:///test.ml",
-              "position": { "character": 5, "line": 1 }
+              "position": { "character": 5, "line": 2 }
             }
           },
           "children": []
@@ -857,12 +857,12 @@ let () =
         {
           "data": {
             "kind": "type-ref",
-            "type": "b",
+            "type": "a",
             "result": {
               "kind": "found",
               "has_uri": true,
               "uri": "file:///test.ml",
-              "position": { "character": 5, "line": 2 }
+              "position": { "character": 5, "line": 1 }
             }
           },
           "children": []
@@ -870,12 +870,12 @@ let () =
         {
           "data": {
             "kind": "type-ref",
-            "type": "a",
+            "type": "b",
             "result": {
               "kind": "found",
               "has_uri": true,
               "uri": "file:///test.ml",
-              "position": { "character": 5, "line": 1 }
+              "position": { "character": 5, "line": 2 }
             }
           },
           "children": []
