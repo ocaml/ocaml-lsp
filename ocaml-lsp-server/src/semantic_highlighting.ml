@@ -492,9 +492,8 @@ end = struct
     add_token
       ptype_name.loc
       (match ptype_kind with
-       | Parsetree.Ptype_abstract
-       | Ptype_open
-       | Ptype_external _ -> Token_type.of_builtin Type
+       | Parsetree.Ptype_abstract | Ptype_open | Ptype_external _ ->
+         Token_type.of_builtin Type
        | Ptype_variant _ -> Token_type.of_builtin Enum
        | Ptype_record _ -> Token_type.of_builtin Struct)
       (Token_modifiers_set.singleton Declaration);
@@ -503,9 +502,7 @@ end = struct
       self.typ self ct1);
     Option.iter ptype_manifest ~f:(fun ct -> self.typ self ct);
     (match ptype_kind with
-     | Parsetree.Ptype_abstract
-     | Parsetree.Ptype_open
-     | Parsetree.Ptype_external _ -> ()
+     | Parsetree.Ptype_abstract | Parsetree.Ptype_open | Parsetree.Ptype_external _ -> ()
      | Ptype_variant cds ->
        List.iter cds ~f:(fun cd -> self.constructor_declaration self cd)
      | Ptype_record lds -> List.iter lds ~f:(fun ld -> self.label_declaration self ld));
@@ -637,8 +634,7 @@ end = struct
         self.expr self body;
         `Custom_iterator
       | Pexp_struct_item
-          ({pstr_desc = Pstr_module
-                {pmb_name = name; pmb_expr = me; _ }; _}, e) ->
+          ({ pstr_desc = Pstr_module { pmb_name = name; pmb_expr = me; _ }; _ }, e) ->
         add_token name.loc Token_type.module_ Token_modifiers_set.empty;
         self.module_expr self me;
         self.expr self e;
@@ -650,10 +646,10 @@ end = struct
       | Pexp_for (_, _, _, _, _)
       | Pexp_coerce (_, _, _)
       | Pexp_setinstvar (_, _)
-      | Pexp_override _
-      | Pexp_assert _ | Pexp_lazy _
+      | Pexp_override _ | Pexp_assert _ | Pexp_lazy _
       | Pexp_poly (_, _)
-      | Pexp_object _ | Pexp_pack _
+      | Pexp_object _
+      | Pexp_pack _
       | Pexp_struct_item _ (* TODO: Handle module case for struct item *)
       | Pexp_extension _ -> `Default_iterator
     with
