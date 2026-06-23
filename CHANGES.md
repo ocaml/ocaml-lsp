@@ -1,3 +1,14 @@
+# 1.27.0
+
+## Features
+
+- Upgrade to OCaml 5.5 (#1609)
+
+## Fixes
+
+- Fix compatibility with upcoming Dune versions by avoiding the `Stdune.Pid`
+  module. (#1608)
+
 # 1.26.0
 
 ## Features
@@ -17,8 +28,6 @@
 ## Fixes
 
 - Enable "hover" on more locations, notably class and object related (#1599)
-- Fix compatibility with upcoming Dune versions by avoiding the `Stdune.Pid`
-  module. (#1608)
 
 # 1.25.0
 
