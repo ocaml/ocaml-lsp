@@ -44,42 +44,42 @@ let%expect_test
         "name": "Int.to_string",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 29, "line": 152 },
-          "start": { "character": 0, "line": 152 }
+          "end": { "character": 29, "line": 259 },
+          "start": { "character": 0, "line": 259 }
         },
         "doc": {
           "kind": "markdown",
           "value": "`to_string x` is the written representation of `x` in decimal."
         },
-        "cost": 4,
+        "cost": 6,
         "constructible": "Int.to_string _"
       },
       {
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": {
           "kind": "markdown",
           "value": "Return the string representation of an integer, in decimal."
         },
-        "cost": 4,
+        "cost": 6,
         "constructible": "string_of_int _"
       },
       {
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": {
           "kind": "markdown",
           "value": "Return the string representation of an integer, in decimal."
         },
-        "cost": 4,
+        "cost": 6,
         "constructible": "string_of_int _"
       }
     ]
@@ -101,33 +101,33 @@ let%expect_test
         "name": "Int.to_string",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 29, "line": 152 },
-          "start": { "character": 0, "line": 152 }
+          "end": { "character": 29, "line": 259 },
+          "start": { "character": 0, "line": 259 }
         },
         "doc": null,
-        "cost": 4,
+        "cost": 6,
         "constructible": "Int.to_string _"
       },
       {
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": null,
-        "cost": 4,
+        "cost": 6,
         "constructible": "string_of_int _"
       },
       {
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": null,
-        "cost": 4,
+        "cost": 6,
         "constructible": "string_of_int _"
       }
     ]
@@ -149,8 +149,8 @@ let%expect_test
         "name": "Int.to_string",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 29, "line": 152 },
-          "start": { "character": 0, "line": 152 }
+          "end": { "character": 29, "line": 259 },
+          "start": { "character": 0, "line": 259 }
         },
         "doc": null,
         "cost": 0,
@@ -160,8 +160,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": null,
         "cost": 0,
@@ -171,8 +171,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": null,
         "cost": 0,
@@ -197,8 +197,8 @@ let%expect_test
         "name": "Int.to_string",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 29, "line": 152 },
-          "start": { "character": 0, "line": 152 }
+          "end": { "character": 29, "line": 259 },
+          "start": { "character": 0, "line": 259 }
         },
         "doc": {
           "kind": "plaintext",
@@ -211,8 +211,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": {
           "kind": "plaintext",
@@ -225,8 +225,8 @@ let%expect_test
         "name": "string_of_int",
         "typ": "int -> string",
         "loc": {
-          "end": { "character": 33, "line": 709 },
-          "start": { "character": 0, "line": 709 }
+          "end": { "character": 33, "line": 718 },
+          "start": { "character": 0, "line": 718 }
         },
         "doc": {
           "kind": "plaintext",

@@ -546,6 +546,13 @@ describe("textDocument/foldingRange", () => {
     "startLine": 0,
   },
   {
+    "endCharacter": 4,
+    "endLine": 8,
+    "kind": "region",
+    "startCharacter": 4,
+    "startLine": 0,
+  },
+  {
     "endCharacter": 3,
     "endLine": 8,
     "kind": "region",

@@ -319,7 +319,6 @@ let _ =
       ((fun (type a) (x : a) -> x) 0) |}]
 ;;
 
-(* FIXME this test broke with the update to OCaml 5.2 *)
 let%expect_test "" =
   inline_test
     {|
@@ -327,7 +326,12 @@ let _ =
   let $f : int -> int = fun x -> x in
   f 0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let _ =
+      let f : int -> int = fun x -> x in
+      (0)
+    |}]
 ;;
 
 let%expect_test "" =
