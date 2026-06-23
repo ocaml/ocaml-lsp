@@ -650,7 +650,7 @@ end = struct
       | Pexp_poly (_, _)
       | Pexp_object _
       | Pexp_pack _
-      | Pexp_struct_item _ (* TODO: Handle module case for struct item *)
+      | Pexp_struct_item _
       | Pexp_extension _ -> `Default_iterator
     with
     | `Default_iterator -> Ast_iterator.default_iterator.expr self exp
