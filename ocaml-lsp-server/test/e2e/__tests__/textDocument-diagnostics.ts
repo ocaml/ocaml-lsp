@@ -410,7 +410,8 @@ The type int is not compatible with the type unit",
 {
   "diagnostics": [
     {
-      "message": "The constructor () has type unit but an expression was expected of type int",
+      "message": "This expression should not be a unit literal, the expected type is
+int",
       "range": {
         "end": {
           "character": 42,
