@@ -134,12 +134,7 @@ let send =
                    | None -> assert false
                    | Some source ->
                      String.equal ocamllsp_source source
-                     &&
-                       (match d.message, diagnostic.message with
-                       | `String m1, `String m2 -> equal_message m1 m2
-                       | `MarkupContent { kind; value }, `MarkupContent mc ->
-                         Poly.equal kind mc.kind && equal_message value mc.value
-                       | _, _ -> false))
+                     && equal_message d.message diagnostic.message)
                then diagnostics
                else diagnostic :: diagnostics))
     in
@@ -348,13 +343,7 @@ let error_to_diagnostics ~diagnostics ~merlin error =
     Option.merge maybe_extra_range_information related_information ~f:( @ )
   in
   let tags = tags_of_message diagnostics ~src:`Merlin message in
-  create_diagnostic
-    ?tags
-    ?relatedInformation
-    ~range
-    ~message:(`String message)
-    ~severity
-    ()
+  create_diagnostic ?tags ?relatedInformation ~range ~message ~severity ()
 ;;
 
 let merlin_diagnostics diagnostics merlin =
@@ -370,10 +359,7 @@ let merlin_diagnostics diagnostics merlin =
       match Query_commands.dispatch pipeline command with
       | exception Merlin_extend.Extend_main.Handshake.Error error ->
         let message =
-          `String
-            (sprintf
-               "%s.\nHint: install the following packages: merlin-extend, reason"
-               error)
+          sprintf "%s.\nHint: install the following packages: merlin-extend, reason" error
         in
         [ create_diagnostic ~range:Range.first_line ~message () ]
       | errors ->
@@ -390,12 +376,7 @@ let merlin_diagnostics diagnostics merlin =
             in
             (* we set specific diagnostic code = "hole" to be able to
                filter through diagnostics easily *)
-            create_diagnostic
-              ~code:(`String "hole")
-              ~range
-              ~message:(`String message)
-              ~severity
-              ())
+            create_diagnostic ~code:(`String "hole") ~range ~message ~severity ())
         in
         (* Can we use [List.merge] instead? *)
         List.rev_append holes_as_err_diags merlin_diagnostics

@@ -1853,7 +1853,7 @@ module Diagnostic : sig
     { code : Jsonrpc.Id.t option
     ; codeDescription : CodeDescription.t option
     ; data : Json.t option
-    ; message : [ `String of string | `MarkupContent of MarkupContent.t ]
+    ; message : string
     ; range : Range.t
     ; relatedInformation : DiagnosticRelatedInformation.t list option
     ; severity : DiagnosticSeverity.t option
@@ -1865,7 +1865,7 @@ module Diagnostic : sig
     :  ?code:Jsonrpc.Id.t
     -> ?codeDescription:CodeDescription.t
     -> ?data:Json.t
-    -> message:[ `String of string | `MarkupContent of MarkupContent.t ]
+    -> message:string
     -> range:Range.t
     -> ?relatedInformation:DiagnosticRelatedInformation.t list
     -> ?severity:DiagnosticSeverity.t

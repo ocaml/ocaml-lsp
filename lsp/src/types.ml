@@ -16865,34 +16865,13 @@ module CodeDescription = struct
 end
 
 module Diagnostic = struct
-  type message_pvar =
-    [ `String of string
-    | `MarkupContent of MarkupContent.t
-    ]
-
-  let message_pvar_of_yojson (json : Json.t) : message_pvar =
-    match json with
-    | `String j -> `String j
-    | _ ->
-      Json.Of.untagged_union
-        "message_pvar"
-        [ (fun json -> `MarkupContent (MarkupContent.t_of_yojson json)) ]
-        json
-  ;;
-
-  let yojson_of_message_pvar (message_pvar : message_pvar) : Json.t =
-    match message_pvar with
-    | `String j -> `String j
-    | `MarkupContent s -> MarkupContent.yojson_of_t s
-  ;;
-
   type t =
     { code : Jsonrpc.Id.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; codeDescription : CodeDescription.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; data : Json.t option [@yojson.option]
-    ; message : message_pvar
+    ; message : string
     ; range : Range.t
     ; relatedInformation : DiagnosticRelatedInformation.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -16954,7 +16933,7 @@ module Diagnostic = struct
             | "message" ->
               (match Ppx_yojson_conv_lib.( ! ) message_field with
                | Ppx_yojson_conv_lib.Option.None ->
-                 let fvalue = message_pvar_of_yojson _field_yojson in
+                 let fvalue = string_of_yojson _field_yojson in
                  message_field := Ppx_yojson_conv_lib.Option.Some fvalue
                | Ppx_yojson_conv_lib.Option.Some _ ->
                  duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -17153,7 +17132,7 @@ module Diagnostic = struct
          ("range", arg) :: bnds
        in
        let bnds =
-         let arg = yojson_of_message_pvar v_message in
+         let arg = yojson_of_string v_message in
          ("message", arg) :: bnds
        in
        let bnds =
@@ -17195,7 +17174,7 @@ module Diagnostic = struct
         ?(code : Jsonrpc.Id.t option)
         ?(codeDescription : CodeDescription.t option)
         ?(data : Json.t option)
-        ~(message : message_pvar)
+        ~(message : string)
         ~(range : Range.t)
         ?(relatedInformation : DiagnosticRelatedInformation.t list option)
         ?(severity : DiagnosticSeverity.t option)
