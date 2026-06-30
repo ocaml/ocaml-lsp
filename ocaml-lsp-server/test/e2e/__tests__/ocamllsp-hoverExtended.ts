@@ -347,7 +347,7 @@ int
   "contents": {
     "kind": "markdown",
     "value": "\`\`\`ocaml
-type s = t
+type s = string
 \`\`\`",
   },
   "range": {
