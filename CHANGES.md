@@ -1,3 +1,9 @@
+# 1.28.0
+
+## Fixes
+
+- Fix opam installation error due to `merlin-lib` version. (#1611)
+
 # 1.27.0
 
 ## Features
