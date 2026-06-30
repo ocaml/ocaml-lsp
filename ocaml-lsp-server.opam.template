@@ -13,7 +13,7 @@ build: [
 ]
 
 pin-depends: [
-  [ "merlin-lib.5.7-504" "git+https://github.com/ocaml/merlin.git#main" ]
+  [ "merlin-lib.5.8-505" "git+https://github.com/ocaml/merlin.git#main" ]
   [ "ocaml-index.5.7-504" "git+https://github.com/ocaml/merlin.git#main" ]
 ]
 
