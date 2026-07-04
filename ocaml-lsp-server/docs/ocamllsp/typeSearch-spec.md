@@ -32,8 +32,8 @@ export interface TypeSearchParams extends TexDocumentPositionParams
 
 ## Response
 ```json
-{
-    [
+[
+    {
         "name": string,
         "typ": string,
         "loc": Range,
@@ -43,13 +43,13 @@ export interface TypeSearchParams extends TexDocumentPositionParams
         },
         "cost": int,
         "constructible" : string
-    ]
-}
+    }
+]
  ```
 - name: The fully qualified name of this result.,
 - typ: The signature of this result,
-- loc: The location of the definition of this result in the source code.,
-- doc: Optional documentation associated with this result.,
-- cost: A numeric value representing the "cost" or distance between this result and the query.
-- constructible: A constructible form or template that can be used to invoke this result
+- loc: The location of the definition of this result in the source code,
+- doc: Optional documentation associated with this result,
+- cost: A numeric value representing the "cost" or distance between this result and the query,
+- constructible: A constructible form or template that can be used to invoke this result,
 - A response with null result is returned if no entries are found.
