@@ -109,8 +109,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         if is_at_keyword
         then result := Some `Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
-      | Pexp_extension (ppx, _) when is_at_cursor ppx.loc ->
-        result := Some (`Ppx_expr ppx.txt)
+      | Pexp_extension (ppx, _) when is_at_cursor ppx.loc -> result := Some (`Ppx ppx.txt)
       | _ -> Ast_iterator.default_iterator.expr self expr)
   in
   (* Hover a value declaration in a signature *)
@@ -135,7 +134,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         List.find decl.ptype_attributes ~f:(fun attr -> is_at_cursor attr.attr_loc)
       in
       match attribute_at_cursor with
-      | Some attr -> result := Some (`Ppx_typedef_attr attr.attr_name.txt)
+      | Some attr -> result := Some (`Ppx attr.attr_name.txt)
       | None -> Ast_iterator.default_iterator.type_declaration self decl)
   in
   (* Classes and objects *)
@@ -419,7 +418,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
            | Some _ | None -> false
          in
          type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position ~with_syntax_doc
-       | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
+       | Some (`Ppx ppx) ->
          let+ ppxed_source =
            Document.Merlin.dispatch_exn
              ~name:"expand-ppx"
@@ -428,11 +427,6 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
          in
          (match ppxed_source with
           | `Found { Query_protocol.code; attr_start; attr_end } ->
-            let ppx =
-              match ppx_kind with
-              | `Ppx_expr ppx -> ppx
-              | `Ppx_typedef_attr ppx -> ppx
-            in
             let range =
               Range.of_loc
                 { loc_start = attr_start; loc_end = attr_end; loc_ghost = false }
