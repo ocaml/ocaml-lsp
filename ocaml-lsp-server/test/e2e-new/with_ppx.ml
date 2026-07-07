@@ -81,7 +81,7 @@ let%expect_test "with-ppx" =
       },
       "range": {
         "end": { "character": 16, "line": 2 },
-        "start": { "character": 4, "line": 2 }
+        "start": { "character": 2, "line": 2 }
       }
     }
     |xxx}]
