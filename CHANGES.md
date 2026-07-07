@@ -1,3 +1,8 @@
+# Unreleased
+
+## Features
+ - Refactor ppx hover to use merlin directly (#1606)
+
 # 1.27.0
 
 ## Features
