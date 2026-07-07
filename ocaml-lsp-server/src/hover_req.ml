@@ -275,30 +275,15 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     | _ -> Ast_iterator.default_iterator.signature_item self item
   in
   let attribute (self : Ast_iterator.iterator) (attr : Parsetree.attribute) =
-    if is_at_cursor attr.attr_name.loc || is_at_cursor attr.attr_loc
+    if is_at_cursor attr.attr_loc
     then (
       match attr.attr_name.txt with
       | "warning" | "warnerror" ->
-        (match attr.attr_payload with
-         | PStr
-             [ { pstr_desc =
-                   Pstr_eval
-                     ( { pexp_desc =
-                           Pexp_constant
-                             { pconst_desc = Pconst_string (payload, _, _); _ }
-                       ; _
-                       }
-                     , _ )
-               ; _
-               }
-             ] ->
-           let actions = Ocaml_utils.Warnings.parse_warnings payload in
-           let markdown_lines = List.map ~f:format_warning_action actions in
-           let markdown = String.concat ~sep:"\n" markdown_lines in
-           if markdown <> "" then result := Some (`Warning_attribute markdown)
-         | _ -> ())
-      | _ -> ();
-    Ast_iterator.default_iterator.attribute self attr
+        (match Ocaml_parsing.Ast_helper.extract_str_payload attr.attr_payload with
+         | Some payload -> result := Some (`Warning_attribute payload)
+         | None -> ())
+      | _ -> Ast_iterator.default_iterator.attribute self attr)
+    else Ast_iterator.default_iterator.attribute self attr
   in
   let iterator =
     { Ast_iterator.default_iterator with
@@ -632,19 +617,33 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
            | Some _ | None -> false
          in
          type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position ~with_syntax_doc
-       | Some (`Warning_attribute markdown) ->
+       | Some (`Warning_attribute (str, _loc)) ->
          let contents =
-           let client_capabilities = State.client_capabilities state in
-           let markdown_support =
-             ClientCapabilities.markdown_support client_capabilities ~field:(fun td ->
-               Option.map td.hover ~f:(fun h -> h.contentFormat))
+           let actions =
+             try Ocaml_utils.Warnings.parse_warnings str with
+             | Arg.Bad _ -> []
            in
-           if markdown_support
-           then `MarkupContent (MarkupContent.create ~kind:Markdown ~value:markdown)
-           else `MarkedString { Lsp.Types.MarkedString.value = markdown; language = None }
+           let markdown_lines = List.map ~f:format_warning_action actions in
+           let markdown = String.concat ~sep:"\n" markdown_lines in
+           if markdown = ""
+           then None
+           else (
+             let client_capabilities = State.client_capabilities state in
+             let markdown_support =
+               ClientCapabilities.markdown_support client_capabilities ~field:(fun td ->
+                 Option.map td.hover ~f:(fun h -> h.contentFormat))
+             in
+             if markdown_support
+             then
+               Some (`MarkupContent (MarkupContent.create ~kind:Markdown ~value:markdown))
+             else
+               Some
+                 (`MarkedString
+                     { Lsp.Types.MarkedString.value = markdown; language = None }))
          in
-         let range = None in
-         Fiber.return (Some (Hover.create ~contents ?range ()))
+         (match contents with
+          | Some contents -> Fiber.return (Some (Hover.create ~contents ()))
+          | None -> Fiber.return None)
        | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
          let+ ppx_parsetree =
            Document.Merlin.with_pipeline_exn

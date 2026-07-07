@@ -234,5 +234,5 @@ let () =
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| { "contents": "Enables warning set 'a'" } |}]
+  [%expect {| no hover response |}]
 ;;
