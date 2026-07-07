@@ -13,86 +13,7 @@ let environment_mode =
   | Some false | None -> Default
 ;;
 
-type warning_action =
-  | Enable of int
-  | Disable of int
-  | Enable_as_error of int
-  | Enable_range of int * int
-  | Disable_range of int * int
-  | Enable_as_error_range of int * int
-  | Enable_letter of char
-  | Disable_letter of char
-  | Enable_as_error_letter of char
-
-let scan_digits s len start =
-  let j = ref start in
-  while !j < len && s.[!j] >= '0' && s.[!j] <= '9' do
-    incr j
-  done;
-  !j
-;;
-
-let make_range_action sign num1 num2 =
-  match sign with
-  | '+' -> Enable_range (num1, num2)
-  | '-' -> Disable_range (num1, num2)
-  | '@' | _ -> Enable_as_error_range (num1, num2)
-;;
-
-let make_single_action sign num =
-  match sign with
-  | '+' -> Enable num
-  | '-' -> Disable num
-  | '@' | _ -> Enable_as_error num
-;;
-
-let make_letter_action sign letter =
-  match sign with
-  | '+' -> Enable_letter letter
-  | '-' -> Disable_letter letter
-  | '@' | _ -> Enable_as_error_letter letter
-;;
-
-let parse_warning_payload s =
-  let len = String.length s in
-  let rec parse i acc =
-    if i >= len
-    then List.rev acc
-    else (
-      let sign = s.[i] in
-      if sign = '+' || sign = '-' || sign = '@'
-      then (
-        let next_idx = i + 1 in
-        let digits_end = scan_digits s len next_idx in
-        let num1_str = String.sub s ~pos:next_idx ~len:(digits_end - next_idx) in
-        if num1_str <> ""
-        then (
-          let num1 = int_of_string num1_str in
-          if digits_end + 1 < len && s.[digits_end] = '.' && s.[digits_end + 1] = '.'
-          then (
-            let r_start = digits_end + 2 in
-            let r_end = scan_digits s len r_start in
-            let num2_str = String.sub s ~pos:r_start ~len:(r_end - r_start) in
-            if not (String.equal num2_str "")
-            then (
-              let num2 = int_of_string num2_str in
-              parse r_end (make_range_action sign num1 num2 :: acc))
-            else parse r_end acc)
-          else parse digits_end (make_single_action sign num1 :: acc))
-        else if
-          digits_end < len
-          && ((s.[digits_end] >= 'a' && s.[digits_end] <= 'z')
-              || (s.[digits_end] >= 'A' && s.[digits_end] <= 'Z'))
-        then (
-          let letter = s.[digits_end] in
-          parse (digits_end + 1) (make_letter_action sign letter :: acc))
-        else parse (digits_end + 1) acc)
-      else parse (i + 1) acc)
-  in
-  parse 0 []
-;;
-
-let format_warning_action action =
+let format_warning_action (token : Ocaml_utils.Warnings.token) =
   let get_desc n =
     List.find_map
       Ocaml_utils.Warnings.descriptions
@@ -100,18 +21,27 @@ let format_warning_action action =
         if n = description.number then Some description.description else None)
     |> Option.value ~default:""
   in
-  match action with
-  | Enable n -> Printf.sprintf "Enables warning %d: %s" n (get_desc n)
-  | Disable n -> Printf.sprintf "Disables warning %d: %s" n (get_desc n)
-  | Enable_as_error n ->
-    Printf.sprintf "Enables warning %d as an error: %s" n (get_desc n)
-  | Enable_range (n1, n2) -> Printf.sprintf "Enables warnings %d to %d" n1 n2
-  | Disable_range (n1, n2) -> Printf.sprintf "Disables warnings %d to %d" n1 n2
-  | Enable_as_error_range (n1, n2) ->
-    Printf.sprintf "Enables warnings %d to %d as errors" n1 n2
-  | Enable_letter c -> Printf.sprintf "Enables warning set '%c'" c
-  | Disable_letter c -> Printf.sprintf "Disables warning set '%c'" c
-  | Enable_as_error_letter c -> Printf.sprintf "Enables warning set '%c' as errors" c
+  match token with
+  | Num (n1, n2, modifier) ->
+    if n1 = n2
+    then (
+      match modifier with
+      | Set -> Printf.sprintf "Enables warning %d: %s" n1 (get_desc n1)
+      | Clear -> Printf.sprintf "Disables warning %d: %s" n1 (get_desc n1)
+      | Set_all -> Printf.sprintf "Enables warning %d as an error: %s" n1 (get_desc n1))
+    else (
+      match modifier with
+      | Set -> Printf.sprintf "Enables warnings %d to %d" n1 n2
+      | Clear -> Printf.sprintf "Disables warnings %d to %d" n1 n2
+      | Set_all -> Printf.sprintf "Enables warnings %d to %d as errors" n1 n2)
+  | Letter (c, m) ->
+    let modifier =
+      Option.value m ~default:(if Char.lowercase_ascii c = c then Clear else Set)
+    in
+    (match modifier with
+     | Set -> Printf.sprintf "Enables warning set '%c'" c
+     | Clear -> Printf.sprintf "Disables warning set '%c'" c
+     | Set_all -> Printf.sprintf "Enables warning set '%c' as errors" c)
 ;;
 
 let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
@@ -362,7 +292,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
                ; _
                }
              ] ->
-           let actions = parse_warning_payload payload in
+           let actions = Ocaml_utils.Warnings.parse_warnings payload in
            let markdown_lines = List.map ~f:format_warning_action actions in
            let markdown = String.concat ~sep:"\n" markdown_lines in
            if markdown <> "" then result := Some (`Warning_attribute markdown)
