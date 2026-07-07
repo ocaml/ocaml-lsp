@@ -296,9 +296,9 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
            let markdown_lines = List.map ~f:format_warning_action actions in
            let markdown = String.concat ~sep:"\n" markdown_lines in
            if markdown <> "" then result := Some (`Warning_attribute markdown)
-         | _ -> Ast_iterator.default_iterator.attribute self attr)
-      | _ -> Ast_iterator.default_iterator.attribute self attr)
-    else Ast_iterator.default_iterator.attribute self attr
+         | _ -> ())
+      | _ -> ();
+    Ast_iterator.default_iterator.attribute self attr
   in
   let iterator =
     { Ast_iterator.default_iterator with
