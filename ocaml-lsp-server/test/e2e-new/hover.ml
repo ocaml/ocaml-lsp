@@ -191,7 +191,11 @@ let () =
   [%expect
     {|
     {
-      "contents": "Disables warning 27: Innocuous unused variable: unused variable that is not bound with\n    \"let\" nor \"as\", and doesn't start with an underscore (\"_\")\n    character.\nEnables warnings 4 to 6\nEnables warning set 'a' as errors"
+      "contents": "Disables warning 27: Innocuous unused variable: unused variable that is not bound with\n    \"let\" nor \"as\", and doesn't start with an underscore (\"_\")\n    character.\nEnables warnings 4 to 6\nEnables warning set 'a' as errors",
+      "range": {
+        "end": { "character": 30, "line": 2 },
+        "start": { "character": 18, "line": 2 }
+      }
     }
     |}]
 ;;
@@ -214,7 +218,11 @@ let () =
   [%expect
     {|
     {
-      "contents": "Enables warning 9: Missing fields in a record pattern.\nDisables warning 26: Suspicious unused variable: unused variable that is bound\n    with \"let\" or \"as\", and doesn't start with an underscore (\"_\")\n    character.\nEnables warning 3 as an error: Deprecated synonym for the 'deprecated' alert.\nEnables warnings 10 to 15\nDisables warnings 20 to 25\nEnables warnings 30 to 35 as errors\nEnables warning set 'a'\nDisables warning set 'z'\nEnables warning set 'b' as errors"
+      "contents": "Enables warning 9: Missing fields in a record pattern.\nDisables warning 26: Suspicious unused variable: unused variable that is bound\n    with \"let\" or \"as\", and doesn't start with an underscore (\"_\")\n    character.\nEnables warning 3 as an error: Deprecated synonym for the 'deprecated' alert.\nEnables warnings 10 to 15\nDisables warnings 20 to 25\nEnables warnings 30 to 35 as errors\nEnables warning set 'a'\nDisables warning set 'z'\nEnables warning set 'b' as errors",
+      "range": {
+        "end": { "character": 54, "line": 2 },
+        "start": { "character": 18, "line": 2 }
+      }
     }
     |}]
 ;;

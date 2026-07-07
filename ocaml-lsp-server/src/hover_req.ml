@@ -617,7 +617,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
            | Some _ | None -> false
          in
          type_enclosing_hover ~server ~doc ~merlin ~mode ~uri ~position ~with_syntax_doc
-       | Some (`Warning_attribute (str, _loc)) ->
+       | Some (`Warning_attribute (str, loc)) ->
          let contents =
            let actions =
              try Ocaml_utils.Warnings.parse_warnings str with
@@ -642,7 +642,9 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
                      { Lsp.Types.MarkedString.value = markdown; language = None }))
          in
          (match contents with
-          | Some contents -> Fiber.return (Some (Hover.create ~contents ()))
+          | Some contents ->
+            let range = Range.of_loc loc in
+            Fiber.return (Some (Hover.create ~contents ~range ()))
           | None -> Fiber.return None)
        | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
          let+ ppx_parsetree =
