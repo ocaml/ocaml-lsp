@@ -100,6 +100,7 @@
                 chrome-trace
                 dyn
                 fiber
+                fs-io
                 xdg
                 ordering
                 spawn
