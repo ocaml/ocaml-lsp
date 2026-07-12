@@ -205,10 +205,15 @@ type merlin =
   ; kind : Kind.t option
   }
 
-type dune = Text_document.t
+module Dune = struct
+  type t = Text_document.t
+
+  let uri = Text_document.documentUri
+  let text = Text_document.text
+end
 
 type t =
-  | Dune of dune
+  | Dune of Dune.t
   | Other of
       { tdoc : Text_document.t
       ; syntax : Syntax.t
@@ -288,13 +293,6 @@ let update_text ?version t changes =
      | Other o -> Other { o with tdoc }
      | Merlin t -> Merlin { t with tdoc })
 ;;
-
-module Dune = struct
-  type t = dune
-
-  let uri = Text_document.documentUri
-  let text = Text_document.text
-end
 
 let dune = function
   | Dune d -> Some d
