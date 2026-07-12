@@ -3,7 +3,7 @@ open! Import
 module Instance : sig
   type t
 
-  val format_dune_file : t -> Document.t -> string Fiber.t
+  val format_dune_file : t -> Document.Dune.t -> string Fiber.t
 end
 
 type t
@@ -25,4 +25,4 @@ val stop : t -> unit Fiber.t
 val commands : string list
 val on_command : t -> ExecuteCommandParams.t -> Json.t Fiber.t
 val code_actions : t -> Uri.t -> CodeAction.t list
-val for_doc : t -> Document.t -> Instance.t list
+val for_doc : t -> Document.Dune.t -> Instance.t list

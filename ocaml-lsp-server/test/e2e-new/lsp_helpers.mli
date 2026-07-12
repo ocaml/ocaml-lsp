@@ -6,7 +6,8 @@ val change_config : client:'a Client.t -> DidChangeConfigurationParams.t -> unit
 (** Opens a document with the language server. This must be done before trying
     to access it *)
 val open_document
-  :  client:'a Client.t
+  :  language_id:string
+  -> client:'a Client.t
   -> uri:DocumentUri.t
   -> source:string
   -> unit Fiber.t
@@ -16,9 +17,20 @@ val open_document
 val iter_lsp_response
   :  ?prep:(unit Client.t -> unit Fiber.t)
   -> ?path:string
+  -> language_id:string
   -> makeRequest:(TextDocumentIdentifier.t -> 'a Client.out_request)
   -> source:string
   -> ('a -> unit)
+  -> unit
+
+(** Like [iter_lsp_response], but exposes request errors to the handler. *)
+val iter_lsp_response_result
+  :  ?prep:(unit Client.t -> unit Fiber.t)
+  -> ?path:string
+  -> language_id:string
+  -> makeRequest:(TextDocumentIdentifier.t -> 'a Client.out_request)
+  -> source:string
+  -> (('a, Jsonrpc.Response.Error.t) result -> unit)
   -> unit
 
 (** Opens the file in the specified path with source code as specified in src.

@@ -12,7 +12,11 @@ type error =
   | Unknown_extension of Uri.t
 
 val message : error -> string
-val run : Document.t -> Fiber.Cancel.t option -> (TextEdit.t list, error) result Fiber.t
+
+val run
+  :  Document.Merlin.t
+  -> Fiber.Cancel.t option
+  -> (TextEdit.t list, error) result Fiber.t
 
 val run_on_range
   :  Document.t

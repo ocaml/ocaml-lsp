@@ -12,7 +12,7 @@ let iter_completions
     Lsp.Client_request.TextDocumentCompletion
       (CompletionParams.create ~textDocument ~position ~context ())
   in
-  Lsp_helpers.iter_lsp_response ?prep ?path ~makeRequest
+  Lsp_helpers.iter_lsp_response ?prep ?path ~language_id:"ocaml" ~makeRequest
 ;;
 
 let print_completions
