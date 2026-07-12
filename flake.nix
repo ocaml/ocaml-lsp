@@ -73,6 +73,7 @@
               p.cinaps
               p.ppx_expect
               p.ppx_yojson_conv
+              p.top-closure
               (ocamlformat pkgs)
             ];
           });

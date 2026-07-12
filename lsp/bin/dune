@@ -13,4 +13,4 @@
  (instrumentation
   (backend bisect_ppx))
  (modules :standard \ test_metamodel)
- (libraries dyn pp yojson))
+ (libraries dyn pp top-closure yojson))
