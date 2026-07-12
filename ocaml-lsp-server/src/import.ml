@@ -5,7 +5,6 @@ include struct
   module Code_error = Code_error
   module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
-  module Int = Int
   module Table = Table
   module Tuple = Tuple
   module Unix_env = Env
@@ -14,6 +13,15 @@ include struct
   module Poly = Poly
 
   let sprintf = sprintf
+end
+
+module Int = struct
+  type t = int
+
+  let compare x y = Ordering.of_int (Stdlib.Int.compare x y)
+  let equal = Stdlib.Int.equal
+  let of_string = int_of_string_opt
+  let to_string = string_of_int
 end
 
 module Io = struct
