@@ -34,7 +34,7 @@ let empty = Mconfig_dot.empty_config
 
 module Process = struct
   type nonrec t =
-    { pid : int
+    { pid : Pid.t
     ; prog : string
     ; initial_cwd : string
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
@@ -44,11 +44,11 @@ module Process = struct
 
   let to_dyn { pid; initial_cwd; _ } =
     let open Dyn in
-    record [ "pid", int pid; "initial_cwd", string initial_cwd ]
+    record [ "pid", Pid.to_dyn pid; "initial_cwd", string initial_cwd ]
   ;;
 
   let waitpid t =
-    let+ status = Lev_fiber.waitpid ~pid:t.pid in
+    let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
     (match status with
      | Unix.WEXITED n ->
        (match n with
@@ -88,6 +88,7 @@ module Process = struct
           ~stdin:stdin_r
           ~stdout:stdout_w
           ()
+        |> Pid.of_int
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
@@ -368,7 +369,7 @@ module DB = struct
     let* () = Fiber.return () in
     Table.iter t.running ~f:(fun running ->
       let pid = running.process.pid in
-      Unix.kill pid (if Sys.win32 then Sys.sigkill else Sys.sigterm));
+      Unix.kill (Pid.to_int pid) (if Sys.win32 then Sys.sigkill else Sys.sigterm));
     Fiber.Pool.stop t.pool
   ;;
 end

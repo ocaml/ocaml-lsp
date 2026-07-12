@@ -24,13 +24,18 @@ module Dune = struct
 
   module T = struct
     type t =
-      { pid : int
+      { pid : Pid.t
       ; id : Id.t
       }
 
-    let compare = Poly.compare
+    let compare x y =
+      match Int.compare (Pid.to_int x.pid) (Pid.to_int y.pid) with
+      | Eq -> Id.compare x.id y.id
+      | r -> r
+    ;;
+
     let equal x y = Ordering.is_eq (compare x y)
-    let hash = Poly.hash
+    let hash { pid; id } = Poly.hash (Pid.to_int pid, id)
     let to_dyn = Dyn.opaque
   end
 
@@ -165,7 +170,7 @@ let send =
         if annotate_dune_pid
         then
           fun pid (d : Diagnostic.t) ->
-            let source = Some (sprintf "dune (pid=%d)" pid) in
+            let source = Some (sprintf "dune (pid=%d)" (Pid.to_int pid)) in
             { d with source }
         else fun _pid x -> x
       in
