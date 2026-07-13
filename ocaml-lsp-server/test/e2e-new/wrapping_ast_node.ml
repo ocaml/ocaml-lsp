@@ -2,15 +2,13 @@ open Test.Import
 module Req = Ocaml_lsp_server.Custom_request.Wrapping_ast_node
 
 let wrapping_ast_node client position =
-  let params =
-    `Assoc
-      [ "uri", DocumentUri.yojson_of_t Helpers.uri
-      ; "position", Position.yojson_of_t position
-      ]
-    |> Jsonrpc.Structured.t_of_yojson
-    |> Option.some
-  in
-  Client.request client (UnknownRequest { meth = Req.meth; params })
+  Test.custom_request
+    client
+    Req.meth
+    (`Assoc
+        [ "uri", DocumentUri.yojson_of_t Helpers.uri
+        ; "position", Position.yojson_of_t position
+        ])
 ;;
 
 let test source position =

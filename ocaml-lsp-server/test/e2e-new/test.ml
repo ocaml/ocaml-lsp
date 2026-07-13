@@ -225,6 +225,11 @@ let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
     ret)
 ;;
 
+let custom_request client meth params =
+  let params = Some (Jsonrpc.Structured.t_of_yojson params) in
+  Client.request client (UnknownRequest { meth; params })
+;;
+
 let openDocument ~client ~uri ~source =
   let textDocument =
     TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
