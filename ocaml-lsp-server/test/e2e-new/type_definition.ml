@@ -64,3 +64,26 @@ let x = T 43
     ]
     |}]
 ;;
+
+let%expect_test "ignores names in values namespace (cursor on same named value)" =
+  let source =
+    {ocaml|(* type we are jumping on *)
+type t = T of int
+
+let t = T 42
+|ocaml}
+  in
+  iter_type_definition source (Position.create ~line:3 ~character:4) print_locations;
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 5, "line": 1 },
+          "start": { "character": 5, "line": 1 }
+        },
+        "uri": "file:///file.ml"
+      }
+    ]
+    |}]
+;;
