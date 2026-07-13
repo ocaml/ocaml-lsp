@@ -55,27 +55,6 @@ module M = struct
 end
   `;
 
-  it("when on a toplevel let binding", async () => {
-    openDocument(code_snippet_0);
-
-    const r = await sendWrappingAstNodeRequest({ line: 0, character: 5 });
-
-    /* given range corresponds to:
-        let k = 1
-    */
-    expect(r).toMatchInlineSnapshot(`
-{
-  "end": {
-    "character": 9,
-    "line": 0,
-  },
-  "start": {
-    "character": 0,
-    "line": 0,
-  },
-}
-`);
-  });
 
   it("in between toplevel bindings (let and module def)", async () => {
     openDocument(code_snippet_0);

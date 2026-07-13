@@ -41,3 +41,13 @@ let%expect_test "empty document" =
   test "" (Position.create ~line:0 ~character:0);
   [%expect {| null |}]
 ;;
+
+let%expect_test "when on a toplevel let binding" =
+  test code_snippet_0 (Position.create ~line:0 ~character:5);
+  [%expect
+    {|
+    {
+      "end": { "character": 9, "line": 0 },
+      "start": { "character": 0, "line": 0 }
+    } |}]
+;;
