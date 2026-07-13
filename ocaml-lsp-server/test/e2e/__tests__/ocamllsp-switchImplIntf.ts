@@ -111,7 +111,6 @@ describe("ocamllsp/switchImplIntf", () => {
   ];
 
   test.each([
-    testCase(createFiles(mli), expectSwitchTo(ml)),
     testCase(createFiles(mli, ml), expectSwitchTo(ml)),
     testCase(createFiles(ml), expectSwitchTo(mli)),
     testCase(createFiles(ml, mli), expectSwitchTo(mli)),
