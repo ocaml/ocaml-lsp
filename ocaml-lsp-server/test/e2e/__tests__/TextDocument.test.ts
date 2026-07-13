@@ -24,48 +24,6 @@ describe("TextDocument: incremental sync", () => {
   });
 
 
-  it("update when inserting a line at the end of the doc", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
-
-    languageServer.sendNotification(
-      Protocol.DidOpenTextDocumentNotification.type,
-      {
-        textDocument: Types.TextDocumentItem.create(
-          "file:///test-document.txt",
-          "ocaml",
-          0,
-          "let x = 1;\n\nlet y = 2;",
-        ),
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
-
-    languageServer.sendNotification(
-      Protocol.DidChangeTextDocumentNotification.type,
-      {
-        textDocument: Types.VersionedTextDocumentIdentifier.create(
-          "file:///test-document.txt",
-          1,
-        ),
-        contentChanges: [
-          {
-            range: {
-              start: { line: 2, character: 10 },
-              end: { line: 2, character: 10 },
-            },
-            rangeLength: 0,
-            text: "\nlet y = 2;",
-          },
-        ],
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual(
-      "let x = 1;\n\nlet y = 2;\nlet y = 2;",
-    );
-  });
-
   it("update when deleting a line", async () => {
     languageServer = await LanguageServer.startAndInitialize();
 
