@@ -28,34 +28,7 @@ let print_prepare_rename = function
 let print_workspace_edit edit = WorkspaceEdit.yojson_of_t edit |> Test.print_result
 
 let run ?(documentChanges = false) source f =
-  let on_notification, diagnostics = Test.drain_diagnostics () in
-  let handler = Client.Handler.make ~on_notification () in
-  Test.run ~handler (fun client ->
-    let run_client () =
-      Client.start
-        client
-        (InitializeParams.create ~capabilities:(capabilities ~documentChanges) ())
-    in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create
-          ~uri:Helpers.uri
-          ~languageId:"ocaml"
-          ~version:0
-          ~text:source
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = f client in
-      let* () = Client.request client Shutdown in
-      let* () = Fiber.Ivar.read diagnostics in
-      Client.stop client
-    in
-    Fiber.fork_and_join_unit run_client run)
+  Helpers.test ~capabilities:(capabilities ~documentChanges) source f
 ;;
 
 let rename_source =

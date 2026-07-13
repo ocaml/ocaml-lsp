@@ -64,31 +64,10 @@ let print_signature_help signature_help =
 ;;
 
 let test source position =
-  let on_notification, diagnostics = Test.drain_diagnostics () in
-  let handler = Client.Handler.make ~on_notification () in
-  Test.run ~handler (fun client ->
-    let run_client () = Client.start client (InitializeParams.create ~capabilities ()) in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create
-          ~uri:Helpers.uri
-          ~languageId:"ocaml"
-          ~version:0
-          ~text:source
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* response = signature_help client position in
-      print_signature_help response;
-      let* () = Client.request client Shutdown in
-      let* () = Fiber.Ivar.read diagnostics in
-      Client.stop client
-    in
-    Fiber.fork_and_join_unit run_client run)
+  Helpers.test ~capabilities source (fun client ->
+    let* response = signature_help client position in
+    print_signature_help response;
+    Fiber.return ())
 ;;
 
 let%expect_test "can provide signature help after a function-type value" =
