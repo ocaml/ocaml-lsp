@@ -19,6 +19,7 @@
   stdune
   fiber
   yojson
+  re
   ppx_yojson_conv_lib
   lev_fiber
   lev
