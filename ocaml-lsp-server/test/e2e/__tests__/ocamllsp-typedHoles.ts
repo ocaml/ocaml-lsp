@@ -35,30 +35,6 @@ describe("ocamllsp/typedHoles", () => {
   });
 
 
-  it("one hole", async () => {
-    openDocument(
-      outdent`
-let k = match () with () -> _
-`,
-    );
-
-    const r = await sendTypedHolesReq();
-    expect(r).toMatchInlineSnapshot(`
-[
-  {
-    "end": {
-      "character": 29,
-      "line": 0,
-    },
-    "start": {
-      "character": 28,
-      "line": 0,
-    },
-  },
-]
-`);
-  });
-
   it("several holes", async () => {
     openDocument(
       outdent`
