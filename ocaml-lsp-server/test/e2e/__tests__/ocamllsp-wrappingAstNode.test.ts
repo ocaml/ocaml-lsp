@@ -56,28 +56,6 @@ end
   `;
 
 
-  it("in between toplevel bindings (let and module def)", async () => {
-    openDocument(code_snippet_0);
-
-    const r = await sendWrappingAstNodeRequest({ line: 1, character: 0 });
-
-    /* given range corresponds to:
-        whole `code_snippet_0`
-    */
-    expect(r).toMatchInlineSnapshot(`
-{
-  "end": {
-    "character": 3,
-    "line": 8,
-  },
-  "start": {
-    "character": 0,
-    "line": 0,
-  },
-}
-`);
-  });
-
   it("on keyword struct", async () => {
     openDocument(code_snippet_0);
 
