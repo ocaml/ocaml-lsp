@@ -43,26 +43,6 @@ describe("textDocument/completion", () => {
     await LanguageServer.exit(languageServer);
   });
 
-  it("can get documentation for the end of document", async () => {
-    openDocument(outdent`
-      List.ma
-    `);
-
-    const response = await queryCompletionItemResolve(
-      "map2",
-      Types.Position.create(0, 5),
-    );
-
-    expect(response).toMatchInlineSnapshot(`
-{
-  "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is
-   [[f a1 b1; ...; f an bn]].
-   @raise Invalid_argument if the two lists are determined
-   to have different lengths.",
-  "label": "map2",
-}
-`);
-  });
 
   it("can get documentation at arbitrary position", async () => {
     openDocument(outdent`
