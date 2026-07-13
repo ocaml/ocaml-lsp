@@ -79,6 +79,7 @@
     merlin_jump
     phrase
     type_expression
+    typed_holes
     locate
     locate_types
     type_search
