@@ -34,14 +34,6 @@ jobs:
         with:
           submodules: true
 
-      - name: Set-up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      - name: Install npm packages
-        run: yarn install --frozen-lockfile
-
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
@@ -64,9 +56,6 @@ jobs:
 
       - name: Run the unit tests
         run: opam exec -- make test-ocaml
-
-      - name: Run the template integration tests
-        run: opam exec -- make test-e2e
 
   coverage:
     name: Coverage

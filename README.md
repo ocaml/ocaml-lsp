@@ -411,9 +411,6 @@ To run tests execute:
 $ make test
 ```
 
-Note that tests require [Node.js](https://nodejs.org/en/) and
-[Yarn](https://yarnpkg.com/lang/en/) installed.
-
 ## Relationship to Other Tools
 
 The lsp server uses merlin under the hood, but users are not required to have

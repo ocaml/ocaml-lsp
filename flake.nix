@@ -87,7 +87,6 @@
                 p.ppx_expect
                 p.ppx_yojson_conv
                 (ocamlformat pkgs)
-                pkgs.yarn
               ];
               buildInputs = [
                 jsonrpc
@@ -159,7 +158,6 @@
               # present
               pkgsWithoutOverlays.ocaml
               (ocamlformat pkgsWithoutOverlays)
-              pkgsWithoutOverlays.yarn
               pkgsWithoutOverlays.dune_3
             ];
           };

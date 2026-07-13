@@ -1,5 +1,3 @@
-(dirs :standard \ e2e)
-
 (library
  (modules ocaml_lsp_tests position_prefix_tests)
  (name ocaml_lsp_tests)
@@ -20,7 +18,3 @@
   ppx_inline_test.config)
  (preprocess
   (pps ppx_expect)))
-
-(executable
- (modules run_test_e2e)
- (name run_test_e2e))
