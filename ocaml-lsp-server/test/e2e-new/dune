@@ -61,6 +61,7 @@
     merlin_call_compatible
     destruct
     debug_echo
+    definition
     metrics
     refactor_extract
     semantic_hl_data
