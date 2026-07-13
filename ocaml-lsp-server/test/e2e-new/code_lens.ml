@@ -1,7 +1,5 @@
 open Test.Import
 
-let change_config client params = Client.notification client (ChangeConfiguration params)
-
 let codelens client textDocument =
   Client.request
     client
@@ -24,8 +22,8 @@ end
   let req client =
     let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let* () =
-      change_config
-        client
+      Lsp_helpers.change_config
+        ~client
         (DidChangeConfigurationParams.create
            ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool true ] ]))
     in
@@ -71,8 +69,8 @@ let f x =
   let req client =
     let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let* () =
-      change_config
-        client
+      Lsp_helpers.change_config
+        ~client
         (DidChangeConfigurationParams.create
            ~settings:(`Assoc [ "codelens", `Assoc [ "forNestedBindings", `Bool true ] ]))
     in
@@ -136,8 +134,8 @@ let () = ()
   let req client =
     let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let* () =
-      change_config
-        client
+      Lsp_helpers.change_config
+        ~client
         (DidChangeConfigurationParams.create
            ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool true ] ]))
     in

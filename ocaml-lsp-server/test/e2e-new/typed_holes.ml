@@ -10,8 +10,6 @@ let typed_holes client =
   Client.request client (UnknownRequest { meth = Req.meth; params })
 ;;
 
-let print_json json = Yojson.Safe.pretty_to_string ~std:false json |> print_endline
-
 let%expect_test "empty when no holes in file" =
   let source =
     {ocaml|let u = 1
@@ -19,7 +17,7 @@ let%expect_test "empty when no holes in file" =
   in
   let req client =
     let* response = typed_holes client in
-    print_json response;
+    Test.print_result response;
     Fiber.return ()
   in
   Helpers.test source req;
@@ -33,7 +31,7 @@ let%expect_test "one hole" =
   in
   let req client =
     let* response = typed_holes client in
-    print_json response;
+    Test.print_result response;
     Fiber.return ()
   in
   Helpers.test source req;
@@ -58,7 +56,7 @@ let%expect_test "several holes" =
   in
   let req client =
     let* response = typed_holes client in
-    print_json response;
+    Test.print_result response;
     Fiber.return ()
   in
   Helpers.test source req;

@@ -1,10 +1,6 @@
 open Test.Import
 
-let print_locations = function
-  | None -> print_endline "[]"
-  | Some locations ->
-    Test.print_result (`List (List.map locations ~f:Location.yojson_of_t))
-;;
+let print_locations = Test.print_option_list Location.yojson_of_t
 
 let references client position =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
