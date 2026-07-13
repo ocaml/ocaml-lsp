@@ -39,7 +39,7 @@ let print_response json =
   |> List.iter ~f:print_endline
 ;;
 
-let run_switch_test files_to_create ~from ~expect:_ =
+let run_switch_test files_to_create ~from =
   let dir = setup_files files_to_create in
   let on_notification, diagnostics = Test.drain_diagnostics () in
   let handler = Client.Handler.make ~on_notification () in
@@ -64,32 +64,32 @@ let run_switch_test files_to_create ~from ~expect:_ =
 ;;
 
 let%expect_test "test switches (mli => ml)" =
-  run_switch_test [ "mli" ] ~from:"mli" ~expect:[ "ml" ];
+  run_switch_test [ "mli" ] ~from:"mli";
   [%expect {| test.ml |}]
 ;;
 
 let%expect_test "test switches (mli, ml => ml)" =
-  run_switch_test [ "mli"; "ml" ] ~from:"mli" ~expect:[ "ml" ];
+  run_switch_test [ "mli"; "ml" ] ~from:"mli";
   [%expect {| test.ml |}]
 ;;
 
 let%expect_test "test switches (ml => mli)" =
-  run_switch_test [ "ml" ] ~from:"ml" ~expect:[ "mli" ];
+  run_switch_test [ "ml" ] ~from:"ml";
   [%expect {| test.mli |}]
 ;;
 
 let%expect_test "test switches (ml, mli => mli)" =
-  run_switch_test [ "ml"; "mli" ] ~from:"ml" ~expect:[ "mli" ];
+  run_switch_test [ "ml"; "mli" ] ~from:"ml";
   [%expect {| test.mli |}]
 ;;
 
 let%expect_test "test switches (mli, mll => mll)" =
-  run_switch_test [ "mli"; "mll" ] ~from:"mli" ~expect:[ "mll" ];
+  run_switch_test [ "mli"; "mll" ] ~from:"mli";
   [%expect {| test.mll |}]
 ;;
 
 let%expect_test "test switches (mli, ml, mll => ml, mll)" =
-  run_switch_test [ "mli"; "ml"; "mll" ] ~from:"mli" ~expect:[ "ml"; "mll" ];
+  run_switch_test [ "mli"; "ml"; "mll" ] ~from:"mli";
   [%expect
     {|
     test.ml
