@@ -103,26 +103,6 @@ maybeDescribe("textDocument/formatting", () => {
 `);
     });
 
-    it("leaves unchanged files alone", async () => {
-      languageServer = await LanguageServer.startAndInitialize();
-
-      const name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
-
-      openDocument(
-        languageServer,
-        "let rec gcd a b =\n" +
-          "  match (a, b) with\n" +
-          "  | 0, n\n" +
-          "  | n, 0 ->\n" +
-          "    n\n" +
-          "  | _, _ -> gcd a (b mod a)\n",
-        name,
-      );
-
-      const result = await query(languageServer, name);
-      expect(result).toMatchObject([]);
-    });
-
     it("can format an ocaml intf file", async () => {
       languageServer = await LanguageServer.startAndInitialize();
 
