@@ -1884,24 +1884,15 @@ let code_action_test ~title source =
   Option.iter (apply_code_action title src range) ~f:print_string
 ;;
 
-let write_file path content =
-  let oc = open_out path in
-  output_string oc content;
-  close_out oc
-;;
-
 let setup_inferred_intf_workspace () =
-  let dir = Stdlib.Filename.temp_file "ocamllsp-code-action-" "" in
-  Stdlib.Sys.remove dir;
-  Unix.mkdir dir 0o700;
-  write_file (Stdlib.Filename.concat dir "dune-project") "(lang dune 2.5)\n";
-  write_file
+  let dir = Test.temp_dir "ocamllsp-code-action-" in
+  Test.write_file (Stdlib.Filename.concat dir "dune-project") "(lang dune 2.5)\n";
+  Test.write_file
     (Stdlib.Filename.concat dir "dune")
     "(library\n (name code_action_intf)\n (flags :standard -w -32))\n";
-  write_file (Stdlib.Filename.concat dir "lib.ml") "let x = 1\n";
-  write_file (Stdlib.Filename.concat dir "lib.mli") "";
-  let command = Printf.sprintf "cd %s && dune build" (Stdlib.Filename.quote dir) in
-  if Stdlib.Sys.command command <> 0 then failwith "dune build failed";
+  Test.write_file (Stdlib.Filename.concat dir "lib.ml") "let x = 1\n";
+  Test.write_file (Stdlib.Filename.concat dir "lib.mli") "";
+  Test.run_command ~cwd:dir "dune build";
   dir
 ;;
 

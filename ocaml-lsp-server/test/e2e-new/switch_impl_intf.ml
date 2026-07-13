@@ -1,16 +1,10 @@
 open Test.Import
 module Req = Ocaml_lsp_server.Custom_request.Switch_impl_intf
 
-let write_empty path =
-  let oc = open_out path in
-  close_out oc
-;;
-
 let setup_files exts =
-  let dir = Stdlib.Filename.temp_file "ocamllsp-switch-" "" in
-  Stdlib.Sys.remove dir;
-  Unix.mkdir dir 0o700;
-  List.iter exts ~f:(fun ext -> Stdlib.Filename.concat dir ("test." ^ ext) |> write_empty);
+  let dir = Test.temp_dir "ocamllsp-switch-" in
+  List.iter exts ~f:(fun ext ->
+    Test.write_file (Stdlib.Filename.concat dir ("test." ^ ext)) "");
   dir
 ;;
 
