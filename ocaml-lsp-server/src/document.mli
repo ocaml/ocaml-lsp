@@ -42,6 +42,17 @@ val uri : t -> Uri.t
 val text : t -> string
 val source : t -> Msource.t
 
+module Dune : sig
+  type t
+
+  val uri : t -> Uri.t
+  val text : t -> string
+end
+
+(** [dune t] returns the Dune view of [t], if any. {!val:kind} deliberately
+    classifies Dune documents as [`Other]. *)
+val dune : t -> Dune.t option
+
 module Merlin : sig
   type doc := t
   type t

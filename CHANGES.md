@@ -1,7 +1,10 @@
 # Unreleased
 
 ## Fixes
- - Refactor ppx hover to use merlin directly (#1606, fixes #1614)
+
+- Prevent whole-document formatting requests for OCamllex, Menhir, and Cram
+  files from being routed through Dune's S-expression formatter.
+- Refactor ppx hover to use merlin directly (#1606, fixes #1614)
 
 # 1.27.0
 

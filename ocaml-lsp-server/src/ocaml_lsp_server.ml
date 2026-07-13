@@ -323,56 +323,10 @@ module Formatter = struct
     make_error ~code ~message ()
   ;;
 
-  let run rpc doc =
-    let state : State.t = Server.state rpc in
-    match Document.kind doc with
-    | `Merlin _ ->
-      let* res =
-        let* cancel = Server.cancel_token () in
-        Ocamlformat.run doc cancel
-      in
-      (match res with
-       | Ok result -> Fiber.return (Some result)
-       | Error e ->
-         let+ () =
-           let state : State.t = Server.state rpc in
-           let msg =
-             let message = Ocamlformat.message e in
-             ShowMessageParams.create ~message ~type_:Warning
-           in
-           task_if_running state.detached ~f:(fun () ->
-             Server.notification rpc (ShowMessage msg))
-         in
-         Jsonrpc.Response.Error.raise (jsonrpc_error e))
-    | `Other ->
-      (match Dune.for_doc (State.dune state) doc with
-       | [] ->
-         let message =
-           sprintf
-             "No dune instance found. Please run dune in watch mode for %s"
-             (Uri.to_path (Document.uri doc))
-         in
-         Jsonrpc.Response.Error.raise (make_error ~code:InvalidRequest ~message ())
-       | dune :: rest ->
-         let* () =
-           match rest with
-           | [] -> Fiber.return ()
-           | _ :: _ ->
-             let message =
-               sprintf
-                 "More than one dune instance detected for %s. Selecting one at random"
-                 (Uri.to_path (Document.uri doc))
-             in
-             State.log_msg rpc ~type_:MessageType.Warning ~message
-         in
-         let+ to_ = Dune.Instance.format_dune_file dune doc in
-         Some (Diff.edit ~from:(Document.text doc) ~to_))
-  ;;
-
-  let run_on_range rpc doc range =
+  let run_ocamlformat rpc format =
     let* res =
       let* cancel = Server.cancel_token () in
-      Ocamlformat.run_on_range doc range cancel
+      format cancel
     in
     match res with
     | Ok result -> Fiber.return (Some result)
@@ -387,6 +341,48 @@ module Formatter = struct
           Server.notification rpc (ShowMessage msg))
       in
       Jsonrpc.Response.Error.raise (jsonrpc_error e)
+  ;;
+
+  let run_dune rpc doc =
+    let state : State.t = Server.state rpc in
+    match Dune.for_doc (State.dune state) doc with
+    | [] ->
+      let message =
+        sprintf
+          "No dune instance found. Please run dune in watch mode for %s"
+          (Uri.to_path (Document.Dune.uri doc))
+      in
+      Jsonrpc.Response.Error.raise (make_error ~code:InvalidRequest ~message ())
+    | dune :: rest ->
+      let* () =
+        match rest with
+        | [] -> Fiber.return ()
+        | _ :: _ ->
+          let message =
+            sprintf
+              "More than one dune instance detected for %s. Selecting one at random"
+              (Uri.to_path (Document.Dune.uri doc))
+          in
+          State.log_msg rpc ~type_:MessageType.Warning ~message
+      in
+      let+ to_ = Dune.Instance.format_dune_file dune doc in
+      Some (Diff.edit ~from:(Document.Dune.text doc) ~to_)
+  ;;
+
+  let run rpc doc =
+    match Document.kind doc with
+    | `Merlin merlin -> run_ocamlformat rpc (Ocamlformat.run merlin)
+    | `Other ->
+      (match Document.dune doc with
+       | Some dune -> run_dune rpc dune
+       | None -> Fiber.return None)
+  ;;
+
+  let run_on_range rpc doc range =
+    match Document.syntax doc with
+    | Dune | Cram -> Fiber.return None
+    | Ocaml | Reason | Mlx | Ocamllex | Menhir ->
+      run_ocamlformat rpc (Ocamlformat.run_on_range doc range)
   ;;
 end
 

@@ -7,7 +7,7 @@ let iter_code_actions ?prep ?path ?(diagnostics = []) ~source range =
     Lsp.Client_request.CodeAction
       (CodeActionParams.create ~textDocument ~range ~context ())
   in
-  iter_lsp_response ?prep ?path ~makeRequest ~source
+  iter_lsp_response ?prep ?path ~language_id:"ocaml" ~makeRequest ~source
 ;;
 
 let print_code_actions

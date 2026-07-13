@@ -205,7 +205,15 @@ type merlin =
   ; kind : Kind.t option
   }
 
+module Dune = struct
+  type t = Text_document.t
+
+  let uri = Text_document.documentUri
+  let text = Text_document.text
+end
+
 type t =
+  | Dune of Dune.t
   | Other of
       { tdoc : Text_document.t
       ; syntax : Syntax.t
@@ -213,6 +221,7 @@ type t =
   | Merlin of merlin
 
 let text_document = function
+  | Dune d -> d
   | Other d -> d.tdoc
   | Merlin m -> m.tdoc
 ;;
@@ -220,6 +229,7 @@ let text_document = function
 let uri t = Text_document.documentUri (text_document t)
 
 let syntax = function
+  | Dune _ -> Syntax.Dune
   | Merlin m -> m.syntax
   | Other t -> t.syntax
 ;;
@@ -257,7 +267,8 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) ~position_enc
     let syntax = Syntax.of_text_document tdoc in
     match syntax with
     | Ocaml | Reason | Mlx -> make_merlin wheel config pipeline tdoc syntax
-    | Ocamllex | Menhir | Cram | Dune -> Fiber.return (Other { tdoc; syntax }))
+    | Dune -> Fiber.return (Dune tdoc)
+    | Ocamllex | Menhir | Cram -> Fiber.return (Other { tdoc; syntax }))
 ;;
 
 let update_text ?version t changes =
@@ -278,8 +289,14 @@ let update_text ?version t changes =
     t
   | tdoc ->
     (match t with
+     | Dune _ -> Dune tdoc
      | Other o -> Other { o with tdoc }
      | Merlin t -> Merlin { t with tdoc })
+;;
+
+let dune = function
+  | Dune d -> Some d
+  | Other _ | Merlin _ -> None
 ;;
 
 module Merlin = struct
@@ -401,7 +418,7 @@ let edit t text_edits =
 
 let kind = function
   | Merlin merlin -> `Merlin merlin
-  | Other _ -> `Other
+  | Dune _ | Other _ -> `Other
 ;;
 
 let merlin_exn t =
@@ -415,7 +432,7 @@ let merlin_exn t =
 
 let close t =
   match t with
-  | Other _ -> Fiber.return ()
+  | Dune _ | Other _ -> Fiber.return ()
   | Merlin t ->
     Fiber.fork_and_join_unit
       (fun () -> Merlin_config.destroy t.merlin_config)

@@ -132,7 +132,7 @@ type config =
 module Instance : sig
   type t
 
-  val format_dune_file : t -> Document.t -> string Fiber.t
+  val format_dune_file : t -> Document.Dune.t -> string Fiber.t
   val stop : t -> unit Fiber.t
   val run : t -> unit Fiber.t
   val connect : t -> (unit, unit) result Fiber.t
@@ -521,8 +521,8 @@ end = struct
         | Ok req -> req
       in
       let+ res =
-        let path = Document.uri doc |> Uri.to_path |> Drpc.Path.absolute in
-        Client.request client req (path, `Contents (Document.text doc))
+        let path = Document.Dune.uri doc |> Uri.to_path |> Drpc.Path.absolute in
+        Client.request client req (path, `Contents (Document.Dune.text doc))
       in
       (match res with
        | Ok res -> res
@@ -940,7 +940,7 @@ let for_doc t doc =
   match !t with
   | Closed -> []
   | Active t ->
-    let uri = Document.uri doc in
+    let uri = Document.Dune.uri doc in
     String.Map.fold ~init:[] t.instances ~f:(fun instance acc ->
       if uri_dune_overlap uri (Instance.source instance) then instance :: acc else acc)
 ;;

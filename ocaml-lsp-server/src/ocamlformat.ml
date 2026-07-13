@@ -159,7 +159,8 @@ let exec ?cwd cancel refmt args stdin =
      | _ -> Result.Error (Unexpected_result { message = res.stderr }))
 ;;
 
-let run doc cancel : (TextEdit.t list, error) result Fiber.t =
+let run merlin cancel : (TextEdit.t list, error) result Fiber.t =
+  let doc = Document.Merlin.to_doc merlin in
   let res =
     let open Result.O in
     let* formatter = formatter doc in
