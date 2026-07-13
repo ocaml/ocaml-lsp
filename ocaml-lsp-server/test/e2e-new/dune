@@ -48,6 +48,7 @@
     completions
     formatting
     range_formatting
+    references
     construct
     doc_to_md
     document_flow
