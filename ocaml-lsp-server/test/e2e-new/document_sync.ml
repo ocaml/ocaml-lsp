@@ -50,6 +50,7 @@ let run_document_test f =
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let* () = f client in
+    let* () = Lev_fiber.Timer.sleepf 0.1 in
     let* () = Client.request client Shutdown in
     Client.notification client Exit
   in
@@ -188,5 +189,28 @@ let%expect_test "update when inserting a line at the end of the doc" =
     let x = 1;
 
     let y = 2;
+    let y = 2; |}]
+;;
+
+let%expect_test "update when deleting a line" =
+  run_document_test (fun client ->
+    let source = "let x = 1;\n\nlet y = 2;" in
+    let* () = open_document client source in
+    let* document = get_document client in
+    print_document document;
+    print_endline "---";
+    let edit_range = range (position 0 0) (position 1 0) in
+    let* () =
+      change_document client ~version:1 ~range:edit_range ~rangeLength:11 ~text:""
+    in
+    let+ document = get_document client in
+    print_document document);
+  [%expect
+    {|
+    let x = 1;
+
+    let y = 2;
+    ---
+
     let y = 2; |}]
 ;;
