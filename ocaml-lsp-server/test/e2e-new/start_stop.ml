@@ -1,5 +1,22 @@
 open Test.Import
 
+let%expect_test "initialize with empty capabilities" =
+  (Test.run
+   @@ fun client ->
+   let run_client () =
+     Client.start
+       client
+       (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
+   in
+   let run =
+     let* (_ : InitializeResult.t) = Client.initialized client in
+     print_endline "initialized";
+     Client.request client Shutdown
+   in
+   Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client));
+  [%expect {| initialized |}]
+;;
+
 let%expect_test "start/stop" =
   let notifs = Queue.create () in
   let handler_collecting_notifs =
