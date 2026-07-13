@@ -71,6 +71,7 @@
     syntax_doc_tests
     test
     type_enclosing
+    type_definition
     documentation
     document_symbol
     merlin_jump
