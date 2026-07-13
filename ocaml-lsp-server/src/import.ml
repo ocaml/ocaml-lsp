@@ -13,7 +13,6 @@ include struct
   module Code_error = Code_error
   module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
-  module Table = Table
   module Unix_env = Env
   module Map = Map
   module Monoid = Monoid
@@ -26,6 +25,18 @@ module Int = struct
   let equal = Stdlib.Int.equal
   let of_string = int_of_string_opt
   let to_string = string_of_int
+end
+
+module Table = struct
+  include Base.Hashtbl
+
+  module Multi = struct
+    let find t key =
+      match find t key with
+      | None -> []
+      | Some x -> x
+    ;;
+  end
 end
 
 include struct
@@ -243,10 +254,15 @@ include struct
   module Text_document = Text_document
 
   module Uri = struct
+    module Uri = struct
+      include Uri
+
+      let to_dyn t = Dyn.string (to_string t)
+      let sexp_of_t t = Sexplib0.Sexp_conv.sexp_of_string (to_string t)
+    end
+
     include Uri
-
-    let to_dyn t = Dyn.string (to_string t)
-
+    include Base.Comparator.Make (Uri)
     module Map = Stdlib.Map.Make (Uri)
   end
 end

@@ -34,6 +34,7 @@
   stdune
   ordering
   csexp
+  sexplib0
   yojson
   dune-rpc
   ocamlformat-rpc-lib

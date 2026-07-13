@@ -172,7 +172,7 @@ let get_process t ~dir =
   | None ->
     let* process = Process.start ~dir in
     let entry = Entry.create t process in
-    Table.add_exn t.running dir entry;
+    Table.add_exn t.running ~key:dir ~data:entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
     entry
 ;;
@@ -360,7 +360,7 @@ module DB = struct
   let get t uri = create t uri
 
   let create () =
-    { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
+    { running = Table.create (module Base.String); pool = Fiber.Pool.create () }
   ;;
 
   let run t = Fiber.Pool.run t.pool
