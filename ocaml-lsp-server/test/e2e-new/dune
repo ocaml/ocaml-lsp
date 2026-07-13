@@ -51,6 +51,7 @@
     construct
     doc_to_md
     document_flow
+    document_sync
     exit_notification
     for_ppx
     hover

@@ -23,43 +23,6 @@ describe("TextDocument: incremental sync", () => {
     await LanguageServer.exit(languageServer);
   });
 
-  it("Manages unicode character ranges correctly", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
-    languageServer.sendNotification(
-      Protocol.DidOpenTextDocumentNotification.type,
-      {
-        textDocument: Types.TextDocumentItem.create(
-          "file:///test-document.txt",
-          "ocaml",
-          0,
-          outdent`
-          let x = 4
-          let y = "a𐐀b"
-        `,
-        ),
-      },
-    );
-    languageServer.sendNotification(
-      Protocol.DidChangeTextDocumentNotification.type,
-      {
-        textDocument: Types.VersionedTextDocumentIdentifier.create(
-          "file:///test-document.txt",
-          1,
-        ),
-        contentChanges: [
-          {
-            range: {
-              start: { line: 1, character: 10 },
-              end: { line: 1, character: 12 },
-            },
-            text: "",
-          },
-        ],
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual('let x = 4\nlet y = "ab"');
-  });
 
   it("updates in the middle of the line", async () => {
     languageServer = await LanguageServer.startAndInitialize();
