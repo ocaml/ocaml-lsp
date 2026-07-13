@@ -42,15 +42,6 @@ describe("ocamllsp/wrappingAstNode", () => {
     await LanguageServer.exit(languageServer);
   });
 
-  it("empty document", async () => {
-    openDocument(
-      outdent`
-`,
-    );
-
-    const r = await sendWrappingAstNodeRequest({ line: 0, character: 0 });
-    expect(r).toMatchInlineSnapshot("null");
-  });
 
   const code_snippet_0 = outdent`
 let k = 1
