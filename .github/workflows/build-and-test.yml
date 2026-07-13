@@ -30,7 +30,7 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout tree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -74,7 +74,7 @@ jobs:
     if: false # reenable when ppx_bisect is co-instable again
     steps:
       - name: Checkout tree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
 
