@@ -67,3 +67,60 @@ let%expect_test "test switches (mli => ml)" =
   run_switch_test [ "mli" ] ~from:"mli" ~expect:[ "ml" ];
   [%expect {| test.ml |}]
 ;;
+
+let%expect_test "test switches (mli, ml => ml)" =
+  run_switch_test [ "mli"; "ml" ] ~from:"mli" ~expect:[ "ml" ];
+  [%expect {| test.ml |}]
+;;
+
+let%expect_test "test switches (ml => mli)" =
+  run_switch_test [ "ml" ] ~from:"ml" ~expect:[ "mli" ];
+  [%expect {| test.mli |}]
+;;
+
+let%expect_test "test switches (ml, mli => mli)" =
+  run_switch_test [ "ml"; "mli" ] ~from:"ml" ~expect:[ "mli" ];
+  [%expect {| test.mli |}]
+;;
+
+let%expect_test "test switches (mli, mll => mll)" =
+  run_switch_test [ "mli"; "mll" ] ~from:"mli" ~expect:[ "mll" ];
+  [%expect {| test.mll |}]
+;;
+
+let%expect_test "test switches (mli, ml, mll => ml, mll)" =
+  run_switch_test [ "mli"; "ml"; "mll" ] ~from:"mli" ~expect:[ "ml"; "mll" ];
+  [%expect
+    {|
+    test.ml
+    test.mll |}]
+;;
+
+let run_switch_request uri =
+  Test.run
+  @@ fun client ->
+  let run_client () =
+    Client.start
+      client
+      (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
+  in
+  let run =
+    let* (_ : InitializeResult.t) = Client.initialized client in
+    let* response = switch_impl_intf client uri in
+    print_response response;
+    let* () = Client.request client Shutdown in
+    Client.stop client
+  in
+  Fiber.fork_and_join_unit run_client (fun () -> run)
+;;
+
+let%expect_test "can switch from file URI with non-file scheme" =
+  let dir = setup_files [ "ml"; "mli" ] in
+  let mli_file_uri = uri_of_ext dir "mli" |> DocumentUri.to_string in
+  let mli_uri =
+    "untitled" ^ Stdlib.String.sub mli_file_uri 4 (Stdlib.String.length mli_file_uri - 4)
+    |> DocumentUri.of_string
+  in
+  run_switch_request mli_uri;
+  [%expect {| test.ml |}]
+;;
