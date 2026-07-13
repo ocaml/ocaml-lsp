@@ -69,6 +69,7 @@
     semantic_hl_data
     semantic_hl_helpers
     semantic_hl_tests
+    selection_range
     start_stop
     syntax_doc_tests
     test
