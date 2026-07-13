@@ -114,12 +114,49 @@ end
 module String = struct
   type t = string
 
-  include struct
-    open Stdune.String
-    module Map = Map
+  module Map = struct
+    include MoreLabels.Map.Make (Stdlib.String)
 
-    let extract_words = extract_words
+    let find t key = find_opt key t
+    let mem t key = mem key t
+    let set t key data = add t ~key ~data
+    let remove t key = remove key t
+    let values t = to_list t |> List.map ~f:snd
+    let to_list_map t ~f = to_list t |> List.map ~f:(fun (k, v) -> f k v)
+    let partition t ~f = partition t ~f:(fun _key v -> f v)
+    let fold t ~init ~f = fold t ~init ~f:(fun ~key:_ ~data acc -> f data acc)
+
+    let of_list_multi xs =
+      List.fold_left xs ~init:empty ~f:(fun acc (key, v) ->
+        update acc ~key ~f:(function
+          | None -> Some [ v ]
+          | Some xs -> Some (v :: xs)))
+    ;;
+
+    let add_exn t key data =
+      match find t key with
+      | None -> set t key data
+      | Some _ -> failwith (sprintf "%s already set" key)
+    ;;
   end
+
+  let extract_words s ~is_word_char =
+    let open StringLabels in
+    let rec skip_blanks i =
+      if i = length s
+      then []
+      else if is_word_char s.[i]
+      then parse_word i (i + 1)
+      else skip_blanks (i + 1)
+    and parse_word i j =
+      if j = length s
+      then [ sub s ~pos:i ~len:(j - i) ]
+      else if is_word_char s.[j]
+      then parse_word i (j + 1)
+      else sub s ~pos:i ~len:(j - i) :: skip_blanks (j + 1)
+    in
+    skip_blanks 0
+  ;;
 
   let to_dyn = Dyn.string
 
