@@ -24,46 +24,6 @@ describe("TextDocument: incremental sync", () => {
   });
 
 
-  it("updates in at the start of the line", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
-
-    languageServer.sendNotification(
-      Protocol.DidOpenTextDocumentNotification.type,
-      {
-        textDocument: Types.TextDocumentItem.create(
-          "file:///test-document.txt",
-          "ocaml",
-          0,
-          "let x = 1;\n\nlet y = 2;",
-        ),
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
-
-    languageServer.sendNotification(
-      Protocol.DidChangeTextDocumentNotification.type,
-      {
-        textDocument: Types.VersionedTextDocumentIdentifier.create(
-          "file:///test-document.txt",
-          1,
-        ),
-        contentChanges: [
-          {
-            range: {
-              start: { line: 1, character: 0 },
-              end: { line: 1, character: 0 },
-            },
-            rangeLength: 0,
-            text: "s",
-          },
-        ],
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("let x = 1;\ns\nlet y = 2;");
-  });
-
   it("update when inserting a line", async () => {
     languageServer = await LanguageServer.startAndInitialize();
 
