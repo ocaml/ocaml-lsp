@@ -11,6 +11,50 @@ let codelens client textDocument =
 
 let json_of_codelens cs = `List (List.map ~f:CodeLens.yojson_of_t cs)
 
+let%expect_test "returns codeLens for a module" =
+  let source =
+    {ocaml|let num = 42
+let string = "Hello"
+
+module M = struct
+  let m a b = a + b
+end
+|ocaml}
+  in
+  let req client =
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
+    let* () =
+      change_config
+        client
+        (DidChangeConfigurationParams.create
+           ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool true ] ]))
+    in
+    let* resp_codelens_toplevel = codelens client text_document in
+    Test.print_result (json_of_codelens resp_codelens_toplevel);
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect
+    {|
+    [
+      {
+        "command": { "command": "", "title": "string" },
+        "range": {
+          "end": { "character": 20, "line": 1 },
+          "start": { "character": 0, "line": 1 }
+        }
+      },
+      {
+        "command": { "command": "", "title": "int" },
+        "range": {
+          "end": { "character": 12, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        }
+      }
+    ]
+    |}]
+;;
+
 let%expect_test "enable codelens for nested let bindings" =
   let source =
     {ocaml|
