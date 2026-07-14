@@ -13,23 +13,6 @@ let deactivate_syntax_doc =
     ~settings:(`Assoc [ "syntaxDocumentation", `Assoc [ "enable", `Bool false ] ])
 ;;
 
-let print_hover hover =
-  match hover with
-  | None -> print_endline "no hover response"
-  | Some hover ->
-    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
-;;
-
-let hover_req client position =
-  Client.request
-    client
-    (TextDocumentHover
-       { HoverParams.position
-       ; textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri
-       ; workDoneToken = None
-       })
-;;
-
 let run_test text req =
   let handler =
     Client.Handler.make
@@ -69,8 +52,8 @@ type color = Red|Blue
   let position = create_postion 1 9 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   let (_ : string) = [%expect.output] in
@@ -98,8 +81,8 @@ type color = Red|Blue
   let position = create_postion 1 9 in
   let req client =
     let* () = change_config ~client deactivate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   run_test source req;
@@ -123,8 +106,8 @@ type t = ..
   let position = create_postion 1 5 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   run_test source req;
@@ -151,8 +134,8 @@ let%expect_test "should receive no hover response" =
   let position = create_postion 1 5 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   run_test source req;
