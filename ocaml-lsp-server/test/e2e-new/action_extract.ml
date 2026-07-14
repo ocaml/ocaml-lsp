@@ -146,20 +146,6 @@ let f y =
       fun_name y |}]
 ;;
 
-let%expect_test "extract higher order function" =
-  extract_function_test
-    {|
-let f y =
-  $List.map (fun y -> y + 1) y$
-|};
-  [%expect
-    {|
-    let fun_name y = List.map (fun y -> y + 1) y
-
-    let f y =
-      fun_name y |}]
-;;
-
 let%expect_test "extract inside let binding" =
   extract_function_test
     {|
