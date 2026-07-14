@@ -84,4 +84,5 @@
     type_search
     with_pp
     with_ppx
-    workspace_change_config))))
+    workspace_change_config
+    wrapping_ast_node))))
