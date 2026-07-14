@@ -8,13 +8,8 @@ module Util = struct
     let params =
       Req.Request_params.create text_document position 3 query with_doc doc_format
       |> Req.Request_params.yojson_of_t
-      |> Jsonrpc.Structured.t_of_yojson
-      |> Option.some
     in
-    let req =
-      Lsp.Client_request.UnknownRequest { meth = "ocamllsp/typeSearch"; params }
-    in
-    Client.request client req
+    Test.custom_request client "ocamllsp/typeSearch" params
   ;;
 
   let test ~line ~character ~query source ~with_doc ?(doc_format = None) () =
