@@ -2,8 +2,7 @@ open Test.Import
 
 module Util = struct
   let call_document_symbol client =
-    let uri = DocumentUri.of_path "test.ml" in
-    let textDocument = TextDocumentIdentifier.create ~uri in
+    let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let param = Lsp.Types.DocumentSymbolParams.create ~textDocument () in
     let req = Lsp.Client_request.DocumentSymbol param in
     Client.request client req
