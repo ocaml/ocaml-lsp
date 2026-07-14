@@ -21,13 +21,7 @@ let hover_extended client position verbosity =
 ;;
 
 let%expect_test "hover reference" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = Hover_helpers.hover client position in
@@ -83,13 +77,7 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
 ;;
 
 let%expect_test "hover extended" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = Hover_helpers.hover client position in
@@ -118,13 +106,7 @@ let foo_value : foo = Some 1
 ;;
 
 let%expect_test "default verbosity" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position None in
@@ -144,13 +126,7 @@ let foo_value : foo = Some 1
 ;;
 
 let%expect_test "explicit verbosity 0" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position (Some 0) in
@@ -170,13 +146,7 @@ let foo_value : foo = Some 1
 ;;
 
 let%expect_test "explicit verbosity 1" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position (Some 1) in
@@ -196,13 +166,7 @@ let foo_value : foo = Some 1
 ;;
 
 let%expect_test "explicit verbosity 2" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position (Some 2) in
@@ -222,13 +186,7 @@ let foo_value : foo = Some 1
 ;;
 
 let%expect_test "implicity verbosity increases" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = hover_extended client position None in
