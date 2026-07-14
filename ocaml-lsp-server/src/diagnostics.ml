@@ -27,11 +27,9 @@ module Dune = struct
     ;;
 
     let hash { pid; id } = Poly.hash (Pid.to_int pid, id)
-    let to_dyn = Dyn.opaque
   end
 
   include T
-  module C = Comparable.Make (T)
 
   let sexp_of_t = Sexplib0.Sexp_conv.sexp_of_opaque
   let gen pid = { pid; id = Id.gen () }

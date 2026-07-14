@@ -11,7 +11,6 @@ let sprintf = Printf.sprintf
 include struct
   open Stdune
   module Code_error = Code_error
-  module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
   module Unix_env = Env
   module Map = Map
