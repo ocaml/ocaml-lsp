@@ -21,8 +21,9 @@ module Util = struct
     let position = Position.create ~character ~line in
     let contentFormat =
       match contentFormat with
+      | None -> None
       | Some "markdown" -> Some MarkupKind.Markdown
-      | Some "plaintext" | _ -> Some MarkupKind.PlainText
+      | Some "plaintext" | Some _ -> Some MarkupKind.PlainText
     in
     let request client =
       let open Fiber.O in
