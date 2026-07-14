@@ -25,10 +25,7 @@ let%expect_test "with-ppx" =
   let output =
     Test.run ~handler
     @@ fun client ->
-    let run_client () =
-      let capabilities = ClientCapabilities.create () in
-      Test.start_client ~capabilities client
-    in
+    let run_client () = Test.start_client client in
     let run () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       let textDocument =
