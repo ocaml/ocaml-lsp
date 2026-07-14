@@ -24,67 +24,6 @@ describe("TextDocument: incremental sync", () => {
   });
 
 
-  it("updates in the middle of the line", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
-    languageServer.sendNotification(
-      Protocol.DidOpenTextDocumentNotification.type,
-      {
-        textDocument: Types.TextDocumentItem.create(
-          "file:///test-document.txt",
-          "ocaml",
-          0,
-          "let x = 1;\n\nlet y = 2;",
-        ),
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
-
-    languageServer.sendNotification(
-      Protocol.DidChangeTextDocumentNotification.type,
-      {
-        textDocument: Types.VersionedTextDocumentIdentifier.create(
-          "file:///test-document.txt",
-          1,
-        ),
-        contentChanges: [
-          {
-            range: {
-              start: { line: 2, character: 5 },
-              end: { line: 2, character: 5 },
-            },
-            rangeLength: 0,
-            text: "1",
-          },
-        ],
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y1 = 2;");
-
-    languageServer.sendNotification(
-      Protocol.DidChangeTextDocumentNotification.type,
-      {
-        textDocument: Types.VersionedTextDocumentIdentifier.create(
-          "file:///test-document.txt",
-          1,
-        ),
-        contentChanges: [
-          {
-            range: {
-              start: { line: 2, character: 5 },
-              end: { line: 2, character: 6 },
-            },
-            rangeLength: 1,
-            text: "",
-          },
-        ],
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
-  });
-
   it("updates in at the start of the line", async () => {
     languageServer = await LanguageServer.startAndInitialize();
 

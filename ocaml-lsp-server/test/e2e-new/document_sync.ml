@@ -39,7 +39,8 @@ let get_document client =
 ;;
 
 let run_document_test f =
-  Test.run
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  Test.run ~handler
   @@ fun client ->
   let run_client () =
     Client.start
@@ -66,4 +67,41 @@ let%expect_test "Manages unicode character ranges correctly" =
     {|
     let x = 4
     let y = "ab" |}]
+;;
+
+let%expect_test "updates in the middle of the line" =
+  run_document_test (fun client ->
+    let print_step document =
+      print_document document;
+      print_endline "---"
+    in
+    let source = "let x = 1;\n\nlet y = 2;" in
+    let* () = open_document client source in
+    let* document = get_document client in
+    print_step document;
+    let edit_range = range (position 2 5) (position 2 5) in
+    let* () =
+      change_document client ~version:1 ~range:edit_range ~rangeLength:0 ~text:"1"
+    in
+    let* document = get_document client in
+    print_step document;
+    let edit_range = range (position 2 5) (position 2 6) in
+    let* () =
+      change_document client ~version:2 ~range:edit_range ~rangeLength:1 ~text:""
+    in
+    let+ document = get_document client in
+    print_document document);
+  [%expect
+    {|
+    let x = 1;
+
+    let y = 2;
+    ---
+    let x = 1;
+
+    let y1 = 2;
+    ---
+    let x = 1;
+
+    let y = 2; |}]
 ;;
