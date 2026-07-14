@@ -14,7 +14,7 @@ let test
   let on_notification, diagnostics = Test.drain_diagnostics () in
   let handler = Client.Handler.make ~on_notification () in
   Test.run ~handler ?extra_env (fun client ->
-    let run_client () = Client.start client (InitializeParams.create ~capabilities ()) in
+    let run_client () = Test.start_client ~capabilities client in
     let run () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       let textDocument =

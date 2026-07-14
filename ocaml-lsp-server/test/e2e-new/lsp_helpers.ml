@@ -22,16 +22,17 @@ let create_handler_with_diagnostics_callbacks ~got_diagnostics ~diagnostics_call
     | _ -> Fiber.return ())
 ;;
 
+let capabilities_with_show_document =
+  let window =
+    let showDocument = ShowDocumentClientCapabilities.create ~support:true in
+    WindowClientCapabilities.create ~showDocument ()
+  in
+  ClientCapabilities.create ~window ()
+;;
+
 let create_client client =
   let run_client () =
-    let capabilities =
-      let window =
-        let showDocument = ShowDocumentClientCapabilities.create ~support:true in
-        WindowClientCapabilities.create ~showDocument ()
-      in
-      ClientCapabilities.create ~window ()
-    in
-    Client.start client (InitializeParams.create ~capabilities ())
+    Test.start_client ~capabilities:capabilities_with_show_document client
   in
   run_client
 ;;
@@ -59,14 +60,7 @@ let iter_lsp_response_internal
   Test.run ~handler
   @@ fun client ->
   let run_client () =
-    let capabilities =
-      let window =
-        let showDocument = ShowDocumentClientCapabilities.create ~support:true in
-        WindowClientCapabilities.create ~showDocument ()
-      in
-      ClientCapabilities.create ~window ()
-    in
-    Client.start client (InitializeParams.create ~capabilities ())
+    Test.start_client ~capabilities:capabilities_with_show_document client
   in
   let request () =
     let* (_ : InitializeResult.t) = Client.initialized client in

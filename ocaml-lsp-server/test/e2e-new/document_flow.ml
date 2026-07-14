@@ -33,7 +33,7 @@ let%expect_test "it should allow double opening the same document" =
        in
        ClientCapabilities.create ~window ()
      in
-     Client.start client (InitializeParams.create ~capabilities ())
+     Test.start_client ~capabilities client
    in
    let run =
      let* (_ : InitializeResult.t) = Client.initialized client in

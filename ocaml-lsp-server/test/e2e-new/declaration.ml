@@ -39,11 +39,7 @@ let%expect_test "returns location of a declaration" =
   let handler = Client.Handler.make ~on_notification () in
   (Test.run ~stderr ~handler
    @@ fun client ->
-   let run_client () =
-     Client.start
-       client
-       (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
-   in
+   let run_client () = Test.start_client client in
    let run =
      let* (_ : InitializeResult.t) = Client.initialized client in
      let textDocument =

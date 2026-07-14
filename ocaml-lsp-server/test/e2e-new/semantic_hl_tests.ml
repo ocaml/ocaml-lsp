@@ -98,9 +98,7 @@ let test
       ()
   in
   Test.run ~handler (fun client ->
-    let run_client () =
-      Client.start client (InitializeParams.create ~capabilities:client_capabilities ())
-    in
+    let run_client () = Test.start_client ~capabilities:client_capabilities client in
     let run () =
       let* (initializeResult : InitializeResult.t) = Client.initialized client in
       let uri = DocumentUri.of_path "test.ml" in
