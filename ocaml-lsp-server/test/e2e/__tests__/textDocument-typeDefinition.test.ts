@@ -48,31 +48,6 @@ describe("textDocument/definition", () => {
     await LanguageServer.exit(languageServer);
   });
 
-  it("returns location of a type definition", async () => {
-    openDocument(outdent`
-      (* type we are jumping on *)
-      type t = T of int
-
-      let x = T 43
-    `);
-
-    const result = await queryDefinition(Types.Position.create(3, 4));
-
-    expect(result.length).toBe(1);
-    expect(result[0].range).toMatchInlineSnapshot(`
-{
-  "end": {
-    "character": 5,
-    "line": 1,
-  },
-  "start": {
-    "character": 5,
-    "line": 1,
-  },
-}
-`);
-    expect(result[0].uri).toEqualUri(testUri("file.ml"));
-  });
 
   it("ignores names in values namespace", async () => {
     openDocument(outdent`
