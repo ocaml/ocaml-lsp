@@ -23,17 +23,6 @@ let hover_extended client position verbosity =
   Client.request client (UnknownRequest { meth = "ocamllsp/hoverExtended"; params })
 ;;
 
-let markdown_capabilities =
-  let hover =
-    HoverClientCapabilities.create
-      ~dynamicRegistration:true
-      ~contentFormat:[ MarkupKind.Markdown; MarkupKind.PlainText ]
-      ()
-  in
-  let textDocument = TextDocumentClientCapabilities.create ~hover () in
-  ClientCapabilities.create ~textDocument ()
-;;
-
 let%expect_test "hover reference" =
   let source =
     {ocaml|
@@ -341,7 +330,7 @@ let%expect_test "hoverExtended returns type inferred under cursor with markdown"
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -362,7 +351,7 @@ let%expect_test "hoverExtended returns type inferred under cursor with documenta
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -387,7 +376,7 @@ let%expect_test "hoverExtended returns type inferred under cursor with documenta
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -417,7 +406,7 @@ let sum = f i f
     let () = print_hover_extended resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -444,7 +433,7 @@ type 'a fib = ('a -> unit) -> unit
     print_hover_extended hover2;
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -510,7 +499,7 @@ let%expect_test "hoverExtended regression test for #344" =
     print_hover_extended hover_over_k;
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
