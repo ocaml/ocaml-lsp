@@ -41,12 +41,6 @@ issue has not already been submitted.
   [ocamlformat](https://ocaml.org/p/ocamlformat/latest) (version defined in the
   [`.ocamlformat` file](.ocamlformat)).
 
-- **TypeScript**: TypeScript is used to describe certain end-to-end tests
-  (abbreviated as `e2e`) and the project uses the
-  [prettier](https://prettier.io/) formatter. But the TypeScript testsuite is
-  deprecated (we do not allow extending them anymore. Gradually we'll rewrite
-  them all to OCaml).
-
 Apart from that, the project tries to apply implicit conventions, at the
 decision of the maintainers. At the same time, it tries to follow certain naming
 conventions:
