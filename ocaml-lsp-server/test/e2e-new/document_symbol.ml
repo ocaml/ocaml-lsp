@@ -24,6 +24,87 @@ let print_result x =
   print_as_json (`List result)
 ;;
 
+let%expect_test "returns a list of symbol infos" =
+  let source =
+    {ocaml|let num = 42
+let string = "Hello"
+
+module M = struct
+  let m a b = a + b
+  let n = 32
+end
+|ocaml}
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    print_result response
+  in
+  Helpers.test source request;
+  [%expect
+    {|
+    [
+      {
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 12, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "num"
+      },
+      {
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 20, "line": 1 },
+            "start": { "character": 0, "line": 1 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "string"
+      },
+      {
+        "kind": 2,
+        "location": {
+          "range": {
+            "end": { "character": 3, "line": 6 },
+            "start": { "character": 0, "line": 3 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "M"
+      },
+      {
+        "containerName": "M",
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 19, "line": 4 },
+            "start": { "character": 2, "line": 4 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "m"
+      },
+      {
+        "containerName": "M",
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 12, "line": 5 },
+            "start": { "character": 2, "line": 5 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "n"
+      }
+    ]
+    |}]
+;;
+
 let%expect_test "documentOutline in an empty file" =
   let source = {||} in
   let request client =
