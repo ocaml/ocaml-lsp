@@ -51,3 +51,14 @@ let%expect_test "when on a toplevel let binding" =
       "start": { "character": 0, "line": 0 }
     } |}]
 ;;
+
+let%expect_test "in between toplevel bindings (let and module def)" =
+  test code_snippet_0 (Position.create ~line:1 ~character:0);
+  [%expect
+    {|
+    {
+      "end": { "character": 3, "line": 8 },
+      "start": { "character": 0, "line": 0 }
+    }
+    |}]
+;;
