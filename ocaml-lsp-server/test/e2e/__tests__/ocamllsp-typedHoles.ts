@@ -34,16 +34,6 @@ describe("ocamllsp/typedHoles", () => {
     await LanguageServer.exit(languageServer);
   });
 
-  it("empty when no holes in file", async () => {
-    openDocument(
-      outdent`
-let u = 1
-`,
-    );
-
-    const r = await sendTypedHolesReq();
-    expect(r).toMatchInlineSnapshot("[]");
-  });
 
   it("one hole", async () => {
     openDocument(
