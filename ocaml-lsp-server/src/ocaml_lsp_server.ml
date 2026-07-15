@@ -602,8 +602,7 @@ let on_request
      | Some doc -> now (Some (Msource.text (Document.source doc))))
   | DebugEcho params -> now params
   | Shutdown -> Fiber.return (Reply.now (), state)
-  | WorkspaceSymbol req ->
-    later (fun state () -> Workspace_symbol.run server state req) ()
+  | WorkspaceSymbol req -> later (fun state () -> Workspace_symbol.run state req) ()
   | CodeActionResolve ca -> now ca
   | ExecuteCommand command ->
     if String.equal command.command Merlin_config_command.command_name

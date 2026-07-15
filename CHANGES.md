@@ -4,6 +4,8 @@
 
 - Point workspace symbols for generated sources to their files in the build
   directory. (#1742, @tatchi)
+- Stop workspace symbol searches from repeatedly warning when a workspace has
+  not been built yet.
 - Prevent whole-document formatting requests for OCamllex, Menhir, and Cram
   files from being routed through Dune's S-expression formatter.
 - Refactor ppx hover to use merlin directly (#1606, fixes #1614)
