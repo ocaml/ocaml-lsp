@@ -129,3 +129,33 @@ let%expect_test "updates in at the start of the line" =
     s
     let y = 2; |}]
 ;;
+
+let%expect_test "update when inserting a line" =
+  run_document_test (fun client ->
+    let source = "let x = 1;\n\nlet y = 2;" in
+    let* () = open_document client source in
+    let* document = get_document client in
+    print_document document;
+    print_endline "---";
+    let edit_range = range (position 0 10) (position 0 10) in
+    let* () =
+      change_document
+        client
+        ~version:1
+        ~range:edit_range
+        ~rangeLength:0
+        ~text:"\nlet x = 1;"
+    in
+    let+ document = get_document client in
+    print_document document);
+  [%expect
+    {|
+    let x = 1;
+
+    let y = 2;
+    ---
+    let x = 1;
+    let x = 1;
+
+    let y = 2; |}]
+;;
