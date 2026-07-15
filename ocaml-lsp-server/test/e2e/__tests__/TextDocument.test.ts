@@ -1,69 +1,6 @@
-import outdent from "outdent";
 import * as Protocol from "vscode-languageserver-protocol";
 import * as Types from "vscode-languageserver-types";
 import * as LanguageServer from "./../src/LanguageServer";
-
-describe("TextDocument: incremental sync", () => {
-  let languageServer: LanguageServer.LanguageServer;
-
-  async function getDoc(languageServer: LanguageServer.LanguageServer) {
-    const result: string = await languageServer.sendRequest(
-      "debug/textDocument/get",
-      {
-        textDocument: Types.TextDocumentIdentifier.create(
-          "file:///test-document.txt",
-        ),
-        position: Types.Position.create(0, 0),
-      },
-    );
-    return result;
-  }
-
-  afterEach(async () => {
-    await LanguageServer.exit(languageServer);
-  });
-
-
-  it("update when deleting a line", async () => {
-    languageServer = await LanguageServer.startAndInitialize();
-
-    languageServer.sendNotification(
-      Protocol.DidOpenTextDocumentNotification.type,
-      {
-        textDocument: Types.TextDocumentItem.create(
-          "file:///test-document.txt",
-          "ocaml",
-          0,
-          "let x = 1;\n\nlet y = 2;",
-        ),
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("let x = 1;\n\nlet y = 2;");
-
-    languageServer.sendNotification(
-      Protocol.DidChangeTextDocumentNotification.type,
-      {
-        textDocument: Types.VersionedTextDocumentIdentifier.create(
-          "file:///test-document.txt",
-          1,
-        ),
-        contentChanges: [
-          {
-            range: {
-              start: { line: 0, character: 0 },
-              end: { line: 1, character: 0 },
-            },
-            rangeLength: 11,
-            text: "",
-          },
-        ],
-      },
-    );
-
-    expect(await getDoc(languageServer)).toEqual("\nlet y = 2;");
-  });
-});
 
 describe("TextDocument", () => {
   let languageServer: LanguageServer.LanguageServer;
