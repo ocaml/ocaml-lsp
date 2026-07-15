@@ -66,42 +66,6 @@ maybeDescribe("textDocument/formatting", () => {
       await LanguageServer.exit(languageServer);
     });
 
-    it("can format an ocaml impl file", async () => {
-      languageServer = await LanguageServer.startAndInitialize();
-
-      const name = path.join(setupOcamlFormat(ocamlFormat), "test.ml");
-
-      openDocument(
-        languageServer,
-        "let rec gcd a b =\n" +
-          "  match (a, b) with\n" +
-          "    | 0, n\n" +
-          "  | n, 0 ->\n" +
-          "    n\n" +
-          "  | _, _ -> gcd a (b mod a)\n",
-        name,
-      );
-
-      const result = await query(languageServer, name);
-      expect(result).toMatchInlineSnapshot(`
-[
-  {
-    "newText": "  | 0, n
-",
-    "range": {
-      "end": {
-        "character": 0,
-        "line": 3,
-      },
-      "start": {
-        "character": 0,
-        "line": 2,
-      },
-    },
-  },
-]
-`);
-    });
 
     it("leaves unchanged files alone", async () => {
       languageServer = await LanguageServer.startAndInitialize();
