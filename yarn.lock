@@ -2170,6 +2170,11 @@ vscode-jsonrpc@8.0.1:
   resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-8.0.1.tgz#f30b0625ebafa0fb3bc53e934ca47b706445e57e"
   integrity sha512-N/WKvghIajmEvXpatSzvTvOIz61ZSmOSa4BRA4pTLi+1+jozquQKP/MkaylP9iB68k73Oua1feLQvH3xQuigiQ==
 
+vscode-jsonrpc@9.0.1:
+  version "9.0.1"
+  resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-9.0.1.tgz#5e848a4addf004b6337156f7858a006e0838b4f5"
+  integrity sha512-rfuA6T75H6m5EkbhtEPzre9pT0HPcDI2MMy4+nPFIBks5J8JBAUHD4tRYSgaBOijIEC7SRkC1kKyXTLqbmh9jw==
+
 vscode-languageserver-protocol@3.17.1:
   version "3.17.1"
   resolved "https://registry.yarnpkg.com/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.17.1.tgz#e801762c304f740208b6c804a0cf21f2c87509ed"
