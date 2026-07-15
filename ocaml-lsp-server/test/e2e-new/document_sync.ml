@@ -50,9 +50,10 @@ let run_document_test f =
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let* () = f client in
-    Client.request client Shutdown
+    let* () = Client.request client Shutdown in
+    Client.notification client Exit
   in
-  Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client)
+  Fiber.fork_and_join_unit run_client (fun () -> run)
 ;;
 
 let%expect_test "Manages unicode character ranges correctly" =
@@ -157,5 +158,35 @@ let%expect_test "update when inserting a line" =
     let x = 1;
     let x = 1;
 
+    let y = 2; |}]
+;;
+
+let%expect_test "update when inserting a line at the end of the doc" =
+  run_document_test (fun client ->
+    let source = "let x = 1;\n\nlet y = 2;" in
+    let* () = open_document client source in
+    let* document = get_document client in
+    print_document document;
+    print_endline "---";
+    let edit_range = range (position 2 10) (position 2 10) in
+    let* () =
+      change_document
+        client
+        ~version:1
+        ~range:edit_range
+        ~rangeLength:0
+        ~text:"\nlet y = 2;"
+    in
+    let+ document = get_document client in
+    print_document document);
+  [%expect
+    {|
+    let x = 1;
+
+    let y = 2;
+    ---
+    let x = 1;
+
+    let y = 2;
     let y = 2; |}]
 ;;
