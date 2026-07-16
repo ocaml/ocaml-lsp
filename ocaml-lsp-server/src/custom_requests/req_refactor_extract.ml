@@ -48,18 +48,6 @@ let yojson_of_t { position; content; selection_range } =
     ]
 ;;
 
-let with_pipeline state uri f =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return `Null
-  | `Merlin merlin ->
-    (match Document.Merlin.kind merlin with
-     | Document.Kind.Intf ->
-       (* Extraction makes no sense if its called from an interface. *)
-       Fiber.return `Null
-     | Document.Kind.Impl -> Document.Merlin.with_pipeline_exn merlin f)
-;;
-
 let dispatch ~range ~extract_name pipeline =
   let start = Position.logical range.Range.start in
   let end_ = Position.logical range.Range.end_ in
@@ -81,5 +69,5 @@ let on_request ~params state =
       Request_params.t_of_yojson params
     in
     let uri = text_document.uri in
-    with_pipeline state uri @@ dispatch ~range ~extract_name)
+    Util.with_impl_pipeline state uri ~default:`Null @@ dispatch ~range ~extract_name)
 ;;

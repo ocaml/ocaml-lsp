@@ -79,16 +79,13 @@ let config_with_given_verbosity config verbosity =
 ;;
 
 let with_pipeline state uri verbosity with_pipeline =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return `Null
-  | `Merlin merlin ->
+  Util.with_merlin state uri ~default:`Null (fun merlin ->
     let open Fiber.O in
     let* config = Document.Merlin.mconfig merlin in
     Document.Merlin.with_configurable_pipeline_exn
       ~config:(config_with_given_verbosity config verbosity)
       merlin
-      with_pipeline
+      with_pipeline)
 ;;
 
 let make_enclosing_command position index =
