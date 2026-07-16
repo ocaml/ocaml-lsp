@@ -4,18 +4,8 @@ open Fiber.O
 let action_kind = "inferred_intf"
 
 let code_action_of_intf doc intf range =
-  let edit : WorkspaceEdit.t =
-    let edit =
-      let textedit : TextEdit.t = { range; newText = intf } in
-      let textDocument =
-        let uri = Document.uri doc in
-        let version = Document.version doc in
-        OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
-      in
-      TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ]
-    in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-  in
+  let textedit : TextEdit.t = { range; newText = intf } in
+  let edit = Code_action.workspace_edit doc [ textedit ] in
   let title = String.capitalize_ascii "Insert inferred interface" in
   CodeAction.create
     ~title

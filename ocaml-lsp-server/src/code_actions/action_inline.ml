@@ -370,21 +370,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
     in
     Some action
   | _ :: _, (Some _ | None) ->
-    let edit =
-      let version = Document.version doc in
-      let textDocument =
-        OptionalVersionedTextDocumentIdentifier.create
-          ~uri:params.textDocument.uri
-          ~version
-          ()
-      in
-      let edit =
-        TextDocumentEdit.create
-          ~textDocument
-          ~edits:(List.map edits ~f:(fun e -> `TextEdit e))
-      in
-      WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-    in
+    let edit = Code_action.workspace_edit doc edits in
     let action =
       CodeAction.create
         ~title:action_title
