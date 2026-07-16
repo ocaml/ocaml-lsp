@@ -73,19 +73,21 @@ module T : sig
   val run_with_status
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
+    -> ?stderr:Unix.file_descr
     -> (unit Client.t -> 'a Fiber.t)
     -> Unix.process_status * 'a
 
   val run
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
+    -> ?stderr:Unix.file_descr
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
   let _PATH = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
   let bin = Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
 
-  let run_with_status ?(extra_env = []) ?handler f =
+  let run_with_status ?(extra_env = []) ?handler ?(stderr = Unix.stderr) f =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
@@ -93,7 +95,7 @@ end = struct
         let current = Unix.environment () in
         Array.to_list current @ extra_env |> Spawn.Env.of_list
       in
-      Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ()
+      Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ~stderr ()
     in
     Unix.close stdin_i;
     Unix.close stdout_o;
@@ -154,7 +156,9 @@ end = struct
     |> Lev_fiber.Error.ok_exn
   ;;
 
-  let run ?extra_env ?handler f = snd @@ run_with_status ?extra_env ?handler f
+  let run ?extra_env ?handler ?stderr f =
+    snd @@ run_with_status ?extra_env ?handler ?stderr f
+  ;;
 end
 
 include T
