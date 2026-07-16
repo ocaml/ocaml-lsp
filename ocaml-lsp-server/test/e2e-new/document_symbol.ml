@@ -24,6 +24,29 @@ let print_result x =
   print_as_json (`List result)
 ;;
 
+let test_with_capabilities capabilities text req =
+  let on_notification, diagnostics = Test.drain_diagnostics () in
+  let handler = Client.Handler.make ~on_notification () in
+  Test.run ~handler (fun client ->
+    let run_client () = Client.start client (InitializeParams.create ~capabilities ()) in
+    let run () =
+      let* (_ : InitializeResult.t) = Client.initialized client in
+      let textDocument =
+        TextDocumentItem.create ~uri:Helpers.uri ~languageId:"ocaml" ~version:0 ~text
+      in
+      let* () =
+        Client.notification
+          client
+          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+      in
+      let* () = req client in
+      let* () = Client.request client Shutdown in
+      let* () = Fiber.Ivar.read diagnostics in
+      Client.stop client
+    in
+    Fiber.fork_and_join_unit run_client run)
+;;
+
 let%expect_test "returns a list of symbol infos" =
   let source =
     {ocaml|let num = 42
@@ -100,6 +123,103 @@ end
           "uri": "file:///test.ml"
         },
         "name": "n"
+      }
+    ]
+    |}]
+;;
+
+let%expect_test "returns a hierarchy of symbols" =
+  let source =
+    {ocaml|let num = 42
+let string = "Hello"
+
+module M = struct
+  let m a b = a + b
+  let n = 32
+end
+|ocaml}
+  in
+  let capabilities =
+    let documentSymbol =
+      DocumentSymbolClientCapabilities.create ~hierarchicalDocumentSymbolSupport:true ()
+    in
+    let textDocument = TextDocumentClientCapabilities.create ~documentSymbol () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    print_result response
+  in
+  test_with_capabilities capabilities source request;
+  [%expect
+    {|
+    [
+      {
+        "children": [],
+        "kind": 13,
+        "name": "num",
+        "range": {
+          "end": { "character": 12, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        },
+        "selectionRange": {
+          "end": { "character": 7, "line": 0 },
+          "start": { "character": 4, "line": 0 }
+        }
+      },
+      {
+        "children": [],
+        "kind": 13,
+        "name": "string",
+        "range": {
+          "end": { "character": 20, "line": 1 },
+          "start": { "character": 0, "line": 1 }
+        },
+        "selectionRange": {
+          "end": { "character": 10, "line": 1 },
+          "start": { "character": 4, "line": 1 }
+        }
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "kind": 13,
+            "name": "m",
+            "range": {
+              "end": { "character": 19, "line": 4 },
+              "start": { "character": 2, "line": 4 }
+            },
+            "selectionRange": {
+              "end": { "character": 7, "line": 4 },
+              "start": { "character": 6, "line": 4 }
+            }
+          },
+          {
+            "children": [],
+            "kind": 13,
+            "name": "n",
+            "range": {
+              "end": { "character": 12, "line": 5 },
+              "start": { "character": 2, "line": 5 }
+            },
+            "selectionRange": {
+              "end": { "character": 7, "line": 5 },
+              "start": { "character": 6, "line": 5 }
+            }
+          }
+        ],
+        "kind": 2,
+        "name": "M",
+        "range": {
+          "end": { "character": 3, "line": 6 },
+          "start": { "character": 0, "line": 3 }
+        },
+        "selectionRange": {
+          "end": { "character": 8, "line": 3 },
+          "start": { "character": 7, "line": 3 }
+        }
       }
     ]
     |}]
