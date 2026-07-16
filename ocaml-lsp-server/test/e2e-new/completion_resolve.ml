@@ -37,3 +37,50 @@ let%expect_test "can get documentation for the end of document" =
     }
     |}]
 ;;
+
+let%expect_test "can get documentation at arbitrary position" =
+  let source =
+    {ocaml|List.fld((=) 0) [1; 2; 3]
+|ocaml}
+  in
+  let req client =
+    let* response =
+      completion_item_resolve client "find_all" (Position.create ~line:0 ~character:5)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect
+    {|
+    {
+      "documentation": "[find_all] is another name for {!filter}.",
+      "label": "find_all"
+    }
+    |}]
+;;
+
+let%expect_test "can get documentation at arbitrary position (before dot)" =
+  let source =
+    {ocaml|module Outer = struct
+  (** documentation for [Inner] *)
+  module Inner = struct
+    let v = ()
+  end
+end
+
+let _ = ();;
+
+Outer.Inner.v
+|ocaml}
+  in
+  let req client =
+    let* response =
+      completion_item_resolve client "Inner" (Position.create ~line:9 ~character:10)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect {| { "documentation": "documentation for [Inner]", "label": "Inner" } |}]
+;;
