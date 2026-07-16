@@ -74,6 +74,7 @@
     selection_range
     signature_help
     start_stop
+    switch_impl_intf
     syntax_doc_tests
     test
     type_enclosing
