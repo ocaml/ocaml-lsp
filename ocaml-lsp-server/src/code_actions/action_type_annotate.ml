@@ -28,19 +28,9 @@ let check_typeable_context pipeline pos_start =
   | _ :: _ | [] -> `Invalid
 ;;
 
-let get_source_text doc (loc : Loc.t) =
-  let open Option.O in
-  let source = Document.source doc in
-  let* start = Position.of_lexical_position loc.loc_start in
-  let+ end_ = Position.of_lexical_position loc.loc_end in
-  let (`Offset start) = Msource.get_offset source (Position.logical start) in
-  let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
-  String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
-;;
-
 let code_action_of_type_enclosing uri doc (loc, typ) =
   let open Option.O in
-  let+ original_text = get_source_text doc loc in
+  let+ original_text = Document.get_source_text doc loc in
   let newText = Printf.sprintf "(%s : %s)" original_text typ in
   let edit : WorkspaceEdit.t =
     let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
