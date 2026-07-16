@@ -214,3 +214,11 @@ let%expect_test "update when deleting a line" =
 
     let y = 2; |}]
 ;;
+
+let%expect_test "stores text document" =
+  run_document_test (fun client ->
+    let* () = open_document client "Hello, World!" in
+    let+ document = get_document client in
+    print_document document);
+  [%expect {| Hello, World! |}]
+;;
