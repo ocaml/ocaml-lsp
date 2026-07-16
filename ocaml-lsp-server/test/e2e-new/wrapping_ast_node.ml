@@ -62,3 +62,36 @@ let%expect_test "in between toplevel bindings (let and module def)" =
     }
     |}]
 ;;
+
+let%expect_test "on keyword struct" =
+  test code_snippet_0 (Position.create ~line:2 ~character:14);
+  [%expect
+    {|
+    {
+      "end": { "character": 3, "line": 8 },
+      "start": { "character": 0, "line": 2 }
+    }
+    |}]
+;;
+
+let%expect_test "on `b`'s let-binding (nested let-binding in a module def)" =
+  test code_snippet_0 (Position.create ~line:4 ~character:10);
+  [%expect
+    {|
+    {
+      "end": { "character": 9, "line": 5 },
+      "start": { "character": 2, "line": 3 }
+    }
+    |}]
+;;
+
+let%expect_test "between `a`'s and `c`'s let-bindings in a module def" =
+  test code_snippet_0 (Position.create ~line:6 ~character:0);
+  [%expect
+    {|
+    {
+      "end": { "character": 11, "line": 7 },
+      "start": { "character": 2, "line": 3 }
+    }
+    |}]
+;;
