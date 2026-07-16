@@ -222,3 +222,12 @@ let%expect_test "stores text document" =
     print_document document);
   [%expect {| Hello, World! |}]
 ;;
+
+let%expect_test "updates text document" =
+  run_document_test (fun client ->
+    let* () = open_document client "Hello, World!" in
+    let* () = change_document client ~version:1 ~text:"Hello again!" in
+    let+ document = get_document client in
+    print_document document);
+  [%expect {| Hello again! |}]
+;;
