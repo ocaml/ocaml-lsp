@@ -59,6 +59,7 @@
     for_ppx
     hover
     hover_extended
+    infer_intf
     inlay_hints
     jump_to_typed_hole
     merlin_call_compatible
