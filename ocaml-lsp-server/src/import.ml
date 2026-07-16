@@ -30,11 +30,7 @@ module Table = struct
   include Base.Hashtbl
 
   module Multi = struct
-    let find t key =
-      match find t key with
-      | None -> []
-      | Some x -> x
-    ;;
+    let find = find_multi
   end
 end
 
@@ -65,16 +61,12 @@ module List = struct
 
   let sort xs ~compare = sort xs ~compare:(fun x y -> Ordering.to_int (compare x y))
   let fold_left2 xs ys ~init ~f = Stdlib.List.fold_left2 f init xs ys
-  let assoc xs key = Assoc.find ~equal:Poly.equal xs key
-  let assoc_opt xs key = assoc xs key
   let mem t x ~equal = mem t x ~equal
   let map t ~f = map t ~f
   let concat_map t ~f = concat_map t ~f
-  let flatten t = Stdlib.List.flatten t
   let filter_map t ~f = filter_map t ~f
   let fold_left t ~init ~f = fold_left t ~init ~f
   let findi xs ~f = findi xs ~f
-  let find_opt xs ~f = find xs ~f
 
   let sort_uniq xs ~compare =
     Stdlib.List.sort_uniq (fun x y -> Ordering.to_int (compare x y)) xs
@@ -84,7 +76,6 @@ module List = struct
   let find_mapi xs ~f = find_mapi xs ~f
   let sub xs ~pos ~len = sub xs ~pos ~len
   let hd_exn t = hd_exn t
-  let hd_opt t = hd t
   let nth_exn t n = nth_exn t n
   let hd t = hd t
   let filter t ~f = filter t ~f
@@ -146,8 +137,6 @@ end
 
 module String = struct
   type t = string
-
-  let starts_with = Stdlib.String.starts_with
 
   module Map = struct
     include MoreLabels.Map.Make (Stdlib.String)
@@ -213,7 +202,7 @@ module String = struct
     let drop_prefix = chop_prefix
     let is_prefix = is_prefix
     let map = map
-    let lowercase_ascii = lowercase
+    let lowercase = lowercase
     let capitalize_ascii = capitalize
     let capitalize = capitalize
     let split_on_char t ~sep = split t ~on:sep
@@ -230,42 +219,6 @@ module String = struct
     let filter = filter
     let is_suffix = is_suffix
   end
-
-  let findi =
-    let rec loop s len ~f i =
-      if i >= len
-      then None
-      else if f (String.unsafe_get s i)
-      then Some i
-      else loop s len ~f (i + 1)
-    in
-    fun ?from s ~f ->
-      let len = String.length s in
-      let from =
-        match from with
-        | None -> 0
-        | Some i -> if i > len - 1 then Code_error.raise "findi: invalid from" [] else i
-      in
-      loop s len ~f from
-  ;;
-
-  let rfindi =
-    let rec loop s ~f i =
-      if i < 0
-      then None
-      else if f (String.unsafe_get s i)
-      then Some i
-      else loop s ~f (i - 1)
-    in
-    fun ?from s ~f ->
-      let from =
-        let len = String.length s in
-        match from with
-        | None -> len - 1
-        | Some i -> if i > len - 1 then Code_error.raise "rfindi: invalid from" [] else i
-      in
-      loop s ~f from
-  ;;
 end
 
 (* All modules from [Lsp] should be in the struct below. The modules are listed

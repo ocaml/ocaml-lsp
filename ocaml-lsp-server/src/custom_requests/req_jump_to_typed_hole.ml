@@ -38,7 +38,7 @@ module Request_params = struct
   let direction_of_yojson json =
     let open Yojson.Safe.Util in
     let dir = json |> member "direction" |> to_string in
-    match String.lowercase_ascii dir with
+    match String.lowercase dir with
     | "prev" -> `Prev
     | _ -> `Next
   ;;

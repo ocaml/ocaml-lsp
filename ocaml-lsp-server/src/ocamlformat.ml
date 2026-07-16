@@ -231,7 +231,7 @@ let format_snippet ~start ~stop ~padding formatter binary cancel contents =
   let prefix, to_format, suffix =
     ( String.sub contents ~pos:0 ~len:start
     , String.sub contents ~pos:start ~len:(stop - start)
-    , String.sub contents ~pos:stop ~len:(String.length contents - stop) )
+    , String.drop contents stop )
   in
   let args = args formatter in
   let args =

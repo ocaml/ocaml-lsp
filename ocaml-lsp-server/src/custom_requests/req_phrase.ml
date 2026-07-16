@@ -32,7 +32,7 @@ module Request_params = struct
     json
     |> member "target"
     |> to_string_option
-    |> Option.map ~f:String.lowercase_ascii
+    |> Option.map ~f:String.lowercase
     |> function
     | Some "next" -> `Next
     | Some "prev" -> `Prev

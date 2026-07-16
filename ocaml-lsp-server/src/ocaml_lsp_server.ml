@@ -558,7 +558,7 @@ let on_request
   match req with
   | Client_request.UnknownRequest { meth; params } ->
     (match
-       List.assoc
+       List.Assoc.find
          [ ( Req_switch_impl_intf.meth
            , fun ~params state ->
                Fiber.of_thunk (fun () ->
@@ -585,6 +585,7 @@ let on_request
          ; Req_refactor_extract.meth, Req_refactor_extract.on_request
          ]
          meth
+         ~equal:String.equal
      with
      | None ->
        Jsonrpc.Response.Error.raise

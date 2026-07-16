@@ -94,7 +94,7 @@ module Syntax = struct
   ;;
 
   let of_text_document (td : Text_document.t) =
-    match List.assoc all (Text_document.languageId td) with
+    match List.Assoc.find all (Text_document.languageId td) ~equal:String.equal with
     | Some s -> s
     | None -> Text_document.documentUri td |> Uri.to_path |> of_fname
   ;;

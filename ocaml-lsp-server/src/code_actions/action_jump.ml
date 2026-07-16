@@ -7,11 +7,7 @@ let targets =
   [ "fun"; "match"; "let"; "module"; "module-type"; "match-next-case"; "match-prev-case" ]
 ;;
 
-let rename_target target =
-  if String.starts_with ~prefix:"match-" target
-  then String.sub target ~pos:6 ~len:(String.length target - 6)
-  else target
-;;
+let rename_target target = String.chop_prefix_if_exists target ~prefix:"match-"
 
 let available (capabilities : ShowDocumentClientCapabilities.t option) =
   match capabilities with
