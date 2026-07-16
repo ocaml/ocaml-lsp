@@ -45,6 +45,7 @@
     code_actions
     code_lens
     completion
+    completion_resolve
     completions
     formatting
     range_formatting
