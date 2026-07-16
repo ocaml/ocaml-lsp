@@ -57,40 +57,6 @@ describe_opt("textDocument/completion", () => {
     await LanguageServer.exit(languageServer);
   });
 
-  it("can provide signature help after a function-type value", async () => {
-    openDocument(outdent`
-      let map = ListLabels.map
-
-      let _ = map
-    `);
-
-    const items = await querySignatureHelp(Types.Position.create(2, 11));
-    expect(items).toMatchInlineSnapshot(`
-{
-  "activeParameter": 1,
-  "activeSignature": 0,
-  "signatures": [
-    {
-      "label": "map : f:('a -> 'b) -> 'a list -> 'b list",
-      "parameters": [
-        {
-          "label": [
-            6,
-            18,
-          ],
-        },
-        {
-          "label": [
-            22,
-            29,
-          ],
-        },
-      ],
-    },
-  ],
-}
-`);
-  });
 
   it("can provide signature help for an operator", async () => {
     openDocument(outdent`

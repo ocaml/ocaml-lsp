@@ -72,6 +72,7 @@
     semantic_hl_helpers
     semantic_hl_tests
     selection_range
+    signature_help
     start_stop
     syntax_doc_tests
     test
