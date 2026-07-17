@@ -28,29 +28,6 @@ let markdown_capabilities =
   ClientCapabilities.create ~textDocument ()
 ;;
 
-let test_with_capabilities capabilities text req =
-  let on_notification, diagnostics = Test.drain_diagnostics () in
-  let handler = Client.Handler.make ~on_notification () in
-  Test.run ~handler (fun client ->
-    let run_client () = Client.start client (InitializeParams.create ~capabilities ()) in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create ~uri:Helpers.uri ~languageId:"ocaml" ~version:0 ~text
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = req client in
-      let* () = Client.request client Shutdown in
-      let* () = Fiber.Ivar.read diagnostics in
-      Client.stop client
-    in
-    Fiber.fork_and_join_unit run_client run)
-;;
-
 let%expect_test "returns type inferred under cursor" =
   let source =
     {ocaml|let x = 1
@@ -86,7 +63,7 @@ let%expect_test "returns type inferred under cursor (markdown formatting)" =
     let () = print_hover resp in
     Fiber.return ()
   in
-  test_with_capabilities markdown_capabilities source req;
+  Helpers.test ~capabilities:markdown_capabilities source req;
   [%expect
     {|
     {
@@ -112,7 +89,7 @@ let id x = x
     let () = print_hover resp in
     Fiber.return ()
   in
-  test_with_capabilities markdown_capabilities source req;
+  Helpers.test ~capabilities:markdown_capabilities source req;
   [%expect
     {|
     {
@@ -142,7 +119,7 @@ let () = id ()
     let () = print_hover resp in
     Fiber.return ()
   in
-  test_with_capabilities markdown_capabilities source req;
+  Helpers.test ~capabilities:markdown_capabilities source req;
   [%expect
     {|
     {
@@ -195,7 +172,7 @@ let f = div 4 2
     let () = print_hover resp in
     Fiber.return ()
   in
-  test_with_capabilities markdown_capabilities source req;
+  Helpers.test ~capabilities:markdown_capabilities source req;
   [%expect
     {|
     {
@@ -225,7 +202,7 @@ let sum = f i f
     let () = print_hover resp in
     Fiber.return ()
   in
-  test_with_capabilities markdown_capabilities source req;
+  Helpers.test ~capabilities:markdown_capabilities source req;
   [%expect
     {|
     {
@@ -252,7 +229,7 @@ type 'a fib = ('a -> unit) -> unit
     print_hover hover2;
     Fiber.return ()
   in
-  test_with_capabilities markdown_capabilities source req;
+  Helpers.test ~capabilities:markdown_capabilities source req;
   [%expect
     {|
     {
@@ -317,7 +294,7 @@ let%expect_test "FIXME: reproduce [#344](https://github.com/ocaml/ocaml-lsp/issu
     print_hover hover_over_k;
     Fiber.return ()
   in
-  test_with_capabilities markdown_capabilities source req;
+  Helpers.test ~capabilities:markdown_capabilities source req;
   [%expect
     {|
     {

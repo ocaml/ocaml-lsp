@@ -24,29 +24,6 @@ let print_result x =
   print_as_json (`List result)
 ;;
 
-let test_with_capabilities capabilities text req =
-  let on_notification, diagnostics = Test.drain_diagnostics () in
-  let handler = Client.Handler.make ~on_notification () in
-  Test.run ~handler (fun client ->
-    let run_client () = Client.start client (InitializeParams.create ~capabilities ()) in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create ~uri:Helpers.uri ~languageId:"ocaml" ~version:0 ~text
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = req client in
-      let* () = Client.request client Shutdown in
-      let* () = Fiber.Ivar.read diagnostics in
-      Client.stop client
-    in
-    Fiber.fork_and_join_unit run_client run)
-;;
-
 let%expect_test "returns a list of symbol infos" =
   let source =
     {ocaml|let num = 42
@@ -151,7 +128,7 @@ end
     let+ response = Util.call_document_symbol client in
     print_result response
   in
-  test_with_capabilities capabilities source request;
+  Helpers.test ~capabilities source request;
   [%expect
     {|
     [
