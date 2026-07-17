@@ -18,16 +18,9 @@ let view_metrics_command_name = "ocamllsp/view-metrics"
 
 let view_metrics server =
   let* json = Metrics.dump () in
-  let uri, chan =
-    Filename.open_temp_file (sprintf "lsp-metrics.%d" (Unix.getpid ())) ".json"
+  let+ () =
+    Client.show_document_contents server ~prefix:"lsp-metrics" ~suffix:".json" json
   in
-  output_string chan json;
-  close_out_noerr chan;
-  let req =
-    let uri = Uri.of_path uri in
-    Server_request.ShowDocumentRequest (ShowDocumentParams.create ~uri ~takeFocus:true ())
-  in
-  let+ { ShowDocumentResult.success = _ } = Server.request server req in
   `Null
 ;;
 

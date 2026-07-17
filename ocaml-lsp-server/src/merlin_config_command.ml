@@ -19,15 +19,5 @@ let command_run server store =
     let json = `Assoc docs in
     Format.asprintf "%a@.%!" Json.pp json
   in
-  let uri, chan =
-    Filename.open_temp_file (sprintf "merlin-config.%d" (Unix.getpid ())) ".json"
-  in
-  output_string chan json;
-  close_out_noerr chan;
-  let req =
-    let uri = Uri.of_path uri in
-    Server_request.ShowDocumentRequest (ShowDocumentParams.create ~uri ~takeFocus:true ())
-  in
-  let+ { ShowDocumentResult.success = _ } = Server.request server req in
-  ()
+  Client.show_document_contents server ~prefix:"merlin-config" ~suffix:".json" json
 ;;
