@@ -51,6 +51,7 @@
     formatting
     range_formatting
     references
+    rename
     construct
     doc_to_md
     document_flow
