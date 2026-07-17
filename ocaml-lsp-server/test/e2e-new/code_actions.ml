@@ -2348,7 +2348,7 @@ let f (x:bool) =
   [%expect
     {|
     {
-      "end": { "character": 15, "line": 4 },
+      "end": { "character": 13, "line": 4 },
       "start": { "character": 2, "line": 2 }
     }
     |}]
