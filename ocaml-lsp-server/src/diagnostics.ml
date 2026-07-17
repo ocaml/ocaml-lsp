@@ -424,12 +424,6 @@ let set_report_dune_diagnostics t ~report_dune_diagnostics =
 ;;
 
 let set_shorten_merlin_diagnostics t ~shorten_merlin_diagnostics =
-  if t.shorten_merlin_diagnostics = shorten_merlin_diagnostics
-  then Fiber.return ()
-  else (
-    t.shorten_merlin_diagnostics <- shorten_merlin_diagnostics;
-    Table.iter t.dune ~f:(fun per_dune ->
-      Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
-        t.dirty_uris <- Base.Set.add t.dirty_uris uri));
-    send t `All)
+  t.shorten_merlin_diagnostics <- shorten_merlin_diagnostics;
+  Fiber.return ()
 ;;

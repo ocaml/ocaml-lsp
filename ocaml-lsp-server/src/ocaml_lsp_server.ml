@@ -804,20 +804,32 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
     state
   | CancelRequest _ -> Fiber.return state
   | ChangeConfiguration req ->
+    let previous_shorten_merlin_diagnostics =
+      Configuration.shorten_merlin_diagnostics state.configuration
+    in
     let* configuration = Configuration.update state.configuration req in
+    let diagnostics = State.diagnostics state in
     let* () =
       let report_dune_diagnostics = Configuration.report_dune_diagnostics configuration in
-      Diagnostics.set_report_dune_diagnostics
-        ~report_dune_diagnostics
-        (State.diagnostics state)
+      Diagnostics.set_report_dune_diagnostics ~report_dune_diagnostics diagnostics
+    in
+    let shorten_merlin_diagnostics =
+      Configuration.shorten_merlin_diagnostics configuration
+    in
+    let* () =
+      Diagnostics.set_shorten_merlin_diagnostics ~shorten_merlin_diagnostics diagnostics
     in
     let+ () =
-      let shorten_merlin_diagnostics =
-        Configuration.shorten_merlin_diagnostics configuration
-      in
-      Diagnostics.set_shorten_merlin_diagnostics
-        ~shorten_merlin_diagnostics
-        (State.diagnostics state)
+      if previous_shorten_merlin_diagnostics = shorten_merlin_diagnostics
+      then Fiber.return ()
+      else
+        let* () =
+          Document_store.parallel_iter store ~f:(fun doc ->
+            match Document.kind doc with
+            | `Other -> Fiber.return ()
+            | `Merlin merlin -> Diagnostics.merlin_diagnostics diagnostics merlin)
+        in
+        Diagnostics.send diagnostics `All
     in
     { state with configuration }
   | DidSaveTextDocument { textDocument = { uri }; _ } ->

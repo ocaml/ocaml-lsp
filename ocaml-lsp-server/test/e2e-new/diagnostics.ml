@@ -213,6 +213,33 @@ end
       ],
       "uri": "file:///test.ml"
     }
+    textDocument/publishDiagnostics
+    {
+      "diagnostics": [
+        {
+          "message": "Signature mismatch:\nModules do not match:\n  sig val x : int end\nis not included in\n  sig val x : unit end\nValues do not match: val x : int is not included in val x : unit\nThe type int is not compatible with the type unit\nFile \"test.ml\", line 2, characters 2-14: Expected declaration\nFile \"test.ml\", line 4, characters 6-7: Actual declaration",
+          "range": {
+            "end": { "character": 0, "line": 3 },
+            "start": { "character": 6, "line": 2 }
+          },
+          "relatedInformation": [
+            {
+              "location": {
+                "range": {
+                  "end": { "character": 3, "line": 4 },
+                  "start": { "character": 6, "line": 2 }
+                },
+                "uri": "file:///test.ml"
+              },
+              "message": "Original error span"
+            }
+          ],
+          "severity": 1,
+          "source": "ocamllsp"
+        }
+      ],
+      "uri": "file:///test.ml"
+    }
     |}]
 ;;
 
