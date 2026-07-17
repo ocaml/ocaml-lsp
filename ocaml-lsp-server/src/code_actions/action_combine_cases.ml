@@ -41,12 +41,9 @@ let pick_rhs rhs_expressions =
   | _ -> "_"
 ;;
 
-let make_text_edit ~range ~newText ~doc ~uri =
+let make_text_edit ~range ~newText ~doc =
   let text_edit = TextEdit.create ~range ~newText in
-  let version = Document.version doc in
-  let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
-  let edit = TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit text_edit ] in
-  WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
+  Code_action.workspace_edit doc [ text_edit ]
 ;;
 
 let code_action doc params =
@@ -67,7 +64,7 @@ let code_action doc params =
          let lhs = String.concat ~sep:" | " lhs_patterns in
          let rhs = pick_rhs rhs_expressions in
          let newText = indent ^ "| " ^ lhs ^ " -> " ^ rhs ^ "\n" in
-         let edit = make_text_edit ~range ~newText ~doc ~uri:params.textDocument.uri in
+         let edit = make_text_edit ~range ~newText ~doc in
          CodeAction.create
            ~title:(String.capitalize action_kind)
            ~kind

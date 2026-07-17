@@ -243,15 +243,10 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
        String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
 ;;
 
-let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText) =
+let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
   let range : Range.t = Range.of_loc loc in
   let textedit : TextEdit.t = { range; newText } in
-  let edit : WorkspaceEdit.t =
-    let version = Document.version doc in
-    let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
-    let edit = TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ] in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-  in
+  let edit = Code_action.workspace_edit doc [ textedit ] in
   let title = String.capitalize action_kind in
   let command =
     if supportsJumpToNextHole
@@ -282,7 +277,6 @@ let dispatch_destruct (merlin : Document.Merlin.t) (range : Range.t) =
 ;;
 
 let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.t) =
-  let uri = params.textDocument.uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin merlin ->
@@ -298,8 +292,7 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
             State.experimental_client_capabilities state
             |> Client.Experimental_capabilities.supportsJumpToNextHole
           in
-          Some
-            (code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText))
+          Some (code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText))
         | Error
             { exn =
                 ( Merlin_analysis.Destruct.Wrong_parent _

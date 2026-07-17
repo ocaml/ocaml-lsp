@@ -28,27 +28,12 @@ let check_typeable_context pipeline pos_start =
   | _ :: _ | [] -> `Invalid
 ;;
 
-let get_source_text doc (loc : Loc.t) =
+let code_action_of_type_enclosing doc (loc, typ) =
   let open Option.O in
-  let source = Document.source doc in
-  let* start = Position.of_lexical_position loc.loc_start in
-  let+ end_ = Position.of_lexical_position loc.loc_end in
-  let (`Offset start) = Msource.get_offset source (Position.logical start) in
-  let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
-  String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
-;;
-
-let code_action_of_type_enclosing uri doc (loc, typ) =
-  let open Option.O in
-  let+ original_text = get_source_text doc loc in
+  let+ original_text = Code_action.source_text doc loc in
   let newText = Printf.sprintf "(%s : %s)" original_text typ in
-  let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
-    let version = Document.version doc in
-    let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
-    let edit = TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ] in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-  in
+  let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
+  let edit = Code_action.workspace_edit doc [ textedit ] in
   let title = String.capitalize_ascii action_kind in
   CodeAction.create
     ~title
@@ -74,7 +59,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
   match res with
   | None | Some [] | Some ((_, `Index _, _) :: _) -> None
   | Some ((location, `String value, _) :: _) ->
-    code_action_of_type_enclosing params.textDocument.uri doc (location, value)
+    code_action_of_type_enclosing doc (location, value)
 ;;
 
 let kind = CodeActionKind.Other action_kind
