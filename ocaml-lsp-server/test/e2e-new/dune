@@ -49,6 +49,7 @@
     completion_resolve
     completions
     formatting
+    folding_range
     range_formatting
     references
     rename
