@@ -1,6 +1,12 @@
 open Test.Import
 open Lsp_helpers
 
+let range ~start_line ~start_character ~end_line ~end_character =
+  let start = Position.create ~line:start_line ~character:start_character in
+  let end_ = Position.create ~line:end_line ~character:end_character in
+  Range.create ~start ~end_
+;;
+
 let iter_code_actions ?prep ?path ?(diagnostics = []) ~source range =
   let makeRequest textDocument =
     let context = CodeActionContext.create ~diagnostics () in
@@ -51,11 +57,7 @@ let%expect_test "code actions" =
 let foo = 123
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:5 in
-    let end_ = Position.create ~line:1 ~character:7 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:5 ~end_line:1 ~end_character:7 in
   print_code_actions source range;
   [%expect
     {|
@@ -102,11 +104,7 @@ type t = Foo of int | Bar of bool
 let f x = Foo x
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:2 ~character:6 in
-    let end_ = Position.create ~line:2 ~character:7 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:2 ~start_character:6 ~end_line:2 ~end_character:7 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect
     {|
@@ -140,11 +138,7 @@ let%expect_test "can type-annotate a toplevel value" =
 let iiii = 3 + 4
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:4 in
-    let end_ = Position.create ~line:1 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:4 ~end_line:1 ~end_character:5 in
   print_code_actions source range;
   [%expect
     {|
@@ -191,11 +185,7 @@ let%expect_test "does not type-annotate function" =
 let my_fun x y = 1
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:5 in
-    let end_ = Position.create ~line:1 ~character:6 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:5 ~end_line:1 ~end_character:6 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
 ;;
@@ -209,11 +199,7 @@ let () =
   print_int (f i)
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:7 in
-    let end_ = Position.create ~line:1 ~character:8 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:7 ~end_line:1 ~end_character:8 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect
     {|
@@ -249,11 +235,7 @@ type t = Foo of int | Bar of bool
 let f (x : t) = x
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:3 ~character:16 in
-    let end_ = Position.create ~line:3 ~character:17 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:3 ~start_character:16 ~end_line:3 ~end_character:17 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect
     {|
@@ -289,11 +271,7 @@ type x =
    | Baz of string
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:3 ~character:5 in
-    let end_ = Position.create ~line:3 ~character:6 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:3 ~start_character:5 ~end_line:3 ~end_character:6 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
 ;;
@@ -304,11 +282,7 @@ let%expect_test "does not type-annotate already annotated argument" =
 let f (x : int) = 1
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:7 in
-    let end_ = Position.create ~line:1 ~character:8 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:7 ~end_line:1 ~end_character:8 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
 ;;
@@ -319,11 +293,7 @@ let%expect_test "does not type-annotate already annotated expression" =
 let f x = (1 : int)
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:11 in
-    let end_ = Position.create ~line:1 ~character:12 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:11 ~end_line:1 ~end_character:12 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
 ;;
@@ -334,11 +304,7 @@ let%expect_test "does not type-annotate already annotated and coerced expression
 let f x = (1 : int :> int)
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:11 in
-    let end_ = Position.create ~line:1 ~character:12 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:11 ~end_line:1 ~end_character:12 in
   print_code_actions source range ~filter:find_annotate_action;
   [%expect {| No code actions |}]
 ;;
@@ -350,11 +316,7 @@ type t = Foo of int | Bar of bool
 let f (x : t) = Foo x
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:2 ~character:7 in
-    let end_ = Position.create ~line:2 ~character:8 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:2 ~start_character:7 ~end_line:2 ~end_character:8 in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect
     {|
@@ -388,11 +350,7 @@ let%expect_test "can remove type annotation from a toplevel value" =
 let (iiii : int) = 3 + 4
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:5 in
-    let end_ = Position.create ~line:1 ~character:6 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:5 ~end_line:1 ~end_character:6 in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect
     {|
@@ -429,11 +387,7 @@ let f (x : int) = x + 1
    print_int (f i)
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:7 in
-    let end_ = Position.create ~line:1 ~character:8 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:7 ~end_line:1 ~end_character:8 in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect
     {|
@@ -467,11 +421,7 @@ let%expect_test "can remove type annotation from a coerced expression" =
 let x = (7 : int :> int)
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:9 in
-    let end_ = Position.create ~line:1 ~character:10 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:9 ~end_line:1 ~end_character:10 in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect
     {|
@@ -505,11 +455,7 @@ let%expect_test "does not remove type annotation from function" =
 let my_fun x y : int = 1
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:5 in
-    let end_ = Position.create ~line:1 ~character:6 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:5 ~end_line:1 ~end_character:6 in
   print_code_actions source range ~filter:find_remove_annotation_action;
   [%expect {| No code actions |}]
 ;;
@@ -521,11 +467,7 @@ type t = Foo of int | Bar of bool
 let f (x : t) = x
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:2 ~character:16 in
-    let end_ = Position.create ~line:2 ~character:17 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:2 ~start_character:16 ~end_line:2 ~end_character:17 in
   print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
   [%expect
     {|
@@ -561,11 +503,7 @@ let f (x:bool) =
   match x
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:2 ~character:5 in
-    let end_ = Position.create ~line:2 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:2 ~start_character:5 ~end_line:2 ~end_character:5 in
   print_code_actions
     source
     range
@@ -603,11 +541,7 @@ let%expect_test "can destruct match-with line" =
     match (Ok 0) with
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:0 in
-    let end_ = Position.create ~line:1 ~character:0 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:0 ~end_line:1 ~end_character:0 in
   print_code_actions
     source
     range
@@ -652,11 +586,7 @@ let f (x: q) =
   | C -> _
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:8 ~character:0 in
-    let end_ = Position.create ~line:8 ~character:0 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:8 ~start_character:0 ~end_line:8 ~end_character:0 in
   print_code_actions
     source
     range
@@ -696,11 +626,7 @@ let zip (type a b) (xs : a list) (ys : b list) : (a * b) list =
   | (_, _) -> _
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:3 ~character:5 in
-    let end_ = Position.create ~line:3 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:3 ~start_character:5 ~end_line:3 ~end_character:5 in
   print_code_actions
     source
     range
@@ -745,11 +671,7 @@ let f (x: q) =
   | _ -> _
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:8 ~character:5 in
-    let end_ = Position.create ~line:8 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:8 ~start_character:5 ~end_line:8 ~end_character:5 in
   print_code_actions
     source
     range
@@ -794,11 +716,7 @@ let f (x: q) =
   | _ -> _
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:8 ~character:2 in
-    let end_ = Position.create ~line:8 ~character:2 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:8 ~start_character:2 ~end_line:8 ~end_character:2 in
   print_code_actions
     source
     range
@@ -842,11 +760,7 @@ let f (x: t) =
   match x with
   |ocaml}
   in
-  let range =
-    let start = Position.create ~line:7 ~character:7 in
-    let end_ = Position.create ~line:7 ~character:7 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:7 ~start_character:7 ~end_line:7 ~end_character:7 in
   print_code_actions
     source
     range
@@ -892,11 +806,7 @@ let f (x: q) =
   | Almost_as_long_name_for_for_the_second_case -> _
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:9 ~character:22 in
-    let end_ = Position.create ~line:9 ~character:22 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:9 ~start_character:22 ~end_line:9 ~end_character:22 in
   print_code_actions
     source
     range
@@ -937,11 +847,7 @@ let job_reader = 10
 let _ = defered_peek job_reader
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:4 ~character:8 in
-    let end_ = Position.create ~line:4 ~character:31 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:4 ~start_character:8 ~end_line:4 ~end_character:31 in
   print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
   [%expect
     {|
@@ -979,11 +885,7 @@ let job_reader = 10
 let _ = defered_peek job_reader
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:4 ~character:21 in
-    let end_ = Position.create ~line:4 ~character:31 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:4 ~start_character:21 ~end_line:4 ~end_character:31 in
   print_code_actions source range ~filter:(find_action "destruct (enumerate cases)");
   [%expect
     {|
@@ -1022,11 +924,7 @@ let f (x : t) = x
   let uri = DocumentUri.of_path "foo.ml" in
   let prep client = Test.openDocument ~client ~uri ~source:impl_source in
   let intf_source = "" in
-  let range =
-    let start = Position.create ~line:0 ~character:0 in
-    let end_ = Position.create ~line:0 ~character:0 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
   print_code_actions
     intf_source
     range
@@ -1073,11 +971,7 @@ let f (x : t) = x
 val f : t -> t
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:0 ~character:0 in
-    let end_ = Position.create ~line:0 ~character:0 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
   print_code_actions
     intf_source
     range
@@ -1129,11 +1023,7 @@ type t = Foo of int | Bar of bool
 val f : t -> bool
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:2 ~character:0 in
-    let end_ = Position.create ~line:2 ~character:0 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:2 ~start_character:0 ~end_line:2 ~end_character:0 in
   print_code_actions
     intf_source
     range
@@ -1181,11 +1071,7 @@ let f i s b =
 val f : int -> string -> 'a list -> bool -> bool
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:10 in
-    let end_ = Position.create ~line:1 ~character:10 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:10 ~end_line:1 ~end_character:10 in
   print_code_actions
     intf_source
     range
@@ -1233,11 +1119,7 @@ let f i s l b =
 val f : int -> string -> 'a list -> bool -> bool
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:1 in
-    let end_ = Position.create ~line:1 ~character:12 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:1 ~end_line:1 ~end_character:12 in
   print_code_actions
     intf_source
     range
@@ -1297,11 +1179,7 @@ val g : int
 val h : int -> bool
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:0 in
-    let end_ = Position.create ~line:10 ~character:19 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:0 ~end_line:10 ~end_character:19 in
   print_code_actions
     intf_source
     range
@@ -1365,11 +1243,7 @@ end
 module M : sig type t = I of int | B of bool end
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:1 ~character:0 in
-    let end_ = Position.create ~line:1 ~character:0 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:1 ~start_character:0 ~end_line:1 ~end_character:0 in
   print_code_actions
     intf_source
     range
@@ -1422,11 +1296,7 @@ let f (x : t) (d : bool) =
   |Foo _ -> d
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:5 ~start_character:5 ~end_line:5 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1465,11 +1335,7 @@ let f (x : t) (d : bool) =
   |Foo _ -> d
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:5 ~start_character:5 ~end_line:5 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1506,11 +1372,7 @@ let f (x : t) (d : bool) =
   |Foo _ -> d
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:5 ~start_character:5 ~end_line:5 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1547,11 +1409,7 @@ let f (x : t) (d : bool) =
   |Foo _ -> d
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:5 ~start_character:5 ~end_line:5 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1588,11 +1446,7 @@ let f (x : t) (d : bool) =
   |Foo _ -> d
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:5 ~character:5 in
-    let end_ = Position.create ~line:5 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:5 ~start_character:5 ~end_line:5 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1630,11 +1484,7 @@ let f (x : t) (d : bool) =
   |Foo _ -> d
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:2 ~character:5 in
-    let end_ = Position.create ~line:2 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:2 ~start_character:5 ~end_line:2 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1675,11 +1525,7 @@ let%expect_test "can jump to module-type target" =
     |Foo _ -> d
   |ocaml}
   in
-  let range =
-    let start = Position.create ~line:4 ~character:5 in
-    let end_ = Position.create ~line:4 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:4 ~start_character:5 ~end_line:4 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1715,11 +1561,7 @@ let%expect_test "shouldn't find the jump target on the same line" =
     |Foo _ -> d
   |ocaml}
   in
-  let range =
-    let start = Position.create ~line:0 ~character:5 in
-    let end_ = Position.create ~line:0 ~character:5 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:0 ~start_character:5 ~end_line:0 ~end_character:5 in
   print_code_actions
     ~prep:activate_jump
     source
@@ -1741,11 +1583,7 @@ let%expect_test "can combine cases with multiple RHSes" =
     | Number _ -> _
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:3 ~character:3 in
-    let end_ = Position.create ~line:6 ~character:6 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:3 ~start_character:3 ~end_line:6 ~end_character:6 in
   print_code_actions source range ~filter:(find_action "combine-cases");
   [%expect
     {|
@@ -1785,11 +1623,7 @@ let%expect_test "can combine cases with one unique RHS" =
     | Number _ -> _
 |ocaml}
   in
-  let range =
-    let start = Position.create ~line:3 ~character:3 in
-    let end_ = Position.create ~line:4 ~character:4 in
-    Range.create ~start ~end_
-  in
+  let range = range ~start_line:3 ~start_character:3 ~end_line:4 ~end_character:4 in
   print_code_actions source range ~filter:(find_action "combine-cases");
   [%expect
     {|
@@ -1914,12 +1748,6 @@ let add_rec_action = action_title "Add missing `rec` keyword"
 let mark_unused_action = action_title "Mark as unused"
 let remove_unused_action = action_title "Remove unused"
 
-let range start_line start_character end_line end_character =
-  let start = Position.create ~line:start_line ~character:start_character in
-  let end_ = Position.create ~line:end_line ~character:end_character in
-  Range.create ~start ~end_
-;;
-
 let diagnostic ?(severity = DiagnosticSeverity.Error) message range =
   Diagnostic.create ~message:(`String message) ~range ~severity ~source:"ocamllsp" ()
 ;;
@@ -1950,7 +1778,7 @@ let print_inferred_intf_edits source path range =
 let%expect_test "opens the implementation if not in store" =
   let dir = setup_inferred_intf_workspace () in
   let path = Stdlib.Filename.concat dir "lib.mli" in
-  let range = range 0 0 0 0 in
+  let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
   print_inferred_intf_edits "" path range;
   [%expect
     {|
@@ -1973,7 +1801,7 @@ let%expect_test "offers Construct an expression code action" =
     {ocaml|let x = _
 |ocaml}
   in
-  let range = range 0 8 0 9 in
+  let range = range ~start_line:0 ~start_character:8 ~end_line:0 ~end_character:9 in
   print_code_actions ~path:"test.ml" ~filter:(find_action "construct") source range;
   [%expect
     {|
@@ -2001,7 +1829,7 @@ open M
 let y = M.f M.a
 |ocaml}
   in
-  let range = range 6 5 6 5 in
+  let range = range ~start_line:6 ~start_character:5 ~end_line:6 ~end_character:5 in
   print_code_actions
     ~path:"test.ml"
     ~filter:(action_title "Remove module name from identifiers")
@@ -2050,7 +1878,7 @@ open M
 let y = f a
 |ocaml}
   in
-  let range = range 6 5 6 5 in
+  let range = range ~start_line:6 ~start_character:5 ~end_line:6 ~end_character:5 in
   print_code_actions
     ~path:"test.ml"
     ~filter:(action_title "Put module name in identifiers")
@@ -2092,8 +1920,13 @@ let%expect_test "add missing rec in toplevel let" =
     {ocaml|let needs_rec x = 1 + (needs_rec x)
 |ocaml}
   in
-  let diagnostics = [ diagnostic "Unbound value" (range 0 23 0 32) ] in
-  let range = range 0 31 0 32 in
+  let diagnostics =
+    [ diagnostic
+        "Unbound value"
+        (range ~start_line:0 ~start_character:23 ~end_line:0 ~end_character:32)
+    ]
+  in
+  let range = range ~start_line:0 ~start_character:31 ~end_line:0 ~end_character:32 in
   print_code_actions
     ~path:"missing-rec-1.ml"
     ~diagnostics
@@ -2145,8 +1978,13 @@ let%expect_test "add missing rec in expression let" =
     1 + (inner
 |ocaml}
   in
-  let diagnostics = [ diagnostic "Unbound value" (range 2 9 2 14) ] in
-  let range = range 2 14 2 15 in
+  let diagnostics =
+    [ diagnostic
+        "Unbound value"
+        (range ~start_line:2 ~start_character:9 ~end_line:2 ~end_character:14)
+    ]
+  in
+  let range = range ~start_line:2 ~start_character:14 ~end_line:2 ~end_character:15 in
   print_code_actions
     ~path:"missing-rec-2.ml"
     ~diagnostics
@@ -2199,8 +2037,13 @@ let%expect_test "add missing rec in expression let-and" =
     1 + (inner
 |ocaml}
   in
-  let diagnostics = [ diagnostic "Unbound value" (range 3 9 3 14) ] in
-  let range = range 3 14 3 15 in
+  let diagnostics =
+    [ diagnostic
+        "Unbound value"
+        (range ~start_line:3 ~start_character:9 ~end_line:3 ~end_character:14)
+    ]
+  in
+  let range = range ~start_line:3 ~start_character:14 ~end_line:3 ~end_character:15 in
   print_code_actions
     ~path:"missing-rec-3.ml"
     ~diagnostics
@@ -2252,7 +2095,7 @@ let%expect_test "don't add rec when rec exists" =
     1 + (inner
 |ocaml}
   in
-  let range = range 2 14 2 15 in
+  let range = range ~start_line:2 ~start_character:14 ~end_line:2 ~end_character:15 in
   print_code_actions ~path:"has-rec-2.ml" ~filter:add_rec_action source range;
   [%expect {| No code actions |}]
 ;;
@@ -2262,8 +2105,13 @@ let%expect_test "don't add rec to pattern bindings" =
     {ocaml|let (f, x) = 1 + (f x)
 |ocaml}
   in
-  let diagnostics = [ diagnostic "Unbound value" (range 0 18 0 19) ] in
-  let range = range 0 18 0 19 in
+  let diagnostics =
+    [ diagnostic
+        "Unbound value"
+        (range ~start_line:0 ~start_character:18 ~end_line:0 ~end_character:19)
+    ]
+  in
+  let range = range ~start_line:0 ~start_character:18 ~end_line:0 ~end_character:19 in
   print_code_actions ~path:"no-rec-1.ml" ~diagnostics ~filter:add_rec_action source range;
   [%expect {| No code actions |}]
 ;;
@@ -2282,12 +2130,12 @@ let unused_diagnostics =
   [ diagnostic
       ~severity:DiagnosticSeverity.Warning
       "Error (warning 26): unused variable"
-      (range 1 6 1 7)
+      (range ~start_line:1 ~start_character:6 ~end_line:1 ~end_character:7)
   ]
 ;;
 
 let%expect_test "mark variable as unused" =
-  let range = range 1 6 1 7 in
+  let range = range ~start_line:1 ~start_character:6 ~end_line:1 ~end_character:7 in
   print_code_actions
     ~path:"mark-unused-variable.ml"
     ~diagnostics:unused_diagnostics
@@ -2336,7 +2184,7 @@ let%expect_test "mark variable as unused" =
 ;;
 
 let%expect_test "remove unused variable" =
-  let range = range 1 6 1 7 in
+  let range = range ~start_line:1 ~start_character:6 ~end_line:1 ~end_character:7 in
   print_code_actions
     ~path:"remove-unused-variable.ml"
     ~diagnostics:unused_diagnostics
@@ -2391,7 +2239,7 @@ let%expect_test "don't remove unused value in let-and binding" =
   0
 |ocaml}
   in
-  let range = range 1 6 1 7 in
+  let range = range ~start_line:1 ~start_character:6 ~end_line:1 ~end_character:7 in
   print_code_actions
     ~path:"remove-unused-variable-2.ml"
     ~diagnostics:unused_diagnostics
