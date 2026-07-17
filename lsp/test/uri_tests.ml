@@ -34,24 +34,24 @@ let%expect_test "test uri parsing" =
     Unix:
     file:///Users/foo -> /Users/foo
     file:///c:/Users/foo -> c:/Users/foo
-    file:///foo?x=y -> /foo?x=y
+    file:///foo?x=y -> /foo
     query: x=y
-    http://xyz?foo# -> /?foo
+    http://xyz?foo# -> /
     query: foo
-    http://xxx? -> /?
+    http://xxx? -> /
     query:
-    http://xyz?ab%3D1%23 -> /?ab=1#
+    http://xyz?ab%3D1%23 -> /
     query: ab=1#
     Windows:
     file:///Users/foo -> \Users\foo
     file:///c:/Users/foo -> c:\Users\foo
-    file:///foo?x=y -> \foo?x=y
+    file:///foo?x=y -> \foo
     query: x=y
-    http://xyz?foo# -> \?foo
+    http://xyz?foo# -> \
     query: foo
-    http://xxx? -> \?
+    http://xxx? -> \
     query:
-    http://xyz?ab%3D1%23 -> \?ab=1#
+    http://xyz?ab%3D1%23 -> \
     query: ab=1# |}]
 ;;
 
@@ -64,7 +64,7 @@ let%expect_test "a URI query is not part of its filesystem path" =
     (Option.value ~default:"<none>" (Uri.query uri));
   [%expect
     {|
-    path: /foo.ml?revision=1
+    path: /foo.ml
     query: revision=1
     |}]
 ;;

@@ -7,7 +7,10 @@ include Json.Jsonable.S with type t := t
 val compare : t -> t -> int
 val equal : t -> t -> bool
 val hash : t -> int
+
+(** Return the URI's filesystem path. Query and fragment components are ignored. *)
 val to_path : t -> string
+
 val of_path : string -> t
 val to_string : t -> string
 val of_string : string -> t
