@@ -1,22 +1,5 @@
 open Test.Import
 
-let print_hover hover =
-  match hover with
-  | None -> print_endline "no hover response"
-  | Some hover ->
-    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
-;;
-
-let hover client position =
-  Client.request
-    client
-    (TextDocumentHover
-       { HoverParams.position
-       ; textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri
-       ; workDoneToken = None
-       })
-;;
-
 let print_hover_extended resp =
   resp |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
 ;;
@@ -61,10 +44,10 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
@@ -94,8 +77,8 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
   in
   let position = Position.create ~line:1 ~character:4 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
@@ -123,10 +106,10 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test ~extra_env:[ "OCAMLLSP_HOVER_IS_EXTENDED=true" ] source req;

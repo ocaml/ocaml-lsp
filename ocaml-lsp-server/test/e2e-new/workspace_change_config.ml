@@ -41,8 +41,8 @@ let foo_value : foo = Some 1
   in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = Hover_extended.hover client position in
-    let () = Hover_extended.print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     let* () =
       change_config
         client
@@ -50,10 +50,10 @@ let foo_value : foo = Some 1
            ~settings:(`Assoc [ "extendedHover", `Assoc [ "enable", `Bool true ] ]))
     in
     (* The first hover request has verbosity = 0 *)
-    let* _ = Hover_extended.hover client position in
+    let* _ = Hover_helpers.hover client position in
     (* The second hover request has verbosity = 1 *)
-    let* resp = Hover_extended.hover client position in
-    let () = Hover_extended.print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;

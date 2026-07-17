@@ -1,33 +1,5 @@
 open Test.Import
 
-let print_hover hover =
-  match hover with
-  | None -> print_endline "no hover response"
-  | Some hover ->
-    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
-;;
-
-let hover client position =
-  Client.request
-    client
-    (TextDocumentHover
-       { HoverParams.position
-       ; textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri
-       ; workDoneToken = None
-       })
-;;
-
-let markdown_capabilities =
-  let hover =
-    HoverClientCapabilities.create
-      ~dynamicRegistration:true
-      ~contentFormat:[ MarkupKind.Markdown; MarkupKind.PlainText ]
-      ()
-  in
-  let textDocument = TextDocumentClientCapabilities.create ~hover () in
-  ClientCapabilities.create ~textDocument ()
-;;
-
 let%expect_test "returns type inferred under cursor" =
   let source =
     {ocaml|let x = 1
@@ -35,8 +7,8 @@ let%expect_test "returns type inferred under cursor" =
   in
   let position = Position.create ~line:0 ~character:4 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
@@ -59,11 +31,11 @@ let%expect_test "returns type inferred under cursor (markdown formatting)" =
   in
   let position = Position.create ~line:0 ~character:4 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -85,11 +57,11 @@ let id x = x
   in
   let position = Position.create ~line:1 ~character:4 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -115,11 +87,11 @@ let () = id ()
   in
   let position = Position.create ~line:3 ~character:9 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -168,11 +140,11 @@ let f = div 4 2
   in
   let position = Position.create ~line:23 ~character:9 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -198,11 +170,11 @@ let sum = f i f
   in
   let position = Position.create ~line:3 ~character:13 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -223,13 +195,13 @@ type 'a fib = ('a -> unit) -> unit
 |ocaml}
   in
   let req client =
-    let* hover1 = hover client (Position.create ~line:1 ~character:4) in
-    print_hover hover1;
-    let* hover2 = hover client (Position.create ~line:2 ~character:9) in
-    print_hover hover2;
+    let* hover1 = Hover_helpers.hover client (Position.create ~line:1 ~character:4) in
+    Hover_helpers.print_hover hover1;
+    let* hover2 = Hover_helpers.hover client (Position.create ~line:2 ~character:9) in
+    Hover_helpers.print_hover hover2;
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -264,8 +236,8 @@ let x : foo = 1
   in
   let position = Position.create ~line:2 ~character:4 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
@@ -284,17 +256,19 @@ let x : foo = 1
 let%expect_test "FIXME: reproduce [#344](https://github.com/ocaml/ocaml-lsp/issues/344)" =
   let source = Stdlib.String.make 24 '\n' ^ "let k = ()\nlet m = List.map\n" in
   let request_hover_over_k client =
-    hover client (Position.create ~line:24 ~character:4)
+    Hover_helpers.hover client (Position.create ~line:24 ~character:4)
   in
   let req client =
     let* hover_over_k = request_hover_over_k client in
-    print_hover hover_over_k;
-    let* (_ : Hover.t option) = hover client (Position.create ~line:25 ~character:15) in
+    Hover_helpers.print_hover hover_over_k;
+    let* (_ : Hover.t option) =
+      Hover_helpers.hover client (Position.create ~line:25 ~character:15)
+    in
     let* hover_over_k = request_hover_over_k client in
-    print_hover hover_over_k;
+    Hover_helpers.print_hover hover_over_k;
     Fiber.return ()
   in
-  Helpers.test ~capabilities:markdown_capabilities source req;
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
   [%expect
     {|
     {
@@ -322,8 +296,8 @@ let f (o : <  g : int -> unit >) = o#g 4
   in
   let position = Position.create ~line:1 ~character:38 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
