@@ -1,30 +1,15 @@
 open Test.Import
 
-let write_file path content =
-  let oc = open_out path in
-  output_string oc content;
-  close_out oc
-;;
-
-let read_file path =
-  let ic = open_in path in
-  let len = in_channel_length ic in
-  let contents = really_input_string ic len in
-  close_in ic;
-  contents
-;;
-
 let setup_workspace () =
-  let dir = Stdlib.Filename.temp_file "ocamllsp-declaration-" "" in
-  Stdlib.Sys.remove dir;
-  Unix.mkdir dir 0o700;
-  write_file (Stdlib.Filename.concat dir "dune-project") "(lang dune 2.5)\n";
-  write_file (Stdlib.Filename.concat dir "dune") "(library\n (name declaration_files))\n";
-  write_file (Stdlib.Filename.concat dir "lib.ml") "let x = 1\n";
-  write_file (Stdlib.Filename.concat dir "lib.mli") "val x : int\n";
-  write_file (Stdlib.Filename.concat dir "main.ml") "let y = Lib.x\n";
-  let command = Printf.sprintf "cd %s && dune build" (Stdlib.Filename.quote dir) in
-  if Stdlib.Sys.command command <> 0 then failwith "dune build failed";
+  let dir = Test.temp_dir "ocamllsp-declaration-" in
+  Test.write_file (Stdlib.Filename.concat dir "dune-project") "(lang dune 2.5)\n";
+  Test.write_file
+    (Stdlib.Filename.concat dir "dune")
+    "(library\n (name declaration_files))\n";
+  Test.write_file (Stdlib.Filename.concat dir "lib.ml") "let x = 1\n";
+  Test.write_file (Stdlib.Filename.concat dir "lib.mli") "val x : int\n";
+  Test.write_file (Stdlib.Filename.concat dir "main.ml") "let y = Lib.x\n";
+  Test.run_command ~cwd:dir "dune build";
   dir
 ;;
 
@@ -48,9 +33,8 @@ let%expect_test "returns location of a declaration" =
   let dir = setup_workspace () in
   let path = Stdlib.Filename.concat dir "main.ml" in
   let uri = DocumentUri.of_path path in
-  let source = read_file path in
-  let stderr_path = if Sys.win32 then "NUL" else "/dev/null" in
-  let stderr = Unix.openfile stderr_path [ O_WRONLY ] 0 in
+  let source = Test.read_file path in
+  let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
   let on_notification, diagnostics = Test.drain_diagnostics () in
   let handler = Client.Handler.make ~on_notification () in
   (Test.run ~stderr ~handler

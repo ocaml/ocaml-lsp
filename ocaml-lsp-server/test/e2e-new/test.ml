@@ -148,6 +148,38 @@ end
 
 include T
 
+let write_file path content =
+  let oc = open_out path in
+  output_string oc content;
+  close_out oc
+;;
+
+let read_file path =
+  let ic = open_in path in
+  let len = in_channel_length ic in
+  let contents = really_input_string ic len in
+  close_in ic;
+  contents
+;;
+
+let temp_dir prefix =
+  let dir = Stdlib.Filename.temp_file prefix "" in
+  Stdlib.Sys.remove dir;
+  Unix.mkdir dir 0o700;
+  dir
+;;
+
+let run_command ?cwd command =
+  let command =
+    match cwd with
+    | None -> command
+    | Some cwd -> Printf.sprintf "cd %s && %s" (Stdlib.Filename.quote cwd) command
+  in
+  if Stdlib.Sys.command command <> 0 then failwith command
+;;
+
+let null_device = if Sys.win32 then "NUL" else "/dev/null"
+
 let drain_diagnostics () =
   let diagnostics = Fiber.Ivar.create () in
   let on_notification _ = function

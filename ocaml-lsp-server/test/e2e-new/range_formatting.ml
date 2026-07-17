@@ -204,7 +204,7 @@ let%expect_test "does not format ignored files" =
   in
   let tmpdir = setup_ocamlformat ocamlformat_config in
   let name = "dont_format_me.ml" in
-  write_in_file (Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
+  Test.write_file (Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
   let path = Filename.concat tmpdir name in
   print_formatting source path range;
   [%expect {| No formatting needed |}]

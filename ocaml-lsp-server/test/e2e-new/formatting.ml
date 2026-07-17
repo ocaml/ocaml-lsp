@@ -20,18 +20,10 @@ wrap-comments=true
 |}
 ;;
 
-let write_in_file path content =
-  let oc = open_out path in
-  output_string oc content;
-  close_out oc
-;;
-
 let setup_ocamlformat content =
-  let tmpdir = Stdlib.Filename.temp_file "ocamllsp-test-" "" in
-  Stdlib.Sys.remove tmpdir;
-  Unix.mkdir tmpdir 0o700;
+  let tmpdir = Test.temp_dir "ocamllsp-test-" in
   let ocamlformat_path = Stdlib.Filename.concat tmpdir ".ocamlformat" in
-  write_in_file ocamlformat_path content;
+  Test.write_file ocamlformat_path content;
   tmpdir
 ;;
 
@@ -158,7 +150,7 @@ let%expect_test "does not format ignored files" =
   in
   let tmpdir = setup_ocamlformat ocamlformat_config in
   let name = "dont_format_me.ml" in
-  write_in_file (Stdlib.Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
+  Test.write_file (Stdlib.Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
   let path = Stdlib.Filename.concat tmpdir name in
   print_formatting source path;
   [%expect {| No formatting needed |}]
