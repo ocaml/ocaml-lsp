@@ -1,7 +1,5 @@
 open Test.Import
 
-let change_config client params = Client.notification client (ChangeConfiguration params)
-
 let codelens client textDocument =
   Client.request
     client
@@ -18,8 +16,8 @@ let string = "Hello"
   let req client =
     let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let* () =
-      change_config
-        client
+      Lsp_helpers.change_config
+        ~client
         (DidChangeConfigurationParams.create
            ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool false ] ]))
     in
@@ -44,8 +42,8 @@ let foo_value : foo = Some 1
     let* resp = Hover_helpers.hover client position in
     let () = Hover_helpers.print_hover resp in
     let* () =
-      change_config
-        client
+      Lsp_helpers.change_config
+        ~client
         (DidChangeConfigurationParams.create
            ~settings:(`Assoc [ "extendedHover", `Assoc [ "enable", `Bool true ] ]))
     in

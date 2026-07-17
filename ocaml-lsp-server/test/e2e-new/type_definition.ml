@@ -1,9 +1,6 @@
 open Test.Import
 
-let print_locations = function
-  | None -> print_endline "[]"
-  | Some locations -> Test.print_result (Locations.yojson_of_t locations)
-;;
+let print_locations = Test.print_option Locations.yojson_of_t
 
 let iter_type_definition source position k =
   let makeRequest textDocument =

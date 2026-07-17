@@ -13,12 +13,10 @@ let wrapping_ast_node client position =
   Client.request client (UnknownRequest { meth = Req.meth; params })
 ;;
 
-let print_json json = Yojson.Safe.pretty_to_string ~std:false json |> print_endline
-
 let test source position =
   let req client =
     let* response = wrapping_ast_node client position in
-    print_json response;
+    Test.print_result response;
     Fiber.return ()
   in
   Helpers.test source req

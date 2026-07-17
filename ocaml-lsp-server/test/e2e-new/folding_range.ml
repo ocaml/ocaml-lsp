@@ -7,10 +7,7 @@ let folding_range client =
     (TextDocumentFoldingRange (FoldingRangeParams.create ~textDocument ()))
 ;;
 
-let print_folding_ranges = function
-  | None -> print_endline "null"
-  | Some ranges -> Test.print_result (`List (List.map ranges ~f:FoldingRange.yojson_of_t))
-;;
+let print_folding_ranges = Test.print_option_list ~none:"null" FoldingRange.yojson_of_t
 
 let test source =
   let req client =

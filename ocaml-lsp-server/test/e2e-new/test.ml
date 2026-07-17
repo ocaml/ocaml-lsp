@@ -275,3 +275,15 @@ let apply_edits src edits =
 let print_result result =
   result |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
 ;;
+
+let print_list yojson_of_t xs = print_result (`List (List.map xs ~f:yojson_of_t))
+
+let print_option ?(none = "[]") yojson_of_t = function
+  | None -> print_endline none
+  | Some x -> print_result (yojson_of_t x)
+;;
+
+let print_option_list ?(none = "[]") yojson_of_t = function
+  | None -> print_endline none
+  | Some xs -> print_list yojson_of_t xs
+;;

@@ -1,10 +1,6 @@
 open Test.Import
 
-let print_highlights = function
-  | None -> print_endline "[]"
-  | Some highlights ->
-    Test.print_result (`List (List.map highlights ~f:DocumentHighlight.yojson_of_t))
-;;
+let print_highlights = Test.print_option_list DocumentHighlight.yojson_of_t
 
 let document_highlight client position =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
