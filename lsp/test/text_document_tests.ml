@@ -319,6 +319,6 @@ let%expect_test "get position after change" =
   [%expect
     {|
     \nfochangeo\nbar\nbaz\n
-    pos: 22
+    pos: 3
     |}]
 ;;

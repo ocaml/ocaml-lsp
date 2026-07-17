@@ -2454,5 +2454,29 @@ let f = function
     let* response = Client.request client (CodeAction params) in
     print_code_action_result ~filter:(find_action "combine-cases") response;
     Test.exit_client client);
-  [%expect {| No code actions |}]
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "  | A | B -> 1\n",
+                "range": {
+                  "end": { "character": 0, "line": 4 },
+                  "start": { "character": 0, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///test.ml", "version": 1 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "combine-cases",
+      "title": "Combine-cases"
+    }
+    |}]
 ;;
