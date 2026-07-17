@@ -41,18 +41,6 @@ let yojson_of_t { range; content } =
   `Assoc [ "range", Range.yojson_of_t range; "content", `String content ]
 ;;
 
-let with_pipeline state uri f =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return `Null
-  | `Merlin merlin ->
-    (match Document.Merlin.kind merlin with
-     | Document.Kind.Intf ->
-       (* Destruct makes no sense if it's called from an interface. *)
-       Fiber.return `Null
-     | Document.Kind.Impl -> Document.Merlin.with_pipeline_exn merlin f)
-;;
-
 let make_destruct_command start stop = Query_protocol.Case_analysis (start, stop)
 
 let dispatch_destruct range pipeline =
@@ -68,5 +56,5 @@ let on_request ~params state =
     let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
     let Request_params.{ text_document; range } = Request_params.t_of_yojson params in
     let uri = text_document.uri in
-    with_pipeline state uri @@ dispatch_destruct range)
+    Util.with_impl_pipeline state uri ~default:`Null @@ dispatch_destruct range)
 ;;

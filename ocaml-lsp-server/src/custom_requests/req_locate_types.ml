@@ -186,13 +186,6 @@ let rec map_tree_result result =
   { data; children }
 ;;
 
-let with_pipeline state uri f =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return `Null
-  | `Merlin merlin -> Document.Merlin.with_pipeline_exn merlin f
-;;
-
 let make_locate_types_command position = Query_protocol.Locate_types position
 
 let dispatch_locate_types position pipeline =
@@ -212,5 +205,5 @@ let on_request ~params state =
     let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
     let Request_params.{ text_document; position } = Request_params.t_of_yojson params in
     let uri = text_document.uri in
-    with_pipeline state uri @@ dispatch_locate_types position)
+    Util.with_pipeline state uri ~default:`Null @@ dispatch_locate_types position)
 ;;

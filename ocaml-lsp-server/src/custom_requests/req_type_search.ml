@@ -49,18 +49,6 @@ end
 module TypeSearch = struct
   type t = string Query_protocol.type_search_result list
 
-  let doc_to_markupContent ~kind ~value =
-    let v =
-      match kind with
-      | MarkupKind.Markdown ->
-        (match Doc_to_md.translate value with
-         | Raw d -> d
-         | Markdown d -> d)
-      | MarkupKind.PlainText -> value
-    in
-    MarkupContent.create ~kind ~value:v
-  ;;
-
   let yojson_of_t (t : t) doc_format =
     let format =
       match doc_format with
@@ -75,7 +63,7 @@ module TypeSearch = struct
         ; ( "doc"
           , match res.doc with
             | Some value ->
-              doc_to_markupContent ~kind:format ~value |> MarkupContent.yojson_of_t
+              Util.markup_content ~kind:format ~value |> MarkupContent.yojson_of_t
             | None -> `Null )
         ; "cost", `Int res.cost
         ; "constructible", `String res.constructible
@@ -112,8 +100,6 @@ let on_request ~params state =
       TypeSearchParams.t_of_yojson params
     in
     let uri = text_document.uri in
-    let doc = Document_store.get state.State.store uri in
-    match Document.kind doc with
-    | `Other -> Fiber.return `Null
-    | `Merlin merlin -> dispatch merlin position limit query with_doc doc_format)
+    Util.with_merlin state uri ~default:`Null (fun merlin ->
+      dispatch merlin position limit query with_doc doc_format))
 ;;
