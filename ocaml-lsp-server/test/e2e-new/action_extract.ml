@@ -71,8 +71,7 @@ let f x =
   [%expect {||}]
 ;;
 
-(* TODO: This extraction shouldn't be allowed. *)
-let%expect_test "extract function with local exception" =
+let%expect_test "does not extract a function that uses a local exception" =
   extract_function_test
     {|
 let f x =
@@ -85,7 +84,8 @@ let f x =
 
     let f x =
       let exception Local in
-      fun_name () |}]
+      fun_name ()
+    |}]
 ;;
 
 let%expect_test "extract function with shadowed parameter" =
