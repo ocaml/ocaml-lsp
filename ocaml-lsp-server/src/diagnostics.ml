@@ -190,9 +190,7 @@ let send =
           | `All -> Base.Set.empty (module Uri)
           | `One uri -> Base.Set.remove t.dirty_uris uri);
       Table.fold pending ~init:[] ~f:(fun ~key:uri ~data:diagnostics acc ->
-        let diagnostics =
-          Range_map.to_list diagnostics |> List.map ~f:snd |> List.flatten
-        in
+        let diagnostics = Range_map.to_list diagnostics |> List.concat_map ~f:snd in
         (* we don't include a version because some of the diagnostics might
            come from dune which reads from the file system and not from the
            editor's view *)

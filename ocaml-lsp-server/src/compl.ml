@@ -67,7 +67,7 @@ let suffix_of_position source position =
           | _ -> false
         in
         let until =
-          String.findi ~from text ~f:(fun c -> not (ident_char c))
+          String.lfindi ~pos:from text ~f:(fun _ c -> not (ident_char c))
           |> Option.value ~default:len
         in
         until - from
@@ -231,7 +231,10 @@ module Complete_with_construct = struct
           (not (String.equal expr "()"))
           && String.is_prefix expr ~prefix:"("
           && String.is_suffix expr ~suffix:")"
-        then String.sub expr ~pos:1 ~len:(String.length expr - 2)
+        then
+          expr
+          |> String.chop_prefix_if_exists ~prefix:"("
+          |> String.chop_suffix_if_exists ~suffix:")"
         else expr
       in
       let completionItem_of_constructed_expr idx expr =

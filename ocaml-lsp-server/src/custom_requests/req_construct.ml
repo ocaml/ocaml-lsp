@@ -42,7 +42,7 @@ module Request_params = struct
     |> member "withValues"
     |> to_string_option
     |> Option.bind ~f:(fun value ->
-      match String.(lowercase_ascii @@ trim value) with
+      match String.lowercase (String.trim value) with
       | "none" -> Some `None
       | "local" -> Some `Local
       | _ -> None)

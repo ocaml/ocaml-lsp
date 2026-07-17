@@ -28,7 +28,7 @@ let has_missing_rec pipeline pos_start =
       then
         (* Return the location of the first pattern in the let binding (the
            rec goes right before it) *)
-        let+ first_pat = List.hd_opt bound in
+        let+ first_pat = List.hd bound in
         let first_pat_loc = first_pat.vb_pat.pat_loc in
         { first_pat_loc with loc_end = first_pat_loc.loc_start }
       else None

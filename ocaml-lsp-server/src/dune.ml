@@ -345,7 +345,7 @@ end = struct
                         d ));
               promotions, requests :: add, remove)
       in
-      promotions, List.flatten add, List.flatten remove
+      promotions, List.concat add, List.concat remove
     in
     match res with
     | Error v -> raise (Drpc.Version_error.E v)
@@ -581,7 +581,7 @@ let uri_dune_overlap =
         | "." :: xs -> xs
         | xs -> xs)
   in
-  let normalize = if Sys.win32 then String.lowercase_ascii else fun x -> x in
+  let normalize = if Sys.win32 then String.lowercase else fun x -> x in
   fun (uri : Uri.t) (dune : Registry.Dune.t) ->
     let dune_root = Registry.Dune.root dune in
     let path =
@@ -777,7 +777,7 @@ let create
       &&
       match client_capabilities.experimental with
       | Some (`Assoc xs) ->
-        (match List.assoc xs (fst view_promotion_capability) with
+        (match List.Assoc.find xs (fst view_promotion_capability) ~equal:String.equal with
          | Some (`Bool b) -> b
          | _ -> false)
       | _ -> false
