@@ -69,6 +69,7 @@
     debug_echo
     declaration
     definition
+    diagnostics
     metrics
     refactor_extract
     semantic_hl_data
