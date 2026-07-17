@@ -132,6 +132,40 @@ let must_pass expr env =
   |> List.map ~f:fst
 ;;
 
+let constructors_available (expr : Typedtree.expression) destination_env =
+  let module I = Ocaml_typing.Tast_iterator in
+  let exception Unavailable in
+  let resolves_to env lid uid =
+    match Env.find_constructor_by_name lid env with
+    | constructor -> Types.Uid.equal uid constructor.cstr_uid
+    | exception Not_found -> false
+  in
+  let check lid uid =
+    (* If this constructor does not resolve before entering the selected expression,
+       its scope is contained in the expression and moves with it. *)
+    if resolves_to expr.exp_env lid uid && not (resolves_to destination_env lid uid)
+    then raise_notrace Unavailable
+  in
+  let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
+    (match expr.exp_desc with
+     | Texp_construct (lid, constructor, _) -> check lid.txt constructor.cstr_uid
+     | _ -> ());
+    I.default_iterator.expr iter expr
+  in
+  let pat_iter (type k) (iter : I.iterator) (pat : k Typedtree.general_pattern) =
+    (match pat.pat_desc with
+     | Tpat_construct (lid, constructor, _, _) -> check lid.txt constructor.cstr_uid
+     | _ -> ());
+    I.default_iterator.pat iter pat
+  in
+  let iterator = { I.default_iterator with expr = expr_iter; pat = pat_iter } in
+  try
+    iterator.expr iterator expr;
+    true
+  with
+  | Unavailable -> false
+;;
+
 let extract_local doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
@@ -150,6 +184,7 @@ let extract_function doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
   let* parent_item = enclosing_structure_item typedtree range in
+  let* () = Option.some_if (constructors_available to_extract parent_item.str_env) () in
   let* edit_pos = Position.of_lexical_position parent_item.str_loc.loc_start in
   let new_name = "fun_name" in
   let* args_str =
