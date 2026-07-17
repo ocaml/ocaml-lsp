@@ -174,7 +174,7 @@ let register_promotions t uris =
   List.filter uris ~f:(fun uri ->
     match Table.find t.db uri with
     | None ->
-      let doc = ref { document = None; promotions = 0; semantic_tokens_cache = None } in
+      let doc = ref { document = None; promotions = 1; semantic_tokens_cache = None } in
       Table.set t.db ~key:uri ~data:doc;
       true
     | Some doc ->
