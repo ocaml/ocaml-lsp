@@ -78,13 +78,7 @@ let id x = x
 ;;
 
 let%expect_test "returns type inferred under cursor with documentation" =
-  let source =
-    {ocaml|(** This function has a nice documentation *)
-let id x = x
-
-let () = id ()
-|ocaml}
-  in
+  let source = Hover_helpers.documented_id_use_source in
   let position = Position.create ~line:3 ~character:9 in
   let req client =
     let* resp = Hover_helpers.hover client position in
@@ -111,33 +105,7 @@ let%expect_test
     "returns type inferred under cursor with documentation with tags (markdown \
      formatting)"
   =
-  let source =
-    {ocaml|(** This function has a nice documentation.
-
-    It performs division of two integer numbers.
-
-    @param x dividend
-    @param divisor
-
-    @return {i quotient}, i.e. result of division
-    @raise Division_by_zero raised when divided by zero
-
-    @see <https://en.wikipedia.org/wiki/Arithmetic#Division_(%C3%B7,_or_/)> article
-    @see 'arithmetic.ml' for more context
-
-    @since 4.0.0
-    @before 4.4.0
-
-    @deprecated use [(/)]
-
-    @version 1.0.0
-    @author John Doe *)
-let div x y =
-  x / y
-
-let f = div 4 2
-|ocaml}
-  in
+  let source = Hover_helpers.documented_div_use_source in
   let position = Position.create ~line:23 ~character:9 in
   let req client =
     let* resp = Hover_helpers.hover client position in
