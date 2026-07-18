@@ -42,11 +42,7 @@ let run_document_test f =
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
   Test.run ~handler
   @@ fun client ->
-  let run_client () =
-    Client.start
-      client
-      (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
-  in
+  let run_client () = Test.start_client client in
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let* () = f client in

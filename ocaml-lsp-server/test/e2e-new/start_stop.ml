@@ -3,11 +3,7 @@ open Test.Import
 let%expect_test "initialize with empty capabilities" =
   (Test.run
    @@ fun client ->
-   let run_client () =
-     Client.start
-       client
-       (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
-   in
+   let run_client () = Test.start_client client in
    let run =
      let* (_ : InitializeResult.t) = Client.initialized client in
      print_endline "initialized";
@@ -46,7 +42,7 @@ let%expect_test "start/stop" =
        in
        ClientCapabilities.create ~window ~textDocument ()
      in
-     Client.start client (InitializeParams.create ~capabilities ())
+     Test.start_client ~capabilities client
    in
    let print_init =
      let+ resp = Client.initialized client in

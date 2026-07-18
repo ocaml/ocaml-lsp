@@ -36,11 +36,7 @@ let run_switch_test files_to_create ~from =
   let handler = Client.Handler.make ~on_notification () in
   Test.run ~handler
   @@ fun client ->
-  let run_client () =
-    Client.start
-      client
-      (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
-  in
+  let run_client () = Test.start_client client in
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let uri = uri_of_ext dir from in
@@ -90,11 +86,7 @@ let%expect_test "test switches (mli, ml, mll => ml, mll)" =
 let run_switch_request uri =
   Test.run
   @@ fun client ->
-  let run_client () =
-    Client.start
-      client
-      (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
-  in
+  let run_client () = Test.start_client client in
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let* response = switch_impl_intf client uri in

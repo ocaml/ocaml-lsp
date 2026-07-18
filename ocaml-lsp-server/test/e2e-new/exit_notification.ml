@@ -40,9 +40,7 @@ let send_exit_before_initialize () =
 
 let test run =
   T.run (fun client ->
-    let run_client () =
-      Client.start client (InitializeParams.create ~capabilities:client_capabilities ())
-    in
+    let run_client () = Test.start_client ~capabilities:client_capabilities client in
     Fiber.fork_and_join_unit run_client (run client))
 ;;
 

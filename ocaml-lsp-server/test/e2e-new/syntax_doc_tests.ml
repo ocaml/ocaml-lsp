@@ -42,7 +42,7 @@ let run_test text req =
   Test.run ~handler (fun client ->
     let run_client () =
       let capabilities = ClientCapabilities.create () in
-      Client.start client (InitializeParams.create ~capabilities ())
+      Test.start_client ~capabilities client
     in
     let run () =
       let* (_ : InitializeResult.t) = Client.initialized client in

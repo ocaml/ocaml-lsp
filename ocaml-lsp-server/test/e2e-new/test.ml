@@ -180,6 +180,10 @@ let run_command ?cwd command =
 
 let null_device = if Sys.win32 then "NUL" else "/dev/null"
 
+let start_client ?(capabilities = ClientCapabilities.create ()) ?workspaceFolders client =
+  Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ())
+;;
+
 let drain_diagnostics () =
   let diagnostics = Fiber.Ivar.create () in
   let on_notification _ = function
@@ -206,7 +210,7 @@ let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
       in
       ClientCapabilities.create ~window ()
     in
-    Client.start client (InitializeParams.create ~capabilities ())
+    start_client ~capabilities client
   in
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
