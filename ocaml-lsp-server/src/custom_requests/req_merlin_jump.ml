@@ -69,7 +69,10 @@ end
 
 let dispatch ~merlin ~position ~target =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-    let pposition = Position.logical position in
+    let pposition =
+      (Document.merlin_position (Document.Merlin.to_doc merlin) position
+        :> Msource.position)
+    in
     let query = Query_protocol.Jump (target, pposition) in
     Query_commands.dispatch pipeline query)
 ;;
@@ -93,7 +96,9 @@ let on_request ~params state =
           |> Fiber.map ~f:(function
             | `Error _ -> None
             | `Found pos ->
-              (match Position.of_lexical_position pos with
+              (match
+                 Document.position_of_lexical_position (Document.Merlin.to_doc merlin) pos
+               with
                | None -> None
                | Some position -> Some (target, position))))
       in

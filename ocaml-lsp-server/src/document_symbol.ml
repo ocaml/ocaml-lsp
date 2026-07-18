@@ -23,7 +23,7 @@ let normalize_selection_range ~(range : Range.t) = function
     else Option.value (Lsp.Range.intersection range selection_range) ~default:range
 ;;
 
-let rec items_to_symbols ~supports_deprecated_tag items =
+let rec items_to_symbols doc ~supports_deprecated_tag items =
   List.rev_map
     ~f:
       (fun
@@ -35,12 +35,12 @@ let rec items_to_symbols ~supports_deprecated_tag items =
         ; deprecated
         ; _
         } ->
-      let range = Range.of_loc location in
+      let range = Document.range_of_loc doc location in
       (* The LSP spec requires [selectionRange] to be contained in [range].
          Preserve valid selections, clip non-empty overlaps, and fall back to
          [range] for ghost, invalid, touching, or disjoint selections. *)
       let selectionRange =
-        normalize_selection_range ~range (Range.of_loc_opt selection)
+        normalize_selection_range ~range (Document.range_of_loc_opt doc selection)
       in
       let { Deprecation.deprecated; tags } =
         Deprecation.create
@@ -56,7 +56,7 @@ let rec items_to_symbols ~supports_deprecated_tag items =
         ~selectionRange
         ?deprecated
         ?tags
-        ~children:(items_to_symbols ~supports_deprecated_tag children)
+        ~children:(items_to_symbols doc ~supports_deprecated_tag children)
         ())
     items
 ;;
@@ -106,7 +106,7 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
               tag_support.valueSet
               ~tag:Lsp.Types.SymbolTag.Deprecated))
     in
-    let symbols = items_to_symbols ~supports_deprecated_tag outline in
+    let symbols = items_to_symbols doc ~supports_deprecated_tag outline in
     (match
        Option.value
          ~default:false

@@ -57,3 +57,14 @@ val range_of_utf8_offsets : t -> start_offset:int -> end_offset:int -> Range.t
     document's position encoding. Returns [None] when the range's start follows
     its end. *)
 val substring : t -> Range.t -> string option
+
+(** Convert an OCaml lexer position, whose character offset is measured in UTF-8
+    bytes, to the requested position encoding. *)
+val position_of_lexical_position_in_text
+  :  position_encoding:encoding
+  -> text:string
+  -> Lexing.position
+  -> Position.t option
+
+(** Convert an OCaml lexer position to the encoding negotiated for this document. *)
+val position_of_lexical_position : t -> Lexing.position -> Position.t option
