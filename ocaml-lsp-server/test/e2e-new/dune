@@ -96,4 +96,5 @@
     with_pp
     with_ppx
     workspace_change_config
+    workspace_symbol
     wrapping_ast_node))))
