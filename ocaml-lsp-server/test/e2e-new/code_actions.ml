@@ -2239,3 +2239,60 @@ let%expect_test "don't remove unused value in let-and binding" =
     range;
   [%expect {| No code actions |}]
 ;;
+
+let%expect_test "next-hole range ends at the last inserted line's character" =
+  let source =
+    {ocaml|
+let f (x:bool) =
+  match x
+|ocaml}
+  in
+  let capabilities =
+    ClientCapabilities.create ~experimental:(`Assoc [ "jumpToNextHole", `Bool true ]) ()
+  in
+  let req client =
+    let query_range =
+      range ~start_line:2 ~start_character:5 ~end_line:2 ~end_character:5
+    in
+    let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+    let context =
+      CodeActionContext.create
+        ~diagnostics:[]
+        ~only:
+          [ CodeActionKind.Other "destruct-line (enumerate cases, use existing match)" ]
+        ()
+    in
+    let params = CodeActionParams.create ~textDocument ~range:query_range ~context () in
+    let* response = Client.request client (CodeAction params) in
+    let in_range =
+      let open Option.O in
+      let* actions = response in
+      let* action =
+        List.find
+          actions
+          ~f:(find_action "destruct-line (enumerate cases, use existing match)")
+      in
+      let* command =
+        match action with
+        | `Command _ -> None
+        | `CodeAction action -> action.command
+      in
+      let* arguments = command.arguments in
+      match arguments with
+      | [ `Assoc fields ] ->
+        List.find_map fields ~f:(fun (name, value) ->
+          Option.some_if (String.equal name "inRange") value)
+      | _ -> None
+    in
+    Option.iter in_range ~f:Test.print_result;
+    Fiber.return ()
+  in
+  Helpers.test ~capabilities source req;
+  [%expect
+    {|
+    {
+      "end": { "character": 15, "line": 4 },
+      "start": { "character": 2, "line": 2 }
+    }
+    |}]
+;;
