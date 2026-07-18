@@ -70,12 +70,13 @@ struct
     ; on_request : ('state, Request.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, Notification.t) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Response.t, [ `Stopped | `Cancelled ]) result Fiber.Ivar.t Id.Table.t
-    ; stopped : unit Fiber.Ivar.t
     ; name : string
     ; mutable running : bool
     ; mutable tick : int
     ; mutable state : 'state
     ; mutable pending_requests_stopped : bool
+    ; mutable closing : bool
+    ; close_result : (unit, Exn_with_backtrace.t list) result Fiber.Ivar.t
     }
 
   and ('a, 'message) context = 'a t * 'message
@@ -148,16 +149,20 @@ struct
     ; on_request
     ; on_notification
     ; pending
-    ; stopped = Fiber.Ivar.create ()
     ; name
     ; running = false
     ; tick = 0
     ; state
     ; pending_requests_stopped = false
+    ; closing = false
+    ; close_result = Fiber.Ivar.create ()
     }
   ;;
 
-  let stopped t = Fiber.Ivar.read t.stopped
+  let stopped t =
+    let+ _ = Fiber.Ivar.read t.close_result in
+    ()
+  ;;
 
   let stop t =
     Fiber.fork_and_join_unit
@@ -165,16 +170,30 @@ struct
       (fun () -> stop_pending_requests t)
   ;;
 
-  let close t =
-    Fiber.all_concurrently_unit
-      [ Chan.close t.chan `Read
-      ; Chan.close t.chan `Write
-      ; Fiber.Ivar.fill t.stopped ()
-      ; stop_pending_requests t
-      ]
+  let await_close t =
+    let* result = Fiber.Ivar.read t.close_result in
+    match result with
+    | Ok () -> Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
   ;;
 
-  let run t =
+  let close t =
+    Fiber.of_thunk (fun () ->
+      if t.closing
+      then await_close t
+      else (
+        t.closing <- true;
+        let* result =
+          Fiber.collect_errors (fun () ->
+            Fiber.fork_and_join_unit
+              (fun () -> stop t)
+              (fun () -> Chan.close t.chan `Write))
+        in
+        let* () = Fiber.Ivar.fill t.close_result result in
+        await_close t))
+  ;;
+
+  let run_until_stopped t =
     let send_response resp =
       log t (fun () ->
         Log.msg "sending response" [ "response", Response.yojson_of_t resp ]);
@@ -278,8 +297,10 @@ struct
              Fiber.Pool.stop later)
           (fun () -> Fiber.Pool.run later)
       in
-      close t)
+      stop t)
   ;;
+
+  let run t = Fiber.finalize (fun () -> run_until_stopped t) ~finally:(fun () -> close t)
 
   let check_running t =
     if not t.running then Code_error.raise "jsonrpc must be running" []

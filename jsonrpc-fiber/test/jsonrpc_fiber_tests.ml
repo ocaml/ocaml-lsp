@@ -46,6 +46,66 @@ let%expect_test "start and stop server" =
     <opaque> |}]
 ;;
 
+let%expect_test "cleanup precedes explicit output close" =
+  let output =
+    Out.create (function
+      | None ->
+        print_endline "output closed";
+        Fiber.return ()
+      | Some _ ->
+        print_endline "notification sent";
+        Fiber.return ())
+  in
+  let jrpc = Jrpc.create ~name:"test" (In.of_list [], output) () in
+  let cleanup () =
+    print_endline "stopping";
+    let notification = Jsonrpc.Notification.create ~method_:"cleanup" () in
+    Jrpc.notification jrpc notification
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    Fiber.finalize
+      (fun () ->
+         let* () = Jrpc.run_until_stopped jrpc in
+         cleanup ())
+      ~finally:(fun () -> Jrpc.close jrpc));
+  [%expect
+    {|
+    stopping
+    notification sent
+    output closed
+    <opaque> |}]
+;;
+
+let%expect_test "close shares failures between callers" =
+  let close_attempts = ref 0 in
+  let output =
+    Out.create (function
+      | None ->
+        incr close_attempts;
+        failwith "close failed"
+      | Some _ -> Fiber.return ())
+  in
+  let jrpc = Jrpc.create ~name:"test" (In.of_list [], output) () in
+  let close () =
+    let+ result = Fiber.collect_errors (fun () -> Jrpc.close jrpc) in
+    print_endline
+      (match result with
+       | Ok () -> "close succeeded"
+       | Error _ -> "close failed")
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    let* () = Fiber.fork_and_join_unit close close in
+    let+ () = close () in
+    Printf.printf "close attempts: %d\n" !close_attempts);
+  [%expect
+    {|
+    close failed
+    close failed
+    close failed
+    close attempts: 1
+    <opaque> |}]
+;;
+
 let%expect_test "server accepts notifications" =
   let notif =
     { Jsonrpc.Notification.method_ = "method"; params = Some (`List [ `String "bar" ]) }

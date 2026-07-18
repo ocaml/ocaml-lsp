@@ -35,6 +35,7 @@ module type S = sig
   val state : 'a t -> 'a
   val make : 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
   val stop : 'state t -> unit Fiber.t
+  val close : 'state t -> unit Fiber.t
   val request : _ t -> 'resp out_request -> 'resp Fiber.t
   val notification : _ t -> out_notification -> unit Fiber.t
 
@@ -87,5 +88,8 @@ module Server : sig
      and type in_notification = Client_notification.t
 
   val initialized : _ t -> InitializeParams.t Fiber.t
+
+  (** Process messages until the server stops and drain detached RPC jobs. The
+      output channel remains open until [close] is called. *)
   val start : _ t -> unit Fiber.t
 end

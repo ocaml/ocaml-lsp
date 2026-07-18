@@ -46,7 +46,20 @@ module Make (Chan : sig
   val state : 'a t -> 'a
   val stop : _ t -> unit Fiber.t
   val stopped : _ t -> unit Fiber.t
+
+  (** Close the session's input and output channels. This operation is
+      idempotent: concurrent and subsequent callers observe the same success or
+      failure. *)
+  val close : _ t -> unit Fiber.t
+
+  (** Process messages until the session stops. The output channel remains open
+      until [close] is called, allowing callers to finish work that may send
+      messages before closing the session. *)
+  val run_until_stopped : _ t -> unit Fiber.t
+
+  (** Process messages until the session stops, then close it. *)
   val run : _ t -> unit Fiber.t
+
   val notification : _ t -> Jsonrpc.Notification.t -> unit Fiber.t
   val request : _ t -> Jsonrpc.Request.t -> Jsonrpc.Response.t Fiber.t
 

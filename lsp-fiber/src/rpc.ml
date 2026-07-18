@@ -48,6 +48,7 @@ module type S = sig
   val state : 'a t -> 'a
   val make : 'state Handler.t -> Fiber_io.t -> 'state -> 'state t
   val stop : _ t -> unit Fiber.t
+  val close : _ t -> unit Fiber.t
   val request : _ t -> 'resp out_request -> 'resp Fiber.t
   val notification : _ t -> out_notification -> unit Fiber.t
   val cancel_token : unit -> Fiber.Cancel.t option Fiber.t
@@ -328,10 +329,15 @@ struct
     t.state <- Closed
   ;;
 
+  let close t =
+    let+ () = Session.close (Fdecl.get t.session) in
+    t.state <- Closed
+  ;;
+
   let start_loop t =
     Fiber.fork_and_join_unit
       (fun () ->
-         let* () = Session.run (Fdecl.get t.session) in
+         let* () = Session.run_until_stopped (Fdecl.get t.session) in
          Fiber.Pool.stop t.detached)
       (fun () -> Fiber.Pool.run t.detached)
   ;;
@@ -385,7 +391,9 @@ module Client = struct
         t.state <- Running;
         Fiber.Ivar.fill t.initialized resp
       in
-      Fiber.fork_and_join_unit loop init)
+      Fiber.finalize
+        (fun () -> Fiber.fork_and_join_unit loop init)
+        ~finally:(fun () -> close t))
   ;;
 end
 
