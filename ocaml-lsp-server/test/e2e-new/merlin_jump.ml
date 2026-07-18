@@ -5,13 +5,9 @@ module Util = struct
   let call_jump position ?target client =
     let uri = DocumentUri.of_path "test.ml" in
     let params =
-      Req.Request_params.create ~uri ~position ~target
-      |> Req.Request_params.yojson_of_t
-      |> Jsonrpc.Structured.t_of_yojson
-      |> Option.some
+      Req.Request_params.create ~uri ~position ~target |> Req.Request_params.yojson_of_t
     in
-    let req = Lsp.Client_request.UnknownRequest { meth = "ocamllsp/jump"; params } in
-    Client.request client req
+    Test.custom_request client "ocamllsp/jump" params
   ;;
 
   let test ~line ~character ~source ?target () =

@@ -7,13 +7,8 @@ let call_merlin_compatible client command args result_as_sexp =
   let params =
     Req.Request_params.create ~text_document ~result_as_sexp ~command ~args
     |> Req.Request_params.yojson_of_t
-    |> Jsonrpc.Structured.t_of_yojson
-    |> Option.some
   in
-  let req =
-    Lsp.Client_request.UnknownRequest { meth = "ocamllsp/merlinCallCompatible"; params }
-  in
-  Client.request client req
+  Test.custom_request client "ocamllsp/merlinCallCompatible" params
 ;;
 
 let%expect_test "case-analysis on simple example" =
