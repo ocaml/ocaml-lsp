@@ -6,7 +6,7 @@
   lev-fiber-csexp
   (library
    (name lev_fiber_csexp)
-   (libraries fiber csexp stdune dyn lev_fiber))
+   (libraries fiber csexp stdune dyn lev_fiber unix))
   (copy_files# %{project_root}/submodules/lev/lev-fiber-csexp/src/*.{ml,mli}))
  (subdir
   lev-fiber

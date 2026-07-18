@@ -1,9 +1,24 @@
 open! Test.Import
 
-let path = Filename.concat (Sys.getcwd ()) "for_ppx.ml"
-let uri = DocumentUri.of_path path
+let project_root = Sys.getenv "DUNE_PROJECT_ROOT"
+let fixture = Filename.concat project_root "ocaml-lsp-server/test/e2e-new/for_ppx.ml"
 
 let%expect_test "with-ppx" =
+  let dir = Test.temp_dir ~temp_dir:project_root "ocamllsp-with-ppx-" in
+  let path = Filename.concat dir "for_ppx.ml" in
+  let uri = DocumentUri.of_path path in
+  Test.write_file path (Io.String_path.read_file fixture);
+  Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.24)\n";
+  Test.write_file
+    (Filename.concat dir "dune")
+    {|(library
+ (name for_ppx)
+ (modules for_ppx)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect)))
+|};
+  Test.run_command ~cwd:dir "dune build";
   (* We will call 'hover' on the last line of this very file *)
   let position = Position.create ~line:2 ~character:5 in
   (* We need to wait for the first diagnostics *)

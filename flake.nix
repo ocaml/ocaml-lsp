@@ -11,7 +11,7 @@
   outputs = { self, flake-utils, nixpkgs, ... }@inputs:
     let
       package = "ocaml-lsp-server";
-      ocamlformat = pkgs: pkgs.ocamlformat_0_28_1;
+      ocamlformat = pkgs: pkgs.ocamlformat_0_29_0;
       basePackage = {
         duneVersion = "3";
         version = "n/a";
@@ -158,7 +158,7 @@
               # present
               pkgsWithoutOverlays.ocaml
               (ocamlformat pkgsWithoutOverlays)
-              pkgsWithoutOverlays.dune_3
+              pkgsWithoutOverlays.ocamlPackages.dune
             ];
           };
 
