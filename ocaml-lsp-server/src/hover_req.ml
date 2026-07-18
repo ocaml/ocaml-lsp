@@ -364,15 +364,17 @@ let type_enclosing_hover
       let* result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
       match result with
       | Ok v ->
-        (* OCamlformat adds an unnecessay newline at the end of the type *)
+        (* OCamlformat adds an unnecessary newline at the end of the type *)
         Fiber.return (String.trim v)
       | Error `No_process -> Fiber.return typ
       | Error (`Msg message) ->
-        (* We log OCamlformat errors and display the unformated type *)
+        (* We log OCamlformat errors and display the unformatted type *)
         let+ () =
           let message =
             sprintf
-              "An error occured while querying ocamlformat:\nInput type: %s\n\nAnswer: %s"
+              "An error occurred while querying ocamlformat:\n\
+               Input type: %s\n\n\
+               Answer: %s"
               typ
               message
           in

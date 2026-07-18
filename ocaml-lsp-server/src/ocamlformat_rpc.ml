@@ -56,7 +56,7 @@ end = struct
        | Ok () -> Fiber.return ()
        | Error (`Msg msg) ->
          let message =
-           Printf.sprintf "An error occured while configuring ocamlformat: %s" msg
+           Printf.sprintf "An error occurred while configuring ocamlformat: %s" msg
          in
          logger ~type_:MessageType.Warning ~message)
   ;;
