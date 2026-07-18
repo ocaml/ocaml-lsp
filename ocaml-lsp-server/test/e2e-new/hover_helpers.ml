@@ -6,12 +6,12 @@ let print_hover hover =
   | Some hover -> Lsp.Types.Hover.yojson_of_t hover |> Test.print_result
 ;;
 
-let hover client position =
+let hover ?(uri = Helpers.uri) client position =
   Client.request
     client
     (TextDocumentHover
        { HoverParams.position
-       ; textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri
+       ; textDocument = TextDocumentIdentifier.create ~uri
        ; workDoneToken = None
        })
 ;;
