@@ -1,4 +1,5 @@
 _build/
+compile_commands.json
 _opam/
 .idea/
 .log/

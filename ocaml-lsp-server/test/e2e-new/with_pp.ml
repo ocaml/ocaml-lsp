@@ -1,9 +1,24 @@
 open! Test.Import
 
-let path = Filename.concat (Sys.getcwd ()) "for_pp.ml"
-let uri = DocumentUri.of_path path
+let project_root = Sys.getenv "DUNE_PROJECT_ROOT"
+let fixture = Filename.concat project_root "ocaml-lsp-server/test/e2e-new/for_pp.ml"
 
 let%expect_test "with-pp" =
+  let dir = Test.temp_dir ~temp_dir:project_root "ocamllsp-with-pp-" in
+  let path = Filename.concat dir "for_pp.ml" in
+  let uri = DocumentUri.of_path path in
+  Test.write_file path (Io.String_path.read_file fixture);
+  Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.24)\n";
+  Test.write_file
+    (Filename.concat dir "dune")
+    {|(library
+ (name for_pp)
+ (modules for_pp)
+ (preprocess
+  (action
+   (run sed "s/world/universe/g" %{input-file}))))
+|};
+  Test.run_command ~cwd:dir "dune build";
   let position = Position.create ~line:0 ~character:9 in
   let handler =
     Client.Handler.make

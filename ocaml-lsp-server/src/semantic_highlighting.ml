@@ -882,8 +882,7 @@ let compute_tokens doc =
     Document.Merlin.with_pipeline_exn ~name:"semantic highlighting" doc (fun p ->
       Mpipeline.reader_parsetree p, Mpipeline.input_source p)
   in
-  let module Fold =
-    Parsetree_fold (struct
+  let module Fold = Parsetree_fold (struct
       let source = Msource.text source
     end)
   in

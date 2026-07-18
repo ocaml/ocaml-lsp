@@ -112,8 +112,7 @@ let create
 ;;
 
 let send =
-  let module Range_map =
-    Map.Make (struct
+  let module Range_map = Map.Make (struct
       include Range
 
       let compare x y = Ordering.to_int (compare x y)

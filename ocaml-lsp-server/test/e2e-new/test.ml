@@ -162,8 +162,8 @@ let read_file path =
   contents
 ;;
 
-let temp_dir prefix =
-  let dir = Stdlib.Filename.temp_file prefix "" in
+let temp_dir ?temp_dir prefix =
+  let dir = Stdlib.Filename.temp_file ?temp_dir prefix "" in
   Stdlib.Sys.remove dir;
   Unix.mkdir dir 0o700;
   dir
