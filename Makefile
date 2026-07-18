@@ -78,7 +78,7 @@ nix-tests:
 
 .PHONY: nix-fmt
 nix-fmt:
-	dune build @fmt --auto-promote
+	dune build @fmt
 
 .PHONY: coverage-deps
 coverage-deps:
