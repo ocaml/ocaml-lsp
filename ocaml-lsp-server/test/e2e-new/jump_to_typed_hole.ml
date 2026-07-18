@@ -3,8 +3,7 @@ module Req = Ocaml_lsp_server.Custom_request.Jump_to_typed_hole
 
 module Util = struct
   let call ?direction ?range ~position client =
-    let uri = DocumentUri.of_path "test.ml" in
-    let text_document = TextDocumentIdentifier.create ~uri in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
       Req.Request_params.create ?direction ?range ~text_document ~position ()
       |> Req.Request_params.yojson_of_t

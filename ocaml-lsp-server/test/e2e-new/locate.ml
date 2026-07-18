@@ -3,9 +3,7 @@ module Req = Ocaml_lsp_server.Custom_request.Locate
 
 module Util = struct
   let call_locate ?prefix ?(kind = `Definition) ~position client =
-    let text_document =
-      TextDocumentIdentifier.create ~uri:(DocumentUri.of_path "test.ml")
-    in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
       Req.Request_params.create ~text_document ?prefix ~kind ~position ()
       |> Req.Request_params.yojson_of_t

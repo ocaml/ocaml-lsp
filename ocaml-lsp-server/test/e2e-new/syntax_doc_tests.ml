@@ -1,7 +1,6 @@
 open! Test.Import
 open Lsp_helpers
 
-let uri = DocumentUri.of_path "test.ml"
 let create_postion line character = Position.create ~line ~character
 
 let activate_syntax_doc =
@@ -26,7 +25,7 @@ let hover_req client position =
     client
     (TextDocumentHover
        { HoverParams.position
-       ; textDocument = TextDocumentIdentifier.create ~uri
+       ; textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri
        ; workDoneToken = None
        })
 ;;
@@ -47,7 +46,7 @@ let run_test text req =
     let run () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       let textDocument =
-        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
+        TextDocumentItem.create ~uri:Helpers.uri ~languageId:"ocaml" ~version:0 ~text
       in
       let* () =
         Client.notification

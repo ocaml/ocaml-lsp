@@ -3,9 +3,9 @@ module Req = Ocaml_lsp_server.Custom_request.Merlin_jump
 
 module Util = struct
   let call_jump position ?target client =
-    let uri = DocumentUri.of_path "test.ml" in
     let params =
-      Req.Request_params.create ~uri ~position ~target |> Req.Request_params.yojson_of_t
+      Req.Request_params.create ~uri:Helpers.uri ~position ~target
+      |> Req.Request_params.yojson_of_t
     in
     Test.custom_request client "ocamllsp/jump" params
   ;;

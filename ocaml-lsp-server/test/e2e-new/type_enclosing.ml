@@ -3,8 +3,7 @@ module Req = Ocaml_lsp_server.Custom_request.Type_enclosing
 
 module Util = struct
   let call_type_enclosing ?(verbosity = 0) client at index =
-    let uri = DocumentUri.of_path "test.ml" in
-    let text_document = TextDocumentIdentifier.create ~uri in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
       Req.Request_params.create ~verbosity ~text_document ~at ~index ()
       |> Req.Request_params.yojson_of_t

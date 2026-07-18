@@ -101,9 +101,8 @@ let test
     let run_client () = Test.start_client ~capabilities:client_capabilities client in
     let run () =
       let* (initializeResult : InitializeResult.t) = Client.initialized client in
-      let uri = DocumentUri.of_path "test.ml" in
       let textDocument =
-        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:src
+        TextDocumentItem.create ~uri:Helpers.uri ~languageId:"ocaml" ~version:0 ~text:src
       in
       let* () =
         Client.notification
@@ -111,7 +110,7 @@ let test
           (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
       in
       let* resp =
-        let textDocument = TextDocumentIdentifier.create ~uri in
+        let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
         let params = SemanticTokensParams.create ~textDocument () in
         Client.request client (req params)
       in
