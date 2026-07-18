@@ -16,7 +16,7 @@ install-test-deps:
 
 .PHONY: dev
 dev: ## Setup a development environment
-	opam switch create --no-install . ocaml-base-compiler.5.4.0
+	opam switch create --no-install . ocaml-base-compiler.5.5.0
 	opam install -y dune-release merlin ocamlformat utop ocaml-lsp-server
 	opam install --locked --deps-only --with-doc -y .
 	$(MAKE) install-test-deps
