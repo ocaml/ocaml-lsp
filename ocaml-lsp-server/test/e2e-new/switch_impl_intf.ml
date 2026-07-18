@@ -20,10 +20,7 @@ let open_document client uri =
 ;;
 
 let switch_impl_intf client uri =
-  let params =
-    `List [ DocumentUri.yojson_of_t uri ] |> Jsonrpc.Structured.t_of_yojson |> Option.some
-  in
-  Client.request client (UnknownRequest { meth = Req.meth; params })
+  Test.custom_request client Req.meth (`List [ DocumentUri.yojson_of_t uri ])
 ;;
 
 let print_response json =

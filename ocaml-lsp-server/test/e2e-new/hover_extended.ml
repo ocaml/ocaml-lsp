@@ -5,22 +5,19 @@ let print_hover_extended resp =
 ;;
 
 let hover_extended client position verbosity =
-  let params =
-    let required =
-      [ ( "textDocument"
-        , TextDocumentIdentifier.yojson_of_t
-            (TextDocumentIdentifier.create ~uri:Helpers.uri) )
-      ; "position", Position.yojson_of_t position
-      ]
-    in
-    let params =
-      match verbosity with
-      | None -> required
-      | Some v -> ("verbosity", `Int v) :: required
-    in
-    Some (Jsonrpc.Structured.t_of_yojson (`Assoc params))
+  let required =
+    [ ( "textDocument"
+      , TextDocumentIdentifier.yojson_of_t
+          (TextDocumentIdentifier.create ~uri:Helpers.uri) )
+    ; "position", Position.yojson_of_t position
+    ]
   in
-  Client.request client (UnknownRequest { meth = "ocamllsp/hoverExtended"; params })
+  let params =
+    match verbosity with
+    | None -> required
+    | Some v -> ("verbosity", `Int v) :: required
+  in
+  Test.custom_request client "ocamllsp/hoverExtended" (`Assoc params)
 ;;
 
 let%expect_test "hover reference" =

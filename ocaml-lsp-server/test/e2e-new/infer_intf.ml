@@ -2,12 +2,7 @@ open Test.Import
 module Req = Ocaml_lsp_server.Custom_request.Infer_intf
 
 let infer_intf client =
-  let params =
-    `List [ DocumentUri.yojson_of_t Helpers.uri ]
-    |> Jsonrpc.Structured.t_of_yojson
-    |> Option.some
-  in
-  Client.request client (UnknownRequest { meth = Req.meth; params })
+  Test.custom_request client Req.meth (`List [ DocumentUri.yojson_of_t Helpers.uri ])
 ;;
 
 let%expect_test "can infer module interfaces" =
