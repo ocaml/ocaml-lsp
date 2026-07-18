@@ -26,6 +26,15 @@ module Code_action_error_monoid = struct
 end
 
 let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
+  let params =
+    let range = Document.merlin_range doc params.range in
+    let diagnostics =
+      List.map params.context.diagnostics ~f:(fun (diagnostic : Diagnostic.t) ->
+        { diagnostic with range = Document.merlin_range doc diagnostic.range })
+    in
+    let context = { params.context with diagnostics } in
+    { params with range; context }
+  in
   let action_is_enabled =
     match params.context.only with
     | None -> fun _ -> true

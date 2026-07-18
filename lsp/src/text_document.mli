@@ -42,3 +42,14 @@ val absolute_position : t -> Position.t -> int
 (* [absolute_range t range] same as [(absolute_position t range.start ,
    absolute_position t range.end_)] but possibly faster *)
 val absolute_range : t -> Range.t -> int * int
+
+(** Convert an OCaml lexer position, whose character offset is measured in UTF-8
+    bytes, to the requested position encoding. *)
+val position_of_lexical_position_in_text
+  :  position_encoding:encoding
+  -> text:string
+  -> Lexing.position
+  -> Position.t option
+
+(** Convert an OCaml lexer position to the encoding negotiated for this document. *)
+val position_of_lexical_position : t -> Lexing.position -> Position.t option

@@ -19,6 +19,7 @@ let compute (state : State.t) { InlayHintParams.range; textDocument = { uri }; _
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
   | `Merlin doc ->
+    let lsp_doc = Document.Merlin.to_doc doc in
     let+ hints =
       let hint_let_bindings =
         Option.map state.configuration.data.inlay_hints ~f:(fun c -> c.hint_let_bindings)
@@ -35,8 +36,8 @@ let compute (state : State.t) { InlayHintParams.range; textDocument = { uri }; _
         |> Option.value ~default:false
       in
       Document.Merlin.with_pipeline_exn ~name:"inlay-hints" doc (fun pipeline ->
-        let start = range.start |> Position.logical
-        and stop = range.end_ |> Position.logical in
+        let start = (Document.merlin_position lsp_doc range.start :> Msource.position)
+        and stop = (Document.merlin_position lsp_doc range.end_ :> Msource.position) in
         let command =
           Query_protocol.Inlay_hints
             ( start
@@ -50,7 +51,7 @@ let compute (state : State.t) { InlayHintParams.range; textDocument = { uri }; _
         List.filter_map
           ~f:(fun (pos, label) ->
             let open Option.O in
-            let+ position = Position.of_lexical_position pos in
+            let+ position = Document.position_of_lexical_position lsp_doc pos in
             let label = `String (outline_type label) in
             InlayHint.create
               ~kind:Type

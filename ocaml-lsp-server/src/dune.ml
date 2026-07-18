@@ -124,6 +124,7 @@ module Poll =
 type config =
   { diagnostics : Diagnostics.t
   ; document_store : Document_store.t
+  ; position_encoding : [ `UTF8 | `UTF16 ]
   ; include_promotions : bool
   ; progress : Progress.t
   ; log : type_:MessageType.t -> message:string -> unit Fiber.t
@@ -180,7 +181,7 @@ end = struct
 
   let source t = t.source
 
-  let lsp_of_dune diagnostics ~include_promotions diagnostic =
+  let lsp_of_dune config diagnostic =
     let module D = Drpc.Diagnostic in
     let range_of_loc loc =
       let loc =
@@ -188,7 +189,22 @@ end = struct
         let loc_end = Drpc.Loc.stop loc in
         { Loc.loc_start; loc_end; loc_ghost = false }
       in
-      Range.of_loc loc
+      let uri = Uri.of_path loc.loc_start.pos_fname in
+      match Document_store.get_opt config.document_store uri with
+      | Some doc -> Document.range_of_loc doc loc
+      | None ->
+        (match Fs_io.read_file (Uri.to_path uri) with
+         | Error _ -> Range.of_loc loc
+         | Ok text ->
+           let position position =
+             Text_document.position_of_lexical_position_in_text
+               ~position_encoding:config.position_encoding
+               ~text
+               position
+           in
+           (match position loc.loc_start, position loc.loc_end with
+            | Some start, Some end_ -> Range.create ~start ~end_
+            | None, _ | _, None -> Range.first_line))
     in
     let range =
       match D.loc diagnostic with
@@ -221,9 +237,9 @@ end = struct
              DiagnosticRelatedInformation.create ~location ~message))
     in
     let message = make_message (D.message diagnostic) in
-    let tags = Diagnostics.tags_of_message diagnostics ~src:`Dune message in
+    let tags = Diagnostics.tags_of_message config.diagnostics ~src:`Dune message in
     let data =
-      match include_promotions with
+      match config.include_promotions with
       | false -> None
       | true ->
         (match D.promotion diagnostic with
@@ -335,14 +351,7 @@ end = struct
               in
               Diagnostics.set
                 diagnostics
-                (`Dune
-                    ( running.diagnostics_id
-                    , id
-                    , uri
-                    , lsp_of_dune
-                        diagnostics
-                        ~include_promotions:config.include_promotions
-                        d ));
+                (`Dune (running.diagnostics_id, id, uri, lsp_of_dune config d));
               promotions, requests :: add, remove)
       in
       promotions, List.concat add, List.concat remove
@@ -464,7 +473,14 @@ end = struct
       }
     in
     t.state <- Running running;
-    let { progress; diagnostics; include_promotions = _; log = _; document_store } =
+    let { progress
+        ; diagnostics
+        ; include_promotions = _
+        ; log = _
+        ; document_store
+        ; position_encoding = _
+        }
+      =
       config
     in
     let* () =
@@ -765,6 +781,7 @@ let create
       diagnostics
       progress
       document_store
+      ~position_encoding
       ~log
   =
   let config =
@@ -782,7 +799,7 @@ let create
          | _ -> false)
       | _ -> false
     in
-    { document_store; diagnostics; progress; include_promotions; log }
+    { document_store; diagnostics; progress; position_encoding; include_promotions; log }
   in
   let registry = Registry.create (Registry.Config.create (Xdg.create ~env ())) in
   ref
@@ -801,11 +818,20 @@ let create
       diagnostics
       progress
       document_store
+      ~position_encoding
       ~log
   =
   if inside_test
   then ref Closed
-  else create workspaces client_capabilities diagnostics progress document_store ~log
+  else
+    create
+      workspaces
+      client_capabilities
+      diagnostics
+      progress
+      document_store
+      ~position_encoding
+      ~log
 ;;
 
 let run_loop t =

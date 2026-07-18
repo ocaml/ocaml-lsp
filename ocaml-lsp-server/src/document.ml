@@ -238,6 +238,70 @@ let text t = Text_document.text (text_document t)
 let source t = Msource.make (text t)
 let version t = Text_document.version (text_document t)
 
+let merlin_position t position =
+  let text_document = text_document t in
+  let offset = Text_document.absolute_position text_document position in
+  let filename = Uri.to_path (uri t) in
+  let lexical_position = Msource.get_lexing_pos ~filename (source t) (`Offset offset) in
+  let character =
+    match Text_document.position_of_lexical_position text_document lexical_position with
+    | Some clamped
+      when clamped.line = position.line && clamped.character < position.character ->
+      (* Preserve the previous behavior for invalid positions beyond the end of a line. *)
+      position.character
+    | Some _ | None -> lexical_position.pos_cnum - lexical_position.pos_bol
+  in
+  `Logical (lexical_position.pos_lnum, character)
+;;
+
+let position_of_lexical_position_in_source t source position =
+  let text_document = text_document t in
+  Text_document.position_of_lexical_position_in_text
+    ~position_encoding:(Text_document.position_encoding text_document)
+    ~text:(Msource.text source)
+    position
+;;
+
+let position_of_lexical_position t position =
+  position_of_lexical_position_in_source t (source t) position
+;;
+
+let range_of_loc_opt_in_source t source (loc : Loc.t) =
+  let open Option.O in
+  let* start = position_of_lexical_position_in_source t source loc.loc_start in
+  let+ end_ = position_of_lexical_position_in_source t source loc.loc_end in
+  Range.create ~start ~end_
+;;
+
+let range_of_loc_opt t loc = range_of_loc_opt_in_source t (source t) loc
+
+let range_of_loc_in_source t source loc =
+  range_of_loc_opt_in_source t source loc |> Option.value ~default:Range.first_line
+;;
+
+let range_of_loc t loc = range_of_loc_in_source t (source t) loc
+
+let merlin_lsp_position t position =
+  let (`Logical (line, character)) = merlin_position t position in
+  Position.create ~line:(line - 1) ~character
+;;
+
+let merlin_range t ({ start; end_ } : Range.t) =
+  Range.create ~start:(merlin_lsp_position t start) ~end_:(merlin_lsp_position t end_)
+;;
+
+let range_of_merlin_range t ({ start; end_ } : Range.t) =
+  let source = source t in
+  let filename = Uri.to_path (uri t) in
+  let position ({ line; character } : Position.t) =
+    Msource.get_lexing_pos ~filename source (`Logical (line + 1, character))
+    |> position_of_lexical_position_in_source t source
+  in
+  match position start, position end_ with
+  | Some start, Some end_ -> Range.create ~start ~end_
+  | None, _ | _, None -> Range.first_line
+;;
+
 let make_merlin wheel merlin_db pipeline tdoc syntax =
   let* timer = Lev_fiber.Timer.Wheel.task wheel in
   let uri = Text_document.documentUri tdoc in
@@ -404,6 +468,10 @@ module Merlin = struct
 end
 
 let edit t text_edits =
+  let text_edits =
+    List.map text_edits ~f:(fun (edit : TextEdit.t) ->
+      { edit with range = range_of_merlin_range t edit.range })
+  in
   let version = version t in
   let textDocument =
     OptionalVersionedTextDocumentIdentifier.create ~uri:(uri t) ~version ()

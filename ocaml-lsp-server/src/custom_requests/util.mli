@@ -9,11 +9,25 @@ val with_merlin
 
 val with_pipeline : State.t -> Uri.t -> default:'a -> (Mpipeline.t -> 'a) -> 'a Fiber.t
 
+val with_pipeline_doc
+  :  State.t
+  -> Uri.t
+  -> default:'a
+  -> (Document.t -> Mpipeline.t -> 'a)
+  -> 'a Fiber.t
+
 val with_impl_pipeline
   :  State.t
   -> Uri.t
   -> default:'a
   -> (Mpipeline.t -> 'a)
+  -> 'a Fiber.t
+
+val with_impl_pipeline_doc
+  :  State.t
+  -> Uri.t
+  -> default:'a
+  -> (Document.t -> Mpipeline.t -> 'a)
   -> 'a Fiber.t
 
 val raise_invalid_params : ?data:Json.t -> message:string -> unit -> 'a

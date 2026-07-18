@@ -4,7 +4,7 @@ let code_action
       (mode : [ `Qualify | `Unqualify ])
       (action_kind : string)
       pipeline
-      _
+      doc
       (params : CodeActionParams.t)
   =
   let res =
@@ -19,12 +19,12 @@ let code_action
   | changes ->
     let code_action =
       let edit : WorkspaceEdit.t =
-        let edits =
+        let changes =
           List.map changes ~f:(fun (newText, loc) ->
-            { TextEdit.newText; range = Range.of_loc loc })
+            let range = Range.of_loc loc |> Document.range_of_merlin_range doc in
+            { TextEdit.newText; range })
         in
-        let uri = params.textDocument.uri in
-        WorkspaceEdit.create ~changes:[ uri, edits ] ()
+        WorkspaceEdit.create ~changes:[ params.textDocument.uri, changes ] ()
       in
       let kind = CodeActionKind.Other action_kind in
       let title = String.capitalize_ascii action_kind in

@@ -43,7 +43,8 @@ let on_request ~params state =
            ~message:"not a merlin document"
            ())
     | `Merlin doc ->
-      let pos = Position.logical cursor_position in
+      let lsp_doc = Document.Merlin.to_doc doc in
+      let pos = (Document.merlin_position lsp_doc cursor_position :> Msource.position) in
       let+ node =
         Document.Merlin.with_pipeline_exn ~name:"wrapping-ast-node" doc (fun pipeline ->
           let typer = Mpipeline.typer_result pipeline in
@@ -69,5 +70,5 @@ let on_request ~params state =
       in
       (match node with
        | None -> `Null
-       | Some loc -> Range.of_loc loc |> Range.yojson_of_t))
+       | Some loc -> Document.range_of_loc lsp_doc loc |> Range.yojson_of_t))
 ;;

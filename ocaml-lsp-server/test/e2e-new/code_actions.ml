@@ -595,7 +595,7 @@ let f (café : bool) =
               {
                 "newText": "match café with\n  | false -> _\n  | true -> _",
                 "range": {
-                  "end": { "character": 13, "line": 2 },
+                  "end": { "character": 12, "line": 2 },
                   "start": { "character": 2, "line": 2 }
                 }
               }

@@ -62,6 +62,29 @@ let%expect_test "has related diagnostics" =
     |}]
 ;;
 
+let%expect_test "uses UTF-16 ranges around astral Unicode characters" =
+  let source = "let _ = (* 😀 *) missing\n" in
+  test source;
+  [%expect
+    {|
+    textDocument/publishDiagnostics
+    {
+      "diagnostics": [
+        {
+          "message": "Unbound value missing",
+          "range": {
+            "end": { "character": 24, "line": 0 },
+            "start": { "character": 17, "line": 0 }
+          },
+          "severity": 1,
+          "source": "ocamllsp"
+        }
+      ],
+      "uri": "file:///test.ml"
+    }
+    |}]
+;;
+
 let%expect_test "unused values have diagnostic tags" =
   let source =
     {ocaml|let () =

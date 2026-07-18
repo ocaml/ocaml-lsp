@@ -46,10 +46,10 @@ let command_run server (params : ExecuteCommandParams.t) =
 ;;
 
 (* Dispatch the jump request to Merlin and get the result *)
-let process_jump_request ~merlin ~position ~target =
+let process_jump_request ~doc ~merlin ~position ~target =
   let+ results =
     Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-      let pposition = Position.logical position in
+      let pposition = (Document.merlin_position doc position :> Msource.position) in
       let query = Query_protocol.Jump (target, pposition) in
       Query_commands.dispatch pipeline query)
   in
@@ -68,10 +68,12 @@ let code_actions
     let+ actions =
       (* TODO: Merlin Jump command that returns all available jump locations for a source code buffer. *)
       Fiber.parallel_map targets ~f:(fun target ->
-        let+ res = process_jump_request ~merlin ~position:params.range.start ~target in
+        let+ res =
+          process_jump_request ~doc ~merlin ~position:params.range.start ~target
+        in
         let open Option.O in
         let* lexing_pos = res in
-        let+ position = Position.of_lexical_position lexing_pos in
+        let+ position = Document.position_of_lexical_position doc lexing_pos in
         let uri = Document.uri doc in
         let range = { Range.start = position; end_ = position } in
         let title = sprintf "%s jump" (String.capitalize_ascii (rename_target target)) in

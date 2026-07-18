@@ -48,7 +48,8 @@ let yojson_of_t { position; content; selection_range } =
     ]
 ;;
 
-let dispatch ~range ~extract_name pipeline =
+let dispatch ~range ~extract_name doc pipeline =
+  let range = Document.merlin_range doc range in
   let start = Position.logical range.Range.start in
   let end_ = Position.logical range.Range.end_ in
   let command = Query_protocol.Refactor_extract_region (start, end_, extract_name) in
@@ -56,9 +57,9 @@ let dispatch ~range ~extract_name pipeline =
     Query_commands.dispatch pipeline command
   in
   yojson_of_t
-    { position = Range.of_loc loc
+    { position = Document.range_of_loc doc loc
     ; content
-    ; selection_range = Range.of_loc selection_range
+    ; selection_range = Document.range_of_loc doc selection_range
     }
 ;;
 
@@ -69,5 +70,5 @@ let on_request ~params state =
       Request_params.t_of_yojson params
     in
     let uri = text_document.uri in
-    Util.with_impl_pipeline state uri ~default:`Null @@ dispatch ~range ~extract_name)
+    Util.with_impl_pipeline_doc state uri ~default:`Null @@ dispatch ~range ~extract_name)
 ;;

@@ -8,7 +8,8 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
   | `Other -> Fiber.return (WorkspaceEdit.create ())
   | `Merlin merlin ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
+      Query_protocol.Occurrences
+        (`Ident_at (Document.merlin_position doc position :> Msource.position), `Renaming)
     in
     let+ occurrences, _desync =
       Document.Merlin.dispatch_exn ~name:"rename" merlin command
@@ -21,50 +22,52 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     in
     let version = Document.version doc in
     let uri = Document.uri doc in
-    let edits =
+    let locs =
       List.fold_left locs ~init:Uri.Map.empty ~f:(fun acc (loc : Warnings.loc) ->
-        let range = Range.of_loc loc in
-        let edit = TextEdit.create ~range ~newText:newName in
         let uri =
           match loc.loc_start.pos_fname with
           | "" -> uri
           | path -> Uri.of_path path
         in
-        Uri.Map.add_to_list uri edit acc)
+        Uri.Map.add_to_list uri loc acc)
     in
     let edits =
       Uri.Map.mapi
-        (fun doc_uri edits ->
+        (fun doc_uri locs ->
+           let target_doc = Document_store.get_opt state.store doc_uri in
            let source =
-             match Document_store.get_opt state.store doc_uri with
-             | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
-               Document.source doc
-             | Some _ | None ->
+             match target_doc with
+             | Some doc -> Document.source doc
+             | None ->
                let source_path = Uri.to_path doc_uri in
                In_channel.with_open_text source_path In_channel.input_all |> Msource.make
            in
-           List.map edits ~f:(fun (edit : TextEdit.t) ->
-             let start_position = edit.range.start in
-             match start_position with
-             | { character = 0; _ } -> edit
-             | pos ->
-               let mpos = Position.logical pos in
+           List.map locs ~f:(fun (loc : Warnings.loc) ->
+             let range =
+               match target_doc with
+               | Some doc -> Document.range_of_loc doc loc
+               | None -> Document.range_of_loc_in_source doc source loc
+             in
+             let edit = TextEdit.create ~range ~newText:newName in
+             let byte_character = loc.loc_start.pos_cnum - loc.loc_start.pos_bol in
+             if byte_character = 0
+             then edit
+             else (
+               let mpos = `Logical (loc.loc_start.pos_lnum, byte_character) in
                let (`Offset index) = Msource.get_offset source mpos in
-               assert (index > 0)
-               (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
-                 when [character = 0] in a separate matching branch *);
+               assert (index > 0);
                let source_txt = Msource.text source in
-               (* TODO: handle record field puning *)
-               (match source_txt.[index - 1] with
-                | '~' (* the occurrence is a named argument *)
-                | '?' (* is an optional argument *) ->
-                  let empty_range_at_occur_end =
-                    let occur_end_pos = edit.range.end_ in
-                    { edit.range with start = occur_end_pos }
-                  in
-                  TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-                | _ -> edit)))
-        edits
+               (* TODO: handle record field punning *)
+               match source_txt.[index - 1] with
+               | '~' (* the occurrence is a named argument *)
+               | '?' (* is an optional argument *) ->
+                 let empty_range_at_occur_end =
+                   let occur_end_pos = edit.range.end_ in
+                   { edit.range with start = occur_end_pos }
+                 in
+                 TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
+               | _ -> edit)))
+        locs
     in
     let workspace_edits =
       let documentChanges =

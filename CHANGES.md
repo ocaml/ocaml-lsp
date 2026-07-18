@@ -2,6 +2,7 @@
 
 ## Fixes
 
+- Translate positions using the UTF-16 encoding negotiated with the client. (#1813, @rgrinberg)
 - Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)
 - Keep URI query parameters separate from filesystem paths. (#1776, @rgrinberg)
 - Preserve URI paths beginning with two slashes across serialization. (#1798, @rgrinberg)

@@ -151,7 +151,7 @@ let legend =
 module Tokens : sig
   type t
 
-  val create : unit -> t
+  val create : range_of_loc:(Loc.t -> Range.t option) -> t
   val append_token : t -> Loc.t -> Token_type.t -> Token_modifiers_set.t -> unit
 
   val append_token'
@@ -175,16 +175,17 @@ end = struct
   type t =
     { mutable tokens : token list (* the last appended token is the head of this list *)
     ; mutable count : int
+    ; range_of_loc : Loc.t -> Range.t option
     }
 
-  let create () : t = { tokens = []; count = 0 }
+  let create ~range_of_loc : t = { tokens = []; count = 0; range_of_loc }
 
   let append_token : t -> Loc.t -> Token_type.t -> Token_modifiers_set.t -> unit =
     fun t loc token_type token_modifiers ->
     if loc.loc_ghost
     then ()
     else (
-      let range = Range.of_loc_opt loc in
+      let range = t.range_of_loc loc in
       Option.iter range ~f:(fun ({ start; end_ } : Range.t) ->
         (* TODO: we currently don't handle multi-line range; could handle if
            client supports it - see client's capabilities on initialization *)
@@ -277,11 +278,13 @@ end
 (** To traverse OCaml parsetree and produce semantic tokens. *)
 module Parsetree_fold (M : sig
     val source : string
+    val range_of_loc_opt : Loc.t -> Range.t option
+    val position_of_lexical_position : Lexing.position -> Position.t option
   end) : sig
   val apply : Mreader.parsetree -> Tokens.t
 end = struct
   (* mutable state *)
-  let tokens = Tokens.create ()
+  let tokens = Tokens.create ~range_of_loc:M.range_of_loc_opt
 
   let source_excerpt ({ loc_start; loc_end; _ } : Loc.t) =
     let start_offset = loc_start.pos_cnum in
@@ -308,7 +311,7 @@ end = struct
     if loc.loc_ghost
     then ()
     else (
-      let start = Position.of_lexical_position loc.loc_start in
+      let start = M.position_of_lexical_position loc.loc_start in
       match start with
       | None -> ()
       | Some start ->
@@ -884,6 +887,9 @@ let compute_tokens doc =
   in
   let module Fold = Parsetree_fold (struct
       let source = Msource.text source
+      let lsp_doc = Document.Merlin.to_doc doc
+      let range_of_loc_opt = Document.range_of_loc_opt lsp_doc
+      let position_of_lexical_position = Document.position_of_lexical_position lsp_doc
     end)
   in
   Fold.apply parsetree
@@ -991,7 +997,7 @@ module For_tests = struct
   let token_modifiers_bitset = Token_modifiers_set.to_int token_modifiers
 
   let encode tokens =
-    let encoded = Tokens.create () in
+    let encoded = Tokens.create ~range_of_loc:(fun _ -> None) in
     List.iter tokens ~f:(fun (start, length) ->
       Tokens.append_token' encoded start ~length token_type token_modifiers);
     Tokens.encode encoded

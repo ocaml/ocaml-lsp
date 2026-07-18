@@ -41,7 +41,8 @@ let find ~range ~position ~direction holes =
 ;;
 
 let all ?(pipeline_name = "typed-holes") merlin =
+  let doc = Document.Merlin.to_doc merlin in
   Holes
   |> Document.Merlin.dispatch_exn ~name:pipeline_name merlin
-  |> Fiber.map ~f:(List.map ~f:(fun (loc, _ty) -> Range.of_loc loc))
+  |> Fiber.map ~f:(List.map ~f:(fun (loc, _ty) -> Document.range_of_loc doc loc))
 ;;

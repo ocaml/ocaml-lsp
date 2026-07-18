@@ -12,7 +12,7 @@ let symbol_kind_of_outline_kind = function
   | `Method -> Method
 ;;
 
-let rec items_to_symbols items =
+let rec items_to_symbols doc items =
   List.rev_map
     ~f:
       (fun
@@ -20,9 +20,9 @@ let rec items_to_symbols items =
       DocumentSymbol.create
         ~name:outline_name
         ~kind:(symbol_kind_of_outline_kind outline_kind)
-        ~range:(Range.of_loc location)
-        ~selectionRange:(Range.of_loc selection)
-        ~children:(items_to_symbols children)
+        ~range:(Document.range_of_loc doc location)
+        ~selectionRange:(Document.range_of_loc doc selection)
+        ~children:(items_to_symbols doc children)
         ())
     items
 ;;
@@ -54,7 +54,7 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
       Document.Merlin.with_pipeline_exn ~name:"document-symbols" merlin (fun pipeline ->
         Query_commands.dispatch pipeline Query_protocol.Outline)
     in
-    let symbols = items_to_symbols outline in
+    let symbols = items_to_symbols doc outline in
     (match
        Option.value
          ~default:false

@@ -157,43 +157,57 @@ let rec yojson_of_t ?set ({ data; children } as pl) =
        ])
 ;;
 
-let map_payload type_ result =
+let map_payload state doc type_ result =
   { ty = type_
   ; result =
       (match result with
        | `Found (file, pos) ->
-         let uri = Option.map ~f:DocumentUri.of_string file
-         and pos = pos |> Position.of_lexical_position |> Option.value_exn in
-         `Found (uri, pos)
+         let uri = Option.map ~f:DocumentUri.of_string file in
+         let target_doc = Option.bind uri ~f:(Document_store.get_opt state.State.store) in
+         let pos =
+           match target_doc, uri with
+           | Some target_doc, _ -> Document.position_of_lexical_position target_doc pos
+           | None, Some uri ->
+             (match
+                Exn_with_backtrace.try_with (fun () ->
+                  let path = Uri.to_path uri in
+                  In_channel.with_open_text path In_channel.input_all |> Msource.make)
+              with
+              | Ok source ->
+                Document.position_of_lexical_position_in_source doc source pos
+              | Error _ -> Position.of_lexical_position pos)
+           | None, None -> Document.position_of_lexical_position doc pos
+         in
+         `Found (uri, Option.value_exn pos)
        | (`Not_in_env _ | `Builtin _) as s -> s
        | `Not_found (file, ty) -> `Not_found (DocumentUri.of_string file, ty)
        | `File_not_found file -> `File_not_found (DocumentUri.of_string file))
   }
 ;;
 
-let map_node = function
+let map_node state doc = function
   | P.Tree.Arrow -> Arrow
   | P.Tree.Tuple -> Tuple
   | P.Tree.Object -> Object
   | P.Tree.Poly_variant -> Poly_variant
   | P.Tree.Other s -> Other s
-  | P.Tree.Type_ref { type_; result } -> Type_ref (map_payload type_ result)
+  | P.Tree.Type_ref { type_; result } -> Type_ref (map_payload state doc type_ result)
 ;;
 
-let rec map_tree_result result =
-  let children = List.map ~f:map_tree_result result.P.Tree.children in
-  let data = map_node result.data in
+let rec map_tree_result state doc result =
+  let children = List.map ~f:(map_tree_result state doc) result.P.Tree.children in
+  let data = map_node state doc result.data in
   { data; children }
 ;;
 
 let make_locate_types_command position = Query_protocol.Locate_types position
 
-let dispatch_locate_types position pipeline =
-  let position = Position.logical position in
+let dispatch_locate_types state position doc pipeline =
+  let position = (Document.merlin_position doc position :> Msource.position) in
   let command = make_locate_types_command position in
   match Query_commands.dispatch pipeline command with
   | P.Success result ->
-    let result = map_tree_result result in
+    let result = map_tree_result state doc result in
     yojson_of_t result
   | P.Invalid_context ->
     let open Jsonrpc.Response.Error in
@@ -205,5 +219,6 @@ let on_request ~params state =
     let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
     let Request_params.{ text_document; position } = Request_params.t_of_yojson params in
     let uri = text_document.uri in
-    Util.with_pipeline state uri ~default:`Null @@ dispatch_locate_types position)
+    Util.with_pipeline_doc state uri ~default:`Null
+    @@ dispatch_locate_types state position)
 ;;
