@@ -30,13 +30,7 @@ let string = "Hello"
 ;;
 
 let%expect_test "enable hover extended" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
     let* resp = Hover_helpers.hover client position in

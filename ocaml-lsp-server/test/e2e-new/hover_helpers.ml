@@ -27,6 +27,14 @@ let markdown_capabilities =
   ClientCapabilities.create ~textDocument ()
 ;;
 
+let hover_reference_source =
+  {ocaml|
+type foo = int option
+
+let foo_value : foo = Some 1
+|ocaml}
+;;
+
 let documented_id_use_source =
   {ocaml|(** This function has a nice documentation *)
 let id x = x
