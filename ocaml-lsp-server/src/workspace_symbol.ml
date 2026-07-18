@@ -225,27 +225,56 @@ let outline_kind kind : SymbolKind.t =
   | `Method -> Method
 ;;
 
-let rec symbol_info ?containerName uri (item : Query_protocol.item) =
-  let info =
-    let kind = outline_kind item.outline_kind in
-    let location = { Location.uri; range = Range.of_loc item.location } in
-    SymbolInformation.create
-      ~name:item.outline_name
-      ~kind
-      ~deprecated:false
-      ~location
-      ?containerName
-      ()
-  in
-  let children =
-    List.concat_map item.children ~f:(symbol_info uri ~containerName:info.name)
-  in
-  info :: children
+let make_uri_resolver ~root_dir ~build_dir : (Loc.t -> Uri.t option) Base.Staged.t =
+  let cache = ref String.Map.empty in
+  Base.Staged.stage (fun (location : Loc.t) ->
+    let fname = location.loc_start.pos_fname in
+    match String.Map.find !cache fname with
+    | Some uri -> uri
+    | None ->
+      let uri =
+        if String.is_empty fname
+        then None
+        else (
+          let candidates =
+            if Filename.is_relative fname
+            then [ Filename.concat root_dir fname; Filename.concat build_dir fname ]
+            else [ fname ]
+          in
+          List.find candidates ~f:Sys.file_exists |> Option.map ~f:Uri.of_path)
+      in
+      cache := String.Map.set !cache fname uri;
+      uri)
 ;;
 
-let symbols_of_outline uri outline = List.concat_map ~f:(symbol_info uri) outline
+let rec symbol_info ~containerName resolve_uri (item : Query_protocol.item) =
+  let children =
+    List.concat_map
+      item.children
+      ~f:(symbol_info resolve_uri ~containerName:(Some item.outline_name))
+  in
+  match resolve_uri item.location with
+  | None -> children
+  | Some uri ->
+    let kind = outline_kind item.outline_kind in
+    let location = { Location.uri; range = Range.of_loc item.location } in
+    let info =
+      SymbolInformation.create
+        ~name:item.outline_name
+        ~kind
+        ~deprecated:false
+        ~location
+        ?containerName
+        ()
+    in
+    info :: children
+;;
 
-let symbols_from_cm_file ~filter root_uri (cancel : Fiber.Cancel.t option) cm_file =
+let symbols_of_outline resolve_uri outline =
+  List.concat_map ~f:(symbol_info ~containerName:None resolve_uri) outline
+;;
+
+let symbols_from_cm_file ~filter ~resolve_uri (cancel : Fiber.Cancel.t option) cm_file =
   let cmt =
     let filename = string_of_cm cm_file in
     let cancelled =
@@ -267,10 +296,7 @@ let symbols_from_cm_file ~filter root_uri (cancel : Fiber.Cancel.t option) cm_fi
             let browse_tree = Merlin_analysis.Browse_tree.of_node browse in
             Outline.get [ browse_tree ]
           in
-          let loc = Mbrowse.node_loc browse in
-          let fname = loc.loc_start.pos_fname in
-          let uri = Uri.of_path (Filename.concat root_uri fname) in
-          filter (symbols_of_outline uri outline))
+          filter (symbols_of_outline resolve_uri outline))
      | _ -> [])
 ;;
 
@@ -320,11 +346,9 @@ let run
          let open Result.O in
          let+ build_dir = find_build_dir workspace_folder in
          let cm_files = find_cm_files build_dir in
-         let path =
-           let uri = workspace_folder.uri in
-           Uri.to_path uri
-         in
-         List.concat_map ~f:(symbols_from_cm_file ~filter path cancel) cm_files))
+         let root_dir = Uri.to_path workspace_folder.uri in
+         let resolve_uri = Base.Staged.unstage (make_uri_resolver ~root_dir ~build_dir) in
+         List.concat_map ~f:(symbols_from_cm_file ~filter ~resolve_uri cancel) cm_files))
   with
   | Cancelled -> Error `Cancelled
 ;;
