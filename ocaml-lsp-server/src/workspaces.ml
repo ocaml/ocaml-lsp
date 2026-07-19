@@ -26,7 +26,6 @@ let create (ip : InitializeParams.t) =
 ;;
 
 let on_change t { DidChangeWorkspaceFoldersParams.event = { added; removed } } =
-  assert (t.workspace_folders <> None);
   let workspace_folders =
     let init = Option.value t.workspace_folders ~default:Uri_map.empty in
     let init =

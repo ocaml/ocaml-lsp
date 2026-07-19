@@ -37,7 +37,7 @@ let%expect_test "can add the first workspace folder after initialization" =
   Stdlib.Sys.remove stderr_path;
   let failed = Base.String.is_substring stderr ~substring:"Assertion failed" in
   Printf.printf "workspace update error: %b\n" failed;
-  [%expect {| workspace update error: true |}]
+  [%expect {| workspace update error: false |}]
 ;;
 
 let%expect_test "disable codelens" =
