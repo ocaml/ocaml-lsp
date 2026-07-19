@@ -1,5 +1,6 @@
 (library
  (modules
+  dune_pull_diagnostics_tests
   ocaml_lsp_tests
   position_prefix_tests
   range_relations_quickcheck_tests

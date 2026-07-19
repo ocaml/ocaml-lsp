@@ -1,5 +1,10 @@
 # Unreleased
 
+## Features
+
+- Support LSP 3.17 `textDocument/diagnostic` pull requests by combining Dune
+  and Merlin diagnostics. (#1782, @rgrinberg)
+
 ## Fixes
 
 - Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)

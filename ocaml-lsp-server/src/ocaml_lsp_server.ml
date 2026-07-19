@@ -1,6 +1,7 @@
 open Import
 module Version = Version
 module Diagnostics = Diagnostics
+module Dune_pull_diagnostics = Dune_pull_diagnostics
 module Position = Position
 module Doc_to_md = Doc_to_md
 module Diff = Diff
@@ -64,6 +65,18 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
          ())
   in
   let codeLensProvider = CodeLensOptions.create ~resolveProvider:false () in
+  let diagnosticProvider =
+    match client_capabilities.textDocument with
+    | Some { diagnostic = Some _; _ } ->
+      Some
+        (`DiagnosticOptions
+            (DiagnosticOptions.create
+               ~identifier:Dune_pull_diagnostics.identifier
+               ~interFileDependencies:true
+               ~workspaceDiagnostics:false
+               ()))
+    | None | Some _ -> None
+  in
   let completionProvider =
     CompletionOptions.create ~triggerCharacters:[ "."; "#" ] ~resolveProvider:true ()
   in
@@ -148,6 +161,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~declarationProvider:(`Bool true)
       ~definitionProvider:(`Bool true)
       ~typeDefinitionProvider:(`Bool true)
+      ?diagnosticProvider
       ~completionProvider
       ~signatureHelpProvider
       ~codeActionProvider
@@ -178,6 +192,28 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
 
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
+let no_reason_merlin_diagnostic () =
+  let message =
+    `String (sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason)
+  in
+  Diagnostic.create
+    ~source:Diagnostics.ocamllsp_source
+    ~range:Range.first_line
+    ~message
+    ()
+;;
+
+let compute_document_merlin_diagnostics diagnostics doc =
+  match Document.kind doc with
+  | `Other -> Fiber.return []
+  | `Merlin merlin ->
+    (match Document.syntax doc with
+     | Dune | Cram | Menhir | Ocamllex -> Fiber.return []
+     | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
+       Fiber.return [ no_reason_merlin_diagnostic () ]
+     | Reason | Ocaml | Mlx -> Diagnostics.compute_merlin_diagnostics diagnostics merlin)
+;;
+
 let set_diagnostics detached diagnostics doc =
   let uri = Document.uri doc in
   match Document.kind doc with
@@ -198,23 +234,10 @@ let set_diagnostics detached diagnostics doc =
     in
     (match Document.syntax doc with
      | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
-     | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
-       let no_reason_merlin =
-         let message =
-           `String
-             (sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason)
-         in
-         Diagnostic.create
-           ~source:Diagnostics.ocamllsp_source
-           ~range:Range.first_line
-           ~message
-           ()
-       in
-       Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
-       async (fun () -> Diagnostics.send diagnostics (`One uri))
      | Reason | Ocaml | Mlx ->
        async (fun () ->
-         let* () = Diagnostics.merlin_diagnostics diagnostics merlin in
+         let* merlin = compute_document_merlin_diagnostics diagnostics doc in
+         Diagnostics.set diagnostics (`Merlin (uri, merlin));
          Diagnostics.send diagnostics (`One uri)))
 ;;
 
@@ -228,21 +251,29 @@ let on_initialize server (ip : InitializeParams.t) =
     let shorten_merlin_diagnostics =
       Configuration.shorten_merlin_diagnostics state.configuration
     in
+    let pull_diagnostics =
+      match ip.capabilities.textDocument with
+      | Some { diagnostic = Some _; _ } -> true
+      | None | Some _ -> false
+    in
     Diagnostics.create
       ~report_dune_diagnostics
       ~shorten_merlin_diagnostics
       (let open Option.O in
        let* td = ip.capabilities.textDocument in
        td.publishDiagnostics)
-      (function
-        | [] -> Fiber.return ()
-        | diagnostics ->
-          let state = Server.state server in
-          task_if_running state.detached ~f:(fun () ->
-            let batch = Server.Batch.create server in
-            List.iter diagnostics ~f:(fun d ->
-              Server.Batch.notification batch (PublishDiagnostics d));
-            Server.Batch.submit batch))
+      (if pull_diagnostics
+       then fun _ -> Fiber.return ()
+       else
+         function
+         | [] -> Fiber.return ()
+         | diagnostics ->
+           let state = Server.state server in
+           task_if_running state.detached ~f:(fun () ->
+             let batch = Server.Batch.create server in
+             List.iter diagnostics ~f:(fun d ->
+               Server.Batch.notification batch (PublishDiagnostics d));
+             Server.Batch.submit batch))
   in
   let+ dune =
     let progress =
@@ -541,6 +572,31 @@ let document_symbol (state : State.t) uri =
   Document_symbol.run client_capabilities doc uri
 ;;
 
+let validate_diagnostic_identifier = function
+  | None -> ()
+  | Some identifier when String.equal identifier Dune_pull_diagnostics.identifier -> ()
+  | Some identifier ->
+    Jsonrpc.Response.Error.raise
+      (make_error
+         ~code:InvalidParams
+         ~message:(sprintf "unknown diagnostic provider %S" identifier)
+         ())
+;;
+
+let pull_dune_diagnostics (state : State.t) =
+  if Configuration.report_dune_diagnostics state.configuration
+  then Dune.pull_diagnostics (State.dune state)
+  else Fiber.return (Ok [])
+;;
+
+let raise_diagnostic_pull_error message =
+  let data =
+    DiagnosticServerCancellationData.create ~retriggerRequest:true
+    |> DiagnosticServerCancellationData.yojson_of_t
+  in
+  Jsonrpc.Response.Error.raise (make_error ~code:ServerCancelled ~message ~data ())
+;;
+
 let on_request
   : type resp.
     State.t Server.t -> resp Client_request.t -> (resp Reply.t * State.t) Fiber.t
@@ -759,7 +815,27 @@ let on_request
   | WillRenameFiles _ -> not_supported ()
   | WillDeleteFiles _ -> not_supported ()
   | InlayHintResolve _ -> not_supported ()
-  | TextDocumentDiagnostic _ -> not_supported ()
+  | TextDocumentDiagnostic params ->
+    later
+      (fun state params ->
+         validate_diagnostic_identifier params.DocumentDiagnosticParams.identifier;
+         let uri = params.textDocument.uri in
+         let doc = Document_store.get state.store uri in
+         let* dune, merlin =
+           Fiber.fork_and_join
+             (fun () -> pull_dune_diagnostics state)
+             (fun () -> compute_document_merlin_diagnostics (State.diagnostics state) doc)
+         in
+         match dune with
+         | Error message -> raise_diagnostic_pull_error message
+         | Ok dune ->
+           let dune =
+             List.filter_map dune ~f:(fun (diagnostic_uri, diagnostic) ->
+               Option.some_if (Uri.equal diagnostic_uri uri) diagnostic)
+           in
+           let diagnostics = Diagnostics.merge ~merlin ~dune in
+           Fiber.return (Dune_pull_diagnostics.document diagnostics params))
+      params
   | TextDocumentInlineCompletion _ -> not_supported ()
   | TextDocumentInlineValue _ -> not_supported ()
   | WorkspaceSymbolResolve _ -> not_supported ()
