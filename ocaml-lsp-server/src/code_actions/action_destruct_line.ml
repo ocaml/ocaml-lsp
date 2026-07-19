@@ -243,7 +243,12 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
        String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
 ;;
 
-let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
+let code_action_of_case_analysis
+      ~supportsJumpToNextHole
+      ~position_encoding
+      doc
+      (loc, newText)
+  =
   let range : Range.t = Range.of_loc loc in
   let textedit : TextEdit.t = { range; newText } in
   let edit = Code_action.workspace_edit doc [ textedit ] in
@@ -253,7 +258,7 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
     then
       Some
         (Client.Custom_commands.next_hole
-           ~in_range:(Range.resize_for_edit textedit)
+           ~in_range:(Range.resize_for_edit ~position_encoding textedit)
            ~notify_if_no_hole:false
            ())
     else None
@@ -292,7 +297,12 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
             State.experimental_client_capabilities state
             |> Client.Experimental_capabilities.supportsJumpToNextHole
           in
-          Some (code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText))
+          Some
+            (code_action_of_case_analysis
+               ~supportsJumpToNextHole
+               ~position_encoding:(State.position_encoding state)
+               doc
+               (loc, newText))
         | Error
             { exn =
                 ( Merlin_analysis.Destruct.Wrong_parent _

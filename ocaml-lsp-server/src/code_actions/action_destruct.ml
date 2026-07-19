@@ -4,7 +4,12 @@ open Fiber.O
 let action_kind = "destruct (enumerate cases)"
 let kind = CodeActionKind.Other action_kind
 
-let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
+let code_action_of_case_analysis
+      ~supportsJumpToNextHole
+      ~position_encoding
+      doc
+      (loc, newText)
+  =
   let range : Range.t = Range.of_loc loc in
   let textedit : TextEdit.t = { range; newText } in
   let edit = Code_action.workspace_edit doc [ textedit ] in
@@ -14,7 +19,7 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
     then
       Some
         (Client.Custom_commands.next_hole
-           ~in_range:(Range.resize_for_edit textedit)
+           ~in_range:(Range.resize_for_edit ~position_encoding textedit)
            ~notify_if_no_hole:false
            ())
     else None
@@ -46,7 +51,12 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
          |> Client.Experimental_capabilities.supportsJumpToNextHole
        in
        let opt =
-         Some (code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText))
+         Some
+           (code_action_of_case_analysis
+              ~supportsJumpToNextHole
+              ~position_encoding:(State.position_encoding state)
+              doc
+              (loc, newText))
        in
        Fiber.return opt
      | Error

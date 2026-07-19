@@ -226,7 +226,7 @@ module Complete_with_construct = struct
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
-  let process_dispatch_resp ~supportsJumpToNextHole = function
+  let process_dispatch_resp ~supportsJumpToNextHole ~position_encoding = function
     | None -> []
     | Some (loc, constructed_exprs) ->
       let range = Range.of_loc loc in
@@ -249,7 +249,7 @@ module Complete_with_construct = struct
           then
             Some
               (Client.Custom_commands.next_hole
-                 ~in_range:(Range.resize_for_edit edit)
+                 ~in_range:(Range.resize_for_edit ~position_encoding edit)
                  ~notify_if_no_hole:false
                  ())
           else None
@@ -363,6 +363,7 @@ let complete
                in
                Complete_with_construct.process_dispatch_resp
                  ~supportsJumpToNextHole
+                 ~position_encoding:(State.position_encoding state)
                  construct_cmd_resp
              in
              let compl_by_prefix_completionItems =

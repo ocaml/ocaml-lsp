@@ -4,18 +4,22 @@ let%expect_test "replacement ranges preserve trailing newlines" =
   let start = Position.create ~line:2 ~character:5 in
   let range = Range.create ~start ~end_:start in
   let edit = TextEdit.create ~range ~newText:"x\n" in
-  let range = Ocaml_lsp_server.Testing.Range.resize_for_edit edit in
+  let range =
+    Ocaml_lsp_server.Testing.Range.resize_for_edit ~position_encoding:`UTF16 edit
+  in
   print_endline (Ocaml_lsp_server.Testing.Range.to_string range);
-  [%expect {| ((2, 5), (2, 6)) |}]
+  [%expect {| ((2, 5), (3, 0)) |}]
 ;;
 
 let%expect_test "replacement ranges use UTF-16 character units" =
   let start = Position.create ~line:2 ~character:5 in
   let range = Range.create ~start ~end_:start in
   let edit = TextEdit.create ~range ~newText:"😀" in
-  let range = Ocaml_lsp_server.Testing.Range.resize_for_edit edit in
+  let range =
+    Ocaml_lsp_server.Testing.Range.resize_for_edit ~position_encoding:`UTF16 edit
+  in
   print_endline (Ocaml_lsp_server.Testing.Range.to_string range);
-  [%expect {| ((2, 5), (2, 9)) |}]
+  [%expect {| ((2, 5), (2, 7)) |}]
 ;;
 
 let%expect_test "document-symbol selection range relationships" =

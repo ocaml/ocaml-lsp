@@ -17,11 +17,11 @@ val of_loc_opt : Loc.t -> t option
     line in the document *)
 val of_loc : Loc.t -> t
 
-(** [resize_for_edit edit] returns shrunk, unchanged, or extended [edit.range]
-    depending on the size of [edit.newText], e.g., if [edit.newText] contains
-    less characters than [edit.range], the new range is shrunk to fit
-    [edit.newText] only. *)
-val resize_for_edit : TextEdit.t -> t
+(** [resize_for_edit ~position_encoding edit] returns shrunk, unchanged, or
+    extended [edit.range] depending on the size of [edit.newText], e.g., if
+    [edit.newText] contains less characters than [edit.range], the new range is
+    shrunk to fit [edit.newText] only. *)
+val resize_for_edit : position_encoding:[ `UTF16 | `UTF8 ] -> TextEdit.t -> t
 
 (** [overlaps r1 r2] is true if [r1] and [r2] overlap, treating their
     boundaries as inclusive. This allows an empty cursor range to overlap a
