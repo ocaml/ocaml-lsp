@@ -162,6 +162,63 @@ end
     |}]
 ;;
 
+let%expect_test "shortening diagnostics republishes existing Merlin diagnostics" =
+  let source =
+    {ocaml|module X : sig
+  val x : unit
+end = struct
+  let x = 123
+end
+|ocaml}
+  in
+  let first_diagnostics = Fiber.Ivar.create () in
+  let publications = ref 0 in
+  let handler =
+    Client.Handler.make
+      ~on_notification:(fun _ -> function
+         | PublishDiagnostics _ ->
+           incr publications;
+           let* filled = Fiber.Ivar.peek first_diagnostics in
+           (match filled with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill first_diagnostics ())
+         | _ -> Fiber.return ())
+      ()
+  in
+  Test.run ~handler (fun client ->
+    let run_client () =
+      Client.start
+        client
+        (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
+    in
+    let run () =
+      let* (_ : InitializeResult.t) = Client.initialized client in
+      let textDocument =
+        TextDocumentItem.create
+          ~uri:Helpers.uri
+          ~languageId:"ocaml"
+          ~version:0
+          ~text:source
+      in
+      let* () =
+        Client.notification
+          client
+          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+      in
+      let* () = Fiber.Ivar.read first_diagnostics in
+      let settings =
+        `Assoc [ "shortenMerlinDiagnostics", `Assoc [ "enable", `Bool true ] ]
+      in
+      let* () = Client.notification client (ChangeConfiguration { settings }) in
+      let* () = Lev_fiber.Timer.sleepf 0.05 in
+      print_endline ("diagnostic publications: " ^ Int.to_string !publications);
+      let* () = Client.request client Shutdown in
+      Client.stop client
+    in
+    Fiber.fork_and_join_unit run_client run);
+  [%expect {| diagnostic publications: 1 |}]
+;;
+
 let%expect_test "no diagnostics for valid files" =
   let source =
     {ocaml|let num = 42
