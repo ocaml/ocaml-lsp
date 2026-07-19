@@ -68,6 +68,7 @@ module T : sig
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
+    -> ?timeout:float
     -> (unit Client.t -> 'a Fiber.t)
     -> Unix.process_status * 'a
 
@@ -75,6 +76,7 @@ module T : sig
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
+    -> ?timeout:float
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 
@@ -92,7 +94,13 @@ end = struct
   let _PATH = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
   let bin = Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
 
-  let run_with_status ?(extra_env = []) ?handler ?(stderr = Unix.stderr) f =
+  let run_with_status
+        ?(extra_env = [])
+        ?handler
+        ?(stderr = Unix.stderr)
+        ?(timeout = 3.0)
+        f
+    =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
@@ -147,7 +155,7 @@ end = struct
            server_exit_status)
     in
     Lev_fiber.run (fun () ->
-      let* wheel = Lev_fiber.Timer.Wheel.create ~delay:3.0 in
+      let* wheel = Lev_fiber.Timer.Wheel.create ~delay:timeout in
       let+ res = init
       and+ status =
         Fiber.fork_and_join_unit
@@ -158,8 +166,8 @@ end = struct
     |> Lev_fiber.Error.ok_exn
   ;;
 
-  let run ?extra_env ?handler ?stderr f =
-    snd @@ run_with_status ?extra_env ?handler ?stderr f
+  let run ?extra_env ?handler ?stderr ?timeout f =
+    snd @@ run_with_status ?extra_env ?handler ?stderr ?timeout f
   ;;
 
   let run_initialized
