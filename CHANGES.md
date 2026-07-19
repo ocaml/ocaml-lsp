@@ -7,6 +7,8 @@
 - Add a code action to open the closest Dune file for the current document.
   (#1817, fixes #1491, @rgrinberg)
 - Distinguish operators from functions in semantic highlighting. (#1831, @rgrinberg)
+- Support LSP 3.17 `textDocument/diagnostic` pull requests by combining Dune
+  and Merlin diagnostics. (#1782, @rgrinberg)
 
 ## Fixes
 

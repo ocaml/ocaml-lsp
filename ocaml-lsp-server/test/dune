@@ -1,6 +1,7 @@
 (library
  (modules
   destruct_line_quickcheck_tests
+  dune_pull_diagnostics_tests
   ocaml_lsp_tests
   position_prefix_tests
   semantic_tokens_quickcheck_tests)
