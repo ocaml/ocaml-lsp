@@ -104,7 +104,9 @@ let rindex_from =
 ;;
 
 let get_exn t i =
-  if i < t.len then t.base.[t.pos + i] else invalid_arg "Substring.get: out of bounds"
+  if i >= 0 && i < t.len
+  then t.base.[t.pos + i]
+  else invalid_arg "Substring.get: out of bounds"
 ;;
 
 let rindex =
@@ -115,7 +117,10 @@ let rindex =
     then Some pos
     else loop s (pos - 1) outside c
   in
-  fun t c -> loop t.base (t.len + t.pos - 1) (t.pos - 1) c
+  fun t c ->
+    match loop t.base (t.len + t.pos - 1) (t.pos - 1) c with
+    | None -> None
+    | Some pos -> Some (pos - t.pos)
 ;;
 
 let blit t ~dst ~dst_pos =

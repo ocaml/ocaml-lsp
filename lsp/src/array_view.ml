@@ -14,20 +14,23 @@ let make ?len arr ~pos =
          arr_len
          pos);
   let length = Option.value len ~default:(arr_len - pos) in
-  let view_last_idx = pos + length in
-  if view_last_idx > arr_len
+  if length < 0
+  then invalid_arg (Printf.sprintf "Array_view.make: negative length %d" length);
+  if length > arr_len - pos
   then
     invalid_arg
       (Printf.sprintf
-         "Array_view.make: view's last idx = %d occurs after the array length = %d"
-         view_last_idx
+         "Array_view.make: view's length %d at position %d exceeds the array length %d"
+         length
+         pos
          arr_len);
   { arr; start = pos; end_excl = pos + length }
 ;;
 
 let offset_index t i =
-  let ix = t.start + i in
-  if ix < t.end_excl then ix else invalid_arg "subarray index out of bounds"
+  if i < 0 || i >= t.end_excl - t.start
+  then invalid_arg "subarray index out of bounds"
+  else t.start + i
 ;;
 
 let get t i = t.arr.(offset_index t i)
@@ -62,7 +65,9 @@ let iteri t ~f =
 ;;
 
 let sub t ~pos ~len =
-  assert (len <= length t);
+  let view_length = length t in
+  if pos < 0 || pos > view_length || len < 0 || len > view_length - pos
+  then invalid_arg "Array_view.sub: invalid bounds";
   let pos = t.start + pos in
   make t.arr ~pos ~len
 ;;

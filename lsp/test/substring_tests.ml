@@ -39,7 +39,7 @@ let%expect_test "split_at" =
 let%expect_test "rindex is relative to a slice" =
   let substring = Substring.of_slice "xxabc" ~pos:2 ~len:3 in
   Substring.rindex substring 'b' |> Option.iter (printf "%d\n");
-  [%expect {| 3 |}]
+  [%expect {| 1 |}]
 ;;
 
 let%expect_test "negative indices do not escape a substring" =
@@ -47,7 +47,7 @@ let%expect_test "negative indices do not escape a substring" =
   (match Substring.get_exn substring (-1) with
    | character -> printf "character: %C\n" character
    | exception Invalid_argument message -> printf "invalid: %s\n" message);
-  [%expect {| character: 'x' |}]
+  [%expect {| invalid: Substring.get: out of bounds |}]
 ;;
 
 let%expect_test "index_from" =
