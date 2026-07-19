@@ -34,21 +34,16 @@ let get_line (doc : Document.t) (range : Range.t) =
   String.sub text ~pos ~len
 ;;
 
-(** Trims leading and trailing whitespace plus some number of additional
-    characters from the head and tail of a string. Used to transform [match x]
-    or [match x with] to [x]. *)
-let strip_head_and_tail str ~head_offset ~tail_offset =
-  let str = String.strip str in
-  let l = String.length str in
-  let substr = String.sub str ~pos:head_offset ~len:(l - head_offset - tail_offset) in
-  String.strip substr
-;;
-
-(** Finds the start and end indices of a substring for extraction. *)
-let substr_endpoints_exn ~str ~substr =
-  let start_index = String.substr_index_exn str ~pattern:substr in
-  let end_index = start_index + String.length substr in
-  start_index, end_index
+let trim_offsets str ~start ~stop =
+  let start = ref start in
+  while !start < stop && Base.Char.is_whitespace str.[!start] do
+    incr start
+  done;
+  let stop = ref stop in
+  while !stop > !start && Base.Char.is_whitespace str.[!stop - 1] do
+    decr stop
+  done;
+  !start, !stop
 ;;
 
 (** Assumes [case_line] passes the check for a CaseLine, but hasn't had
@@ -74,6 +69,14 @@ let find_hole (case_line : string) =
   if String.equal "_" lhs then String.substr_index case_line ~pattern:"_" else None
 ;;
 
+let byte_offset_of_character ~position_encoding code character =
+  Position.absolute_offset ~position_encoding code (Position.create ~line:0 ~character)
+;;
+
+let character_of_byte_offset ~position_encoding code offset =
+  (Position.of_offset ~position_encoding code offset).character
+;;
+
 let get_statement_kind =
   let space_without_nl = Re.set " \t" in
   (* Line starts with [match] and has at least one other word. *)
@@ -94,7 +97,7 @@ let get_statement_kind =
     [ match_with_regex, `MatchWithLine; match_regex, `MatchLine; case_regex, `CaseLine ]
     |> List.map ~f:(fun (re, kind) -> Re.(seq [ bos; re ] |> compile), kind)
   in
-  fun (code_line : string) (range : Range.t) ->
+  fun ~position_encoding (code_line : string) (range : Range.t) ->
     let logical_line = String.strip code_line in
     (* Line starts with [match], ends with [with], and has at least one other word. *)
     List.find_map regexes ~f:(fun (re, name) ->
@@ -103,7 +106,10 @@ let get_statement_kind =
       | `MatchWithLine -> Some MatchWithLine
       | `MatchLine -> Some MatchLine
       | `CaseLine ->
-        if is_hole code_line range.start.character
+        let cursor_pos =
+          byte_offset_of_character ~position_encoding code_line range.start.character
+        in
+        if is_hole code_line cursor_pos
         then Some Hole
         else (
           match find_hole code_line with
@@ -113,25 +119,38 @@ let get_statement_kind =
 
 (** Given a line of the form [match x] or [match x with] or [| x -> y], create a
     query range corresponding to [x]. *)
-let get_query_range (code : string) (kind : statement_kind) (range : Range.t) : Range.t =
-  let expr =
-    match kind with
-    | MatchLine -> strip_head_and_tail code ~head_offset:5 ~tail_offset:0
-    | MatchWithLine -> strip_head_and_tail code ~head_offset:5 ~tail_offset:4
-    | CaseLine ->
-      let len = String.substr_index_exn code ~pattern:"->" in
-      let expr = String.sub code ~pos:0 ~len in
-      strip_head_and_tail expr ~head_offset:1 ~tail_offset:0
-    | Hole | OffsetHole _ -> ""
-  in
-  let start_index, end_index =
+let get_query_range
+      ~position_encoding
+      (code : string)
+      (kind : statement_kind)
+      (range : Range.t)
+  : Range.t
+  =
+  let start_character, end_character =
     match kind with
     | Hole -> range.start.character, range.end_.character
-    | OffsetHole offset -> offset, offset
-    | _ -> substr_endpoints_exn ~str:code ~substr:expr
+    | OffsetHole offset ->
+      let character = character_of_byte_offset ~position_encoding code offset in
+      character, character
+    | MatchLine | MatchWithLine | CaseLine ->
+      let logical_start, logical_end =
+        trim_offsets code ~start:0 ~stop:(String.length code)
+      in
+      let start_offset, end_offset =
+        match kind with
+        | MatchLine -> trim_offsets code ~start:(logical_start + 5) ~stop:logical_end
+        | MatchWithLine ->
+          trim_offsets code ~start:(logical_start + 5) ~stop:(logical_end - 4)
+        | CaseLine ->
+          let arrow = String.substr_index_exn code ~pattern:"->" in
+          trim_offsets code ~start:(logical_start + 1) ~stop:arrow
+        | Hole | OffsetHole _ -> assert false
+      in
+      ( character_of_byte_offset ~position_encoding code start_offset
+      , character_of_byte_offset ~position_encoding code end_offset )
   in
-  { start = { range.start with character = start_index }
-  ; end_ = { range.end_ with character = end_index }
+  { start = { range.start with character = start_character }
+  ; end_ = { range.end_ with character = end_character }
   }
 ;;
 
@@ -139,25 +158,41 @@ let get_query_range (code : string) (kind : statement_kind) (range : Range.t) : 
     For a MatchLine or a MatchWithLine, Merlin's reply will include "match" and
     "with", so to avoid duplication, we want the existing "match" and (possibly)
     "with" to be included in the range that gets replaced. *)
-let get_reply_range (code : string) (kind : statement_kind) (query_range : Range.t) =
+let get_reply_range
+      ~position_encoding
+      (code : string)
+      (kind : statement_kind)
+      (query_range : Range.t)
+  =
   match kind with
   | CaseLine | Hole | OffsetHole _ -> query_range
   | MatchLine | MatchWithLine ->
-    let logical_line = String.strip code in
-    let start_char, end_char = substr_endpoints_exn ~str:code ~substr:logical_line in
-    { start = { query_range.start with character = start_char }
-    ; end_ = { query_range.end_ with character = end_char }
+    let start_offset, end_offset =
+      trim_offsets code ~start:0 ~stop:(String.length code)
+    in
+    let start_character = character_of_byte_offset ~position_encoding code start_offset in
+    let end_character = character_of_byte_offset ~position_encoding code end_offset in
+    { start = { query_range.start with character = start_character }
+    ; end_ = { query_range.end_ with character = end_character }
     }
 ;;
 
 (** Adjusts the location Merlin gave us to ensure the right text gets
     overwritten. *)
-let adjust_reply_location ~(statement : destructable_statement) (loc : Loc.t) : Loc.t =
+let adjust_reply_location
+      ~position_encoding
+      ~(statement : destructable_statement)
+      (loc : Loc.t)
+  : Loc.t
+  =
+  let byte_offset position =
+    byte_offset_of_character ~position_encoding statement.code position.Position.character
+  in
   let start_offset =
-    statement.reply_range.start.character - statement.query_range.start.character
+    byte_offset statement.reply_range.start - byte_offset statement.query_range.start
   in
   let end_offset =
-    statement.reply_range.end_.character - statement.query_range.end_.character
+    byte_offset statement.reply_range.end_ - byte_offset statement.query_range.end_
   in
   let loc_start =
     { loc.loc_start with pos_cnum = loc.loc_start.pos_cnum + start_offset }
@@ -168,20 +203,30 @@ let adjust_reply_location ~(statement : destructable_statement) (loc : Loc.t) : 
 
 (** Tries to find a statement we know how to handle on the line where the range
     starts. *)
-let extract_statement (doc : Document.t) (ca_range : Range.t)
+let extract_statement ~position_encoding (doc : Document.t) (ca_range : Range.t)
   : destructable_statement option
   =
   if ca_range.start.line <> ca_range.end_.line
   then None
   else (
     let code = get_line doc ca_range in
-    match get_statement_kind code ca_range with
+    match get_statement_kind ~position_encoding code ca_range with
     | None -> None
     | Some kind ->
-      let query_range = get_query_range code kind ca_range in
-      let reply_range = get_reply_range code kind query_range in
+      let query_range = get_query_range ~position_encoding code kind ca_range in
+      let reply_range = get_reply_range ~position_encoding code kind query_range in
       Some { code; kind; query_range; reply_range })
 ;;
+
+module For_tests = struct
+  let ranges ~position_encoding ~code ~range =
+    let open Option.O in
+    let* kind = get_statement_kind ~position_encoding code range in
+    let query_range = get_query_range ~position_encoding code kind range in
+    let reply_range = get_reply_range ~position_encoding code kind query_range in
+    Some (query_range, reply_range)
+  ;;
+end
 
 (** Strips " -> _ " off the rhs and " | " off the lhs of a case-line if present. *)
 let strip_case_line line =
@@ -249,7 +294,9 @@ let code_action_of_case_analysis
       doc
       (loc, newText)
   =
-  let range : Range.t = Range.of_loc loc in
+  let range : Range.t =
+    Range.of_loc_with_encoding ~position_encoding ~text:(Document.text doc) loc
+  in
   let textedit : TextEdit.t = { range; newText } in
   let edit = Code_action.workspace_edit doc [ textedit ] in
   let title = String.capitalize action_kind in
@@ -272,10 +319,19 @@ let code_action_of_case_analysis
     ()
 ;;
 
-let dispatch_destruct (merlin : Document.Merlin.t) (range : Range.t) =
+let dispatch_destruct
+      ~position_encoding
+      ~code
+      (merlin : Document.Merlin.t)
+      (range : Range.t)
+  =
+  let merlin_position (position : Position.t) =
+    let character = byte_offset_of_character ~position_encoding code position.character in
+    { position with character }
+  in
   let command =
-    let start = Position.logical range.start in
-    let finish = Position.logical range.end_ in
+    let start = Position.logical (merlin_position range.start) in
+    let finish = Position.logical (merlin_position range.end_) in
     Query_protocol.Case_analysis (start, finish)
   in
   Document.Merlin.dispatch ~name:"destruct" merlin command
@@ -285,13 +341,22 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin merlin ->
-    (match Document.Merlin.kind merlin, extract_statement doc params.range with
+    let position_encoding = State.position_encoding state in
+    (match
+       Document.Merlin.kind merlin, extract_statement ~position_encoding doc params.range
+     with
      | Intf, _ | _, None -> Fiber.return None
      | Impl, Some statement ->
-       let+ res = dispatch_destruct merlin statement.query_range in
+       let+ res =
+         dispatch_destruct
+           ~position_encoding
+           ~code:statement.code
+           merlin
+           statement.query_range
+       in
        (match res with
         | Ok (loc, newText) ->
-          let loc = adjust_reply_location ~statement loc in
+          let loc = adjust_reply_location ~position_encoding ~statement loc in
           let newText = format_merlin_reply ~statement newText in
           let supportsJumpToNextHole =
             State.experimental_client_capabilities state
@@ -300,7 +365,7 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
           Some
             (code_action_of_case_analysis
                ~supportsJumpToNextHole
-               ~position_encoding:(State.position_encoding state)
+               ~position_encoding
                doc
                (loc, newText))
         | Error

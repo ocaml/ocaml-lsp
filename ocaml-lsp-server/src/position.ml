@@ -52,6 +52,12 @@ let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
   | Eq, Gt | Lt, Eq | Lt, Gt -> assert false
 ;;
 
+let absolute_offset ~position_encoding text position =
+  let zipper = Lsp.Private.String_zipper.of_string text in
+  Lsp.Private.String_zipper.goto_position zipper position position_encoding
+  |> Lsp.Private.String_zipper.offset
+;;
+
 let advance_text ~position_encoding position text =
   let rec loop position offset =
     if offset = String.length text
@@ -76,6 +82,12 @@ let advance_text ~position_encoding position text =
       loop position (offset + byte_length))
   in
   loop position 0
+;;
+
+let of_offset ~position_encoding text offset =
+  if offset < 0 || offset > String.length text
+  then invalid_arg "Position.of_offset: offset out of bounds";
+  advance_text ~position_encoding start (String.sub text ~pos:0 ~len:offset)
 ;;
 
 let logical position =

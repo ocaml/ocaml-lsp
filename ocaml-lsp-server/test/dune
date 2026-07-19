@@ -2,6 +2,7 @@
  (modules
   ocaml_lsp_tests
   completion_range_quickcheck_tests
+  destruct_line_quickcheck_tests
   position_prefix_tests
   range_quickcheck_tests
   range_relations_quickcheck_tests

@@ -40,6 +40,20 @@ let of_loc_opt (loc : Loc.t) : t option =
 
 let of_loc (loc : Loc.t) : t = of_loc_opt loc |> Option.value ~default:first_line
 
+let of_loc_opt_with_encoding ~position_encoding ~text (loc : Loc.t) =
+  let open Option.O in
+  let* _ = Position.of_lexical_position loc.loc_start in
+  let* _ = Position.of_lexical_position loc.loc_end in
+  let start = Position.of_offset ~position_encoding text loc.loc_start.pos_cnum in
+  let end_ = Position.of_offset ~position_encoding text loc.loc_end.pos_cnum in
+  Some { start; end_ }
+;;
+
+let of_loc_with_encoding ~position_encoding ~text loc =
+  of_loc_opt_with_encoding ~position_encoding ~text loc
+  |> Option.value ~default:first_line
+;;
+
 let resize_for_edit ~position_encoding { TextEdit.range; newText } =
   let end_ = Position.advance_text ~position_encoding range.start newText in
   { range with end_ }

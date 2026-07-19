@@ -17,6 +17,18 @@ val of_loc_opt : Loc.t -> t option
     line in the document *)
 val of_loc : Loc.t -> t
 
+val of_loc_opt_with_encoding
+  :  position_encoding:[ `UTF8 | `UTF16 ]
+  -> text:string
+  -> Loc.t
+  -> t option
+
+val of_loc_with_encoding
+  :  position_encoding:[ `UTF8 | `UTF16 ]
+  -> text:string
+  -> Loc.t
+  -> t
+
 (** [resize_for_edit ~position_encoding edit] returns shrunk, unchanged, or
     extended [edit.range] depending on the size of [edit.newText], e.g., if
     [edit.newText] contains less characters than [edit.range], the new range is

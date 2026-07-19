@@ -44,5 +44,13 @@ open Import
        | (_::_, []) -> _
        | (_::_, _::_) -> _] *)
 
+module For_tests : sig
+  val ranges
+    :  position_encoding:[ `UTF8 | `UTF16 ]
+    -> code:string
+    -> range:Range.t
+    -> (Range.t * Range.t) option
+end
+
 val kind : CodeActionKind.t
 val t : State.t -> Code_action.t
