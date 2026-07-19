@@ -7,6 +7,39 @@ let codelens client textDocument =
        { textDocument; workDoneToken = None; partialResultToken = None })
 ;;
 
+let%expect_test "can add the first workspace folder after initialization" =
+  let stderr_path, stderr_chan =
+    Stdlib.Filename.open_temp_file "ocamllsp-workspace" ".log"
+  in
+  let stderr = Unix.descr_of_out_channel stderr_chan in
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  Test.run ~handler ~stderr (fun client ->
+    let run_client () =
+      let capabilities = ClientCapabilities.create () in
+      Client.start
+        client
+        (InitializeParams.create ~capabilities ~workspaceFolders:None ())
+    in
+    let run () =
+      let* (_ : InitializeResult.t) = Client.initialized client in
+      let folder =
+        WorkspaceFolder.create ~uri:(DocumentUri.of_path "/tmp/new-workspace") ~name:"new"
+      in
+      let event = WorkspaceFoldersChangeEvent.create ~added:[ folder ] ~removed:[] in
+      let change = DidChangeWorkspaceFoldersParams.create ~event in
+      let* () = Client.notification client (ChangeWorkspaceFolders change) in
+      let* () = Client.request client Shutdown in
+      Client.notification client Exit
+    in
+    Fiber.fork_and_join_unit run_client run);
+  Stdlib.close_out stderr_chan;
+  let stderr = Io.String_path.read_file stderr_path in
+  Stdlib.Sys.remove stderr_path;
+  let failed = Base.String.is_substring stderr ~substring:"Assertion failed" in
+  Printf.printf "workspace update error: %b\n" failed;
+  [%expect {| workspace update error: true |}]
+;;
+
 let%expect_test "disable codelens" =
   let source =
     {ocaml|
