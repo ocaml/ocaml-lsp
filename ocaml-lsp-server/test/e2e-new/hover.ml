@@ -24,6 +24,19 @@ let%expect_test "returns type inferred under cursor" =
     |}]
 ;;
 
+let%expect_test "uses UTF-16 positions around astral Unicode characters" =
+  let source = "let s = \"😀\";; let x = 1;; x\n" in
+  (* The final [x] starts at UTF-16 code unit 27. Its UTF-8 byte offset is 29. *)
+  let position = Position.create ~line:0 ~character:27 in
+  let req client =
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect {| no hover response |}]
+;;
+
 let%expect_test "returns type inferred under cursor (markdown formatting)" =
   let source =
     {ocaml|let x = 1
