@@ -328,6 +328,7 @@ include struct
   end
 
   module CodeAction = CodeAction
+  module CodeActionDisabled = CodeActionDisabled
   module CodeActionKind = CodeActionKind
   module CodeActionOptions = CodeActionOptions
   module CodeActionParams = CodeActionParams
@@ -369,6 +370,7 @@ include struct
   module InlayHintParams = InlayHintParams
   module InitializeParams = InitializeParams
   module InitializeResult = InitializeResult
+  module LanguageKind = LanguageKind
   module Location = Location
   module LogMessageParams = LogMessageParams
   module MarkupContent = MarkupContent
@@ -391,6 +393,7 @@ include struct
   module SelectionRangeParams = SelectionRangeParams
   module SemanticTokens = SemanticTokens
   module SemanticTokensEdit = SemanticTokensEdit
+  module SemanticTokensFullDelta = SemanticTokensFullDelta
   module SemanticTokensLegend = SemanticTokensLegend
   module SemanticTokensDelta = SemanticTokensDelta
   module SemanticTokensDeltaParams = SemanticTokensDeltaParams
@@ -399,6 +402,7 @@ include struct
   module SemanticTokensParams = SemanticTokensParams
   module SemanticTokenTypes = SemanticTokenTypes
   module ServerCapabilities = ServerCapabilities
+  module ServerInfo = ServerInfo
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams
   module ShowDocumentClientCapabilities = ShowDocumentClientCapabilities
@@ -413,6 +417,8 @@ include struct
   module SymbolKind = SymbolKind
   module TextDocumentClientCapabilities = TextDocumentClientCapabilities
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
+  module TextDocumentContentChangePartial = TextDocumentContentChangePartial
+  module TextDocumentContentChangeWholeDocument = TextDocumentContentChangeWholeDocument
   module TextDocumentEdit = TextDocumentEdit
   module TextDocumentFilter = TextDocumentFilter
   module TextDocumentIdentifier = TextDocumentIdentifier
@@ -422,11 +428,7 @@ include struct
   module TextDocumentSyncOptions = TextDocumentSyncOptions
   module TextDocumentSyncClientCapabilities = TextDocumentSyncClientCapabilities
   module TextEdit = TextEdit
-
-  (** deprecated *)
-  module TraceValue = TraceValues
-
-  module TraceValues = TraceValues
+  module TraceValue = TraceValue
   module Unregistration = Unregistration
   module UnregistrationParams = UnregistrationParams
   module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
@@ -439,6 +441,7 @@ include struct
   module WorkspaceFoldersChangeEvent = WorkspaceFoldersChangeEvent
   module WorkspaceSymbolParams = WorkspaceSymbolParams
   module WorkspaceFoldersServerCapabilities = WorkspaceFoldersServerCapabilities
+  module WorkspaceOptions = WorkspaceOptions
 end
 
 let task_if_running pool ~f =

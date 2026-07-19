@@ -8,75 +8,27 @@ let preprocess_metamodel =
       match
         List.filter_map types ~f:(function
           | Metamodel.Literal (Record []) -> None
-          | _ as t -> Some (self#type_ path t))
+          | type_ -> Some (self#type_ path type_))
       with
       | [] -> assert false
-      | [ t ] -> t
-      | [ Metamodel.Literal (Record f1); Literal (Record f2) ] as ts ->
-        (match path with
-         | Top (Alias s) when s.name = "TextDocumentContentChangeEvent" ->
-           let t =
-             let union_fields l1 l2 ~f =
-               let of_map xs =
-                 List.map xs ~f:(fun (x : Metamodel.property) -> x.name, x)
-                 |> String.Map.of_list
-               in
-               String.Map.merge (of_map l1) (of_map l2) ~f
-               |> String.Map.bindings
-               |> List.map ~f:snd
-             in
-             union_fields f1 f2 ~f:(fun k t1 t2 ->
-               if k = "text"
-               then t1
-               else if k = "range"
-               then (
-                 match t1, t2 with
-                 | None, Some s | Some s, None ->
-                   assert (not s.optional);
-                   Some { s with optional = true }
-                 | None, None | Some _, Some _ -> assert false)
-               else (
-                 match t1, t2 with
-                 | None, None -> assert false
-                 | Some s, None | None, Some s -> Some s
-                 | Some _, Some _ -> assert false))
-           in
-           self#type_ path (Metamodel.Literal (Record t))
-         | _ -> super#or_ path ts)
-      | ts -> super#or_ path ts
-
-    method! property path (p : Metamodel.property) =
-      let update_type type_ =
-        let type_ = self#type_ path type_ in
-        super#property path { p with type_ }
-      in
-      let open Metamodel.Path in
-      match path with
-      | Top (Structure s)
-        when p.name = "trace"
-             && (s.name = "_InitializeParams" || s.name = "InitializeParams") ->
-        update_type (Reference "TraceValues")
-      | Top (Structure s) when p.name = "location" && s.name = "WorkspaceSymbol" ->
-        (match p.type_ with
-         | Or [ type_; _ ] -> update_type type_
-         | _ -> assert false)
-      | _ -> super#property path p
+      | [ type_ ] -> type_
+      | types -> super#or_ path types
 
     method! enumeration m =
-      match m.name = "TraceValues" with
-      | false -> super#enumeration m
-      | true ->
-        super#enumeration
-          (let values =
-             let compact : Metamodel.enumerationEntry =
-               { name = "Compact"
-               ; value = `String "compact"
-               ; doc = { since = None; documentation = None }
-               }
-             in
-             compact :: m.values
-           in
-           { m with values })
+      if m.name <> "TraceValue"
+      then super#enumeration m
+      else (
+        (* ["compact"] is not part of the LSP specification. It leaked into an older
+           upstream meta-model from VS Code's implementation-specific trace mode, and
+           previous OCaml-LSP releases consequently accepted it. Keep accepting it for
+           backwards compatibility. *)
+        let compact : Metamodel.enumerationEntry =
+          { name = "Compact"
+          ; value = `String "compact"
+          ; doc = { since = None; documentation = None }
+          }
+        in
+        super#enumeration { m with values = compact :: m.values })
   end
 ;;
 

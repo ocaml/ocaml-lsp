@@ -410,7 +410,8 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
           { position with character = position.character + String.length suffix }
         in
         let range = Range.create ~start ~end_ in
-        TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
+        `TextDocumentContentChangePartial
+          (TextDocumentContentChangePartial.create ~range ~text:compl.label ())
       in
       Document.update_text (Document.Merlin.to_doc doc) [ complete ]
     in

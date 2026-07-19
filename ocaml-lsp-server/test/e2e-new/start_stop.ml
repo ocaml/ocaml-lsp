@@ -31,10 +31,8 @@ let%expect_test "start/stop" =
        let textDocument =
          let codeAction =
            let codeActionLiteralSupport =
-             let codeActionKind =
-               CodeActionClientCapabilities.create_codeActionKind ~valueSet:[]
-             in
-             CodeActionClientCapabilities.create_codeActionLiteralSupport ~codeActionKind
+             let codeActionKind = ClientCodeActionKindOptions.create ~valueSet:[] in
+             ClientCodeActionLiteralOptions.create ~codeActionKind
            in
            CodeActionClientCapabilities.create ~codeActionLiteralSupport ()
          in

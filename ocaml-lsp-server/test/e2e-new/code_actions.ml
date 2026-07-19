@@ -1762,6 +1762,8 @@ let apply_code_action ?diagnostics title source range =
       List.map x.edits ~f:(function
         | `AnnotatedTextEdit (a : AnnotatedTextEdit.t) ->
           TextEdit.create ~newText:a.newText ~range:a.range
+        | `SnippetTextEdit (s : SnippetTextEdit.t) ->
+          TextEdit.create ~newText:s.snippet.value ~range:s.range
         | `TextEdit e -> e)
     | `CreateFile _ | `DeleteFile _ | `RenameFile _ -> [])
   |> Test.apply_edits source
@@ -1814,7 +1816,8 @@ let print_inferred_intf_edits source path range =
                  (`List
                      (List.map text_document_edit.edits ~f:(function
                         | `TextEdit edit -> TextEdit.yojson_of_t edit
-                        | `AnnotatedTextEdit edit -> AnnotatedTextEdit.yojson_of_t edit)))
+                        | `AnnotatedTextEdit edit -> AnnotatedTextEdit.yojson_of_t edit
+                        | `SnippetTextEdit edit -> SnippetTextEdit.yojson_of_t edit)))
              | `CreateFile _ | `RenameFile _ | `DeleteFile _ -> None)
          in
          Test.print_result (`List edits)))
@@ -2382,7 +2385,7 @@ let f = function
       let textDocument =
         TextDocumentItem.create
           ~uri:Helpers.uri
-          ~languageId:"ocaml"
+          ~languageId:(LanguageKind.Other "ocaml")
           ~version:0
           ~text:source
       in
@@ -2398,7 +2401,9 @@ let f = function
         range ~start_line:2 ~start_character:8 ~end_line:2 ~end_character:8
       in
       let contentChanges =
-        [ TextDocumentContentChangeEvent.create ~range:edit_range ~text:" " () ]
+        [ `TextDocumentContentChangePartial
+            (TextDocumentContentChangePartial.create ~range:edit_range ~text:" " ())
+        ]
       in
       let textDocument =
         VersionedTextDocumentIdentifier.create ~uri:Helpers.uri ~version:1

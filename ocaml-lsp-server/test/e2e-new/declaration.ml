@@ -43,7 +43,11 @@ let%expect_test "returns location of a declaration" =
    let run =
      let* (_ : InitializeResult.t) = Client.initialized client in
      let textDocument =
-       TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+       TextDocumentItem.create
+         ~uri
+         ~languageId:(LanguageKind.Other "ocaml")
+         ~version:0
+         ~text:source
      in
      let* () =
        Client.notification

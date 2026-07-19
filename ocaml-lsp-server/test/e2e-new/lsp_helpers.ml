@@ -4,7 +4,11 @@ let change_config ~client params = Client.notification client (ChangeConfigurati
 
 let open_document ~language_id ~client ~uri ~source =
   let textDocument =
-    TextDocumentItem.create ~uri ~languageId:language_id ~version:0 ~text:source
+    TextDocumentItem.create
+      ~uri
+      ~languageId:(LanguageKind.Other language_id)
+      ~version:0
+      ~text:source
   in
   Client.notification
     client

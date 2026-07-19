@@ -233,7 +233,11 @@ let custom_request client meth params =
 
 let openDocument ~client ~uri ~source =
   let textDocument =
-    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+    TextDocumentItem.create
+      ~uri
+      ~languageId:(LanguageKind.Other "ocaml")
+      ~version:0
+      ~text:source
   in
   Client.notification
     client

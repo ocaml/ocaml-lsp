@@ -15,16 +15,24 @@ let tuple_range start end_ =
   }
 ;;
 
+let content_change ?range ~text () : TextDocumentContentChangeEvent.t =
+  match range with
+  | None ->
+    `TextDocumentContentChangeWholeDocument
+      (TextDocumentContentChangeWholeDocument.create ~text)
+  | Some range ->
+    `TextDocumentContentChangePartial
+      (TextDocumentContentChangePartial.create ~range ~text ())
+;;
+
 let make_document ?(position_encoding = `UTF8) uri ~text =
   let td =
     let version = 1 in
-    let languageId = "fake language" in
+    let languageId = LanguageKind.Other "fake language" in
     let textDocument = { TextDocumentItem.uri; version; languageId; text } in
     Text_document.make ~position_encoding { DidOpenTextDocumentParams.textDocument }
   in
-  Text_document.apply_content_changes
-    td
-    [ TextDocumentContentChangeEvent.create ~text () ]
+  Text_document.apply_content_changes td [ content_change ~text () ]
 ;;
 
 let test_general text changes =
@@ -32,15 +40,14 @@ let test_general text changes =
     let td =
       let uri = DocumentUri.of_path "" in
       let version = 1 in
-      let languageId = "fake language" in
+      let languageId = LanguageKind.Other "fake language" in
       let textDocument = { TextDocumentItem.uri; version; languageId; text } in
       Text_document.make ~position_encoding { DidOpenTextDocumentParams.textDocument }
     in
     let td =
       Text_document.apply_content_changes
         td
-        (ListLabels.map changes ~f:(fun (range, text) ->
-           TextDocumentContentChangeEvent.create ?range ~text ()))
+        (ListLabels.map changes ~f:(fun (range, text) -> content_change ?range ~text ()))
     in
     Text_document.text td
   in
@@ -304,7 +311,7 @@ let%expect_test "replace second line first line is \\n" =
 let%expect_test "get position after change" =
   let range = tuple_range (1, 2) (1, 2) in
   let doc = make_document (Uri.of_path "foo.ml") ~text:"\nfoo\nbar\nbaz\n" in
-  let edit = TextDocumentContentChangeEvent.create ~text:"change" ~range () in
+  let edit = content_change ~text:"change" ~range () in
   let new_doc = Text_document.apply_content_changes doc [ edit ] in
   let pos = Text_document.absolute_position new_doc range.start in
   new_doc |> Text_document.text |> String.escaped |> print_endline;

@@ -33,7 +33,12 @@ let skipped_ts_decls =
 
 (* XXX this is temporary until we support the [supportsCustomValues] field *)
 let with_custom_values =
-  [ "FoldingRangeKind"; "CodeActionKind"; "PositionEncodingKind"; "WatchKind" ]
+  [ "FoldingRangeKind"
+  ; "CodeActionKind"
+  ; "LanguageKind"
+  ; "PositionEncodingKind"
+  ; "WatchKind"
+  ]
 ;;
 
 module Expanded = struct

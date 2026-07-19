@@ -365,7 +365,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
         ~title:action_title
         ~kind:CodeActionKind.RefactorInline
         ~isPreferred:false
-        ~disabled:(CodeAction.create_disabled ~reason:(string_of_error error))
+        ~disabled:(CodeActionDisabled.create ~reason:(string_of_error error))
         ()
     in
     Some action
