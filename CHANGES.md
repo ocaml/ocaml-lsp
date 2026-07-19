@@ -2,6 +2,7 @@
 
 ## Fixes
 
+- Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)
 - Point workspace symbols for generated sources to their files in the build
   directory. (#1742, @tatchi)
 - Prevent whole-document formatting requests for OCamllex, Menhir, and Cram
