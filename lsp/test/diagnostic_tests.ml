@@ -16,12 +16,14 @@ let%expect_test "workspace diagnostic reports with absent versions" =
       "kind": "full",
       "items": [],
       "resultId": "full-result",
-      "uri": "file:///workspace/test.ml"
+      "uri": "file:///workspace/test.ml",
+      "version": null
     }
     {
       "kind": "unchanged",
       "resultId": "unchanged-result",
-      "uri": "file:///workspace/test.ml"
+      "uri": "file:///workspace/test.ml",
+      "version": null
     }
     |}]
 ;;

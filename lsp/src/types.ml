@@ -2537,7 +2537,7 @@ end
 module OptionalVersionedTextDocumentIdentifier = struct
   type t =
     { uri : DocumentUri.t
-    ; version : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    ; version : int Json.Nullable_option.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -2593,13 +2593,9 @@ module OptionalVersionedTextDocumentIdentifier = struct
                 ( Ppx_yojson_conv_lib.( ! ) uri_field
                 , Ppx_yojson_conv_lib.( ! ) version_field )
               with
-              | Ppx_yojson_conv_lib.Option.Some uri_value, version_value ->
-                { uri = uri_value
-                ; version =
-                    (match version_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
-                }
+              | ( Ppx_yojson_conv_lib.Option.Some uri_value
+                , Ppx_yojson_conv_lib.Option.Some version_value ) ->
+                { uri = uri_value; version = version_value }
               | _ ->
                 Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                   _tp_loc
@@ -2608,6 +2604,10 @@ module OptionalVersionedTextDocumentIdentifier = struct
                         (Ppx_yojson_conv_lib.( ! ) uri_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "uri" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) version_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "version" )
                   ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
@@ -2621,12 +2621,8 @@ module OptionalVersionedTextDocumentIdentifier = struct
      | { uri = v_uri; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version
-         then bnds
-         else (
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_version in
-           let bnd = "version", arg in
-           bnd :: bnds)
+         let arg = Json.Nullable_option.yojson_of_t yojson_of_int v_version in
+         ("version", arg) :: bnds
        in
        let bnds =
          let arg = DocumentUri.yojson_of_t v_uri in
@@ -5037,7 +5033,6 @@ end
 module CallHierarchyRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -5106,24 +5101,33 @@ module CallHierarchyRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -5157,15 +5161,12 @@ module CallHierarchyRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -18251,7 +18252,6 @@ module CodeActionRegistrationOptions = struct
     { codeActionKinds : CodeActionKind.t list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
@@ -18333,33 +18333,39 @@ module CodeActionRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let ( codeActionKinds_value
-                 , documentSelector_value
-                 , resolveProvider_value
-                 , workDoneProgress_value )
-               =
-               ( Ppx_yojson_conv_lib.( ! ) codeActionKinds_field
-               , Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { codeActionKinds =
-                 (match codeActionKinds_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; resolveProvider =
-                 (match resolveProvider_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) codeActionKinds_field
+                , Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( codeActionKinds_value
+                , Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , resolveProvider_value
+                , workDoneProgress_value ) ->
+                { codeActionKinds =
+                    (match codeActionKinds_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; documentSelector = documentSelector_value
+                ; resolveProvider =
+                    (match resolveProvider_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -18396,15 +18402,12 @@ module CodeActionRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        let bnds =
          if None = v_codeActionKinds
@@ -18856,7 +18859,6 @@ end
 module CodeLensRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
@@ -18926,24 +18928,33 @@ module CodeLensRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, resolveProvider_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; resolveProvider =
-                 (match resolveProvider_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , resolveProvider_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; resolveProvider =
+                    (match resolveProvider_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -18979,15 +18990,12 @@ module CodeLensRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -21761,7 +21769,6 @@ module CompletionRegistrationOptions = struct
     ; completionItem : completionItem Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; triggerCharacters : string list Json.Nullable_option.t
@@ -21867,45 +21874,51 @@ module CompletionRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let ( allCommitCharacters_value
-                 , completionItem_value
-                 , documentSelector_value
-                 , resolveProvider_value
-                 , triggerCharacters_value
-                 , workDoneProgress_value )
-               =
-               ( Ppx_yojson_conv_lib.( ! ) allCommitCharacters_field
-               , Ppx_yojson_conv_lib.( ! ) completionItem_field
-               , Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
-               , Ppx_yojson_conv_lib.( ! ) triggerCharacters_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { allCommitCharacters =
-                 (match allCommitCharacters_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; completionItem =
-                 (match completionItem_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; resolveProvider =
-                 (match resolveProvider_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; triggerCharacters =
-                 (match triggerCharacters_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) allCommitCharacters_field
+                , Ppx_yojson_conv_lib.( ! ) completionItem_field
+                , Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
+                , Ppx_yojson_conv_lib.( ! ) triggerCharacters_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( allCommitCharacters_value
+                , completionItem_value
+                , Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , resolveProvider_value
+                , triggerCharacters_value
+                , workDoneProgress_value ) ->
+                { allCommitCharacters =
+                    (match allCommitCharacters_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; completionItem =
+                    (match completionItem_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; documentSelector = documentSelector_value
+                ; resolveProvider =
+                    (match resolveProvider_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; triggerCharacters =
+                    (match triggerCharacters_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -21955,15 +21968,12 @@ module CompletionRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        let bnds =
          if None = v_completionItem
@@ -22835,7 +22845,6 @@ end
 module DeclarationRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -22904,24 +22913,33 @@ module DeclarationRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -22955,15 +22973,12 @@ module DeclarationRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -23287,7 +23302,6 @@ end
 module DefinitionRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -23345,19 +23359,27 @@ module DefinitionRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -23380,15 +23402,12 @@ module DefinitionRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -23740,7 +23759,6 @@ end
 module DiagnosticRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; identifier : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -23847,16 +23865,13 @@ module DiagnosticRegistrationOptions = struct
                 , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field
                 , Ppx_yojson_conv_lib.( ! ) workspaceDiagnostics_field )
               with
-              | ( documentSelector_value
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
                 , id_value
                 , identifier_value
                 , Ppx_yojson_conv_lib.Option.Some interFileDependencies_value
                 , workDoneProgress_value
                 , Ppx_yojson_conv_lib.Option.Some workspaceDiagnostics_value ) ->
-                { documentSelector =
-                    (match documentSelector_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                { documentSelector = documentSelector_value
                 ; id =
                     (match id_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
@@ -23877,6 +23892,10 @@ module DiagnosticRegistrationOptions = struct
                   _tp_loc
                   yojson
                   [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
                         (Ppx_yojson_conv_lib.( ! ) interFileDependencies_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "interFileDependencies" )
@@ -23937,15 +23956,12 @@ module DiagnosticRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -27824,7 +27840,6 @@ end
 module DocumentColorRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -27893,24 +27908,33 @@ module DocumentColorRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -27944,15 +27968,12 @@ module DocumentColorRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -29337,7 +29358,6 @@ end
 module DocumentFormattingRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -29395,19 +29415,27 @@ module DocumentFormattingRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -29430,15 +29458,12 @@ module DocumentFormattingRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -29843,7 +29868,6 @@ end
 module DocumentHighlightRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -29901,19 +29925,27 @@ module DocumentHighlightRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -29936,15 +29968,12 @@ module DocumentHighlightRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -30412,7 +30441,6 @@ end
 module DocumentLinkRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
@@ -30482,24 +30510,33 @@ module DocumentLinkRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, resolveProvider_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; resolveProvider =
-                 (match resolveProvider_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , resolveProvider_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; resolveProvider =
+                    (match resolveProvider_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -30535,15 +30572,12 @@ module DocumentLinkRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -30849,7 +30883,6 @@ end
 module DocumentOnTypeFormattingRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; firstTriggerCharacter : string
     ; moreTriggerCharacter : string list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -30923,13 +30956,10 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
                 , Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field
                 , Ppx_yojson_conv_lib.( ! ) moreTriggerCharacter_field )
               with
-              | ( documentSelector_value
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
                 , Ppx_yojson_conv_lib.Option.Some firstTriggerCharacter_value
                 , moreTriggerCharacter_value ) ->
-                { documentSelector =
-                    (match documentSelector_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                { documentSelector = documentSelector_value
                 ; firstTriggerCharacter = firstTriggerCharacter_value
                 ; moreTriggerCharacter =
                     (match moreTriggerCharacter_value with
@@ -30941,6 +30971,10 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
                   _tp_loc
                   yojson
                   [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
                         (Ppx_yojson_conv_lib.( ! ) firstTriggerCharacter_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "firstTriggerCharacter" )
@@ -30975,15 +31009,12 @@ module DocumentOnTypeFormattingRegistrationOptions = struct
          ("firstTriggerCharacter", arg) :: bnds
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -31291,7 +31322,6 @@ end
 module DocumentRangeFormattingRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; rangesSupport : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
@@ -31361,24 +31391,33 @@ module DocumentRangeFormattingRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, rangesSupport_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) rangesSupport_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; rangesSupport =
-                 (match rangesSupport_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) rangesSupport_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , rangesSupport_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; rangesSupport =
+                    (match rangesSupport_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -31412,15 +31451,12 @@ module DocumentRangeFormattingRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -32160,7 +32196,6 @@ end
 module DocumentSymbolRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; label : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -32229,24 +32264,33 @@ module DocumentSymbolRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, label_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) label_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; label =
-                 (match label_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) label_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , label_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; label =
+                    (match label_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -32280,15 +32324,12 @@ module DocumentSymbolRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -33974,7 +34015,6 @@ end
 module FoldingRangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -34043,24 +34083,33 @@ module FoldingRangeRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -34094,15 +34143,12 @@ module FoldingRangeRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -34493,7 +34539,6 @@ end
 module HoverRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -34551,19 +34596,27 @@ module HoverRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -34586,15 +34639,12 @@ module HoverRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -34883,7 +34933,6 @@ end
 module ImplementationRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -34952,24 +35001,33 @@ module ImplementationRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -35003,15 +35061,12 @@ module ImplementationRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -35228,11 +35283,10 @@ module InitializeParams = struct
           [@default None] [@yojson_drop_default ( = )]
     ; initializationOptions : Json.t option [@yojson.option]
     ; locale : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
-    ; processId : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    ; processId : int Json.Nullable_option.t
     ; rootPath : string Json.Nullable_option.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; rootUri : DocumentUri.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; trace : TraceValues.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
@@ -35392,9 +35446,9 @@ module InitializeParams = struct
                 , clientInfo_value
                 , initializationOptions_value
                 , locale_value
-                , processId_value
+                , Ppx_yojson_conv_lib.Option.Some processId_value
                 , rootPath_value
-                , rootUri_value
+                , Ppx_yojson_conv_lib.Option.Some rootUri_value
                 , trace_value
                 , workDoneToken_value
                 , workspaceFolders_value ) ->
@@ -35408,18 +35462,12 @@ module InitializeParams = struct
                     (match locale_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
                      | Ppx_yojson_conv_lib.Option.Some v -> v)
-                ; processId =
-                    (match processId_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; processId = processId_value
                 ; rootPath =
                     (match rootPath_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
                      | Ppx_yojson_conv_lib.Option.Some v -> v)
-                ; rootUri =
-                    (match rootUri_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; rootUri = rootUri_value
                 ; trace =
                     (match trace_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
@@ -35441,6 +35489,14 @@ module InitializeParams = struct
                         (Ppx_yojson_conv_lib.( ! ) capabilities_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "capabilities" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) processId_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "processId" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) rootUri_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "rootUri" )
                   ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
@@ -35495,14 +35551,8 @@ module InitializeParams = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_rootUri
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t) v_rootUri
-           in
-           let bnd = "rootUri", arg in
-           bnd :: bnds)
+         let arg = Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t v_rootUri in
+         ("rootUri", arg) :: bnds
        in
        let bnds =
          if None = v_rootPath
@@ -35517,12 +35567,8 @@ module InitializeParams = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_processId
-         then bnds
-         else (
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_processId in
-           let bnd = "processId", arg in
-           bnd :: bnds)
+         let arg = Json.Nullable_option.yojson_of_t yojson_of_int v_processId in
+         ("processId", arg) :: bnds
        in
        let bnds =
          if None = v_locale
@@ -35856,7 +35902,6 @@ end
 module TypeHierarchyRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -35925,24 +35970,33 @@ module TypeHierarchyRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -35976,15 +36030,12 @@ module TypeHierarchyRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -36095,7 +36146,6 @@ end
 module TypeDefinitionRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -36164,24 +36214,33 @@ module TypeDefinitionRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -36215,15 +36274,12 @@ module TypeDefinitionRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -37012,7 +37068,6 @@ module SemanticTokensRegistrationOptions = struct
 
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; full : full_pvar Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; legend : SemanticTokensLegend.t
@@ -37120,16 +37175,13 @@ module SemanticTokensRegistrationOptions = struct
                 , Ppx_yojson_conv_lib.( ! ) range_field
                 , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
               with
-              | ( documentSelector_value
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
                 , full_value
                 , id_value
                 , Ppx_yojson_conv_lib.Option.Some legend_value
                 , range_value
                 , workDoneProgress_value ) ->
-                { documentSelector =
-                    (match documentSelector_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                { documentSelector = documentSelector_value
                 ; full =
                     (match full_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
@@ -37153,6 +37205,10 @@ module SemanticTokensRegistrationOptions = struct
                   _tp_loc
                   yojson
                   [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
                         (Ppx_yojson_conv_lib.( ! ) legend_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "legend" )
@@ -37213,15 +37269,12 @@ module SemanticTokensRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -37524,7 +37577,6 @@ end
 module SelectionRangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -37593,24 +37645,33 @@ module SelectionRangeRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -37644,15 +37705,12 @@ module SelectionRangeRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -37971,7 +38029,6 @@ end
 module MonikerRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -38029,19 +38086,27 @@ module MonikerRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -38064,15 +38129,12 @@ module MonikerRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -38182,7 +38244,6 @@ end
 module LinkedEditingRangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -38251,24 +38312,33 @@ module LinkedEditingRangeRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -38302,15 +38372,12 @@ module LinkedEditingRangeRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -38421,7 +38488,6 @@ end
 module InlineValueRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -38490,24 +38556,33 @@ module InlineValueRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -38541,15 +38616,12 @@ module InlineValueRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -38747,7 +38819,6 @@ end
 module InlayHintRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; resolveProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -38828,33 +38899,39 @@ module InlayHintRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let ( documentSelector_value
-                 , id_value
-                 , resolveProvider_value
-                 , workDoneProgress_value )
-               =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; resolveProvider =
-                 (match resolveProvider_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) resolveProvider_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , resolveProvider_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; resolveProvider =
+                    (match resolveProvider_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -38899,15 +38976,12 @@ module InlayHintRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -41749,11 +41823,10 @@ module InitializedParams_ = struct
           [@default None] [@yojson_drop_default ( = )]
     ; initializationOptions : Json.t option [@yojson.option]
     ; locale : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
-    ; processId : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    ; processId : int Json.Nullable_option.t
     ; rootPath : string Json.Nullable_option.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; rootUri : DocumentUri.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; trace : TraceValues.t Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workDoneToken : ProgressToken.t Json.Nullable_option.t
@@ -41896,9 +41969,9 @@ module InitializedParams_ = struct
                 , clientInfo_value
                 , initializationOptions_value
                 , locale_value
-                , processId_value
+                , Ppx_yojson_conv_lib.Option.Some processId_value
                 , rootPath_value
-                , rootUri_value
+                , Ppx_yojson_conv_lib.Option.Some rootUri_value
                 , trace_value
                 , workDoneToken_value ) ->
                 { capabilities = capabilities_value
@@ -41911,18 +41984,12 @@ module InitializedParams_ = struct
                     (match locale_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
                      | Ppx_yojson_conv_lib.Option.Some v -> v)
-                ; processId =
-                    (match processId_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; processId = processId_value
                 ; rootPath =
                     (match rootPath_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
                      | Ppx_yojson_conv_lib.Option.Some v -> v)
-                ; rootUri =
-                    (match rootUri_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; rootUri = rootUri_value
                 ; trace =
                     (match trace_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
@@ -41940,6 +42007,14 @@ module InitializedParams_ = struct
                         (Ppx_yojson_conv_lib.( ! ) capabilities_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "capabilities" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) processId_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "processId" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) rootUri_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "rootUri" )
                   ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
@@ -41980,14 +42055,8 @@ module InitializedParams_ = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_rootUri
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t) v_rootUri
-           in
-           let bnd = "rootUri", arg in
-           bnd :: bnds)
+         let arg = Json.Nullable_option.yojson_of_t DocumentUri.yojson_of_t v_rootUri in
+         ("rootUri", arg) :: bnds
        in
        let bnds =
          if None = v_rootPath
@@ -42002,12 +42071,8 @@ module InitializedParams_ = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_processId
-         then bnds
-         else (
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_processId in
-           let bnd = "processId", arg in
-           bnd :: bnds)
+         let arg = Json.Nullable_option.yojson_of_t yojson_of_int v_processId in
+         ("processId", arg) :: bnds
        in
        let bnds =
          if None = v_locale
@@ -43503,7 +43568,6 @@ end
 module InlineCompletionRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
@@ -43572,24 +43636,33 @@ module InlineCompletionRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, id_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) id_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; id =
-                 (match id_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , id_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -43623,15 +43696,12 @@ module InlineCompletionRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -46127,7 +46197,6 @@ end
 module ReferenceRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -46185,19 +46254,27 @@ module ReferenceRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -46220,15 +46297,12 @@ module ReferenceRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -46711,7 +46785,6 @@ end
 module RenameRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; prepareProvider : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; workDoneProgress : bool Json.Nullable_option.t
@@ -46781,24 +46854,33 @@ module RenameRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, prepareProvider_value, workDoneProgress_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) prepareProvider_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; prepareProvider =
-                 (match prepareProvider_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) prepareProvider_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , prepareProvider_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; prepareProvider =
+                    (match prepareProvider_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -46834,15 +46916,12 @@ module RenameRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -49622,7 +49701,6 @@ end
 module SignatureHelpRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; retriggerCharacters : string list Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; triggerCharacters : string list Json.Nullable_option.t
@@ -49708,33 +49786,39 @@ module SignatureHelpRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let ( documentSelector_value
-                 , retriggerCharacters_value
-                 , triggerCharacters_value
-                 , workDoneProgress_value )
-               =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) retriggerCharacters_field
-               , Ppx_yojson_conv_lib.( ! ) triggerCharacters_field
-               , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; retriggerCharacters =
-                 (match retriggerCharacters_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; triggerCharacters =
-                 (match triggerCharacters_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; workDoneProgress =
-                 (match workDoneProgress_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) retriggerCharacters_field
+                , Ppx_yojson_conv_lib.( ! ) triggerCharacters_field
+                , Ppx_yojson_conv_lib.( ! ) workDoneProgress_field )
+              with
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , retriggerCharacters_value
+                , triggerCharacters_value
+                , workDoneProgress_value ) ->
+                { documentSelector = documentSelector_value
+                ; retriggerCharacters =
+                    (match retriggerCharacters_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; triggerCharacters =
+                    (match triggerCharacters_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; workDoneProgress =
+                    (match workDoneProgress_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -49783,15 +49867,12 @@ module SignatureHelpRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -50124,7 +50205,6 @@ end
 module TextDocumentChangeRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; syncKind : TextDocumentSyncKind.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -50183,18 +50263,18 @@ module TextDocumentChangeRegistrationOptions = struct
                 ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
                 , Ppx_yojson_conv_lib.( ! ) syncKind_field )
               with
-              | documentSelector_value, Ppx_yojson_conv_lib.Option.Some syncKind_value ->
-                { documentSelector =
-                    (match documentSelector_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
-                ; syncKind = syncKind_value
-                }
+              | ( Ppx_yojson_conv_lib.Option.Some documentSelector_value
+                , Ppx_yojson_conv_lib.Option.Some syncKind_value ) ->
+                { documentSelector = documentSelector_value; syncKind = syncKind_value }
               | _ ->
                 Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                   _tp_loc
                   yojson
                   [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
                         (Ppx_yojson_conv_lib.( ! ) syncKind_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "syncKind" )
@@ -50215,15 +50295,12 @@ module TextDocumentChangeRegistrationOptions = struct
          ("syncKind", arg) :: bnds
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -50349,10 +50426,7 @@ module TextDocumentPositionParams = struct
 end
 
 module TextDocumentRegistrationOptions = struct
-  type t =
-    { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
-    }
+  type t = { documentSelector : DocumentSelector.t Json.Nullable_option.t }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
   let _ = fun (_ : t) -> ()
@@ -50397,14 +50471,18 @@ module TextDocumentRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value =
-               Ppx_yojson_conv_lib.( ! ) documentSelector_field
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match Ppx_yojson_conv_lib.( ! ) documentSelector_field with
+              | Ppx_yojson_conv_lib.Option.Some documentSelector_value ->
+                { documentSelector = documentSelector_value }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -50417,15 +50495,12 @@ module TextDocumentRegistrationOptions = struct
      | { documentSelector = v_documentSelector } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -50443,7 +50518,6 @@ end
 module TextDocumentSaveRegistrationOptions = struct
   type t =
     { documentSelector : DocumentSelector.t Json.Nullable_option.t
-          [@default None] [@yojson_drop_default ( = )]
     ; includeText : bool Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     }
@@ -50501,19 +50575,27 @@ module TextDocumentSaveRegistrationOptions = struct
                (Ppx_yojson_conv_lib.( ! ) extra)
                yojson
            | [] ->
-             let documentSelector_value, includeText_value =
-               ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
-               , Ppx_yojson_conv_lib.( ! ) includeText_field )
-             in
-             { documentSelector =
-                 (match documentSelector_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             ; includeText =
-                 (match includeText_value with
-                  | Ppx_yojson_conv_lib.Option.None -> None
-                  | Ppx_yojson_conv_lib.Option.Some v -> v)
-             }))
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) documentSelector_field
+                , Ppx_yojson_conv_lib.( ! ) includeText_field )
+              with
+              | Ppx_yojson_conv_lib.Option.Some documentSelector_value, includeText_value
+                ->
+                { documentSelector = documentSelector_value
+                ; includeText =
+                    (match includeText_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) documentSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "documentSelector" )
+                  ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
      : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
@@ -50534,15 +50616,12 @@ module TextDocumentSaveRegistrationOptions = struct
            bnd :: bnds)
        in
        let bnds =
-         if None = v_documentSelector
-         then bnds
-         else (
-           let arg =
-             (Json.Nullable_option.yojson_of_t DocumentSelector.yojson_of_t)
-               v_documentSelector
-           in
-           let bnd = "documentSelector", arg in
-           bnd :: bnds)
+         let arg =
+           Json.Nullable_option.yojson_of_t
+             DocumentSelector.yojson_of_t
+             v_documentSelector
+         in
+         ("documentSelector", arg) :: bnds
        in
        `Assoc bnds
      : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
@@ -52690,7 +52769,7 @@ module WorkspaceUnchangedDocumentDiagnosticReport = struct
   type t =
     { resultId : string
     ; uri : DocumentUri.t
-    ; version : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    ; version : int Json.Nullable_option.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -52757,14 +52836,8 @@ module WorkspaceUnchangedDocumentDiagnosticReport = struct
               with
               | ( Ppx_yojson_conv_lib.Option.Some resultId_value
                 , Ppx_yojson_conv_lib.Option.Some uri_value
-                , version_value ) ->
-                { resultId = resultId_value
-                ; uri = uri_value
-                ; version =
-                    (match version_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
-                }
+                , Ppx_yojson_conv_lib.Option.Some version_value ) ->
+                { resultId = resultId_value; uri = uri_value; version = version_value }
               | _ ->
                 Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
                   _tp_loc
@@ -52777,6 +52850,10 @@ module WorkspaceUnchangedDocumentDiagnosticReport = struct
                         (Ppx_yojson_conv_lib.( ! ) uri_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "uri" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) version_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "version" )
                   ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
@@ -52790,12 +52867,8 @@ module WorkspaceUnchangedDocumentDiagnosticReport = struct
      | { resultId = v_resultId; uri = v_uri; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version
-         then bnds
-         else (
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_version in
-           let bnd = "version", arg in
-           bnd :: bnds)
+         let arg = Json.Nullable_option.yojson_of_t yojson_of_int v_version in
+         ("version", arg) :: bnds
        in
        let bnds =
          let arg = DocumentUri.yojson_of_t v_uri in
@@ -52838,7 +52911,7 @@ module WorkspaceFullDocumentDiagnosticReport = struct
     ; resultId : string Json.Nullable_option.t
           [@default None] [@yojson_drop_default ( = )]
     ; uri : DocumentUri.t
-    ; version : int Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    ; version : int Json.Nullable_option.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
 
@@ -52917,17 +52990,14 @@ module WorkspaceFullDocumentDiagnosticReport = struct
               | ( Ppx_yojson_conv_lib.Option.Some items_value
                 , resultId_value
                 , Ppx_yojson_conv_lib.Option.Some uri_value
-                , version_value ) ->
+                , Ppx_yojson_conv_lib.Option.Some version_value ) ->
                 { items = items_value
                 ; resultId =
                     (match resultId_value with
                      | Ppx_yojson_conv_lib.Option.None -> None
                      | Ppx_yojson_conv_lib.Option.Some v -> v)
                 ; uri = uri_value
-                ; version =
-                    (match version_value with
-                     | Ppx_yojson_conv_lib.Option.None -> None
-                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; version = version_value
                 }
               | _ ->
                 Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
@@ -52941,6 +53011,10 @@ module WorkspaceFullDocumentDiagnosticReport = struct
                         (Ppx_yojson_conv_lib.( ! ) uri_field)
                         Ppx_yojson_conv_lib.Option.None
                     , "uri" )
+                  ; ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) version_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "version" )
                   ])))
      | _ as yojson ->
        Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
@@ -52954,12 +53028,8 @@ module WorkspaceFullDocumentDiagnosticReport = struct
      | { items = v_items; resultId = v_resultId; uri = v_uri; version = v_version } ->
        let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
        let bnds =
-         if None = v_version
-         then bnds
-         else (
-           let arg = (Json.Nullable_option.yojson_of_t yojson_of_int) v_version in
-           let bnd = "version", arg in
-           bnd :: bnds)
+         let arg = Json.Nullable_option.yojson_of_t yojson_of_int v_version in
+         ("version", arg) :: bnds
        in
        let bnds =
          let arg = DocumentUri.yojson_of_t v_uri in
