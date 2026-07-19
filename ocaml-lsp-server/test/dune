@@ -2,6 +2,7 @@
  (modules
   ocaml_lsp_tests
   position_prefix_tests
+  range_quickcheck_tests
   semantic_tokens_quickcheck_tests)
  (name ocaml_lsp_tests)
  (enabled_if
@@ -17,6 +18,7 @@
   ;; in dune-project
   base
   base_quickcheck
+  editing_test_model
   ppx_expect.config
   ppx_expect.config_types
   ppx_inline_test.config

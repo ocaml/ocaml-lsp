@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Compute code-action ranges correctly after multiline and UTF-16 edits.
+  (#1911, @rgrinberg)
 - Keep construct-completion text edits on the request line when Merlin recovery
   returns a multiline location. (#2034, @rgrinberg)
 - Advertise Dune promotion code actions using their returned `quickfix` kind.

@@ -299,7 +299,12 @@ module Complete_with_construct = struct
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
-  let process_dispatch_resp ~supportsJumpToNextHole ~fallback_range ~position = function
+  let process_dispatch_resp
+        ~supportsJumpToNextHole
+        ~position_encoding
+        ~fallback_range
+        ~position
+    = function
     | None -> []
     | Some (loc, constructed_exprs) ->
       let range =
@@ -330,7 +335,7 @@ module Complete_with_construct = struct
           then
             Some
               (Client.Custom_commands.next_hole
-                 ~in_range:(Range.resize_for_edit edit)
+                 ~in_range:(Range.resize_for_edit ~position_encoding edit)
                  ~notify_if_no_hole:false
                  ())
           else None
@@ -471,6 +476,7 @@ let complete
                in
                Complete_with_construct.process_dispatch_resp
                  ~supportsJumpToNextHole
+                 ~position_encoding:(State.position_encoding state)
                  ~fallback_range:(edit_range merlin pos)
                  ~position:pos
                  construct_cmd_resp

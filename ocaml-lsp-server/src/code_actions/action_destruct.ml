@@ -4,7 +4,13 @@ open Fiber.O
 let action_kind = "destruct (enumerate cases)"
 let kind = CodeActionKind.Other action_kind
 
-let code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc (loc, newText) =
+let code_action_of_case_analysis
+      ~action_kind
+      ~supportsJumpToNextHole
+      ~position_encoding
+      doc
+      (loc, newText)
+  =
   let range : Range.t = Range.of_loc loc in
   let textedit : TextEdit.t = { range; newText } in
   let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
@@ -14,7 +20,7 @@ let code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc (loc, 
     then
       Some
         (Client.Custom_commands.next_hole
-           ~in_range:(Range.resize_for_edit textedit)
+           ~in_range:(Range.resize_for_edit ~position_encoding textedit)
            ~notify_if_no_hole:false
            ())
     else None
@@ -61,7 +67,13 @@ let run state doc ~(dispatch : dispatch) ~action_kind ~(range : Range.t) ~postpr
       State.experimental_client_capabilities state
       |> Client.Experimental_capabilities.supportsJumpToNextHole
     in
-    Some (code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc reply)
+    Some
+      (code_action_of_case_analysis
+         ~action_kind
+         ~supportsJumpToNextHole
+         ~position_encoding:(State.position_encoding state)
+         doc
+         reply)
   | Error
       { exn =
           ( Merlin_analysis.Destruct.Wrong_parent _
