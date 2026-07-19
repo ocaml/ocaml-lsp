@@ -1,5 +1,15 @@
 (library
+ (name editing_test_model)
+ (wrapped false)
+ (modules editing_model)
+ (libraries lsp base base_quickcheck ppx_sexp_conv.runtime-lib)
+ (preprocess
+  (pps base_quickcheck.ppx_quickcheck ppx_sexp_conv)))
+
+(library
  (name lsp_tests)
+ (modules
+  (:standard \ editing_model))
  (enabled_if
   (>= %{ocaml_version} 4.08))
  (inline_tests)
@@ -12,6 +22,7 @@
   ;; in dune-project
   base
   base_quickcheck
+  editing_test_model
   ppx_expect.config
   ppx_expect.config_types
   ppx_inline_test.config
