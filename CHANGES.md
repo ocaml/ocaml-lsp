@@ -2,6 +2,9 @@
 
 ## Fixes
 
+- Ensure `textDocument/documentSymbol` returns a `selectionRange` contained
+  within its `range`, so clients no longer reject the document outline.
+  (fixes #1560)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
 - Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)
 - Point workspace symbols for generated sources to their files in the build

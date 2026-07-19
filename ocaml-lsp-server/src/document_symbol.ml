@@ -17,11 +17,21 @@ let rec items_to_symbols items =
     ~f:
       (fun
         { Query_protocol.outline_name; outline_kind; location; selection; children; _ } ->
+      let range = Range.of_loc location in
+      (* The LSP spec requires [selectionRange] to be contained in [range].
+         Merlin can return a [selection] that violates this invariant (e.g. for
+         the synthetic binding of an optional argument the selection is a ghost
+         location), which makes some clients reject the whole response. Fall
+         back to [range] when containment does not hold. *)
+      let selectionRange =
+        let selectionRange = Range.of_loc selection in
+        if Range.contains range selectionRange then selectionRange else range
+      in
       DocumentSymbol.create
         ~name:outline_name
         ~kind:(symbol_kind_of_outline_kind outline_kind)
-        ~range:(Range.of_loc location)
-        ~selectionRange:(Range.of_loc selection)
+        ~range
+        ~selectionRange
         ~children:(items_to_symbols children)
         ())
     items
