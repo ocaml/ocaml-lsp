@@ -468,7 +468,7 @@ let%expect_test "generated source has an existing workspace-symbol location" =
     Fiber.return ());
   [%expect
     {|
-    path: lib/gen.ml
-    exists: false
+    path: _build/default/lib/gen.ml
+    exists: true
     |}]
 ;;
