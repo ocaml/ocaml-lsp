@@ -19,7 +19,8 @@ val complete
 
 (** creates a server response for ["completionItem/resolve"] *)
 val resolve
-  :  Document.Merlin.t
+  :  position_encoding:[ `UTF8 | `UTF16 ]
+  -> Document.Merlin.t
   -> CompletionItem.t
   -> Resolve.t
   -> (Document.Merlin.t -> [> `Logical of int * int ] -> string option Fiber.t)
@@ -47,4 +48,17 @@ val reconstruct_ident : Msource.t -> [< Msource.position ] -> string option
 
 module For_tests : sig
   val sortText_of_index : int -> string
+
+  val range_prefix
+    :  position_encoding:[ `UTF8 | `UTF16 ]
+    -> Position.t
+    -> string
+    -> Range.t
+
+  val identifier_range
+    :  position_encoding:[ `UTF8 | `UTF16 ]
+    -> Position.t
+    -> prefix:string
+    -> suffix:string
+    -> Range.t
 end

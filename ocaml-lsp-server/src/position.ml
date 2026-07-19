@@ -52,6 +52,32 @@ let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
   | Eq, Gt | Lt, Eq | Lt, Gt -> assert false
 ;;
 
+let advance_text ~position_encoding position text =
+  let rec loop position offset =
+    if offset = String.length text
+    then position
+    else (
+      let decoded = Stdlib.String.get_utf_8_uchar text offset in
+      if not (Stdlib.Uchar.utf_decode_is_valid decoded)
+      then invalid_arg "Position.advance_text: invalid UTF-8";
+      let uchar = Stdlib.Uchar.utf_decode_uchar decoded in
+      let byte_length = Stdlib.Uchar.utf_decode_length decoded in
+      let position =
+        if Stdlib.Uchar.equal uchar (Stdlib.Uchar.of_char '\n')
+        then { line = position.line + 1; character = 0 }
+        else (
+          let character_width =
+            match position_encoding with
+            | `UTF8 -> byte_length
+            | `UTF16 -> Stdlib.Uchar.utf_16_byte_length uchar / 2
+          in
+          { position with character = position.character + character_width })
+      in
+      loop position (offset + byte_length))
+  in
+  loop position 0
+;;
+
 let logical position =
   let line = position.line + 1 in
   let col = position.character in

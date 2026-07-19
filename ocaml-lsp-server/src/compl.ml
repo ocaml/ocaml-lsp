@@ -82,19 +82,32 @@ let reconstruct_ident source position =
   Option.some_if (ident <> "") ident
 ;;
 
-let range_prefix (lsp_position : Position.t) prefix : Range.t =
-  let start =
-    let len = String.length prefix in
-    let character = lsp_position.character - len in
-    { lsp_position with character }
-  in
+let text_width ~position_encoding text =
+  let end_ = Position.advance_text ~position_encoding Position.start text in
+  if end_.line <> 0 then invalid_arg "Compl.text_width: multiline text";
+  end_.character
+;;
+
+let range_prefix ~position_encoding (lsp_position : Position.t) prefix : Range.t =
+  let character = lsp_position.character - text_width ~position_encoding prefix in
+  let start = { lsp_position with character } in
   { Range.start; end_ = lsp_position }
+;;
+
+let identifier_range ~position_encoding (position : Position.t) ~prefix ~suffix =
+  let prefix_width = text_width ~position_encoding prefix in
+  let suffix_width = text_width ~position_encoding suffix in
+  let start = { position with character = position.character - prefix_width } in
+  let end_ = { position with character = position.character + suffix_width } in
+  Range.create ~start ~end_
 ;;
 
 let sortText_of_index idx = Printf.sprintf "%04d" idx
 
 module For_tests = struct
   let sortText_of_index = sortText_of_index
+  let range_prefix = range_prefix
+  let identifier_range = identifier_range
 end
 
 module Complete_by_prefix = struct
@@ -126,6 +139,7 @@ module Complete_by_prefix = struct
   ;;
 
   let process_dispatch_resp
+        ~position_encoding
         ~deprecated
         ~resolve
         ~prefix
@@ -136,6 +150,7 @@ module Complete_by_prefix = struct
     let range =
       let logical_pos = Position.logical pos in
       range_prefix
+        ~position_encoding
         pos
         (prefix_of_position ~short_path:true (Document.Merlin.source doc) logical_pos)
     in
@@ -177,7 +192,7 @@ module Complete_by_prefix = struct
       ~f:(completionItem_of_completion_entry ~deprecated ~range ~compl_params)
   ;;
 
-  let complete_keywords completion_position prefix =
+  let complete_keywords ~position_encoding completion_position prefix =
     match prefix with
     | "" | "i" | "in" ->
       let ci_for_in =
@@ -187,7 +202,7 @@ module Complete_by_prefix = struct
             (`TextEdit
                 (TextEdit.create
                    ~newText:"in"
-                   ~range:(range_prefix completion_position prefix)))
+                   ~range:(range_prefix ~position_encoding completion_position prefix)))
           ~kind:CompletionItemKind.Keyword
           ()
       in
@@ -195,7 +210,7 @@ module Complete_by_prefix = struct
     | _ -> []
   ;;
 
-  let complete doc prefix pos ~deprecated ~resolve =
+  let complete doc prefix pos ~position_encoding ~deprecated ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
       Document.Merlin.with_pipeline_exn
@@ -207,10 +222,17 @@ module Complete_by_prefix = struct
       (* we complete only keyword 'in' for now *)
       match Document.Merlin.kind doc with
       | Intf -> []
-      | Impl -> complete_keywords pos prefix
+      | Impl -> complete_keywords ~position_encoding pos prefix
     in
     keyword_completionItems
-    @ process_dispatch_resp ~deprecated ~resolve ~prefix doc pos completion
+    @ process_dispatch_resp
+        ~position_encoding
+        ~deprecated
+        ~resolve
+        ~prefix
+        doc
+        pos
+        completion
   ;;
 end
 
@@ -323,7 +345,14 @@ let complete
                 item.deprecatedSupport)
            in
            if not (Merlin_analysis.Typed_hole.can_be_hole prefix)
-           then Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
+           then
+             Complete_by_prefix.complete
+               merlin
+               prefix
+               pos
+               ~position_encoding:(State.position_encoding state)
+               ~resolve
+               ~deprecated
            else (
              let reindex_sortText completion_items =
                List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
@@ -368,6 +397,7 @@ let complete
              in
              let compl_by_prefix_completionItems =
                Complete_by_prefix.process_dispatch_resp
+                 ~position_encoding:(State.position_encoding state)
                  ~resolve
                  ~deprecated
                  ~prefix
@@ -392,7 +422,14 @@ let format_doc ~markdown doc =
        | Raw value -> { kind = MarkupKind.PlainText; MarkupContent.value })
 ;;
 
-let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~markdown =
+let resolve
+      ~position_encoding
+      doc
+      (compl : CompletionItem.t)
+      (resolve : Resolve.t)
+      query_doc
+      ~markdown
+  =
   Fiber.of_thunk (fun () ->
     (* Due to merlin's API, we create a version of the given document with the
        applied completion item and pass it to merlin to get the docs for the
@@ -401,20 +438,14 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
     let logical_position = Position.logical position in
     let doc =
       let complete =
-        let start =
-          let prefix =
-            prefix_of_position
-              ~short_path:true
-              (Document.Merlin.source doc)
-              logical_position
-          in
-          { position with character = position.character - String.length prefix }
+        let prefix =
+          prefix_of_position
+            ~short_path:true
+            (Document.Merlin.source doc)
+            logical_position
         in
-        let end_ =
-          let suffix = suffix_of_position (Document.Merlin.source doc) logical_position in
-          { position with character = position.character + String.length suffix }
-        in
-        let range = Range.create ~start ~end_ in
+        let suffix = suffix_of_position (Document.Merlin.source doc) logical_position in
+        let range = identifier_range ~position_encoding position ~prefix ~suffix in
         `TextDocumentContentChangePartial
           (TextDocumentContentChangePartial.create ~range ~text:compl.label ())
       in
