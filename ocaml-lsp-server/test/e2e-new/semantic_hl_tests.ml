@@ -151,6 +151,23 @@ let test_semantic_tokens_full src =
   test ~src (fun p -> SemanticTokensFull p) print_resp
 ;;
 
+let%expect_test "semantic tokens use UTF-16 positions" =
+  let src = "let café = 1\n" in
+  test
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { resp; _ } ->
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          Array.iteri data ~f:(fun index value ->
+            if index > 0 then print_string "; ";
+            print_int value);
+          print_newline ());
+       Fiber.return ());
+  [%expect {| 0; 4; 5; 8; 0; 0; 8; 1; 19; 0 |}]
+;;
+
 let%expect_test "tokens for ocaml_lsp_server.ml" =
   test_semantic_tokens_full Semantic_hl_data.src0;
   [%expect
