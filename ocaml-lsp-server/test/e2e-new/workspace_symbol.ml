@@ -417,7 +417,7 @@ let%expect_test "missing build directories return empty results without notifica
     {|
     first result: 0 symbols
     second result: 0 symbols
-    show messages: 2
+    show messages: 0
     |}]
 ;;
 
@@ -441,7 +441,7 @@ let%expect_test "mixed workspaces return symbols only from built workspaces" =
   [%expect
     {|
     a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11
-    show messages: 1
+    show messages: 0
     |}]
 ;;
 
