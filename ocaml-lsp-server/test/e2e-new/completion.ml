@@ -48,6 +48,28 @@ let print_completions
          if originalLength > limit then print_endline "............."))
 ;;
 
+let%expect_test "completion uses UTF-16 positions for Unicode prefixes" =
+  let source = "let café = 1\nlet _ = café" in
+  let position = Position.create ~line:1 ~character:12 in
+  print_completions ~limit:1 source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 12, "line": 1 },
+          "start": { "character": 12, "line": 1 }
+        }
+      }
+    }
+    .............
+    |}]
+;;
+
 let%expect_test "can start completion at arbitrary position (before the dot)" =
   let source = {ocaml|Strin.func|ocaml} in
   let position = Position.create ~line:0 ~character:5 in
