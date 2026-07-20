@@ -390,31 +390,58 @@ let%expect_test "handles multiple workspaces" =
     |}]
 ;;
 
-let%expect_test "shows a notification message if no build directory found" =
+let%expect_test "missing build directories return empty results without notifications" =
   let workspace_a, workspace_b = setup_workspaces () in
   clean_project workspace_a;
   clean_project workspace_b;
-  let notification = Fiber.Ivar.create () in
+  let show_messages = Queue.create () in
   let on_notification _ = function
-    | Lsp.Server_notification.ShowMessage params ->
-      let* filled = Fiber.Ivar.peek notification in
-      (match filled with
-       | Some _ -> Fiber.return ()
-       | None -> Fiber.Ivar.fill notification params)
+    | Lsp.Server_notification.ShowMessage message ->
+      Queue.push show_messages message;
+      Fiber.return ()
     | _ -> Fiber.return ()
   in
   let workspaces = [ workspace_a; workspace_b ] in
   run ~on_notification workspaces (fun client ->
-    let* (_ : SymbolInformation.t list option) = workspace_symbol client "" in
-    let* params = Fiber.Ivar.read notification in
-    ShowMessageParams.yojson_of_t params |> Test.print_result;
+    let* first = workspace_symbol client "" in
+    let* second = workspace_symbol client "changed query" in
+    Printf.printf
+      "first result: %d symbols\n"
+      (Option.value first ~default:[] |> List.length);
+    Printf.printf
+      "second result: %d symbols\n"
+      (Option.value second ~default:[] |> List.length);
     Fiber.return ());
+  Printf.printf "show messages: %d\n" (Queue.length show_messages);
   [%expect
     {|
-    {
-      "message": "No build directory found in workspace(s): workspace_symbol_A, workspace_symbol_B",
-      "type": 2
-    }
+    first result: 0 symbols
+    second result: 0 symbols
+    show messages: 2
+    |}]
+;;
+
+let%expect_test "mixed workspaces return symbols only from built workspaces" =
+  let workspace_a, workspace_b = setup_workspaces () in
+  build_project workspace_a;
+  clean_project workspace_b;
+  let show_messages = Queue.create () in
+  let on_notification _ = function
+    | Lsp.Server_notification.ShowMessage message ->
+      Queue.push show_messages message;
+      Fiber.return ()
+    | _ -> Fiber.return ()
+  in
+  let workspaces = [ workspace_b; workspace_a ] in
+  run ~on_notification workspaces (fun client ->
+    let* symbols = workspace_symbol client "a_x" in
+    print_symbols workspaces symbols;
+    Fiber.return ());
+  Printf.printf "show messages: %d\n" (Queue.length show_messages);
+  [%expect
+    {|
+    a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11
+    show messages: 1
     |}]
 ;;
 
