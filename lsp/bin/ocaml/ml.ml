@@ -111,6 +111,7 @@ module Type = struct
     { name : string
     ; typ : t
     ; attrs : (string * string list) list
+    ; optional : bool
     }
 
   let rec to_dyn =
@@ -130,12 +131,13 @@ module Type = struct
   and dyn_of_constr { name; args } =
     Dyn.(record [ "name", string name; "args", (list to_dyn) args ])
 
-  and dyn_of_field { name; typ; attrs } =
+  and dyn_of_field { name; typ; attrs; optional } =
     let open Dyn in
     record
       [ "name", string name
       ; "typ", to_dyn typ
       ; "attrs", list (pair string (list string)) attrs
+      ; "optional", bool optional
       ]
   ;;
 
@@ -236,7 +238,7 @@ module Type = struct
         | Variant v -> self#variant env v
     end
 
-  let field typ ~name = { name; typ; attrs = [] }
+  let field ?(optional = false) typ ~name = { name; typ; attrs = []; optional }
   let fun_ args t = List.fold_right args ~init:t ~f:(fun arg acc -> Fun (arg, acc))
   let constr args ~name = { name; args }
   let list t = List t
@@ -332,7 +334,7 @@ module Type = struct
       |> Type.variant
     | Record r ->
       let r =
-        List.map r ~f:(fun { name; typ; attrs } ->
+        List.map r ~f:(fun { name; typ; attrs; optional = _ } ->
           let def =
             let field = pp ~kind typ in
             let attrs =
