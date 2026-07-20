@@ -326,7 +326,6 @@ let format_type_enclosing
       ~typ
       ~doc
       ~(syntax_doc : Query_protocol.syntax_doc_result option)
-      ~warnings_doc
   =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -350,12 +349,12 @@ let format_type_enclosing
              | Raw d -> d
              | Markdown d -> d)
          in
-         print_dividers (List.filter_opt [ type_info; syntax_doc; doc; warnings_doc ])
+         print_dividers (List.filter_opt [ type_info; syntax_doc; doc ])
        in
        { MarkupContent.value; kind = MarkupKind.Markdown })
      else (
        let value =
-         print_dividers (List.filter_opt [ Some typ; syntax_doc; doc; warnings_doc ])
+         print_dividers (List.filter_opt [ Some typ; syntax_doc; doc ])
        in
        { MarkupContent.value; kind = MarkupKind.PlainText }))
 ;;
@@ -431,47 +430,6 @@ let type_enclosing_hover
         in
         typ
     in
-    let warnings =
-      let active_diagnostics =
-        Diagnostics.get_diagnostics (State.diagnostics state) uri
-      in
-      List.filter_map active_diagnostics ~f:(fun (d : Diagnostic.t) ->
-        let start_cmp = Position.compare d.range.start position in
-        let end_cmp = Position.compare d.range.end_ position in
-        let contains =
-          (match start_cmp with
-           | Ordering.Lt | Ordering.Eq -> true
-           | Ordering.Gt -> false)
-          &&
-          match end_cmp with
-          | Ordering.Gt | Ordering.Eq -> true
-          | Ordering.Lt -> false
-        in
-        if contains
-        then (
-          match d.code with
-          | Some (`Int code) ->
-            List.find_map Ocaml_utils.Warnings.descriptions ~f:(fun desc ->
-              if desc.number = code then Some (code, desc.description) else None)
-          | Some (`String code_str) ->
-            List.find_map Ocaml_utils.Warnings.descriptions ~f:(fun desc ->
-              if desc.number = int_of_string code_str
-              then Some (int_of_string code_str, desc.description)
-              else None)
-          | None -> None)
-        else None)
-    in
-    let warnings_doc =
-      match warnings with
-      | [] -> None
-      | _ ->
-        let text =
-          List.map warnings ~f:(fun (code, desc) ->
-            sprintf "**Warning %d**: %s" code desc)
-          |> String.concat ~sep:"\n\n"
-        in
-        Some text
-    in
     let contents =
       let markdown =
         let client_capabilities = State.client_capabilities state in
@@ -484,7 +442,6 @@ let type_enclosing_hover
         ~typ
         ~doc:documentation
         ~syntax_doc
-        ~warnings_doc
     in
     let range = Range.of_loc loc in
     let hover = Hover.create ~contents ~range () in

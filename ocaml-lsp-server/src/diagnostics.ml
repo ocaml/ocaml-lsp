@@ -437,13 +437,3 @@ let set_shorten_merlin_diagnostics t ~shorten_merlin_diagnostics =
         t.dirty_uris <- Uri_set.add t.dirty_uris uri));
     send t `All)
 ;;
-
-let get_diagnostics t uri =
-  let merlin_diags = Table.find t.merlin uri |> Option.value ~default:[] in
-  let dune_diags =
-    Table.fold t.dune ~init:[] ~f:(fun per_dune acc ->
-      Table.fold per_dune ~init:acc ~f:(fun (d_uri, diag) acc ->
-        if Uri.equal d_uri uri then diag :: acc else acc))
-  in
-  merlin_diags @ dune_diags
-;;
