@@ -39,11 +39,9 @@ let is_directory dir =
   | Sys_error _ -> false
 ;;
 
-type error = Build_dir_not_found of string
-
-let find_build_dir ({ name; uri } : WorkspaceFolder.t) =
-  let build_dir = Filename.concat (Uri.to_path uri) "_build/default" in
-  if is_directory build_dir then Ok build_dir else Error (Build_dir_not_found name)
+let find_build_dir root =
+  let build_dir = Filename.concat root "_build/default" in
+  Option.some_if (is_directory build_dir) build_dir
 ;;
 
 type cm_file =
@@ -342,73 +340,50 @@ let run
   in
   try
     Ok
-      (List.map workspace_folders ~f:(fun (workspace_folder : WorkspaceFolder.t) ->
-         let open Result.O in
-         let+ build_dir = find_build_dir workspace_folder in
-         let cm_files = find_cm_files build_dir in
+      (List.concat_map workspace_folders ~f:(fun (workspace_folder : WorkspaceFolder.t) ->
          let root_dir = Uri.to_path workspace_folder.uri in
-         let resolve_uri = Base.Staged.unstage (make_uri_resolver ~root_dir ~build_dir) in
-         List.concat_map ~f:(symbols_from_cm_file ~filter ~resolve_uri cancel) cm_files))
+         match find_build_dir root_dir with
+         | None -> []
+         | Some build_dir ->
+           let cm_files = find_cm_files build_dir in
+           let resolve_uri =
+             Base.Staged.unstage (make_uri_resolver ~root_dir ~build_dir)
+           in
+           List.concat_map ~f:(symbols_from_cm_file ~filter ~resolve_uri cancel) cm_files))
   with
   | Cancelled -> Error `Cancelled
 ;;
 
-let run server (state : State.t) (params : WorkspaceSymbolParams.t) =
+let run (state : State.t) (params : WorkspaceSymbolParams.t) =
   let open Fiber.O in
-  let* symbols, errors =
-    let workspaces = Workspaces.workspace_folders (State.workspaces state) in
-    let* thread = Lazy_fiber.force state.symbols_thread in
-    let+ symbols_results =
-      let* cancel = Server.cancel_token () in
-      let task =
-        Lev_fiber.Thread.task thread ~f:(fun () -> run params workspaces cancel)
+  let workspaces = Workspaces.workspace_folders (State.workspaces state) in
+  let* thread = Lazy_fiber.force state.symbols_thread in
+  let* cancel = Server.cancel_token () in
+  let task = Lev_fiber.Thread.task thread ~f:(fun () -> run params workspaces cancel) in
+  let* res, cancel =
+    match task with
+    | Error `Stopped -> Fiber.never
+    | Ok task ->
+      let maybe_cancel =
+        match cancel with
+        | None ->
+          fun f ->
+            let+ res = f () in
+            res, Fiber.Cancel.Not_cancelled
+        | Some token ->
+          let on_cancel () = Lev_fiber.Thread.cancel task in
+          fun f -> Fiber.Cancel.with_handler token ~on_cancel f
       in
-      let* res, cancel =
-        match task with
-        | Error `Stopped -> Fiber.never
-        | Ok task ->
-          let maybe_cancel =
-            match cancel with
-            | None ->
-              fun f ->
-                let+ res = f () in
-                res, Fiber.Cancel.Not_cancelled
-            | Some token ->
-              let on_cancel () = Lev_fiber.Thread.cancel task in
-              fun f -> Fiber.Cancel.with_handler token ~on_cancel f
-          in
-          maybe_cancel @@ fun () -> Lev_fiber.Thread.await task
-      in
-      match cancel with
-      | Cancelled () ->
-        let e =
-          Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" ()
-        in
-        raise (Jsonrpc.Response.Error.E e)
-      | Fiber.Cancel.Not_cancelled ->
-        (match res with
-         | Ok (Ok s) -> Fiber.return s
-         | Ok (Error `Cancelled) -> assert false
-         | Error `Cancelled -> assert false
-         | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
-    in
-    List.partition_result symbols_results
+      maybe_cancel @@ fun () -> Lev_fiber.Thread.await task
   in
-  let+ () =
-    match errors with
-    | [] -> Fiber.return ()
-    | _ :: _ ->
-      let msg =
-        let message =
-          List.map errors ~f:(function Build_dir_not_found workspace_name ->
-              workspace_name)
-          |> String.concat ~sep:", "
-          |> sprintf "No build directory found in workspace(s): %s"
-        in
-        ShowMessageParams.create ~message ~type_:Warning
-      in
-      task_if_running state.detached ~f:(fun () ->
-        Server.notification server (ShowMessage msg))
-  in
-  Some (List.concat symbols)
+  match cancel with
+  | Cancelled () ->
+    let e = Jsonrpc.Response.Error.make ~code:RequestCancelled ~message:"cancelled" () in
+    raise (Jsonrpc.Response.Error.E e)
+  | Fiber.Cancel.Not_cancelled ->
+    (match res with
+     | Ok (Ok symbols) -> Fiber.return (Some symbols)
+     | Ok (Error `Cancelled) -> assert false
+     | Error `Cancelled -> assert false
+     | Error (`Exn exn) -> Exn_with_backtrace.reraise exn)
 ;;
