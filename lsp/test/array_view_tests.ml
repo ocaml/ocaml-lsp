@@ -26,3 +26,10 @@ let%expect_test "negative mutations do not escape an array view" =
    | exception Invalid_argument message -> Printf.printf "invalid: %s\n" message);
   [%expect {| 9 1 2 3 |}]
 ;;
+
+let%expect_test "negative lengths are rejected" =
+  (match Array_view.make [||] ~pos:0 ~len:(-1) with
+   | view -> Printf.printf "length: %d\n" (Array_view.length view)
+   | exception Invalid_argument message -> Printf.printf "invalid: %s\n" message);
+  [%expect {| length: -1 |}]
+;;
