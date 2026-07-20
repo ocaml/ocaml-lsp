@@ -574,6 +574,21 @@ let f (café : bool) =
     |}]
 ;;
 
+let%expect_test "destruct-line selects an expression repeated in match" =
+  let source =
+    {ocaml|
+let f (a : bool) =
+  match a
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:8 ~end_line:2 ~end_character:8 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect {| No code actions |}]
+;;
+
 let%expect_test "can destruct match-with line" =
   let source =
     {ocaml|
