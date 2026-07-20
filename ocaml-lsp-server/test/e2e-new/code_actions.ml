@@ -535,6 +535,45 @@ let f (x:bool) =
     |}]
 ;;
 
+let%expect_test "destruct-line returns UTF-16 edit ranges" =
+  let source =
+    {ocaml|
+let f (café : bool) =
+  match café
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:10 ~end_line:2 ~end_character:10 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match café with\n  | false -> _\n  | true -> _",
+                "range": {
+                  "end": { "character": 13, "line": 2 },
+                  "start": { "character": 2, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+;;
+
 let%expect_test "can destruct match-with line" =
   let source =
     {ocaml|
