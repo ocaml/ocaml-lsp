@@ -9,6 +9,15 @@ let%expect_test "replacement ranges preserve trailing newlines" =
   [%expect {| ((2, 5), (2, 6)) |}]
 ;;
 
+let%expect_test "replacement ranges use UTF-16 character units" =
+  let start = Position.create ~line:2 ~character:5 in
+  let range = Range.create ~start ~end_:start in
+  let edit = TextEdit.create ~range ~newText:"😀" in
+  let range = Ocaml_lsp_server.Testing.Range.resize_for_edit edit in
+  print_endline (Ocaml_lsp_server.Testing.Range.to_string range);
+  [%expect {| ((2, 5), (2, 9)) |}]
+;;
+
 let%expect_test "eat_message tests" =
   let test e1 e2 expected =
     let result = Ocaml_lsp_server.Diagnostics.equal_message e1 e2 in
