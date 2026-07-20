@@ -77,8 +77,7 @@ end = struct
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
       let env =
-        let current = Unix.environment () in
-        Array.to_list current @ extra_env |> Spawn.Env.of_list
+        extra_env @ Array.to_list (Unix.environment ()) |> Spawn.Env.of_list
       in
       Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ~stderr ()
     in
