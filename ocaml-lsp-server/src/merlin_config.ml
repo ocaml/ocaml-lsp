@@ -40,6 +40,7 @@ module Process = struct
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
     ; stdout : Lev_fiber.Io.input Lev_fiber.Io.t
     ; session : Lev_fiber_csexp.Session.t
+    ; mutable log_close : bool
     }
 
   let to_dyn { pid; initial_cwd; _ } =
@@ -56,7 +57,8 @@ module Process = struct
         | n -> Format.eprintf "%s finished with code = %d@.%!" t.prog n)
      | WSIGNALED s -> Format.eprintf "%s finished signal = %d@.%!" t.prog s
      | WSTOPPED _ -> ());
-    Format.eprintf "closed merlin process@.%s@." (Dyn.to_string @@ to_dyn t);
+    if t.log_close
+    then Format.eprintf "closed merlin process@.%s@." (Dyn.to_string @@ to_dyn t);
     Lev_fiber.Io.close t.stdin;
     Lev_fiber.Io.close t.stdout
   ;;
@@ -107,7 +109,7 @@ module Process = struct
       let* stdin = make stdin_w Output in
       let+ stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
-      { prog; pid; initial_cwd = dir; stdin; stdout; session }
+      { prog; pid; initial_cwd = dir; stdin; stdout; session; log_close = true }
   ;;
 end
 
@@ -142,27 +144,36 @@ and entry =
   { db : db
   ; process : Process.t
   ; mutable ref_count : int
+  ; mutable stopping : bool
   }
 
 module Entry = struct
   type t = entry
 
-  let create db process = { db; process; ref_count = 0 }
+  let create db process = { db; process; ref_count = 0; stopping = false }
   let equal = ( == )
   let incr t = t.ref_count <- t.ref_count + 1
+
+  let stop ?(log = true) t =
+    if t.stopping
+    then Fiber.return ()
+    else (
+      t.stopping <- true;
+      Table.remove t.db.running t.process.initial_cwd;
+      if log
+      then
+        Format.eprintf
+          "halting %s merlin process@.%s@."
+          t.process.prog
+          (Dyn.to_string (Process.to_dyn t.process))
+      else t.process.log_close <- false;
+      Dot_protocol_io.Commands.halt t.process.session)
+  ;;
 
   let destroy (t : t) =
     assert (t.ref_count > 0);
     t.ref_count <- t.ref_count - 1;
-    if t.ref_count > 0
-    then Fiber.return ()
-    else (
-      Table.remove t.db.running t.process.initial_cwd;
-      Format.eprintf
-        "halting %s merlin process@.%s@."
-        t.process.prog
-        (Dyn.to_string (Process.to_dyn t.process));
-      Dot_protocol_io.Commands.halt t.process.session)
+    if t.ref_count > 0 then Fiber.return () else stop t
   ;;
 end
 
@@ -366,10 +377,10 @@ module DB = struct
   let run t = Fiber.Pool.run t.pool
 
   let stop t =
-    let* () = Fiber.return () in
-    Table.iter t.running ~f:(fun running ->
-      let pid = running.process.pid in
-      Unix.kill (Pid.to_int pid) (if Sys.win32 then Sys.sigkill else Sys.sigterm));
+    let running =
+      Table.fold t.running ~init:[] ~f:(fun ~key:_ ~data acc -> data :: acc)
+    in
+    let* () = Fiber.parallel_iter running ~f:(Entry.stop ~log:false) in
     Fiber.Pool.stop t.pool
   ;;
 end
