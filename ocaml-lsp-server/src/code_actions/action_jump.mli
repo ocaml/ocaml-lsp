@@ -1,6 +1,7 @@
 open Import
 
 val command_name : string
+val kinds : CodeActionKind.t list
 val available : ShowDocumentClientCapabilities.t option -> bool
 val command_run : 'a Server.t -> ExecuteCommandParams.t -> Json.t Fiber.t
 

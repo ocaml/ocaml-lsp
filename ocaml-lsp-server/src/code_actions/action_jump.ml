@@ -8,6 +8,8 @@ let targets =
 ;;
 
 let rename_target target = String.chop_prefix_if_exists target ~prefix:"match-"
+let kind target = CodeActionKind.Other (sprintf "merlin-jump-%s" (rename_target target))
+let kinds = List.map targets ~f:kind
 
 let available (capabilities : ShowDocumentClientCapabilities.t option) =
   match capabilities with
