@@ -61,13 +61,9 @@ let metric_count metrics name =
 let print_pipeline_count ?(prep = fun _ -> Fiber.return ()) ~name ~only ~source range =
   let contents = Fiber.Ivar.create () in
   let handler = metrics_handler contents in
-  Test.run ~handler
+  Test.run_initialized ~handler ~capabilities:(code_action_capabilities ())
   @@ fun client ->
-  let run_client () =
-    Test.start_client ~capabilities:(code_action_capabilities ()) client
-  in
   let run () =
-    let* (_ : InitializeResult.t) = Client.initialized client in
     let* () = prep client in
     let uri = DocumentUri.of_path "metrics.ml" in
     let* () = open_document ~language_id:"ocaml" ~client ~uri ~source in
@@ -80,11 +76,7 @@ let print_pipeline_count ?(prep = fun _ -> Fiber.return ()) ~name ~only ~source 
     let+ metrics = Fiber.Ivar.read contents in
     Printf.printf "%s pipelines: %d\n" name (metric_count metrics name)
   in
-  let shutdown () =
-    let* () = Client.request client Shutdown in
-    Client.notification client Exit
-  in
-  Fiber.fork_and_join_unit run_client (fun () -> Fiber.finalize run ~finally:shutdown)
+  Fiber.finalize run ~finally:(fun () -> Test.exit_client client)
 ;;
 
 let jump_kinds =
