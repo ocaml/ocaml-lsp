@@ -54,6 +54,10 @@ end
 
 open Import
 
+let start_client ?(capabilities = ClientCapabilities.create ()) ?workspaceFolders client =
+  Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ())
+;;
+
 module T : sig
   val run_with_status
     :  ?extra_env:string list
@@ -66,6 +70,17 @@ module T : sig
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
+    -> (unit Client.t -> 'a Fiber.t)
+    -> 'a
+
+  (** Run a test after starting and initializing its client. The test remains
+      responsible for shutting the client down. *)
+  val run_initialized
+    :  ?extra_env:string list
+    -> ?handler:unit Client.Handler.t
+    -> ?stderr:Unix.file_descr
+    -> ?capabilities:ClientCapabilities.t
+    -> ?workspaceFolders:WorkspaceFolder.t list option
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
@@ -141,6 +156,25 @@ end = struct
   let run ?extra_env ?handler ?stderr f =
     snd @@ run_with_status ?extra_env ?handler ?stderr f
   ;;
+
+  let run_initialized
+        ?extra_env
+        ?handler
+        ?stderr
+        ?(capabilities = ClientCapabilities.create ())
+        ?workspaceFolders
+        f
+    =
+    run ?extra_env ?handler ?stderr
+    @@ fun client ->
+    let run_client () = start_client ~capabilities ?workspaceFolders client in
+    let run_test () =
+      let* (_ : InitializeResult.t) = Client.initialized client in
+      f client
+    in
+    let+ (), result = Fiber.fork_and_join run_client run_test in
+    result
+  ;;
 end
 
 include T
@@ -177,10 +211,6 @@ let run_command ?cwd command =
 
 let null_device = if Sys.win32 then "NUL" else "/dev/null"
 
-let start_client ?(capabilities = ClientCapabilities.create ()) ?workspaceFolders client =
-  Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ())
-;;
-
 let drain_diagnostics () =
   let diagnostics = Fiber.Ivar.create () in
   let on_notification _ = function
@@ -197,33 +227,25 @@ let drain_diagnostics () =
 let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
   let on_notification, diagnostics = drain_diagnostics () in
   let handler = Client.Handler.make ~on_notification () in
-  run ~handler
+  let capabilities =
+    let window =
+      let showDocument = ShowDocumentClientCapabilities.create ~support:true in
+      WindowClientCapabilities.create ~showDocument ()
+    in
+    ClientCapabilities.create ~window ()
+  in
+  run_initialized ~handler ~capabilities
   @@ fun client ->
-  let run_client () =
-    let capabilities =
-      let window =
-        let showDocument = ShowDocumentClientCapabilities.create ~support:true in
-        WindowClientCapabilities.create ~showDocument ()
-      in
-      ClientCapabilities.create ~window ()
-    in
-    start_client ~capabilities client
+  let* () = prep client in
+  let* () =
+    match settings with
+    | Some settings -> Client.notification client (ChangeConfiguration { settings })
+    | None -> Fiber.return ()
   in
-  let run =
-    let* (_ : InitializeResult.t) = Client.initialized client in
-    let* () = prep client in
-    let* () =
-      match settings with
-      | Some settings -> Client.notification client (ChangeConfiguration { settings })
-      | None -> Fiber.return ()
-    in
-    Client.request client request
-  in
-  Fiber.fork_and_join_unit run_client (fun () ->
-    let* ret = run in
-    let* () = Fiber.Ivar.read diagnostics in
-    let+ () = Client.stop client in
-    ret)
+  let* ret = Client.request client request in
+  let* () = Fiber.Ivar.read diagnostics in
+  let+ () = Client.stop client in
+  ret
 ;;
 
 let custom_request client meth params =
