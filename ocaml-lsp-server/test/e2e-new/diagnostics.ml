@@ -86,6 +86,7 @@ let%expect_test "unused values have diagnostic tags" =
     {
       "diagnostics": [
         {
+          "code": 26,
           "message": "Warning 26: unused variable x.",
           "range": {
             "end": { "character": 7, "line": 1 },
@@ -283,6 +284,7 @@ let b : string = match Some 1 with None -> _ | Some _ -> _ in
           "source": "ocamllsp"
         },
         {
+          "code": 26,
           "message": "Warning 26: unused variable b.",
           "range": {
             "end": { "character": 5, "line": 1 },

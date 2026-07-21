@@ -1,7 +1,9 @@
 # Unreleased
 
-## Fixes
+## Features
+ - Add hover support for warning attributes (#1606)
 
+## Fixes
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
 - Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)

@@ -5,6 +5,7 @@ module Position = Position
 module Doc_to_md = Doc_to_md
 module Diff = Diff
 module Testing = Testing
+module Hover_req = Hover_req
 open Fiber.O
 
 let make_error = Jsonrpc.Response.Error.make
