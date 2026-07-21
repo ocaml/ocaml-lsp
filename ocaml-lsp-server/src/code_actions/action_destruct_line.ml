@@ -240,7 +240,12 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
        String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
 ;;
 
-let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.t) =
+let code_action
+      (state : State.t)
+      dispatch
+      (doc : Document.t)
+      (params : CodeActionParams.t)
+  =
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin merlin ->
@@ -250,7 +255,7 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
        Action_destruct.run
          state
          doc
-         merlin
+         ~dispatch
          ~action_kind
          ~range:statement.query_range
          ~postprocess:(fun (loc, newText) ->
@@ -259,4 +264,6 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
            loc, newText))
 ;;
 
-let t state = { Code_action.kind; run = `Non_batchable (code_action state) }
+let t ~dispatch state =
+  { Code_action.kind; run = `Non_batchable (code_action state dispatch) }
+;;

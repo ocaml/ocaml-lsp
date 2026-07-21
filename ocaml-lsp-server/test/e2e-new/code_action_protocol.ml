@@ -160,7 +160,7 @@ let f (x : t) =
     |}]
 ;;
 
-let%expect_test "destruct actions duplicate case analysis" =
+let%expect_test "destruct actions share case analysis" =
   let source =
     {ocaml|let f (x : bool) =
   match x
@@ -180,9 +180,8 @@ let%expect_test "destruct actions duplicate case analysis" =
     code actions:
     - Destruct-line (enumerate cases, use existing match) (destruct-line (enumerate cases, use existing match))
     - Destruct (enumerate cases) (destruct (enumerate cases))
-    - Create metrics.mli (switch)
     Merlin pipeline trace:
     - destruct (enumerate cases) -> destruct
-    - destruct-line (enumerate cases, use existing match) -> destruct
+    - destruct-line (enumerate cases, use existing match) -> <no pipeline>
     |}]
 ;;

@@ -28,13 +28,32 @@ let code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc (loc, 
     ()
 ;;
 
-let run state doc merlin ~action_kind ~(range : Range.t) ~postprocess =
+type dispatch = Range.t -> (Loc.t * string, Exn_with_backtrace.t) result Fiber.t
+
+let dispatch merlin (range : Range.t) =
   let command =
     let start = Position.logical range.start in
     let finish = Position.logical range.end_ in
     Query_protocol.Case_analysis (start, finish)
   in
-  let+ res = Document.Merlin.dispatch ~name:"destruct" merlin command in
+  Document.Merlin.dispatch ~name:"destruct" merlin command
+;;
+
+module Range_key = struct
+  type t = Range.t
+
+  let compare = Lsp.Range.compare
+  let hash = Poly.hash
+  let sexp_of_t = Sexplib0.Sexp_conv.sexp_of_opaque
+end
+
+let cached_dispatch merlin =
+  let cache = Fiber_cache.create (module Range_key) ~f:(dispatch merlin) in
+  Fiber_cache.get cache
+;;
+
+let run state doc ~(dispatch : dispatch) ~action_kind ~(range : Range.t) ~postprocess =
+  let+ res = dispatch range in
   match res with
   | Ok reply ->
     let reply = postprocess reply in
@@ -56,12 +75,14 @@ let run state doc merlin ~action_kind ~(range : Range.t) ~postprocess =
   | Error exn -> Exn_with_backtrace.reraise exn
 ;;
 
-let code_action (state : State.t) doc (params : CodeActionParams.t) =
+let code_action (state : State.t) dispatch doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
-  | `Merlin merlin ->
-    run state doc merlin ~action_kind ~range:params.range ~postprocess:Fun.id
+  | `Merlin _ ->
+    run state doc ~dispatch ~action_kind ~range:params.range ~postprocess:Fun.id
 ;;
 
-let t state = { Code_action.kind; run = `Non_batchable (code_action state) }
+let t ~dispatch state =
+  { Code_action.kind; run = `Non_batchable (code_action state dispatch) }
+;;
