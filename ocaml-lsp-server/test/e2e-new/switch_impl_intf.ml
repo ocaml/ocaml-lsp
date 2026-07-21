@@ -86,8 +86,7 @@ let run_switch_request uri =
   Test.run_initialized (fun client ->
     let* response = switch_impl_intf client uri in
     print_response response;
-    let* () = Client.request client Shutdown in
-    Client.stop client)
+    Test.shutdown_client client)
 ;;
 
 let%expect_test "can switch from file URI with non-file scheme" =
