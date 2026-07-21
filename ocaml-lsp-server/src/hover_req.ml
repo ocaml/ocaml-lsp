@@ -499,9 +499,6 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
             let range = Range.of_loc loc in
             Fiber.return (Some (Hover.create ~contents ~range ()))
           | None -> Fiber.return None)
-       | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
-         let+ ppx_parsetree =
-           Document.Merlin.with_pipeline_exn
        | Some (`Ppx ppx) ->
          let+ ppxed_source =
            Document.Merlin.dispatch_exn
