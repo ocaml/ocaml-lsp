@@ -4,6 +4,7 @@ val iter_code_actions
   :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
   -> ?path:string
   -> ?diagnostics:Diagnostic.t list
+  -> ?only:CodeActionKind.t list
   -> source:string
   -> Range.t
   -> (CodeActionResult.t -> unit)

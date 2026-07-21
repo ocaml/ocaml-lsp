@@ -7,9 +7,9 @@ let range ~start_line ~start_character ~end_line ~end_character =
   Range.create ~start ~end_
 ;;
 
-let iter_code_actions ?prep ?path ?(diagnostics = []) ~source range =
+let iter_code_actions ?prep ?path ?(diagnostics = []) ?only ~source range =
   let makeRequest textDocument =
-    let context = CodeActionContext.create ~diagnostics () in
+    let context = CodeActionContext.create ~diagnostics ?only () in
     Lsp.Client_request.CodeAction
       (CodeActionParams.create ~textDocument ~range ~context ())
   in
@@ -20,11 +20,12 @@ let print_code_actions
       ?(prep = fun _ -> Fiber.return ())
       ?(path = "foo.ml")
       ?(diagnostics = [])
+      ?only
       ?(filter = fun _ -> true)
       source
       range
   =
-  iter_code_actions ~prep ~path ~diagnostics ~source range (function
+  iter_code_actions ~prep ~path ~diagnostics ?only ~source range (function
     | None -> print_endline "No code actions"
     | Some code_actions ->
       code_actions
@@ -83,6 +84,32 @@ let foo = 123
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
+    {
+      "command": {
+        "arguments": [ "file:///foo.mli" ],
+        "command": "ocamllsp/open-related-source",
+        "title": "Create foo.mli"
+      },
+      "edit": {
+        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
+      },
+      "kind": "switch",
+      "title": "Create foo.mli"
+    } |}]
+;;
+
+let%expect_test "code action only includes nested kinds" =
+  let source =
+    {ocaml|let _ =
+  let x = 0 in
+  x + 1
+|ocaml}
+  in
+  let range = range ~start_line:1 ~start_character:6 ~end_line:1 ~end_character:7 in
+  print_code_actions ~only:[ CodeActionKind.Refactor ] source range;
+  [%expect
+    {|
+    Code actions:
     {
       "command": {
         "arguments": [ "file:///foo.mli" ],
