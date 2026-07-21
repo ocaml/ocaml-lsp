@@ -38,20 +38,15 @@ let run_switch_test files_to_create ~from =
   let dir = setup_files files_to_create in
   let on_notification, diagnostics = Test.drain_diagnostics () in
   let handler = Client.Handler.make ~on_notification () in
-  Test.run ~handler
+  Test.run_initialized ~handler
   @@ fun client ->
-  let run_client () = Test.start_client client in
-  let run =
-    let* (_ : InitializeResult.t) = Client.initialized client in
-    let uri = uri_of_ext dir from in
-    let* () = open_document client uri in
-    let* response = switch_impl_intf client uri in
-    print_response response;
-    let* () = Client.request client Shutdown in
-    let* () = Fiber.Ivar.read diagnostics in
-    Client.stop client
-  in
-  Fiber.fork_and_join_unit run_client (fun () -> run)
+  let uri = uri_of_ext dir from in
+  let* () = open_document client uri in
+  let* response = switch_impl_intf client uri in
+  print_response response;
+  let* () = Client.request client Shutdown in
+  let* () = Fiber.Ivar.read diagnostics in
+  Client.stop client
 ;;
 
 let%expect_test "test switches (mli => ml)" =
@@ -88,17 +83,11 @@ let%expect_test "test switches (mli, ml, mll => ml, mll)" =
 ;;
 
 let run_switch_request uri =
-  Test.run
-  @@ fun client ->
-  let run_client () = Test.start_client client in
-  let run =
-    let* (_ : InitializeResult.t) = Client.initialized client in
+  Test.run_initialized (fun client ->
     let* response = switch_impl_intf client uri in
     print_response response;
     let* () = Client.request client Shutdown in
-    Client.stop client
-  in
-  Fiber.fork_and_join_unit run_client (fun () -> run)
+    Client.stop client)
 ;;
 
 let%expect_test "can switch from file URI with non-file scheme" =
