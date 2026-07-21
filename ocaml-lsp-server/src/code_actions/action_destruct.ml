@@ -28,17 +28,45 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
     ()
 ;;
 
-let code_action (state : State.t) doc (params : CodeActionParams.t) =
+type dispatch = Range.t -> (Loc.t * string, Exn_with_backtrace.t) result Fiber.t
+
+let dispatch merlin (range : Range.t) =
+  let command =
+    let start = Position.logical range.start in
+    let finish = Position.logical range.end_ in
+    Query_protocol.Case_analysis (start, finish)
+  in
+  Document.Merlin.dispatch ~name:"destruct" merlin command
+;;
+
+let cached_dispatch merlin =
+  let results = ref [] in
+  let read result =
+    let* response = Fiber.Ivar.read result in
+    match response with
+    | Ok response -> Fiber.return response
+    | Error errors -> Fiber.reraise_all errors
+  in
+  fun range ->
+    match List.find !results ~f:(fun (range', _) -> Poly.equal range range') with
+    | Some (_, result) -> read result
+    | None ->
+      let result = Fiber.Ivar.create () in
+      results := (range, result) :: !results;
+      let* response = Fiber.collect_errors (fun () -> dispatch merlin range) in
+      let* () = Fiber.Ivar.fill result response in
+      (match response with
+       | Ok response -> Fiber.return response
+       | Error errors -> Fiber.reraise_all errors)
+;;
+
+let code_action (state : State.t) dispatch_ doc (params : CodeActionParams.t) =
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
   | `Merlin merlin ->
-    let command =
-      let start = Position.logical params.range.start in
-      let finish = Position.logical params.range.end_ in
-      Query_protocol.Case_analysis (start, finish)
-    in
-    let* res = Document.Merlin.dispatch ~name:"destruct" merlin command in
+    let dispatch = Option.value dispatch_ ~default:(dispatch merlin) in
+    let* res = dispatch params.range in
     (match res with
      | Ok (loc, newText) ->
        let supportsJumpToNextHole =
@@ -62,4 +90,6 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
      | Error exn -> Exn_with_backtrace.reraise exn)
 ;;
 
-let t state = { Code_action.kind; run = `Non_batchable (code_action state) }
+let t ?dispatch state =
+  { Code_action.kind; run = `Non_batchable (code_action state dispatch) }
+;;

@@ -276,14 +276,20 @@ let dispatch_destruct (merlin : Document.Merlin.t) (range : Range.t) =
   Document.Merlin.dispatch ~name:"destruct" merlin command
 ;;
 
-let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.t) =
+let code_action
+      (state : State.t)
+      dispatch
+      (doc : Document.t)
+      (params : CodeActionParams.t)
+  =
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin merlin ->
     (match Document.Merlin.kind merlin, extract_statement doc params.range with
      | Intf, _ | _, None -> Fiber.return None
      | Impl, Some statement ->
-       let+ res = dispatch_destruct merlin statement.query_range in
+       let dispatch = Option.value dispatch ~default:(dispatch_destruct merlin) in
+       let+ res = dispatch statement.query_range in
        (match res with
         | Ok (loc, newText) ->
           let loc = adjust_reply_location ~statement loc in
@@ -306,4 +312,6 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
         | Error exn -> Exn_with_backtrace.reraise exn))
 ;;
 
-let t state = { Code_action.kind; run = `Non_batchable (code_action state) }
+let t ?dispatch state =
+  { Code_action.kind; run = `Non_batchable (code_action state dispatch) }
+;;

@@ -97,5 +97,5 @@ let%expect_test "destruct actions duplicate case analysis" =
     ]
   in
   print_pipeline_count ~name:"destruct" ~only ~source range;
-  [%expect {| destruct pipelines: 2 |}]
+  [%expect {| destruct pipelines: 1 |}]
 ;;

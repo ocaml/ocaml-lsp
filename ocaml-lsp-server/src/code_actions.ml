@@ -26,6 +26,11 @@ module Code_action_error_monoid = struct
 end
 
 let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
+  let destruct_dispatch =
+    match Document.kind doc with
+    | `Other -> None
+    | `Merlin merlin -> Some (Action_destruct.cached_dispatch merlin)
+  in
   let action_is_enabled =
     match params.context.only with
     | None -> fun _ -> true
@@ -35,8 +40,8 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
   let enabled_actions =
     List.filter
       ~f:action_is_enabled
-      [ Action_destruct_line.t state
-      ; Action_destruct.t state
+      [ Action_destruct_line.t ?dispatch:destruct_dispatch state
+      ; Action_destruct.t ?dispatch:destruct_dispatch state
       ; Action_update_signature.t state
       ; Action_combine_cases.t
       ; Action_inferred_intf.t state
