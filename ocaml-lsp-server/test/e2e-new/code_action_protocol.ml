@@ -144,7 +144,6 @@ let f (x : t) =
   [%expect
     {|
     code actions:
-    - Create metrics.mli (switch)
     - Fun jump (merlin-jump-fun)
     - Match jump (merlin-jump-match)
     - Let jump (merlin-jump-let)

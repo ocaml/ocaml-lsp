@@ -50,7 +50,7 @@ let print_optional_code_action label = function
   | Some action -> print_code_action label action
 ;;
 
-let%expect_test "inline edit is computed eagerly despite resolve support" =
+let%expect_test "inline edit is resolved lazily when supported" =
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
   let capabilities = code_action_capabilities resolveSupport in
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
@@ -73,6 +73,8 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
      let* action = request_inline_action client ~uri ~range in
      let action = Option.value_exn action in
      print_code_action "initial response" action;
+     let* resolved = Client.request client (CodeActionResolve action) in
+     print_code_action "after resolve" resolved;
      Test.exit_client client
    in
    run ());
@@ -89,10 +91,35 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
         "merlin-jump-prev-case", "open-dune", "put module name in identifiers",
         "remove module name from identifiers", "remove type annotation",
         "switch", "type-annotate", "update_intf"
-      ]
+      ],
+      "resolveProvider": true
     }
     initial response:
     {
+      "data": {
+        "action": "inline",
+        "uri": "file:///resolve.ml",
+        "range": {
+          "end": { "character": 7, "line": 1 },
+          "start": { "character": 6, "line": 1 }
+        },
+        "version": 0
+      },
+      "isPreferred": false,
+      "kind": "refactor.inline",
+      "title": "Inline into uses"
+    }
+    after resolve:
+    {
+      "data": {
+        "action": "inline",
+        "uri": "file:///resolve.ml",
+        "range": {
+          "end": { "character": 7, "line": 1 },
+          "start": { "character": 6, "line": 1 }
+        },
+        "version": 0
+      },
       "edit": {
         "documentChanges": [
           {
@@ -116,7 +143,7 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
     |}]
 ;;
 
-let%expect_test "resolving after a document change returns the stale eager edit" =
+let%expect_test "resolving after a document change rejects the stale action" =
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
   let capabilities = code_action_capabilities resolveSupport in
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
@@ -169,27 +196,10 @@ let%expect_test "resolving after a document change returns the stale eager edit"
    run ());
   [%expect
     {|
-    resolved after change:
+    resolve error:
     {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "(0)",
-                "range": {
-                  "end": { "character": 3, "line": 2 },
-                  "start": { "character": 2, "line": 2 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///resolve-stale.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "refactor.inline",
-      "title": "Inline into uses"
+      "code": -32801,
+      "message": "The document changed before the code action was resolved"
     }
     |}]
 ;;

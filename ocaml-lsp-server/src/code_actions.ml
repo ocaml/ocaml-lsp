@@ -25,6 +25,16 @@ module Code_action_error_monoid = struct
   include Monoid.Make (Code_action_error)
 end
 
+let client_can_resolve_edits (state : State.t) =
+  match (State.client_capabilities state).textDocument with
+  | Some
+      { codeAction =
+          Some { dataSupport = Some true; resolveSupport = Some { properties }; _ }
+      ; _
+      } -> List.mem properties "edit" ~equal:String.equal
+  | None | Some _ -> false
+;;
+
 let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
   let destruct_dispatch = Document.merlin_exn doc |> Action_destruct.cached_dispatch in
   let enabled_actions =
@@ -44,7 +54,9 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       ; Action_add_rec.t
       ; Action_mark_remove_unused.mark
       ; Action_mark_remove_unused.remove
-      ; Action_inline.t
+      ; (if client_can_resolve_edits state
+         then Action_inline.unresolved
+         else Action_inline.t)
       ; Action_extract.local
       ; Action_extract.function_
       ]
@@ -156,4 +168,10 @@ let compute server (params : CodeActionParams.t) =
            , state )
        in
        later reply)
+;;
+
+let resolve state action =
+  match Action_inline.resolve state action with
+  | Some resolved -> resolved
+  | None -> Fiber.return action
 ;;
