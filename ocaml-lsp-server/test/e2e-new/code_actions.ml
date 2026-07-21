@@ -2401,63 +2401,51 @@ let f = function
          | _ -> Fiber.return ())
       ()
   in
-  Test.run ~handler (fun client ->
-    let run_client () =
-      Client.start
+  Test.run_initialized ~handler (fun client ->
+    let textDocument =
+      TextDocumentItem.create
+        ~uri:Helpers.uri
+        ~languageId:(LanguageKind.Other "ocaml")
+        ~version:0
+        ~text:source
+    in
+    let* () =
+      Client.notification
         client
-        (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
+        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
     in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create
-          ~uri:Helpers.uri
-          ~languageId:(LanguageKind.Other "ocaml")
-          ~version:0
-          ~text:source
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = Fiber.Ivar.read first_diagnostics in
-      let settings = `Assoc [ "diagnostics_delay", `Float 10.0 ] in
-      let* () = Client.notification client (ChangeConfiguration { settings }) in
-      let edit_range =
-        range ~start_line:2 ~start_character:8 ~end_line:2 ~end_character:8
-      in
-      let contentChanges =
-        [ `TextDocumentContentChangePartial
-            (TextDocumentContentChangePartial.create ~range:edit_range ~text:" " ())
-        ]
-      in
-      let textDocument =
-        VersionedTextDocumentIdentifier.create ~uri:Helpers.uri ~version:1
-      in
-      let change = DidChangeTextDocumentParams.create ~textDocument ~contentChanges in
-      let* () = Client.notification client (TextDocumentDidChange change) in
-      let query_range =
-        range ~start_line:2 ~start_character:0 ~end_line:4 ~end_character:0
-      in
-      let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
-      let context =
-        CodeActionContext.create
-          ~diagnostics:[]
-          ~only:[ CodeActionKind.Other "combine-cases" ]
-          ()
-      in
-      let params = CodeActionParams.create ~textDocument ~range:query_range ~context () in
-      let* response = Client.request client (CodeAction params) in
-      let available =
-        response
-        |> Option.value ~default:[]
-        |> List.exists ~f:(find_action "combine-cases")
-      in
-      Printf.printf "combine-cases available: %b\n" available;
-      let* () = Client.request client Shutdown in
-      Client.notification client Exit
+    let* () = Fiber.Ivar.read first_diagnostics in
+    let settings = `Assoc [ "diagnostics_delay", `Float 10.0 ] in
+    let* () = Client.notification client (ChangeConfiguration { settings }) in
+    let edit_range =
+      range ~start_line:2 ~start_character:8 ~end_line:2 ~end_character:8
     in
-    Fiber.fork_and_join_unit run_client run);
+    let contentChanges =
+      [ `TextDocumentContentChangePartial
+          (TextDocumentContentChangePartial.create ~range:edit_range ~text:" " ())
+      ]
+    in
+    let textDocument =
+      VersionedTextDocumentIdentifier.create ~uri:Helpers.uri ~version:1
+    in
+    let change = DidChangeTextDocumentParams.create ~textDocument ~contentChanges in
+    let* () = Client.notification client (TextDocumentDidChange change) in
+    let query_range =
+      range ~start_line:2 ~start_character:0 ~end_line:4 ~end_character:0
+    in
+    let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+    let context =
+      CodeActionContext.create
+        ~diagnostics:[]
+        ~only:[ CodeActionKind.Other "combine-cases" ]
+        ()
+    in
+    let params = CodeActionParams.create ~textDocument ~range:query_range ~context () in
+    let* response = Client.request client (CodeAction params) in
+    let available =
+      response |> Option.value ~default:[] |> List.exists ~f:(find_action "combine-cases")
+    in
+    Printf.printf "combine-cases available: %b\n" available;
+    Test.exit_client client);
   [%expect {| combine-cases available: false |}]
 ;;

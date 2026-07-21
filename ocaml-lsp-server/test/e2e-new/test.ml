@@ -63,6 +63,11 @@ let shutdown_client client =
   Client.stop client
 ;;
 
+let exit_client client =
+  let* () = Client.request client Shutdown in
+  Client.notification client Exit
+;;
+
 module T : sig
   val run_with_status
     :  ?extra_env:string list
