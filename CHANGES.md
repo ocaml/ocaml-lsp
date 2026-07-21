@@ -48,6 +48,7 @@
 - Report a missing project build-system executable as a diagnostic without
   discarding the opened document. (#1814, @rgrinberg)
 - Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)
+- Respect hierarchical code-action kind filters from clients. (#1802, @rgrinberg)
 - Ensure `textDocument/documentSymbol` returns a `selectionRange` contained
   within its `range`, so clients no longer reject the document outline.
   (#1775, fixes #1560, @Leonard013)
