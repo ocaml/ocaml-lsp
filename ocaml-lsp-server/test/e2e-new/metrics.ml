@@ -26,18 +26,14 @@ let%expect_test "metrics" =
     in
     Client.Handler.make ~on_request ~on_notification ()
   in
-  (Test.run ~handler
+  (Test.run_initialized ~handler
    @@ fun client ->
-   let run_client () = Test.start_client client in
-   let run =
-     let* (_ : InitializeResult.t) = Client.initialized client in
-     let view_metrics = ExecuteCommandParams.create ~command:"ocamllsp/view-metrics" () in
-     let+ res = Client.request client (ExecuteCommand view_metrics) in
-     print_endline "server: receiving response";
-     Yojson.Safe.to_channel stdout res;
-     print_endline ""
-   in
-   Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client));
+   let view_metrics = ExecuteCommandParams.create ~command:"ocamllsp/view-metrics" () in
+   let* res = Client.request client (ExecuteCommand view_metrics) in
+   print_endline "server: receiving response";
+   Yojson.Safe.to_channel stdout res;
+   print_endline "";
+   Client.stop client);
   [%expect
     {|
       client: received show document params

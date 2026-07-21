@@ -13,26 +13,21 @@ let test
   =
   let on_notification, diagnostics = Test.drain_diagnostics () in
   let handler = Client.Handler.make ~on_notification () in
-  Test.run ~handler ?extra_env (fun client ->
-    let run_client () = Test.start_client ~capabilities client in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create
-          ~uri
-          ~languageId:(LanguageKind.Other language_id)
-          ~version:0
-          ~text
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = req client in
-      let* () = Client.request client Shutdown in
-      let* () = Fiber.Ivar.read diagnostics in
-      Client.stop client
+  Test.run_initialized ~handler ~capabilities ?extra_env (fun client ->
+    let textDocument =
+      TextDocumentItem.create
+        ~uri
+        ~languageId:(LanguageKind.Other language_id)
+        ~version:0
+        ~text
     in
-    Fiber.fork_and_join_unit run_client run)
+    let* () =
+      Client.notification
+        client
+        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+    in
+    let* () = req client in
+    let* () = Client.request client Shutdown in
+    let* () = Fiber.Ivar.read diagnostics in
+    Client.stop client)
 ;;

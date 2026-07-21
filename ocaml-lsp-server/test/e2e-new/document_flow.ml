@@ -23,39 +23,32 @@ let%expect_test "it should allow double opening the same document" =
       ~on_request:{ Client.Handler.on_request }
       ()
   in
-  (Test.run ~handler
+  let capabilities =
+    let window =
+      let showDocument = ShowDocumentClientCapabilities.create ~support:true in
+      WindowClientCapabilities.create ~showDocument ()
+    in
+    ClientCapabilities.create ~window ()
+  in
+  (Test.run_initialized ~handler ~capabilities
    @@ fun client ->
-   let run_client () =
-     let capabilities =
-       let window =
-         let showDocument = ShowDocumentClientCapabilities.create ~support:true in
-         WindowClientCapabilities.create ~showDocument ()
-       in
-       ClientCapabilities.create ~window ()
+   let uri = DocumentUri.of_path "foo.ml" in
+   let open_ text =
+     let textDocument =
+       TextDocumentItem.create
+         ~uri
+         ~languageId:(LanguageKind.Other "ocaml")
+         ~version:0
+         ~text
      in
-     Test.start_client ~capabilities client
+     Client.notification
+       client
+       (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
    in
-   let run =
-     let* (_ : InitializeResult.t) = Client.initialized client in
-     let uri = DocumentUri.of_path "foo.ml" in
-     let open_ text =
-       let textDocument =
-         TextDocumentItem.create
-           ~uri
-           ~languageId:(LanguageKind.Other "ocaml")
-           ~version:0
-           ~text
-       in
-       Client.notification
-         client
-         (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-     in
-     let* () = open_ "text 1" in
-     let* () = drain_diagnostics () in
-     let+ () = open_ "text 2" in
-     ()
-   in
-   Fiber.fork_and_join_unit run_client (fun () ->
-     run >>> drain_diagnostics () >>> Client.stop client));
+   let* () = open_ "text 1" in
+   let* () = drain_diagnostics () in
+   let* () = open_ "text 2" in
+   let* () = drain_diagnostics () in
+   Client.stop client);
   [%expect {| |}]
 ;;
