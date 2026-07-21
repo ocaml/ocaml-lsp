@@ -63,8 +63,12 @@ let code_actions
       (params : CodeActionParams.t)
       (capabilities : ShowDocumentClientCapabilities.t option)
   =
-  match Document.kind doc with
-  | `Merlin merlin when available capabilities ->
+  let targets =
+    List.filter targets ~f:(fun target ->
+      Code_action.kind_is_requested params.context.only (kind target))
+  in
+  match Document.kind doc, targets with
+  | `Merlin merlin, _ :: _ when available capabilities ->
     let+ actions =
       (* TODO: Merlin Jump command that returns all available jump locations for a source code buffer. *)
       Fiber.parallel_map targets ~f:(fun target ->
@@ -79,11 +83,7 @@ let code_actions
           let arguments = [ DocumentUri.yojson_of_t uri; Range.yojson_of_t range ] in
           Command.create ~title ~command:command_name ~arguments ()
         in
-        CodeAction.create
-          ~title
-          ~kind:(CodeActionKind.Other (sprintf "merlin-jump-%s" (rename_target target)))
-          ~command
-          ())
+        CodeAction.create ~title ~kind:(kind target) ~command ())
     in
     List.filter_opt actions
   | _ -> Fiber.return []
