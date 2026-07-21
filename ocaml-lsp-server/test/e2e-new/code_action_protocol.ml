@@ -1,12 +1,6 @@
 open Test.Import
 open Lsp_helpers
 
-let range ~start_line ~start_character ~end_line ~end_character =
-  let start = Position.create ~line:start_line ~character:start_character in
-  let end_ = Position.create ~line:end_line ~character:end_character in
-  Range.create ~start ~end_
-;;
-
 let code_action_capabilities ?resolveSupport () =
   let window =
     let showDocument = ShowDocumentClientCapabilities.create ~support:true in
@@ -112,7 +106,9 @@ let f (x : t) =
   | Bar _ -> 0
 |ocaml}
   in
-  let range = range ~start_line:3 ~start_character:4 ~end_line:3 ~end_character:4 in
+  let range =
+    Code_actions.range ~start_line:3 ~start_character:4 ~end_line:3 ~end_character:4
+  in
   print_pipeline_count ~prep:activate_jump ~name:"unknown" ~only:jump_kinds ~source range;
   [%expect {| unknown pipelines: 7 |}]
 ;;
