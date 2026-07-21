@@ -125,7 +125,8 @@ let%expect_test "start/stop" =
             "put module name in identifiers",
             "remove module name from identifiers", "remove type annotation",
             "switch", "type-annotate", "update_intf"
-          ]
+          ],
+          "resolveProvider": true
         },
         "codeLensProvider": { "resolveProvider": false },
         "completionProvider": {
