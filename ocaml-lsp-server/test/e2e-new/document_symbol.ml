@@ -712,3 +712,48 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
     ]
     |}]
 ;;
+
+let%expect_test "optional argument selectionRange (#1560)" =
+  let source =
+    {ocaml|let f ?x _ = x
+let g childs = List.map f childs
+|ocaml}
+  in
+  let capabilities =
+    let documentSymbol =
+      DocumentSymbolClientCapabilities.create ~hierarchicalDocumentSymbolSupport:true ()
+    in
+    let textDocument = TextDocumentClientCapabilities.create ~documentSymbol () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    let le a b =
+      match Position.compare a b with
+      | Gt -> false
+      | Lt | Eq -> true
+    in
+    let rec check (symbol : DocumentSymbol.t) =
+      let range = symbol.range
+      and selection = symbol.selectionRange in
+      let status =
+        if le range.start selection.start && le selection.end_ range.end_
+        then "ok"
+        else "selectionRange not contained in range"
+      in
+      print_endline (symbol.name ^ ": " ^ status);
+      List.iter (Option.value symbol.children ~default:[]) ~f:check
+    in
+    match response with
+    | Some (`DocumentSymbol symbols) -> List.iter symbols ~f:check
+    | Some (`SymbolInformation _) | None -> print_endline "unexpected response"
+  in
+  Helpers.test ~capabilities source request;
+  [%expect
+    {|
+    f: ok
+    g: ok
+    arg: selectionRange not contained in range
+    |}]
+;;
