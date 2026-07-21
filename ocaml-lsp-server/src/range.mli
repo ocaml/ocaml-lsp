@@ -8,6 +8,10 @@ val compare : t -> t -> Ordering.t
 (** [contains r1 r2] returns true if [r1] contains [r2]. *)
 val contains : t -> t -> bool
 
+(** [intersection r1 r2] is the non-empty intersection of [r1] and [r2], if
+    one exists. *)
+val intersection : t -> t -> t option
+
 val to_dyn : t -> Dyn.t
 val compare_size : t -> t -> Ordering.t
 val first_line : t
