@@ -13,25 +13,14 @@ let%expect_test "can add the first workspace folder after initialization" =
   in
   let stderr = Unix.descr_of_out_channel stderr_chan in
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
-  Test.run ~handler ~stderr (fun client ->
-    let run_client () =
-      let capabilities = ClientCapabilities.create () in
-      Client.start
-        client
-        (InitializeParams.create ~capabilities ~workspaceFolders:None ())
+  Test.run_initialized ~handler ~stderr ~workspaceFolders:None (fun client ->
+    let folder =
+      WorkspaceFolder.create ~uri:(DocumentUri.of_path "/tmp/new-workspace") ~name:"new"
     in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let folder =
-        WorkspaceFolder.create ~uri:(DocumentUri.of_path "/tmp/new-workspace") ~name:"new"
-      in
-      let event = WorkspaceFoldersChangeEvent.create ~added:[ folder ] ~removed:[] in
-      let change = DidChangeWorkspaceFoldersParams.create ~event in
-      let* () = Client.notification client (ChangeWorkspaceFolders change) in
-      let* () = Client.request client Shutdown in
-      Client.notification client Exit
-    in
-    Fiber.fork_and_join_unit run_client run);
+    let event = WorkspaceFoldersChangeEvent.create ~added:[ folder ] ~removed:[] in
+    let change = DidChangeWorkspaceFoldersParams.create ~event in
+    let* () = Client.notification client (ChangeWorkspaceFolders change) in
+    Test.exit_client client);
   Stdlib.close_out stderr_chan;
   let stderr = Io.String_path.read_file stderr_path in
   Stdlib.Sys.remove stderr_path;
