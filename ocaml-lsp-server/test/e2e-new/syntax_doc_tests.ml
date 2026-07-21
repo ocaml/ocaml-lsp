@@ -21,27 +21,21 @@ let run_test text req =
         Fiber.return ())
       ()
   in
-  Test.run ~handler (fun client ->
-    let run_client () = Test.start_client client in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create
-          ~uri:Helpers.uri
-          ~languageId:(LanguageKind.Other "ocaml")
-          ~version:0
-          ~text
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = req client in
-      let* () = Client.request client Shutdown in
-      Client.stop client
+  Test.run_initialized ~handler (fun client ->
+    let textDocument =
+      TextDocumentItem.create
+        ~uri:Helpers.uri
+        ~languageId:(LanguageKind.Other "ocaml")
+        ~version:0
+        ~text
     in
-    Fiber.fork_and_join_unit run_client run)
+    let* () =
+      Client.notification
+        client
+        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+    in
+    let* () = req client in
+    Test.shutdown_client client)
 ;;
 
 let%expect_test "syntax doc should display" =
