@@ -40,7 +40,11 @@ let%expect_test "it should allow double opening the same document" =
      let uri = DocumentUri.of_path "foo.ml" in
      let open_ text =
        let textDocument =
-         TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
+         TextDocumentItem.create
+           ~uri
+           ~languageId:(LanguageKind.Other "ocaml")
+           ~version:0
+           ~text
        in
        Client.notification
          client

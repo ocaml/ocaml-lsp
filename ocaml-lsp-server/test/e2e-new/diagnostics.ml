@@ -29,7 +29,7 @@ let test source =
       let textDocument =
         TextDocumentItem.create
           ~uri:Helpers.uri
-          ~languageId:"ocaml"
+          ~languageId:(LanguageKind.Other "ocaml")
           ~version:0
           ~text:source
       in
@@ -196,7 +196,7 @@ end
       let textDocument =
         TextDocumentItem.create
           ~uri:Helpers.uri
-          ~languageId:"ocaml"
+          ~languageId:(LanguageKind.Other "ocaml")
           ~version:0
           ~text:source
       in

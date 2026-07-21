@@ -26,7 +26,11 @@ let run_test text req =
     let run () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       let textDocument =
-        TextDocumentItem.create ~uri:Helpers.uri ~languageId:"ocaml" ~version:0 ~text
+        TextDocumentItem.create
+          ~uri:Helpers.uri
+          ~languageId:(LanguageKind.Other "ocaml")
+          ~version:0
+          ~text
       in
       let* () =
         Client.notification

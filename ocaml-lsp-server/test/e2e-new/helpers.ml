@@ -18,7 +18,11 @@ let test
     let run () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       let textDocument =
-        TextDocumentItem.create ~uri ~languageId:language_id ~version:0 ~text
+        TextDocumentItem.create
+          ~uri
+          ~languageId:(LanguageKind.Other language_id)
+          ~version:0
+          ~text
       in
       let* () =
         Client.notification

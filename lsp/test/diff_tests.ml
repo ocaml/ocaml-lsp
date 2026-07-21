@@ -7,6 +7,7 @@ include struct
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
   module TextDocumentItem = TextDocumentItem
   module DidOpenTextDocumentParams = DidOpenTextDocumentParams
+  module LanguageKind = LanguageKind
 end
 
 let test ~from ~to_ =
@@ -15,7 +16,11 @@ let test ~from ~to_ =
   Yojson.Safe.pretty_to_string ~std:false json |> print_endline;
   let textDocument =
     let uri = Lsp.Uri.of_path "/tmp/test" in
-    TextDocumentItem.create ~languageId:"test" ~text:from ~uri ~version:1
+    TextDocumentItem.create
+      ~languageId:(LanguageKind.Other "test")
+      ~text:from
+      ~uri
+      ~version:1
   in
   let text_document =
     Text_document.make

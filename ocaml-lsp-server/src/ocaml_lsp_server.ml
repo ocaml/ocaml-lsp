@@ -71,7 +71,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
         ~changeNotifications:(`Bool true)
         ()
     in
-    ServerCapabilities.create_workspace ~workspaceFolders ()
+    WorkspaceOptions.create ~workspaceFolders ()
   in
   let capabilities =
     let experimental =
@@ -120,7 +120,9 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ExecuteCommandOptions.create ~commands ()
     in
     let semanticTokensProvider =
-      let full = `Full (SemanticTokensOptions.create_full ~delta:true ()) in
+      let full =
+        `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ())
+      in
       `SemanticTokensOptions
         (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend ~full ())
     in
@@ -162,7 +164,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
   in
   let serverInfo =
     let version = Version.get () in
-    InitializeResult.create_serverInfo ~name:"ocamllsp" ~version ()
+    ServerInfo.create ~name:"ocamllsp" ~version ()
   in
   InitializeResult.create ~capabilities ~serverInfo ()
 ;;

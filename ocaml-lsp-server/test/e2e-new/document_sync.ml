@@ -12,7 +12,11 @@ let print_document = function
 
 let open_document client source =
   let textDocument =
-    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+    TextDocumentItem.create
+      ~uri
+      ~languageId:(LanguageKind.Other "ocaml")
+      ~version:0
+      ~text:source
   in
   Client.notification
     client
@@ -22,7 +26,16 @@ let open_document client source =
 let change_document ?range ?rangeLength client ~version ~text =
   let textDocument = VersionedTextDocumentIdentifier.create ~uri ~version in
   let contentChanges =
-    [ TextDocumentContentChangeEvent.create ?range ?rangeLength ~text () ]
+    let change : TextDocumentContentChangeEvent.t =
+      match range with
+      | None ->
+        `TextDocumentContentChangeWholeDocument
+          (TextDocumentContentChangeWholeDocument.create ~text)
+      | Some range ->
+        `TextDocumentContentChangePartial
+          (TextDocumentContentChangePartial.create ?rangeLength ~range ~text ())
+    in
+    [ change ]
   in
   Client.notification
     client

@@ -75,7 +75,16 @@ let add_json_conv_for_t (sig_ : Module.sig_ Module.t) =
 ;;
 
 module Enum = struct
+  let deduplicate_literals constrs =
+    List.fold_left constrs ~init:[] ~f:(fun unique ((_, literal) as entry) ->
+      if List.exists unique ~f:(fun (_, existing) -> Poly.equal literal existing)
+      then unique
+      else entry :: unique)
+    |> List.rev
+  ;;
+
   let of_json ~allow_other ~poly { Named.name; data = constrs } =
+    let constrs = deduplicate_literals constrs in
     let open Ml.Expr in
     let body =
       let clauses =

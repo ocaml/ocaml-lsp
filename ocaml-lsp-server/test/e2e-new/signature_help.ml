@@ -2,12 +2,10 @@ open Test.Import
 
 let capabilities =
   let parameterInformation =
-    SignatureHelpClientCapabilities.create_parameterInformation
-      ~labelOffsetSupport:true
-      ()
+    ClientSignatureParameterInformationOptions.create ~labelOffsetSupport:true ()
   in
   let signatureInformation =
-    SignatureHelpClientCapabilities.create_signatureInformation
+    ClientSignatureInformationOptions.create
       ~documentationFormat:[ MarkupKind.Markdown; MarkupKind.PlainText ]
       ~parameterInformation
       ()

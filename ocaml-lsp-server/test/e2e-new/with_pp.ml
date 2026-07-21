@@ -35,7 +35,11 @@ let%expect_test "with-pp" =
       let* (_ : InitializeResult.t) = Client.initialized client in
       let textDocument =
         let text = Io.String_path.read_file path in
-        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
+        TextDocumentItem.create
+          ~uri
+          ~languageId:(LanguageKind.Other "ocaml")
+          ~version:0
+          ~text
       in
       let* () =
         Client.notification

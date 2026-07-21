@@ -12,7 +12,11 @@ let uri_of_ext dir ext = DocumentUri.of_path (Stdlib.Filename.concat dir ("test.
 
 let open_document client uri =
   let textDocument =
-    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:""
+    TextDocumentItem.create
+      ~uri
+      ~languageId:(LanguageKind.Other "ocaml")
+      ~version:0
+      ~text:""
   in
   Client.notification
     client
