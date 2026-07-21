@@ -3,26 +3,21 @@ module Req = Ocaml_lsp_server.Custom_request.Get_documentation
 
 module Util = struct
   let call_documentation ~position ?(identifier = None) ?(contentFormat = None) client =
-    let uri = DocumentUri.of_path "test.ml" in
-    let text_document = TextDocumentIdentifier.create ~uri in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
       Req.Request_params.create ~text_document ~position ~identifier ~contentFormat ()
       |> Req.Request_params.yojson_of_t
-      |> Jsonrpc.Structured.t_of_yojson
-      |> Option.some
     in
-    let req =
-      Lsp.Client_request.UnknownRequest { meth = "ocamllsp/getDocumentation"; params }
-    in
-    Client.request client req
+    Test.custom_request client "ocamllsp/getDocumentation" params
   ;;
 
   let test ~line ~character ?identifier ?contentFormat source =
     let position = Position.create ~character ~line in
     let contentFormat =
       match contentFormat with
+      | None -> None
       | Some "markdown" -> Some MarkupKind.Markdown
-      | Some "plaintext" | _ -> Some MarkupKind.PlainText
+      | Some "plaintext" | Some _ -> Some MarkupKind.PlainText
     in
     let request client =
       let open Fiber.O in

@@ -55,6 +55,20 @@ let%expect_test "test uri parsing" =
     query: ab=1# |}]
 ;;
 
+let%expect_test "a URI query is not part of its filesystem path" =
+  Lsp.Uri.Private.win32 := false;
+  let uri = Uri.of_string "file:///foo.ml?revision=1" in
+  Printf.printf
+    "path: %s\nquery: %s\n"
+    (Uri.to_path uri)
+    (Option.value ~default:"<none>" (Uri.query uri));
+  [%expect
+    {|
+    path: /foo.ml?revision=1
+    query: revision=1
+    |}]
+;;
+
 let uri_of_path =
   let test path =
     let uri = Uri.of_path path in

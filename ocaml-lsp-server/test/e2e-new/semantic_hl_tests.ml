@@ -98,14 +98,15 @@ let test
       ()
   in
   Test.run ~handler (fun client ->
-    let run_client () =
-      Client.start client (InitializeParams.create ~capabilities:client_capabilities ())
-    in
+    let run_client () = Test.start_client ~capabilities:client_capabilities client in
     let run () =
       let* (initializeResult : InitializeResult.t) = Client.initialized client in
-      let uri = DocumentUri.of_path "test.ml" in
       let textDocument =
-        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:src
+        TextDocumentItem.create
+          ~uri:Helpers.uri
+          ~languageId:(LanguageKind.Other "ocaml")
+          ~version:0
+          ~text:src
       in
       let* () =
         Client.notification
@@ -113,7 +114,7 @@ let test
           (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
       in
       let* resp =
-        let textDocument = TextDocumentIdentifier.create ~uri in
+        let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
         let params = SemanticTokensParams.create ~textDocument () in
         Client.request client (req params)
       in
@@ -152,6 +153,23 @@ let test_semantic_tokens_full src =
            src
   in
   test ~src (fun p -> SemanticTokensFull p) print_resp
+;;
+
+let%expect_test "semantic tokens use UTF-16 positions" =
+  let src = "let café = 1\n" in
+  test
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { resp; _ } ->
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          Array.iteri data ~f:(fun index value ->
+            if index > 0 then print_string "; ";
+            print_int value);
+          print_newline ());
+       Fiber.return ());
+  [%expect {| 0; 4; 5; 8; 0; 0; 8; 1; 19; 0 |}]
 ;;
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =

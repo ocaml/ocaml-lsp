@@ -3,17 +3,12 @@ module Req = Ocaml_lsp_server.Custom_request.Type_expression
 
 module Util = struct
   let call_type_expr ~position ~expression client =
-    let text_document =
-      TextDocumentIdentifier.create ~uri:(DocumentUri.of_path "test.ml")
-    in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
       Req.Request_params.create ~text_document ~position ~expression
       |> Req.Request_params.yojson_of_t
-      |> Jsonrpc.Structured.t_of_yojson
-      |> Option.some
     in
-    let req = Lsp.Client_request.UnknownRequest { meth = Req.meth; params } in
-    Client.request client req
+    Test.custom_request client Req.meth params
   ;;
 
   let test ~line ~character ~expression source =

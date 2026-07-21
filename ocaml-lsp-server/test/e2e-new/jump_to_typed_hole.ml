@@ -3,17 +3,12 @@ module Req = Ocaml_lsp_server.Custom_request.Jump_to_typed_hole
 
 module Util = struct
   let call ?direction ?range ~position client =
-    let uri = DocumentUri.of_path "test.ml" in
-    let text_document = TextDocumentIdentifier.create ~uri in
-    let meth = Req.meth in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
       Req.Request_params.create ?direction ?range ~text_document ~position ()
       |> Req.Request_params.yojson_of_t
-      |> Jsonrpc.Structured.t_of_yojson
-      |> Option.some
     in
-    let req = Lsp.Client_request.UnknownRequest { meth; params } in
-    Client.request client req
+    Test.custom_request client Req.meth params
   ;;
 
   let test ?direction ?range ~line ~character source =

@@ -118,7 +118,7 @@ module Poll =
         | s -> Ok (`Mtime s.st_mtime)
       ;;
 
-      let read_file s = Fiber.of_thunk (fun () -> Fiber.return (Io.read_file s))
+      let read_file s = Fiber.of_thunk (fun () -> Fiber.return (Fs_io.read_file s))
     end)
 
 type config =
@@ -132,7 +132,7 @@ type config =
 module Instance : sig
   type t
 
-  val format_dune_file : t -> Document.t -> string Fiber.t
+  val format_dune_file : t -> Document.Dune.t -> string Fiber.t
   val stop : t -> unit Fiber.t
   val run : t -> unit Fiber.t
   val connect : t -> (unit, unit) result Fiber.t
@@ -345,7 +345,7 @@ end = struct
                         d ));
               promotions, requests :: add, remove)
       in
-      promotions, List.flatten add, List.flatten remove
+      promotions, List.concat add, List.concat remove
     in
     match res with
     | Error v -> raise (Drpc.Version_error.E v)
@@ -459,7 +459,7 @@ end = struct
       ; finish
       ; promotions = String.Map.empty
       ; client = None
-      ; diagnostics_id = Diagnostics.Dune.gen (Registry.Dune.pid source)
+      ; diagnostics_id = Diagnostics.Dune.gen (Pid.of_int (Registry.Dune.pid source))
       ; id = Id.gen ()
       }
     in
@@ -521,8 +521,8 @@ end = struct
         | Ok req -> req
       in
       let+ res =
-        let path = Document.uri doc |> Uri.to_path |> Drpc.Path.absolute in
-        Client.request client req (path, `Contents (Document.text doc))
+        let path = Document.Dune.uri doc |> Uri.to_path |> Drpc.Path.absolute in
+        Client.request client req (path, `Contents (Document.Dune.text doc))
       in
       (match res with
        | Ok res -> res
@@ -533,7 +533,11 @@ end = struct
   ;;
 end
 
-module Dune_map = Map.Make (Registry.Dune)
+module Dune_map = Map.Make (struct
+    include Registry.Dune
+
+    let compare x y = Ordering.to_int (compare x y)
+  end)
 
 type active =
   { mutable instances : Instance.t String.Map.t (* keyed by root *)
@@ -577,7 +581,7 @@ let uri_dune_overlap =
         | "." :: xs -> xs
         | xs -> xs)
   in
-  let normalize = if Sys.win32 then String.lowercase_ascii else fun x -> x in
+  let normalize = if Sys.win32 then String.lowercase else fun x -> x in
   fun (uri : Uri.t) (dune : Registry.Dune.t) ->
     let dune_root = Registry.Dune.root dune in
     let path =
@@ -773,7 +777,7 @@ let create
       &&
       match client_capabilities.experimental with
       | Some (`Assoc xs) ->
-        (match List.assoc xs (fst view_promotion_capability) with
+        (match List.Assoc.find xs (fst view_promotion_capability) ~equal:String.equal with
          | Some (`Bool b) -> b
          | _ -> false)
       | _ -> false
@@ -940,7 +944,7 @@ let for_doc t doc =
   match !t with
   | Closed -> []
   | Active t ->
-    let uri = Document.uri doc in
+    let uri = Document.Dune.uri doc in
     String.Map.fold ~init:[] t.instances ~f:(fun instance acc ->
       if uri_dune_overlap uri (Instance.source instance) then instance :: acc else acc)
 ;;

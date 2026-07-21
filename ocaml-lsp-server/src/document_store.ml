@@ -45,7 +45,7 @@ type t =
     pool : Fiber.Pool.t
   }
 
-let make s pool = { db = Table.create (module Uri) 50; server = Server s; pool }
+let make s pool = { db = Table.create (module Uri); server = Server s; pool }
 let code_action_id uri = "ocamllsp-promote/" ^ Uri.to_string uri
 let method_ = "textDocument/codeAction"
 
@@ -100,8 +100,8 @@ let open_document t doc =
   | None ->
     Table.set
       t.db
-      key
-      (ref { document = Some doc; promotions = 0; semantic_tokens_cache = None });
+      ~key
+      ~data:(ref { document = Some doc; promotions = 0; semantic_tokens_cache = None });
     Fiber.return ()
   | Some d ->
     (* if there's no document, then we just opened it to track promotions.
@@ -174,8 +174,8 @@ let register_promotions t uris =
   List.filter uris ~f:(fun uri ->
     match Table.find t.db uri with
     | None ->
-      let doc = ref { document = None; promotions = 0; semantic_tokens_cache = None } in
-      Table.set t.db uri doc;
+      let doc = ref { document = None; promotions = 1; semantic_tokens_cache = None } in
+      Table.set t.db ~key:uri ~data:doc;
       true
     | Some doc ->
       doc := { !doc with promotions = !doc.promotions + 1 };
@@ -198,7 +198,7 @@ let get_semantic_tokens_cache : t -> Uri.t -> semantic_tokens_cache option =
 ;;
 
 let parallel_iter t ~f =
-  let all = Table.fold ~init:[] t.db ~f:(fun doc acc -> doc :: acc) in
+  let all = Table.fold ~init:[] t.db ~f:(fun ~key:_ ~data:doc acc -> doc :: acc) in
   Fiber.parallel_iter all ~f:(fun doc ->
     match !doc.document with
     | None -> Fiber.return ()
@@ -206,7 +206,7 @@ let parallel_iter t ~f =
 ;;
 
 let fold t ~init ~f =
-  Table.fold t.db ~init ~f:(fun doc acc ->
+  Table.fold t.db ~init ~f:(fun ~key:_ ~data:doc acc ->
     match !doc.document with
     | None -> acc
     | Some x -> f x acc)
@@ -214,7 +214,7 @@ let fold t ~init ~f =
 
 let close_all t =
   Fiber.of_thunk (fun () ->
-    let docs = Table.fold t.db ~init:[] ~f:(fun doc acc -> !doc :: acc) in
+    let docs = Table.fold t.db ~init:[] ~f:(fun ~key:_ ~data:doc acc -> !doc :: acc) in
     Table.clear t.db;
     Fiber.parallel_iter docs ~f:maybe_close_doc)
 ;;

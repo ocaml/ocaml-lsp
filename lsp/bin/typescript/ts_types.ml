@@ -297,41 +297,24 @@ module Ident = struct
   module Keys = struct
     include MoreLabels.Set.Make (T)
 
-    let add x y = add y x
-    let mem x y = mem y x
+    let add t x = add x t
+    let mem t x = mem x t
   end
 
-  let top_closure ~key ~deps elements =
-    let rec loop res visited elt ~temporarily_marked =
-      let key = key elt in
-      if Keys.mem temporarily_marked key
-      then Error [ elt ]
-      else if not (Keys.mem visited key)
-      then (
-        let visited = Keys.add visited key in
-        let temporarily_marked = Keys.add temporarily_marked key in
-        deps elt
-        |> iter_elts res visited ~temporarily_marked
-        |> function
-        | Error l -> Error (elt :: l)
-        | Ok (res, visited) ->
-          let res = elt :: res in
-          Ok (res, visited))
-      else Ok (res, visited)
-    and iter_elts res visited elts ~temporarily_marked =
-      match elts with
-      | [] -> Ok (res, visited)
-      | elt :: elts ->
-        loop res visited elt ~temporarily_marked
-        |> (function
-         | Error _ as result -> result
-         | Ok (res, visited) -> iter_elts res visited elts ~temporarily_marked)
-    in
-    iter_elts [] Keys.empty elements ~temporarily_marked:Keys.empty
-    |> function
-    | Ok (res, _visited) -> Ok (List.rev res)
-    | Error elts -> Error elts
-  ;;
+  module Identity = struct
+    type 'a t = 'a
+
+    let return x = x
+
+    module O = struct
+      let ( >>| ) x f = f x
+      let ( >>= ) x f = f x
+    end
+  end
+
+  module Closure = Top_closure.Make (Keys) (Identity)
+
+  let top_closure = Closure.top_closure
 end
 
 module Prim = struct

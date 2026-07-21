@@ -1,5 +1,18 @@
 open Test.Import
 
+let%expect_test "initialize with empty capabilities" =
+  (Test.run
+   @@ fun client ->
+   let run_client () = Test.start_client client in
+   let run =
+     let* (_ : InitializeResult.t) = Client.initialized client in
+     print_endline "initialized";
+     Client.request client Shutdown
+   in
+   Fiber.fork_and_join_unit run_client (fun () -> run >>> Client.stop client));
+  [%expect {| initialized |}]
+;;
+
 let%expect_test "start/stop" =
   let notifs = Queue.create () in
   let handler_collecting_notifs =
@@ -18,10 +31,8 @@ let%expect_test "start/stop" =
        let textDocument =
          let codeAction =
            let codeActionLiteralSupport =
-             let codeActionKind =
-               CodeActionClientCapabilities.create_codeActionKind ~valueSet:[]
-             in
-             CodeActionClientCapabilities.create_codeActionLiteralSupport ~codeActionKind
+             let codeActionKind = ClientCodeActionKindOptions.create ~valueSet:[] in
+             ClientCodeActionLiteralOptions.create ~codeActionKind
            in
            CodeActionClientCapabilities.create ~codeActionLiteralSupport ()
          in
@@ -29,7 +40,7 @@ let%expect_test "start/stop" =
        in
        ClientCapabilities.create ~window ~textDocument ()
      in
-     Client.start client (InitializeParams.create ~capabilities ())
+     Test.start_client ~capabilities client
    in
    let print_init =
      let+ resp = Client.initialized client in

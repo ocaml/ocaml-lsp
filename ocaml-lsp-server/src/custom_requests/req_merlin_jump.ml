@@ -81,10 +81,7 @@ let on_request ~params state =
     let params = JumpParams.t_of_yojson params in
     let uri = params.textDocument.uri in
     let position = params.position in
-    let doc = Document_store.get state.State.store uri in
-    match Document.kind doc with
-    | `Other -> Fiber.return `Null
-    | `Merlin merlin ->
+    Util.with_merlin state uri ~default:`Null (fun merlin ->
       let targets =
         match params.target with
         | None -> JumpParams.targets
@@ -100,5 +97,5 @@ let on_request ~params state =
                | None -> None
                | Some position -> Some (target, position))))
       in
-      Jump.yojson_of_t (List.filter_map results ~f:Fun.id))
+      Jump.yojson_of_t (List.filter_map results ~f:Fun.id)))
 ;;

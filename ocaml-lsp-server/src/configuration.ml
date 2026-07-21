@@ -26,7 +26,7 @@ let update t { DidChangeConfigurationParams.settings } =
     match
       match settings with
       | `Assoc xs ->
-        (match List.assoc xs "diagnostics_delay" with
+        (match List.Assoc.find xs "diagnostics_delay" ~equal:String.equal with
          | Some (`Float f) -> Some f
          | Some (`Int i) -> Some (float_of_int i)
          | None -> None

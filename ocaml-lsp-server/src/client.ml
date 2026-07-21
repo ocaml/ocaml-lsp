@@ -1,4 +1,19 @@
 open Import
+open Fiber.O
+
+let show_document_contents server ~prefix ~suffix contents =
+  let path, chan =
+    Filename.open_temp_file (sprintf "%s.%d" prefix (Unix.getpid ())) suffix
+  in
+  output_string chan contents;
+  close_out_noerr chan;
+  let uri = Uri.of_path path in
+  let request =
+    Server_request.ShowDocumentRequest (ShowDocumentParams.create ~uri ~takeFocus:true ())
+  in
+  let+ { ShowDocumentResult.success = _ } = Server.request server request in
+  ()
+;;
 
 module Experimental_capabilities = struct
   type t = bool

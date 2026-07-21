@@ -1,44 +1,37 @@
 (* The modules are listed alphabetically. Try to keep the order. *)
 
+module Poly = struct
+  let equal = ( = )
+  let compare x y = Ordering.of_int (compare x y)
+  let hash x = Hashtbl.hash x
+end
+
+let sprintf = Printf.sprintf
+
+module Map = Stdlib.MoreLabels.Map
+
 include struct
   open Stdune
   module Code_error = Code_error
-  module Comparable = Comparable
   module Exn_with_backtrace = Exn_with_backtrace
-  module Int = Int
-  module Table = Table
-  module Tuple = Tuple
-  module Unix_env = Env
-  module Map = Map
   module Monoid = Monoid
-  module Poly = Poly
-
-  let sprintf = sprintf
 end
 
-module Io = struct
-  open Base
+module Int = struct
+  type t = int
 
-  let read_file f =
-    Base.Result.try_with (fun () ->
-      let fd = Unix.openfile f [ O_CLOEXEC; O_RDONLY ] 0 in
-      Exn.protect
-        ~finally:(fun () -> Unix.close fd)
-        ~f:(fun () ->
-          match Unix.fstat fd with
-          | { Unix.st_size; _ } ->
-            let buf = Bytes.create st_size in
-            let rec loop pos remains =
-              if remains > 0
-              then (
-                let read = Unix.read fd buf pos remains in
-                if read = 0
-                then failwith (sprintf "unable to read all of %s" f)
-                else loop (pos + read) (remains - read))
-            in
-            loop 0 st_size;
-            Stdlib.Bytes.unsafe_to_string buf))
-  ;;
+  let compare x y = Ordering.of_int (Stdlib.Int.compare x y)
+  let equal = Stdlib.Int.equal
+  let of_string = int_of_string_opt
+  let to_string = string_of_int
+end
+
+module Table = struct
+  include Base.Hashtbl
+
+  module Multi = struct
+    let find = find_multi
+  end
 end
 
 include struct
@@ -68,16 +61,12 @@ module List = struct
 
   let sort xs ~compare = sort xs ~compare:(fun x y -> Ordering.to_int (compare x y))
   let fold_left2 xs ys ~init ~f = Stdlib.List.fold_left2 f init xs ys
-  let assoc xs key = Assoc.find ~equal:Poly.equal xs key
-  let assoc_opt xs key = assoc xs key
   let mem t x ~equal = mem t x ~equal
   let map t ~f = map t ~f
   let concat_map t ~f = concat_map t ~f
-  let flatten t = Stdlib.List.flatten t
   let filter_map t ~f = filter_map t ~f
   let fold_left t ~init ~f = fold_left t ~init ~f
   let findi xs ~f = findi xs ~f
-  let find_opt xs ~f = find xs ~f
 
   let sort_uniq xs ~compare =
     Stdlib.List.sort_uniq (fun x y -> Ordering.to_int (compare x y)) xs
@@ -87,7 +76,6 @@ module List = struct
   let find_mapi xs ~f = find_mapi xs ~f
   let sub xs ~pos ~len = sub xs ~pos ~len
   let hd_exn t = hd_exn t
-  let hd_opt t = hd t
   let nth_exn t n = nth_exn t n
   let hd t = hd t
   let filter t ~f = filter t ~f
@@ -124,15 +112,75 @@ module Option = struct
   include Base.Option
 end
 
+module Env_vars = struct
+  open Option.O
+
+  let _TEST () : bool option =
+    let+ v = Sys.getenv_opt "OCAMLLSP_TEST" in
+    match v with
+    | "true" -> true
+    | "false" -> false
+    | unexpected_val ->
+      Format.eprintf
+        "invalid value %S for OCAMLLSP_TEST ignored. Only true or false are allowed@."
+        unexpected_val;
+      false
+  ;;
+
+  let _IS_HOVER_EXTENDED () : bool option =
+    let* v = Sys.getenv_opt "OCAMLLSP_HOVER_IS_EXTENDED" in
+    match v with
+    | "true" | "1" -> Some true
+    | _ -> Some false
+  ;;
+end
+
 module String = struct
   type t = string
 
-  include struct
-    open Stdune.String
-    module Map = Map
+  module Map = struct
+    include MoreLabels.Map.Make (Stdlib.String)
 
-    let extract_words = extract_words
+    let find t key = find_opt key t
+    let mem t key = mem key t
+    let set t key data = add t ~key ~data
+    let remove t key = remove key t
+    let values t = to_list t |> List.map ~f:snd
+    let to_list_map t ~f = to_list t |> List.map ~f:(fun (k, v) -> f k v)
+    let partition t ~f = partition t ~f:(fun _key v -> f v)
+    let fold t ~init ~f = fold t ~init ~f:(fun ~key:_ ~data acc -> f data acc)
+
+    let of_list_multi xs =
+      List.fold_left xs ~init:empty ~f:(fun acc (key, v) ->
+        update acc ~key ~f:(function
+          | None -> Some [ v ]
+          | Some xs -> Some (v :: xs)))
+    ;;
+
+    let add_exn t key data =
+      match find t key with
+      | None -> set t key data
+      | Some _ -> failwith (sprintf "%s already set" key)
+    ;;
   end
+
+  let extract_words s ~is_word_char =
+    let open StringLabels in
+    let rec skip_blanks i =
+      if i = length s
+      then []
+      else if is_word_char s.[i]
+      then parse_word i (i + 1)
+      else skip_blanks (i + 1)
+    and parse_word i j =
+      if j = length s
+      then [ sub s ~pos:i ~len:(j - i) ]
+      else if is_word_char s.[j]
+      then parse_word i (j + 1)
+      else sub s ~pos:i ~len:(j - i) :: skip_blanks (j + 1)
+    in
+    skip_blanks 0
+  ;;
 
   let to_dyn = Dyn.string
 
@@ -154,7 +202,7 @@ module String = struct
     let drop_prefix = chop_prefix
     let is_prefix = is_prefix
     let map = map
-    let lowercase_ascii = lowercase
+    let lowercase = lowercase
     let capitalize_ascii = capitalize
     let capitalize = capitalize
     let split_on_char t ~sep = split t ~on:sep
@@ -171,42 +219,6 @@ module String = struct
     let filter = filter
     let is_suffix = is_suffix
   end
-
-  let findi =
-    let rec loop s len ~f i =
-      if i >= len
-      then None
-      else if f (String.unsafe_get s i)
-      then Some i
-      else loop s len ~f (i + 1)
-    in
-    fun ?from s ~f ->
-      let len = String.length s in
-      let from =
-        match from with
-        | None -> 0
-        | Some i -> if i > len - 1 then Code_error.raise "findi: invalid from" [] else i
-      in
-      loop s len ~f from
-  ;;
-
-  let rfindi =
-    let rec loop s ~f i =
-      if i < 0
-      then None
-      else if f (String.unsafe_get s i)
-      then Some i
-      else loop s ~f (i - 1)
-    in
-    fun ?from s ~f ->
-      let from =
-        let len = String.length s in
-        match from with
-        | None -> len - 1
-        | Some i -> if i > len - 1 then Code_error.raise "rfindi: invalid from" [] else i
-      in
-      loop s ~f from
-  ;;
 end
 
 (* All modules from [Lsp] should be in the struct below. The modules are listed
@@ -219,10 +231,15 @@ include struct
   module Text_document = Text_document
 
   module Uri = struct
+    module Uri = struct
+      include Uri
+
+      let to_dyn t = Dyn.string (to_string t)
+      let sexp_of_t t = Sexplib0.Sexp_conv.sexp_of_string (to_string t)
+    end
+
     include Uri
-
-    let to_dyn t = Dyn.string (to_string t)
-
+    include Base.Comparator.Make (Uri)
     module Map = Stdlib.Map.Make (Uri)
   end
 end
@@ -245,29 +262,7 @@ module Loc = struct
   end
 
   include T
-
-  module Map = Map.Make (struct
-      include T
-
-      let compare x x' = Ordering.of_int (compare x x')
-
-      let position_to_dyn (pos : Lexing.position) =
-        Dyn.Record
-          [ "pos_fname", Dyn.String pos.pos_fname
-          ; "pos_lnum", Dyn.Int pos.pos_lnum
-          ; "pos_bol", Dyn.Int pos.pos_bol
-          ; "pos_cnum", Dyn.Int pos.pos_cnum
-          ]
-      ;;
-
-      let to_dyn loc =
-        Dyn.Record
-          [ "loc_start", position_to_dyn loc.loc_start
-          ; "loc_end", position_to_dyn loc.loc_end
-          ; "loc_ghost", Dyn.Bool loc.loc_ghost
-          ]
-      ;;
-    end)
+  module Map = Stdlib.MoreLabels.Map.Make (T)
 end
 
 include struct
@@ -333,6 +328,7 @@ include struct
   end
 
   module CodeAction = CodeAction
+  module CodeActionDisabled = CodeActionDisabled
   module CodeActionKind = CodeActionKind
   module CodeActionOptions = CodeActionOptions
   module CodeActionParams = CodeActionParams
@@ -374,6 +370,7 @@ include struct
   module InlayHintParams = InlayHintParams
   module InitializeParams = InitializeParams
   module InitializeResult = InitializeResult
+  module LanguageKind = LanguageKind
   module Location = Location
   module LogMessageParams = LogMessageParams
   module MarkupContent = MarkupContent
@@ -396,6 +393,7 @@ include struct
   module SelectionRangeParams = SelectionRangeParams
   module SemanticTokens = SemanticTokens
   module SemanticTokensEdit = SemanticTokensEdit
+  module SemanticTokensFullDelta = SemanticTokensFullDelta
   module SemanticTokensLegend = SemanticTokensLegend
   module SemanticTokensDelta = SemanticTokensDelta
   module SemanticTokensDeltaParams = SemanticTokensDeltaParams
@@ -404,6 +402,7 @@ include struct
   module SemanticTokensParams = SemanticTokensParams
   module SemanticTokenTypes = SemanticTokenTypes
   module ServerCapabilities = ServerCapabilities
+  module ServerInfo = ServerInfo
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams
   module ShowDocumentClientCapabilities = ShowDocumentClientCapabilities
@@ -418,6 +417,8 @@ include struct
   module SymbolKind = SymbolKind
   module TextDocumentClientCapabilities = TextDocumentClientCapabilities
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
+  module TextDocumentContentChangePartial = TextDocumentContentChangePartial
+  module TextDocumentContentChangeWholeDocument = TextDocumentContentChangeWholeDocument
   module TextDocumentEdit = TextDocumentEdit
   module TextDocumentFilter = TextDocumentFilter
   module TextDocumentIdentifier = TextDocumentIdentifier
@@ -427,11 +428,7 @@ include struct
   module TextDocumentSyncOptions = TextDocumentSyncOptions
   module TextDocumentSyncClientCapabilities = TextDocumentSyncClientCapabilities
   module TextEdit = TextEdit
-
-  (** deprecated *)
-  module TraceValue = TraceValues
-
-  module TraceValues = TraceValues
+  module TraceValue = TraceValue
   module Unregistration = Unregistration
   module UnregistrationParams = UnregistrationParams
   module VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier
@@ -444,6 +441,7 @@ include struct
   module WorkspaceFoldersChangeEvent = WorkspaceFoldersChangeEvent
   module WorkspaceSymbolParams = WorkspaceSymbolParams
   module WorkspaceFoldersServerCapabilities = WorkspaceFoldersServerCapabilities
+  module WorkspaceOptions = WorkspaceOptions
 end
 
 let task_if_running pool ~f =

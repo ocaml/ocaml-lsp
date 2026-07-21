@@ -1,12 +1,43 @@
 open Test.Import
 
-let change_config client params = Client.notification client (ChangeConfiguration params)
-
 let codelens client textDocument =
   Client.request
     client
     (TextDocumentCodeLens
        { textDocument; workDoneToken = None; partialResultToken = None })
+;;
+
+let%expect_test "can add the first workspace folder after initialization" =
+  let stderr_path, stderr_chan =
+    Stdlib.Filename.open_temp_file "ocamllsp-workspace" ".log"
+  in
+  let stderr = Unix.descr_of_out_channel stderr_chan in
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  Test.run ~handler ~stderr (fun client ->
+    let run_client () =
+      let capabilities = ClientCapabilities.create () in
+      Client.start
+        client
+        (InitializeParams.create ~capabilities ~workspaceFolders:None ())
+    in
+    let run () =
+      let* (_ : InitializeResult.t) = Client.initialized client in
+      let folder =
+        WorkspaceFolder.create ~uri:(DocumentUri.of_path "/tmp/new-workspace") ~name:"new"
+      in
+      let event = WorkspaceFoldersChangeEvent.create ~added:[ folder ] ~removed:[] in
+      let change = DidChangeWorkspaceFoldersParams.create ~event in
+      let* () = Client.notification client (ChangeWorkspaceFolders change) in
+      let* () = Client.request client Shutdown in
+      Client.notification client Exit
+    in
+    Fiber.fork_and_join_unit run_client run);
+  Stdlib.close_out stderr_chan;
+  let stderr = Io.String_path.read_file stderr_path in
+  Stdlib.Sys.remove stderr_path;
+  let failed = Base.String.is_substring stderr ~substring:"Assertion failed" in
+  Printf.printf "workspace update error: %b\n" failed;
+  [%expect {| workspace update error: false |}]
 ;;
 
 let%expect_test "disable codelens" =
@@ -18,8 +49,8 @@ let string = "Hello"
   let req client =
     let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let* () =
-      change_config
-        client
+      Lsp_helpers.change_config
+        ~client
         (DidChangeConfigurationParams.create
            ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool false ] ]))
     in
@@ -32,28 +63,22 @@ let string = "Hello"
 ;;
 
 let%expect_test "enable hover extended" =
-  let source =
-    {ocaml|
-type foo = int option
-
-let foo_value : foo = Some 1
-|ocaml}
-  in
+  let source = Hover_helpers.hover_reference_source in
   let position = Position.create ~line:3 ~character:4 in
   let req client =
-    let* resp = Hover_extended.hover client position in
-    let () = Hover_extended.print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     let* () =
-      change_config
-        client
+      Lsp_helpers.change_config
+        ~client
         (DidChangeConfigurationParams.create
            ~settings:(`Assoc [ "extendedHover", `Assoc [ "enable", `Bool true ] ]))
     in
     (* The first hover request has verbosity = 0 *)
-    let* _ = Hover_extended.hover client position in
+    let* _ = Hover_helpers.hover client position in
     (* The second hover request has verbosity = 1 *)
-    let* resp = Hover_extended.hover client position in
-    let () = Hover_extended.print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;

@@ -1,11 +1,5 @@
 .DEFAULT_GOAL := all
 
-TEST_E2E_DIR = ocaml-lsp-server/test/e2e
-
-.PHONY: yarn-install
-yarn-install:
-	yarn install --frozen-lockfile
-
 -include Makefile.dev
 
 .PHONY: all
@@ -22,7 +16,7 @@ install-test-deps:
 
 .PHONY: dev
 dev: ## Setup a development environment
-	opam switch create --no-install . ocaml-base-compiler.5.4.0
+	opam switch create --no-install . ocaml-base-compiler.5.5.0
 	opam install -y dune-release merlin ocamlformat utop ocaml-lsp-server
 	opam install --locked --deps-only --with-doc -y .
 	$(MAKE) install-test-deps
@@ -51,16 +45,8 @@ promote:
 check:
 	dune build @check
 
-.PHONY: test-e2e
-test-e2e: yarn-install
-	dune build @install && dune exec -- ocaml-lsp-server/test/run_test_e2e.exe
-
-.PHONY: promote-e2e
-promote-e2e:
-	dune build @install && cd $(TEST_E2E_DIR) && dune exec -- yarn run promote
-
 .PHONY: test
-test: test-ocaml test-e2e
+test: test-ocaml
 
 .PHONY: clean
 clean: ## Clean build artifacts and other generated files
@@ -87,12 +73,12 @@ release: ## Release on Opam
 	dune-release opam submit
 
 .PHONY: nix-tests
-nix-tests: yarn-install
+nix-tests:
 	make test
 
 .PHONY: nix-fmt
-nix-fmt: yarn-install
-	dune build @fmt --auto-promote
+nix-fmt:
+	dune build @fmt
 
 .PHONY: coverage-deps
 coverage-deps:

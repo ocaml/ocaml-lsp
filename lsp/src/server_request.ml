@@ -95,6 +95,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
     E (WorkDoneProgressCreate params)
   | "workspace/codeLens/refresh" -> Ok (E CodeLensRefresh)
   | "workspace/semanticTokens/refresh" -> Ok (E SemanticTokensRefresh)
+  | "workspace/diagnostic/refresh" -> Ok (E WorkspaceDiagnosticRefresh)
   | "workspace/foldingRange/refresh" -> Ok (E WorkspaceFoldingRangeRefresh)
   | "workspace/inlayHint/refresh" -> Ok (E WorkspaceInlayHintRefresh)
   | "workspace/inlineValue/refresh" -> Ok (E WorkspaceInlineValueRefresh)

@@ -17,7 +17,7 @@ val send : t -> [ `All | `One of Uri.t ] -> unit Fiber.t
 module Dune : sig
   type t
 
-  val gen : int -> t
+  val gen : Pid.t -> t
 end
 
 val set

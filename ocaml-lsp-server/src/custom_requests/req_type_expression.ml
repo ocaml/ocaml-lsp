@@ -36,13 +36,6 @@ type t = string
 
 let t_of_yojson = Yojson.Safe.Util.to_string
 
-let with_pipeline state uri f =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return None
-  | `Merlin merlin -> Document.Merlin.with_pipeline_exn merlin f
-;;
-
 let make_type_expr_command position expression =
   Query_protocol.Type_expr (expression, position)
 ;;
@@ -61,7 +54,9 @@ let on_request ~params state =
       (Option.value ~default:(`Assoc []) params :> Yojson.Safe.t)
       |> Request_params.t_of_yojson
     in
-    let* typ = with_pipeline state uri (dispatch_type_expr position expression) in
+    let* typ =
+      Util.with_pipeline state uri ~default:None (dispatch_type_expr position expression)
+    in
     match typ with
     | Some typ ->
       let* result = Ocamlformat_rpc.format_type ~typ state.ocamlformat_rpc in

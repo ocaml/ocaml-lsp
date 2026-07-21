@@ -28,10 +28,7 @@ let%expect_test "metrics" =
   in
   (Test.run ~handler
    @@ fun client ->
-   let run_client () =
-     let capabilities = ClientCapabilities.create () in
-     Client.start client (InitializeParams.create ~capabilities ())
-   in
+   let run_client () = Test.start_client client in
    let run =
      let* (_ : InitializeResult.t) = Client.initialized client in
      let view_metrics = ExecuteCommandParams.create ~command:"ocamllsp/view-metrics" () in

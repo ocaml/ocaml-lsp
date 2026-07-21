@@ -3,18 +3,12 @@ module Req = Ocaml_lsp_server.Custom_request.Type_search
 
 module Util = struct
   let call_search position query with_doc doc_format client =
-    let uri = DocumentUri.of_path "test.ml" in
-    let text_document = TextDocumentIdentifier.create ~uri in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
       Req.Request_params.create text_document position 3 query with_doc doc_format
       |> Req.Request_params.yojson_of_t
-      |> Jsonrpc.Structured.t_of_yojson
-      |> Option.some
     in
-    let req =
-      Lsp.Client_request.UnknownRequest { meth = "ocamllsp/typeSearch"; params }
-    in
-    Client.request client req
+    Test.custom_request client "ocamllsp/typeSearch" params
   ;;
 
   let test ~line ~character ~query source ~with_doc ?(doc_format = None) () =

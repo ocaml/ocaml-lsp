@@ -42,7 +42,7 @@ module Request_params = struct
     |> member "withValues"
     |> to_string_option
     |> Option.bind ~f:(fun value ->
-      match String.(lowercase_ascii @@ trim value) with
+      match String.lowercase (String.trim value) with
       | "none" -> Some `None
       | "local" -> Some `Local
       | _ -> None)
@@ -77,18 +77,6 @@ let yojson_of_t { position; result } =
     ]
 ;;
 
-let with_pipeline state uri f =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return `Null
-  | `Merlin merlin ->
-    (match Document.Merlin.kind merlin with
-     | Document.Kind.Intf ->
-       (* Construct makes no sense if its called from an interface. *)
-       Fiber.return `Null
-     | Document.Kind.Impl -> Document.Merlin.with_pipeline_exn merlin f)
-;;
-
 let make_construct_command position with_values depth =
   Query_protocol.Construct (position, with_values, depth)
 ;;
@@ -107,5 +95,6 @@ let on_request ~params state =
       Request_params.t_of_yojson params
     in
     let uri = text_document.uri in
-    with_pipeline state uri @@ dispatch_construct position with_values depth)
+    Util.with_impl_pipeline state uri ~default:`Null
+    @@ dispatch_construct position with_values depth)
 ;;

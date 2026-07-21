@@ -12,7 +12,7 @@ let iter_completions
     Lsp.Client_request.TextDocumentCompletion
       (CompletionParams.create ~textDocument ~position ~context ())
   in
-  Lsp_helpers.iter_lsp_response ?prep ?path ~makeRequest
+  Lsp_helpers.iter_lsp_response ?prep ?path ~language_id:"ocaml" ~makeRequest
 ;;
 
 let print_completions
@@ -46,6 +46,28 @@ let print_completions
            |> Yojson.Safe.pretty_to_string ~std:false
            |> print_endline);
          if originalLength > limit then print_endline "............."))
+;;
+
+let%expect_test "completion uses UTF-16 positions for Unicode prefixes" =
+  let source = "let café = 1\nlet _ = café" in
+  let position = Position.create ~line:1 ~character:12 in
+  print_completions ~limit:1 source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 12, "line": 1 },
+          "start": { "character": 12, "line": 1 }
+        }
+      }
+    }
+    .............
+    |}]
 ;;
 
 let%expect_test "can start completion at arbitrary position (before the dot)" =

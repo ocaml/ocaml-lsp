@@ -4,15 +4,10 @@ open Fiber.O
 let action_kind = "destruct (enumerate cases)"
 let kind = CodeActionKind.Other action_kind
 
-let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText) =
+let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
   let range : Range.t = Range.of_loc loc in
   let textedit : TextEdit.t = { range; newText } in
-  let edit : WorkspaceEdit.t =
-    let version = Document.version doc in
-    let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
-    let edit = TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ] in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-  in
+  let edit = Code_action.workspace_edit doc [ textedit ] in
   let title = String.capitalize_ascii action_kind in
   let command =
     if supportsJumpToNextHole
@@ -34,7 +29,6 @@ let code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText) 
 ;;
 
 let code_action (state : State.t) doc (params : CodeActionParams.t) =
-  let uri = params.textDocument.uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
@@ -52,8 +46,7 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
          |> Client.Experimental_capabilities.supportsJumpToNextHole
        in
        let opt =
-         Some
-           (code_action_of_case_analysis ~supportsJumpToNextHole doc uri (loc, newText))
+         Some (code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText))
        in
        Fiber.return opt
      | Error

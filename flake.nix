@@ -2,12 +2,8 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nix-ocaml/nix-overlays";
-    merlin5_3 = {
+    merlin = {
       url = "github:ocaml/merlin";
-      flake = false;
-    };
-    merlin5_2 = {
-      url = "github:ocaml/merlin/502";
       flake = false;
     };
   };
@@ -15,7 +11,7 @@
   outputs = { self, flake-utils, nixpkgs, ... }@inputs:
     let
       package = "ocaml-lsp-server";
-      ocamlformat = pkgs: pkgs.ocamlformat_0_27_0;
+      ocamlformat = pkgs: pkgs.ocamlformat_0_29_0;
       basePackage = {
         duneVersion = "3";
         version = "n/a";
@@ -77,6 +73,7 @@
               p.cinaps
               p.ppx_expect
               p.ppx_yojson_conv
+              p.top-closure
               (ocamlformat pkgs)
             ];
           });
@@ -90,7 +87,6 @@
                 p.ppx_expect
                 p.ppx_yojson_conv
                 (ocamlformat pkgs)
-                pkgs.yarn
               ];
               buildInputs = [
                 jsonrpc
@@ -104,6 +100,7 @@
                 chrome-trace
                 dyn
                 fiber
+                fs-io
                 xdg
                 ordering
                 spawn
@@ -134,10 +131,8 @@
         pkgsWithoutOverlays = (import nixpkgs { inherit system; });
         makeNixpkgs = ocaml: merlin:
           pkgsWithoutOverlays.appendOverlays [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
-        pkgs_5_2 = makeNixpkgs "ocamlPackages_5_2" inputs.merlin5_2;
-        pkgs_5_3 = makeNixpkgs "ocamlPackages_5_3" inputs.merlin5_3;
-        localPackages_5_2 = makeLocalPackages pkgs_5_2;
-        localPackages_5_3 = makeLocalPackages pkgs_5_3;
+        pkgs = makeNixpkgs "ocamlPackages_5_5" inputs.merlin;
+        localPackages = makeLocalPackages pkgs;
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
             buildInputs = [ nixpkgs.ocamlPackages.utop ];
@@ -146,15 +141,12 @@
               (builtins.attrValues localPackages);
           };
       in {
-        packages = (localPackages_5_3 // {
-          default = localPackages_5_3.ocaml-lsp;
-          ocaml_5_2 = localPackages_5_2;
+        packages = (localPackages // {
+          default = localPackages.ocaml-lsp;
         });
 
         devShells = {
-          default = devShell localPackages_5_3 pkgs_5_3;
-
-          ocaml5_2 = devShell localPackages_5_2 pkgs_5_2;
+          default = devShell localPackages pkgs;
 
           release = pkgsWithoutOverlays.mkShell {
             buildInputs = [ pkgsWithoutOverlays.dune-release ];
@@ -166,13 +158,12 @@
               # present
               pkgsWithoutOverlays.ocaml
               (ocamlformat pkgsWithoutOverlays)
-              pkgsWithoutOverlays.yarn
-              pkgsWithoutOverlays.dune_3
+              pkgsWithoutOverlays.ocamlPackages.dune
             ];
           };
 
-          check = pkgs_5_3.mkShell {
-            inputsFrom = builtins.attrValues localPackages_5_3;
+          check = pkgs.mkShell {
+            inputsFrom = builtins.attrValues localPackages;
           };
         };
       }));

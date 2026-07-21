@@ -1,7 +1,6 @@
 open! Test.Import
 open Lsp_helpers
 
-let uri = DocumentUri.of_path "test.ml"
 let create_postion line character = Position.create ~line ~character
 
 let activate_syntax_doc =
@@ -14,23 +13,6 @@ let deactivate_syntax_doc =
     ~settings:(`Assoc [ "syntaxDocumentation", `Assoc [ "enable", `Bool false ] ])
 ;;
 
-let print_hover hover =
-  match hover with
-  | None -> print_endline "no hover response"
-  | Some hover ->
-    hover |> Hover.yojson_of_t |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
-;;
-
-let hover_req client position =
-  Client.request
-    client
-    (TextDocumentHover
-       { HoverParams.position
-       ; textDocument = TextDocumentIdentifier.create ~uri
-       ; workDoneToken = None
-       })
-;;
-
 let run_test text req =
   let handler =
     Client.Handler.make
@@ -40,14 +22,15 @@ let run_test text req =
       ()
   in
   Test.run ~handler (fun client ->
-    let run_client () =
-      let capabilities = ClientCapabilities.create () in
-      Client.start client (InitializeParams.create ~capabilities ())
-    in
+    let run_client () = Test.start_client client in
     let run () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       let textDocument =
-        TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text
+        TextDocumentItem.create
+          ~uri:Helpers.uri
+          ~languageId:(LanguageKind.Other "ocaml")
+          ~version:0
+          ~text
       in
       let* () =
         Client.notification
@@ -70,8 +53,8 @@ type color = Red|Blue
   let position = create_postion 1 9 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   let (_ : string) = [%expect.output] in
@@ -99,8 +82,8 @@ type color = Red|Blue
   let position = create_postion 1 9 in
   let req client =
     let* () = change_config ~client deactivate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   run_test source req;
@@ -124,8 +107,8 @@ type t = ..
   let position = create_postion 1 5 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   run_test source req;
@@ -152,8 +135,8 @@ let%expect_test "should receive no hover response" =
   let position = create_postion 1 5 in
   let req client =
     let* () = change_config ~client activate_syntax_doc in
-    let* resp = hover_req client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   run_test source req;

@@ -5,27 +5,12 @@ module Import = struct
     module List = struct
       include List
 
-      let find_mapi ~f l =
-        let rec k i = function
-          | [] -> None
-          | x :: xs ->
-            (match f i x with
-             | Some x' -> Some x'
-             | None -> (k [@tailcall]) (i + 1) xs)
-        in
-        k 0 l
-      ;;
-
       let take n l =
-        let rec take acc n l =
-          if n = 0
-          then acc
-          else (
-            match l with
-            | [] -> failwith "list shorter than n"
-            | x :: xs -> (take [@tailcall]) (x :: acc) (n - 1) xs)
-        in
-        List.rev (take [] n l)
+        if n < 0 || n > List.length l
+        then failwith "list shorter than n"
+        else
+          let open Base in
+          List.take l n
       ;;
     end
 
@@ -73,27 +58,26 @@ module T : sig
   val run_with_status
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
+    -> ?stderr:Unix.file_descr
     -> (unit Client.t -> 'a Fiber.t)
     -> Unix.process_status * 'a
 
   val run
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
+    -> ?stderr:Unix.file_descr
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
   let _PATH = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
   let bin = Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
 
-  let run_with_status ?(extra_env = []) ?handler f =
+  let run_with_status ?(extra_env = []) ?handler ?(stderr = Unix.stderr) f =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
-      let env =
-        let current = Unix.environment () in
-        Array.to_list current @ extra_env |> Spawn.Env.of_list
-      in
-      Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ()
+      let env = extra_env @ Array.to_list (Unix.environment ()) |> Spawn.Env.of_list in
+      Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ~stderr ()
     in
     Unix.close stdin_i;
     Unix.close stdout_o;
@@ -154,10 +138,48 @@ end = struct
     |> Lev_fiber.Error.ok_exn
   ;;
 
-  let run ?extra_env ?handler f = snd @@ run_with_status ?extra_env ?handler f
+  let run ?extra_env ?handler ?stderr f =
+    snd @@ run_with_status ?extra_env ?handler ?stderr f
+  ;;
 end
 
 include T
+
+let write_file path content =
+  let oc = open_out path in
+  output_string oc content;
+  close_out oc
+;;
+
+let read_file path =
+  let ic = open_in path in
+  let len = in_channel_length ic in
+  let contents = really_input_string ic len in
+  close_in ic;
+  contents
+;;
+
+let temp_dir ?temp_dir prefix =
+  let dir = Stdlib.Filename.temp_file ?temp_dir prefix "" in
+  Stdlib.Sys.remove dir;
+  Unix.mkdir dir 0o700;
+  dir
+;;
+
+let run_command ?cwd command =
+  let command =
+    match cwd with
+    | None -> command
+    | Some cwd -> Printf.sprintf "cd %s && %s" (Stdlib.Filename.quote cwd) command
+  in
+  if Stdlib.Sys.command command <> 0 then failwith command
+;;
+
+let null_device = if Sys.win32 then "NUL" else "/dev/null"
+
+let start_client ?(capabilities = ClientCapabilities.create ()) ?workspaceFolders client =
+  Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ())
+;;
 
 let drain_diagnostics () =
   let diagnostics = Fiber.Ivar.create () in
@@ -185,7 +207,7 @@ let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
       in
       ClientCapabilities.create ~window ()
     in
-    Client.start client (InitializeParams.create ~capabilities ())
+    start_client ~capabilities client
   in
   let run =
     let* (_ : InitializeResult.t) = Client.initialized client in
@@ -204,9 +226,18 @@ let run_request ?(prep = fun _ -> Fiber.return ()) ?settings request =
     ret)
 ;;
 
+let custom_request client meth params =
+  let params = Some (Jsonrpc.Structured.t_of_yojson params) in
+  Client.request client (UnknownRequest { meth; params })
+;;
+
 let openDocument ~client ~uri ~source =
   let textDocument =
-    TextDocumentItem.create ~uri ~languageId:"ocaml" ~version:0 ~text:source
+    TextDocumentItem.create
+      ~uri
+      ~languageId:(LanguageKind.Other "ocaml")
+      ~version:0
+      ~text:source
   in
   Client.notification
     client
@@ -253,4 +284,16 @@ let apply_edits src edits =
 
 let print_result result =
   result |> Yojson.Safe.pretty_to_string ~std:false |> print_endline
+;;
+
+let print_list yojson_of_t xs = print_result (`List (List.map xs ~f:yojson_of_t))
+
+let print_option ?(none = "[]") yojson_of_t = function
+  | None -> print_endline none
+  | Some x -> print_result (yojson_of_t x)
+;;
+
+let print_option_list ?(none = "[]") yojson_of_t = function
+  | None -> print_endline none
+  | Some xs -> print_list yojson_of_t xs
 ;;

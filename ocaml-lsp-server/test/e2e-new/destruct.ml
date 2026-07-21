@@ -3,16 +3,11 @@ module Req = Ocaml_lsp_server.Custom_request.Destruct
 
 module Util = struct
   let call_destruct client range =
-    let uri = DocumentUri.of_path "test.ml" in
-    let text_document = TextDocumentIdentifier.create ~uri in
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let params =
-      Req.Request_params.create ~text_document ~range ()
-      |> Req.Request_params.yojson_of_t
-      |> Jsonrpc.Structured.t_of_yojson
-      |> Option.some
+      Req.Request_params.create ~text_document ~range () |> Req.Request_params.yojson_of_t
     in
-    let req = Lsp.Client_request.UnknownRequest { meth = Req.meth; params } in
-    Client.request client req
+    Test.custom_request client Req.meth params
   ;;
 
   let test pos source =

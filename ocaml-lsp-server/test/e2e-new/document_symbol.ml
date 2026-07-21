@@ -2,8 +2,7 @@ open Test.Import
 
 module Util = struct
   let call_document_symbol client =
-    let uri = DocumentUri.of_path "test.ml" in
-    let textDocument = TextDocumentIdentifier.create ~uri in
+    let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
     let param = Lsp.Types.DocumentSymbolParams.create ~textDocument () in
     let req = Lsp.Client_request.DocumentSymbol param in
     Client.request client req
@@ -22,6 +21,184 @@ let print_result x =
     | None -> []
   in
   print_as_json (`List result)
+;;
+
+let%expect_test "returns a list of symbol infos" =
+  let source =
+    {ocaml|let num = 42
+let string = "Hello"
+
+module M = struct
+  let m a b = a + b
+  let n = 32
+end
+|ocaml}
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    print_result response
+  in
+  Helpers.test source request;
+  [%expect
+    {|
+    [
+      {
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 12, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "num"
+      },
+      {
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 20, "line": 1 },
+            "start": { "character": 0, "line": 1 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "string"
+      },
+      {
+        "kind": 2,
+        "location": {
+          "range": {
+            "end": { "character": 3, "line": 6 },
+            "start": { "character": 0, "line": 3 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "M"
+      },
+      {
+        "containerName": "M",
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 19, "line": 4 },
+            "start": { "character": 2, "line": 4 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "m"
+      },
+      {
+        "containerName": "M",
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 12, "line": 5 },
+            "start": { "character": 2, "line": 5 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "n"
+      }
+    ]
+    |}]
+;;
+
+let%expect_test "returns a hierarchy of symbols" =
+  let source =
+    {ocaml|let num = 42
+let string = "Hello"
+
+module M = struct
+  let m a b = a + b
+  let n = 32
+end
+|ocaml}
+  in
+  let capabilities =
+    let documentSymbol =
+      DocumentSymbolClientCapabilities.create ~hierarchicalDocumentSymbolSupport:true ()
+    in
+    let textDocument = TextDocumentClientCapabilities.create ~documentSymbol () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    print_result response
+  in
+  Helpers.test ~capabilities source request;
+  [%expect
+    {|
+    [
+      {
+        "children": [],
+        "kind": 13,
+        "name": "num",
+        "range": {
+          "end": { "character": 12, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        },
+        "selectionRange": {
+          "end": { "character": 7, "line": 0 },
+          "start": { "character": 4, "line": 0 }
+        }
+      },
+      {
+        "children": [],
+        "kind": 13,
+        "name": "string",
+        "range": {
+          "end": { "character": 20, "line": 1 },
+          "start": { "character": 0, "line": 1 }
+        },
+        "selectionRange": {
+          "end": { "character": 10, "line": 1 },
+          "start": { "character": 4, "line": 1 }
+        }
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "kind": 13,
+            "name": "m",
+            "range": {
+              "end": { "character": 19, "line": 4 },
+              "start": { "character": 2, "line": 4 }
+            },
+            "selectionRange": {
+              "end": { "character": 7, "line": 4 },
+              "start": { "character": 6, "line": 4 }
+            }
+          },
+          {
+            "children": [],
+            "kind": 13,
+            "name": "n",
+            "range": {
+              "end": { "character": 12, "line": 5 },
+              "start": { "character": 2, "line": 5 }
+            },
+            "selectionRange": {
+              "end": { "character": 7, "line": 5 },
+              "start": { "character": 6, "line": 5 }
+            }
+          }
+        ],
+        "kind": 2,
+        "name": "M",
+        "range": {
+          "end": { "character": 3, "line": 6 },
+          "start": { "character": 0, "line": 3 }
+        },
+        "selectionRange": {
+          "end": { "character": 8, "line": 3 },
+          "start": { "character": 7, "line": 3 }
+        }
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "documentOutline in an empty file" =
@@ -533,5 +710,50 @@ let%expect_test "documentOutline with nested recursive definition and methods" =
         "name": "foo"
       }
     ]
+    |}]
+;;
+
+let%expect_test "optional argument selectionRange (#1560)" =
+  let source =
+    {ocaml|let f ?x _ = x
+let g childs = List.map f childs
+|ocaml}
+  in
+  let capabilities =
+    let documentSymbol =
+      DocumentSymbolClientCapabilities.create ~hierarchicalDocumentSymbolSupport:true ()
+    in
+    let textDocument = TextDocumentClientCapabilities.create ~documentSymbol () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    let le a b =
+      match Position.compare a b with
+      | Gt -> false
+      | Lt | Eq -> true
+    in
+    let rec check (symbol : DocumentSymbol.t) =
+      let range = symbol.range
+      and selection = symbol.selectionRange in
+      let status =
+        if le range.start selection.start && le selection.end_ range.end_
+        then "ok"
+        else "selectionRange not contained in range"
+      in
+      print_endline (symbol.name ^ ": " ^ status);
+      List.iter (Option.value symbol.children ~default:[]) ~f:check
+    in
+    match response with
+    | Some (`DocumentSymbol symbols) -> List.iter symbols ~f:check
+    | Some (`SymbolInformation _) | None -> print_endline "unexpected response"
+  in
+  Helpers.test ~capabilities source request;
+  [%expect
+    {|
+    f: ok
+    g: ok
+    arg: selectionRange not contained in range
     |}]
 ;;

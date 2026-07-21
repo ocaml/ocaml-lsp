@@ -3,6 +3,13 @@ open Import
 (** This module is a collection of client-specific functionality (client =
     editor) *)
 
+val show_document_contents
+  :  _ Server.t
+  -> prefix:string
+  -> suffix:string
+  -> string
+  -> unit Fiber.t
+
 module Experimental_capabilities : sig
   (** Module to store experimental client capabilities *)
 

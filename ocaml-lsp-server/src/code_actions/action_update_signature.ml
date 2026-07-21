@@ -4,18 +4,7 @@ open Fiber.O
 let action_kind = "update_intf"
 
 let code_action_of_intf doc text_edits =
-  let edit : WorkspaceEdit.t =
-    let doc_edit =
-      let edits = List.map text_edits ~f:(fun e -> `TextEdit e) in
-      let textDocument =
-        let uri = Document.uri doc in
-        let version = Document.version doc in
-        OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
-      in
-      TextDocumentEdit.create ~textDocument ~edits
-    in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit doc_edit ] ()
-  in
+  let edit = Code_action.workspace_edit doc text_edits in
   let title = String.capitalize_ascii "update signature(s) to match implementation" in
   CodeAction.create
     ~title

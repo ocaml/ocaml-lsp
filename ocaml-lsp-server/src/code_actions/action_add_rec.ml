@@ -28,21 +28,16 @@ let has_missing_rec pipeline pos_start =
       then
         (* Return the location of the first pattern in the let binding (the
            rec goes right before it) *)
-        let+ first_pat = List.hd_opt bound in
+        let+ first_pat = List.hd bound in
         let first_pat_loc = first_pat.vb_pat.pat_loc in
         { first_pat_loc with loc_end = first_pat_loc.loc_start }
       else None
     | _ -> None)
 ;;
 
-let code_action_add_rec uri diagnostics doc loc =
-  let edit =
-    let textedit : TextEdit.t = { range = Range.of_loc loc; newText = "rec " } in
-    let version = Document.version doc in
-    let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
-    let edit = TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ] in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-  in
+let code_action_add_rec diagnostics doc loc =
+  let textedit : TextEdit.t = { range = Range.of_loc loc; newText = "rec " } in
+  let edit = Code_action.workspace_edit doc [ textedit ] in
   CodeAction.create
     ~diagnostics
     ~title:action_title
@@ -70,7 +65,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
       in_range () && is_unbound ())
   in
   has_missing_rec pipeline pos_start
-  |> Option.map ~f:(code_action_add_rec params.textDocument.uri [ diagnostic ] doc)
+  |> Option.map ~f:(code_action_add_rec [ diagnostic ] doc)
 ;;
 
 let t = Code_action.batchable QuickFix code_action

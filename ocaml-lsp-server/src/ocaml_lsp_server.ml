@@ -19,16 +19,9 @@ let view_metrics_command_name = "ocamllsp/view-metrics"
 
 let view_metrics server =
   let* json = Metrics.dump () in
-  let uri, chan =
-    Filename.open_temp_file (sprintf "lsp-metrics.%d" (Unix.getpid ())) ".json"
+  let+ () =
+    Client.show_document_contents server ~prefix:"lsp-metrics" ~suffix:".json" json
   in
-  output_string chan json;
-  close_out_noerr chan;
-  let req =
-    let uri = Uri.of_path uri in
-    Server_request.ShowDocumentRequest (ShowDocumentParams.create ~uri ~takeFocus:true ())
-  in
-  let+ { ShowDocumentResult.success = _ } = Server.request server req in
   `Null
 ;;
 
@@ -79,7 +72,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
         ~changeNotifications:(`Bool true)
         ()
     in
-    ServerCapabilities.create_workspace ~workspaceFolders ()
+    WorkspaceOptions.create ~workspaceFolders ()
   in
   let capabilities =
     let experimental =
@@ -128,7 +121,9 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ExecuteCommandOptions.create ~commands ()
     in
     let semanticTokensProvider =
-      let full = `Full (SemanticTokensOptions.create_full ~delta:true ()) in
+      let full =
+        `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ())
+      in
       `SemanticTokensOptions
         (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend ~full ())
     in
@@ -170,7 +165,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
   in
   let serverInfo =
     let version = Version.get () in
-    InitializeResult.create_serverInfo ~name:"ocamllsp" ~version ()
+    ServerInfo.create ~name:"ocamllsp" ~version ()
   in
   InitializeResult.create ~capabilities ~serverInfo ()
 ;;
@@ -324,56 +319,10 @@ module Formatter = struct
     make_error ~code ~message ()
   ;;
 
-  let run rpc doc =
-    let state : State.t = Server.state rpc in
-    match Document.kind doc with
-    | `Merlin _ ->
-      let* res =
-        let* cancel = Server.cancel_token () in
-        Ocamlformat.run doc cancel
-      in
-      (match res with
-       | Ok result -> Fiber.return (Some result)
-       | Error e ->
-         let+ () =
-           let state : State.t = Server.state rpc in
-           let msg =
-             let message = Ocamlformat.message e in
-             ShowMessageParams.create ~message ~type_:Warning
-           in
-           task_if_running state.detached ~f:(fun () ->
-             Server.notification rpc (ShowMessage msg))
-         in
-         Jsonrpc.Response.Error.raise (jsonrpc_error e))
-    | `Other ->
-      (match Dune.for_doc (State.dune state) doc with
-       | [] ->
-         let message =
-           sprintf
-             "No dune instance found. Please run dune in watch mode for %s"
-             (Uri.to_path (Document.uri doc))
-         in
-         Jsonrpc.Response.Error.raise (make_error ~code:InvalidRequest ~message ())
-       | dune :: rest ->
-         let* () =
-           match rest with
-           | [] -> Fiber.return ()
-           | _ :: _ ->
-             let message =
-               sprintf
-                 "More than one dune instance detected for %s. Selecting one at random"
-                 (Uri.to_path (Document.uri doc))
-             in
-             State.log_msg rpc ~type_:MessageType.Warning ~message
-         in
-         let+ to_ = Dune.Instance.format_dune_file dune doc in
-         Some (Diff.edit ~from:(Document.text doc) ~to_))
-  ;;
-
-  let run_on_range rpc doc range =
+  let run_ocamlformat rpc format =
     let* res =
       let* cancel = Server.cancel_token () in
-      Ocamlformat.run_on_range doc range cancel
+      format cancel
     in
     match res with
     | Ok result -> Fiber.return (Some result)
@@ -388,6 +337,48 @@ module Formatter = struct
           Server.notification rpc (ShowMessage msg))
       in
       Jsonrpc.Response.Error.raise (jsonrpc_error e)
+  ;;
+
+  let run_dune rpc doc =
+    let state : State.t = Server.state rpc in
+    match Dune.for_doc (State.dune state) doc with
+    | [] ->
+      let message =
+        sprintf
+          "No dune instance found. Please run dune in watch mode for %s"
+          (Uri.to_path (Document.Dune.uri doc))
+      in
+      Jsonrpc.Response.Error.raise (make_error ~code:InvalidRequest ~message ())
+    | dune :: rest ->
+      let* () =
+        match rest with
+        | [] -> Fiber.return ()
+        | _ :: _ ->
+          let message =
+            sprintf
+              "More than one dune instance detected for %s. Selecting one at random"
+              (Uri.to_path (Document.Dune.uri doc))
+          in
+          State.log_msg rpc ~type_:MessageType.Warning ~message
+      in
+      let+ to_ = Dune.Instance.format_dune_file dune doc in
+      Some (Diff.edit ~from:(Document.Dune.text doc) ~to_)
+  ;;
+
+  let run rpc doc =
+    match Document.kind doc with
+    | `Merlin merlin -> run_ocamlformat rpc (Ocamlformat.run merlin)
+    | `Other ->
+      (match Document.dune doc with
+       | Some dune -> run_dune rpc dune
+       | None -> Fiber.return None)
+  ;;
+
+  let run_on_range rpc doc range =
+    match Document.syntax doc with
+    | Dune | Cram -> Fiber.return None
+    | Ocaml | Reason | Mlx | Ocamllex | Menhir ->
+      run_ocamlformat rpc (Ocamlformat.run_on_range doc range)
   ;;
 end
 
@@ -563,7 +554,7 @@ let on_request
   match req with
   | Client_request.UnknownRequest { meth; params } ->
     (match
-       List.assoc
+       List.Assoc.find
          [ ( Req_switch_impl_intf.meth
            , fun ~params state ->
                Fiber.of_thunk (fun () ->
@@ -590,6 +581,7 @@ let on_request
          ; Req_refactor_extract.meth, Req_refactor_extract.on_request
          ]
          meth
+         ~equal:String.equal
      with
      | None ->
        Jsonrpc.Response.Error.raise
@@ -613,8 +605,7 @@ let on_request
      | Some doc -> now (Some (Msource.text (Document.source doc))))
   | DebugEcho params -> now params
   | Shutdown -> Fiber.return (Reply.now (), state)
-  | WorkspaceSymbol req ->
-    later (fun state () -> Workspace_symbol.run server state req) ()
+  | WorkspaceSymbol req -> later (fun state () -> Workspace_symbol.run state req) ()
   | CodeActionResolve ca -> now ca
   | ExecuteCommand command ->
     if String.equal command.command Merlin_config_command.command_name
@@ -1016,9 +1007,9 @@ let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr (
   in
   let pid =
     let cwd : Spawn.Working_dir.t = Path cwd in
-    Spawn.spawn ~cwd ~prog ~argv ~stdin ~stdout ?stderr ()
+    Spawn.spawn ~cwd ~prog ~argv ~stdin ~stdout ?stderr () |> Pid.of_int
   in
-  let _, status = Unix.waitpid [] pid in
+  let _, status = Unix.waitpid [] (Pid.to_int pid) in
   let res =
     match (status : Unix.process_status) with
     | WEXITED n -> n

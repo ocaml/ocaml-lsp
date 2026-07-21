@@ -648,10 +648,8 @@ end = struct
       | Pexp_setinstvar (_, _)
       | Pexp_override _ | Pexp_assert _ | Pexp_lazy _
       | Pexp_poly (_, _)
-      | Pexp_object _
-      | Pexp_pack _
-      | Pexp_struct_item _
-      | Pexp_extension _ -> `Default_iterator
+      | Pexp_object _ | Pexp_pack _ | Pexp_struct_item _ | Pexp_extension _ ->
+        `Default_iterator
     with
     | `Default_iterator -> Ast_iterator.default_iterator.expr self exp
     | `Custom_iterator -> self.attributes self pexp_attributes
@@ -884,8 +882,7 @@ let compute_tokens doc =
     Document.Merlin.with_pipeline_exn ~name:"semantic highlighting" doc (fun p ->
       Mpipeline.reader_parsetree p, Mpipeline.input_source p)
   in
-  let module Fold =
-    Parsetree_fold (struct
+  let module Fold = Parsetree_fold (struct
       let source = Msource.text source
     end)
   in

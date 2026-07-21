@@ -32,7 +32,7 @@ module Request_params = struct
     json
     |> member "target"
     |> to_string_option
-    |> Option.map ~f:String.lowercase_ascii
+    |> Option.map ~f:String.lowercase
     |> function
     | Some "next" -> `Next
     | Some "prev" -> `Prev
@@ -51,14 +51,6 @@ end
 type t = Position.t
 
 let t_of_yojson x = Position.t_of_yojson x
-
-let with_pipeline state uri f =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return `Null
-  | `Merlin merlin -> Document.Merlin.with_pipeline_exn merlin f
-;;
-
 let make_phrase_command position target = Query_protocol.Phrase (target, position)
 
 let dispatch_phrase position target pipeline =
@@ -76,5 +68,5 @@ let on_request ~params state =
       (Option.value ~default:(`Assoc []) params :> Yojson.Safe.t)
       |> Request_params.t_of_yojson
     in
-    with_pipeline state uri @@ dispatch_phrase position target)
+    Util.with_pipeline state uri ~default:`Null @@ dispatch_phrase position target)
 ;;

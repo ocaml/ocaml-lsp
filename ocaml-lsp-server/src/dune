@@ -6,6 +6,7 @@
   unix
   dune-build-info
   fiber
+  fs-io
   chrome-trace
   lev
   lev_fiber
@@ -33,6 +34,7 @@
   stdune
   ordering
   csexp
+  sexplib0
   yojson
   dune-rpc
   ocamlformat-rpc-lib

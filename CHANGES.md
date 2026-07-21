@@ -3,6 +3,18 @@
 ## Features
  - Add hover support for warning attributes (#1606)
 
+## Fixes
+- Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
+- Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
+- Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)
+- Point workspace symbols for generated sources to their files in the build
+  directory. (#1742, @tatchi)
+- Stop workspace symbol searches from warning when a workspace has not been
+  built yet. (#1769, @smorimoto)
+- Prevent whole-document formatting requests for OCamllex, Menhir, and Cram
+  files from being routed through Dune's S-expression formatter.
+- Refactor ppx hover to use merlin directly (#1606, fixes #1614)
+
 # 1.27.0
 
 ## Features

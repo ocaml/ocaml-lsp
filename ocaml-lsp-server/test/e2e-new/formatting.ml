@@ -20,28 +20,25 @@ wrap-comments=true
 |}
 ;;
 
-let write_in_file path content =
-  let oc = open_out path in
-  output_string oc content;
-  close_out oc
-;;
-
 let setup_ocamlformat content =
-  let tmpdir = Stdlib.Filename.temp_file "ocamllsp-test-" "" in
-  Stdlib.Sys.remove tmpdir;
-  Unix.mkdir tmpdir 0o700;
+  let tmpdir = Test.temp_dir "ocamllsp-test-" in
   let ocamlformat_path = Stdlib.Filename.concat tmpdir ".ocamlformat" in
-  write_in_file ocamlformat_path content;
+  Test.write_file ocamlformat_path content;
   tmpdir
 ;;
 
-let iter_formatting source path =
-  let makeRequest textDocument =
-    let options = FormattingOptions.create ~tabSize:2 ~insertSpaces:true () in
-    Lsp.Client_request.TextDocumentFormatting
-      (DocumentFormattingParams.create ~textDocument ~options ())
-  in
-  Lsp_helpers.iter_lsp_response ~path ~makeRequest ~source
+let make_request textDocument =
+  let options = FormattingOptions.create ~tabSize:2 ~insertSpaces:true () in
+  Lsp.Client_request.TextDocumentFormatting
+    (DocumentFormattingParams.create ~textDocument ~options ())
+;;
+
+let iter_formatting ?language_id source path =
+  Lsp_helpers.iter_lsp_response
+    ~language_id:(Option.value language_id ~default:"ocaml")
+    ~path
+    ~makeRequest:make_request
+    ~source
 ;;
 
 let print_formatting_textedits = function
@@ -54,7 +51,20 @@ let print_formatting_textedits = function
     |> print_endline
 ;;
 
-let print_formatting source path = iter_formatting source path print_formatting_textedits
+let print_formatting ?language_id source path =
+  iter_formatting ?language_id source path print_formatting_textedits
+;;
+
+let print_formatting_error ?language_id source path =
+  Lsp_helpers.iter_lsp_response_result
+    ~language_id:(Option.value language_id ~default:"ocaml")
+    ~path
+    ~makeRequest:make_request
+    ~source
+    (function
+    | Error error -> Jsonrpc.Response.Error.yojson_of_t error |> Test.print_result
+    | Ok _ -> print_endline "Expected formatting to fail")
+;;
 
 let%expect_test "can format an ocaml impl file" =
   let source =
@@ -140,8 +150,55 @@ let%expect_test "does not format ignored files" =
   in
   let tmpdir = setup_ocamlformat ocamlformat_config in
   let name = "dont_format_me.ml" in
-  write_in_file (Stdlib.Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
+  Test.write_file (Stdlib.Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");
   let path = Stdlib.Filename.concat tmpdir name in
   print_formatting source path;
   [%expect {| No formatting needed |}]
+;;
+
+let%expect_test "does not format unsupported documents" =
+  let test language_id path source =
+    print_endline language_id;
+    print_formatting ~language_id source path
+  in
+  test
+    "ocaml.ocamllex"
+    "lexer.mll"
+    {|rule token = parse
+  | eof { EOF }
+|};
+  test
+    "ocaml.menhir"
+    "parser.mly"
+    {|%token EOF
+%%
+main:
+  | EOF { () }
+|};
+  test
+    "cram"
+    "test.t"
+    {|  $ echo hello
+  hello
+|};
+  [%expect
+    {|
+    ocaml.ocamllex
+    No formatting result
+    ocaml.menhir
+    No formatting result
+    cram
+    No formatting result
+    |}]
+;;
+
+let%expect_test "routes dune documents through dune" =
+  print_formatting_error ~language_id:"dune" "(library)" "dune";
+  [%expect
+    {|
+    {
+      "code": -32600,
+      "message": "No dune instance found. Please run dune in watch mode for /dune"
+    }
+    |}]
 ;;

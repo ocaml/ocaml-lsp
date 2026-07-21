@@ -19,6 +19,7 @@
   stdune
   fiber
   yojson
+  re
   ppx_yojson_conv_lib
   lev_fiber
   lev
@@ -30,7 +31,6 @@
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
   base
-  ppx_expect
   ppx_expect.config
   ppx_expect.config_types
   ppx_inline_test.config)
@@ -46,37 +46,55 @@
     code_actions
     code_lens
     completion
+    completion_resolve
     completions
     formatting
+    folding_range
     range_formatting
+    references
+    rename
     construct
     doc_to_md
     document_flow
+    document_highlight
+    document_sync
     exit_notification
     for_ppx
     hover
     hover_extended
+    infer_intf
     inlay_hints
     jump_to_typed_hole
     merlin_call_compatible
     destruct
+    debug_echo
+    declaration
+    definition
+    diagnostics
     metrics
     refactor_extract
     semantic_hl_data
     semantic_hl_helpers
     semantic_hl_tests
+    selection_range
+    signature_help
     start_stop
+    switch_impl_intf
     syntax_doc_tests
     test
     type_enclosing
+    type_definition
     documentation
     document_symbol
     merlin_jump
     phrase
     type_expression
+    typed_holes
     locate
     locate_types
     type_search
     with_pp
     with_ppx
-    workspace_change_config))))
+    workspace_change_config
+    workspace_symbol
+    wrapping_ast_node))))

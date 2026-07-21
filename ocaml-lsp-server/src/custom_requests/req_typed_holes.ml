@@ -20,25 +20,10 @@ module Request_params = struct
   ;;
 
   let parse_exn (params : Jsonrpc.Structured.t option) : t =
-    let raise_invalid_params ?data ~message () =
-      Jsonrpc.Response.Error.raise
-      @@ Jsonrpc.Response.Error.make
-           ?data
-           ~code:Jsonrpc.Response.Error.Code.InvalidParams
-           ~message
-           ()
+    let spec =
+      Util.{ params_schema = expected_params; of_jsonrpc_params = t_of_structured_json }
     in
-    match params with
-    | None -> raise_invalid_params ~message:"Expected params but received none" ()
-    | Some params ->
-      (match t_of_structured_json params with
-       | Some uri -> uri
-       | None ->
-         let error_json =
-           `Assoc
-             [ "params_expected", expected_params; "params_received", (params :> Json.t) ]
-         in
-         raise_invalid_params ~message:"Unxpected parameter format" ~data:error_json ())
+    Util.of_jsonrpc_params_exn spec params
   ;;
 
   let yojson_of_t = Uri.yojson_of_t

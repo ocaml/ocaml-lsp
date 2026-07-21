@@ -4,9 +4,12 @@ include struct
   open Types
   module DidOpenTextDocumentParams = DidOpenTextDocumentParams
   module DocumentUri = DocumentUri
+  module LanguageKind = LanguageKind
   module Range = Range
   module TextDocumentItem = TextDocumentItem
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
+  module TextDocumentContentChangePartial = TextDocumentContentChangePartial
+  module TextDocumentContentChangeWholeDocument = TextDocumentContentChangeWholeDocument
   module TextEdit = TextEdit
 end
 
@@ -35,6 +38,11 @@ let make
       }
   =
   let zipper = String_zipper.of_string text in
+  let languageId =
+    match LanguageKind.yojson_of_t languageId with
+    | `String languageId -> languageId
+    | _ -> assert false
+  in
   { text = Some text; position_encoding; zipper; uri; version; languageId }
 ;;
 
@@ -43,9 +51,10 @@ let version (t : t) = t.version
 let languageId (t : t) = t.languageId
 
 let apply_change encoding sz (change : TextDocumentContentChangeEvent.t) =
-  match change.range with
-  | None -> String_zipper.of_string change.text
-  | Some range -> String_zipper.apply_change sz range encoding ~replacement:change.text
+  match change with
+  | `TextDocumentContentChangeWholeDocument { text } -> String_zipper.of_string text
+  | `TextDocumentContentChangePartial { range; rangeLength = _; text } ->
+    String_zipper.apply_change sz range encoding ~replacement:text
 ;;
 
 let apply_content_changes ?version t changes =

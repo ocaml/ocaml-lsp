@@ -1,8 +1,10 @@
 _build/
+compile_commands.json
 _opam/
 .idea/
 .log/
 .vscode/
+.scratch/
 node_modules/
 tmp/
 .DS_Store

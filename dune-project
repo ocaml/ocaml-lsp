@@ -1,4 +1,4 @@
-(lang dune 3.0)
+(lang dune 3.24)
 (using cinaps 1.0)
 (name lsp)
 
@@ -35,6 +35,7 @@ possible and does not make any assumptions about IO.
   (ppx_yojson_conv_lib (>= "v0.14"))
   (cinaps :with-test)
   (ppx_expect (and (>= v0.17.0) :with-test))
+  (top-closure (or :with-test :with-dev-setup))
   (uutf (>= 1.0.2))
   (odoc :with-doc)
   (ocaml (>= 4.14))
@@ -56,6 +57,7 @@ possible and does not make any assumptions about IO.
   dyn
   (stdune (>= 3.22.0))
   (fiber (and (>= 3.1.1) (< 4.0.0)))
+  (fs-io (>= 3.22.0))
   (ocaml (and (>= 5.5) (< 5.6)))
   xdg
   ordering
@@ -64,7 +66,7 @@ possible and does not make any assumptions about IO.
   astring
   camlp-streams
   (ppx_expect (and (>= v0.17.0) :with-test))
-  (ocamlformat (and :with-test (= 0.28.1)))
+  (ocamlformat (and :with-test (= 0.29.0)))
   (ocamlc-loc (>= 3.7.0))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))

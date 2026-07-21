@@ -65,17 +65,7 @@ module GetDoc = struct
     { doc }
   ;;
 
-  let create ~kind ~value =
-    let v =
-      match kind with
-      | MarkupKind.Markdown ->
-        (match Doc_to_md.translate value with
-         | Raw d -> d
-         | Markdown d -> d)
-      | MarkupKind.PlainText -> value
-    in
-    MarkupContent.create ~kind ~value:v
-  ;;
+  let create = Util.markup_content
 end
 
 type t = GetDoc.t
@@ -115,8 +105,6 @@ let on_request ~params state =
       GetDocParams.t_of_yojson params
     in
     let uri = text_document.uri in
-    let doc = Document_store.get state.State.store uri in
-    match Document.kind doc with
-    | `Other -> Fiber.return `Null
-    | `Merlin merlin -> dispatch ~merlin ~position ~identifier ~contentFormat)
+    Util.with_merlin state uri ~default:`Null (fun merlin ->
+      dispatch ~merlin ~position ~identifier ~contentFormat))
 ;;

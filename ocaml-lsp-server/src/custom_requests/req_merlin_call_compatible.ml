@@ -102,10 +102,7 @@ let t_of_yojson json =
 ;;
 
 let with_pipeline state uri specs raw_args cmd_args f =
-  let doc = Document_store.get state.State.store uri in
-  match Document.kind doc with
-  | `Other -> Fiber.return `Null
-  | `Merlin merlin ->
+  Util.with_merlin state uri ~default:`Null (fun merlin ->
     let open Fiber.O in
     let* config = Document.Merlin.mconfig merlin in
     let specs = List.map ~f:snd specs in
@@ -118,12 +115,7 @@ let with_pipeline state uri specs raw_args cmd_args f =
         config
         cmd_args
     in
-    Document.Merlin.with_configurable_pipeline_exn ~config merlin (f args)
-;;
-
-let raise_invalid_params ?data ~message () =
-  let open Jsonrpc.Response.Error in
-  raise @@ make ?data ~code:Code.InvalidParams ~message ()
+    Document.Merlin.with_configurable_pipeline_exn ~config merlin (f args))
 ;;
 
 let perform_query action params pipeline =
@@ -159,5 +151,5 @@ let on_request ~params state =
       yojson_of_t result
     | exception Not_found ->
       let data = `Assoc [ "command", `String command ] in
-      raise_invalid_params ~data ~message:"Unexpected command name" ())
+      Util.raise_invalid_params ~data ~message:"Unexpected command name" ())
 ;;

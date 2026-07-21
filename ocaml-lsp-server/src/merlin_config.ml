@@ -34,7 +34,7 @@ let empty = Mconfig_dot.empty_config
 
 module Process = struct
   type nonrec t =
-    { pid : int
+    { pid : Pid.t
     ; prog : string
     ; initial_cwd : string
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
@@ -44,11 +44,11 @@ module Process = struct
 
   let to_dyn { pid; initial_cwd; _ } =
     let open Dyn in
-    record [ "pid", int pid; "initial_cwd", string initial_cwd ]
+    record [ "pid", Pid.to_dyn pid; "initial_cwd", string initial_cwd ]
   ;;
 
   let waitpid t =
-    let+ status = Lev_fiber.waitpid ~pid:t.pid in
+    let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
     (match status with
      | Unix.WEXITED n ->
        (match n with
@@ -88,6 +88,7 @@ module Process = struct
           ~stdin:stdin_r
           ~stdout:stdout_w
           ()
+        |> Pid.of_int
       in
       Unix.close stdin_r;
       Unix.close stdout_w;
@@ -171,7 +172,7 @@ let get_process t ~dir =
   | None ->
     let* process = Process.start ~dir in
     let entry = Entry.create t process in
-    Table.add_exn t.running dir entry;
+    Table.add_exn t.running ~key:dir ~data:entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
     entry
 ;;
@@ -359,7 +360,7 @@ module DB = struct
   let get t uri = create t uri
 
   let create () =
-    { running = Table.create (module String) 0; pool = Fiber.Pool.create () }
+    { running = Table.create (module Base.String); pool = Fiber.Pool.create () }
   ;;
 
   let run t = Fiber.Pool.run t.pool
@@ -368,7 +369,7 @@ module DB = struct
     let* () = Fiber.return () in
     Table.iter t.running ~f:(fun running ->
       let pid = running.process.pid in
-      Unix.kill pid (if Sys.win32 then Sys.sigkill else Sys.sigterm));
+      Unix.kill (Pid.to_int pid) (if Sys.win32 then Sys.sigkill else Sys.sigterm));
     Fiber.Pool.stop t.pool
   ;;
 end

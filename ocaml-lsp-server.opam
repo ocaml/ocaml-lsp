@@ -19,7 +19,7 @@ license: "ISC"
 homepage: "https://github.com/ocaml/ocaml-lsp"
 bug-reports: "https://github.com/ocaml/ocaml-lsp/issues"
 depends: [
-  "dune" {>= "3.0"}
+  "dune" {>= "3.24"}
   "yojson"
   "base" {>= "v0.16.0"}
   "lsp" {= version}
@@ -31,6 +31,7 @@ depends: [
   "dyn"
   "stdune" {>= "3.22.0"}
   "fiber" {>= "3.1.1" & < "4.0.0"}
+  "fs-io" {>= "3.22.0"}
   "ocaml" {>= "5.5" & < "5.6"}
   "xdg"
   "ordering"
@@ -39,7 +40,7 @@ depends: [
   "astring"
   "camlp-streams"
   "ppx_expect" {>= "v0.17.0" & with-test}
-  "ocamlformat" {with-test & = "0.28.1"}
+  "ocamlformat" {with-test & = "0.29.0"}
   "ocamlc-loc" {>= "3.7.0"}
   "pp" {>= "1.1.2"}
   "csexp" {>= "1.5"}

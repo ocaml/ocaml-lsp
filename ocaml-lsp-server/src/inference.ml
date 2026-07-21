@@ -80,13 +80,13 @@ let language_id_of_fname s =
 let open_document_from_file (state : State.t) uri =
   let filename = Uri.to_path uri in
   Fiber.of_thunk (fun () ->
-    match Io.read_file filename with
+    match Fs_io.read_file filename with
     | Error _ ->
       Log.log ~section:"debug" (fun () ->
         Log.msg "Unable to open file" [ "filename", `String filename ]);
       Fiber.return None
     | Ok text ->
-      let languageId = language_id_of_fname filename in
+      let languageId = LanguageKind.Other (language_id_of_fname filename) in
       let text_document = TextDocumentItem.create ~uri ~languageId ~version:0 ~text in
       let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
       let+ doc =

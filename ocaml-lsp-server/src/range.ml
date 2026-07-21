@@ -22,7 +22,7 @@ let contains (x : t) (y : t) =
 let compare_size (x : t) (y : t) =
   let dx = Position.(x.end_ - x.start) in
   let dy = Position.(y.end_ - y.start) in
-  Tuple.T2.compare Int.compare Int.compare (dx.line, dy.line) (dx.character, dy.character)
+  Poly.compare (dx.line, dx.character) (dy.line, dy.character)
 ;;
 
 let first_line =
@@ -52,7 +52,7 @@ let resize_for_edit { TextEdit.range; newText } =
         let last_line_len =
           List.last several_lines |> Option.value_exn |> String.length
         in
-        start.character + last_line_len
+        if line = start.line then start.character + last_line_len else last_line_len
       in
       { Position.line; character }
     in

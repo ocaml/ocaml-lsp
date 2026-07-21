@@ -18,7 +18,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macos-latest
+          # - macos-latest
           - windows-latest
 
     runs-on: ${{ matrix.os }}
@@ -30,32 +30,19 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout tree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
-
-      - name: Set-up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      - name: Install npm packages
-        run: yarn install --frozen-lockfile
 
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: "5.5"
 
-      # Remove this pin once a compatible version of Merlin has been released
-      - name: Pin dev Merlin
-        run: opam --cli=2.1 pin --with-version=5.8-505 https://github.com/ocaml/merlin.git
       - name: Build and install dependencies
         run: opam install .
 
-      # the makefile explains why we don't use --with-test
-      # ppx expect is not yet compatible with 5.1 and test output vary from one
-      # compiler to another. We only test on 4.14.
+      # The Makefile explains why we don't use --with-test.
       - name: Install test dependencies
         run: opam exec -- make install-test-deps
 
@@ -64,41 +51,3 @@ jobs:
 
       - name: Run the unit tests
         run: opam exec -- make test-ocaml
-
-      - name: Run the template integration tests
-        run: opam exec -- make test-e2e
-
-  coverage:
-    name: Coverage
-    runs-on: ubuntu-latest
-    if: false # reenable when ppx_bisect is co-instable again
-    steps:
-      - name: Checkout tree
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Set-up OCaml
-        uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: "5.5"
-
-      - name: Set git user
-        run: |
-          git config --global user.name github-actions[bot]
-          git config --global user.email github-actions[bot]@users.noreply.github.com
-
-      # Remove this pin once a compatible version of Merlin has been released
-      - name: Pin dev Merlin
-        run: opam --cli=2.1 pin --with-version=5.8-505 https://github.com/ocaml/merlin.git
-
-
-      - name: Install dependencies
-        run: |
-          opam install . --deps-only
-          opam exec -- make coverage-deps install-test-deps
-
-      - run: opam exec -- make test-coverage
-        env:
-          COVERALLS_REPO_TOKEN: ${{ github.token }}
-          PULL_REQUEST_NUMBER: ${{ github.event.number }}

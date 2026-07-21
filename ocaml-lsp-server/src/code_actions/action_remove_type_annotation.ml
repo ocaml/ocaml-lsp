@@ -34,28 +34,13 @@ let check_typeable_context pipeline pos_start =
   | _ :: _ | [] -> `Invalid
 ;;
 
-let get_source_text doc (loc : Loc.t) =
+let code_action_of_type_enclosing doc (loc, constr_loc) =
   let open Option.O in
-  let source = Document.source doc in
-  let* start = Position.of_lexical_position loc.loc_start in
-  let+ end_ = Position.of_lexical_position loc.loc_end in
-  let (`Offset start) = Msource.get_offset source (Position.logical start) in
-  let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
-  String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
-;;
-
-let code_action_of_type_enclosing uri doc (loc, constr_loc) =
-  let open Option.O in
-  let+ src_text = get_source_text doc loc in
-  let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t =
-      { range = Range.of_loc (Loc.union loc constr_loc); newText = src_text }
-    in
-    let version = Document.version doc in
-    let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
-    let edit = TextDocumentEdit.create ~textDocument ~edits:[ `TextEdit textedit ] in
-    WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
+  let+ src_text = Code_action.source_text doc loc in
+  let textedit : TextEdit.t =
+    { range = Range.of_loc (Loc.union loc constr_loc); newText = src_text }
   in
+  let edit = Code_action.workspace_edit doc [ textedit ] in
   let title = String.capitalize_ascii action_kind in
   CodeAction.create
     ~title
@@ -70,8 +55,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
   let context = check_typeable_context pipeline pos_start in
   match context with
   | `Invalid -> None
-  | `Valid (loc1, loc2) ->
-    code_action_of_type_enclosing params.textDocument.uri doc (loc1, loc2)
+  | `Valid (loc1, loc2) -> code_action_of_type_enclosing doc (loc1, loc2)
 ;;
 
 let kind = CodeActionKind.Other action_kind

@@ -19,7 +19,7 @@ module Ocamlformat_rpc = Ocamlformat_rpc_lib.Make (struct
 module Process : sig
   type t
 
-  val pid : t -> int
+  val pid : t -> Pid.t
   val client : t -> Ocamlformat_rpc.client
 
   val create
@@ -31,7 +31,7 @@ module Process : sig
   val run : t -> unit Fiber.t
 end = struct
   type t =
-    { pid : int
+    { pid : Pid.t
     ; session : Lev_fiber_csexp.Session.t
     ; client : Ocamlformat_rpc.client
     }
@@ -41,7 +41,7 @@ end = struct
   let supported_versions = [ "v2"; "v1" ]
 
   let pick_client ~pid session =
-    Ocamlformat_rpc.pick_client ~pid session session supported_versions
+    Ocamlformat_rpc.pick_client ~pid:(Pid.to_int pid) session session supported_versions
   ;;
 
   let configure ~logger { client; _ } =
@@ -56,7 +56,7 @@ end = struct
        | Ok () -> Fiber.return ()
        | Error (`Msg msg) ->
          let message =
-           Printf.sprintf "An error occured while configuring ocamlformat: %s" msg
+           Printf.sprintf "An error occurred while configuring ocamlformat: %s" msg
          in
          logger ~type_:MessageType.Warning ~message)
   ;;
@@ -65,7 +65,10 @@ end = struct
     let* pid, stdout, stdin =
       let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
       let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
-      let pid = Spawn.spawn ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o () in
+      let pid =
+        Spawn.spawn ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ()
+        |> Pid.of_int
+      in
       Unix.close stdin_i;
       Unix.close stdout_o;
       let blockity =
@@ -90,7 +93,7 @@ end = struct
     | Error (`Msg msg) ->
       (* The process did start but something went wrong when negotiating the
          version so we need to kill it *)
-      Unix.kill pid Sys.sigterm;
+      Unix.kill (Pid.to_int pid) Sys.sigterm;
       let* () =
         let message =
           Printf.sprintf
@@ -104,14 +107,16 @@ end = struct
       let process = { pid; session; client } in
       let* () = configure ~logger process in
       let+ () =
-        let message = Printf.sprintf "Ocamlformat-RPC server started with PID %i" pid in
+        let message =
+          Printf.sprintf "Ocamlformat-RPC server started with PID %i" (Pid.to_int pid)
+        in
         logger ~type_:MessageType.Info ~message
       in
       Ok process
   ;;
 
   let run { pid; session; _ } =
-    let+ (_ : Unix.process_status) = Lev_fiber.waitpid ~pid in
+    let+ (_ : Unix.process_status) = Lev_fiber.waitpid ~pid:(Pid.to_int pid) in
     Lev_fiber_csexp.Session.close session
   ;;
 end
@@ -201,7 +206,7 @@ let stop t =
   | Running process ->
     let pid = Process.pid process in
     t := Stopped;
-    Unix.kill pid Sys.sigkill;
+    Unix.kill (Pid.to_int pid) Sys.sigkill;
     Fiber.return ()
 ;;
 

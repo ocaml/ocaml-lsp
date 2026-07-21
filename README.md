@@ -68,7 +68,7 @@ $ esy add @opam/ocaml-lsp-server
 
 If you are using [Dune for package
 management](https://dune.readthedocs.io/en/stable/explanation/package-management.html)
-on the [latest nightly build](https://preview.dune.build/) or version 3.21 or
+on the [latest nightly build](https://preview.dune.build/) or version 3.24 or
 later, you can install `ocamllsp` locally within the current project by
 running:
 ```sh
@@ -410,9 +410,6 @@ To run tests execute:
 ```sh
 $ make test
 ```
-
-Note that tests require [Node.js](https://nodejs.org/en/) and
-[Yarn](https://yarnpkg.com/lang/en/) installed.
 
 ## Relationship to Other Tools
 

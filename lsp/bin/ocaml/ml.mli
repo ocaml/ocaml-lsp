@@ -68,6 +68,7 @@ module Type : sig
     { name : string
     ; typ : t
     ; attrs : (string * string list) list
+    ; optional : bool
     }
 
   and constr =
@@ -90,7 +91,7 @@ module Type : sig
   val assoc_list : key:t -> data:t -> t
   val pp_decl : name:string -> kind:Kind.t -> decl -> unit Pp.t
   val pp : t -> kind:Kind.t -> unit Pp.t
-  val field : t -> name:string -> field
+  val field : ?optional:bool -> t -> name:string -> field
   val constr : t list -> name:string -> constr
 
   (** Simplified sum types*)

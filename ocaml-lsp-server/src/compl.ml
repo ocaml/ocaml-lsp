@@ -67,7 +67,7 @@ let suffix_of_position source position =
           | _ -> false
         in
         let until =
-          String.findi ~from text ~f:(fun c -> not (ident_char c))
+          String.lfindi ~pos:from text ~f:(fun _ c -> not (ident_char c))
           |> Option.value ~default:len
         in
         until - from
@@ -231,7 +231,10 @@ module Complete_with_construct = struct
           (not (String.equal expr "()"))
           && String.is_prefix expr ~prefix:"("
           && String.is_suffix expr ~suffix:")"
-        then String.sub expr ~pos:1 ~len:(String.length expr - 2)
+        then
+          expr
+          |> String.chop_prefix_if_exists ~prefix:"("
+          |> String.chop_suffix_if_exists ~suffix:")"
         else expr
       in
       let completionItem_of_constructed_expr idx expr =
@@ -407,7 +410,8 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
           { position with character = position.character + String.length suffix }
         in
         let range = Range.create ~start ~end_ in
-        TextDocumentContentChangeEvent.create ~range ~text:compl.label ()
+        `TextDocumentContentChangePartial
+          (TextDocumentContentChangePartial.create ~range ~text:compl.label ())
       in
       Document.update_text (Document.Merlin.to_doc doc) [ complete ]
     in

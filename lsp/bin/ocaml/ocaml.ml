@@ -33,7 +33,12 @@ let skipped_ts_decls =
 
 (* XXX this is temporary until we support the [supportsCustomValues] field *)
 let with_custom_values =
-  [ "FoldingRangeKind"; "CodeActionKind"; "PositionEncodingKind"; "WatchKind" ]
+  [ "FoldingRangeKind"
+  ; "CodeActionKind"
+  ; "LanguageKind"
+  ; "PositionEncodingKind"
+  ; "WatchKind"
+  ]
 ;;
 
 module Expanded = struct
@@ -203,8 +208,8 @@ end = struct
 
         method! field x f =
           let f =
-            match f.typ with
-            | Optional t ->
+            match f.optional, f.typ with
+            | true, Optional t ->
               if t = Json_gen.json_t
               then { f with attrs = ("yojson.option", []) :: f.attrs }
               else
@@ -214,7 +219,8 @@ end = struct
                     :: ("yojson_drop_default", [ "( = )" ])
                     :: f.attrs
                 }
-            | _ -> f
+            | false, _ -> f
+            | true, _ -> assert false
           in
           super#field x f
 
@@ -448,7 +454,7 @@ end = struct
     | Single { typ; optional } ->
       let typ = make_typ db { Named.name = field.name; data = typ } in
       let typ = if optional then Type.Optional typ else typ in
-      Left (Ml.Type.field typ ~name:field.name)
+      Left (Ml.Type.field ~optional typ ~name:field.name)
   ;;
 
   let record_ db { Named.name; data = (fields : Resolved.field list) } =

@@ -140,8 +140,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         if is_at_keyword
         then result := Some `Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
-      | Pexp_extension (ppx, _) when is_at_cursor ppx.loc ->
-        result := Some (`Ppx_expr (expr, ppx))
+      | Pexp_extension (ppx, _) when is_at_cursor ppx.loc -> result := Some (`Ppx ppx.txt)
       | _ -> Ast_iterator.default_iterator.expr self expr)
   in
   (* Hover a value declaration in a signature *)
@@ -166,11 +165,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         List.find decl.ptype_attributes ~f:(fun attr -> is_at_cursor attr.attr_loc)
       in
       match attribute_at_cursor with
-      | Some attr ->
-        (* Produce a hover for the attribute, if it's name is hovered, otherwise
-           bail. *)
-        if is_at_cursor attr.attr_name.loc
-        then result := Some (`Ppx_typedef_attr (decl, attr))
+      | Some attr -> result := Some (`Ppx attr.attr_name.txt)
       | None -> Ast_iterator.default_iterator.type_declaration self decl)
   in
   (* Classes and objects *)
@@ -414,15 +409,17 @@ let type_enclosing_hover
       let* result = Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ in
       match result with
       | Ok v ->
-        (* OCamlformat adds an unnecessay newline at the end of the type *)
+        (* OCamlformat adds an unnecessary newline at the end of the type *)
         Fiber.return (String.trim v)
       | Error `No_process -> Fiber.return typ
       | Error (`Msg message) ->
-        (* We log OCamlformat errors and display the unformated type *)
+        (* We log OCamlformat errors and display the unformatted type *)
         let+ () =
           let message =
             sprintf
-              "An error occured while querying ocamlformat:\nInput type: %s\n\nAnswer: %s"
+              "An error occurred while querying ocamlformat:\n\
+               Input type: %s\n\n\
+               Answer: %s"
               typ
               message
           in
@@ -446,107 +443,6 @@ let type_enclosing_hover
     let range = Range.of_loc loc in
     let hover = Hover.create ~contents ~range () in
     Fiber.return (Some hover)
-;;
-
-let ppx_expression_hover
-      ~ppx_parsetree
-      ~(expr : Parsetree.expression)
-      ~(ppx : string Asttypes.loc)
-  =
-  let expanded_ppx = ref None in
-  let at_expr_location (loc : Ocaml_parsing.Location.t) =
-    expr.pexp_loc.loc_start.pos_cnum <= loc.loc_start.pos_cnum
-    && loc.loc_end.pos_cnum <= expr.pexp_loc.loc_end.pos_cnum
-  in
-  (* Locate the first expression at the original PPX location. *)
-  let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
-    match at_expr_location expr.pexp_loc with
-    | true -> expanded_ppx := Some expr
-    | false -> Ast_iterator.default_iterator.expr self expr
-  in
-  let iterator = { Ast_iterator.default_iterator with expr } in
-  let () =
-    match ppx_parsetree with
-    | `Interface signature -> iterator.signature iterator signature
-    | `Implementation structure -> iterator.structure iterator structure
-  in
-  Option.map !expanded_ppx ~f:(fun expr ->
-    let range =
-      Range.of_loc
-        (if ppx.loc.loc_start.pos_cnum < expr.pexp_loc.loc_start.pos_cnum
-         then { ppx.loc with loc_end = expr.pexp_loc.loc_end }
-         else expr.pexp_loc)
-    in
-    let contents =
-      format_ppx_expansion
-        ~ppx:ppx.txt
-        ~expansion:(Ocaml_parsing.Pprintast.string_of_expression expr)
-    in
-    Hover.create ~contents ~range ())
-;;
-
-let typedef_attribute_hover
-      ~ppx_parsetree
-      ~(decl : Parsetree.type_declaration)
-      ~(attr : Parsetree.attribute)
-  =
-  match attr.attr_name.txt with
-  | "deriving" ->
-    let signature = ref [] in
-    let structure = ref [] in
-    let at_decl_location (loc : Ocaml_parsing.Location.t) =
-      decl.ptype_loc.loc_start.pos_cnum <= loc.loc_start.pos_cnum
-      && decl.ptype_loc.loc_end.pos_cnum >= loc.loc_start.pos_cnum
-    in
-    let contains_decl (decls : Parsetree.type_declaration list) =
-      List.exists decls ~f:(fun (decl' : Parsetree.type_declaration) ->
-        String.equal decl.ptype_name.txt decl'.ptype_name.txt)
-    in
-    let signature_item (self : Ast_iterator.iterator) (item : Parsetree.signature_item) =
-      match at_decl_location item.psig_loc with
-      | true ->
-        (match item.psig_desc with
-         | Psig_type (_, decls) when contains_decl decls ->
-           (* Don't add the type declaration itself. *) ()
-         | _ -> signature := item :: !signature)
-      | false -> Ast_iterator.default_iterator.signature_item self item
-    in
-    let structure_item (self : Ast_iterator.iterator) (item : Parsetree.structure_item) =
-      match at_decl_location item.pstr_loc with
-      | true ->
-        (match item.pstr_desc with
-         | Pstr_type (_, decls) when contains_decl decls ->
-           (* Don't add the type definition itself. *) ()
-         | _ -> structure := item :: !structure)
-      | false -> Ast_iterator.default_iterator.structure_item self item
-    in
-    let iterator =
-      { Ast_iterator.default_iterator with signature_item; structure_item }
-    in
-    let () =
-      match ppx_parsetree with
-      | `Interface signature -> iterator.signature iterator signature
-      | `Implementation structure -> iterator.structure iterator structure
-    in
-    let expansion =
-      match !signature, !structure with
-      | [], [] -> None
-      | signature, [] ->
-        ignore (Format.flush_str_formatter ());
-        Pprintast.signature Format.str_formatter (List.rev signature);
-        Some (Format.flush_str_formatter ())
-      | [], structure -> Some (Pprintast.string_of_structure (List.rev structure))
-      | _ :: _, _ :: _ ->
-        (* This should not be possible, unless a PPXs provides incorrect
-           position information that places items from a [sig end] into a
-           [struct end] or vice versa. *)
-        None
-    in
-    Option.map expansion ~f:(fun expansion ->
-      let range = Range.of_loc attr.attr_loc in
-      let contents = format_ppx_expansion ~ppx:attr.attr_name.txt ~expansion in
-      Hover.create ~contents ~range ())
-  | _ -> None
 ;;
 
 let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
@@ -606,12 +502,20 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
        | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) ->
          let+ ppx_parsetree =
            Document.Merlin.with_pipeline_exn
+       | Some (`Ppx ppx) ->
+         let+ ppxed_source =
+           Document.Merlin.dispatch_exn
              ~name:"expand-ppx"
              (Document.merlin_exn doc)
-             (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
+             (Query_protocol.Expand_ppx (Position.logical position))
          in
-         (match ppx_kind with
-          | `Ppx_expr (expr, ppx) -> ppx_expression_hover ~ppx_parsetree ~expr ~ppx
-          | `Ppx_typedef_attr (decl, attr) ->
-            typedef_attribute_hover ~ppx_parsetree ~decl ~attr)))
+         (match ppxed_source with
+          | `Found { Query_protocol.code; attr_start; attr_end } ->
+            let range =
+              Range.of_loc
+                { loc_start = attr_start; loc_end = attr_end; loc_ghost = false }
+            in
+            let contents = format_ppx_expansion ~ppx ~expansion:code in
+            Some (Hover.create ~contents ~range ())
+          | `No_ppx -> None)))
 ;;

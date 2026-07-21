@@ -147,21 +147,23 @@ module Paths : sig
 end = struct
   type t = Path.t Loc.Map.t
 
-  let find = Loc.Map.find
+  let find t x = Loc.Map.find_opt x t
 
   let of_typedtree (expr : Typedtree.expression) =
     let module I = Ocaml_typing.Tast_iterator in
     let paths = ref Loc.Map.empty in
     let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
       match expr.exp_desc with
-      | Texp_ident (path, { loc; _ }, _) -> paths := Loc.Map.set !paths loc path
+      | Texp_ident (path, { loc; _ }, _) ->
+        paths := Loc.Map.add !paths ~key:loc ~data:path
       | _ -> I.default_iterator.expr iter expr
     in
     let pat_iter (type k) (iter : I.iterator) (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
-      | Tpat_var (id, { loc; _ }, _) -> paths := Loc.Map.set !paths loc (Pident id)
+      | Tpat_var (id, { loc; _ }, _) ->
+        paths := Loc.Map.add !paths ~key:loc ~data:(Path.Pident id)
       | Tpat_alias (pat, id, { loc; _ }, _, _) ->
-        paths := Loc.Map.set !paths loc (Pident id);
+        paths := Loc.Map.add !paths ~key:loc ~data:(Path.Pident id);
         I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
     in
@@ -363,26 +365,12 @@ let code_action pipeline doc (params : CodeActionParams.t) =
         ~title:action_title
         ~kind:CodeActionKind.RefactorInline
         ~isPreferred:false
-        ~disabled:(CodeAction.create_disabled ~reason:(string_of_error error))
+        ~disabled:(CodeActionDisabled.create ~reason:(string_of_error error))
         ()
     in
     Some action
   | _ :: _, (Some _ | None) ->
-    let edit =
-      let version = Document.version doc in
-      let textDocument =
-        OptionalVersionedTextDocumentIdentifier.create
-          ~uri:params.textDocument.uri
-          ~version
-          ()
-      in
-      let edit =
-        TextDocumentEdit.create
-          ~textDocument
-          ~edits:(List.map edits ~f:(fun e -> `TextEdit e))
-      in
-      WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-    in
+    let edit = Code_action.workspace_edit doc edits in
     let action =
       CodeAction.create
         ~title:action_title
