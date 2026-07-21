@@ -757,3 +757,138 @@ let g childs = List.map f childs
     arg: selectionRange not contained in range
     |}]
 ;;
+
+let%expect_test "normalizes document-symbol selection ranges from Merlin" =
+  let capabilities =
+    let documentSymbol =
+      DocumentSymbolClientCapabilities.create ~hierarchicalDocumentSymbolSupport:true ()
+    in
+    let textDocument = TextDocumentClientCapabilities.create ~documentSymbol () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let rec find_symbol name = function
+    | [] -> None
+    | (symbol : DocumentSymbol.t) :: symbols ->
+      if String.equal symbol.name name
+      then Some symbol
+      else (
+        match find_symbol name (Option.value symbol.children ~default:[]) with
+        | Some _ as result -> result
+        | None -> find_symbol name symbols)
+  in
+  let run (label, name, source) =
+    let request client =
+      let open Fiber.O in
+      let+ response = Util.call_document_symbol client in
+      match response with
+      | Some (`DocumentSymbol symbols) ->
+        (match find_symbol name symbols with
+         | None -> Printf.printf "%s: symbol not found\n" label
+         | Some symbol ->
+           Printf.printf
+             "%s: range=%s selection=%s\n"
+             label
+             (Ocaml_lsp_server.Testing.Range.to_string symbol.range)
+             (Ocaml_lsp_server.Testing.Range.to_string symbol.selectionRange))
+      | Some (`SymbolInformation _) | None ->
+        Printf.printf "%s: unexpected response\n" label
+    in
+    Helpers.test ~capabilities source request
+  in
+  (* Line directives make Merlin report positions that exercise each possible
+     relationship between a symbol's range and selection range. *)
+  List.iter
+    [ "contained", "f", "let f x = x\n"
+    ; ( "overlap before"
+      , "foobar"
+      , {ocaml|# 1 "test.ml"
+  let
+# 1 "test.ml"
+foobar =
+# 2 "test.ml"
+  1
+|ocaml}
+      )
+    ; ( "overlap after"
+      , "foobar"
+      , {ocaml|# 1 "test.ml"
+let
+# 1 "test.ml"
+  foobar =
+# 1 "test.ml"
+    1
+|ocaml}
+      )
+    ; ( "enclosing"
+      , "foobar"
+      , {ocaml|# 1 "test.ml"
+  let
+# 1 "test.ml"
+foobar =
+# 1 "test.ml"
+    1
+|ocaml}
+      )
+    ; ( "touch before"
+      , "foobar"
+      , {ocaml|# 1 "test.ml"
+      let
+# 1 "test.ml"
+foobar =
+# 2 "test.ml"
+  1
+|ocaml}
+      )
+    ; ( "touch after"
+      , "foobar"
+      , {ocaml|# 1 "test.ml"
+let
+# 1 "test.ml"
+      foobar =
+# 1 "test.ml"
+     1
+|ocaml}
+      )
+    ; ( "disjoint before"
+      , "foobar"
+      , {ocaml|# 1 "test.ml"
+       let
+# 1 "test.ml"
+foobar =
+# 2 "test.ml"
+  1
+|ocaml}
+      )
+    ; ( "disjoint after"
+      , "foobar"
+      , {ocaml|# 1 "test.ml"
+let
+# 1 "test.ml"
+          foobar =
+# 1 "test.ml"
+  1
+|ocaml}
+      )
+    ; "ghost", "arg", "let f ?x _ = x\nlet g childs = List.map f childs\n"
+    ; ( "ghost overlapping first line"
+      , "arg"
+      , "let f ?x _ = x;; let g childs = List.map (\n  f\n) childs\n" )
+    ]
+    ~f:run;
+  (* Merlin selection locations come from a single token, so a reversed
+     selection cannot be produced from source text. The unit test covers that
+     defensive case directly. *)
+  [%expect
+    {|
+    contained: range=((0, 0), (0, 11)) selection=((0, 4), (0, 5))
+    overlap before: range=((0, 2), (1, 3)) selection=((0, 0), (0, 6))
+    overlap after: range=((0, 0), (0, 5)) selection=((0, 2), (0, 8))
+    enclosing: range=((0, 2), (0, 5)) selection=((0, 0), (0, 6))
+    touch before: range=((0, 6), (1, 3)) selection=((0, 0), (0, 6))
+    touch after: range=((0, 0), (0, 6)) selection=((0, 6), (0, 12))
+    disjoint before: range=((0, 7), (1, 3)) selection=((0, 0), (0, 6))
+    disjoint after: range=((0, 0), (0, 3)) selection=((0, 10), (0, 16))
+    ghost: range=((1, 24), (1, 25)) selection=((0, 0), (1, 0))
+    ghost overlapping first line: range=((0, 41), (2, 1)) selection=((0, 0), (1, 0))
+    |}]
+;;
