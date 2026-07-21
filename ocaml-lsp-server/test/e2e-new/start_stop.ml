@@ -13,6 +13,67 @@ let%expect_test "initialize with empty capabilities" =
   [%expect {| initialized |}]
 ;;
 
+let code_action_capabilities () =
+  let codeActionLiteralSupport =
+    let codeActionKind = ClientCodeActionKindOptions.create ~valueSet:[] in
+    ClientCodeActionLiteralOptions.create ~codeActionKind
+  in
+  let codeAction = CodeActionClientCapabilities.create ~codeActionLiteralSupport () in
+  let textDocument = TextDocumentClientCapabilities.create ~codeAction () in
+  ClientCapabilities.create ~textDocument ()
+;;
+
+let%expect_test "advertises every code action kind that the server may return" =
+  (Test.run
+   @@ fun client ->
+   let run_client () =
+     Test.start_client ~capabilities:(code_action_capabilities ()) client
+   in
+   let run () =
+     let* initialized = Client.initialized client in
+     let advertised =
+       match initialized.capabilities.codeActionProvider with
+       | Some (`CodeActionOptions { codeActionKinds = Some kinds; _ }) -> kinds
+       | None | Some (`Bool _) | Some (`CodeActionOptions _) -> []
+     in
+     let expected =
+       [ "refactor.extract"
+       ; "combine-cases"
+       ; "destruct-line (enumerate cases, use existing match)"
+       ; "update_intf"
+       ; "switch"
+       ; "merlin-jump-fun"
+       ; "merlin-jump-match"
+       ; "merlin-jump-let"
+       ; "merlin-jump-module"
+       ; "merlin-jump-module-type"
+       ; "merlin-jump-next-case"
+       ; "merlin-jump-prev-case"
+       ]
+     in
+     List.iter expected ~f:(fun name ->
+       let kind = CodeActionKind.t_of_yojson (`String name) in
+       if not (List.mem advertised kind ~equal:Poly.equal)
+       then Printf.printf "missing: %s\n" name);
+     Client.request client Shutdown
+   in
+   Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client));
+  [%expect
+    {|
+    missing: refactor.extract
+    missing: combine-cases
+    missing: destruct-line (enumerate cases, use existing match)
+    missing: update_intf
+    missing: switch
+    missing: merlin-jump-fun
+    missing: merlin-jump-match
+    missing: merlin-jump-let
+    missing: merlin-jump-module
+    missing: merlin-jump-module-type
+    missing: merlin-jump-next-case
+    missing: merlin-jump-prev-case |}]
+;;
+
 let%expect_test "start/stop" =
   let notifs = Queue.create () in
   let handler_collecting_notifs =
