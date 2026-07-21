@@ -304,8 +304,8 @@ let () =
   in
   let position = Position.create ~line:2 ~character:20 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
@@ -331,8 +331,8 @@ let () =
   in
   let position = Position.create ~line:2 ~character:20 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
@@ -358,8 +358,8 @@ let () =
   in
   let position = Position.create ~line:2 ~character:20 in
   let req client =
-    let* resp = hover client position in
-    let () = print_hover resp in
+    let* resp = Hover_helpers.hover client position in
+    let () = Hover_helpers.print_hover resp in
     Fiber.return ()
   in
   Helpers.test source req;
