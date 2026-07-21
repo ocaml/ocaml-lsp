@@ -6,7 +6,7 @@ let request_promotion client uri =
   let range = Range.create ~start:position ~end_:position in
   let textDocument = TextDocumentIdentifier.create ~uri in
   let context =
-    CodeActionContext.create ~diagnostics:[] ~only:[ CodeActionKind.Other "Promote" ] ()
+    CodeActionContext.create ~diagnostics:[] ~only:[ CodeActionKind.QuickFix ] ()
   in
   let params = CodeActionParams.create ~textDocument ~range ~context () in
   let* actions = Client.request client (CodeAction params) in

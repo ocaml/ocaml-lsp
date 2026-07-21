@@ -80,7 +80,7 @@ let register_request t uris =
           in
           CodeActionRegistrationOptions.create
             ~documentSelector
-            ~codeActionKinds:[ CodeActionKind.Other "Promote" ]
+            ~codeActionKinds:[ CodeActionKind.QuickFix ]
             ()
           |> CodeActionRegistrationOptions.yojson_of_t
         in

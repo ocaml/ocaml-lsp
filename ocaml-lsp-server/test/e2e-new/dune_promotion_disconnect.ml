@@ -60,7 +60,7 @@ let%expect_test "promotion registrations when Dune disconnects" =
           "id": "ocamllsp-promote/<document-uri>",
           "method": "textDocument/codeAction",
           "registerOptions": {
-            "codeActionKinds": [ "Promote" ],
+            "codeActionKinds": [ "quickfix" ],
             "documentSelector": [
               { "language": null, "scheme": null, "pattern": "<document-path>" }
             ]
