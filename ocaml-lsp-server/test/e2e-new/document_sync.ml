@@ -53,17 +53,11 @@ let get_document client =
 
 let run_document_test f =
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
-  Test.run ~handler
+  Test.run_initialized ~handler
   @@ fun client ->
-  let run_client () = Test.start_client client in
-  let run =
-    let* (_ : InitializeResult.t) = Client.initialized client in
-    let* () = f client in
-    let* () = Lev_fiber.Timer.sleepf 0.1 in
-    let* () = Client.request client Shutdown in
-    Client.notification client Exit
-  in
-  Fiber.fork_and_join_unit run_client (fun () -> run)
+  let* () = f client in
+  let* () = Lev_fiber.Timer.sleepf 0.1 in
+  Test.exit_client client
 ;;
 
 let%expect_test "Manages unicode character ranges correctly" =
