@@ -24,6 +24,8 @@
   (#1859, @rgrinberg)
 - Replace a lone polymorphic-variant backtick when applying completions.
   (#1823, fixes #1427, @rgrinberg)
+- Report a missing project build-system executable as a diagnostic without
+  discarding the opened document. (#1814, @rgrinberg)
 - Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)
 - Ensure `textDocument/documentSymbol` returns a `selectionRange` contained
   within its `range`, so clients no longer reject the document outline.
