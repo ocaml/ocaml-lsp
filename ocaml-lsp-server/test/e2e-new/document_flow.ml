@@ -53,7 +53,7 @@ let%expect_test "it should allow double opening the same document" =
   [%expect {| |}]
 ;;
 
-let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
+let%expect_test "missing dune is reported as a diagnostic (#1417)" =
   let dir = Test.temp_dir "ocamllsp-missing-dune-" in
   let source = "let answer = 42\n" in
   let path = Stdlib.Filename.concat dir "main.ml" in
@@ -62,7 +62,18 @@ let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
   Test.write_file path source;
   let uri = DocumentUri.of_path path in
   let workspace = WorkspaceFolder.create ~uri:(DocumentUri.of_path dir) ~name:"test" in
-  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  let diagnostics = Fiber.Ivar.create () in
+  let handler =
+    Client.Handler.make
+      ~on_notification:(fun _ -> function
+         | PublishDiagnostics params ->
+           let* filled = Fiber.Ivar.peek diagnostics in
+           (match filled with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill diagnostics params)
+         | _ -> Fiber.return ())
+      ()
+  in
   let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
   (Test.run_initialized
      ~extra_env:[ "PATH=" ]
@@ -82,6 +93,11 @@ let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
        client
        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
    in
+   let* diagnostics = Fiber.Ivar.read diagnostics in
+   List.iter diagnostics.diagnostics ~f:(fun (diagnostic : Diagnostic.t) ->
+     match diagnostic.message with
+     | `String message -> print_endline message
+     | `MarkupContent { value; _ } -> print_endline value);
    let textDocument = TextDocumentIdentifier.create ~uri in
    let position = Position.create ~line:0 ~character:4 in
    let* result =
@@ -110,5 +126,9 @@ let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
    let* () = Client.request client Shutdown in
    Client.stop client);
   Unix.close stderr;
-  [%expect {| no document found with uri: <document-uri> |}]
+  [%expect
+    {|
+    dune binary not found
+    hover succeeded
+    |}]
 ;;
