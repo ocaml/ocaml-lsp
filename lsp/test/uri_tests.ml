@@ -84,6 +84,19 @@ let%expect_test "serialization disambiguates a path beginning with two slashes" 
     |}]
 ;;
 
+let%expect_test "a percent-encoded URI fragment round trips" =
+  let uri = Uri.of_string "file:///foo.ml#heading%201" in
+  Printf.printf
+    "fragment: %s\nserialized: %s\n"
+    (Option.value ~default:"<none>" (Uri.fragment uri))
+    (Uri.to_string uri);
+  [%expect
+    {|
+    fragment: heading%201
+    serialized: file:///foo.ml#heading%25201
+    |}]
+;;
+
 let uri_of_path =
   let test path =
     let uri = Uri.of_path path in
