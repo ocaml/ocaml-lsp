@@ -69,6 +69,21 @@ let%expect_test "a URI query is not part of its filesystem path" =
     |}]
 ;;
 
+let%expect_test "serialization disambiguates a path beginning with two slashes" =
+  let uri = Uri.of_string "untitled:///%2FModule.ml" in
+  let serialized = Uri.to_string uri in
+  let round_trip = Uri.of_string serialized in
+  Printf.printf
+    "serialized: %s\nround trip equal: %b\n"
+    serialized
+    (Uri.equal uri round_trip);
+  [%expect
+    {|
+    serialized: untitled://Module.ml
+    round trip equal: false
+    |}]
+;;
+
 let uri_of_path =
   let test path =
     let uri = Uri.of_path path in
