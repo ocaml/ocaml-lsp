@@ -97,6 +97,17 @@ let%expect_test "a percent-encoded URI fragment round trips" =
     |}]
 ;;
 
+let%expect_test "serialization preserves a non-letter drive-like path" =
+  let source = "file:///1%3A/foo.ml" in
+  let serialized = Uri.of_string source |> Uri.to_string in
+  Printf.printf "source: %s\nserialized: %s\n" source serialized;
+  [%expect
+    {|
+    source: file:///1%3A/foo.ml
+    serialized: file://
+    |}]
+;;
+
 let uri_of_path =
   let test path =
     let uri = Uri.of_path path in
