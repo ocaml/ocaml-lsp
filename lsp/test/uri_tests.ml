@@ -108,6 +108,19 @@ let%expect_test "serialization preserves a non-letter drive-like path" =
     |}]
 ;;
 
+let%expect_test "an unescaped Unicode URI query is preserved" =
+  let uri = Uri.of_string "file:///foo.ml?search=😀&limit=1" in
+  Printf.printf
+    "query: %s\nserialized: %s\n"
+    (Option.value ~default:"<none>" (Uri.query uri))
+    (Uri.to_string uri);
+  [%expect
+    {|
+    query: search=
+    serialized: file:///foo.ml?search%3D
+    |}]
+;;
+
 let uri_of_path =
   let test path =
     let uri = Uri.of_path path in
