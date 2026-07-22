@@ -21,6 +21,8 @@ type atom =
   | Equals
   | Two_byte
   | Four_byte
+  | Raw_two_byte
+  | Raw_four_byte
 [@@deriving quickcheck, sexp_of]
 
 type scheme =
@@ -71,14 +73,31 @@ let encoded_atom = function
   | Equals -> "%3D"
   | Two_byte -> "%C3%A9"
   | Four_byte -> "%F0%9F%98%80"
+  | Raw_two_byte -> "é"
+  | Raw_four_byte -> "😀"
 ;;
 
 let encoded_component atoms = List.map atoms ~f:encoded_atom |> String.concat ~sep:""
 
+let query_atom = function
+  | Slash -> "/"
+  | Question -> "?"
+  | Colon -> ":"
+  | At -> "@"
+  | Equals -> "="
+  | Raw_two_byte -> "%C3%A9"
+  | Raw_four_byte -> "%F0%9F%98%80"
+  | atom -> encoded_atom atom
+;;
+
+let query_component atoms = List.map atoms ~f:query_atom |> String.concat ~sep:""
+
 let source ({ scheme; authority; path; query; fragment } : Case.t) =
   let suffix marker = function
     | None -> ""
-    | Some atoms -> String.of_char marker ^ encoded_component atoms
+    | Some atoms ->
+      let component = if Char.equal marker '?' then query_component else encoded_component in
+      String.of_char marker ^ component atoms
   in
   string_of_scheme scheme
   ^ "://"
@@ -88,6 +107,8 @@ let source ({ scheme; authority; path; query; fragment } : Case.t) =
   ^ suffix '?' query
   ^ suffix '#' fragment
 ;;
+
+let canonical source = Uri.of_string source |> Uri.to_string
 
 let with_windows_setting windows ~f =
   let previous = !(Uri.Private.win32) in
@@ -103,6 +124,30 @@ let fail source label expected actual =
        source
        expected
        actual)
+;;
+
+let%expect_test "URI serialization reaches a fixed point" =
+  Test.run_exn
+    (module Case)
+    ~f:(fun case ->
+      let source = source case in
+      let once = canonical source in
+      let twice = canonical once in
+      if not (String.equal once twice)
+      then fail source "URI serialization is not idempotent" once twice);
+  [%expect {| |}]
+;;
+
+let%expect_test "URI JSON serialization preserves canonical values" =
+  Test.run_exn
+    (module Case)
+    ~f:(fun case ->
+      let source = source case |> canonical in
+      let uri = Uri.of_string source in
+      let round_trip = Uri.t_of_yojson (Uri.yojson_of_t uri) in
+      if not (Uri.equal uri round_trip)
+      then fail source "JSON round trip changed the URI" source (Uri.to_string round_trip));
+  [%expect {| |}]
 ;;
 
 let%expect_test "query and fragment do not change the filesystem path" =
@@ -140,8 +185,8 @@ let decoded_atom = function
   | Colon -> ":"
   | At -> "@"
   | Equals -> "="
-  | Two_byte -> "é"
-  | Four_byte -> "😀"
+  | Two_byte | Raw_two_byte -> "é"
+  | Four_byte | Raw_four_byte -> "😀"
 ;;
 
 let decoded_component atoms = List.map atoms ~f:decoded_atom |> String.concat ~sep:""
