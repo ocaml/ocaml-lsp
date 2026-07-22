@@ -92,8 +92,8 @@ let%expect_test "a percent-encoded URI fragment round trips" =
     (Uri.to_string uri);
   [%expect
     {|
-    fragment: heading%201
-    serialized: file:///foo.ml#heading%25201
+    fragment: heading 1
+    serialized: file:///foo.ml#heading%201
     |}]
 ;;
 
