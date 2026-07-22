@@ -1,5 +1,12 @@
 open Test.Import
 
+val range
+  :  start_line:int
+  -> start_character:int
+  -> end_line:int
+  -> end_character:int
+  -> Range.t
+
 val iter_code_actions
   :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
   -> ?path:string
