@@ -52,3 +52,63 @@ let%expect_test "it should allow double opening the same document" =
    Client.stop client);
   [%expect {| |}]
 ;;
+
+let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
+  let dir = Test.temp_dir "ocamllsp-missing-dune-" in
+  let source = "let answer = 42\n" in
+  let path = Stdlib.Filename.concat dir "main.ml" in
+  Test.write_file (Stdlib.Filename.concat dir "dune-project") "(lang dune 3.24)\n";
+  Test.write_file (Stdlib.Filename.concat dir "dune") "(executable (name main))\n";
+  Test.write_file path source;
+  let uri = DocumentUri.of_path path in
+  let workspace = WorkspaceFolder.create ~uri:(DocumentUri.of_path dir) ~name:"test" in
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
+  (Test.run_initialized
+     ~extra_env:[ "PATH=" ]
+     ~workspaceFolders:(Some [ workspace ])
+     ~handler
+     ~stderr
+   @@ fun client ->
+   let textDocument =
+     TextDocumentItem.create
+       ~uri
+       ~languageId:(LanguageKind.Other "ocaml")
+       ~version:0
+       ~text:source
+   in
+   let* () =
+     Client.notification
+       client
+       (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+   in
+   let textDocument = TextDocumentIdentifier.create ~uri in
+   let position = Position.create ~line:0 ~character:4 in
+   let* result =
+     Fiber.collect_errors (fun () ->
+       Client.request
+         client
+         (TextDocumentHover (HoverParams.create ~textDocument ~position ())))
+   in
+   let* () =
+     match result with
+     | Error
+         [ { Exn_with_backtrace.exn =
+               Jsonrpc.Response.Error.E
+                 { code = Jsonrpc.Response.Error.Code.InvalidRequest; message; data = _ }
+           ; backtrace = _
+           }
+         ] ->
+       String.replace_all message ~sub:(DocumentUri.to_string uri) ~by:"<document-uri>"
+       |> print_endline;
+       Fiber.return ()
+     | Error errors -> Fiber.reraise_all errors
+     | Ok _ ->
+       print_endline "hover succeeded";
+       Fiber.return ()
+   in
+   let* () = Client.request client Shutdown in
+   Client.stop client);
+  Unix.close stderr;
+  [%expect {| no document found with uri: <document-uri> |}]
+;;
