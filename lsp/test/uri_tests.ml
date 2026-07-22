@@ -116,8 +116,8 @@ let%expect_test "an unescaped Unicode URI query is preserved" =
     (Uri.to_string uri);
   [%expect
     {|
-    query: search=
-    serialized: file:///foo.ml?search%3D
+    query: search=😀&limit=1
+    serialized: file:///foo.ml?search%3D%F0%9F%98%80%26limit%3D1
     |}]
 ;;
 

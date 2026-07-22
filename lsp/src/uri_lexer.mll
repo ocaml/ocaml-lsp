@@ -19,15 +19,6 @@ let int_of_hex_char c =
   else
     None
 
-let value_exn = function
-   | None -> assert false
-   | Some s -> s
-
-let char_of_hexdigits high low =
-  let high = value_exn (int_of_hex_char high) in
-  let low = value_exn (int_of_hex_char low) in
-  Char.chr (high lsl 4 + low)
-
 (* https://github.com/mirage/ocaml-uri/blob/master/lib/uri.ml#L318 *)
 let decode b =
   let len = String.length b in
@@ -69,19 +60,7 @@ let decode b =
   Buffer.contents buf
 }
 
-let hexdigit = ['a'-'f' 'A'-'F' '0'-'9']
-let unreserved = [ 'A'-'Z' 'a'-'z' '0'-'9' '-' '.' '_' '~' ]
-let sub_delim = [ '!' '$' '&' '\'' '(' ')' '*' '+' ';' '=' ]
-
-rule query b = parse
-| (['/' '?' ':' '@'] | unreserved | sub_delim) as c { Buffer.add_char b c; query b lexbuf }
-| "%" (hexdigit as high) (hexdigit as low)
-  { Buffer.add_char b (char_of_hexdigits high low);
-    query b lexbuf
-  }
-| "" | "#" | eof { Buffer.contents b }
-
-and uri = parse
+rule uri = parse
 ([^':' '/' '?' '#']+ as scheme ':') ?
 ("//" ([^ '/' '?' '#']* as authority)) ?
 ([^ '?' '#']* as path)
@@ -99,11 +78,7 @@ and uri = parse
       String.add_prefix_if_not_exists path ~prefix:"/"
     | _ -> path
   in
-  let query =
-    match raw_query with
-    | None -> None
-    | Some c -> Some (query (Buffer.create (String.length c)) (Lexing.from_string c))
-  in
+  let query = raw_query |> Option.map decode in
   let fragment = fragment |> Option.map decode in
   { scheme; authority; path; query; fragment }
 }
