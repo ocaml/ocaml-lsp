@@ -58,6 +58,11 @@ let start_client ?(capabilities = ClientCapabilities.create ()) ?workspaceFolder
   Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ())
 ;;
 
+let shutdown_client client =
+  let* () = Client.request client Shutdown in
+  Client.stop client
+;;
+
 module T : sig
   val run_with_status
     :  ?extra_env:string list

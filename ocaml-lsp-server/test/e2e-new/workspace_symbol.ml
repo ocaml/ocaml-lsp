@@ -252,20 +252,12 @@ let workspace_symbol client query =
 
 let run ?on_notification workspaces f =
   let handler = Client.Handler.make ?on_notification () in
-  Test.run ~handler (fun client ->
-    let run_client () =
-      Test.start_client
-        ~workspaceFolders:
-          (Some (List.map workspaces ~f:(fun workspace -> workspace.folder)))
-        client
-    in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let* () = f client in
-      let* () = Client.request client Shutdown in
-      Client.stop client
-    in
-    Fiber.fork_and_join_unit run_client run)
+  let workspaceFolders =
+    Some (List.map workspaces ~f:(fun workspace -> workspace.folder))
+  in
+  Test.run_initialized ~handler ~workspaceFolders (fun client ->
+    let* () = f client in
+    Test.shutdown_client client)
 ;;
 
 let%expect_test "returns all symbols from workspace" =

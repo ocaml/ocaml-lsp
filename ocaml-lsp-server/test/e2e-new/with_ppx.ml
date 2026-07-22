@@ -38,35 +38,29 @@ let%expect_test "with-ppx" =
     Client.Handler.make ~on_notification ()
   in
   let output =
-    Test.run ~handler
+    Test.run_initialized ~handler
     @@ fun client ->
-    let run_client () = Test.start_client client in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        let text = Io.String_path.read_file path in
-        TextDocumentItem.create
-          ~uri
-          ~languageId:(LanguageKind.Other "ocaml")
-          ~version:0
-          ~text
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = Fiber.Ivar.read diagnostics in
-      let* () =
-        let+ resp = Hover_helpers.hover ~uri client position in
-        Hover_helpers.print_hover resp
-      in
-      let output = [%expect.output] in
-      let* () = Client.request client Shutdown in
-      let+ () = Client.stop client in
-      output
+    let textDocument =
+      let text = Io.String_path.read_file path in
+      TextDocumentItem.create
+        ~uri
+        ~languageId:(LanguageKind.Other "ocaml")
+        ~version:0
+        ~text
     in
-    Fiber.fork_and_join_unit run_client run
+    let* () =
+      Client.notification
+        client
+        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+    in
+    let* () = Fiber.Ivar.read diagnostics in
+    let* () =
+      let+ resp = Hover_helpers.hover ~uri client position in
+      Hover_helpers.print_hover resp
+    in
+    let output = [%expect.output] in
+    let+ () = Test.shutdown_client client in
+    output
   in
   let (_ : string) = [%expect.output] in
   print_endline output;

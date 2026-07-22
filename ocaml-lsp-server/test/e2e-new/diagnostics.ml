@@ -18,32 +18,22 @@ let test source =
          | _ -> Fiber.return ())
       ()
   in
-  Test.run ~handler (fun client ->
-    let run_client () =
-      Client.start
+  Test.run_initialized ~handler (fun client ->
+    let textDocument =
+      TextDocumentItem.create
+        ~uri:Helpers.uri
+        ~languageId:(LanguageKind.Other "ocaml")
+        ~version:0
+        ~text:source
+    in
+    let* () =
+      Client.notification
         client
-        (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
+        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
     in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create
-          ~uri:Helpers.uri
-          ~languageId:(LanguageKind.Other "ocaml")
-          ~version:0
-          ~text:source
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* params = Fiber.Ivar.read diagnostics in
-      print_diagnostics params;
-      let* () = Client.request client Shutdown in
-      Client.stop client
-    in
-    Fiber.fork_and_join_unit run_client run)
+    let* params = Fiber.Ivar.read diagnostics in
+    print_diagnostics params;
+    Test.shutdown_client client)
 ;;
 
 let%expect_test "has related diagnostics" =
@@ -185,37 +175,27 @@ end
          | _ -> Fiber.return ())
       ()
   in
-  Test.run ~handler (fun client ->
-    let run_client () =
-      Client.start
+  Test.run_initialized ~handler (fun client ->
+    let textDocument =
+      TextDocumentItem.create
+        ~uri:Helpers.uri
+        ~languageId:(LanguageKind.Other "ocaml")
+        ~version:0
+        ~text:source
+    in
+    let* () =
+      Client.notification
         client
-        (InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ())
+        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
     in
-    let run () =
-      let* (_ : InitializeResult.t) = Client.initialized client in
-      let textDocument =
-        TextDocumentItem.create
-          ~uri:Helpers.uri
-          ~languageId:(LanguageKind.Other "ocaml")
-          ~version:0
-          ~text:source
-      in
-      let* () =
-        Client.notification
-          client
-          (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-      in
-      let* () = Fiber.Ivar.read first_diagnostics in
-      let settings =
-        `Assoc [ "shortenMerlinDiagnostics", `Assoc [ "enable", `Bool true ] ]
-      in
-      let* () = Client.notification client (ChangeConfiguration { settings }) in
-      let* () = Lev_fiber.Timer.sleepf 0.05 in
-      print_endline ("diagnostic publications: " ^ Int.to_string !publications);
-      let* () = Client.request client Shutdown in
-      Client.stop client
+    let* () = Fiber.Ivar.read first_diagnostics in
+    let settings =
+      `Assoc [ "shortenMerlinDiagnostics", `Assoc [ "enable", `Bool true ] ]
     in
-    Fiber.fork_and_join_unit run_client run);
+    let* () = Client.notification client (ChangeConfiguration { settings }) in
+    let* () = Lev_fiber.Timer.sleepf 0.05 in
+    print_endline ("diagnostic publications: " ^ Int.to_string !publications);
+    Test.shutdown_client client);
   [%expect {| diagnostic publications: 1 |}]
 ;;
 
