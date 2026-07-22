@@ -114,25 +114,19 @@ let to_string { scheme; authority; path; query; fragment } =
     let encode = encode ~allow_slash:true in
     let encoded_colon = "%3A" in
     let len = String.length path in
-    if len >= 3 && path.[0] = '/' && path.[2] = ':'
+    if len >= 3 && path.[0] = '/' && path.[2] = ':' && is_drive_letter path.[1]
     then (
-      let drive_letter = Char.lowercase_ascii path.[1] in
-      if is_drive_letter drive_letter
-      then (
-        Buffer.add_char buff '/';
-        Buffer.add_char buff drive_letter;
-        Buffer.add_string buff encoded_colon;
-        let s = String.sub path ~pos:3 ~len:(len - 3) in
-        Buffer.add_string buff (encode s)))
-    else if len >= 2 && path.[1] = ':'
+      Buffer.add_char buff '/';
+      Buffer.add_char buff (Char.lowercase_ascii path.[1]);
+      Buffer.add_string buff encoded_colon;
+      let s = String.sub path ~pos:3 ~len:(len - 3) in
+      Buffer.add_string buff (encode s))
+    else if len >= 2 && path.[1] = ':' && is_drive_letter path.[0]
     then (
-      let drive_letter = Char.lowercase_ascii path.[0] in
-      if is_drive_letter drive_letter
-      then (
-        Buffer.add_char buff drive_letter;
-        Buffer.add_string buff encoded_colon;
-        let s = String.sub path ~pos:2 ~len:(len - 2) in
-        Buffer.add_string buff (encode s)))
+      Buffer.add_char buff (Char.lowercase_ascii path.[0]);
+      Buffer.add_string buff encoded_colon;
+      let s = String.sub path ~pos:2 ~len:(len - 2) in
+      Buffer.add_string buff (encode s))
     else Buffer.add_string buff (encode path));
   (match query with
    | None -> ()

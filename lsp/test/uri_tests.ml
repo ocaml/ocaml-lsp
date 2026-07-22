@@ -104,7 +104,7 @@ let%expect_test "serialization preserves a non-letter drive-like path" =
   [%expect
     {|
     source: file:///1%3A/foo.ml
-    serialized: file://
+    serialized: file:///1%3A/foo.ml
     |}]
 ;;
 
