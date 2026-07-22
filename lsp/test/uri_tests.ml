@@ -79,8 +79,8 @@ let%expect_test "serialization disambiguates a path beginning with two slashes" 
     (Uri.equal uri round_trip);
   [%expect
     {|
-    serialized: untitled://Module.ml
-    round trip equal: false
+    serialized: untitled:////Module.ml
+    round trip equal: true
     |}]
 ;;
 
