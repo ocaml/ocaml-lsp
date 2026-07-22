@@ -37,38 +37,33 @@ let%expect_test "returns location of a declaration" =
   let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
   let on_notification, diagnostics = Test.drain_diagnostics () in
   let handler = Client.Handler.make ~on_notification () in
-  (Test.run ~stderr ~handler
+  (Test.run_initialized ~stderr ~handler
    @@ fun client ->
-   let run_client () = Test.start_client client in
-   let run =
-     let* (_ : InitializeResult.t) = Client.initialized client in
-     let textDocument =
-       TextDocumentItem.create
-         ~uri
-         ~languageId:(LanguageKind.Other "ocaml")
-         ~version:0
-         ~text:source
-     in
-     let* () =
-       Client.notification
-         client
-         (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-     in
-     let textDocument = TextDocumentIdentifier.create ~uri in
-     let* response =
-       Client.request
-         client
-         (TextDocumentDeclaration
-            (TextDocumentPositionParams.create
-               ~textDocument
-               ~position:(Position.create ~line:0 ~character:13)))
-     in
-     print_locations response;
-     let* () = Client.request client Shutdown in
-     let* () = Fiber.Ivar.read diagnostics in
-     Client.stop client
+   let textDocument =
+     TextDocumentItem.create
+       ~uri
+       ~languageId:(LanguageKind.Other "ocaml")
+       ~version:0
+       ~text:source
    in
-   Fiber.fork_and_join_unit run_client (fun () -> run));
+   let* () =
+     Client.notification
+       client
+       (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+   in
+   let textDocument = TextDocumentIdentifier.create ~uri in
+   let* response =
+     Client.request
+       client
+       (TextDocumentDeclaration
+          (TextDocumentPositionParams.create
+             ~textDocument
+             ~position:(Position.create ~line:0 ~character:13)))
+   in
+   print_locations response;
+   let* () = Client.request client Shutdown in
+   let* () = Fiber.Ivar.read diagnostics in
+   Client.stop client);
   Unix.close stderr;
   [%expect
     {|
