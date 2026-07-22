@@ -1,7 +1,5 @@
 (* This module is based on the [vscode-uri] implementation:
-   https://github.com/microsoft/vscode-uri/blob/main/src/uri.ts. It only
-   supports scheme, authority and path. Query, port and fragment are not
-   implemented *)
+   https://github.com/microsoft/vscode-uri/blob/main/src/uri.ts. *)
 
 open Import
 
@@ -32,40 +30,28 @@ let slash_to_backslash =
     | c -> c)
 ;;
 
+let is_drive_letter = function
+  | 'A' .. 'Z' | 'a' .. 'z' -> true
+  | _ -> false
+;;
+
 let of_path path =
   let path = if !Private.win32 then backslash_to_slash path else path in
   Uri_lexer.of_path path
 ;;
 
-let to_path { path; authority; scheme; query; _ } =
+let to_path { path; authority; scheme; _ } =
+  let len = String.length path in
   let path =
-    let len = String.length path in
     if len = 0
     then "/"
-    else (
-      let buff = Buffer.create 64 in
-      if (not (String.is_empty authority)) && len > 1 && scheme = "file"
-      then (
-        Buffer.add_string buff "//";
-        Buffer.add_string buff authority;
-        Buffer.add_string buff path)
-      else if len < 3
-      then Buffer.add_string buff path
-      else (
-        let c0 = path.[0] in
-        let c1 = path.[1] in
-        let c2 = path.[2] in
-        if c0 = '/' && ((c1 >= 'A' && c1 <= 'Z') || (c1 >= 'a' && c1 <= 'z')) && c2 = ':'
-        then (
-          Buffer.add_char buff (Char.lowercase_ascii c1);
-          Buffer.add_substring buff path 2 (String.length path - 2))
-        else Buffer.add_string buff path);
-      (match query with
-       | None -> ()
-       | Some query ->
-         Buffer.add_char buff '?';
-         Buffer.add_string buff query);
-      Buffer.contents buff)
+    else if (not (String.is_empty authority)) && len > 1 && scheme = "file"
+    then "//" ^ authority ^ path
+    else if
+      len >= 3 && path.[0] = '/' && is_drive_letter path.[1] && Char.equal path.[2] ':'
+    then
+      String.make 1 (Char.lowercase_ascii path.[1]) ^ String.sub path ~pos:2 ~len:(len - 2)
+    else path
   in
   if !Private.win32 then slash_to_backslash path else path
 ;;
@@ -127,7 +113,7 @@ let to_string { scheme; authority; path; query; fragment } =
     if len >= 3 && path.[0] = '/' && path.[2] = ':'
     then (
       let drive_letter = Char.lowercase_ascii path.[1] in
-      if drive_letter >= 'a' && drive_letter <= 'z'
+      if is_drive_letter drive_letter
       then (
         Buffer.add_char buff '/';
         Buffer.add_char buff drive_letter;
@@ -137,7 +123,7 @@ let to_string { scheme; authority; path; query; fragment } =
     else if len >= 2 && path.[1] = ':'
     then (
       let drive_letter = Char.lowercase_ascii path.[0] in
-      if drive_letter >= 'a' && drive_letter <= 'z'
+      if is_drive_letter drive_letter
       then (
         Buffer.add_char buff drive_letter;
         Buffer.add_string buff encoded_colon;
