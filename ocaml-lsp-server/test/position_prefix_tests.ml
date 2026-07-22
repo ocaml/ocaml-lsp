@@ -99,3 +99,17 @@ let%expect_test "let+$% thing" =
   prefix_test "let+$%" (`Logical (1, 6));
   [%expect "let+$%"]
 ;;
+
+let%expect_test "completion sort text preserves order above 9999 items" =
+  [ 9998; 9999; 10_000; 10_001 ]
+  |> List.map (fun index -> index, Testing.Compl.For_tests.sortText_of_index index)
+  |> List.sort (fun (_, left) (_, right) -> String.compare left right)
+  |> List.iter (fun (index, _) -> Printf.printf "%d\n" index);
+  [%expect
+    {|
+    10000
+    10001
+    9998
+    9999
+    |}]
+;;

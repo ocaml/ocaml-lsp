@@ -93,6 +93,10 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
 
 let sortText_of_index idx = Printf.sprintf "%04d" idx
 
+module For_tests = struct
+  let sortText_of_index = sortText_of_index
+end
+
 module Complete_by_prefix = struct
   let completionItem_of_completion_entry
         idx
