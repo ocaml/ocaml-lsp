@@ -16,31 +16,41 @@ let iter_code_actions ?prep ?path ?(diagnostics = []) ?only ~source range =
   iter_lsp_response ?prep ?path ~language_id:"ocaml" ~makeRequest ~source
 ;;
 
+let print_code_action_result ?(filter = fun _ -> true) = function
+  | None -> print_endline "No code actions"
+  | Some code_actions ->
+    code_actions
+    |> List.filter ~f:filter
+    |> (function
+     | [] -> print_endline "No code actions"
+     | actions ->
+       print_endline "Code actions:";
+       List.iter actions ~f:(fun ca ->
+         let json =
+           match ca with
+           | `Command command -> Command.yojson_of_t command
+           | `CodeAction ca -> CodeAction.yojson_of_t ca
+         in
+         Yojson.Safe.pretty_to_string ~std:false json |> print_endline))
+;;
+
 let print_code_actions
       ?(prep = fun _ -> Fiber.return ())
       ?(path = "foo.ml")
       ?(diagnostics = [])
       ?only
-      ?(filter = fun _ -> true)
+      ?filter
       source
       range
   =
-  iter_code_actions ~prep ~path ~diagnostics ?only ~source range (function
-    | None -> print_endline "No code actions"
-    | Some code_actions ->
-      code_actions
-      |> List.filter ~f:filter
-      |> (function
-       | [] -> print_endline "No code actions"
-       | actions ->
-         print_endline "Code actions:";
-         List.iter actions ~f:(fun ca ->
-           let json =
-             match ca with
-             | `Command command -> Command.yojson_of_t command
-             | `CodeAction ca -> CodeAction.yojson_of_t ca
-           in
-           Yojson.Safe.pretty_to_string ~std:false json |> print_endline)))
+  iter_code_actions
+    ~prep
+    ~path
+    ~diagnostics
+    ?only
+    ~source
+    range
+    (print_code_action_result ?filter)
 ;;
 
 let find_action action_name action =
@@ -2442,10 +2452,7 @@ let f = function
     in
     let params = CodeActionParams.create ~textDocument ~range:query_range ~context () in
     let* response = Client.request client (CodeAction params) in
-    let available =
-      response |> Option.value ~default:[] |> List.exists ~f:(find_action "combine-cases")
-    in
-    Printf.printf "combine-cases available: %b\n" available;
+    print_code_action_result ~filter:(find_action "combine-cases") response;
     Test.exit_client client);
-  [%expect {| combine-cases available: false |}]
+  [%expect {| No code actions |}]
 ;;

@@ -17,13 +17,18 @@ let code_action_capabilities resolveSupport =
   ClientCapabilities.create ~textDocument ()
 ;;
 
-let print_resolve_state prefix (action : CodeAction.t) =
-  Printf.printf
-    "%s: edit=%b data=%b\n"
-    prefix
-    (Option.is_some action.edit)
-    (Option.is_some action.data)
+let print_json label json =
+  Printf.printf "%s:\n%s\n" label (Yojson.Safe.pretty_to_string ~std:false json)
 ;;
+
+let print_code_action_provider = function
+  | None -> print_json "code action provider" `Null
+  | Some (`Bool enabled) -> print_json "code action provider" (`Bool enabled)
+  | Some (`CodeActionOptions options) ->
+    print_json "code action provider" (CodeActionOptions.yojson_of_t options)
+;;
+
+let print_code_action label action = print_json label (CodeAction.yojson_of_t action)
 
 let%expect_test "inline edit is computed eagerly despite resolve support" =
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
@@ -33,12 +38,7 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
    @@ fun client ->
    let run () =
      let* initialized = Client.initialized client in
-     let resolveProvider =
-       match initialized.capabilities.codeActionProvider with
-       | Some (`CodeActionOptions { resolveProvider = Some true; _ }) -> true
-       | None | Some (`Bool _) | Some (`CodeActionOptions _) -> false
-     in
-     Printf.printf "resolve provider: %b\n" resolveProvider;
+     print_code_action_provider initialized.capabilities.codeActionProvider;
      let uri = DocumentUri.of_path "resolve.ml" in
      let source =
        {ocaml|let _ =
@@ -65,12 +65,46 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
          | `CodeAction _ | `Command _ -> None)
        |> Option.value_exn
      in
-     print_resolve_state "initial response" action;
+     print_code_action "initial response" action;
      Test.exit_client client
    in
    run ());
   [%expect
     {|
-    resolve provider: false
-    initial response: edit=true data=false |}]
+    code action provider:
+    {
+      "codeActionKinds": [
+        "quickfix", "refactor.extract", "refactor.inline", "combine-cases",
+        "construct", "destruct (enumerate cases)",
+        "destruct-line (enumerate cases, use existing match)", "inferred_intf",
+        "merlin-jump-fun", "merlin-jump-let", "merlin-jump-match",
+        "merlin-jump-module", "merlin-jump-module-type", "merlin-jump-next-case",
+        "merlin-jump-prev-case", "put module name in identifiers",
+        "remove module name from identifiers", "remove type annotation",
+        "switch", "type-annotate", "update_intf"
+      ]
+    }
+    initial response:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(0)",
+                "range": {
+                  "end": { "character": 3, "line": 2 },
+                  "start": { "character": 2, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///resolve.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "refactor.inline",
+      "title": "Inline into uses"
+    }
+    |}]
 ;;
