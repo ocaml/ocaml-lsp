@@ -34,6 +34,7 @@
 - Preserve document offsets across incremental text edits. (#1777, @rgrinberg)
 - Respect the client's preferred completion documentation format. (#1885, @rgrinberg)
 - Report completion item kinds supported by the client. (#1887, @rgrinberg)
+- Use completion deprecation tags when supported by the client. (#1891, @rgrinberg)
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
 - Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)
