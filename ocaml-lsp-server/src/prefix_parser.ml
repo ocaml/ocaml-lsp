@@ -4,8 +4,14 @@ include struct
   open Re
 
   (* Regex based parser *)
-  let white_space = set "\n\t "
-  let name_char = Re.alt [ rg 'a' 'z'; rg 'A' 'Z'; rg '0' '9'; char '_'; char '\'' ]
+  let white_space = set "\n\r\t\012 "
+
+  (* OCaml identifiers may contain Latin-1 letters. At this point the regular
+     expression operates on their UTF-8 bytes; accepting non-ASCII bytes lets
+     Merlin perform the precise identifier validation. *)
+  let name_char =
+    Re.alt [ rg 'a' 'z'; rg 'A' 'Z'; rg '0' '9'; rg '\128' '\255'; char '_'; char '\'' ]
+  ;;
 
   let name_with_dot =
     Re.seq [ name_char; white_space |> rep; char '.'; white_space |> rep ]

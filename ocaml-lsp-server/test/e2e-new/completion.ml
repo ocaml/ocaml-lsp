@@ -117,7 +117,7 @@ let%expect_test "completion replaces a Unicode prefix using UTF-16 positions" =
         "newText": "caféine",
         "range": {
           "end": { "character": 12, "line": 1 },
-          "start": { "character": 12, "line": 1 }
+          "start": { "character": 8, "line": 1 }
         }
       }
     }

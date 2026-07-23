@@ -41,7 +41,9 @@ let prefix_of_position ~short_path source position =
       |> Option.value ~default:""
       (* We remove the whitespace because merlin expects no whitespace and it's
          semantically meaningless *)
-      |> String.filter ~f:(fun x -> not (x = ' ' || x = '\n' || x = '\t'))
+      |> String.filter ~f:(function
+        | ' ' | '\n' | '\r' | '\t' | '\012' -> false
+        | _ -> true)
     in
     if short_path
     then (
@@ -63,7 +65,7 @@ let suffix_of_position source position =
       let from = index in
       let len =
         let ident_char = function
-          | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '\'' | '_' -> true
+          | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '\128' .. '\255' | '\'' | '_' -> true
           | _ -> false
         in
         let until =

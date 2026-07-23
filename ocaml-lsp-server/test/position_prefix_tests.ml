@@ -82,12 +82,12 @@ let%expect_test "short path preserves a dotted operator" =
 
 let%expect_test "prefix may contain a Latin-1 identifier" =
   prefix_test "let caféine = 1\nlet _ = café" (`Logical (2, 13));
-  [%expect ""]
+  [%expect "caf\195\169"]
 ;;
 
 let%expect_test "carriage return in dot chain" =
   prefix_test "let _ = List.\r\n  ma" (`Logical (2, 4));
-  [%expect "ma"]
+  [%expect "List.ma"]
 ;;
 
 let%expect_test "Space in dot chain" =
