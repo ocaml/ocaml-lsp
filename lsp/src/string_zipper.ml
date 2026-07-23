@@ -112,7 +112,7 @@ let insert t (x : string) =
     then { t with current; right = cons t.current t.right }
     else if t.rel_pos = Substring.length t.current
     then (
-      let abs_pos = t.rel_pos + Substring.length t.current in
+      let abs_pos = t.abs_pos + t.rel_pos in
       { t with current; rel_pos = 0; left = cons t.current t.left; abs_pos })
     else (
       let l, r = Substring.split_at t.current t.rel_pos in
@@ -187,7 +187,7 @@ let rec prev_newline t =
              current
            ; left
            ; rel_pos = Substring.length current
-           ; abs_pos = t.abs_pos + Substring.length t.current
+           ; abs_pos = t.abs_pos - Substring.length current
            ; right = t.current :: t.right
            }))
 ;;
@@ -294,16 +294,16 @@ let drop_until from until =
   else (
     let right = cons (Substring.drop until.current until.rel_pos) until.right in
     let left = cons (Substring.take from.current from.rel_pos) from.left in
+    let prefix_length = from.abs_pos + from.rel_pos in
     match right with
     | current :: right ->
-      let abs_pos = from.abs_pos + Substring.length from.current in
-      { from with right; left; abs_pos; current; rel_pos = 0 }
+      { from with right; left; abs_pos = prefix_length; current; rel_pos = 0 }
     | [] ->
       (match left with
        | [] -> empty
        | current :: left ->
          let rel_pos = Substring.length current in
-         let abs_pos = from.abs_pos + rel_pos in
+         let abs_pos = prefix_length - rel_pos in
          { from with right; left; current; rel_pos; abs_pos }))
 ;;
 
