@@ -293,9 +293,20 @@ module Complete_by_prefix = struct
            ~sort_text_width)
   ;;
 
-  let complete_keywords ~position_encoding completion_position prefix =
-    match prefix with
-    | "" | "i" | "in" ->
+  let can_complete_in position pipeline =
+    let typer = Mpipeline.typer_result pipeline in
+    let browse = Mbrowse.of_typedtree (Mtyper.get_typedtree typer) in
+    let position = Mpipeline.get_lexing_pos pipeline position in
+    Mbrowse.deepest_before position [ browse ]
+    |> List.exists ~f:(function
+      | _, Browse_raw.Expression { exp_desc = Texp_let (_, _, body); _ } ->
+        body.exp_loc.loc_ghost
+      | _ -> false)
+  ;;
+
+  let complete_keywords ~position_encoding ~can_complete_in completion_position prefix =
+    match prefix, can_complete_in with
+    | ("" | "i" | "in"), true ->
       let ci_for_in =
         CompletionItem.create
           ~label:"in"
@@ -308,7 +319,7 @@ module Complete_by_prefix = struct
           ()
       in
       [ ci_for_in ]
-    | _ -> []
+    | _, _ -> []
   ;;
 
   let complete
@@ -322,17 +333,20 @@ module Complete_by_prefix = struct
         ~supports_enum_member
         ~resolve
     =
-    let+ (completion : Query_protocol.completions) =
-      Document.Merlin.with_pipeline_exn
-        ~name:"completion-prefix"
-        doc
-        (dispatch_cmd ~prefix position)
+    let+ (completion : Query_protocol.completions), can_complete_in =
+      Document.Merlin.with_pipeline_exn ~name:"completion-prefix" doc (fun pipeline ->
+        let can_complete_in =
+          match prefix with
+          | "" | "i" | "in" -> can_complete_in position pipeline
+          | _ -> false
+        in
+        dispatch_cmd ~prefix position pipeline, can_complete_in)
     in
     let keyword_completionItems =
       (* we complete only keyword 'in' for now *)
       match Document.Merlin.kind doc with
       | Intf -> []
-      | Impl -> complete_keywords ~position_encoding pos prefix
+      | Impl -> complete_keywords ~position_encoding ~can_complete_in pos prefix
     in
     keyword_completionItems
     @ process_dispatch_resp

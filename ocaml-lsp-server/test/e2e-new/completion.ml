@@ -1372,21 +1372,7 @@ let%expect_test "does not complete `in` in a top-level binding" =
     List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "in")
   in
   print_completions ~pre_print:only_in source position;
-  [%expect
-    {|
-    Completions:
-    {
-      "kind": 14,
-      "label": "in",
-      "textEdit": {
-        "newText": "in",
-        "range": {
-          "end": { "character": 12, "line": 0 },
-          "start": { "character": 11, "line": 0 }
-        }
-      }
-    }
-    |}]
+  [%expect {| No completions |}]
 ;;
 
 let%expect_test "does not complete `in` before an existing `in`" =
@@ -1396,21 +1382,7 @@ let%expect_test "does not complete `in` before an existing `in`" =
     List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "in")
   in
   print_completions ~pre_print:only_in source position;
-  [%expect
-    {|
-    Completions:
-    {
-      "kind": 14,
-      "label": "in",
-      "textEdit": {
-        "newText": "in",
-        "range": {
-          "end": { "character": 11, "line": 1 },
-          "start": { "character": 10, "line": 1 }
-        }
-      }
-    }
-    |}]
+  [%expect {| No completions |}]
 ;;
 
 let%expect_test "completion for `in` keyword - no prefix" =
@@ -1579,17 +1551,6 @@ let%expect_test "completion for object methods" =
   [%expect
     {|
     Completions:
-    {
-      "kind": 14,
-      "label": "in",
-      "textEdit": {
-        "newText": "in",
-        "range": {
-          "end": { "character": 34, "line": 0 },
-          "start": { "character": 34, "line": 0 }
-        }
-      }
-    }
     {
       "detail": "'a",
       "kind": 2,
