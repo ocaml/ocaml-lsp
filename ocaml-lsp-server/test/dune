@@ -2,7 +2,8 @@
  (modules
   ocaml_lsp_tests
   position_prefix_tests
-  range_relations_quickcheck_tests)
+  range_relations_quickcheck_tests
+  semantic_tokens_quickcheck_tests)
  (name ocaml_lsp_tests)
  (enabled_if
   (>= %{ocaml_version} 4.08))

@@ -943,8 +943,6 @@ let on_request_full : State.t -> SemanticTokensParams.t -> SemanticTokens.t opti
       Some { SemanticTokens.resultId = Some resultId; data = tokens })
 ;;
 
-(* TODO: refactor [find_diff] and write (inline?) tests *)
-
 (* [find_diff] finds common prefix and common suffix and reports the rest as
    array difference. This is not ideal but good enough. The idea comes from the
    Rust Analyzer implementation of this function. *)
@@ -985,6 +983,22 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
     in
     [ SemanticTokensEdit.create ~start:left_offset ~deleteCount ~data () ])
 ;;
+
+module For_tests = struct
+  let token_type = Token_type.of_builtin SemanticTokenTypes.Variable
+  let token_type_index = Token_type.to_int token_type
+  let token_modifiers = Token_modifiers_set.empty
+  let token_modifiers_bitset = Token_modifiers_set.to_int token_modifiers
+
+  let encode tokens =
+    let encoded = Tokens.create () in
+    List.iter tokens ~f:(fun (start, length) ->
+      Tokens.append_token' encoded start ~length token_type token_modifiers);
+    Tokens.encode encoded
+  ;;
+
+  let find_diff = find_diff
+end
 
 let on_request_full_delta
   :  State.t
