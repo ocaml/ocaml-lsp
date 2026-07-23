@@ -8,7 +8,8 @@ type 'a t
     array, the array will be alive in memory as long as the view is alive.
 
     @raise Invalid_argument
-      if [pos + len > Array.length arr] or [pos < 0 || pos >= Array.length arr]*)
+      if [len < 0], [pos + len > Array.length arr], or
+      [pos < 0 || pos > Array.length arr].*)
 val make : ?len:int -> 'a array -> pos:int -> 'a t
 
 val get : 'a t -> int -> 'a

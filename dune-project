@@ -34,7 +34,9 @@ possible and does not make any assumptions about IO.
   yojson
   (ppx_yojson_conv_lib (>= "v0.14"))
   (cinaps :with-test)
+  (base_quickcheck (and (>= v0.17.0) :with-test))
   (ppx_expect (and (>= v0.17.0) :with-test))
+  (ppx_sexp_conv (and (>= v0.17.0) :with-test))
   (top-closure (or :with-test :with-dev-setup))
   (uutf (>= 1.0.2))
   (odoc :with-doc)
