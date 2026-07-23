@@ -129,6 +129,42 @@ let%expect_test "completion resolve after its document changes" =
     |}]
 ;;
 
+let%expect_test "completion documentation respects the client's preferred format" =
+  let capabilities =
+    let resolveSupport =
+      ClientCompletionItemResolveOptions.create ~properties:[ "documentation" ]
+    in
+    let completionItem =
+      ClientCompletionItemOptions.create
+        ~documentationFormat:[ MarkupKind.PlainText; MarkupKind.Markdown ]
+        ~resolveSupport
+        ()
+    in
+    let completion = CompletionClientCapabilities.create ~completionItem () in
+    let textDocument = TextDocumentClientCapabilities.create ~completion () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let source = "List.ma" in
+  let req client =
+    let* response =
+      completion_item_resolve client "map2" (Position.create ~line:0 ~character:7)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test ~capabilities source req;
+  [%expect
+    {|
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "`map2 f [a1; ...; an] [b1; ...; bn]` is `[f a1 b1; ...; f an bn]`.\n\n***@raise*** `Invalid_argument`\nif the two lists are determined to have different lengths."
+      },
+      "label": "map2"
+    }
+    |}]
+;;
+
 let%expect_test "can get documentation at arbitrary position" =
   let source =
     {ocaml|List.fld((=) 0) [1; 2; 3]
@@ -149,6 +185,37 @@ let%expect_test "can get documentation at arbitrary position" =
       "label": "find_all"
     }
     |}]
+;;
+
+let%expect_test "can resolve a dotted operator from the middle of its name" =
+  let source =
+    {ocaml|(** combine docs *)
+let ( >>. ) x y = x + y
+let _ = 1 >>. 2
+|ocaml}
+  in
+  let req client =
+    let* response =
+      completion_item_resolve client ">>." (Position.create ~line:2 ~character:11)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect {| { "label": ">>." } |}]
+;;
+
+let%expect_test "completion resolve converts UTF-16 positions for Merlin" =
+  let source = "let café = List.ma" in
+  let req client =
+    let* response =
+      completion_item_resolve client "map2" (Position.create ~line:0 ~character:18)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect {| { "label": "map2" } |}]
 ;;
 
 let%expect_test "can get documentation at arbitrary position (before dot)" =

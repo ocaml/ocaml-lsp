@@ -15,58 +15,112 @@ let iter_completions
   Lsp_helpers.iter_lsp_response ?prep ?path ~language_id:"ocaml" ~makeRequest
 ;;
 
+let print_completion_response
+      ?(limit = 10)
+      ?(pre_print = fun x -> x)
+      (completions :
+        [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option)
+  =
+  match completions with
+  | None -> print_endline "No completion Items"
+  | Some completions ->
+    let items =
+      match completions with
+      | `CompletionList comp -> comp.items
+      | `List comp -> comp
+    in
+    items
+    |> pre_print
+    |> (function
+     | [] -> print_endline "No completions"
+     | items ->
+       print_endline "Completions:";
+       let originalLength = List.length items in
+       items
+       |> List.take (min limit originalLength)
+       |> List.iter ~f:(fun item ->
+         item
+         |> CompletionItem.yojson_of_t
+         |> Yojson.Safe.pretty_to_string ~std:false
+         |> print_endline);
+       if originalLength > limit then print_endline ".............")
+;;
+
 let print_completions
       ?(prep = fun _ -> Fiber.return ())
       ?(path = "foo.ml")
-      ?(limit = 10)
-      ?(pre_print = fun x -> x)
+      ?limit
+      ?pre_print
       source
       position
   =
-  iter_completions ~prep ~path ~source ~position (function
-    | None -> print_endline "No completion Items"
-    | Some completions ->
-      let items =
-        match completions with
-        | `CompletionList comp -> comp.items
-        | `List comp -> comp
-      in
-      items
-      |> pre_print
-      |> (function
-       | [] -> print_endline "No completions"
-       | items ->
-         print_endline "Completions:";
-         let originalLength = List.length items in
-         items
-         |> List.take (min limit originalLength)
-         |> List.iter ~f:(fun item ->
-           item
-           |> CompletionItem.yojson_of_t
-           |> Yojson.Safe.pretty_to_string ~std:false
-           |> print_endline);
-         if originalLength > limit then print_endline "............."))
+  iter_completions
+    ~prep
+    ~path
+    ~source
+    ~position
+    (print_completion_response ?limit ?pre_print)
 ;;
 
-let%expect_test "completion uses UTF-16 positions for Unicode prefixes" =
-  let source = "let café = 1\nlet _ = café" in
-  let position = Position.create ~line:1 ~character:12 in
-  print_completions ~limit:1 source position;
+let request_completions client position =
+  Client.request
+    client
+    (TextDocumentCompletion
+       (CompletionParams.create
+          ~textDocument:(TextDocumentIdentifier.create ~uri:Helpers.uri)
+          ~position
+          ()))
+;;
+
+let%expect_test "completion converts UTF-16 positions before querying Merlin" =
+  let source = "let café = List.ma" in
+  let position = Position.create ~line:0 ~character:18 in
+  let only_map =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "map")
+  in
+  print_completions ~pre_print:only_map source position;
   [%expect
     {|
     Completions:
     {
-      "kind": 14,
-      "label": "in",
+      "detail": "('a -> 'b) -> 'a list -> 'b list",
+      "kind": 12,
+      "label": "map",
+      "sortText": "0000",
       "textEdit": {
-        "newText": "in",
+        "newText": "map",
+        "range": {
+          "end": { "character": 18, "line": 0 },
+          "start": { "character": 17, "line": 0 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "completion replaces a Unicode prefix using UTF-16 positions" =
+  let source = "let caféine = 1\nlet _ = café" in
+  let position = Position.create ~line:1 ~character:12 in
+  let only_cafeine =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "caféine")
+  in
+  print_completions ~pre_print:only_cafeine source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "int",
+      "kind": 12,
+      "label": "caféine",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "caféine",
         "range": {
           "end": { "character": 12, "line": 1 },
           "start": { "character": 12, "line": 1 }
         }
       }
     }
-    .............
     |}]
 ;;
 
@@ -773,21 +827,21 @@ let u = f `Str
   print_completions source position;
   [%expect
     {|
-  Completions:
-  {
-    "detail": "`String",
-    "kind": 20,
-    "label": "`String",
-    "sortText": "0000",
-    "textEdit": {
-      "newText": "`String",
-      "range": {
-        "end": { "character": 14, "line": 3 },
-        "start": { "character": 10, "line": 3 }
+    Completions:
+    {
+      "detail": "`String",
+      "kind": 20,
+      "label": "`String",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "`String",
+        "range": {
+          "end": { "character": 14, "line": 3 },
+          "start": { "character": 10, "line": 3 }
+        }
       }
     }
-  }
-  |}]
+    |}]
 ;;
 
 let%expect_test "works for polymorphic variants - function application context - 2" =
@@ -802,21 +856,21 @@ let u = f `In
   print_completions source position;
   [%expect
     {|
-  Completions:
-  {
-    "detail": "`Int of int",
-    "kind": 20,
-    "label": "`Int",
-    "sortText": "0000",
-    "textEdit": {
-      "newText": "`Int",
-      "range": {
-        "end": { "character": 13, "line": 3 },
-        "start": { "character": 10, "line": 3 }
+    Completions:
+    {
+      "detail": "`Int of int",
+      "kind": 20,
+      "label": "`Int",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "`Int",
+        "range": {
+          "end": { "character": 13, "line": 3 },
+          "start": { "character": 10, "line": 3 }
+        }
       }
     }
-  }
-  |}]
+    |}]
 ;;
 
 let%expect_test "works for polymorphic variants" =
@@ -831,21 +885,21 @@ let x : t = `I
   print_completions source position;
   [%expect
     {|
-  Completions:
-  {
-    "detail": "`Int",
-    "kind": 20,
-    "label": "`Int",
-    "sortText": "0000",
-    "textEdit": {
-      "newText": "`Int",
-      "range": {
-        "end": { "character": 15, "line": 3 },
-        "start": { "character": 13, "line": 3 }
+    Completions:
+    {
+      "detail": "`Int",
+      "kind": 20,
+      "label": "`Int",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "`Int",
+        "range": {
+          "end": { "character": 15, "line": 3 },
+          "start": { "character": 13, "line": 3 }
+        }
       }
     }
-  }
-  |}]
+    |}]
 ;;
 
 let%expect_test "completion for holes" =
@@ -873,6 +927,16 @@ let%expect_test "completion for holes" =
     }
   }
   |}]
+;;
+
+let%expect_test "construct completion converts Merlin ranges to UTF-16" =
+  let source = "let café : int = _" in
+  let position = Position.create ~line:0 ~character:18 in
+  let only_zero =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "0")
+  in
+  print_completions ~pre_print:only_zero source position;
+  [%expect {| No completions |}]
 ;;
 
 let%expect_test "completes identifier at top level" =
@@ -1107,6 +1171,75 @@ let%expect_test "completes a module name" =
   |}]
 ;;
 
+let%expect_test "named types are not reported as type parameters" =
+  let source = "type special_type = int\nlet (_ : spec) = 1" in
+  let position = Position.create ~line:1 ~character:13 in
+  let only_special_type =
+    List.filter ~f:(fun (item : CompletionItem.t) ->
+      String.equal item.label "special_type")
+  in
+  print_completions ~pre_print:only_special_type source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "type special_type = int",
+      "kind": 25,
+      "label": "special_type",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "special_type",
+        "range": {
+          "end": { "character": 13, "line": 1 },
+          "start": { "character": 9, "line": 1 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "deprecated completions use tags when supported" =
+  let capabilities =
+    let tagSupport =
+      CompletionItemTagOptions.create ~valueSet:[ CompletionItemTag.Deprecated ]
+    in
+    let completionItem = ClientCompletionItemOptions.create ~tagSupport () in
+    let completion = CompletionClientCapabilities.create ~completionItem () in
+    let textDocument = TextDocumentClientCapabilities.create ~completion () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let source =
+    "module M : sig val old_value : int [@@deprecated] end = struct let old_value = 1 \n\
+     end\n\
+     let _ = M.old_"
+  in
+  let position = Position.create ~line:2 ~character:14 in
+  let only_old_value =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "old_value")
+  in
+  Helpers.test ~capabilities source (fun client ->
+    let* response = request_completions client position in
+    print_completion_response ~pre_print:only_old_value response;
+    Fiber.return ());
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "int",
+      "kind": 12,
+      "label": "old_value",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "old_value",
+        "range": {
+          "end": { "character": 14, "line": 2 },
+          "start": { "character": 10, "line": 2 }
+        }
+      }
+    }
+    |}]
+;;
+
 let%expect_test "completion doesn't autocomplete record fields" =
   let source =
     {ocaml|
@@ -1225,7 +1358,8 @@ let foo param1 =
         }
       }
     }
-    ............. |}]
+    .............
+    |}]
 ;;
 
 let%expect_test "completion for `in` keyword - prefix i" =
@@ -1277,7 +1411,8 @@ let foo param1 =
         }
       }
     }
-    ............. |}]
+    .............
+    |}]
 ;;
 
 let%expect_test "completion for `in` keyword - prefix in" =
@@ -1329,7 +1464,8 @@ let foo param1 =
         }
       }
     }
-    ............. |}]
+    .............
+    |}]
 ;;
 
 (* Test case was taken from issue #1358 *)
@@ -1363,7 +1499,8 @@ let%expect_test "completion for object methods" =
           "start": { "character": 34, "line": 0 }
         }
       }
-    } |}]
+    }
+    |}]
 ;;
 
 let%expect_test "completion for object methods" =
