@@ -29,9 +29,8 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
   let capabilities = code_action_capabilities resolveSupport in
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
-  (Test.run ~handler
+  (Test.run_initialized ~handler ~capabilities
    @@ fun client ->
-   let run_client () = Test.start_client ~capabilities client in
    let run () =
      let* initialized = Client.initialized client in
      let resolveProvider =
@@ -67,9 +66,9 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
        |> Option.value_exn
      in
      print_resolve_state "initial response" action;
-     Fiber.return ()
+     Test.exit_client client
    in
-   Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client));
+   run ());
   [%expect
     {|
     resolve provider: false
