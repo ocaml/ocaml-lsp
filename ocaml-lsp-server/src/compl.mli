@@ -19,7 +19,8 @@ val complete
 
 (** creates a server response for ["completionItem/resolve"] *)
 val resolve
-  :  Document.Merlin.t
+  :  position_encoding:[ `UTF8 | `UTF16 ]
+  -> Document.Merlin.t
   -> CompletionItem.t
   -> Resolve.t
   -> (Document.Merlin.t -> [> `Logical of int * int ] -> string option Fiber.t)
