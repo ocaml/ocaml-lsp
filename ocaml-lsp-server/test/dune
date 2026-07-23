@@ -1,5 +1,8 @@
 (library
- (modules ocaml_lsp_tests position_prefix_tests)
+ (modules
+  ocaml_lsp_tests
+  position_prefix_tests
+  range_relations_quickcheck_tests)
  (name ocaml_lsp_tests)
  (enabled_if
   (>= %{ocaml_version} 4.08))
@@ -13,8 +16,10 @@
   ;; This is because of the (implicit_transitive_deps false)
   ;; in dune-project
   base
+  base_quickcheck
   ppx_expect.config
   ppx_expect.config_types
-  ppx_inline_test.config)
+  ppx_inline_test.config
+  ppx_sexp_conv.runtime-lib)
  (preprocess
-  (pps ppx_expect)))
+  (pps ppx_expect base_quickcheck.ppx_quickcheck ppx_sexp_conv)))

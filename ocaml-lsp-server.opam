@@ -39,7 +39,9 @@ depends: [
   "spawn"
   "astring"
   "camlp-streams"
+  "base_quickcheck" {>= "v0.17.0" & with-test}
   "ppx_expect" {>= "v0.17.0" & with-test}
+  "ppx_sexp_conv" {>= "v0.17.0" & with-test}
   "ocamlformat" {with-test & = "0.29.0"}
   "ocamlc-loc" {>= "3.7.0"}
   "pp" {>= "1.1.2"}

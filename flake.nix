@@ -86,7 +86,9 @@
               doCheck = false;
               checkInputs = let p = pkgs.ocamlPackages;
               in [
+                p.base_quickcheck
                 p.ppx_expect
+                p.ppx_sexp_conv
                 p.ppx_yojson_conv
                 (ocamlformat pkgs)
               ];
