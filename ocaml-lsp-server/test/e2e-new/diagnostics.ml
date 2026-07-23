@@ -162,12 +162,12 @@ end
 |ocaml}
   in
   let first_diagnostics = Fiber.Ivar.create () in
-  let publications = ref 0 in
+  let publications = ref [] in
   let handler =
     Client.Handler.make
       ~on_notification:(fun _ -> function
-         | PublishDiagnostics _ ->
-           incr publications;
+         | PublishDiagnostics params ->
+           publications := params :: !publications;
            let* filled = Fiber.Ivar.peek first_diagnostics in
            (match filled with
             | Some _ -> Fiber.return ()
@@ -194,9 +194,26 @@ end
     in
     let* () = Client.notification client (ChangeConfiguration { settings }) in
     let* () = Lev_fiber.Timer.sleepf 0.05 in
-    print_endline ("diagnostic publications: " ^ Int.to_string !publications);
+    List.rev !publications |> List.iter ~f:print_diagnostics;
     Test.shutdown_client client);
-  [%expect {| diagnostic publications: 1 |}]
+  [%expect
+    {|
+    textDocument/publishDiagnostics
+    {
+      "diagnostics": [
+        {
+          "message": "Signature mismatch:\nModules do not match:\n  sig val x : int end\nis not included in\n  sig val x : unit end\nValues do not match: val x : int is not included in val x : unit\nThe type int is not compatible with the type unit\nFile \"test.ml\", line 2, characters 2-14: Expected declaration\nFile \"test.ml\", line 4, characters 6-7: Actual declaration",
+          "range": {
+            "end": { "character": 3, "line": 4 },
+            "start": { "character": 6, "line": 2 }
+          },
+          "severity": 1,
+          "source": "ocamllsp"
+        }
+      ],
+      "uri": "file:///test.ml"
+    }
+    |}]
 ;;
 
 let%expect_test "no diagnostics for valid files" =
