@@ -121,7 +121,7 @@ let%expect_test "start/stop" =
             "destruct-line (enumerate cases, use existing match)",
             "inferred_intf", "merlin-jump-fun", "merlin-jump-let",
             "merlin-jump-match", "merlin-jump-module", "merlin-jump-module-type",
-            "merlin-jump-next-case", "merlin-jump-prev-case",
+            "merlin-jump-next-case", "merlin-jump-prev-case", "open-dune",
             "put module name in identifiers",
             "remove module name from identifiers", "remove type annotation",
             "switch", "type-annotate", "update_intf"
@@ -141,8 +141,9 @@ let%expect_test "start/stop" =
         "executeCommandProvider": {
           "commands": [
             "ocamllsp/view-metrics", "ocamllsp/open-related-source",
-            "ocamllsp/merlin-jump-to-target", "ocamllsp/show-document-text",
-            "ocamllsp/show-merlin-config", "dune/promote"
+            "ocamllsp/open-dune-file", "ocamllsp/merlin-jump-to-target",
+            "ocamllsp/show-document-text", "ocamllsp/show-merlin-config",
+            "dune/promote"
           ]
         },
         "experimental": {
