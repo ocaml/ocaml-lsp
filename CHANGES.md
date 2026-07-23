@@ -7,6 +7,7 @@
 - Preserve URI paths beginning with two slashes across serialization. (#1798, @rgrinberg)
 - Preserve percent-encoded URI fragments across parsing and serialization. (#1801, @rgrinberg)
 - Preserve URI paths whose first segment resembles a non-letter Windows drive. (#1800, @rgrinberg)
+- Preserve unescaped Unicode in URI query components. (#1799, @rgrinberg)
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
 - Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)
