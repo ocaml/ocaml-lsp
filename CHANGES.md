@@ -36,6 +36,7 @@
 - Parse non-ASCII completion prefixes and whitespace in CRLF input. (#1886, @rgrinberg)
 - Use constructor completion kinds when clients do not support enum members. (#1887, @rgrinberg)
 - Use completion deprecation tags when supported by the client. (#1903, @rgrinberg)
+- Keep completion sort keys lexically ordered beyond 9,999 items. (#1883, @rgrinberg)
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
 - Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)
