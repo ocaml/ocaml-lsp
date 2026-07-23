@@ -1,29 +1,10 @@
 open Base
 open Stdune
 open Base_quickcheck
-module Position = Lsp.Types.Position
-module Range = Lsp.Types.Range
+open Editing_model
 module String_zipper = Lsp.Private.String_zipper
 module Substring = Lsp.Private.Substring
 
-type atom =
-  | A
-  | Space
-  | Tab
-  | Nul
-  | Newline
-  | Two_byte
-  | Three_byte
-  | Four_byte
-[@@deriving quickcheck, sexp_of]
-
-type encoding =
-  | UTF8
-  | UTF16
-[@@deriving quickcheck, sexp_of]
-
-(* Integer selectors are mapped to valid positions in the current model. This lets
-   Quickcheck generate operation lists without knowing each intermediate state. *)
 type operation =
   | Insert of atom list
   | Goto_line of int
@@ -42,96 +23,6 @@ module Case = struct
     }
   [@@deriving quickcheck, sexp_of]
 end
-
-let string_of_atom = function
-  | A -> "a"
-  | Space -> " "
-  | Tab -> "\t"
-  | Nul -> "\000"
-  | Newline -> "\n"
-  | Two_byte -> "é"
-  | Three_byte -> "€"
-  | Four_byte -> "😀"
-;;
-
-let string_of_atoms atoms = List.map atoms ~f:string_of_atom |> String.concat ~sep:""
-
-let lsp_encoding = function
-  | UTF8 -> `UTF8
-  | UTF16 -> `UTF16
-;;
-
-type cursor =
-  { byte_offset : int
-  ; line : int
-  ; character : int
-  }
-
-let position { line; character; byte_offset = _ } = Position.create ~line ~character
-
-let cursors text encoding =
-  let text_length = String.length text in
-  let rec loop byte_offset line character acc =
-    let acc = { byte_offset; line; character } :: acc in
-    if byte_offset = text_length
-    then List.rev acc
-    else (
-      let decoded = Stdlib.String.get_utf_8_uchar text byte_offset in
-      assert (Stdlib.Uchar.utf_decode_is_valid decoded);
-      let uchar = Stdlib.Uchar.utf_decode_uchar decoded in
-      let byte_length = Stdlib.Uchar.utf_decode_length decoded in
-      if Stdlib.Uchar.equal uchar (Stdlib.Uchar.of_char '\n')
-      then loop (byte_offset + byte_length) (line + 1) 0 acc
-      else (
-        let code_units =
-          match encoding with
-          | UTF8 -> byte_length
-          | UTF16 -> Stdlib.Uchar.utf_16_byte_length uchar / 2
-        in
-        loop (byte_offset + byte_length) line (character + code_units) acc))
-  in
-  loop 0 0 0 []
-;;
-
-let index selector ~length = Stdlib.Int.rem (selector land Stdlib.max_int) length
-
-let select_cursor text encoding selector =
-  let cursors = cursors text encoding |> Array.of_list in
-  cursors.(index selector ~length:(Array.length cursors))
-;;
-
-let ordered_cursors text encoding first second =
-  let first = select_cursor text encoding first in
-  let second = select_cursor text encoding second in
-  if first.byte_offset <= second.byte_offset then first, second else second, first
-;;
-
-let replace text ~start ~stop replacement =
-  let length = String.length text in
-  Stdlib.String.sub text 0 start
-  ^ replacement
-  ^ Stdlib.String.sub text stop (length - stop)
-;;
-
-let line_starts text =
-  let rec loop offset acc =
-    if offset = String.length text
-    then List.rev acc
-    else if Char.equal text.[offset] '\n'
-    then loop (offset + 1) ((offset + 1) :: acc)
-    else loop (offset + 1) acc
-  in
-  loop 0 [ 0 ]
-;;
-
-let count_newlines_before text stop =
-  let rec loop offset count =
-    if offset = stop
-    then count
-    else loop (offset + 1) (if Char.equal text.[offset] '\n' then count + 1 else count)
-  in
-  loop 0 0
-;;
 
 type model =
   { text : string
@@ -156,7 +47,7 @@ let fail state message =
        (String_zipper.to_string_debug zipper))
 ;;
 
-(* Check the observable result and the representation invariants after every operation. *)
+(* Check the observable result and representation invariants after every operation. *)
 let check state =
   let { model = { text; offset }; zipper } = state in
   let actual_text = String_zipper.to_string zipper in
@@ -173,6 +64,14 @@ let check state =
     String_zipper.Private.reflect zipper
   in
   let current_length = Substring.length current in
+  let represented_length =
+    List.fold_left left ~init:current_length ~f:(fun total substring ->
+      total + Substring.length substring)
+    |> fun length ->
+    List.fold_left right ~init:length ~f:(fun total substring ->
+      total + Substring.length substring)
+  in
+  if represented_length <> String.length text then fail state "length differs";
   if rel_pos < 0 || rel_pos > current_length
   then fail state "relative position is invalid";
   let expected_abs_pos =
@@ -259,10 +158,7 @@ let apply_operation state = function
     let buffer = Buffer.create 0 in
     String_zipper.add_buffer_between buffer start.zipper stop.zipper;
     let expected =
-      Stdlib.String.sub
-        state.model.text
-        first.byte_offset
-        (second.byte_offset - first.byte_offset)
+      slice state.model.text ~start:first.byte_offset ~stop:second.byte_offset
     in
     if not (String.equal expected (Buffer.contents buffer))
     then fail state "buffer contents differ";
@@ -287,15 +183,29 @@ let run_case { Case.initial; operations } =
   |> ignore
 ;;
 
-(* These paths previously corrupted [abs_pos]. Keep them even if the generated
-   distribution changes. *)
+(* Keep known failure shapes even if the generated distribution changes. *)
 let regression_cases : Case.t list =
-  [ { initial = [ A ]; operations = [ Goto_end; Insert [ A ] ] }
-  ; { initial = [ A; Newline; A ]
+  [ { initial = [ A ]; operations = [ Goto_end; Insert [ B ] ] }
+  ; { initial = [ A; Newline; B ]
     ; operations = [ Goto_line 1; Insert [ A ]; Goto_end; Goto_line 0 ]
     }
   ; { initial = [ A ]; operations = [ Drop_until (UTF8, 0, 0) ] }
   ; { initial = [ A; A; A ]; operations = [ Drop_until (UTF16, 1, 2) ] }
+  ; { initial = [ A; A; Newline; B; B ]
+    ; operations =
+        [ Goto_position (UTF8, 1)
+        ; Insert [ Four_byte; Newline; Three_byte ]
+        ; Goto_end
+        ; Goto_position (UTF16, 3)
+        ]
+    }
+  ; { initial = [ A; Four_byte; B; Newline; Three_byte; A ]
+    ; operations =
+        [ Apply_change (UTF16, 1, 5, [ Two_byte; Newline; Four_byte ])
+        ; Squash
+        ; Add_buffer_between (UTF8, 0, 3)
+        ]
+    }
   ]
 ;;
 
