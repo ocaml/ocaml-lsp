@@ -66,6 +66,7 @@
 - Keep completion sort keys lexically ordered beyond 9,999 items. (#1883, @rgrinberg)
 - Replace incorrect identifier suffixes when applying completions. (#1964, fixes #838, @rgrinberg)
 - Give synthetic completion items stable ordering metadata. (#1882, @rgrinberg)
+- Preserve dotted operators in completion prefixes and resolve requests. (#1890, @rgrinberg)
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
 - Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)
