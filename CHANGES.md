@@ -2,6 +2,7 @@
 
 ## Fixes
 
+- Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)
 - Keep URI query parameters separate from filesystem paths. (#1776, @rgrinberg)
 - Preserve URI paths beginning with two slashes across serialization. (#1798, @rgrinberg)
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)

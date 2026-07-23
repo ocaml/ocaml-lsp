@@ -58,20 +58,7 @@ let%expect_test "advertises every code action kind that the server may return" =
      Client.request client Shutdown
    in
    Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client));
-  [%expect
-    {|
-    missing: refactor.extract
-    missing: combine-cases
-    missing: destruct-line (enumerate cases, use existing match)
-    missing: update_intf
-    missing: switch
-    missing: merlin-jump-fun
-    missing: merlin-jump-match
-    missing: merlin-jump-let
-    missing: merlin-jump-module
-    missing: merlin-jump-module-type
-    missing: merlin-jump-next-case
-    missing: merlin-jump-prev-case |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "start/stop" =
@@ -129,11 +116,15 @@ let%expect_test "start/stop" =
       "capabilities": {
         "codeActionProvider": {
           "codeActionKinds": [
-            "quickfix", "refactor.inline", "construct",
-            "destruct (enumerate cases)", "inferred_intf",
+            "quickfix", "refactor.extract", "refactor.inline", "combine-cases",
+            "construct", "destruct (enumerate cases)",
+            "destruct-line (enumerate cases, use existing match)",
+            "inferred_intf", "merlin-jump-fun", "merlin-jump-let",
+            "merlin-jump-match", "merlin-jump-module", "merlin-jump-module-type",
+            "merlin-jump-next-case", "merlin-jump-prev-case",
             "put module name in identifiers",
             "remove module name from identifiers", "remove type annotation",
-            "type-annotate"
+            "switch", "type-annotate", "update_intf"
           ]
         },
         "codeLensProvider": { "resolveProvider": false },
