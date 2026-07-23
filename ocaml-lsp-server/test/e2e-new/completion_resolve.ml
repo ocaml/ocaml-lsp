@@ -95,8 +95,11 @@ let%expect_test "completion resolve after its document changes" =
     Completion item before document update:
     {
       "data": {
-        "position": { "character": 12, "line": 2 },
-        "textDocument": { "uri": "file:///test.ml" }
+        "params": {
+          "position": { "character": 12, "line": 2 },
+          "textDocument": { "uri": "file:///test.ml" }
+        },
+        "version": 0
       },
       "detail": "int",
       "kind": 12,
@@ -113,7 +116,6 @@ let%expect_test "completion resolve after its document changes" =
     Same item resolved after document update to version 1:
     {
       "detail": "int",
-      "documentation": "new docs",
       "kind": 12,
       "label": "old_value",
       "sortText": "0000",

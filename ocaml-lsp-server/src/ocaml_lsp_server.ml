@@ -667,17 +667,7 @@ let on_request
   | CompletionItemResolve ci ->
     later
       (fun state () ->
-         let markdown =
-           ClientCapabilities.markdown_support
-             (State.client_capabilities state)
-             ~field:(fun d ->
-               let open Option.O in
-               let+ completion = d.completion in
-               let* completion_item = completion.completionItem in
-               completion_item.documentationFormat)
-         in
-         let resolve = Compl.Resolve.of_completion_item ci in
-         match resolve with
+         match Compl.Resolve.of_completion_item ci with
          | None -> Fiber.return ci
          | Some resolve ->
            let doc =
@@ -687,6 +677,14 @@ let on_request
            (match Document.kind doc with
             | `Other -> Fiber.return ci
             | `Merlin doc ->
+              let markdown =
+                State.client_capabilities state
+                |> ClientCapabilities.markdown_support ~field:(fun d ->
+                  let open Option.O in
+                  let+ completion = d.completion in
+                  let* completion_item = completion.completionItem in
+                  completion_item.documentationFormat)
+              in
               Compl.resolve
                 doc
                 ci

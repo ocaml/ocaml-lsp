@@ -2,11 +2,30 @@ open Import
 open Fiber.O
 
 module Resolve = struct
-  type t = CompletionParams.t
+  type t =
+    { params : CompletionParams.t
+    ; version : int
+    }
 
-  let uri (t : t) = t.textDocument.uri
-  let yojson_of_t = CompletionParams.yojson_of_t
-  let t_of_yojson = CompletionParams.t_of_yojson
+  let create ~params ~version = { params; version }
+  let uri t = t.params.textDocument.uri
+
+  let yojson_of_t { params; version } =
+    `Assoc [ "params", CompletionParams.yojson_of_t params; "version", `Int version ]
+  ;;
+
+  let t_of_yojson = function
+    | `Assoc fields ->
+      let params = Json.field_exn fields "params" CompletionParams.t_of_yojson in
+      let version =
+        Json.field_exn fields "version" (function
+          | `Int version -> version
+          | json -> Json.error "invalid completion document version" json)
+      in
+      { params; version }
+    | json -> Json.error "invalid completion resolve data" json
+  ;;
+
   let of_completion_item (ci : CompletionItem.t) = Option.map ci.data ~f:t_of_yojson
 end
 
@@ -192,8 +211,9 @@ module Complete_by_prefix = struct
              TextDocumentIdentifier.create
                ~uri:(Document.uri (Document.Merlin.to_doc doc))
            in
-           CompletionParams.create ~textDocument ~position:pos ()
-           |> CompletionParams.yojson_of_t)
+           let params = CompletionParams.create ~textDocument ~position:pos () in
+           Resolve.create ~params ~version:(Document.version (Document.Merlin.to_doc doc))
+           |> Resolve.yojson_of_t)
     in
     let sort_text_width = sortText_width (List.length completion_entries) in
     List.mapi
@@ -479,32 +499,38 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
     (* Due to merlin's API, we create a version of the given document with the
        applied completion item and pass it to merlin to get the docs for the
        [compl.label] *)
-    let position : Position.t = resolve.position in
-    let logical_position = Position.logical position in
-    let doc =
-      let complete =
-        let start =
-          let prefix =
-            prefix_of_position
-              ~short_path:true
-              (Document.Merlin.source doc)
-              logical_position
+    let position : Position.t = resolve.params.position in
+    let original_doc = Document.Merlin.to_doc doc in
+    if resolve.version <> Document.version original_doc
+    then Fiber.return { compl with data = None }
+    else (
+      let logical_position = Position.logical position in
+      let doc =
+        let complete =
+          let start =
+            let prefix =
+              prefix_of_position
+                ~short_path:true
+                (Document.Merlin.source doc)
+                logical_position
+            in
+            { position with character = position.character - String.length prefix }
           in
-          { position with character = position.character - String.length prefix }
+          let end_ =
+            let suffix =
+              suffix_of_position (Document.Merlin.source doc) logical_position
+            in
+            { position with character = position.character + String.length suffix }
+          in
+          let range = Range.create ~start ~end_ in
+          `TextDocumentContentChangePartial
+            (TextDocumentContentChangePartial.create ~range ~text:compl.label ())
         in
-        let end_ =
-          let suffix = suffix_of_position (Document.Merlin.source doc) logical_position in
-          { position with character = position.character + String.length suffix }
-        in
-        let range = Range.create ~start ~end_ in
-        `TextDocumentContentChangePartial
-          (TextDocumentContentChangePartial.create ~range ~text:compl.label ())
+        Document.update_text original_doc [ complete ]
       in
-      Document.update_text (Document.Merlin.to_doc doc) [ complete ]
-    in
-    let+ documentation =
-      let+ documentation = query_doc (Document.merlin_exn doc) logical_position in
-      Option.map ~f:(format_doc ~markdown) documentation
-    in
-    { compl with documentation; data = None })
+      let+ documentation =
+        let+ documentation = query_doc (Document.merlin_exn doc) logical_position in
+        Option.map ~f:(format_doc ~markdown) documentation
+      in
+      { compl with documentation; data = None }))
 ;;
