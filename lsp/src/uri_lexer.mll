@@ -104,6 +104,7 @@ and uri = parse
     | None -> None
     | Some c -> Some (query (Buffer.create (String.length c)) (Lexing.from_string c))
   in
+  let fragment = fragment |> Option.map decode in
   { scheme; authority; path; query; fragment }
 }
 
