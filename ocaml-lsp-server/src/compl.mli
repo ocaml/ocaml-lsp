@@ -44,3 +44,7 @@ val prefix_of_position : short_path:bool -> Msource.t -> [< Msource.position ] -
 
     @return identifier unless none is found *)
 val reconstruct_ident : Msource.t -> [< Msource.position ] -> string option
+
+module For_tests : sig
+  val sortText_of_index : int -> string
+end

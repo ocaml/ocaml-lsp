@@ -1129,6 +1129,54 @@ let%expect_test "completion doesn't autocomplete record fields" =
   [%expect {| No completions |}]
 ;;
 
+let%expect_test "does not complete `in` in a top-level binding" =
+  let source = "let item = i" in
+  let position = Position.create ~line:0 ~character:12 in
+  let only_in =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "in")
+  in
+  print_completions ~pre_print:only_in source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 12, "line": 0 },
+          "start": { "character": 11, "line": 0 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "does not complete `in` before an existing `in`" =
+  let source = "let f () =\n  let x = i in\n  x" in
+  let position = Position.create ~line:1 ~character:11 in
+  let only_in =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "in")
+  in
+  print_completions ~pre_print:only_in source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 11, "line": 1 },
+          "start": { "character": 10, "line": 1 }
+        }
+      }
+    }
+    |}]
+;;
+
 let%expect_test "completion for `in` keyword - no prefix" =
   let source =
     {ocaml|
