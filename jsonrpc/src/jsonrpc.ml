@@ -146,6 +146,23 @@ module Response = struct
         | Other code -> code
       ;;
 
+      let to_string = function
+        | ParseError -> "ParseError"
+        | InvalidRequest -> "InvalidRequest"
+        | MethodNotFound -> "MethodNotFound"
+        | InvalidParams -> "InvalidParams"
+        | InternalError -> "InternalError"
+        | ServerErrorStart -> "ServerErrorStart"
+        | ServerErrorEnd -> "ServerErrorEnd"
+        | ServerNotInitialized -> "ServerNotInitialized"
+        | UnknownErrorCode -> "UnknownErrorCode"
+        | RequestFailed -> "RequestFailed"
+        | ServerCancelled -> "ServerCancelled"
+        | ContentModified -> "ContentModified"
+        | RequestCancelled -> "RequestCancelled"
+        | Other _ -> "Other"
+      ;;
+
       let t_of_yojson json =
         match json with
         | `Int i -> of_int i
@@ -182,6 +199,19 @@ module Response = struct
     ;;
 
     exception E of t
+
+    let () =
+      Printexc.register_printer (function
+        | E ({ code; _ } as error) ->
+          let json = Yojson.Safe.pretty_to_string ~std:false (yojson_of_t error) in
+          Some
+            (Printf.sprintf
+               "jsonrpc response error %s (%d): %s"
+               (Code.to_string code)
+               (Code.to_int code)
+               json)
+        | _ -> None)
+    ;;
 
     let raise t = raise (E t)
     let make ?data ~code ~message () = { data; code; message }
