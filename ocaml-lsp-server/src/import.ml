@@ -337,6 +337,8 @@ include struct
   module Command = Command
   module CompletionItem = CompletionItem
   module CompletionItemKind = CompletionItemKind
+  module CompletionItemTag = CompletionItemTag
+  module CompletionItemTagOptions = CompletionItemTagOptions
   module CompletionList = CompletionList
   module CompletionOptions = CompletionOptions
   module CompletionParams = CompletionParams

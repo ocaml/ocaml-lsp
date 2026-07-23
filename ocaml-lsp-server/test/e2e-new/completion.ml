@@ -1314,6 +1314,7 @@ let%expect_test "deprecated completions use tags when supported" =
       "kind": 12,
       "label": "old_value",
       "sortText": "0000",
+      "tags": [ 1 ],
       "textEdit": {
         "newText": "old_value",
         "range": {
