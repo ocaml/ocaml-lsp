@@ -1362,6 +1362,7 @@ let%expect_test "does not complete `in` in a top-level binding" =
     {
       "kind": 14,
       "label": "in",
+      "sortText": "0000",
       "textEdit": {
         "newText": "in",
         "range": {
@@ -1386,6 +1387,7 @@ let%expect_test "does not complete `in` before an existing `in`" =
     {
       "kind": 14,
       "label": "in",
+      "sortText": "0000",
       "textEdit": {
         "newText": "in",
         "range": {
@@ -1411,6 +1413,7 @@ let foo param1 =
     {
       "kind": 14,
       "label": "in",
+      "sortText": "0000",
       "textEdit": {
         "newText": "in",
         "range": {
@@ -1423,7 +1426,7 @@ let foo param1 =
       "detail": "'a -> 'b",
       "kind": 12,
       "label": "param1",
-      "sortText": "0000",
+      "sortText": "0001",
       "textEdit": {
         "newText": "param1",
         "range": {
@@ -1436,7 +1439,7 @@ let foo param1 =
       "detail": "'a ref -> 'a",
       "kind": 12,
       "label": "!",
-      "sortText": "0001",
+      "sortText": "0002",
       "textEdit": {
         "newText": "!",
         "range": {
@@ -1464,6 +1467,7 @@ let foo param1 =
     {
       "kind": 14,
       "label": "in",
+      "sortText": "0000",
       "textEdit": {
         "newText": "in",
         "range": {
@@ -1476,7 +1480,7 @@ let foo param1 =
       "detail": "'a -> unit",
       "kind": 12,
       "label": "ignore",
-      "sortText": "0000",
+      "sortText": "0001",
       "textEdit": {
         "newText": "ignore",
         "range": {
@@ -1489,7 +1493,7 @@ let foo param1 =
       "detail": "in_channel -> int",
       "kind": 12,
       "label": "in_channel_length",
-      "sortText": "0001",
+      "sortText": "0002",
       "textEdit": {
         "newText": "in_channel_length",
         "range": {
@@ -1517,6 +1521,7 @@ let foo param1 =
     {
       "kind": 14,
       "label": "in",
+      "sortText": "0000",
       "textEdit": {
         "newText": "in",
         "range": {
@@ -1529,7 +1534,7 @@ let foo param1 =
       "detail": "in_channel -> int",
       "kind": 12,
       "label": "in_channel_length",
-      "sortText": "0000",
+      "sortText": "0001",
       "textEdit": {
         "newText": "in_channel_length",
         "range": {
@@ -1542,7 +1547,7 @@ let foo param1 =
       "detail": "int ref -> unit",
       "kind": 12,
       "label": "incr",
-      "sortText": "0001",
+      "sortText": "0002",
       "textEdit": {
         "newText": "incr",
         "range": {
@@ -1566,6 +1571,7 @@ let%expect_test "completion for object methods" =
     {
       "kind": 14,
       "label": "in",
+      "sortText": "0000",
       "textEdit": {
         "newText": "in",
         "range": {
@@ -1578,7 +1584,7 @@ let%expect_test "completion for object methods" =
       "detail": "'a",
       "kind": 2,
       "label": "a_method",
-      "sortText": "0000",
+      "sortText": "0001",
       "textEdit": {
         "newText": "a_method",
         "range": {
