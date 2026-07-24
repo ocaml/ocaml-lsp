@@ -38,9 +38,9 @@ let for_uri (capabilities : ShowDocumentClientCapabilities.t option) doc =
     | `Merlin doc -> Some doc
     | `Other -> None
   in
-  match available capabilities with
-  | false -> []
-  | true ->
+  match available capabilities, Document.syntax doc with
+  | false, _ | true, (Dune | Cram) -> []
+  | true, (Ocaml | Reason | Ocamllex | Menhir | Mlx) ->
     Document.get_impl_intf_counterparts merlin_doc uri
     |> List.map ~f:(fun uri ->
       let path = Uri.to_path uri in
