@@ -130,7 +130,7 @@ let%expect_test "start/stop" =
         "codeLensProvider": { "resolveProvider": false },
         "completionProvider": {
           "resolveProvider": true,
-          "triggerCharacters": [ ".", "#" ]
+          "triggerCharacters": [ ".", "#", ":" ]
         },
         "declarationProvider": true,
         "definitionProvider": true,
