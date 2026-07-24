@@ -1,24 +1,19 @@
 open! Test.Import
 
-let project_root = Sys.getenv "DUNE_PROJECT_ROOT"
-let fixture = Filename.concat project_root "ocaml-lsp-server/test/e2e-new/for_ppx.ml"
-
 let%expect_test "with-ppx" =
-  let dir = Test.temp_dir ~temp_dir:project_root "ocamllsp-with-ppx-" in
-  let path = Filename.concat dir "for_ppx.ml" in
-  let uri = DocumentUri.of_path path in
-  Test.write_file path (Io.String_path.read_file fixture);
-  Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.24)\n";
-  Test.write_file
-    (Filename.concat dir "dune")
-    {|(library
+  let project =
+    Preprocessor_helpers.setup
+      ~name:"for_ppx"
+      ~fixture:"ocaml-lsp-server/test/e2e-new/for_ppx.ml"
+      ~dune_file:
+        {|(library
  (name for_ppx)
  (modules for_ppx)
  (inline_tests)
  (preprocess
   (pps ppx_expect)))
-|};
-  Test.run_command ~cwd:dir "dune build";
+|}
+  in
   (* We will call 'hover' on the last line of this very file *)
   let position = Position.create ~line:2 ~character:5 in
   (* We need to wait for the first diagnostics *)
@@ -38,29 +33,13 @@ let%expect_test "with-ppx" =
     Client.Handler.make ~on_notification ()
   in
   let output =
-    Test.run_initialized ~handler
-    @@ fun client ->
-    let textDocument =
-      let text = Io.String_path.read_file path in
-      TextDocumentItem.create
-        ~uri
-        ~languageId:(LanguageKind.Other "ocaml")
-        ~version:0
-        ~text
-    in
-    let* () =
-      Client.notification
-        client
-        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-    in
-    let* () = Fiber.Ivar.read diagnostics in
-    let* () =
-      let+ resp = Hover_helpers.hover ~uri client position in
-      Hover_helpers.print_hover resp
-    in
-    let output = [%expect.output] in
-    let+ () = Test.shutdown_client client in
-    output
+    Preprocessor_helpers.hover
+      ~prep:(fun _ -> Fiber.Ivar.read diagnostics)
+      ~handler
+      ~project
+      ~position
+      ~capture:(fun () -> [%expect.output])
+      ()
   in
   let (_ : string) = [%expect.output] in
   print_endline output;
