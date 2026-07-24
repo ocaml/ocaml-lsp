@@ -27,6 +27,8 @@
   (#1859, @rgrinberg)
 - Advertise and encode only semantic token types supported by the client.
   (#1860, @rgrinberg)
+- Advertise and encode only semantic token modifiers supported by the client.
+  (#1978, @rgrinberg)
 - Replace a lone polymorphic-variant backtick when applying completions.
   (#1823, fixes #1427, @rgrinberg)
 - Report a missing project build-system executable as a diagnostic without
