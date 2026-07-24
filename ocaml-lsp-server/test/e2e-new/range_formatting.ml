@@ -1,26 +1,7 @@
 open Test.Import
 open Formatting
 
-let ocamlformat_config =
-  {|break-cases=all
-break-separators=before
-margin=60
-break-sequences=true
-cases-exp-indent=2
-doc-comments=before
-dock-collection-brackets=false
-field-space=loose
-if-then-else=k-r
-indicate-nested-or-patterns=unsafe-no
-let-and=sparse
-sequence-style=terminator
-space-around-arrays
-space-around-lists
-space-around-records
-type-decl=sparse
-wrap-comments=true
-|}
-;;
+let ocamlformat_config = "margin=60\n" ^ Formatting.ocamlformat_config
 
 let iter_range_formatting ?language_id source path range =
   let makeRequest textDocument =
