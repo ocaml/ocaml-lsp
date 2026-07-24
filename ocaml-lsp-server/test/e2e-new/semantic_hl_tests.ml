@@ -159,12 +159,13 @@ type 'resp req_ctx =
 
 let test
   : type resp.
-    src:string
+    ?capabilities:ClientCapabilities.t
+    -> src:string
     -> (SemanticTokensParams.t -> resp Client.out_request)
     -> (resp req_ctx -> unit Fiber.t)
     -> unit
   =
-  fun ~src req consume_resp ->
+  fun ?(capabilities = client_capabilities) ~src req consume_resp ->
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
@@ -180,7 +181,7 @@ let test
       ()
   in
   Test.run ~handler (fun client ->
-    let run_client () = Test.start_client ~capabilities:client_capabilities client in
+    let run_client () = Test.start_client ~capabilities client in
     let run () =
       let* (initializeResult : InitializeResult.t) = Client.initialized client in
       let textDocument =
@@ -211,6 +212,13 @@ let test
     Fiber.fork_and_join_unit run_client run)
 ;;
 
+let semantic_tokens_legend (initialize_result : InitializeResult.t) =
+  match initialize_result.capabilities.semanticTokensProvider with
+  | None -> failwith "no server capabilities for semantic tokens"
+  | Some (`SemanticTokensOptions { legend; _ }) -> legend
+  | Some (`SemanticTokensRegistrationOptions { legend; _ }) -> legend
+;;
+
 let test_semantic_tokens_full src =
   let print_resp { initializeResult; resp } =
     Fiber.return
@@ -218,15 +226,7 @@ let test_semantic_tokens_full src =
     match resp with
     | None -> print_endline "empty response"
     | Some { SemanticTokens.data; _ } ->
-      let legend =
-        match
-          initializeResult.InitializeResult.capabilities
-            .ServerCapabilities.semanticTokensProvider
-        with
-        | None -> failwith "no server capabilities for semantic tokens"
-        | Some (`SemanticTokensOptions { legend; _ }) -> legend
-        | Some (`SemanticTokensRegistrationOptions { legend; _ }) -> legend
-      in
+      let legend = semantic_tokens_legend initializeResult in
       print_endline
       @@ Semantic_hl_helpers.annotate_src_with_tokens
            ~legend
@@ -235,6 +235,37 @@ let test_semantic_tokens_full src =
            src
   in
   test ~src (fun p -> SemanticTokensFull p) print_resp
+;;
+
+let%expect_test "does not advertise or send unsupported semantic token types" =
+  let src = "let x = 1\n" in
+  let capabilities =
+    semantic_tokens_client_capabilities ~full:(`Bool true) ~token_types:[ "variable" ] ()
+  in
+  test
+    ~capabilities
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { initializeResult; resp } ->
+       let legend = semantic_tokens_legend initializeResult in
+       let number_advertised = List.mem legend.tokenTypes "number" ~equal:String.equal in
+       print_endline
+         (if number_advertised then "number advertised" else "number not advertised");
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          Semantic_hl_helpers.annotate_src_with_tokens
+            ~legend
+            ~encoded_tokens:data
+            ~annot_mods:false
+            src
+          |> print_string);
+       Fiber.return ());
+  [%expect
+    {|
+    number advertised
+    let <variable-0>x</0> = <number-1>1</1>
+    |}]
 ;;
 
 let%expect_test "semantic tokens use UTF-16 positions" =
