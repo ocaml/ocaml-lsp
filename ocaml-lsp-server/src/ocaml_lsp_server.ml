@@ -130,14 +130,16 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
     in
     let semanticTokensProvider =
       match client_capabilities.textDocument with
-      | Some { semanticTokens = Some _; _ } ->
+      | Some { semanticTokens = Some { formats; _ }; _ }
+        when List.mem formats Lsp.Types.TokenFormat.Relative ~equal:Poly.equal ->
         let full =
           `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ())
         in
         Some
           (`SemanticTokensOptions
               (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend ~full ()))
-      | None | Some { semanticTokens = None; _ } -> None
+      | None | Some { semanticTokens = None; _ } | Some { semanticTokens = Some _; _ } ->
+        None
     in
     let positionEncoding =
       let open Option.O in
