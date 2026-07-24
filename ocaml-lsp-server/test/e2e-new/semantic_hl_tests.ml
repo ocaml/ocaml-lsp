@@ -13,16 +13,40 @@ let test_initialize ~capabilities f =
     Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client))
 ;;
 
-let print_semantic_tokens_provider (initialized : InitializeResult.t) =
-  let provider = initialized.capabilities.semanticTokensProvider in
-  print_endline (if Option.is_some provider then "advertised" else "not advertised")
+let semantic_tokens_provider_json (initialized : InitializeResult.t) =
+  InitializeResult.yojson_of_t initialized
+  |> Yojson.Safe.Util.member "capabilities"
+  |> Yojson.Safe.Util.member "semanticTokensProvider"
+;;
+
+let print_semantic_tokens_provider initialized =
+  print_endline "semanticTokensProvider:";
+  semantic_tokens_provider_json initialized |> Test.print_result
 ;;
 
 let%expect_test "does not advertise semantic tokens without client support" =
   test_initialize
     ~capabilities:(ClientCapabilities.create ())
     print_semantic_tokens_provider;
-  [%expect {| advertised |}]
+  [%expect
+    {|
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    |}]
 ;;
 
 let semantic_tokens_client_capabilities
@@ -50,28 +74,56 @@ let%expect_test "does not advertise an unsupported semantic token format" =
     semantic_tokens_client_capabilities ~full:(`Bool true) ~formats:[] ()
   in
   test_initialize ~capabilities print_semantic_tokens_provider;
-  [%expect {| advertised |}]
+  [%expect
+    {|
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    |}]
 ;;
 
 let%expect_test "does not advertise unsupported full semantic token requests" =
   let capabilities = semantic_tokens_client_capabilities () in
   test_initialize ~capabilities print_semantic_tokens_provider;
-  [%expect {| advertised |}]
+  [%expect
+    {|
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    |}]
 ;;
 
-let print_semantic_tokens_delta_provider (initialized : InitializeResult.t) =
-  let full =
-    match initialized.capabilities.semanticTokensProvider with
-    | None -> None
-    | Some (`SemanticTokensOptions options) -> options.full
-    | Some (`SemanticTokensRegistrationOptions options) -> options.full
-  in
-  let delta =
-    match full with
-    | Some (`SemanticTokensFullDelta { delta }) -> Option.value delta ~default:false
-    | None | Some (`Bool _) -> false
-  in
-  print_endline (if delta then "advertised" else "not advertised")
+let print_semantic_tokens_full_provider initialized =
+  print_endline "semanticTokensProvider.full:";
+  semantic_tokens_provider_json initialized
+  |> Yojson.Safe.Util.member "full"
+  |> Test.print_result
 ;;
 
 let%expect_test "does not advertise unsupported semantic token deltas" =
@@ -80,8 +132,12 @@ let%expect_test "does not advertise unsupported semantic token deltas" =
       (ClientSemanticTokensRequestFullDelta.create ~delta:false ())
   in
   let capabilities = semantic_tokens_client_capabilities ~full () in
-  test_initialize ~capabilities print_semantic_tokens_delta_provider;
-  [%expect {| advertised |}]
+  test_initialize ~capabilities print_semantic_tokens_full_provider;
+  [%expect
+    {|
+    semanticTokensProvider.full:
+    { "delta": true }
+    |}]
 ;;
 
 let client_capabilities =
@@ -219,6 +275,13 @@ let semantic_tokens_legend (initialize_result : InitializeResult.t) =
   | Some (`SemanticTokensRegistrationOptions { legend; _ }) -> legend
 ;;
 
+let print_semantic_tokens_legend_field field legend =
+  Printf.printf "semanticTokensProvider.legend.%s:\n" field;
+  SemanticTokensLegend.yojson_of_t legend
+  |> Yojson.Safe.Util.member field
+  |> Test.print_result
+;;
+
 let test_semantic_tokens_full src =
   let print_resp { initializeResult; resp } =
     Fiber.return
@@ -248,9 +311,7 @@ let%expect_test "does not advertise or send unsupported semantic token types" =
     (fun params -> SemanticTokensFull params)
     (fun { initializeResult; resp } ->
        let legend = semantic_tokens_legend initializeResult in
-       let number_advertised = List.mem legend.tokenTypes "number" ~equal:String.equal in
-       print_endline
-         (if number_advertised then "number advertised" else "number not advertised");
+       print_semantic_tokens_legend_field "tokenTypes" legend;
        (match resp with
         | None -> print_endline "empty response"
         | Some { SemanticTokens.data; _ } ->
@@ -263,8 +324,50 @@ let%expect_test "does not advertise or send unsupported semantic token types" =
        Fiber.return ());
   [%expect
     {|
-    number advertised
+    semanticTokensProvider.legend.tokenTypes:
+    [
+      "namespace", "type", "class", "enum", "interface", "struct",
+      "typeParameter", "parameter", "variable", "property", "enumMember",
+      "event", "function", "method", "macro", "keyword", "modifier", "comment",
+      "string", "number", "regexp", "operator", "decorator"
+    ]
     let <variable-0>x</0> = <number-1>1</1>
+    |}]
+;;
+
+let%expect_test "does not advertise or send unsupported semantic token modifiers" =
+  let src = "let f () = 0\n" in
+  let capabilities =
+    semantic_tokens_client_capabilities
+      ~full:(`Bool true)
+      ~token_types:[ "function"; "number" ]
+      ()
+  in
+  test
+    ~capabilities
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { initializeResult; resp } ->
+       let legend = semantic_tokens_legend initializeResult in
+       print_semantic_tokens_legend_field "tokenModifiers" legend;
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          Semantic_hl_helpers.annotate_src_with_tokens
+            ~legend
+            ~encoded_tokens:data
+            ~annot_mods:true
+            src
+          |> print_string);
+       Fiber.return ());
+  [%expect
+    {|
+    semanticTokensProvider.legend.tokenModifiers:
+    [
+      "declaration", "definition", "readonly", "static", "deprecated",
+      "abstract", "async", "modification", "documentation", "defaultLibrary"
+    ]
+    let <function|definition-0>f</0> () = <number|-1>0</1>
     |}]
 ;;
 
