@@ -919,28 +919,38 @@ let start stream =
         Server.notification server (Server_notification.ShowMessage log))
   in
   let run () =
+    let run_detached () =
+      with_log_errors "detached" (fun () -> Fiber.Pool.run detached)
+    in
+    let cleanup () =
+      let finalize =
+        [ Document_store.close_all store
+        ; Fiber.Pool.stop detached
+        ; Ocamlformat_rpc.stop ocamlformat_rpc
+        ; Lev_fiber.Timer.Wheel.stop wheel
+        ; Merlin_config.DB.stop state.merlin_config
+        ; Fiber.of_thunk (fun () ->
+            Lev_fiber.Thread.close merlin;
+            Fiber.return ())
+        ]
+      in
+      let finalize =
+        match (Server.state server).init with
+        | Uninitialized -> finalize
+        | Initialized init -> Dune.stop init.dune :: finalize
+      in
+      Fiber.all_concurrently_unit finalize
+    in
+    let serve () = Fiber.finalize (fun () -> Server.start server) ~finally:cleanup in
+    let run_server () =
+      Fiber.finalize
+        (fun () -> Fiber.fork_and_join_unit run_detached serve)
+        ~finally:(fun () -> Server.close server)
+    in
     Fiber.all_concurrently_unit
-      [ with_log_errors "detached" (fun () -> Fiber.Pool.run detached)
-      ; Lev_fiber.Timer.Wheel.run wheel
+      [ Lev_fiber.Timer.Wheel.run wheel
       ; with_log_errors "merlin" (fun () -> Merlin_config.DB.run state.merlin_config)
-      ; (let* () = Server.start server in
-         let finalize =
-           [ Document_store.close_all store
-           ; Fiber.Pool.stop detached
-           ; Ocamlformat_rpc.stop ocamlformat_rpc
-           ; Lev_fiber.Timer.Wheel.stop wheel
-           ; Merlin_config.DB.stop state.merlin_config
-           ; Fiber.of_thunk (fun () ->
-               Lev_fiber.Thread.close merlin;
-               Fiber.return ())
-           ]
-         in
-         let finalize =
-           match (Server.state server).init with
-           | Uninitialized -> finalize
-           | Initialized init -> Dune.stop init.dune :: finalize
-         in
-         Fiber.all_concurrently_unit finalize)
+      ; run_server ()
       ; with_log_errors "ocamlformat-rpc" run_ocamlformat_rpc
       ]
   in

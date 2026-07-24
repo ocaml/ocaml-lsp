@@ -29,7 +29,12 @@ module Test = struct
         let handler = Server.Handler.make ?on_request ?on_notification () in
         Server.make handler stream_io state
       in
-      server, Server.start server
+      let running =
+        Fiber.finalize
+          (fun () -> Server.start server)
+          ~finally:(fun () -> Server.close server)
+      in
+      server, running
     ;;
   end
 end
