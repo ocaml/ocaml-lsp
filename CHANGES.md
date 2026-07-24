@@ -13,6 +13,9 @@
 - Add a code action to open the closest Dune file for the current document.
   (#1817, fixes #1491, @rgrinberg)
 - Distinguish operators from functions in semantic highlighting. (#1831, @rgrinberg)
+- Support `textDocument/implementation` for type declarations in interface files,
+  including nested modules, functor results, includes, and aliases.
+  (#2074, fixes #1163, @rgrinberg)
 
 ## Fixes
 

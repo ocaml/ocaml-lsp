@@ -38,6 +38,15 @@ val make
   -> position_encoding:[ `UTF8 | `UTF16 ]
   -> t Fiber.t
 
+(** Create a document from the contents of a file, if the file can be read. *)
+val make_from_file
+  :  Lev_fiber.Timer.Wheel.t
+  -> Merlin_config.DB.t
+  -> Single_pipeline.t
+  -> Uri.t
+  -> position_encoding:[ `UTF8 | `UTF16 ]
+  -> t option Fiber.t
+
 val uri : t -> Uri.t
 val text : t -> string
 val source : t -> Msource.t

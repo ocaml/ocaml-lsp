@@ -239,16 +239,27 @@ let version t = Text_document.version (text_document t)
 let make_merlin wheel merlin_db pipeline tdoc syntax =
   let* timer = Lev_fiber.Timer.Wheel.task wheel in
   let uri = Text_document.documentUri tdoc in
-  let path = Uri.to_path uri in
   let merlin_config = Merlin_config.DB.get merlin_db uri in
-  let* mconfig = Merlin_config.config merlin_config in
+  let* mconfig =
+    Fiber.collect_errors (fun () -> Merlin_config.config merlin_config)
+    >>= function
+    | Ok config -> Fiber.return config
+    | Error errors ->
+      let* () =
+        Fiber.fork_and_join_unit
+          (fun () -> Merlin_config.destroy merlin_config)
+          (fun () -> Lev_fiber.Timer.Wheel.cancel timer)
+      in
+      Fiber.reraise_all errors
+  in
+  let path = Uri.to_path uri in
   let kind =
     let ext = Filename.extension path in
     List.find_map mconfig.merlin.suffixes ~f:(fun (impl, intf) ->
       if String.equal ext intf
       then Some Kind.Intf
       else if String.equal ext impl
-      then Some Kind.Impl
+      then Some Impl
       else None)
   in
   let kind =
@@ -267,6 +278,30 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) ~position_enc
     | Ocaml | Reason | Mlx -> make_merlin wheel config pipeline tdoc syntax
     | Dune -> Fiber.return (Dune tdoc)
     | Ocamllex | Menhir | Cram -> Fiber.return (Other { tdoc; syntax }))
+;;
+
+let make_from_file wheel config pipeline uri ~position_encoding =
+  let* () = Fiber.return () in
+  let filename = Uri.to_path uri in
+  match Fs_io.read_file filename with
+  | Error _ | (exception (Unix.Unix_error _ | Sys_error _)) ->
+    Log.log ~section:"debug" (fun () ->
+      Log.msg "Unable to open file" [ "filename", `String filename ]);
+    Fiber.return None
+  | Ok text ->
+    let+ doc =
+      let params =
+        let textDocument =
+          let languageId : LanguageKind.t =
+            Other (Syntax.to_language_id (Syntax.of_fname filename))
+          in
+          TextDocumentItem.create ~uri ~languageId ~version:0 ~text
+        in
+        DidOpenTextDocumentParams.create ~textDocument
+      in
+      make ~position_encoding wheel config pipeline params
+    in
+    Some doc
 ;;
 
 let update_text ?version t changes =
@@ -321,15 +356,15 @@ module Merlin = struct
   let mconfig (t : t) = Merlin_config.config t.merlin_config
 
   let with_pipeline_exn ?name doc f =
-    let+ res = with_pipeline ?name doc f in
-    match res with
+    with_pipeline ?name doc f
+    >>| function
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
   let with_configurable_pipeline_exn ?name ~config doc f =
-    let+ res = with_configurable_pipeline ?name ~config doc f in
-    match res with
+    with_configurable_pipeline ?name ~config doc f
+    >>| function
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
@@ -383,16 +418,11 @@ module Merlin = struct
           in
           Mpipeline.make config source
       in
-      let res = Query_commands.dispatch pipeline command in
-      match res with
+      match Query_commands.dispatch pipeline command with
       | [] | (_, `Index _, _) :: _ -> None
       | (loc, `String typ, _) :: _ ->
         let doc = doc_comment pipeline pos in
-        let syntax_doc =
-          match with_syntax_doc with
-          | true -> syntax_doc pipeline pos
-          | false -> None
-        in
+        let syntax_doc = if with_syntax_doc then syntax_doc pipeline pos else None in
         Some { loc; typ; doc; syntax_doc })
   ;;
 

@@ -124,7 +124,14 @@ let run
 
 let%expect_test "type declaration" =
   run [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "nested module" =
@@ -132,7 +139,14 @@ let%expect_test "nested module" =
     [ "lib.mli", "module M : sig type $t end\n"
     ; "lib.ml", "module M = struct type t = int end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 24, "line": 0 },
+      "start": { "character": 23, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "deeply nested module" =
@@ -140,7 +154,14 @@ let%expect_test "deeply nested module" =
     [ "lib.mli", "module M : sig module N : sig type $t end end\n"
     ; "lib.ml", "module M = struct module N = struct type t = int end end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 42, "line": 0 },
+      "start": { "character": 41, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "local include" =
@@ -152,7 +173,14 @@ include M
 |ocaml}
       )
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 24, "line": 0 },
+      "start": { "character": 23, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "local module alias" =
@@ -164,12 +192,19 @@ module Alias = M
 |ocaml}
       )
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 24, "line": 0 },
+      "start": { "character": 23, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "value declaration is not a type declaration" =
   run [ "lib.mli", "val $x : int\n"; "lib.ml", "let x = 1\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "module type declaration has no implementation" =
@@ -177,34 +212,34 @@ let%expect_test "module type declaration has no implementation" =
     [ "lib.mli", "module type S = sig type $t end\n"
     ; "lib.ml", "module type S = sig type t end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "implementation source is not an interface" =
   run ~request_file:"lib.ml" [ "lib.mli", "type t\n"; "lib.ml", "type $t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "cursor on the type keyword" =
   run [ "lib.mli", "$type t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "cursor in the type body" =
   run [ "lib.mli", "type t = $int\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "interface-only module" =
   run [ "lib.mli", "type $t\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "implementation disappears after building" =
   run
     ~prepare:(fun dir -> Sys.remove (Filename.concat dir "lib.ml"))
     [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "implementation cannot be read as a file" =
@@ -214,7 +249,7 @@ let%expect_test "implementation cannot be read as a file" =
       Sys.remove path;
       Unix.mkdir path 0o700)
     [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "unsaved implementation contents are used repeatedly" =
@@ -224,9 +259,21 @@ let%expect_test "unsaved implementation contents are used repeatedly" =
     [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
   [%expect
     {|
-    Unsupported
-    Unsupported
-    Unsupported
+    lib.ml
+    {
+      "end": { "character": 6, "line": 3 },
+      "start": { "character": 5, "line": 3 }
+    }
+    lib.ml
+    {
+      "end": { "character": 6, "line": 3 },
+      "start": { "character": 5, "line": 3 }
+    }
+    lib.ml
+    {
+      "end": { "character": 6, "line": 3 },
+      "start": { "character": 5, "line": 3 }
+    }
     |}]
 ;;
 
@@ -234,9 +281,21 @@ let%expect_test "temporary implementations are released after repeated requests"
   run ~repeat:3 [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
   [%expect
     {|
-    Unsupported
-    Unsupported
-    Unsupported
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
     |}]
 ;;
 
@@ -244,28 +303,49 @@ let%expect_test "implementation no longer declares the type" =
   run
     ~buffers:[ "lib.ml", "let x = 1\n" ]
     [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "unrelated implementation type error" =
   run
     ~buffers:[ "lib.ml", "type t = int\nlet x : string = 1\n" ]
     [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "unrelated implementation parse error" =
   run
     ~buffers:[ "lib.ml", "type t = int\nlet x =\n" ]
     [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "recovered interface" =
   run
     ~request_source:"type $t\nval x :\n"
     [ "lib.mli", "type $t\n"; "lib.ml", "type t = int\n" ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "named functor result" =
@@ -273,7 +353,14 @@ let%expect_test "named functor result" =
     [ "lib.mli", "module F (X : sig end) : sig type $t end\n"
     ; "lib.ml", "module F (X : sig end) = struct type t = int end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 38, "line": 0 },
+      "start": { "character": 37, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "generative functor result" =
@@ -281,7 +368,14 @@ let%expect_test "generative functor result" =
     [ "lib.mli", "module F () : sig type $t end\n"
     ; "lib.ml", "module F () = struct type t = int end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 27, "line": 0 },
+      "start": { "character": 26, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "curried functor with nested result module" =
@@ -290,7 +384,70 @@ let%expect_test "curried functor with nested result module" =
     ; ( "lib.ml"
       , "module F (X : sig end) () = struct module M = struct type t = int end end\n" )
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 59, "line": 0 },
+      "start": { "character": 58, "line": 0 }
+    }
+    |}]
+;;
+
+let%expect_test "functor result depending on its parameter" =
+  run
+    [ "lib.mli", "module F (X : sig type u end) : sig type $t end\n"
+    ; "lib.ml", "module F (X : sig type u end) = struct type t = X.u end\n"
+    ];
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 45, "line": 0 },
+      "start": { "character": 44, "line": 0 }
+    }
+    |}]
+;;
+
+let%expect_test "missing functor result type does not find an outer type" =
+  run
+    ~buffers:[ "lib.ml", "type t = int\nmodule F () = struct let x = 0 end\n" ]
+    [ "lib.mli", "module F () : sig type $t end\n"
+    ; "lib.ml", "module F () = struct type t = int end\n"
+    ];
+  [%expect {| [] |}]
+;;
+
+let%expect_test "alias to a functor" =
+  run
+    [ "lib.mli", "module Alias () : sig type $t end\n"
+    ; "lib.ml", "module F () = struct type t = int end\nmodule Alias = F\n"
+    ];
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 27, "line": 0 },
+      "start": { "character": 26, "line": 0 }
+    }
+    |}]
+;;
+
+let%expect_test "alias to a cross-file functor" =
+  run
+    [ "dep.mli", "module F () : sig type t end\n"
+    ; "dep.ml", "module F () = struct type t = int end\n"
+    ; "lib.mli", "module Alias () : sig type $t end\n"
+    ; "lib.ml", "module Alias = Dep.F\n"
+    ];
+  [%expect
+    {|
+    dep.ml
+    {
+      "end": { "character": 27, "line": 0 },
+      "start": { "character": 26, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "functor parameter is not a result declaration" =
@@ -298,7 +455,7 @@ let%expect_test "functor parameter is not a result declaration" =
     [ "lib.mli", "module F (X : sig type $t end) : sig type t end\n"
     ; "lib.ml", "module F (X : sig type t end) = struct type t = X.t end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "cross-file include" =
@@ -308,7 +465,14 @@ let%expect_test "cross-file include" =
     ; "lib.mli", "type $t\n"
     ; "lib.ml", "include Dep\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    dep.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "cross-file module alias" =
@@ -318,12 +482,19 @@ let%expect_test "cross-file module alias" =
     ; "lib.mli", "module Alias : sig type $t end\n"
     ; "lib.ml", "module Alias = Dep\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    dep.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "interface-only dependency is not an implementation" =
   run [ "dep.mli", "type t\n"; "lib.mli", "type $t\n"; "lib.ml", "include Dep\n" ];
-  [%expect {| Unsupported |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "nested signature include" =
@@ -331,7 +502,14 @@ let%expect_test "nested signature include" =
     [ "lib.mli", "module M : sig include sig type $t end end\n"
     ; "lib.ml", "module M = struct type t = int end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 24, "line": 0 },
+      "start": { "character": 23, "line": 0 }
+    }
+    |}]
 ;;
 
 (* The preprocessor blocks only while reading the closed implementation. FIFOs
@@ -444,12 +622,35 @@ cat "$1"
 
 let%expect_test "temporary document is released after cancellation" =
   run_interrupted `Cancel;
-  [%expect {| Unsupported |}]
+  [%expect {| Cancelled |}]
 ;;
 
 let%expect_test "temporary document is released after preprocessing fails" =
   run_interrupted `Fail;
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 6, "line": 0 },
+      "start": { "character": 5, "line": 0 }
+    }
+    |}]
+;;
+
+let%expect_test "nested module in an anonymous module type expression" =
+  run
+    [ ( "lib.mli"
+      , "module M : module type of struct module N = struct type $t = int end end\n" )
+    ; "lib.ml", "module M = struct module N = struct type t = int end end\n"
+    ];
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 42, "line": 0 },
+      "start": { "character": 41, "line": 0 }
+    }
+    |}]
 ;;
 
 let%expect_test "anonymous module type expression" =
@@ -457,5 +658,12 @@ let%expect_test "anonymous module type expression" =
     [ "lib.mli", "module M : module type of struct type $t = int end\n"
     ; "lib.ml", "module M = struct type t = int end\n"
     ];
-  [%expect {| Unsupported |}]
+  [%expect
+    {|
+    lib.ml
+    {
+      "end": { "character": 24, "line": 0 },
+      "start": { "character": 23, "line": 0 }
+    }
+    |}]
 ;;
