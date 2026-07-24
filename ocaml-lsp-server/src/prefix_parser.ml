@@ -16,10 +16,13 @@ include struct
   let infix = set (operator ^ "#")
 
   let name_or_label =
+    let name = alt [ name_char; name_with_dot ] in
     compile
       (seq
-         [ alt [ set "~?``"; str "let%"; str "and%" ] |> opt
-         ; alt [ name_char; name_with_dot ] |> rep1
+         [ alt
+             [ seq [ char '`'; name |> rep ]
+             ; seq [ alt [ set "~?"; str "let%"; str "and%" ] |> opt; name |> rep1 ]
+             ]
          ; stop
          ])
   ;;
