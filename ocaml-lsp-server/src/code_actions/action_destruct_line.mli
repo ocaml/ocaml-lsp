@@ -45,4 +45,4 @@ open Import
        | (_::_, _::_) -> _] *)
 
 val kind : CodeActionKind.t
-val t : State.t -> Code_action.t
+val t : ?dispatch:Action_destruct.dispatch -> State.t -> Code_action.t
