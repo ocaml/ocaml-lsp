@@ -926,7 +926,7 @@ let x : t = `|ocaml}
         "newText": "`T1",
         "range": {
           "end": { "character": 13, "line": 2 },
-          "start": { "character": 13, "line": 2 }
+          "start": { "character": 12, "line": 2 }
         }
       }
     }
@@ -939,7 +939,7 @@ let x : t = `|ocaml}
         "newText": "`T2",
         "range": {
           "end": { "character": 13, "line": 2 },
-          "start": { "character": 13, "line": 2 }
+          "start": { "character": 12, "line": 2 }
         }
       }
     }
