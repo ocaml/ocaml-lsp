@@ -78,6 +78,9 @@ module Response : sig
         | ContentModified
         | RequestCancelled
         | Other of int
+
+      (** Returns the constructor name. [Other _] is represented as ["Other"]. *)
+      val to_string : t -> string
     end
 
     type t =
