@@ -902,6 +902,50 @@ let x : t = `I
     |}]
 ;;
 
+let%expect_test "polymorphic variant completion replaces a backtick-only prefix" =
+  let source =
+    {ocaml|type t = [ `T1 | `T2 ]
+
+let x : t = `|ocaml}
+  in
+  let position = Position.create ~line:2 ~character:13 in
+  let only_variants =
+    List.filter ~f:(fun (item : CompletionItem.t) ->
+      String.equal item.label "`T1" || String.equal item.label "`T2")
+  in
+  print_completions ~pre_print:only_variants source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "`T1",
+      "kind": 20,
+      "label": "`T1",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "`T1",
+        "range": {
+          "end": { "character": 13, "line": 2 },
+          "start": { "character": 13, "line": 2 }
+        }
+      }
+    }
+    {
+      "detail": "`T2",
+      "kind": 20,
+      "label": "`T2",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "`T2",
+        "range": {
+          "end": { "character": 13, "line": 2 },
+          "start": { "character": 13, "line": 2 }
+        }
+      }
+    }
+    |}]
+;;
+
 let%expect_test "completion for holes" =
   let source = {ocaml|let u : int = _|ocaml} in
   let position = Position.create ~line:0 ~character:15 in
