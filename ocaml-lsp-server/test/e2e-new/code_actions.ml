@@ -70,22 +70,13 @@ let%expect_test "no code actions for dune documents" =
     Lsp.Client_request.CodeAction
       (CodeActionParams.create ~textDocument ~range ~context ())
   in
-  iter_lsp_response_result
+  iter_lsp_response
     ~path:"dune"
     ~language_id:"dune"
     ~makeRequest
     ~source
-    (function
-    | Error error -> Jsonrpc.Response.Error.yojson_of_t error |> Test.print_result
-    | Ok actions -> print_code_action_result actions);
-  [%expect
-    {|
-    {
-      "data": { "extension": "" },
-      "code": -32600,
-      "message": "unsupported file extension"
-    }
-    |}]
+    print_code_action_result;
+  [%expect {| No code actions |}]
 ;;
 
 let%expect_test "code actions" =
