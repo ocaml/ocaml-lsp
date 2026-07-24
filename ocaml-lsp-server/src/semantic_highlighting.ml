@@ -375,9 +375,15 @@ module Typedtree_locations : sig
   type t
 
   val collect : Mtyper.typedtree -> t
+  val is_builtin_type : t -> Loc.t -> bool
   val is_parameter : t -> Loc.t -> bool
 end = struct
-  type t = unit Loc.Map.t
+  module Predef = Ocaml_typing.Predef
+
+  type t =
+    { builtin_types : unit Loc.Map.t
+    ; parameters : unit Loc.Map.t
+    }
 
   let iter_typedtree (iterator : Ocaml_typing.Tast_iterator.iterator) = function
     | `Interface signature -> iterator.signature iterator signature
@@ -391,7 +397,15 @@ end = struct
       List.iter (Typedtree.pat_bound_idents pattern) ~f:(fun id ->
         parameter_ids := Ident.Set.add id !parameter_ids)
     in
+    let builtin_types = ref Loc.Map.empty in
     let parameters = ref Loc.Map.empty in
+    let typ (self : I.iterator) (typ : Typedtree.core_type) =
+      (match typ.ctyp_desc with
+       | Ttyp_constr (path, name, _) when Option.is_some (Predef.find_type_constr path) ->
+         builtin_types := Loc.Map.add !builtin_types ~key:name.loc ~data:()
+       | _ -> ());
+      I.default_iterator.typ self typ
+    in
     let expr (self : I.iterator) (expr : Typedtree.expression) =
       (match expr.exp_desc with
        | Texp_function (params, body) ->
@@ -409,11 +423,12 @@ end = struct
        | _ -> ());
       I.default_iterator.expr self expr
     in
-    iter_typedtree { I.default_iterator with expr } typedtree;
-    !parameters
+    iter_typedtree { I.default_iterator with typ; expr } typedtree;
+    { builtin_types = !builtin_types; parameters = !parameters }
   ;;
 
-  let is_parameter t loc = Loc.Map.mem loc t
+  let is_builtin_type t loc = Loc.Map.mem loc t.builtin_types
+  let is_parameter t loc = Loc.Map.mem loc t.parameters
 end
 
 (** To traverse OCaml parsetree and produce semantic tokens. *)
@@ -554,7 +569,16 @@ end = struct
       | Ptyp_var _ ->
         add_token ptyp_loc (Token_type.of_builtin TypeParameter) Token_modifiers_set.empty;
         `Custom_iterator
-      | Ptyp_constr (name, cts) | Ptyp_class (name, cts) ->
+      | Ptyp_constr (name, cts) ->
+        List.iter cts ~f:(fun ct -> self.typ self ct);
+        let modifiers =
+          if Typedtree_locations.is_builtin_type M.typedtree_locations name.loc
+          then Token_modifiers_set.singleton DefaultLibrary
+          else Token_modifiers_set.empty
+        in
+        lident name (Token_type.of_builtin Type) ~modifiers ();
+        `Custom_iterator
+      | Ptyp_class (name, cts) ->
         List.iter cts ~f:(fun ct -> self.typ self ct);
         lident name (Token_type.of_builtin Type) ();
         `Custom_iterator

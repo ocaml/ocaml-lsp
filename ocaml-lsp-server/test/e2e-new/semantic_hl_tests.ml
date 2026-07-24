@@ -639,18 +639,18 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
       type <type|declaration-1>t</1>
 
       type <enum|declaration-2>koo</2> =
-        | <enumMember|declaration-3>Foo</3> of <type|-4>string</4>
-        | <enumMember|declaration-5>Bar</5> of [ `Int of <type|-6>int</6> | `String of <type|-7>string</7> ]
+        | <enumMember|declaration-3>Foo</3> of <type|defaultLibrary-4>string</4>
+        | <enumMember|declaration-5>Bar</5> of [ `Int of <type|defaultLibrary-6>int</6> | `String of <type|defaultLibrary-7>string</7> ]
 
-      val <variable|declaration-8>u</8> : <type|-9>unit</9>
+      val <variable|declaration-8>u</8> : <type|defaultLibrary-9>unit</9>
 
-      val <function|declaration-10>f</10> : <type|-11>unit</11> -> <type|-12>t</12>
+      val <function|declaration-10>f</10> : <type|defaultLibrary-11>unit</11> -> <type|-12>t</12>
     end = struct
-      type <type|declaration-13>t</13> = <type|-14>int</14>
+      type <type|declaration-13>t</13> = <type|defaultLibrary-14>int</14>
 
       type <enum|declaration-15>koo</15> =
-        | <enumMember|declaration-16>Foo</16> of <type|-17>string</17>
-        | <enumMember|declaration-18>Bar</18> of [ `Int of <type|-19>int</19> | `String of <type|-20>string</20> ]
+        | <enumMember|declaration-16>Foo</16> of <type|defaultLibrary-17>string</17>
+        | <enumMember|declaration-18>Bar</18> of [ `Int of <type|defaultLibrary-19>int</19> | `String of <type|defaultLibrary-20>string</20> ]
 
       let <variable|-21>u</21> = ()
 
@@ -660,7 +660,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
     module type <interface|-24>Bar</24> = sig
       type <struct|declaration-25>t</25> =
         { <property|-26>foo</26> : <namespace|-27>Moo</27>.<type|-28>t</28>
-        ; <property|-29>bar</29> : <type|-30>int</30>
+        ; <property|-29>bar</29> : <type|defaultLibrary-30>int</30>
         }
     end
 
@@ -676,14 +676,14 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
 
     module <namespace|definition-59>Foo</59> (<namespace|-60>Arg</60> : <interface|-61>Bar</61>) = struct
       module <namespace|definition-62>Inner_foo</62> = struct
-        type <type|declaration-63>t</63> = <type|-64>string</64>
+        type <type|declaration-63>t</63> = <type|defaultLibrary-64>string</64>
       end
     end
 
     module <namespace|definition-65>Foo_inst</65> = <namespace|-66>Foo</66> (struct
       type <struct|declaration-67>t</67> =
         { <property|-68>foo</68> : <namespace|-69>Moo</69>.<type|-70>t</70>
-        ; <property|-71>bar</71> : <type|-72>int</72>
+        ; <property|-71>bar</71> : <type|defaultLibrary-72>int</72>
         }
     end)
     |}]
@@ -735,7 +735,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 13, "line": 5 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 6 },
@@ -747,13 +747,13 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 23, "line": 6 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 40, "line": 6 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 8 },
@@ -765,7 +765,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 10, "line": 8 },
         "length": 4,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 10 },
@@ -777,7 +777,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 10, "line": 10 },
         "length": 4,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 18, "line": 10 },
@@ -795,7 +795,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 11, "line": 12 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 7, "line": 14 },
@@ -813,7 +813,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 13, "line": 15 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 16 },
@@ -825,13 +825,13 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 23, "line": 16 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 40, "line": 16 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 18 },
@@ -891,7 +891,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 12, "line": 26 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 5, "line": 30 },
@@ -1095,7 +1095,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 13, "line": 42 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 7, "line": 46 },
@@ -1143,7 +1143,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 12, "line": 49 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       }
     ]
     |}]
@@ -1199,7 +1199,7 @@ let x = { M . foo = 0 ; bar = "bar"}
       |};
   [%expect
     {|
-    module <namespace|definition-0>M</0> = struct type <struct|declaration-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
+    module <namespace|definition-0>M</0> = struct type <struct|declaration-1>r</1> = { <property|-2>foo</2> : <type|defaultLibrary-3>int</3> ; <property|-4>bar</4> : <type|defaultLibrary-5>string</5> } end
 
     let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>}
     |}]
@@ -1267,7 +1267,7 @@ let prefixed = ~!1
   [%expect
     {|
     module type <interface|-0>Operators</0> = sig
-      val ( <operator|declaration-1>++</1> ) : <type|-2>int</2> -> <type|-3>int</3> -> <type|-4>int</4>
+      val ( <operator|declaration-1>++</1> ) : <type|defaultLibrary-2>int</2> -> <type|defaultLibrary-3>int</3> -> <type|defaultLibrary-4>int</4>
     end
 
     let ( <operator|definition-5>++</5> ) : int -> int -> int = fun <parameter|-6>left</6> <parameter|-7>right</7> -> <parameter|-8>left</8> <operator|-9>+</9> <parameter|-10>right</10>
@@ -1352,10 +1352,10 @@ end
 
     let <function|definition-50>alias</50> ((<parameter|-51>left</51>, <parameter|-52>right</52>) as <parameter|-53>pair</53>) = <parameter|-54>left</54>, <parameter|-55>right</55>, <parameter|-56>pair</56>
 
-    let <function|definition-57>constrained</57> <parameter|-58>parameter</58> : <type|-59>int</59> = <parameter|-60>parameter</60>
+    let <function|definition-57>constrained</57> <parameter|-58>parameter</58> : <type|defaultLibrary-59>int</59> = <parameter|-60>parameter</60>
 
     module type <interface|-61>S</61> = sig
-      val <function|declaration-62>f</62> : <parameter|-63>labeled</63>:<type|-64>int</64> -> ?<parameter|-65>optional</65>:<type|-66>string</66> -> <type|-67>float</67> -> <type|-68>unit</68>
+      val <function|declaration-62>f</62> : <parameter|-63>labeled</63>:<type|defaultLibrary-64>int</64> -> ?<parameter|-65>optional</65>:<type|defaultLibrary-66>string</66> -> <type|defaultLibrary-67>float</67> -> <type|defaultLibrary-68>unit</68>
     end
     |}]
 ;;
@@ -1374,7 +1374,7 @@ type uses_qualified_builtin = Stdlib.int
       |};
   [%expect
     {|
-    type <type|declaration-0>uses_builtin</0> = <type|-1>int</1> * <type|-2>string</2> * <type|-3>bool</3>
+    type <type|declaration-0>uses_builtin</0> = <type|defaultLibrary-1>int</1> * <type|defaultLibrary-2>string</2> * <type|defaultLibrary-3>bool</3>
 
     type <enum|declaration-4>int</4> = <enumMember|declaration-5>Shadowed</5>
 
@@ -1437,13 +1437,13 @@ type builtin_after_error = string
       |};
   [%expect
     {|
-    type <type|declaration-0>builtin_before_error</0> = <type|-1>int</1>
+    type <type|declaration-0>builtin_before_error</0> = <type|defaultLibrary-1>int</1>
 
     let <function|definition-2>mismatched</2> <parameter|-3>parameter</3> = <parameter|-4>parameter</4> <operator|-5>+</5> <string|-6>"not an int"</6>
 
     let <function|definition-7>unbound_callee</7> <parameter|-8>parameter</8> = <function|-9>missing_function</9> <parameter|-10>parameter</10>
 
-    let <function|definition-11>annotated</11> (<parameter|-12>parameter</12> : <type|-13>int</13>) : <type|-14>missing_type</14> = <parameter|-15>parameter</15>
+    let <function|definition-11>annotated</11> (<parameter|-12>parameter</12> : <type|defaultLibrary-13>int</13>) : <type|-14>missing_type</14> = <parameter|-15>parameter</15>
 
     let <function|definition-16>later</16> <parameter|-17>parameter</17> = <parameter|-18>parameter</18>
 
@@ -1451,7 +1451,7 @@ type builtin_after_error = string
 
     type <type|declaration-21>shadowed_after_error</21> = <type|-22>int</22>
 
-    type <type|declaration-23>builtin_after_error</23> = <type|-24>string</24>
+    type <type|declaration-23>builtin_after_error</23> = <type|defaultLibrary-24>string</24>
     |}]
 ;;
 
@@ -1474,9 +1474,9 @@ module type S = functor (M : sig type t end) -> sig type u = M.t end
   [%expect
     {|
     type <typeParameter|-0>'a</0> <struct|declaration-1>cell</1> = { mutable <property|-2>field</2> : <typeParameter|-3>'a</3> }
-    type <enum|declaration-4>packed</4> = <enumMember|declaration-5>Pack</5> : <typeParameter|-6>'a</6> * (<typeParameter|-7>'a</7> -> <type|-8>string</8>) -> <type|-9>packed</9>
+    type <enum|declaration-4>packed</4> = <enumMember|declaration-5>Pack</5> : <typeParameter|-6>'a</6> * (<typeParameter|-7>'a</7> -> <type|defaultLibrary-8>string</8>) -> <type|-9>packed</9>
     class virtual base = object (<variable|-10>self</10>)
-      method virtual value : <type|-11>int</11>
+      method virtual value : <type|defaultLibrary-11>int</11>
       method get = <parameter|-12>self</12>#<method|-13>value</13>
     end
     class child = object
