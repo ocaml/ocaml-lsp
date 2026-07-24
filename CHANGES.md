@@ -3,6 +3,9 @@
 ## Fixes
 
 - Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)
+- Ensure `textDocument/documentSymbol` returns a `selectionRange` contained
+  within its `range`, so clients no longer reject the document outline.
+  (#1775, fixes #1560, @Leonard013)
 - Keep URI query parameters separate from filesystem paths. (#1776, @rgrinberg)
 - Preserve URI paths beginning with two slashes across serialization. (#1798, @rgrinberg)
 - Preserve percent-encoded URI fragments across parsing and serialization. (#1801, @rgrinberg)

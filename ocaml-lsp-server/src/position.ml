@@ -44,6 +44,18 @@ let compare ({ line; character } : t) (t : t) : Ordering.t =
   | r -> r
 ;;
 
+let max x y =
+  match compare x y with
+  | Lt -> y
+  | Eq | Gt -> x
+;;
+
+let min x y =
+  match compare x y with
+  | Lt | Eq -> x
+  | Gt -> y
+;;
+
 let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
   match compare t r.start, compare t r.end_ with
   | Lt, Lt -> `Outside (abs (r.start - t))

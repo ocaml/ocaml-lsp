@@ -12,16 +12,36 @@ let symbol_kind_of_outline_kind = function
   | `Method -> Method
 ;;
 
+let normalize_selection_range ~(range : Range.t) = function
+  | None -> range
+  | Some (selection_range : Range.t) ->
+    let selection_is_valid =
+      match Position.compare selection_range.start selection_range.end_ with
+      | Lt | Eq -> true
+      | Gt -> false
+    in
+    if selection_is_valid && Range.contains range selection_range
+    then selection_range
+    else Option.value (Range.intersection range selection_range) ~default:range
+;;
+
 let rec items_to_symbols items =
   List.rev_map
     ~f:
       (fun
         { Query_protocol.outline_name; outline_kind; location; selection; children; _ } ->
+      let range = Range.of_loc location in
+      (* The LSP spec requires [selectionRange] to be contained in [range].
+         Preserve valid selections, clip non-empty overlaps, and fall back to
+         [range] for ghost, invalid, touching, or disjoint selections. *)
+      let selectionRange =
+        normalize_selection_range ~range (Range.of_loc_opt selection)
+      in
       DocumentSymbol.create
         ~name:outline_name
         ~kind:(symbol_kind_of_outline_kind outline_kind)
-        ~range:(Range.of_loc location)
-        ~selectionRange:(Range.of_loc selection)
+        ~range
+        ~selectionRange
         ~children:(items_to_symbols children)
         ())
     items
