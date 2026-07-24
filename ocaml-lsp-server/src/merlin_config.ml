@@ -70,12 +70,7 @@ module Process = struct
       | Some bin -> bin, [ "ocaml-merlin" ]
     in
     match Bin.which bin with
-    | None ->
-      Jsonrpc.Response.Error.raise
-        (Jsonrpc.Response.Error.make
-           ~code:InternalError
-           ~message:(Printf.sprintf "%s binary not found" bin)
-           ())
+    | None -> Fiber.return (Error (Printf.sprintf "%s binary not found" bin))
     | Some prog ->
       let stdin_r, stdin_w = Unix.pipe () in
       let stdout_r, stdout_w = Unix.pipe () in
@@ -107,7 +102,7 @@ module Process = struct
       let* stdin = make stdin_w Output in
       let+ stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
-      { prog; pid; initial_cwd = dir; stdin; stdout; session }
+      Ok { prog; pid; initial_cwd = dir; stdin; stdout; session }
   ;;
 end
 
@@ -168,13 +163,16 @@ end
 
 let get_process t ~dir =
   match Table.find t.running dir with
-  | Some p -> Fiber.return p
+  | Some p -> Fiber.return (Ok p)
   | None ->
     let* process = Process.start ~dir in
-    let entry = Entry.create t process in
-    Table.add_exn t.running ~key:dir ~data:entry;
-    let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
-    entry
+    (match process with
+     | Error _ as error -> Fiber.return error
+     | Ok process ->
+       let entry = Entry.create t process in
+       Table.add_exn t.running ~key:dir ~data:entry;
+       let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
+       Ok entry)
 ;;
 
 type context =
@@ -334,24 +332,31 @@ let config (t : t) : Mconfig.t Fiber.t =
       let+ () = destroy t in
       Mconfig.get_external_config t.path t.initial
     | Some (ctx, config_path) ->
-      let* entry = get_process t.db ~dir:ctx.process_dir in
-      let* () =
-        match t.entry with
-        | None ->
-          use_entry entry;
-          Fiber.return ()
-        | Some entry' ->
-          if Entry.equal entry entry'
-          then Fiber.return ()
-          else
-            let+ () = destroy t in
-            use_entry entry
+      let* dot, failures =
+        let* entry = get_process t.db ~dir:ctx.process_dir in
+        match entry with
+        | Error failure ->
+          let+ () = destroy t in
+          empty, [ failure ]
+        | Ok entry ->
+          let* () =
+            match t.entry with
+            | None ->
+              use_entry entry;
+              Fiber.return ()
+            | Some entry' ->
+              if Entry.equal entry entry'
+              then Fiber.return ()
+              else
+                let+ () = destroy t in
+                use_entry entry
+          in
+          get_config entry.process ~workdir:ctx.workdir t.path
       in
-      let+ dot, failures = get_config entry.process ~workdir:ctx.workdir t.path in
       let merlin =
         Mconfig.merge_merlin_config dot t.initial.merlin ~failures ~config_path
       in
-      Mconfig.normalize { t.initial with merlin })
+      Fiber.return (Mconfig.normalize { t.initial with merlin }))
 ;;
 
 module DB = struct
